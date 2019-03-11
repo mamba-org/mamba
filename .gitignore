@@ -1,0 +1,7 @@
+__cache__/
+.ipynb_checkpoints/
+*.cppimporthash
+.rendered*
+installed.json
+*.so
+

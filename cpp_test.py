@@ -19,6 +19,8 @@ def ensure_dir(file_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+ensure_dir("./__cache__/")
+
 def download(args):
     channel, url, idx = args
     print("Checking: ", args)

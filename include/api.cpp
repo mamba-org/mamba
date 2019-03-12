@@ -21,6 +21,7 @@ extern "C"
 static Pool* global_pool;
 
 #include <iostream>
+#include <map>
 
 #include "parsing.hpp"
 
@@ -49,7 +50,7 @@ std::ostream& operator<<(std::ostream& os, repo_package& pkg)
     return os << pkg.name << " -> " << pkg.version << ", " << pkg.build_string;
 }
 
-void parse_repo(ParsedJson::iterator &i, Repo* repo) {
+void parse_repo(ParsedJson::iterator &i, Repo* repo, std::map<Id, std::string>& rmap) {
   package pkg;
 
   if (!i.move_to_key("packages"))
@@ -65,6 +66,8 @@ void parse_repo(ParsedJson::iterator &i, Repo* repo) {
   do {
     Id s_id = repo_add_solvable(repo);
     auto& s = global_pool->solvables[s_id];
+    rmap[s_id] = i.get_string();
+
     i.next(); i.down();
     do {
         if (strcmp(i.get_string(), "name") == 0)
@@ -148,7 +151,7 @@ void parse_repo(ParsedJson::iterator &i, Repo* repo) {
 }
 
 
-void installed_packages(Repo* repo, ParsedJson::iterator &i) {
+void installed_packages(Repo* repo, ParsedJson::iterator &i, std::map<Id, std::string>& rmap) {
   package pkg;
   switch (i.get_type()) {
   case '{':
@@ -183,6 +186,7 @@ void installed_packages(Repo* repo, ParsedJson::iterator &i) {
     i.up();
 
     Id s_id = repo_add_solvable(repo);
+    rmap[s_id] = std::string(pkg.name);
     auto& s = global_pool->solvables[s_id];
 
     s.name = pool_str2id(global_pool, pkg.name.c_str(), 1);
@@ -195,7 +199,7 @@ void installed_packages(Repo* repo, ParsedJson::iterator &i) {
     if (i.down()) {
       do {
         if (i.is_object_or_array()) {
-          installed_packages(repo, i);
+          installed_packages(repo, i, rmap);
         }
       } while (i.next());
       i.up();
@@ -211,27 +215,32 @@ void installed_packages(Repo* repo, ParsedJson::iterator &i) {
   }
 }
 
-std::string solve(std::vector<std::string> repos,
-                  std::string installed,
-                  std::vector<std::string> jobs)
+auto solve(std::vector<std::pair<std::string, std::string>> repos,
+           std::string installed,
+           std::vector<std::string> jobs)
 {
     Pool* pool = pool_create();
     global_pool = pool;
 
+    std::map<std::string, std::map<Id, std::string>> repo_to_file_map;
+
     if (installed.size())
     {
         Repo* repo = repo_create(pool, "installed");
+        repo_to_file_map["installed"] = std::map<Id, std::string>();
         pool_set_installed(pool, repo);
         std::string_view p = get_corpus(installed);
         ParsedJson pj = build_parsed_json(p);
         ParsedJson::iterator pjh(pj);
-        installed_packages(repo, pjh);
+        installed_packages(repo, pjh, repo_to_file_map["installed"]);
     }
+
     for (auto& fn : repos)
     {
-        std::string_view p = get_corpus(fn);
+        std::string_view p = get_corpus(fn.second);
 
-        Repo* repo = repo_create(pool, fn.c_str());
+        repo_to_file_map[fn.first] = std::map<Id, std::string>();
+        Repo* repo = repo_create(pool, fn.first.c_str());
 
         ParsedJson pj = build_parsed_json(p);
         if (!pj.isValid())
@@ -240,11 +249,11 @@ std::string solve(std::vector<std::string> repos,
         }
         else
         {
-            std::cout << "Parsing " << fn << std::endl;
+            std::cout << "Parsing " << fn.second << std::endl;
         }
         ParsedJson::iterator pjh(pj);
-        parse_repo(pjh, repo);
-        std::cout << repo->nsolvables << " packages in " << fn << std::endl;
+        parse_repo(pjh, repo, repo_to_file_map[fn.first]);
+        std::cout << repo->nsolvables << " packages in " << fn.first << std::endl;
         repo_internalize(repo);
     }
 
@@ -282,8 +291,10 @@ std::string solve(std::vector<std::string> repos,
     }
     if (cnt > 0)
     {
-        return "";
+        exit(1);
     }
+
+    queue_free(&problem_queue);
 
     transaction_print(transy);
 
@@ -295,6 +306,8 @@ std::string solve(std::vector<std::string> repos,
 
     std::cout << "Solution: \n" << std::endl;
 
+    std::vector<std::pair<std::string, std::string>> to_install_structured; 
+    std::vector<std::pair<std::string, std::string>> to_remove_structured; 
     std::vector<std::string> to_install;
     for (int i = 0; i < q2.count; ++i)
     {
@@ -306,6 +319,60 @@ std::string solve(std::vector<std::string> repos,
         vsplit.pop_back();
         version = pystring::join(".", vsplit);
         to_install.back() += version;
+
+        auto& s = global_pool->solvables[q2.elements[i]];
+        // std::pair<std::string, std::string> elem = {std::string(s.repo->name), repo_to_file_map[s.repo->name][q2.elements[i]]};
+        // to_install_structured.push_back(elem);
+    }
+    queue_free(&q2);
+
+    {
+        Queue classes, pkgs;
+        int i, j, mode;
+        const char *n;
+
+        queue_init(&classes);
+        queue_init(&pkgs);
+        mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
+               SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+        transaction_classify(transy, mode, &classes);
+        Id cls, cnt;
+        for (i = 0; i < classes.count; i += 4) {
+            cls = classes.elements[i];
+            cnt = classes.elements[i + 1];
+
+            transaction_classify_pkgs(transy, mode, cls, classes.elements[i + 2],
+                                      classes.elements[i + 3], &pkgs);
+            for (j = 0; j < pkgs.count; j++) {
+              Id p = pkgs.elements[j];
+              Solvable *s = pool->solvables + p;
+              Solvable *s2;
+
+              switch (cls) {
+              case SOLVER_TRANSACTION_DOWNGRADED:
+              case SOLVER_TRANSACTION_UPGRADED:
+                s2 = pool->solvables + transaction_obs_pkg(transy, p);
+                to_remove_structured.emplace_back(s->repo->name, repo_to_file_map[s->repo->name][p]);
+                to_install_structured.emplace_back(s2->repo->name, repo_to_file_map[s2->repo->name][transaction_obs_pkg(transy, p)]);
+                break;
+              case SOLVER_TRANSACTION_VENDORCHANGE:
+              case SOLVER_TRANSACTION_ARCHCHANGE:
+                // Not used yet.
+                break;
+              case SOLVER_TRANSACTION_ERASE:
+                to_remove_structured.emplace_back(s->repo->name, repo_to_file_map[s->repo->name][p]);
+                break;
+              case SOLVER_TRANSACTION_INSTALL:
+                to_install_structured.emplace_back(s->repo->name, repo_to_file_map[s->repo->name][p]);
+                break;
+              default:
+                std::cout << "CASE NOT HANDLED." << std::endl;
+                break;
+              }
+        }
+      }
+      queue_free(&classes);
+      queue_free(&pkgs);
     }
 
     std::sort(to_install.begin(), to_install.end());
@@ -316,5 +383,9 @@ std::string solve(std::vector<std::string> repos,
         result += "- " + line + "\n";
     }
 
-    return result;
+    transaction_free(transy);
+    // pool free also frees all repos etc.
+    pool_free(pool);
+
+    return std::make_tuple(to_install_structured, to_remove_structured);
 }

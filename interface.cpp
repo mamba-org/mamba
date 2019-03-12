@@ -12,7 +12,7 @@ setup_pybind11(cfg)
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
-
+ 
 PYBIND11_MODULE(interface, m) {
     m.def("solve", &solve);
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <stdexcept>
 #include <string_view>
+#include <cassert>
 
 extern "C"
 {
@@ -165,6 +166,11 @@ Id get_fuzzy_relation(Id name_id, const std::string_view& vnumber, Pool* pool)
             lversion = std::strtoul(&vnumber[idx_front + 1], &end_ptr, 10);
             break;
         }
+    }
+    if (idx_front == -1)
+    {
+        auto* end_ptr = const_cast<char*>(&vnumber[idx_back]);
+        lversion = std::strtoul(&vnumber[idx_front + 1], &end_ptr, 10);
     }
 
     // lower_version = vnumber[0] -> vnumber[idx_back];

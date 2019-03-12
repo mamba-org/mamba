@@ -10,7 +10,8 @@ import time
 from datetime import datetime, timedelta
 
 channels = ['conda-forge', 'r', 'anaconda']
-what_to_get = "opencv ==3.4.2"
+# what_to_get = ["opencv ==3.4.2"]
+what_to_get = ["xtensor-r", "r-base ==3.5.1"]
 
 url_template = 'https://conda.anaconda.org/{}/linux-64/repodata.json.bz2'
 

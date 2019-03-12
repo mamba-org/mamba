@@ -1,12 +1,14 @@
 /*
 <%
-cfg['compiler_args'] = ['-O0', '-std=c++17', '-march=native']
+cfg['compiler_args'] = ['-O3', '-std=c++17', '-march=native']
 cfg['libraries'] = ['solv']
 setup_pybind11(cfg)
 %>
 */
 
 #include "parsing.hpp"
+
+#include <pybind11/pybind11.h>
 
 static Pool* gb_pool;
 

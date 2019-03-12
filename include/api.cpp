@@ -213,7 +213,7 @@ void installed_packages(Repo* repo, ParsedJson::iterator &i) {
 
 std::string solve(std::vector<std::string> repos,
                   std::string installed,
-                  std::string look_for)
+                  std::vector<std::string> jobs)
 {
     Pool* pool = pool_create();
     global_pool = pool;
@@ -244,7 +244,7 @@ std::string solve(std::vector<std::string> repos,
         }
         ParsedJson::iterator pjh(pj);
         parse_repo(pjh, repo);
-        std::cout << "Packages in " << fn << ": " << repo->nsolvables << std::endl;
+        std::cout << repo->nsolvables << " packages in " << fn << std::endl;
         repo_internalize(repo);
     }
 
@@ -252,18 +252,23 @@ std::string solve(std::vector<std::string> repos,
     Solver* solvy = solver_create(global_pool);
     solver_set_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE, 1);
 
-    std::cout << "ALLOW DOWNGRADE? : " << solver_get_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE);
+    std::cout << "Allowing downgrade: " << solver_get_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE) << std::endl;
 
-    std::cout << "\nCreating the solver." << std::endl;
+    std::cout << "Creating the solver...\n" << std::endl;
 
     Queue q;
     queue_init(&q);
-    int rel = parse_to_relation(look_for, pool);
-    std::cout << "Dep 2 str: " << pool_dep2str(pool, rel);
+    for (const auto& job : jobs)
+    {
+        int rel = parse_to_relation(job, pool);
+        std::cout << "Job: " << pool_dep2str(pool, rel) << std::endl;;
+        queue_push2(&q, SOLVER_INSTALL | SOLVER_SOLVABLE_NAME, rel);
+    }
 
-    queue_push2(&q, SOLVER_INSTALL | SOLVER_SOLVABLE_NAME, rel);
+    std::cout << "\n";
 
     solver_solve(solvy, &q);
+
     Transaction* transy = solver_create_transaction(solvy);
     int cnt = solver_problem_count(solvy);
     Queue problem_queue;
@@ -273,7 +278,11 @@ std::string solve(std::vector<std::string> repos,
     for (int i = 1; i <= cnt; i++)
     {
         queue_push(&problem_queue, i);
-        std::cout << "PROBLEM: " << solver_problem2str(solvy, i);
+        std::cout << "Problem: " << solver_problem2str(solvy, i) << std::endl;
+    }
+    if (cnt > 0)
+    {
+        return "";
     }
 
     transaction_print(transy);
@@ -284,7 +293,7 @@ std::string solve(std::vector<std::string> repos,
     cut = transaction_installedresult(transy, &q2);
     queue_truncate(&q2, cut);
 
-    std::cout << "Solution: " << std::endl;
+    std::cout << "Solution: \n" << std::endl;
 
     std::vector<std::string> to_install;
     for (int i = 0; i < q2.count; ++i)

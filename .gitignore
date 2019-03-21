@@ -4,4 +4,7 @@ __cache__/
 .rendered*
 installed.json
 *.so
-
+__pycache__
+.vscode
+.ipynb_checkpoints
+build/

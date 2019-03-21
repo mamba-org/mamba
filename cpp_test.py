@@ -22,8 +22,9 @@ api = cppimport.imp('interface')
 
 prefix = '/home/wolfv/miniconda3/'
 channels = ['conda-forge', 'r', 'anaconda']
-what_to_get = ["opencv ==3.4.2"]
-# what_to_get = ["xtensor-r", "r-base ==3.5.1"]
+# what_to_get = ["opencv ==3.4.2"]
+# what_to_get = ["conda-build"]
+what_to_get = ["xtensor-r", "r-base ==3.5.1"]
 url_template = 'https://conda.anaconda.org/{}/linux-64/repodata.json.bz2'
 
 
@@ -105,7 +106,7 @@ for c, pkg in to_unlink:
         if p['name'] == pkg:
             to_unlink_records.append(p)
 
-for c, pkg in to_link:
+for c, pkg, json_ in to_link:
     for p in channel_data[c]._package_records:
         if p['fn'] == pkg:
             to_link_records.append(p)

@@ -88,7 +88,7 @@ using namespace std::string_literals;
 
     namespace {
 
-        void split_whitespace(const string_view& str, std::vector<string_view>& result, std::ptrdiff_t maxsplit)
+        inline void split_whitespace(const string_view& str, std::vector<string_view>& result, std::ptrdiff_t maxsplit)
         {
             std::size_t i, j, len = str.size();
 
@@ -124,7 +124,7 @@ using namespace std::string_literals;
             }
         }
 
-        void rsplit_whitespace(const string_view& str, std::vector<string_view>& result, std::ptrdiff_t maxsplit)
+        inline void rsplit_whitespace(const string_view& str, std::vector<string_view>& result, std::ptrdiff_t maxsplit)
         {
             std::size_t len = str.size();
             std::size_t i, j;
@@ -162,7 +162,7 @@ using namespace std::string_literals;
         }
     } // namespace
 
-    std::vector<string_view> split(const string_view& str, const string_view& sep, std::ptrdiff_t maxsplit)
+    inline std::vector<string_view> split(const string_view& str, const string_view& sep, std::ptrdiff_t maxsplit)
     {
         std::vector<string_view> result;
 
@@ -204,7 +204,7 @@ using namespace std::string_literals;
         return result;
     }
 
-    std::vector<string_view> rsplit(const string_view& str, const string_view& sep, std::ptrdiff_t maxsplit)
+    inline std::vector<string_view> rsplit(const string_view& str, const string_view& sep, std::ptrdiff_t maxsplit)
     {
         if (maxsplit < 0)
         {
@@ -249,7 +249,7 @@ using namespace std::string_literals;
     }
 
     template <class S = std::string>
-    string_view do_strip(const string_view& str, strip_dir striptype, const string_view& chars)
+    inline string_view do_strip(const string_view& str, strip_dir striptype, const string_view& chars)
     {
         std::ptrdiff_t i, j;
         std::ptrdiff_t len = static_cast<std::ptrdiff_t>(str.size());
@@ -316,7 +316,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    std::array<string_view, 3> partition(const string_view& str, const string_view& sep)
+    inline std::array<string_view, 3> partition(const string_view& str, const string_view& sep)
     {
         std::array<string_view, 3> result;
         std::ptrdiff_t index = find(str, sep);
@@ -337,7 +337,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    std::array<string_view, 3> rpartition(const string_view& str, const string_view& sep)
+    inline std::array<string_view, 3> rpartition(const string_view& str, const string_view& sep)
     {
         std::array<string_view, 3> result;
         std::ptrdiff_t index = rfind(str, sep);
@@ -358,23 +358,23 @@ using namespace std::string_literals;
         return result;
     }
 
-    string_view strip(const string_view& str, const string_view& chars)
+    inline string_view strip(const string_view& str, const string_view& chars)
     {
         return do_strip(str, strip_dir::both, chars);
     }
 
-    string_view lstrip(const string_view& str, const string_view& chars)
+    inline string_view lstrip(const string_view& str, const string_view& chars)
     {
         return do_strip(str, strip_dir::left, chars);
     }
 
-    string_view rstrip(const string_view& str, const string_view& chars)
+    inline string_view rstrip(const string_view& str, const string_view& chars)
     {
         return do_strip(str, strip_dir::right, chars);
     }
 
     template <class S, class C>
-   	string join(const S& str, const C& seq)
+   	inline string join(const S& str, const C& seq)
     {
         std::size_t seqlen = detail::size(seq), i;
 
@@ -401,7 +401,7 @@ using namespace std::string_literals;
          * -1 on error, 0 if not found and 1 if found.
          ********************************************************************/
         template <class S, class C>
-        std::ptrdiff_t _string_tailmatch(const S& self, const C& substr,
+        inline std::ptrdiff_t _string_tailmatch(const S& self, const C& substr,
                                          std::ptrdiff_t start, std::ptrdiff_t end, std::ptrdiff_t direction)
         {
             std::ptrdiff_t len = static_cast<std::ptrdiff_t>(detail::size(self));
@@ -442,7 +442,7 @@ using namespace std::string_literals;
     } // namespace
 
     template <class S = std::string, class C = S>
-    bool endswith(const S& str, const C& suffix, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline bool endswith(const S& str, const C& suffix, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         std::ptrdiff_t result = _string_tailmatch(str, suffix, (std::ptrdiff_t)start, (std::ptrdiff_t)end, +1);
         // if (result == -1) // TODO: Error condition
@@ -451,7 +451,7 @@ using namespace std::string_literals;
     }
 
     template <class S = std::string, class C>
-    bool startswith(const S& str, const C& prefix, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline bool startswith(const S& str, const C& prefix, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         std::ptrdiff_t result = _string_tailmatch(str, prefix, (std::ptrdiff_t)start, (std::ptrdiff_t)end, -1);
         // if (result == -1) // TODO: Error condition
@@ -460,7 +460,7 @@ using namespace std::string_literals;
     }
 
     template <class S = std::string>
-    bool isalnum(const S& str)
+    inline bool isalnum(const S& str)
     {
         auto it = std::begin(str),
              end = detail::fast_end(str);
@@ -480,7 +480,7 @@ using namespace std::string_literals;
     }
 
     template <class S = std::string>
-    bool isalpha(const S& str)
+    inline bool isalpha(const S& str)
     {
         auto it = std::begin(str),
              end = detail::fast_end(str);
@@ -499,7 +499,7 @@ using namespace std::string_literals;
         return true;
     }
 
-    bool isdigit(const string_view& str)
+    inline bool isdigit(const string_view& str)
     {
         std::size_t len = str.size(), i;
         if (len == 0)
@@ -516,7 +516,7 @@ using namespace std::string_literals;
         return true;
     }
 
-    bool islower(const string_view& str)
+    inline bool islower(const string_view& str)
     {
         std::size_t len = str.size(), i;
         if (len == 0)
@@ -534,7 +534,7 @@ using namespace std::string_literals;
         return true;
     }
 
-    bool isspace(const string_view& str)
+    inline bool isspace(const string_view& str)
     {
         std::size_t len = str.size(), i;
         if (len == 0)
@@ -552,7 +552,7 @@ using namespace std::string_literals;
         return true;
     }
 
-    bool istitle(const string_view& str)
+    inline bool istitle(const string_view& str)
     {
         std::size_t len = str.size(), i;
 
@@ -598,7 +598,7 @@ using namespace std::string_literals;
         return cased;
     }
 
-    bool isupper(const string_view& str)
+    inline bool isupper(const string_view& str)
     {
         std::size_t len = str.size(), i;
         if (len == 0)
@@ -617,7 +617,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    S capitalize(const S& str)
+    inline S capitalize(const S& str)
     {
         S s(str);
         std::size_t len = detail::size(s), i;
@@ -639,7 +639,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    S lower(const S& str)
+    inline S lower(const S& str)
     {
         S s(str);
         std::size_t len = detail::size(s), i;
@@ -656,7 +656,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    S upper(const S& str)
+    inline S upper(const S& str)
     {
         S s(str);
         std::size_t len = detail::size(s), i;
@@ -673,7 +673,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    S swapcase(const S& str)
+    inline S swapcase(const S& str)
     {
         S s(str);
         std::size_t len = detail::size(s), i;
@@ -694,7 +694,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    S title(const S& str)
+    inline S title(const S& str)
     {
         S s(str);
         std::size_t len = detail::size(s), i;
@@ -729,7 +729,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    string translate(const S& str, const string_view& table, const string_view& deletechars)
+    inline string translate(const S& str, const string_view& table, const string_view& deletechars)
     {
         string s;
         std::size_t len = detail::size(str), del_len = deletechars.size();
@@ -779,7 +779,7 @@ using namespace std::string_literals;
     	std::ptrdiff_t n;
     };
 
-	std::ostream& operator<<(std::ostream& str, const fillstream& fs)
+	inline std::ostream& operator<<(std::ostream& str, const fillstream& fs)
 	{
 		for (std::ptrdiff_t i = 0; i < fs.n; ++i)
 		{
@@ -788,7 +788,7 @@ using namespace std::string_literals;
 		return str;
 	}
 
-    string zfill(const string_view& str, std::ptrdiff_t width)
+    inline string zfill(const string_view& str, std::ptrdiff_t width)
     {
         std::ptrdiff_t len = (std::ptrdiff_t)str.size();
 
@@ -813,7 +813,7 @@ using namespace std::string_literals;
         return s;
     }
 
-    string ljust(const string_view& str, std::ptrdiff_t width)
+    inline string ljust(const string_view& str, std::ptrdiff_t width)
     {
         std::ptrdiff_t len = static_cast<std::ptrdiff_t>(str.size());
         std::ostringstream os;
@@ -821,7 +821,7 @@ using namespace std::string_literals;
         return os.str();
     }
 
-    string rjust(const string_view& str, std::ptrdiff_t width)
+    inline string rjust(const string_view& str, std::ptrdiff_t width)
     {
         std::ptrdiff_t len = static_cast<std::ptrdiff_t>(str.size());
         std::ostringstream os;
@@ -829,7 +829,7 @@ using namespace std::string_literals;
         return os.str();
     }
 
-    string center(const string_view& str, std::ptrdiff_t width)
+    inline string center(const string_view& str, std::ptrdiff_t width)
     {
         std::ptrdiff_t len = static_cast<std::ptrdiff_t>(str.size());
         std::ptrdiff_t marg, left;
@@ -840,7 +840,7 @@ using namespace std::string_literals;
         return os.str();
     }
 
-    string_view slice(const string_view& str, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline string_view slice(const string_view& str, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         ADJUST_INDICES(start, end, (std::ptrdiff_t) str.size());
         if (start >= end)
@@ -849,7 +849,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    std::ptrdiff_t find(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline std::ptrdiff_t find(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         ADJUST_INDICES(start, end, (std::ptrdiff_t) detail::size(str));
 
@@ -870,13 +870,13 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    std::ptrdiff_t index(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline std::ptrdiff_t index(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         return find(str, sub, start, end);
     }
 
     template <class S>
-    std::ptrdiff_t rfind(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline std::ptrdiff_t rfind(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         ADJUST_INDICES(start, end, (std::ptrdiff_t) str.size());
 
@@ -891,12 +891,12 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    std::ptrdiff_t rindex(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline std::ptrdiff_t rindex(const string_view& str, const S& sub, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         return rfind(str, sub, start, end);
     }
 
-    string expandtabs(const string_view& str, std::ptrdiff_t tabsize)
+    inline string expandtabs(const string_view& str, std::ptrdiff_t tabsize)
     {
     	std::ostringstream os;
         std::size_t len = str.size(), i = 0;
@@ -927,7 +927,7 @@ using namespace std::string_literals;
         return os.str();
     }
 
-    std::ptrdiff_t count(const string_view& str, const string_view& substr, std::ptrdiff_t start, std::ptrdiff_t end)
+    inline std::ptrdiff_t count(const string_view& str, const string_view& substr, std::ptrdiff_t start, std::ptrdiff_t end)
     {
         std::ptrdiff_t nummatches = 0;
         std::ptrdiff_t cursor = start;
@@ -946,7 +946,7 @@ using namespace std::string_literals;
     }
 
     template <class S, class T, class U>
-    string replace(const S& str, const T& oldstr, const U& newstr, std::ptrdiff_t count)
+    inline string replace(const S& str, const T& oldstr, const U& newstr, std::ptrdiff_t count)
     {
         std::ptrdiff_t sofar = 0;
         std::ptrdiff_t cursor = 0;
@@ -976,7 +976,7 @@ using namespace std::string_literals;
         return s;
     }
 
-    std::vector<string_view> splitlines(const string_view& str, bool keepends)
+    inline std::vector<string_view> splitlines(const string_view& str, bool keepends)
     {
         std::vector<string_view> result;
         std::size_t len = str.size(), i, j, eol;
@@ -1011,7 +1011,7 @@ using namespace std::string_literals;
     }
 
     template <class S>
-    string mul(const string_view& str, std::ptrdiff_t n)
+    inline string mul(const string_view& str, std::ptrdiff_t n)
     {
         // Early exits
         if (n <= 0)

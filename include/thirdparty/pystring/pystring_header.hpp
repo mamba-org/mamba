@@ -1,3 +1,5 @@
+#ifndef PYSTRING_HEADER
+#define PYSTRING_HEADER
 
 namespace pystring {
 
@@ -398,3 +400,5 @@ namespace os {
 
 } // namespace path
 } // namespace os
+
+#endif

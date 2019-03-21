@@ -1,6 +1,3 @@
-#ifndef MAMBA_PARSING
-#define MAMBA_PARSING
-
 #include "parsing.hpp"
 
 #include <array>
@@ -291,5 +288,3 @@ Id parse_to_relation(const std::string_view& dep, Pool* pool) {
         return id;
     }
 }
-
-#endif

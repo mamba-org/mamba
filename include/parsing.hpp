@@ -1,5 +1,5 @@
-#ifndef MAMBA_PARSING
-#define MAMBA_PARSING
+#ifndef MAMBA_PARSING_HPP
+#define MAMBA_PARSING_HPP
 
 #include <iostream>
 #include <array>

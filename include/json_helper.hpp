@@ -1,6 +1,9 @@
-#include "thirdparty/simdjson/simdjson.h"
+#ifndef MAMBA_JSON_HELPER_HPP
+#define MAMBA_JSON_HELPER_HPP
 
 #include <ostream>
+
+#include "thirdparty/simdjson/simdjson.h"
 
 void compute_dump(ParsedJson::iterator& pjh, std::ostream& os)
 {
@@ -45,3 +48,5 @@ void compute_dump(ParsedJson::iterator& pjh, std::ostream& os)
         pjh.print(os); // just print the lone value
     }
 }
+
+#endif

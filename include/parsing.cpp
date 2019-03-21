@@ -18,12 +18,6 @@ extern "C"
 
 #include <iostream>
 
-struct parsed_relation {
-    int relation = -1;
-    bool fuzzy = false;
-    std::string_view version;
-};
-
 // TODO better concat
 std::string normalize_version(std::string_view version, int build_number)
 {

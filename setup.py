@@ -1,6 +1,6 @@
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-import sys, os
+import sys, os, platform
 import setuptools
 
 __version__ = '0.0.1'
@@ -53,12 +53,15 @@ def has_flag(compiler, flagname):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'msvc': ['/EHsc', '/std:c++17', '/arch:AVX2', '/Ox'],
+        'msvc': ['/EHsc', '/std:c++latest', '/arch:AVX2', '/Ox'],
         'unix': ['-std=c++17', '-march=core-avx2', '-O3'],
     }
 
     if sys.platform == 'darwin':
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
+        if not has_flag('-std=c++17'):
+            c_opts.remove('-std=c++17')
+            c_opts.append('-std=c++1z')
 
     def build_extensions(self):
         ct = self.compiler.compiler_type

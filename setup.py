@@ -40,8 +40,7 @@ ext_modules = [
             get_pybind_include(user=True)
         ],
         extra_link_args=settings['extra_link_args'],
-        library_dirs=[os.path.join(libsolv_prefix, 'lib/'),
-                      os.path.join(libsolv_prefix, 'bin/')],
+        library_dirs=[os.path.join(libsolv_prefix, 'lib/')],
         libraries=['solv'],
         language='c++'
     ),

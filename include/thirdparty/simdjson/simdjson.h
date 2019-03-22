@@ -427,6 +427,15 @@ static inline void print_with_escapes(const char *src, std::ostream &os) {
 #ifndef SIMDJSON_JSONIOUTIL_H
 #define SIMDJSON_JSONIOUTIL_H
 
+#ifndef _WIN32
+    #include <string_view>
+#else
+    #include "../string_view.hpp"
+    namespace std {
+        using namespace nonstd;
+    }
+#endif
+
 #include <exception>
 #include <fstream>
 #include <iostream>

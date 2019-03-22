@@ -37,6 +37,16 @@
 #ifndef PYSTRING_DEFAULT_STRING_VIEW
 // #include "string_view_lite.hpp"
 
+#ifndef _WIN32
+    #include <string_view>
+#else
+    #include "thirdparty/string_view.hpp"
+    namespace std {
+        using namespace nonstd;
+    }
+#endif
+
+
 namespace pystring
 {
 	using string_view = std::string_view;

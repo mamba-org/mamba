@@ -5,7 +5,14 @@
 #include <array>
 #include <string>
 #include <stdexcept>
-#include <string_view>
+#ifndef _WIN32
+    #include <string_view>
+#else
+    #include "thirdparty/string_view.hpp"
+    namespace std {
+        using namespace nonstd;
+    }
+#endif
 #include <cassert>
 
 extern "C"

@@ -25,12 +25,11 @@ ext_modules = [
         'mamba.mamba_api',
         ['include/py_interface.cpp', 'include/parsing.cpp', 'include/solver.cpp', 'include/thirdparty/simdjson/simdjson.cpp'],
         include_dirs=[
-            # Path to pybind11 headers
-            os.path.join(sys.prefix, '/include/'),
+            os.path.join(sys.prefix, 'include/'),
             get_pybind_include(),
             get_pybind_include(user=True)
         ],
-        library_dirs=[os.path.join(sys.prefix, '/lib/')],
+        library_dirs=[os.path.join(sys.prefix, 'lib/')],
         libraries=['solv'],
         language='c++'
     ),

@@ -25,10 +25,10 @@ else:
 
 print("Looking for libsolv in: ", libsolv_prefix)
 
-settings = {}
-settings['extra_link_args'] = []
+extra_link_args = []
 if sys.platform == 'darwin':
-    settings['extra_link_args'].extend(['-Wl,-rpath','-Wl,%s' % libsolv_prefix + '/'])
+    extra_link_args = ['-Wl,-rpath', '-Wl,%s' % os.path.abspath(libsolv_prefix)]
+
 
 ext_modules = [
     Extension(
@@ -39,9 +39,7 @@ ext_modules = [
             get_pybind_include(),
             get_pybind_include(user=True)
         ],
-        extra_link_args=settings['extra_link_args'],
-        library_dirs=[os.path.join(libsolv_prefix, 'lib/'),
-                      os.path.join(libsolv_prefix, 'bin/')],
+        extra_link_args=extra_link_args,
         libraries=['solv'],
         language='c++'
     ),
@@ -105,3 +103,4 @@ setup(
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )
+

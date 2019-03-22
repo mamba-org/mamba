@@ -3,7 +3,16 @@
 #include <array>
 #include <string>
 #include <stdexcept>
-#include <string_view>
+
+#ifndef _WIN32
+    #include <string_view>
+#else
+    #include "thirdparty/string_view.hpp"
+    namespace std {
+        using namespace nonstd;
+    }
+#endif
+
 #include <cassert>
 
 extern "C"
@@ -31,6 +40,10 @@ std::string normalize_version(std::string_view version, int build_number)
     return out;
 }
 
+std::string force_string(const std::string_view& sv) {
+    return std::string(sv.cbegin(), sv.cend());
+}
+
 std::string normalize_version(std::string_view version, int build_number, std::string_view build)
 {
     static const std::string zero = "0";
@@ -41,7 +54,7 @@ std::string normalize_version(std::string_view version, int build_number, std::s
     out += ".";
     out += std::to_string(build_number);
     out += "-";
-    out += build;
+    out += force_string(build);
     return out;
 }
 

@@ -29,7 +29,6 @@ extra_link_args = []
 if sys.platform == 'darwin':
     extra_link_args = ['-Wl,-rpath', '-Wl,%s' % os.path.abspath(libsolv_prefix)]
 
-
 ext_modules = [
     Extension(
         'mamba.mamba_api',

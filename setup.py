@@ -34,11 +34,9 @@ ext_modules = [
         'mamba.mamba_api',
         ['include/py_interface.cpp', 'include/parsing.cpp', 'include/solver.cpp', 'include/thirdparty/simdjson/simdjson.cpp'],
         include_dirs=[
-            os.path.join(libsolv_prefix, 'include/'),
             get_pybind_include(),
             get_pybind_include(user=True)
         ],
-        extra_link_args=extra_link_args,
         libraries=['solv'],
         language='c++'
     ),

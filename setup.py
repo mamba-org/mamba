@@ -18,18 +18,24 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-print("Looking for libsolv in: ", sys.prefix)
+if sys.platform.startswith('win'):
+    libsolv_prefix = os.path.join(sys.prefix, 'Library/')
+else:
+    libsolv_prefix = sys.prefix
+
+print("Looking for libsolv in: ", libsolv_prefix)
 
 ext_modules = [
     Extension(
         'mamba.mamba_api',
         ['include/py_interface.cpp', 'include/parsing.cpp', 'include/solver.cpp', 'include/thirdparty/simdjson/simdjson.cpp'],
         include_dirs=[
-            os.path.join(sys.prefix, 'include/'),
+            os.path.join(libsolv_prefix, 'include/'),
             get_pybind_include(),
             get_pybind_include(user=True)
         ],
-        library_dirs=[os.path.join(sys.prefix, 'lib/')],
+        library_dirs=[os.path.join(libsolv_prefix, 'lib/'),
+                      os.path.join(libsolv_prefix, 'bin/')],
         libraries=['solv'],
         language='c++'
     ),

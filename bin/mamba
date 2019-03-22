@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import sys, os
-cur_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(cur_dir, '../mamba/'))
 
 from conda.cli.main import generate_parser
 from conda.base.context import context
@@ -23,9 +21,9 @@ from conda.base.constants import ChannelPriority
 import json
 import tempfile
 
-from FastSubdirData import FastSubdirData
+from mamba.FastSubdirData import FastSubdirData
 
-import mamba_api as api
+import mamba.mamba_api as api
 from multiprocessing.pool import Pool as MPool
 
 def get_channel(x):

@@ -69,8 +69,8 @@ class BuildExt(build_ext):
         if sys.platform == 'darwin':
             self.c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
             if not has_flag(self.compiler, '-std=c++17'):
-                self.c_opts.remove('-std=c++17')
-                self.c_opts.append('-std=c++1z')
+                self.c_opts['unix'].remove('-std=c++17')
+                self.c_opts['unix'].append('-std=c++1z')
 
         opts = self.c_opts.get(ct, [])
         if ct == 'unix':

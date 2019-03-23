@@ -35,7 +35,8 @@ ext_modules = [
         ['include/py_interface.cpp', 'include/parsing.cpp', 'include/solver.cpp', 'include/thirdparty/simdjson/simdjson.cpp'],
         include_dirs=[
             get_pybind_include(),
-            get_pybind_include(user=True)
+            get_pybind_include(user=True),
+            os.path.join(libsolv_prefix, 'include')
         ],
         libraries=['solv'],
         language='c++'
@@ -93,7 +94,11 @@ setup(
     url='https://github.com/wolfv/mamba',
     description='Faster than a conda?!',
     packages=['mamba'],
-    scripts=['bin/mamba'],
+    entry_points={
+        'console_scripts': [
+            'mamba = mamba.mamba:main'
+        ]
+    },
     long_description='A (hopefully faster) reimplementation of the slow bits of conda.',
     ext_modules=ext_modules,
     install_requires=['pybind11>=2.2'],

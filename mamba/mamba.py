@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import sys, os
 
 from conda.cli.main import generate_parser
@@ -20,11 +18,11 @@ from conda.base.constants import ChannelPriority
 
 import json
 import tempfile
+from multiprocessing.pool import Pool as MPool
 
-from mamba.FastSubdirData import FastSubdirData
+from .FastSubdirData import FastSubdirData
 
 import mamba.mamba_api as api
-from multiprocessing.pool import Pool as MPool
 
 def get_channel(x):
     print("Getting ", x)
@@ -168,7 +166,3 @@ def main():
         os.unlink(installed_json_f.name)
     except:
         pass
-
-
-if __name__ == '__main__':
-    sys.exit(main())

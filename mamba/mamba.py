@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2019, QuantStack
+# SPDX-License-Identifier: BSD-3-Clause
 import sys, os
 
 from conda.cli.main import generate_parser, init_loggers

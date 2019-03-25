@@ -3,7 +3,13 @@ from setuptools.command.build_ext import build_ext
 import sys, os, platform
 import setuptools
 
-__version__ = '0.0.1'
+here = os.path.dirname(os.path.abspath(__file__))
+
+version_ns = {}
+with open(os.path.join(here, 'mamba', '_version.py')) as f:
+    exec(f.read(), {}, version_ns)
+
+__version__ = version_ns['__version__']
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path

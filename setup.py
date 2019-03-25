@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys, os, platform

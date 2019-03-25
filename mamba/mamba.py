@@ -230,26 +230,7 @@ def do_call(args, parser):
         return 0
     return exit_code
 
-
-# Main entry point!
-def main(*args, **kwargs):
-
-    print(banner)
-
-    if 'activate' in sys.argv or 'deactivate' in sys.argv:
-        print("Use conda to activate / deactivate the environment.")
-        print('\n    $ conda ' + ' '.join(sys.argv[1:]) + '\n')
-        return sys.exit(-1)
-
-    from conda.common.compat import ensure_text_type, init_std_stream_encoding
-
-    init_std_stream_encoding()
-
-    if not args:
-        args = sys.argv
-
-    args = tuple(ensure_text_type(s) for s in args)
-
+def _wrapped_main(*args, **kwargs):
     if len(args) == 1:
         args = args + ('-h',)
 
@@ -263,3 +244,23 @@ def main(*args, **kwargs):
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code
+
+# Main entry point!
+def main(*args, **kwargs):
+    from conda.common.compat import ensure_text_type, init_std_stream_encoding
+    init_std_stream_encoding()
+
+    print(banner)
+
+    if 'activate' in sys.argv or 'deactivate' in sys.argv:
+        print("Use conda to activate / deactivate the environment.")
+        print('\n    $ conda ' + ' '.join(sys.argv[1:]) + '\n')
+        return sys.exit(-1)
+
+    if not args:
+        args = sys.argv
+
+    args = tuple(ensure_text_type(s) for s in args)
+
+    from conda.exceptions import conda_exception_handler
+    return conda_exception_handler(_wrapped_main, *args, **kwargs)

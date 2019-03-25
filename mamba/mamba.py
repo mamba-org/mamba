@@ -1,28 +1,62 @@
 import sys, os
 
-from conda.cli.main import generate_parser
+from conda.cli.main import generate_parser, init_loggers
 from conda.base.context import context
-from conda.common.compat import ensure_text_type, init_std_stream_encoding
 from conda.core.index import calculate_channel_urls, check_whitelist #, get_index
 from conda.models.channel import Channel, prioritize_channels
 from conda.models.records import PackageRecord
+from conda.models.match_spec import MatchSpec
 from conda.cli.main_list import list_packages
 from conda.core.prefix_data import PrefixData
 from conda.common.serialize import json_dump
-from conda.cli.common import specs_from_args, specs_from_url
+from conda.cli.common import specs_from_args, specs_from_url, confirm_yn
 from conda.core.subdir_data import SubdirData
 from conda.common.url import join_url
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import handle_txn
 from conda.base.constants import ChannelPriority
 
+# create support
+from conda.common.path import paths_equal
+from conda.exceptions import CondaValueError
+from conda.gateways.disk.delete import rm_rf
+from conda.gateways.disk.test import is_conda_environment
+
+from logging import getLogger
+from os.path import isdir
+
 import json
 import tempfile
 from multiprocessing.pool import Pool as MPool
 
 from .FastSubdirData import FastSubdirData
-
 import mamba.mamba_api as api
+
+banner = """
+                  __    __    __    __
+                 /  \\  /  \\  /  \\  /  \\
+                /    \\/    \\/    \\/    \\
+███████████████/  /██/  /██/  /██/  /████████████████████████
+              /  / \\   / \\   / \\   / \\  \\____
+             /  /   \\_/   \\_/   \\_/   \\    o \\__,
+            / _/                       \\_____/  `
+            |/
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗ 
+        ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
+        ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
+        ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
+        ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
+        ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
+                          
+        Supported by @QuantStack
+    
+        Github:  https://github.com/QuantStack/mamba
+        Twitter: https://twitter.com/QuantStack
+
+█████████████████████████████████████████████████████████████
+"""
+
+
 
 def get_channel(x):
     print("Getting ", x)
@@ -63,17 +97,7 @@ def get_installed_packages(prefix, show_channel_urls=None):
 
     return installed, result
 
-def main():
-    args = sys.argv
-    args = tuple(ensure_text_type(s) for s in args)
-
-    # print(args)
-    if len(args) == 1:
-        args = args + ('-h',)
-
-    p = generate_parser()
-    args = p.parse_args(args[1:])
-
+def install(args, parser, function):
     context.__init__(argparse_args=args)
 
     prepend = not args.override_channels
@@ -115,20 +139,11 @@ def main():
 
     specs.extend(specs_from_args(args_packages, json=context.json))
 
-    def seperate(s):
-        ass = str(s)
-        for ix, c in enumerate(str(ass)):
-            if c == '=':
-                return ass[:ix] + ' ' + ass[ix:]
-            if c in ['<', '>']:
-                raise Error("Complex versions not yet supported on command line, only `==` and `==x.*` etc are supported.")
-        return ass
-
-    specs_seperated = [seperate(s) for s in specs]
+    specs = [MatchSpec(s).conda_build_form() for s in specs]
     print("\n\nLooking for: {}\n\n".format(specs))
 
     strict_priority = (context.channel_priority == ChannelPriority.STRICT)
-    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, specs_seperated, strict_priority)
+    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, specs, strict_priority)
 
     to_link_records, to_unlink_records = [], []
 
@@ -166,3 +181,85 @@ def main():
         os.unlink(installed_json_f.name)
     except:
         pass
+
+def create(args, parser):
+    if is_conda_environment(context.target_prefix):
+        if paths_equal(context.target_prefix, context.root_prefix):
+            raise CondaValueError("The target prefix is the base prefix. Aborting.")
+        confirm_yn("WARNING: A conda environment already exists at '%s'\n"
+                   "Remove existing environment" % context.target_prefix,
+                   default='no',
+                   dry_run=False)
+        log.info("Removing existing environment %s", context.target_prefix)
+        rm_rf(context.target_prefix)
+    elif isdir(context.target_prefix):
+        confirm_yn("WARNING: A directory already exists at the target location '%s'\n"
+                   "but it is not a conda environment.\n"
+                   "Continue creating environment" % context.target_prefix,
+                   default='no',
+                   dry_run=False)
+    install(args, parser, 'create')
+
+def update(args, parser):
+    if context.force:
+        print("\n\n"
+              "WARNING: The --force flag will be removed in a future conda release.\n"
+              "         See 'conda update --help' for details about the --force-reinstall\n"
+              "         and --clobber flags.\n"
+              "\n", file=sys.stderr)
+
+    # need to implement some modifications on the update function
+    install(args, parser, 'update')
+
+
+def do_call(args, parser):
+    relative_mod, func_name = args.func.rsplit('.', 1)
+    # func_name should always be 'execute'
+    if relative_mod in ['.main_list', '.main_search', '.main_run', '.main_clean', '.main_info']:
+        from importlib import import_module
+        module = import_module('conda.cli' + relative_mod, __name__.rsplit('.', 1)[0])
+        exit_code = getattr(module, func_name)(args, parser)
+    elif relative_mod == '.main_install':
+        exit_code = install(args, parser, 'install')
+    elif relative_mod == '.main_create':
+        exit_code = create(args, parser)
+    # elif relative_mod == '.main_update':
+    #     exit_code = update(args, parser)
+    else:
+        print("Currently, only install, create, list, search, run, info and clean are supported through mamba.")
+        return 0
+    return exit_code
+
+
+# Main entry point!
+def main(*args, **kwargs):
+
+    print(banner)
+
+    if 'activate' in sys.argv or 'deactivate' in sys.argv:
+        print("Use conda to activate / deactivate the environment.")
+        print('\n    $ conda ' + ' '.join(sys.argv[1:]) + '\n')
+        return sys.exit(-1)
+
+    from conda.common.compat import ensure_text_type, init_std_stream_encoding
+
+    init_std_stream_encoding()
+
+    if not args:
+        args = sys.argv
+
+    args = tuple(ensure_text_type(s) for s in args)
+
+    if len(args) == 1:
+        args = args + ('-h',)
+
+    p = generate_parser()
+    args = p.parse_args(args[1:])
+
+    context.__init__(argparse_args=args)
+    init_loggers(context)
+
+    # from .conda_argparse import do_call
+    exit_code = do_call(args, p)
+    if isinstance(exit_code, int):
+        return exit_code

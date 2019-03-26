@@ -82,6 +82,10 @@ parsed_relation get_relation(const std::string_view& vs)
         res.relation = REL_EQ;
         start = 2;
     }
+    else if (vs[0] == '!' && vs[1] == '=')
+    {
+        res.relation = REL_GT | REL_LT;
+    }
 
     if (vs[vs.size() - 1] == '*')
     {
@@ -100,23 +104,15 @@ parsed_relation get_relation(const std::string_view& vs)
 
     if (res.fuzzy && res.relation != REL_EQ)
     {
-        if (res.relation | REL_GT)
+        if (res.relation & REL_GT || res.relation & REL_LT)
         {
-            res.relation = REL_EQ;
+            // just remove * from end, do nothing
+            res.fuzzy = false;
         }
         else
         {
-            if (res.relation & REL_LT)
-            {
-                // just remove * from end, do nothing
-                res.fuzzy = false;
-            }
-            else
-            {
-                std::cout << vs << std::endl;
-                throw std::runtime_error("Cannot match fuzzy version with other than `==`");
-            }
-
+            std::cout << vs << std::endl;
+            throw std::runtime_error("Cannot match fuzzy version with other than `==`");
             // TODO fix this intelligently with build string comparison ... ?
         }
     }

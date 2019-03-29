@@ -138,6 +138,7 @@ std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
 solve(std::vector<std::pair<std::string, std::string>> repos,
            std::string installed,
            std::vector<std::string> jobs,
+           bool update,
            bool strict_priority)
 {
     Pool* pool = pool_create();
@@ -201,11 +202,15 @@ solve(std::vector<std::pair<std::string, std::string>> repos,
 
     Queue q;
     queue_init(&q);
+    int update_or_install = SOLVER_INSTALL;
+    if (update) {
+        update_or_install = SOLVER_UPDATE;
+    }
     for (const auto& job : jobs)
     {
         int rel = parse_to_relation(job, pool);
         std::cout << "Job: " << pool_dep2str(pool, rel) << std::endl;;
-        queue_push2(&q, SOLVER_INSTALL | SOLVER_SOLVABLE_NAME, rel);
+        queue_push2(&q, update_or_install | SOLVER_SOLVABLE_NAME, rel);
     }
 
     std::cout << "\n";

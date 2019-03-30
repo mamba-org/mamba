@@ -12,6 +12,13 @@ At the same time, mamba re-uses a lot of conda's codebase to parse the command l
 
 ### Installation
 
+***From `conda-forge`:***
+```
+conda install -c conda-forge/label/mamba-alpha mamba
+```
+
+***From Source:***
+
 Make sure to have the following requirements in your conda environment:
 
 - `conda install pybind11 libsolv conda cmake`

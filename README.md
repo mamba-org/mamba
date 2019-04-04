@@ -14,7 +14,7 @@ At the same time, mamba re-uses a lot of conda's codebase to parse the command l
 
 ***From `conda-forge`:***
 ```
-conda install -c conda-forge/label/mamba-alpha mamba
+conda install -c conda-forge -c conda-forge/label/mamba-alpha mamba
 ```
 
 ***From Source:***

@@ -8,8 +8,8 @@ extern "C"
     #include "solv/solver.h"
     #include "solv/solverdebug.h"
 
-    #include "conda.h"
-    #include "repo_conda.h"
+    #include "solv/conda.h"
+    #include "solv/repo_conda.h"
 }
 
 static Pool* global_pool;
@@ -18,7 +18,7 @@ static Pool* global_pool;
 #include <map>
 
 #include "solver.hpp"
-#include "parsing.hpp"
+// #include "parsing.hpp"
 #include "json_helper.hpp"
 
 auto get_package_info(ParsedJson::iterator &i, const std::string& key)

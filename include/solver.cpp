@@ -7,6 +7,9 @@ extern "C"
     #include "solv/queue.h"
     #include "solv/solver.h"
     #include "solv/solverdebug.h"
+
+    #include "conda.h"
+    #include "repo_conda.h"
 }
 
 static Pool* global_pool;
@@ -17,105 +20,6 @@ static Pool* global_pool;
 #include "solver.hpp"
 #include "parsing.hpp"
 #include "json_helper.hpp"
-
-
-void parse_repo(ParsedJson::iterator &i, Repo* repo, std::map<Id, std::string>& rmap) {
-
-  if (!i.move_to_key("packages"))
-  {
-      throw std::runtime_error("Could not find packages key!");
-  }
-
-  std::string_view version, build_string, features, name;
-  int build_number = 0; // change to char* as well
-
-  i.down();
-
-  do {
-    Id s_id = repo_add_solvable(repo);
-    auto& s = global_pool->solvables[s_id];
-    rmap[s_id] = i.get_string();
-
-    i.next(); i.down();
-    do {
-        if (strcmp(i.get_string(), "name") == 0)
-        {
-            i.next();
-            name = i.get_string();
-            Id name_id = pool_str2id(global_pool, i.get_string(), 1);
-            s.name = name_id;
-        }
-        else if (strcmp(i.get_string(), "build_number") == 0)
-        {
-            i.next();
-            build_number = i.get_integer();
-        }
-        else if (strcmp(i.get_string(), "build") == 0)
-        {
-            i.next();
-            build_string = i.get_string();
-        }
-        else if (strcmp(i.get_string(), "features") == 0)
-        {
-            i.next();
-            features = i.get_string();
-        }
-        else if (strcmp(i.get_string(), "version") == 0)
-        {
-            i.next();
-            version = i.get_string();
-        }
-        else if (strcmp(i.get_string(), "depends") == 0)
-        {
-            i.next();
-            if (i.down())
-            {
-                do {
-                    Id rel = parse_to_relation(i.get_string(), global_pool);
-                    solvable_add_deparray(
-                        &s,
-                        SOLVABLE_REQUIRES,
-                        rel, -1);
-
-                } while (i.next());
-                i.up();
-            }
-        }
-        else {
-            i.next(); // skip value?
-        }
-    } while (i.next());
-
-    s.evr = pool_str2id(global_pool, normalize_version(version, build_number, build_string).c_str(), 1);
-
-    solvable_add_deparray(&s, SOLVABLE_PROVIDES,
-                          pool_rel2id(global_pool, s.name, s.evr, REL_EQ, 1), -1);
-
-    if (features.size())
-    {
-        std::stringstream os;
-        os << name << "[" << features << "]";
-        std::string feature_name = os.str();
-        auto feat_id = pool_strn2id(global_pool, feature_name.c_str(), feature_name.size(), 1);
-
-        solvable_add_deparray(&s, SOLVABLE_PROVIDES,
-                              pool_rel2id(global_pool, feat_id, s.evr, REL_EQ, 1), -1);
-    }
-
-    if (build_string.size())
-    {
-        std::stringstream os;
-        os << name << "[" << build_string << "]";
-        std::string feature_name = os.str();
-        auto feat_id = pool_strn2id(global_pool, feature_name.c_str(), feature_name.size(), 1);
-
-        solvable_add_deparray(&s, SOLVABLE_PROVIDES,
-                              pool_rel2id(global_pool, feat_id, s.evr, REL_EQ, 1), -1);
-    }
-
-    i.up();
-  } while (i.next());
-}
 
 auto get_package_info(ParsedJson::iterator &i, const std::string& key)
 {
@@ -135,65 +39,79 @@ auto get_package_info(ParsedJson::iterator &i, const std::string& key)
 
 std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
            std::vector<std::tuple<std::string, std::string>>>
-solve(std::vector<std::pair<std::string, std::string>> repos,
+solve(std::vector<std::tuple<std::string, std::string, int>> repos,
            std::string installed,
            std::vector<std::string> jobs,
            bool update,
            bool strict_priority)
 {
     Pool* pool = pool_create();
+    pool_setdisttype(pool, DISTTYPE_CONDA);
+    // pool_setdebuglevel(pool, 2);
+
     global_pool = pool;
 
     std::map<std::string, std::map<Id, std::string>> repo_to_file_map;
-
     std::map<std::string, ParsedJson> chan_to_json;
 
+    FILE *fp;
     if (installed.size())
     {
         Repo* repo = repo_create(pool, "installed");
         repo_to_file_map["installed"] = std::map<Id, std::string>();
         pool_set_installed(pool, repo);
-        std::string_view p = get_corpus(installed);
-        ParsedJson pj = build_parsed_json(p);
-        ParsedJson::iterator pjh(pj);
-        parse_repo(pjh, repo, repo_to_file_map["installed"]);
+        fp = fopen(installed.c_str(), "r");
+        if (fp) {
+            repo_add_conda(repo, fp, 0);
+        } else {
+            throw std::runtime_error("File could no tbe read.");
+        }
+        fclose(fp);
     }
 
     int priority = repos.size();
+    std::string_view last_repo;
     for (auto& fn : repos)
     {
-        std::string_view p = get_corpus(fn.second);
+        const std::string& repo_name = std::get<0>(fn);
+        const std::string& repo_json_file = std::get<1>(fn);
 
-        repo_to_file_map[fn.first] = std::map<Id, std::string>();
-        Repo* repo = repo_create(pool, fn.first.c_str());
+        std::string_view p = get_corpus(repo_json_file);
 
-        if (strict_priority)
-        {
-            repo->priority = priority--;
-        }
-        else
-        {
-            repo->subpriority = priority--;
-        }
+        repo_to_file_map[repo_name] = std::map<Id, std::string>();
 
-        chan_to_json.emplace(fn.first, build_parsed_json(p));
-        auto& pj = chan_to_json[fn.first];
+        Repo* repo = repo_create(pool, repo_name.c_str());
+        repo->priority = std::get<2>(fn);
+
+        chan_to_json.emplace(repo_name, build_parsed_json(p));
+        auto& pj = chan_to_json[repo_name];
         if (!pj.isValid())
         {
             throw std::runtime_error("Invalid JSON detected!");
         }
         else
         {
-            std::cout << "Parsing " << fn.second << std::endl;
+            std::cout << "Parsing " << repo_json_file << std::endl;
         }
 
-        ParsedJson::iterator pjh(pj);
-        parse_repo(pjh, repo, repo_to_file_map[fn.first]);
-        std::cout << repo->nsolvables << " packages in " << fn.first << std::endl;
+        // ParsedJson::iterator pjh(pj);
+        // parse_repo(pjh, repo, repo_to_file_map[repo_name]);
+        // note here we're parsing the same json twice ... that's not good.
+        fp = fopen(repo_json_file.c_str(), "r");
+        if (fp) {
+            repo_add_conda(repo, fp, 0);
+        } else {
+            throw std::runtime_error("File could no tbe read.");
+        }
+        fclose(fp);
+
+        std::cout << repo->nsolvables << " packages in " << repo_name << std::endl;
+        std::cout << repo_name << " prio " << repo->priority << std::endl;
         repo_internalize(repo);
     }
 
     pool_createwhatprovides(global_pool);
+
     Solver* solvy = solver_create(global_pool);
     solver_set_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE, 1);
 
@@ -208,9 +126,10 @@ solve(std::vector<std::pair<std::string, std::string>> repos,
     }
     for (const auto& job : jobs)
     {
-        int rel = parse_to_relation(job, pool);
-        std::cout << "Job: " << pool_dep2str(pool, rel) << std::endl;;
-        queue_push2(&q, update_or_install | SOLVER_SOLVABLE_NAME, rel);
+        Id inst_id = pool_conda_matchspec(pool, job.c_str());
+        // int rel = parse_to_relation(job, pool);
+        std::cout << "Job: " << pool_dep2str(pool, inst_id) << std::endl;;
+        queue_push2(&q, update_or_install | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     std::cout << "\n";
@@ -253,6 +172,9 @@ solve(std::vector<std::pair<std::string, std::string>> repos,
         transaction_classify(transy, mode, &classes);
 
         Id cls;
+        std::string location;
+        unsigned int* somptr;
+        const char* mediafile;
         for (i = 0; i < classes.count; i += 4) {
             cls = classes.elements[i];
             cnt = classes.elements[i + 1];
@@ -267,19 +189,24 @@ solve(std::vector<std::pair<std::string, std::string>> repos,
               switch (cls) {
               case SOLVER_TRANSACTION_DOWNGRADED:
               case SOLVER_TRANSACTION_UPGRADED:
+                mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                to_remove_structured.emplace_back(s->repo->name, mediafile);
+
                 s2 = pool->solvables + transaction_obs_pkg(transy, p);
-                to_remove_structured.emplace_back(s->repo->name, repo_to_file_map[s->repo->name][p]);
-                to_install_structured.emplace_back(s2->repo->name, repo_to_file_map[s2->repo->name][transaction_obs_pkg(transy, p)], "");
+                mediafile = solvable_lookup_str(s2, SOLVABLE_MEDIAFILE);
+                to_install_structured.emplace_back(s2->repo->name, mediafile, "");
                 break;
               case SOLVER_TRANSACTION_VENDORCHANGE:
               case SOLVER_TRANSACTION_ARCHCHANGE:
                 // Not used yet.
                 break;
               case SOLVER_TRANSACTION_ERASE:
-                to_remove_structured.emplace_back(s->repo->name, repo_to_file_map[s->repo->name][p]);
+                mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                to_remove_structured.emplace_back(s->repo->name, mediafile);
                 break;
               case SOLVER_TRANSACTION_INSTALL:
-                to_install_structured.emplace_back(s->repo->name, repo_to_file_map[s->repo->name][p], "");
+                mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                to_install_structured.emplace_back(s->repo->name, mediafile, "");
                 break;
               default:
                 std::cout << "CASE NOT HANDLED." << std::endl;

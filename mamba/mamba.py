@@ -208,7 +208,14 @@ def install(args, parser, command='install'):
                       use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                       unknown=index_args['unknown'], prefix=prefix)
 
-    channel_json = [(str(x.channel), x.cache_path_json) for x in index]
+    channel_json = []
+    for x in index:
+        # add priority here
+        if x.channel.name in index_args['channel_urls']:
+            priority = len(index_args['channel_urls']) - index_args['channel_urls'].index(x.channel.name)
+        else:
+            priority = 0
+        channel_json.append((str(x.channel), x.cache_path_json, priority))
 
     installed_pkg_recs, output = get_installed_packages(prefix, show_channel_urls=True)
     installed_json_f = tempfile.NamedTemporaryFile('w', delete=False)
@@ -220,7 +227,7 @@ def install(args, parser, command='install'):
         for fpath in args.file:
             try:
                 specs.extend(specs_from_url(fpath, json=context.json))
-            except UnicodeError:
+            except Unicode:
                 raise CondaError("Error reading file, file should be a text file containing"
                                  " packages \nconda create --help for details")
         if '@EXPLICIT' in specs:
@@ -264,9 +271,13 @@ def install(args, parser, command='install'):
     specs = [MatchSpec(s) for s in specs]
     mamba_solve_specs = [s.conda_build_form() for s in specs]
 
-    print("\n\nLooking for: {}\n\n".format(specs))
+    print("\n\nLooking for: {}\n\n".format(mamba_solve_specs))
+
 
     strict_priority = (context.channel_priority == ChannelPriority.STRICT)
+    if strict_priority:
+        raise Exception("Cannot use strict priority with mamba!")
+
     to_link, to_unlink = api.solve(channel_json, installed_json_f.name, mamba_solve_specs, isupdate, strict_priority)
 
     to_link_records, to_unlink_records = [], []
@@ -380,6 +391,9 @@ def _wrapped_main(*args, **kwargs):
 
 # Main entry point!
 def main(*args, **kwargs):
+    # Set to false so we don't allow uploading our issues to conda!
+    context.report_errors = False
+
     from conda.common.compat import ensure_text_type, init_std_stream_encoding
     init_std_stream_encoding()
 
@@ -396,4 +410,4 @@ def main(*args, **kwargs):
     args = tuple(ensure_text_type(s) for s in args)
 
     from conda.exceptions import conda_exception_handler
-    return _wrapped_main(*args, **kwargs)
+    return conda_exception_handler(_wrapped_main, *args, **kwargs)

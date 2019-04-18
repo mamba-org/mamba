@@ -40,7 +40,7 @@ if sys.platform == 'darwin':
 ext_modules = [
     Extension(
         'mamba.mamba_api',
-        ['include/py_interface.cpp', 'include/parsing.cpp', 'include/solver.cpp', 'include/thirdparty/simdjson/simdjson.cpp'],
+        ['include/py_interface.cpp', 'include/parsing.cpp', 'include/repo_conda.c', 'include/solv_jsonparser.c', 'include/solver.cpp', 'include/thirdparty/simdjson/simdjson.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),

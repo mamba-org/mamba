@@ -70,7 +70,7 @@ banner = """
                           
         Supported by @QuantStack
     
-        Github:  https://github.com/QuantStack/mamba
+        GitHub:  https://github.com/QuantStack/mamba
         Twitter: https://twitter.com/QuantStack
 
 █████████████████████████████████████████████████████████████

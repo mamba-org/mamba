@@ -20,7 +20,6 @@ from conda.misc import clone_env, explicit, touch_nonadmin
 from conda.common.serialize import json_dump
 from conda.cli.common import specs_from_args, specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
 from conda.core.subdir_data import SubdirData
-from conda.common.url import join_url
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import handle_txn, check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier
@@ -46,8 +45,9 @@ from os.path import isdir
 import json
 import tempfile
 
-from .FastSubdirData import FastSubdirData
 import mamba.mamba_api as api
+
+from mamba.utils import get_index, get_channel, to_package_record_from_subjson
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
@@ -75,41 +75,6 @@ banner = """
 
 █████████████████████████████████████████████████████████████
 """
-
-import threading
-
-def get_channel(x, result_container):
-    print("Getting ", x)
-    return result_container.append(FastSubdirData(Channel(x)).load())
-
-def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=None, prefix=None):
-    channel_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    check_whitelist(channel_urls)
-    threads = []
-    result = []
-    for url in channel_urls:
-        t = threading.Thread(target=get_channel, args=(url, result))
-        threads.append(t)
-        t.start()
-
-    for t in threads:
-        t.join()
-
-    return result
-
-def to_package_record_from_subjson(subdir, pkg, jsn_string):
-    channel = subdir.channel
-    channel_url = subdir.url_w_credentials
-    info = json.loads(jsn_string)
-    info['fn'] = pkg
-    info['channel'] = channel
-    info['url'] = join_url(channel_url, pkg)
-    package_record = PackageRecord(**info)
-    return package_record
-
-    # if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-    #     info['depends'].append('pip')
 
 def get_installed_packages(prefix, show_channel_urls=None):
     result = {'packages': {}}
@@ -408,6 +373,11 @@ def main(*args, **kwargs):
         args = sys.argv
 
     args = tuple(ensure_text_type(s) for s in args)
+
+    if args[1] == 'env' and args[2] == 'create':
+        # special handling for conda env create!
+        from mamba import mamba_env
+        return mamba_env.main()
 
     from conda.exceptions import conda_exception_handler
     return conda_exception_handler(_wrapped_main, *args, **kwargs)

@@ -61,15 +61,15 @@ banner = """
              /  /   \\_/   \\_/   \\_/   \\    o \\__,
             / _/                       \\_____/  `
             |/
-        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗ 
+        ███╗   ███╗ █████╗ ███╗   ███╗██████╗  █████╗
         ████╗ ████║██╔══██╗████╗ ████║██╔══██╗██╔══██╗
         ██╔████╔██║███████║██╔████╔██║██████╔╝███████║
         ██║╚██╔╝██║██╔══██║██║╚██╔╝██║██╔══██╗██╔══██║
         ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
         ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
-                          
+
         Supported by @QuantStack
-    
+
         GitHub:  https://github.com/QuantStack/mamba
         Twitter: https://twitter.com/QuantStack
 
@@ -374,7 +374,7 @@ def main(*args, **kwargs):
 
     args = tuple(ensure_text_type(s) for s in args)
 
-    if args[1] == 'env' and args[2] == 'create':
+    if len(args) > 2 and args[1] == 'env' and args[2] == 'create':
         # special handling for conda env create!
         from mamba import mamba_env
         return mamba_env.main()

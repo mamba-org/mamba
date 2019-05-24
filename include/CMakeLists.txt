@@ -48,7 +48,7 @@ find_package(pybind11 REQUIRED)
 include_directories(thirdparty)
 include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
-pybind11_add_module(mamba_api py_interface.cpp solver.cpp parsing.cpp thirdparty/simdjson/simdjson.cpp)
+pybind11_add_module(mamba_api py_interface.cpp solver.cpp thirdparty/simdjson/simdjson.cpp)
 
 target_link_libraries(mamba_api PRIVATE ${LibSolv_LIBRARIES})
 

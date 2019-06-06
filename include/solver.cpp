@@ -21,6 +21,12 @@ static Pool* global_pool;
 // #include "parsing.hpp"
 #include "json_helper.hpp"
 
+
+#define PRINTS(stuff)            \
+if (!quiet)                      \
+    std::cout << stuff << "\n";  \
+
+
 auto get_package_info(ParsedJson::iterator &i, const std::string& key)
 {
     if (!i.move_to_key("packages"))
@@ -43,7 +49,8 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
            std::string installed,
            std::vector<std::string> jobs,
            int solver_flags,
-           bool strict_priority)
+           bool strict_priority,
+           bool quiet)
 {
     Pool* pool = pool_create();
     pool_setdisttype(pool, DISTTYPE_CONDA);
@@ -89,10 +96,6 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
         {
             throw std::runtime_error("Invalid JSON detected!");
         }
-        else
-        {
-            std::cout << "Parsing " << repo_json_file << std::endl;
-        }
 
         // ParsedJson::iterator pjh(pj);
         // parse_repo(pjh, repo, repo_to_file_map[repo_name]);
@@ -101,12 +104,11 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
         if (fp) {
             repo_add_conda(repo, fp, 0);
         } else {
-            throw std::runtime_error("File could no tbe read.");
+            throw std::runtime_error("File could not be read.");
         }
         fclose(fp);
 
-        std::cout << repo->nsolvables << " packages in " << repo_name << std::endl;
-        std::cout << repo_name << " prio " << repo->priority << std::endl;
+        PRINTS(repo->nsolvables << " packages in " << repo_name);
         repo_internalize(repo);
     }
 
@@ -115,20 +117,18 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
     Solver* solvy = solver_create(global_pool);
     solver_set_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE, 1);
 
-    std::cout << "Allowing downgrade: " << solver_get_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE) << std::endl;
-    std::cout << "Creating the solver..." << std::endl;
-
     Queue q;
     queue_init(&q);
+
+    // add new line
+    PRINTS("");
     for (const auto& job : jobs)
     {
         Id inst_id = pool_conda_matchspec(pool, job.c_str());
         // int rel = parse_to_relation(job, pool);
-        std::cout << "Job: " << pool_dep2str(pool, inst_id) << std::endl;;
+        PRINTS("Job: " << pool_dep2str(pool, inst_id));
         queue_push2(&q, solver_flags | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
-
-    std::cout << "\n";
 
     solver_solve(solvy, &q);
 
@@ -137,22 +137,20 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
     Queue problem_queue;
     queue_init(&problem_queue);
 
-    std::cout << "Encountered " << cnt << " problems.\n\n";
-    for (int i = 1; i <= cnt; i++)
-    {
-        queue_push(&problem_queue, i);
-        std::cout << "Problem: " << solver_problem2str(solvy, i) << std::endl;
-    }
     if (cnt > 0)
     {
-        throw std::runtime_error("Encountered problems while solving.");
+        std::stringstream problems;
+        for (int i = 1; i <= cnt; i++)
+        {
+            queue_push(&problem_queue, i);
+            problems << "Problem: " << solver_problem2str(solvy, i) << "\n";
+        }
+        throw std::runtime_error("Encountered problems while solving.\n" + problems.str());
     }
 
     queue_free(&problem_queue);
 
     transaction_print(transy);
-
-    std::cout << "Solution: \n" << std::endl;
 
     std::vector<std::tuple<std::string, std::string, std::string>> to_install_structured; 
     std::vector<std::tuple<std::string, std::string>> to_remove_structured; 

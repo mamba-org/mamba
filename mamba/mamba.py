@@ -219,7 +219,8 @@ def remove(args, parser):
         mamba_solve_specs = [s.conda_build_form() for s in specs]
 
         to_link, to_unlink = api.solve("", installed_json_f.name,
-                                       mamba_solve_specs, api.SOLVER_ERASE, False)
+                                       mamba_solve_specs, api.SOLVER_ERASE, False,
+                                       context.quiet)
         conda_transaction = to_txn(specs, prefix, to_link, to_unlink)
 
         handle_txn(conda_transaction, prefix, args, False, True)
@@ -349,6 +350,7 @@ def install(args, parser, command='install'):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
+        # Note: History(prefix).get_requested_specs_map()
         print("Currently, mamba can only update explicit packages! (e.g. mamba update numpy python ...)")
         exit()
 
@@ -374,13 +376,16 @@ def install(args, parser, command='install'):
 
     mamba_solve_specs = [s.conda_build_form() for s in specs]
 
-    print("\n\nLooking for: {}\n\n".format(mamba_solve_specs))
+    if not context.quiet:
+        print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     strict_priority = (context.channel_priority == ChannelPriority.STRICT)
     if strict_priority:
         raise Exception("Cannot use strict priority with mamba!")
 
-    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, mamba_solve_specs, solver_flags, strict_priority)
+    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, 
+                                   mamba_solve_specs, solver_flags, strict_priority,
+                                   context.quiet)
     conda_transaction = to_txn(specs, prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
 
@@ -449,6 +454,9 @@ def _wrapped_main(*args, **kwargs):
     args = p.parse_args(args[1:])
 
     context.__init__(argparse_args=args)
+    if not context.quiet:
+        print(banner)
+
     init_loggers(context)
 
     # from .conda_argparse import do_call
@@ -463,8 +471,6 @@ def main(*args, **kwargs):
 
     from conda.common.compat import ensure_text_type, init_std_stream_encoding
     init_std_stream_encoding()
-
-    print(banner)
 
     if 'activate' in sys.argv or 'deactivate' in sys.argv:
         print("Use conda to activate / deactivate the environment.")

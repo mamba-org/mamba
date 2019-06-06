@@ -22,6 +22,7 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
            std::string installed,
            std::vector<std::string> jobs,
            int solver_flags,
-           bool strict_priority);
+           bool strict_priority,
+           bool quiet);
 
 #endif

@@ -18,16 +18,18 @@ from conda.cli.main_list import list_packages
 from conda.core.prefix_data import PrefixData
 from conda.misc import clone_env, explicit, touch_nonadmin
 from conda.common.serialize import json_dump
-from conda.cli.common import specs_from_args, specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
+from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
 from conda.core.subdir_data import SubdirData
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import handle_txn, check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier
 from conda.core.solve import diff_for_unlink_link_precs
+from conda.core.envs_manager import unregister_env
+
 # create support
 from conda.common.path import paths_equal
 from conda.exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
-                              CondaValueError, DirectoryNotACondaEnvironmentError,
+                              CondaValueError, DirectoryNotACondaEnvironmentError, CondaEnvironmentError,
                               DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
                               NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
                               TooManyArgumentsError, UnsatisfiableError)
@@ -44,6 +46,8 @@ from os.path import isdir
 
 import json
 import tempfile
+import logging
+import sys
 
 import mamba.mamba_api as api
 
@@ -90,6 +94,136 @@ def get_installed_packages(prefix, show_channel_urls=None):
 
     return installed, result
 
+
+def specs_from_args(args, json=False):
+
+    def arg2spec(arg, json=False, update=False):
+        try:
+            spec = MatchSpec(arg)
+        except:
+            from ..exceptions import CondaValueError
+            raise CondaValueError('invalid package specification: %s' % arg)
+
+        name = spec.name
+        if not spec._is_simple() and update:
+            from ..exceptions import CondaValueError
+            raise CondaValueError("""version specifications not allowed with 'update'; use
+        conda update  %s%s  or
+        conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg))
+
+        return spec
+
+    return [arg2spec(arg, json=json) for arg in args]
+
+
+def to_txn(specs, prefix, to_link, to_unlink, index=None):
+    to_link_records, to_unlink_records = [], []
+
+    final_precs = IndexedSet(PrefixData(prefix).iter_records())
+
+    def get_channel(c):
+        for x in index:
+            if str(x.channel) == c:
+                return x
+
+    for c, pkg in to_unlink:
+        for i_rec in installed_pkg_recs:
+            if i_rec.fn == pkg:
+                final_precs.remove(i_rec)
+                to_unlink_records.append(i_rec)
+                break
+        else:
+            print("No package record found!")
+
+    for c, pkg, jsn_s in to_link:
+        sdir = get_channel(c)
+        rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
+        final_precs.add(rec)
+        to_link_records.append(rec)
+
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
+                                                          final_precs=IndexedSet(PrefixGraph(final_precs).graph),
+                                                          specs_to_add=specs,
+                                                          force_reinstall=context.force_reinstall)
+
+    pref_setup = PrefixSetup(
+        target_prefix = prefix,
+        unlink_precs  = unlink_precs,
+        link_precs    = link_precs,
+        remove_specs  = [],
+        update_specs  = specs
+    )
+
+    conda_transaction = UnlinkLinkTransaction(pref_setup)
+    return conda_transaction
+
+installed_pkg_recs = None
+
+def get_installed_jsonfile(prefix):
+    global installed_pkg_recs
+    installed_pkg_recs, output = get_installed_packages(prefix, show_channel_urls=True)
+    installed_json_f = tempfile.NamedTemporaryFile('w', delete=False)
+    installed_json_f.write(json_dump(output))
+    installed_json_f.flush()
+    return installed_json_f
+
+
+def remove(args, parser):
+    if not (args.all or args.package_names):
+        raise CondaValueError('no package names supplied,\n'
+                              '       try "mamba remove -h" for more details')
+
+    prefix = context.target_prefix
+    check_non_admin()
+
+    if args.all and prefix == context.default_prefix:
+        raise CondaEnvironmentError("cannot remove current environment. \
+                                     deactivate and run mamba remove again")
+
+    if args.all and path_is_clean(prefix):
+        # full environment removal was requested, but environment doesn't exist anyway
+        return 0
+
+    if args.all:
+        if prefix == context.root_prefix:
+            raise CondaEnvironmentError('cannot remove root environment,\n'
+                                        '       add -n NAME or -p PREFIX option')
+        print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
+
+        if 'package_names' in args:
+            stp = PrefixSetup(
+                target_prefix=prefix,
+                unlink_precs=tuple(PrefixData(prefix).iter_records()),
+                link_precs=(),
+                remove_specs=(),
+                update_specs=(),
+            )
+            txn = UnlinkLinkTransaction(stp)
+            handle_txn(txn, prefix, args, False, True)
+
+        rm_rf(prefix, clean_empty_parents=True)
+        unregister_env(prefix)
+
+        return
+
+    else:
+        if args.features:
+            specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
+        else:
+            specs = [s for s in specs_from_args(args.package_names)]
+        channel_urls = ()
+        subdirs = ()
+
+        installed_json_f = get_installed_jsonfile(prefix)
+
+        mamba_solve_specs = [s.conda_build_form() for s in specs]
+
+        to_link, to_unlink = api.solve("", installed_json_f.name,
+                                       mamba_solve_specs, api.SOLVER_ERASE, False)
+        conda_transaction = to_txn(specs, prefix, to_link, to_unlink)
+
+        handle_txn(conda_transaction, prefix, args, False, True)
+
 def install(args, parser, command='install'):
     """
     mamba install, mamba update, and mamba create
@@ -98,8 +232,14 @@ def install(args, parser, command='install'):
     check_non_admin()
 
     newenv = bool(command == 'create')
-    isupdate = bool(command == 'update')
     isinstall = bool(command == 'install')
+
+    solver_flags = api.SOLVER_INSTALL
+
+    isupdate = bool(command == 'update')
+    if isupdate:
+        solver_flags = api.SOLVER_UPDATE
+
     if newenv:
         ensure_name_or_prefix(args, command)
     prefix = context.target_prefix
@@ -182,22 +322,21 @@ def install(args, parser, command='install'):
             priority = 0
         channel_json.append((str(x.channel), x.cache_path_json, priority))
 
-    installed_pkg_recs, output = get_installed_packages(prefix, show_channel_urls=True)
-    installed_json_f = tempfile.NamedTemporaryFile('w', delete=False)
-    installed_json_f.write(json_dump(output))
-    installed_json_f.flush()
+    installed_json_f = get_installed_jsonfile(prefix)
 
     specs = []
+
     if args.file:
         for fpath in args.file:
             try:
-                specs.extend(specs_from_url(fpath, json=context.json))
+                file_specs = specs_from_url(fpath, json=context.json)
             except Unicode:
                 raise CondaError("Error reading file, file should be a text file containing"
                                  " packages \nconda create --help for details")
-        if '@EXPLICIT' in specs:
-            explicit(specs, prefix, verbose=not context.quiet, index_args=index_args)
+        if '@EXPLICIT' in file_specs:
+            explicit(file_specs, prefix, verbose=not context.quiet, index_args=index_args)
             return
+        specs.extend([MatchSpec(s) for s in file_specs])
 
     specs.extend(specs_from_args(args_packages, json=context.json))
 
@@ -215,12 +354,12 @@ def install(args, parser, command='install'):
 
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         prefix_data = PrefixData(prefix)
-        for spec in specs:
-            spec = MatchSpec(spec)
-            if not spec.is_name_only_spec:
+        for s in args_packages:
+            s = MatchSpec(s)
+            if not s.is_name_only_spec:
                 raise CondaError("Invalid spec for 'conda update': %s\n"
-                                 "Use 'conda install' instead." % spec)
-            if not prefix_data.get(spec.name, None):
+                                 "Use 'conda install' instead." % s)
+            if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, spec.name)
 
     if newenv and args.clone:
@@ -233,56 +372,16 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    specs = [MatchSpec(s) for s in specs]
     mamba_solve_specs = [s.conda_build_form() for s in specs]
 
     print("\n\nLooking for: {}\n\n".format(mamba_solve_specs))
-
 
     strict_priority = (context.channel_priority == ChannelPriority.STRICT)
     if strict_priority:
         raise Exception("Cannot use strict priority with mamba!")
 
-    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, mamba_solve_specs, isupdate, strict_priority)
-
-    to_link_records, to_unlink_records = [], []
-
-    final_precs = IndexedSet(PrefixData(prefix).iter_records())
-
-    def get_channel(c):
-        for x in index:
-            if str(x.channel) == c:
-                return x
-
-    for c, pkg in to_unlink:
-        for i_rec in installed_pkg_recs:
-            if i_rec.fn == pkg:
-                final_precs.remove(i_rec)
-                to_unlink_records.append(i_rec)
-                break
-        else:
-            print("No package record found!")
-
-    for c, pkg, jsn_s in to_link:
-        sdir = get_channel(c)
-        rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
-        final_precs.add(rec)
-        to_link_records.append(rec)
-
-    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
-                                                          final_precs=IndexedSet(PrefixGraph(final_precs).graph),
-                                                          specs_to_add=specs,
-                                                          force_reinstall=context.force_reinstall)
-
-    pref_setup = PrefixSetup(
-        target_prefix = prefix,
-        unlink_precs  = unlink_precs,
-        link_precs    = link_precs,
-        remove_specs  = [],
-        update_specs  = specs
-    )
-
-    conda_transaction = UnlinkLinkTransaction(pref_setup)
+    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, mamba_solve_specs, solver_flags, strict_priority)
+    conda_transaction = to_txn(specs, prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
 
     try:
@@ -330,12 +429,15 @@ def do_call(args, parser):
         exit_code = getattr(module, func_name)(args, parser)
     elif relative_mod == '.main_install':
         exit_code = install(args, parser, 'install')
+    elif relative_mod == '.main_remove':
+        exit_code = remove(args, parser)
     elif relative_mod == '.main_create':
         exit_code = create(args, parser)
     elif relative_mod == '.main_update':
         exit_code = update(args, parser)
     else:
         print("Currently, only install, create, list, search, run, info and clean are supported through mamba.")
+
         return 0
     return exit_code
 
@@ -379,5 +481,13 @@ def main(*args, **kwargs):
         from mamba import mamba_env
         return mamba_env.main()
 
+    def exception_converter(*args, **kwargs):
+        try:
+            _wrapped_main(*args, **kwargs)
+        except RuntimeError as e:
+            print(e)
+        except Exception as e:
+            raise e
+
     from conda.exceptions import conda_exception_handler
-    return conda_exception_handler(_wrapped_main, *args, **kwargs)
+    return conda_exception_handler(exception_converter, *args, **kwargs)

@@ -42,7 +42,7 @@ std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
 solve(std::vector<std::tuple<std::string, std::string, int>> repos,
            std::string installed,
            std::vector<std::string> jobs,
-           bool update,
+           int solver_flags,
            bool strict_priority)
 {
     Pool* pool = pool_create();
@@ -120,16 +120,12 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
 
     Queue q;
     queue_init(&q);
-    int update_or_install = SOLVER_INSTALL;
-    if (update) {
-        update_or_install = SOLVER_UPDATE;
-    }
     for (const auto& job : jobs)
     {
         Id inst_id = pool_conda_matchspec(pool, job.c_str());
         // int rel = parse_to_relation(job, pool);
         std::cout << "Job: " << pool_dep2str(pool, inst_id) << std::endl;;
-        queue_push2(&q, update_or_install | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        queue_push2(&q, solver_flags | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     std::cout << "\n";

@@ -9,12 +9,14 @@ from conda.models.channel import Channel, prioritize_channels
 from conda.core.index import calculate_channel_urls, check_whitelist #, get_index
 from conda.models.records import PackageRecord
 from conda.common.url import join_url
+from conda.base.context import context
 
 import threading
 import json
 
 def get_channel(x, result_container):
-    print("Getting ", x)
+    if not context.quiet:
+        print("Getting ", x)
     return result_container.append(FastSubdirData(Channel(x)).load())
 
 def get_index(channel_urls=(), prepend=True, platform=None,

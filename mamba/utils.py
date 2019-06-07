@@ -57,6 +57,3 @@ def to_package_record_from_subjson(subdir, pkg, jsn_string):
     info['url'] = join_url(channel_url, pkg)
     package_record = PackageRecord(**info)
     return package_record
-
-    # if add_pip and info['name'] == 'python' and info['version'].startswith(('2.', '3.')):
-    #     info['depends'].append('pip')

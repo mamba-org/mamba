@@ -80,6 +80,11 @@ banner = """
 █████████████████████████████████████████████████████████████
 """
 
+class MambaException(Exception):
+    pass
+
+solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+
 def get_installed_packages(prefix, show_channel_urls=None):
     result = {'packages': {}}
 
@@ -211,6 +216,8 @@ def remove(args, parser):
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
         else:
             specs = [s for s in specs_from_args(args.package_names)]
+        if not context.quiet:
+            print("Removing specs: {}".format(specs))
         channel_urls = ()
         subdirs = ()
 
@@ -218,8 +225,14 @@ def remove(args, parser):
 
         mamba_solve_specs = [s.conda_build_form() for s in specs]
 
-        to_link, to_unlink = api.solve("", installed_json_f.name,
-                                       mamba_solve_specs, api.SOLVER_ERASE, False,
+        solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
+
+        to_link, to_unlink = api.solve([],
+                                       installed_json_f.name,
+                                       mamba_solve_specs, 
+                                       solver_options,
+                                       api.SOLVER_ERASE,
+                                       False,
                                        context.quiet)
         conda_transaction = to_txn(specs, prefix, to_link, to_unlink)
 
@@ -235,11 +248,11 @@ def install(args, parser, command='install'):
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')
 
-    solver_flags = api.SOLVER_INSTALL
+    solver_task = api.SOLVER_INSTALL
 
     isupdate = bool(command == 'update')
     if isupdate:
-        solver_flags = api.SOLVER_UPDATE
+        solver_task = api.SOLVER_UPDATE
 
     if newenv:
         ensure_name_or_prefix(args, command)
@@ -380,12 +393,18 @@ def install(args, parser, command='install'):
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     strict_priority = (context.channel_priority == ChannelPriority.STRICT)
-    if strict_priority:
-        raise Exception("Cannot use strict priority with mamba!")
 
-    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, 
-                                   mamba_solve_specs, solver_flags, strict_priority,
+    if strict_priority:
+        raise MambaException("Cannot use strict priority with mamba!")
+
+    to_link, to_unlink = api.solve(channel_json,
+                                   installed_json_f.name, 
+                                   mamba_solve_specs,
+                                   solver_options,
+                                   solver_task,
+                                   strict_priority,
                                    context.quiet)
+
     conda_transaction = to_txn(specs, prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
 
@@ -490,7 +509,9 @@ def main(*args, **kwargs):
     def exception_converter(*args, **kwargs):
         try:
             _wrapped_main(*args, **kwargs)
-        except RuntimeError as e:
+        except api.MambaNativeException as e:
+            print(e)
+        except MambaException as e:
             print(e)
         except Exception as e:
             raise e

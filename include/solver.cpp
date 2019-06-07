@@ -1,5 +1,8 @@
 #include "thirdparty/simdjson/simdjson.h"
 
+#include <iostream>
+#include <map>
+
 extern "C"
 {
     #include "solv/pool.h"
@@ -12,20 +15,14 @@ extern "C"
     #include "solv/repo_conda.h"
 }
 
-static Pool* global_pool;
-
-#include <iostream>
-#include <map>
-
 #include "solver.hpp"
-// #include "parsing.hpp"
 #include "json_helper.hpp"
-
 
 #define PRINTS(stuff)            \
 if (!quiet)                      \
     std::cout << stuff << "\n";  \
 
+static Pool* global_pool;
 
 auto get_package_info(ParsedJson::iterator &i, const std::string& key)
 {
@@ -48,7 +45,8 @@ std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
 solve(std::vector<std::tuple<std::string, std::string, int>> repos,
            std::string installed,
            std::vector<std::string> jobs,
-           int solver_flags,
+           std::vector<std::pair<int, int>> solver_options,
+           int solvable_flags,
            bool strict_priority,
            bool quiet)
 {
@@ -68,10 +66,13 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
         repo_to_file_map["installed"] = std::map<Id, std::string>();
         pool_set_installed(pool, repo);
         fp = fopen(installed.c_str(), "r");
-        if (fp) {
+        if (fp)
+        {
             repo_add_conda(repo, fp, 0);
-        } else {
-            throw std::runtime_error("File could no tbe read.");
+        }
+        else
+        {
+            throw std::runtime_error("Installed packages file could not be read.");
         }
         fclose(fp);
     }
@@ -97,13 +98,13 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
             throw std::runtime_error("Invalid JSON detected!");
         }
 
-        // ParsedJson::iterator pjh(pj);
-        // parse_repo(pjh, repo, repo_to_file_map[repo_name]);
-        // note here we're parsing the same json twice ... that's not good.
         fp = fopen(repo_json_file.c_str(), "r");
-        if (fp) {
+        if (fp)
+        {
             repo_add_conda(repo, fp, 0);
-        } else {
+        }
+        else
+        {
             throw std::runtime_error("File could not be read.");
         }
         fclose(fp);
@@ -115,19 +116,18 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
     pool_createwhatprovides(global_pool);
 
     Solver* solvy = solver_create(global_pool);
-    solver_set_flag(solvy, SOLVER_FLAG_ALLOW_DOWNGRADE, 1);
+    for (auto& option : solver_options)
+    {
+        solver_set_flag(solvy, option.first, option.second);
+    }
 
     Queue q;
     queue_init(&q);
 
-    // add new line
-    PRINTS("");
     for (const auto& job : jobs)
     {
         Id inst_id = pool_conda_matchspec(pool, job.c_str());
-        // int rel = parse_to_relation(job, pool);
-        PRINTS("Job: " << pool_dep2str(pool, inst_id));
-        queue_push2(&q, solver_flags | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        queue_push2(&q, solvable_flags | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     solver_solve(solvy, &q);
@@ -145,72 +145,73 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
             queue_push(&problem_queue, i);
             problems << "Problem: " << solver_problem2str(solvy, i) << "\n";
         }
-        throw std::runtime_error("Encountered problems while solving.\n" + problems.str());
+        throw mamba_error("Encountered problems while solving.\n" + problems.str());
     }
 
     queue_free(&problem_queue);
 
-    transaction_print(transy);
+    // DEBUG printout
+    // transaction_print(transy);
 
     std::vector<std::tuple<std::string, std::string, std::string>> to_install_structured; 
     std::vector<std::tuple<std::string, std::string>> to_remove_structured; 
 
-    {
-        Queue classes, pkgs;
-        int i, j, mode;
+    Queue classes, pkgs;
 
-        queue_init(&classes);
-        queue_init(&pkgs);
-        mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
+    queue_init(&classes);
+    queue_init(&pkgs);
+    int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
                SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-        transaction_classify(transy, mode, &classes);
+    transaction_classify(transy, mode, &classes);
 
-        Id cls;
-        std::string location;
-        unsigned int* somptr;
-        const char* mediafile;
-        for (i = 0; i < classes.count; i += 4) {
-            cls = classes.elements[i];
-            cnt = classes.elements[i + 1];
+    Id cls;
+    std::string location;
+    unsigned int* somptr;
+    const char* mediafile;
+    for (int i = 0; i < classes.count; i += 4)
+    {
+        cls = classes.elements[i];
+        cnt = classes.elements[i + 1];
 
-            transaction_classify_pkgs(transy, mode, cls, classes.elements[i + 2],
-                                      classes.elements[i + 3], &pkgs);
-            for (j = 0; j < pkgs.count; j++) {
-              Id p = pkgs.elements[j];
-              Solvable *s = pool->solvables + p;
-              Solvable *s2;
+        transaction_classify_pkgs(transy, mode, cls, classes.elements[i + 2],
+                                  classes.elements[i + 3], &pkgs);
+        for (int j = 0; j < pkgs.count; j++)
+        {
+            Id p = pkgs.elements[j];
+            Solvable *s = pool->solvables + p;
+            Solvable *s2;
 
-              switch (cls) {
-              case SOLVER_TRANSACTION_DOWNGRADED:
-              case SOLVER_TRANSACTION_UPGRADED:
-                mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-                to_remove_structured.emplace_back(s->repo->name, mediafile);
+            switch (cls)
+            {
+                case SOLVER_TRANSACTION_DOWNGRADED:
+                case SOLVER_TRANSACTION_UPGRADED:
+                    mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                    to_remove_structured.emplace_back(s->repo->name, mediafile);
 
-                s2 = pool->solvables + transaction_obs_pkg(transy, p);
-                mediafile = solvable_lookup_str(s2, SOLVABLE_MEDIAFILE);
-                to_install_structured.emplace_back(s2->repo->name, mediafile, "");
-                break;
-              case SOLVER_TRANSACTION_VENDORCHANGE:
-              case SOLVER_TRANSACTION_ARCHCHANGE:
-                // Not used yet.
-                break;
-              case SOLVER_TRANSACTION_ERASE:
-                mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-                to_remove_structured.emplace_back(s->repo->name, mediafile);
-                break;
-              case SOLVER_TRANSACTION_INSTALL:
-                mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-                to_install_structured.emplace_back(s->repo->name, mediafile, "");
-                break;
-              default:
-                std::cout << "CASE NOT HANDLED." << std::endl;
-                break;
-              }
+                    s2 = pool->solvables + transaction_obs_pkg(transy, p);
+                    mediafile = solvable_lookup_str(s2, SOLVABLE_MEDIAFILE);
+                    to_install_structured.emplace_back(s2->repo->name, mediafile, "");
+                    break;
+                case SOLVER_TRANSACTION_VENDORCHANGE:
+                case SOLVER_TRANSACTION_ARCHCHANGE:
+                    // Not used yet.
+                    break;
+                case SOLVER_TRANSACTION_ERASE:
+                    mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                    to_remove_structured.emplace_back(s->repo->name, mediafile);
+                    break;
+                case SOLVER_TRANSACTION_INSTALL:
+                    mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                    to_install_structured.emplace_back(s->repo->name, mediafile, "");
+                    break;
+                default:
+                    std::cout << "CASE NOT HANDLED." << std::endl;
+                    break;
+            }
         }
-      }
-      queue_free(&classes);
-      queue_free(&pkgs);
     }
+    queue_free(&classes);
+    queue_free(&pkgs);
 
     for (auto& el : to_install_structured)
     {

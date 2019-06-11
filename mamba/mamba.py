@@ -375,7 +375,7 @@ def install(args, parser, command='install'):
                 raise CondaError("Invalid spec for 'conda update': %s\n"
                                  "Use 'conda install' instead." % s)
             if not prefix_data.get(s.name, None):
-                raise PackageNotInstalledError(prefix, spec.name)
+                raise PackageNotInstalledError(prefix, s.name)
 
     if newenv and args.clone:
         if args.packages:

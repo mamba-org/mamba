@@ -1,5 +1,9 @@
-#include <iostream>
 #include <map>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
+#include "solver.hpp"
 
 extern "C"
 {
@@ -12,9 +16,6 @@ extern "C"
     #include "solv/conda.h"
     #include "solv/repo_conda.h"
 }
-
-#include "solver.hpp"
-#include "json_helper.hpp"
 
 #define PRINTS(stuff)            \
 if (!quiet)                      \
@@ -208,7 +209,6 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
 
     Id cls;
     std::string location;
-    unsigned int* somptr;
     const char* mediafile;
     for (int i = 0; i < classes.count; i += 4)
     {

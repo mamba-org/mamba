@@ -55,8 +55,15 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     installed_json_f.write("") # stupid!
     installed_json_f.flush()
 
-    to_link, to_unlink = api.solve(channel_json, installed_json_f.name, 
-                                   mamba_solve_specs, False, False)
+    solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+
+    to_link, to_unlink = api.solve(channel_json,
+                                   installed_json_f.name,
+                                   mamba_solve_specs,
+                                   solver_options,
+                                   api.SOLVER_INSTALL,
+                                   False,
+                                   context.quiet)
 
     to_link_records, to_unlink_records = [], []
 
@@ -107,7 +114,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     except:
         pass
 
-conda.install = mamba_install 
+conda.install = mamba_install
 
 def main():
     from conda_env.cli.main import main

@@ -1,5 +1,3 @@
-#include "thirdparty/simdjson/simdjson.h"
-
 #include <iostream>
 #include <map>
 
@@ -24,20 +22,67 @@ if (!quiet)                      \
 
 static Pool* global_pool;
 
-auto get_package_info(ParsedJson::iterator &i, const std::string& key)
+auto find_on_level(const std::string_view& substr, const std::string& search_string,
+                   const char dstart = '{', const char dend = '}')
 {
-    if (!i.move_to_key("packages"))
+    std::size_t lvl = 1;
+    auto begin = substr.begin();
+    auto slen = search_string.size();
+
+    while (lvl != 0)
     {
-        throw std::runtime_error("Could not find packages key!");
-    }
-    if (!i.move_to_key(key.c_str()))
-    {
-        throw std::runtime_error("Could not find package " + key);
+        if (*begin == '{')
+        {
+            lvl += 1;
+        }
+        if (*begin == '}')
+        {
+            lvl -= 1;
+        }
+        if (lvl == 1)
+        {
+            if (std::equal(begin, begin + slen, search_string.begin()))
+            {
+                break;
+            }
+        }
+        begin++;
     }
 
-    std::stringstream json;
-    compute_dump(i, json);
-    return json.str();
+    if (lvl == 0)
+    {
+        throw std::runtime_error("Did not find key as expected!");
+    }
+
+    // find begin
+    while (*begin != '{')
+    {
+        begin++;
+    }
+
+    auto end = begin + 1;
+
+    lvl = 1;
+    while (lvl != 0 && end != substr.end())
+    {
+        if (*end == '{') ++lvl;
+        if (*end == '}') --lvl;
+        ++end;
+    }
+    return std::string(begin, end);
+}
+
+std::string get_package_info(const std::string& json, const std::string& pkg_key)
+{
+    auto pos = json.find("\"packages\"");
+    if (pos == std::string::npos) { throw std::runtime_error("Could not find packages key."); }
+    auto it = json.begin() + pos;
+    while (*it != '{') ++it;
+    ++it;
+
+    std::string pkg_key_quoted = "\"" + pkg_key + "\"";
+    std::string result = find_on_level(std::string_view(&(*it), std::size_t(it - json.begin())), pkg_key_quoted);
+    return result;
 }
 
 std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
@@ -52,12 +97,13 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
 {
     Pool* pool = pool_create();
     pool_setdisttype(pool, DISTTYPE_CONDA);
+
     // pool_setdebuglevel(pool, 2);
 
     global_pool = pool;
 
     std::map<std::string, std::map<Id, std::string>> repo_to_file_map;
-    std::map<std::string, ParsedJson> chan_to_json;
+    std::map<std::string, std::string> chan_to_json;
 
     FILE *fp;
     if (installed.size())
@@ -77,26 +123,22 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
         fclose(fp);
     }
 
-    int priority = repos.size();
     std::string_view last_repo;
     for (auto& fn : repos)
     {
         const std::string& repo_name = std::get<0>(fn);
         const std::string& repo_json_file = std::get<1>(fn);
 
-        std::string_view p = get_corpus(repo_json_file);
-
         repo_to_file_map[repo_name] = std::map<Id, std::string>();
 
         Repo* repo = repo_create(pool, repo_name.c_str());
         repo->priority = std::get<2>(fn);
 
-        chan_to_json.emplace(repo_name, build_parsed_json(p));
-        auto& pj = chan_to_json[repo_name];
-        if (!pj.isValid())
-        {
-            throw std::runtime_error("Invalid JSON detected!");
-        }
+        std::ifstream fistream(repo_json_file);
+        std::stringstream buffer;
+        buffer << fistream.rdbuf();
+
+        chan_to_json.emplace(repo_name, buffer.str());
 
         fp = fopen(repo_json_file.c_str(), "r");
         if (fp)
@@ -202,6 +244,7 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
                     break;
                 case SOLVER_TRANSACTION_INSTALL:
                     mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+
                     to_install_structured.emplace_back(s->repo->name, mediafile, "");
                     break;
                 default:
@@ -216,8 +259,7 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
     for (auto& el : to_install_structured)
     {
         auto& json = chan_to_json[std::get<0>(el)];
-        ParsedJson::iterator pjh(json);
-        std::get<2>(el) = get_package_info(pjh, std::get<1>(el));
+        std::get<2>(el) = get_package_info(json, std::get<1>(el));
     }
 
     transaction_free(transy);

@@ -398,7 +398,7 @@ def install(args, parser, command='install'):
         raise MambaException("Cannot use strict priority with mamba!")
 
     to_link, to_unlink = api.solve(channel_json,
-                                   installed_json_f.name, 
+                                   installed_json_f.name,
                                    mamba_solve_specs,
                                    solver_options,
                                    solver_task,

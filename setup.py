@@ -69,8 +69,8 @@ def has_flag(compiler, flagname):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'msvc': ['/EHsc', '/std:c++latest', '/arch:AVX2', '/Ox'],
-        'unix': ['-std=c++17', '-march=core-avx2', '-O3'],
+        'msvc': ['/EHsc', '/std:c++latest', '/Ox'],
+        'unix': ['-std=c++17', '-O3'],
     }
 
     def build_extensions(self):

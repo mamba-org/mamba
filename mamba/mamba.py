@@ -42,12 +42,10 @@ from conda._vendor.boltons.setutils import IndexedSet
 from conda.models.prefix_graph import PrefixGraph
 
 from logging import getLogger
-from os.path import isdir
 
 import json
 import tempfile
 import logging
-import sys
 
 import mamba.mamba_api as api
 

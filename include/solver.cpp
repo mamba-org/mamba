@@ -28,9 +28,8 @@ auto find_on_level(const std::string_view& substr, const std::string& search_str
 {
     std::size_t lvl = 1;
     auto begin = substr.begin();
-    auto slen = search_string.size();
 
-    while (lvl != 0)
+    while (lvl != 0 && begin != substr.end())
     {
         if (*begin == '{')
         {
@@ -42,7 +41,7 @@ auto find_on_level(const std::string_view& substr, const std::string& search_str
         }
         if (lvl == 1)
         {
-            if (std::equal(begin, begin + slen, search_string.begin()))
+            if (std::equal(begin, begin + search_string.size(), search_string.begin()))
             {
                 break;
             }
@@ -70,6 +69,10 @@ auto find_on_level(const std::string_view& substr, const std::string& search_str
         if (*end == '}') --lvl;
         ++end;
     }
+    if (end == substr.end() && *end != '}')
+    {
+        throw std::runtime_error("Package metadata appears incomplete");
+    }
     return std::string(begin, end);
 }
 
@@ -82,7 +85,7 @@ std::string get_package_info(const std::string& json, const std::string& pkg_key
     ++it;
 
     std::string pkg_key_quoted = "\"" + pkg_key + "\"";
-    std::string result = find_on_level(std::string_view(&(*it), std::size_t(it - json.begin())), pkg_key_quoted);
+    std::string result = find_on_level(std::string_view(&(*it), std::size_t(json.size() - std::distance(json.begin(), it))), pkg_key_quoted);
     return result;
 }
 

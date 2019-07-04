@@ -49,7 +49,7 @@ import logging
 
 import mamba.mamba_api as api
 
-from mamba.utils import get_index, get_channel, to_package_record_from_subjson
+from mamba.utils import get_index, to_package_record_from_subjson
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')

@@ -5,7 +5,6 @@
 Mamba is a reimplementation of the bits which are somewhat slow in conda. Mamba uses:
 
 - parallel downloading of JSON files using multiprocessing, and reusing conda's caches
-- simdjson, a hyper high performance library in C++ to parse the repodata.json (which is getting larger and larger, e.g. for conda-forge)
 - libsolv for speedy dependency solving, a state of the art library used in the package manager of Fedora and others
 
 At the same time, mamba re-uses a lot of conda's codebase to parse the command line and execute the transaction (installation & deinstallation of packages).
@@ -13,6 +12,7 @@ At the same time, mamba re-uses a lot of conda's codebase to parse the command l
 ### Installation
 
 ***From `conda-forge`:***
+
 ```
 conda install mamba -c conda-forge
 ```
@@ -21,14 +21,12 @@ conda install mamba -c conda-forge
 
 Make sure to have the following requirements in your conda environment:
 
-- `conda install pybind11 libsolv conda cmake`
+- `conda install pybind11 libsolv pip`
 
+For a local (dev) build, run `pip install -e .`. This will build and install mamba
+in the conda environment.
 
-After that, `cd include`, `mkdir build`, `cd build`, `cmake ..`, `make`, switch back to the mamba root folder with `cd ../../`.
-Now you are ready to install packages with `./bin/mamba install xtensor-r` for example.
-Channels, and strict priority are currently supported.
-
-We know how to implement feature support, but it's not done in this C++ port, yet.
+Now you are ready to install packages with `mamba install xtensor-r -c conda-forge` for example.
 
 ### Support us
 

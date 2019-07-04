@@ -14,10 +14,10 @@ from conda.base.context import context
 import threading
 import json
 
-def get_channel(x, result_container):
+def load_channel(subdir_data, result_container):
     if not context.quiet:
-        print("Getting ", x)
-    return result_container.append(FastSubdirData(Channel(x)).load())
+        print("Getting ", subdir_data.channel.name, subdir_data.channel.platform)
+    return result_container.append(subdir_data.load())
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None):
@@ -25,8 +25,9 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     check_whitelist(channel_urls)
     threads = []
     result = []
-    for url in channel_urls:
-        t = threading.Thread(target=get_channel, args=(url, result))
+    sddata = [FastSubdirData(Channel(x)) for x in channel_urls]
+    for sd in sddata:
+        t = threading.Thread(target=load_channel, args=(sd, result))
         threads.append(t)
         t.start()
 
@@ -38,8 +39,9 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 def get_env_index(channel_urls):
     threads = []
     result = []
-    for url in channel_urls:
-        t = threading.Thread(target=get_channel, args=(url, result))
+    sddata = [FastSubdirData(Channel(x)) for x in channel_urls]
+    for sd in sddata:
+        t = threading.Thread(target=load_channel, args=(sd, result))
         threads.append(t)
         t.start()
 

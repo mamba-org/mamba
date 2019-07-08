@@ -332,7 +332,13 @@ def install(args, parser, command='install'):
             priority = len(index_args['channel_urls']) - index_args['channel_urls'].index(x.channel.name)
         else:
             priority = 0
-        channel_json.append((str(x.channel), x.cache_path_json, priority))
+
+        subpriority = 0 if x.channel.platform == 'noarch' else 1
+        if os.path.exists(x.cache_path_solv):
+            cache_file = x.cache_path_solv
+        else:
+            cache_file = x.cache_path_json
+        channel_json.append((str(x.channel), cache_file, priority, subpriority))
 
     installed_json_f = get_installed_jsonfile(prefix)
 

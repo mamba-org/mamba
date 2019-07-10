@@ -127,6 +127,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
         {
             throw std::runtime_error("Installed packages file could not be read.");
         }
+        repo_internalize(repo);
         fclose(fp);
     }
 
@@ -252,6 +253,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
             {
                 case SOLVER_TRANSACTION_DOWNGRADED:
                 case SOLVER_TRANSACTION_UPGRADED:
+                case SOLVER_TRANSACTION_CHANGED:
                     mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
                     to_remove_structured.emplace_back(s->repo->name, mediafile);
 
@@ -261,7 +263,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
                     break;
                 case SOLVER_TRANSACTION_VENDORCHANGE:
                 case SOLVER_TRANSACTION_ARCHCHANGE:
-                    // Not used yet.
+                    std::cout << "CASE NOT HANDLED. " << cls << std::endl;
                     break;
                 case SOLVER_TRANSACTION_ERASE:
                     mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
@@ -273,7 +275,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
                     to_install_structured.emplace_back(s->repo->name, mediafile, "");
                     break;
                 default:
-                    std::cout << "CASE NOT HANDLED." << std::endl;
+                    std::cout << "CASE NOT HANDLED. " << cls << std::endl;
                     break;
             }
         }

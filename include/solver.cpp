@@ -13,8 +13,11 @@ extern "C"
     #include "solv/solver.h"
     #include "solv/solverdebug.h"
 
+    #include "solv/repo_solv.h"
     #include "solv/conda.h"
     #include "solv/repo_conda.h"
+
+    #include "common_write.c"
 }
 
 #define PRINTS(stuff)            \
@@ -91,7 +94,7 @@ std::string get_package_info(const std::string& json, const std::string& pkg_key
 
 std::tuple<std::vector<std::tuple<std::string, std::string, std::string>>,
            std::vector<std::tuple<std::string, std::string>>>
-solve(std::vector<std::tuple<std::string, std::string, int>> repos,
+solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
            std::string installed,
            std::vector<std::string> jobs,
            std::vector<std::pair<int, int>> solver_options,
@@ -131,23 +134,38 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
     for (auto& fn : repos)
     {
         const std::string& repo_name = std::get<0>(fn);
-        const std::string& repo_json_file = std::get<1>(fn);
+        std::string& repo_json_file = std::get<1>(fn);
 
         repo_to_file_map[repo_name] = std::map<Id, std::string>();
 
         Repo* repo = repo_create(pool, repo_name.c_str());
         repo->priority = std::get<2>(fn);
-
-        std::ifstream fistream(repo_json_file);
-        std::stringstream buffer;
-        buffer << fistream.rdbuf();
-
-        chan_to_json.emplace(repo_name, buffer.str());
+        repo->subpriority = std::get<3>(fn);
 
         fp = fopen(repo_json_file.c_str(), "r");
-        if (fp)
+        std::string ending = ".solv";
+        if (std::equal(repo_json_file.end() - ending.size(), repo_json_file.end(), ending.begin()))
+        {
+            repo_add_solv(repo, fp, 0);
+            // PRINT("loading from solv " << repo_json_file);
+            auto json_name = repo_json_file.substr(0, repo_json_file.size() - ending.size());
+            json_name += std::string(".json");
+            repo_json_file = json_name;
+            repo_internalize(repo);
+        }
+        else if (fp)
         {
             repo_add_conda(repo, fp, 0);
+            repo_internalize(repo);
+            auto solv_name = repo_json_file.substr(0, repo_json_file.size() - ending.size());
+            solv_name += ending;
+            // PRINT("creating solv: " << solv_name);
+            auto sfile = fopen(solv_name.c_str(), "w");
+            if (sfile)
+            {
+                tool_write(repo, sfile);
+                fclose(sfile);
+            }
         }
         else
         {
@@ -155,8 +173,12 @@ solve(std::vector<std::tuple<std::string, std::string, int>> repos,
         }
         fclose(fp);
 
+        std::ifstream fistream(repo_json_file);
+        std::stringstream buffer;
+        buffer << fistream.rdbuf();
+        chan_to_json.emplace(repo_name, buffer.str());
+
         PRINTS(repo->nsolvables << " packages in " << repo_name);
-        repo_internalize(repo);
     }
 
     pool_createwhatprovides(global_pool);

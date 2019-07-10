@@ -113,4 +113,3 @@ setup(
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )
-

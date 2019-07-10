@@ -7,6 +7,7 @@
 from __future__ import absolute_import, print_function
 
 from os.path import basename
+import os
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.context import context
@@ -43,7 +44,12 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     for x in index:
         # add priority here
         priority = len(_channel_priority_map) - _channel_priority_map[x.url_w_subdir][1]
-        channel_json.append((str(x.channel), x.cache_path_json, priority))
+        subpriority = 0 if x.channel.platform == 'noarch' else 1
+        if os.path.exists(x.cache_path_solv):
+            cache_file = x.cache_path_solv
+        else:
+            cache_file = x.cache_path_json
+        channel_json.append((str(x.channel), cache_file, priority, subpriority))
 
     specs = [MatchSpec(s) for s in specs]
     mamba_solve_specs = [s.conda_build_form() for s in specs]

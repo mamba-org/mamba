@@ -91,6 +91,10 @@ class FastSubdirData(object):
     def cache_path_json(self):
         return self.cache_path_base + '.json'
 
+    @property
+    def cache_path_solv(self):
+        return self.cache_path_base + '.solv'
+
     def load(self):
         self._load()
         self._loaded = True

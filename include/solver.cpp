@@ -105,7 +105,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
     Pool* pool = pool_create();
     pool_setdisttype(pool, DISTTYPE_CONDA);
 
-    // pool_setdebuglevel(pool, 2);
+    pool_setdebuglevel(pool, 0);
 
     global_pool = pool;
 

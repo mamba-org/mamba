@@ -154,7 +154,8 @@ def to_txn(specs, prefix, to_link, to_unlink, index=None):
         unlink_precs  = unlink_precs,
         link_precs    = link_precs,
         remove_specs  = [],
-        update_specs  = specs
+        update_specs  = specs,
+        neutered_specs = []
     )
 
     conda_transaction = UnlinkLinkTransaction(pref_setup)

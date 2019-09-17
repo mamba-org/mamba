@@ -5,6 +5,14 @@
 
 #include "solver.hpp"
 
+#ifndef _MSC_VER
+    #include <string_view>
+    using std::string_view;
+#else
+    #include "thirdparty/string_view.hpp"
+    using nonstd::string_view;
+#endif
+
 extern "C"
 {
     #include "solv/pool.h"
@@ -26,7 +34,7 @@ if (!quiet)                      \
 
 static Pool* global_pool;
 
-auto find_on_level(const std::string_view& substr, const std::string& search_string,
+auto find_on_level(const string_view& substr, const std::string& search_string,
                    const char dstart = '{', const char dend = '}')
 {
     std::size_t lvl = 1;
@@ -88,7 +96,7 @@ std::string get_package_info(const std::string& json, const std::string& pkg_key
     ++it;
 
     std::string pkg_key_quoted = "\"" + pkg_key + "\"";
-    std::string result = find_on_level(std::string_view(&(*it), std::size_t(json.size() - std::distance(json.begin(), it))), pkg_key_quoted);
+    std::string result = find_on_level(string_view(&(*it), std::size_t(json.size() - std::distance(json.begin(), it))), pkg_key_quoted);
     return result;
 }
 
@@ -131,7 +139,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
         fclose(fp);
     }
 
-    std::string_view last_repo;
+    string_view last_repo;
     for (auto& fn : repos)
     {
         const std::string& repo_name = std::get<0>(fn);

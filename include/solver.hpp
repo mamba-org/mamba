@@ -5,6 +5,7 @@
 #include <string>
 #include <stdexcept>
 
+
 extern "C"
 {
     #include "solv/pool.h"

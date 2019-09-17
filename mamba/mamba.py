@@ -150,11 +150,12 @@ def to_txn(specs, prefix, to_link, to_unlink, index=None):
                                                           force_reinstall=context.force_reinstall)
 
     pref_setup = PrefixSetup(
-        target_prefix = prefix,
-        unlink_precs  = unlink_precs,
-        link_precs    = link_precs,
-        remove_specs  = [],
-        update_specs  = specs
+        target_prefix  = prefix,
+        unlink_precs   = unlink_precs,
+        link_precs     = link_precs,
+        remove_specs   = [],
+        update_specs   = specs,
+        neutered_specs = ()
     )
 
     conda_transaction = UnlinkLinkTransaction(pref_setup)
@@ -200,6 +201,7 @@ def remove(args, parser):
                 link_precs=(),
                 remove_specs=(),
                 update_specs=(),
+                neutered_specs=(),
             )
             txn = UnlinkLinkTransaction(stp)
             handle_txn(txn, prefix, args, False, True)

@@ -22,7 +22,7 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda install libsolv pip pybind11 -c conda-forge
+  - conda install libsolv pip pybind11 vs2015_win-64 -c conda-forge
   # Build
   - pip install -e . --verbose
 

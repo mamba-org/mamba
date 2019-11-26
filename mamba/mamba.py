@@ -247,7 +247,6 @@ def install(args, parser, command='install'):
 
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')
-
     solver_task = api.SOLVER_INSTALL
 
     isupdate = bool(command == 'update')
@@ -336,7 +335,10 @@ def install(args, parser, command='install'):
             priority = 0
 
         subpriority = 0 if x.channel.platform == 'noarch' else 1
-        if os.path.exists(x.cache_path_solv):
+
+        if os.path.exists(x.cache_path_solv) and \
+            x.cache_content_changed == False and \
+            os.path.getmtime(x.cache_path_solv) > os.path.getmtime(x.cache_path_json):
             cache_file = x.cache_path_solv
         else:
             cache_file = x.cache_path_json

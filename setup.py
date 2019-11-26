@@ -40,7 +40,7 @@ if sys.platform == 'darwin':
 library_dir = []
 if sys.platform == 'win32':
     try:
-        conda_prefix = os.environ['CONDA_PREFIX']
+        conda_prefix = os.environ['MINICONDA']
         library_dir = [os.path.join(conda_prefix, 'Library/lib/')]
     except:
         print("could not find conda prefix")
@@ -54,6 +54,7 @@ ext_modules = [
             get_pybind_include(user=True),
             os.path.join(libsolv_prefix, 'include')
         ],
+        library_dirs=library_dir,
         libraries=['solv', 'solvext'],
         language='c++'
     ),

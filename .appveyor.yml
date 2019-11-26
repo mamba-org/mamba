@@ -7,7 +7,7 @@ platform:
 
 environment:
   matrix:
-    - MINICONDA: C:\xeus-conda
+    - MINICONDA: C:\mamba
 
 init:
   - "ECHO %MINICONDA%"

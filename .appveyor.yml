@@ -24,6 +24,8 @@ install:
   - conda info -a
   - conda install libsolv pip -c conda-forge
   # Build
+  - echo %MINICONDA%
+  - echo %CONDA_PREFIX%
   - pip install -e .
 
 build_script:

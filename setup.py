@@ -37,6 +37,14 @@ extra_link_args = []
 if sys.platform == 'darwin':
     extra_link_args = ['-Wl,-rpath', '-Wl,%s' % os.path.abspath(libsolv_prefix)]
 
+library_dir = []
+if sys.platform == 'win32':
+    try:
+        conda_prefix = os.environ['CONDA_PREFIX']
+        library_dir = [os.path.join(conda_prefix, 'Library/lib/')]
+    except:
+        print("could not find conda prefix")
+
 ext_modules = [
     Extension(
         'mamba.mamba_api',

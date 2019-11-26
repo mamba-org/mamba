@@ -81,6 +81,8 @@ class FastSubdirData(object):
         self.cache_path_base = join(create_cache_dir(),
                                     splitext(cache_fn_url(self.url_w_credentials))[0])
         self._loaded = False
+        # if the cache doesn't change, this stays False
+        self.cache_content_changed = False
 
     def reload(self):
         self._loaded = False
@@ -127,10 +129,7 @@ class FastSubdirData(object):
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
                           self.url_w_subdir, self.cache_path_json)
-
-                _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                           mod_etag_headers.get('_mod'))
-                return _internal_state
+                return
 
             if context.local_repodata_ttl > 1:
                 max_age = context.local_repodata_ttl
@@ -143,9 +142,7 @@ class FastSubdirData(object):
             if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
                           self.url_w_subdir, self.cache_path_json, timeout)
-                _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                           mod_etag_headers.get('_mod'))
-                return _internal_state
+                return
 
             log.debug("Local cache timed out for %s at %s",
                       self.url_w_subdir, self.cache_path_json)
@@ -157,42 +154,20 @@ class FastSubdirData(object):
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
                       self.url_w_subdir)
-            touch(self.cache_path_json)
-            _internal_state = self._read_local_repdata(mod_etag_headers.get('_etag'),
-                                                       mod_etag_headers.get('_mod'))
-            return _internal_state
+            # Do not touch here, so we can compare the creation date of solv vs. json file
+            # for mamba, and regenerate the solv file if updated from conda.
+            # touch(self.cache_path_json)
+            return
+
         else:
             if not isdir(dirname(self.cache_path_json)):
                 mkdir_p(dirname(self.cache_path_json))
             try:
                 with io_open(self.cache_path_json, 'w') as fh:
                     fh.write(raw_repodata_str or '{}')
+                    self.cache_content_changed = True
             except (IOError, OSError) as e:
                 if e.errno in (EACCES, EPERM):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
                 else:
                     raise
-            _internal_state = self._process_raw_repodata_str(raw_repodata_str)
-            self._internal_state = _internal_state
-            return _internal_state
-
-    def _read_local_repdata(self, etag, mod_stamp):
-        log.debug("Loading raw json for %s at %s", self.url_w_subdir, self.cache_path_json)
-        with open(self.cache_path_json) as fh:
-            try:
-                raw_repodata_str = fh.read()
-            except ValueError as e:
-                # ValueError: Expecting object: line 11750 column 6 (char 303397)
-                log.debug("Error for cache path: '%s'\n%r", self.cache_path_json, e)
-                message = dals("""
-                An error occurred when loading cached repodata.  Executing
-                `conda clean --index-cache` will remove cached repodata files
-                so they can be downloaded again.
-                """)
-                raise CondaError(message)
-            else:
-                _internal_state = self._process_raw_repodata_str(raw_repodata_str)
-                return _internal_state
-
-    def _process_raw_repodata_str(self, raw_repodata_str):
-        self.raw_repodata_str = raw_repodata_str

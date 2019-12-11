@@ -115,7 +115,7 @@ setup(
     author='Wolf Vollprecht',
     author_email='w.vollprecht@gmail.com',
     url='https://github.com/wolfv/mamba',
-    description='Faster than a conda?!',
+    description='A fast, libsolv based solver and installer for conda packages.',
     packages=['mamba'],
     entry_points={
         'console_scripts': [

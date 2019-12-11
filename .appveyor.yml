@@ -28,6 +28,6 @@ install:
   - pip install -e . --verbose --no-deps
 
 build_script:
-  - mamba create -n testenv xtensor -c conda-forge
-  - mamba create -n xenv xtensor xtensor-r xeus xeus-cling -c conda-forge --dry-run
-  - mamba env create -n testenv --file test.yml
+#  - mamba create -n testenv xtensor -c conda-forge
+#  - mamba create -n xenv xtensor xtensor-r xeus xeus-cling -c conda-forge --dry-run
+#  - mamba env create -n testenv --file test.yml

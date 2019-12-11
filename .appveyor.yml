@@ -23,7 +23,6 @@ install:
   - conda update -q conda
   - conda info -a
   - conda install libsolv pip pybind11 vs2015_win-64 -c conda-forge
-  - conda activate
   # Build
   - pip install -e . --verbose
 

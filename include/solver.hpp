@@ -33,6 +33,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
            std::vector<std::pair<int, int>> solver_options,
            int solver_flags,
            bool strict_priority,
-           bool quiet);
+           bool quiet,
+           int debug_level);
 
 #endif

@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
+import sys
 from collections import defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM
@@ -96,6 +97,17 @@ class FastSubdirData(object):
     @property
     def cache_path_solv(self):
         return self.cache_path_base + '.solv'
+
+    def get_loaded_file_path(self):
+        if sys.platform == 'win32':
+            return self.cache_path_json
+
+        if os.path.exists(self.cache_path_solv) and \
+           self.cache_content_changed == False and \
+           os.path.getmtime(self.cache_path_solv) > os.path.getmtime(self.cache_path_json):
+            return self.cache_path_solv
+
+        return self.cache_path_json
 
     def load(self):
         self._load()

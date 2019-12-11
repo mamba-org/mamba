@@ -27,7 +27,7 @@ class get_pybind_include(object):
         return pybind11.get_include(self.user)
 
 if sys.platform.startswith('win'):
-    libsolv_prefix = os.path.join(sys.prefix, 'Library/')
+    libsolv_prefix = os.path.join(sys.prefix, 'Library\\')
 else:
     libsolv_prefix = sys.prefix
 
@@ -40,8 +40,9 @@ if sys.platform == 'darwin':
 library_dir = []
 if sys.platform == 'win32':
     try:
-        conda_prefix = os.environ['MINICONDA']
-        library_dir = [os.path.join(conda_prefix, 'Library/lib/')]
+        conda_prefix = os.environ['CONDA_PREFIX']
+        library_dir = [os.path.join(conda_prefix, 'Library\\lib\\')]
+        print("Looking for libsolv library in ", library_dir)
     except:
         print("could not find conda prefix")
 

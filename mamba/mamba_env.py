@@ -69,7 +69,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
                                    solver_options,
                                    api.SOLVER_INSTALL,
                                    False,
-                                   context.quiet)
+                                   context.quiet,
+                                   context.verbosity)
 
     to_link_records, to_unlink_records = [], []
 

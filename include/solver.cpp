@@ -108,12 +108,13 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
            std::vector<std::pair<int, int>> solver_options,
            int solvable_flags,
            bool strict_priority,
-           bool quiet)
+           bool quiet,
+           int debug_level)
 {
     Pool* pool = pool_create();
     pool_setdisttype(pool, DISTTYPE_CONDA);
 
-    // pool_setdebuglevel(pool, 2);
+    pool_setdebuglevel(pool, debug_level);
 
     global_pool = pool;
 
@@ -166,6 +167,8 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
         {
             repo_add_conda(repo, fp, 0);
             repo_internalize(repo);
+            // disabling solv caching for now on Windows
+            #if !defined(WIN32)
             auto solv_name = repo_json_file.substr(0, repo_json_file.size() - ending.size());
             solv_name += ending;
             // PRINT("creating solv: " << solv_name);
@@ -175,6 +178,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
                 tool_write(repo, sfile);
                 fclose(sfile);
             }
+            #endif
         }
         else
         {

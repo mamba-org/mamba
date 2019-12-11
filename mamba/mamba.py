@@ -233,7 +233,8 @@ def remove(args, parser):
                                        solver_options,
                                        api.SOLVER_ERASE,
                                        False,
-                                       context.quiet)
+                                       context.quiet,
+                                       context.verbosity)
         conda_transaction = to_txn(specs, prefix, to_link, to_unlink)
 
         handle_txn(conda_transaction, prefix, args, False, True)
@@ -335,13 +336,8 @@ def install(args, parser, command='install'):
             priority = 0
 
         subpriority = 0 if x.channel.platform == 'noarch' else 1
+        cache_file = x.get_loaded_file_path()
 
-        if os.path.exists(x.cache_path_solv) and \
-            x.cache_content_changed == False and \
-            os.path.getmtime(x.cache_path_solv) > os.path.getmtime(x.cache_path_json):
-            cache_file = x.cache_path_solv
-        else:
-            cache_file = x.cache_path_json
         channel_json.append((str(x.channel), cache_file, priority, subpriority))
 
     installed_json_f = get_installed_jsonfile(prefix)
@@ -411,7 +407,8 @@ def install(args, parser, command='install'):
                                    solver_options,
                                    solver_task,
                                    strict_priority,
-                                   context.quiet)
+                                   context.quiet,
+                                   context.verbosity)
 
     conda_transaction = to_txn(specs, prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)

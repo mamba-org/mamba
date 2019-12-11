@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import bz2
-import sys
+import sys, os
 from collections import defaultdict
 from contextlib import closing
 from errno import EACCES, ENODEV, EPERM

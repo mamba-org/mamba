@@ -40,7 +40,12 @@ if sys.platform == 'darwin':
 library_dir = []
 if sys.platform == 'win32':
     try:
-        conda_prefix = os.environ['CONDA_PREFIX']
+        conda_prefix = os.getenv('CONDA_PREFIX')
+        if not conda_prefix:
+            conda_prefix = os.getenv('MINICONDA')
+        if not conda_prefix:
+            raise RuntimeError("No conda prefix found")
+
         library_dir = [os.path.join(conda_prefix, 'Library\\lib\\')]
         print("Looking for libsolv library in ", library_dir)
     except:

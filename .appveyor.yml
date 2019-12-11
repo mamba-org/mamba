@@ -23,10 +23,11 @@ install:
   - conda update -q conda
   - conda info -a
   - conda install libsolv pip pybind11 vs2015_win-64 -c conda-forge
+  - conda activate
   # Build
   - pip install -e . --verbose
 
 build_script:
   - mamba create -n testenv xtensor -c conda-forge
-  # - mamba create -n xenv xtensor xtensor-r xeus xeus-cling -c conda-forge --dry-run
-  # - mamba env create -n testenv --file test.yml
+  - mamba create -n xenv xtensor xtensor-r xeus xeus-cling -c conda-forge --dry-run
+  - mamba env create -n testenv --file test.yml

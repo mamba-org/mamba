@@ -347,13 +347,10 @@ def install(args, parser, command='install'):
         else:
             priority = 0
 
-        print(x.channel.name, priority)
-
         subpriority = 0 if x.channel.platform == 'noarch' else 1
         cache_file = x.get_loaded_file_path()
 
         channel_json.append((str(x.channel), cache_file, priority, subpriority))
-    print(channel_json)
 
     installed_json_f = get_installed_jsonfile(prefix)
 

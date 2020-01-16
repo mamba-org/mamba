@@ -49,6 +49,7 @@ import logging
 
 import mamba.mamba_api as api
 
+from mamba.post_solve_handling import post_solve_handling
 from mamba.utils import get_index, to_package_record_from_subjson
 
 log = getLogger(__name__)
@@ -119,10 +120,11 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-def to_txn(specs, prefix, to_link, to_unlink, index=None):
+def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None):
     to_link_records, to_unlink_records = [], []
 
-    final_precs = IndexedSet(PrefixData(prefix).iter_records())
+    prefix_data = PrefixData(prefix)
+    final_precs = IndexedSet(prefix_data.iter_records())
 
     def get_channel(c):
         for x in index:
@@ -144,17 +146,18 @@ def to_txn(specs, prefix, to_link, to_unlink, index=None):
         final_precs.add(rec)
         to_link_records.append(rec)
 
+    final_precs, specs_to_add, specs_to_remove = post_solve_handling(context, prefix_data, final_precs, specs_to_add, specs_to_remove)
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
                                                           final_precs=IndexedSet(PrefixGraph(final_precs).graph),
-                                                          specs_to_add=specs,
+                                                          specs_to_add=specs_to_add,
                                                           force_reinstall=context.force_reinstall)
 
     pref_setup = PrefixSetup(
         target_prefix  = prefix,
         unlink_precs   = unlink_precs,
         link_precs     = link_precs,
-        remove_specs   = [],
-        update_specs   = specs,
+        remove_specs   = specs_to_remove,
+        update_specs   = specs_to_add,
         neutered_specs = ()
     )
 
@@ -204,7 +207,10 @@ def remove(args, parser):
                 neutered_specs=(),
             )
             txn = UnlinkLinkTransaction(stp)
-            handle_txn(txn, prefix, args, False, True)
+            try:
+                handle_txn(txn, prefix, args, False, True)
+            except PackagesNotFoundError:
+                print("No packages found in %s. Continuing environment removal" % prefix)
 
         rm_rf(prefix, clean_empty_parents=True)
         unregister_env(prefix)
@@ -234,9 +240,10 @@ def remove(args, parser):
                                        api.SOLVER_ERASE,
                                        False,
                                        context.quiet,
-                                       context.verbosity)
-        conda_transaction = to_txn(specs, prefix, to_link, to_unlink)
+                                       context.verbosity,
+                                       __version__)
 
+        conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)
 
 def install(args, parser, command='install'):
@@ -417,7 +424,7 @@ def install(args, parser, command='install'):
                                    context.quiet,
                                    context.verbosity)
 
-    conda_transaction = to_txn(specs, prefix, to_link, to_unlink, index)
+    conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
 
     try:

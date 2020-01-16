@@ -53,7 +53,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel):
+    def __call__(cls, channel, channel_idx):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
@@ -61,7 +61,7 @@ class SubdirDataType(type):
         if not cache_key.startswith('file://') and cache_key in FastSubdirData._cache_:
             return FastSubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, channel_idx)
         FastSubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -70,13 +70,14 @@ class SubdirDataType(type):
 class FastSubdirData(object):
     _cache_ = {}
 
-    def __init__(self, channel):
+    def __init__(self, channel, channel_idx):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
             del parts['package_filename']
             channel = Channel(**parts)
         self.channel = channel
+        self.channel_idx = channel_idx
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
         self.cache_path_base = join(create_cache_dir(),

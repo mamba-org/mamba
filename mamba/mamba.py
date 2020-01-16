@@ -328,10 +328,22 @@ def install(args, parser, command='install'):
                       unknown=index_args['unknown'], prefix=prefix)
 
     channel_json = []
+    strict_priority = (context.channel_priority == ChannelPriority.STRICT)
+
+    if strict_priority:
+        # first, count unique channels
+        n_channels = len(set([x.channel.canonical_name for x in index]))
+        current_channel = index[0].channel.canonical_name
+        channel_prio = n_channels
+
     for x in index:
         # add priority here
-        if x.channel.name in index_args['channel_urls']:
-            priority = len(index_args['channel_urls']) - index_args['channel_urls'].index(x.channel.name)
+        x.channel_idx
+        if strict_priority:
+            if x.channel.canonical_name != current_channel:
+                channel_prio -= 1
+                current_channel = x.channel.canonical_name
+            priority = channel_prio
         else:
             priority = 0
 
@@ -395,11 +407,6 @@ def install(args, parser, command='install'):
 
     if not context.quiet:
         print("\nLooking for: {}\n".format(mamba_solve_specs))
-
-    strict_priority = (context.channel_priority == ChannelPriority.STRICT)
-
-    if strict_priority:
-        raise MambaException("Cannot use strict priority with mamba!")
 
     to_link, to_unlink = api.solve(channel_json,
                                    installed_json_f.name,

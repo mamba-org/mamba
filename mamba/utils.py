@@ -20,12 +20,13 @@ def load_channel(subdir_data, result_container):
     return result_container.append(subdir_data.load())
 
 def get_index(channel_urls=(), prepend=True, platform=None,
-              use_local=False, use_cache=False, unknown=None, prefix=None):
+              use_local=False, use_cache=False, unknown=None, prefix=None,
+              repodata_fn="repodata.json"):
     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
     check_whitelist(real_urls)
     threads = []
     result = []
-    sddata = [FastSubdirData(Channel(x), idx) for idx, x in enumerate(real_urls)]
+    sddata = [FastSubdirData(Channel(x), idx, repodata_fn) for idx, x in enumerate(real_urls)]
     for sd in sddata:
         t = threading.Thread(target=load_channel, args=(sd, result))
         threads.append(t)
@@ -37,10 +38,10 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     result = sorted(result, key=lambda x: x.channel_idx)
     return result
 
-def get_env_index(channel_urls):
+def get_env_index(channel_urls, repodata_fn="repodata.json"):
     threads = []
     result = []
-    sddata = [FastSubdirData(Channel(x), idx) for idx, x in enumerate(channel_urls)]
+    sddata = [FastSubdirData(Channel(x), idx, repodata_fn) for idx, x in enumerate(channel_urls)]
     for sd in sddata:
         t = threading.Thread(target=load_channel, args=(sd, result))
         threads.append(t)

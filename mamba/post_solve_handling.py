@@ -74,7 +74,7 @@ def post_solve_handling(context, prefix_data, final_precs, specs_to_add, specs_t
 
         return solution_precs, specs_to_add, specs_to_remove
 
-    return to_unlink, to_link, specs_to_add
+    return final_precs, specs_to_add, specs_to_remove
 
     #     # TODO: check if solution is satisfiable, and emit warning if it's not
 

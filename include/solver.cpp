@@ -109,7 +109,8 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
            int solvable_flags,
            bool strict_priority,
            bool quiet,
-           int debug_level)
+           int debug_level,
+           const std::string& mamba_version)
 {
     Pool* pool = pool_create();
     pool_setdisttype(pool, DISTTYPE_CONDA);
@@ -153,7 +154,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
         repo->subpriority = std::get<3>(fn);
 
         fp = fopen(repo_json_file.c_str(), "r");
-        std::string ending = ".solv";
+        std::string ending = "_" + mamba_version + ".solv";
         if (std::equal(repo_json_file.end() - ending.size(), repo_json_file.end(), ending.begin()))
         {
             repo_add_solv(repo, fp, 0);
@@ -167,11 +168,11 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
         {
             repo_add_conda(repo, fp, 0);
             repo_internalize(repo);
+
             // disabling solv caching for now on Windows
             #if !defined(WIN32)
-            auto solv_name = repo_json_file.substr(0, repo_json_file.size() - ending.size());
+            std::string solv_name = repo_json_file.substr(0, repo_json_file.size() - 5);
             solv_name += ending;
-            // PRINT("creating solv: " << solv_name);
             auto sfile = fopen(solv_name.c_str(), "w");
             if (sfile)
             {

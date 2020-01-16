@@ -34,6 +34,7 @@ solve(std::vector<std::tuple<std::string, std::string, int, int>> repos,
            int solver_flags,
            bool strict_priority,
            bool quiet,
-           int debug_level);
+           int debug_level,
+           const std::string& mamba_version);
 
 #endif

@@ -43,6 +43,8 @@ from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.core.subdir_data import *
 
+from ._version import __version__
+
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderrlog')
 
@@ -96,10 +98,10 @@ class FastSubdirData(object):
 
     @property
     def cache_path_solv(self):
-        return self.cache_path_base + '.solv'
+        return self.cache_path_base + '_' + __version__ + '.solv'
 
-    def get_loaded_file_path(self):
-        if sys.platform == 'win32':
+    def get_loaded_file_path(self, use_cache=True):
+        if sys.platform == 'win32' or use_cache == False:
             return self.cache_path_json
 
         if os.path.exists(self.cache_path_solv) and \

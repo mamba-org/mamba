@@ -23,6 +23,7 @@ from conda.models.prefix_graph import PrefixGraph
 
 from mamba.utils import get_env_index, to_package_record_from_subjson
 import mamba.mamba_api as api
+from ._version import __version__
 
 import tempfile
 import threading
@@ -70,7 +71,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
                                    api.SOLVER_INSTALL,
                                    False,
                                    context.quiet,
-                                   context.verbosity)
+                                   context.verbosity,
+                                   __version__)
 
     to_link_records, to_unlink_records = [], []
 

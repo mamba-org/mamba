@@ -48,6 +48,7 @@ import tempfile
 import logging
 
 import mamba.mamba_api as api
+from ._version import __version__
 
 from mamba.utils import get_index, to_package_record_from_subjson
 
@@ -234,7 +235,8 @@ def remove(args, parser):
                                        api.SOLVER_ERASE,
                                        False,
                                        context.quiet,
-                                       context.verbosity)
+                                       context.verbosity,
+                                       __version__)
         conda_transaction = to_txn(specs, prefix, to_link, to_unlink)
 
         handle_txn(conda_transaction, prefix, args, False, True)
@@ -336,7 +338,7 @@ def install(args, parser, command='install'):
             priority = 0
 
         subpriority = 0 if x.channel.platform == 'noarch' else 1
-        cache_file = x.get_loaded_file_path()
+        cache_file = x.get_loaded_file_path(args.use_index_cache)
 
         channel_json.append((str(x.channel), cache_file, priority, subpriority))
 
@@ -408,7 +410,8 @@ def install(args, parser, command='install'):
                                    solver_task,
                                    strict_priority,
                                    context.quiet,
-                                   context.verbosity)
+                                   context.verbosity,
+                                   __version__)
 
     conda_transaction = to_txn(specs, prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)

@@ -23,7 +23,7 @@ from conda import CondaError
 from conda._vendor.auxlib.ish import dals
 from conda._vendor.auxlib.logz import stringify
 from conda._vendor.toolz import concat, take
-from conda.base.constants import CONDA_HOMEPAGE_URL
+from conda.base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from conda.base.context import context
 from conda.common.compat import (ensure_binary, ensure_text_type, ensure_unicode, iteritems,
                              string_types, text_type, with_metaclass)
@@ -53,7 +53,7 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,\}\s]' 
 
 class SubdirDataType(type):
 
-    def __call__(cls, channel, channel_idx):
+    def __call__(cls, channel, channel_idx, repodata_fn):
         assert channel.subdir
         assert not channel.package_filename
         assert type(channel) is Channel
@@ -61,7 +61,7 @@ class SubdirDataType(type):
         if not cache_key.startswith('file://') and cache_key in FastSubdirData._cache_:
             return FastSubdirData._cache_[cache_key]
 
-        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, channel_idx)
+        subdir_data_instance = super(SubdirDataType, cls).__call__(channel, channel_idx, repodata_fn)
         FastSubdirData._cache_[cache_key] = subdir_data_instance
         return subdir_data_instance
 
@@ -70,7 +70,7 @@ class SubdirDataType(type):
 class FastSubdirData(object):
     _cache_ = {}
 
-    def __init__(self, channel, channel_idx):
+    def __init__(self, channel, channel_idx, repodata_fn):
         assert channel.subdir
         if channel.package_filename:
             parts = channel.dump()
@@ -80,8 +80,8 @@ class FastSubdirData(object):
         self.channel_idx = channel_idx
         self.url_w_subdir = self.channel.url(with_credentials=False)
         self.url_w_credentials = self.channel.url(with_credentials=True)
-        self.cache_path_base = join(create_cache_dir(),
-                                    splitext(cache_fn_url(self.url_w_credentials))[0])
+
+        self.repodata_fn = repodata_fn
         self._loaded = False
         # if the cache doesn't change, this stays False
         self.cache_content_changed = False
@@ -90,6 +90,16 @@ class FastSubdirData(object):
         self._loaded = False
         self.load()
         return self
+
+    @property
+    def cache_path_base(self):
+        return join(
+            create_cache_dir(),
+            splitext(cache_fn_url(self.url_w_credentials, self.repodata_fn))[0])
+
+    @property
+    def url_w_repodata_fn(self):
+        return self.url_w_subdir + '/' + self.repodata_fn
 
     @property
     def cache_path_json(self):
@@ -121,14 +131,15 @@ class FastSubdirData(object):
         return iter(self._package_records)
 
     def _load(self):
+        print(self.url_w_subdir)
         try:
             mtime = getmtime(self.cache_path_json)
         except (IOError, OSError):
-            log.debug("No local cache found for %s at %s", self.url_w_subdir, self.cache_path_json)
+            log.debug("No local cache found for %s at %s", self.url_w_repodata_fn, self.cache_path_json)
             if context.use_index_cache or (context.offline
                                            and not self.url_w_subdir.startswith('file://')):
                 log.debug("Using cached data for %s at %s forced. Returning empty repodata.",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
                 return {
                     '_package_records': (),
                     '_names_index': defaultdict(list),
@@ -141,7 +152,7 @@ class FastSubdirData(object):
 
             if context.use_index_cache:
                 log.debug("Using cached repodata for %s at %s because use_cache=True",
-                          self.url_w_subdir, self.cache_path_json)
+                          self.url_w_repodata_fn, self.cache_path_json)
                 return
 
             if context.local_repodata_ttl > 1:
@@ -152,21 +163,31 @@ class FastSubdirData(object):
                 max_age = 0
 
             timeout = mtime + max_age - time()
-            if (timeout > 0 or context.offline) and not self.url_w_subdir.startswith('file://'):
+            if (timeout > 0 or context.offline) and not self.url_w_repodata_fn.startswith('file://'):
                 log.debug("Using cached repodata for %s at %s. Timeout in %d sec",
-                          self.url_w_subdir, self.cache_path_json, timeout)
+                          self.url_w_repodata_fn, self.cache_path_json, timeout)
                 return
 
             log.debug("Local cache timed out for %s at %s",
-                      self.url_w_subdir, self.cache_path_json)
+                      self.url_w_repodata_fn, self.cache_path_json)
 
         try:
             raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
                                                              mod_etag_headers.get('_etag'),
-                                                             mod_etag_headers.get('_mod'))
+                                                             mod_etag_headers.get('_mod'),
+                                                             repodata_fn=self.repodata_fn)
+            if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
+                raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
+        except UnavailableInvalidChannel:
+            if self.repodata_fn != REPODATA_FN:
+                self.repodata_fn = REPODATA_FN
+                return self._load()
+            else:
+                raise
+
         except Response304ContentUnchanged:
             log.debug("304 NOT MODIFIED for '%s'. Updating mtime and loading from disk",
-                      self.url_w_subdir)
+                      self.url_w_repodata_fn)
             # Do not touch here, so we can compare the creation date of solv vs. json file
             # for mamba, and regenerate the solv file if updated from conda.
             # touch(self.cache_path_json)

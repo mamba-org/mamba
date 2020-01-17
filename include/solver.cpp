@@ -87,16 +87,26 @@ auto find_on_level(const string_view& substr, const std::string& search_string,
     return std::string(begin, end);
 }
 
-std::string get_package_info(const std::string& json, const std::string& pkg_key)
+std::string get_package_info(const std::string& json, const std::string& pkg_key, const std::string& package_key = "packages")
 {
-    auto pos = json.find("\"packages\"");
+    auto pos = json.find(package_key);
     if (pos == std::string::npos) { throw std::runtime_error("Could not find packages key."); }
     auto it = json.begin() + pos;
     while (*it != '{') ++it;
     ++it;
 
     std::string pkg_key_quoted = "\"" + pkg_key + "\"";
-    std::string result = find_on_level(string_view(&(*it), std::size_t(json.size() - std::distance(json.begin(), it))), pkg_key_quoted);
+    std::string result;
+    try {
+         result = find_on_level(string_view(&(*it), std::size_t(json.size() - std::distance(json.begin(), it))), pkg_key_quoted);
+    } catch(const std::runtime_error& error) {
+        if (package_key != "\"packages.conda\"") {
+            result = get_package_info(json, pkg_key, "\"packages.conda\"");
+        }
+        else {
+            throw error;
+        }
+    }
     return result;
 }
 

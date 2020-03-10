@@ -240,8 +240,7 @@ def remove(args, parser):
                                        api.SOLVER_ERASE,
                                        False,
                                        context.quiet,
-                                       context.verbosity,
-                                       __version__)
+                                       context.verbosity)
 
         conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)

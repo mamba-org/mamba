@@ -8,3 +8,5 @@ __pycache__
 .vscode
 .ipynb_checkpoints
 build/
+tmp/
+mamba.egg-info/

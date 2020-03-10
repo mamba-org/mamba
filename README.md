@@ -21,7 +21,12 @@ conda install mamba -c conda-forge
 
 Make sure to have the following requirements in your conda environment:
 
-- `conda install pybind11 libsolv pip`
+- `conda install pybind11 libsolv pip -c conda-forge`
+
+If you build mamba in a different environment than base, you must also install conda in
+that environment:
+
+- `conda install conda -c conda-forge`
 
 For a local (dev) build, run `pip install -e .`. This will build and install mamba
 in the conda environment.

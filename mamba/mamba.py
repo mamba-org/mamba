@@ -409,6 +409,16 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
+    # If python was not specified, check if it is installed.
+    # If yes, add the installed python to the specs to prevent updating it.
+    spec_names = [s.name for s in specs]
+    if not 'python' in spec_names:
+        installed_names = [i_rec.name for i_rec in installed_pkg_recs]
+        if 'python' in installed_names:
+            i = installed_names.index('python')
+            version = installed_pkg_recs[i].version
+            specs.append(MatchSpec('python==' + version))
+
     mamba_solve_specs = [s.conda_build_form() for s in specs]
 
     if not context.quiet:

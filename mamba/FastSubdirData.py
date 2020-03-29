@@ -131,7 +131,6 @@ class FastSubdirData(object):
         return iter(self._package_records)
 
     def _load(self):
-        print(self.url_w_subdir)
         try:
             mtime = getmtime(self.cache_path_json)
         except (IOError, OSError):

@@ -50,7 +50,7 @@ import logging
 import mamba.mamba_api as api
 
 from mamba.post_solve_handling import post_solve_handling
-from mamba.utils import get_index, to_package_record_from_subjson
+from mamba.utils import get_index, to_package_record_from_subjson, _supplement_index_with_system
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
@@ -95,6 +95,12 @@ def get_installed_packages(prefix, show_channel_urls=None):
         json_rec['depends'] = prec.depends
         json_rec['build'] = prec.build
         result['packages'][prec.fn] = json_rec
+
+    # add virtual packages as installed packages
+    # they are packages installed on the system that conda can do nothing about (e.g. glibc)
+    # if another version is needed, installation just fails
+    # they don't exist anywhere (they start with __)
+    _supplement_index_with_system(installed)
 
     return installed, result
 
@@ -412,7 +418,7 @@ def install(args, parser, command='install'):
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
     spec_names = [s.name for s in specs]
-    if not 'python' in spec_names:
+    if 'python' not in spec_names:
         installed_names = [i_rec.name for i_rec in installed_pkg_recs]
         if 'python' in installed_names:
             i = installed_names.index('python')

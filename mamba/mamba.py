@@ -50,7 +50,7 @@ import logging
 import mamba.mamba_api as api
 
 from mamba.post_solve_handling import post_solve_handling
-from mamba.utils import get_index, to_package_record_from_subjson
+from mamba.utils import get_index, to_package_record_from_subjson, _supplement_index_with_system
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
@@ -89,6 +89,12 @@ def get_installed_packages(prefix, show_channel_urls=None):
 
     # Currently, we need to have pip interop disabled :/
     installed = list(PrefixData(prefix, pip_interop_enabled=False).iter_records())
+
+    # add virtual packages as installed packages
+    # they are packages installed on the system that conda can do nothing about (e.g. glibc)
+    # if another version is needed, installation just fails
+    # they don't exist anywhere (they start with __)
+    _supplement_index_with_system(installed)
 
     for prec in installed:
         json_rec = prec.dist_fields_dump()
@@ -235,7 +241,7 @@ def remove(args, parser):
 
         to_link, to_unlink = api.solve([],
                                        installed_json_f.name,
-                                       mamba_solve_specs, 
+                                       mamba_solve_specs,
                                        solver_options,
                                        api.SOLVER_ERASE,
                                        False,
@@ -412,7 +418,7 @@ def install(args, parser, command='install'):
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
     spec_names = [s.name for s in specs]
-    if not 'python' in spec_names:
+    if 'python' not in spec_names:
         installed_names = [i_rec.name for i_rec in installed_pkg_recs]
         if 'python' in installed_names:
             i = installed_names.index('python')

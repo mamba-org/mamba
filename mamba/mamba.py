@@ -90,17 +90,17 @@ def get_installed_packages(prefix, show_channel_urls=None):
     # Currently, we need to have pip interop disabled :/
     installed = list(PrefixData(prefix, pip_interop_enabled=False).iter_records())
 
-    for prec in installed:
-        json_rec = prec.dist_fields_dump()
-        json_rec['depends'] = prec.depends
-        json_rec['build'] = prec.build
-        result['packages'][prec.fn] = json_rec
-
     # add virtual packages as installed packages
     # they are packages installed on the system that conda can do nothing about (e.g. glibc)
     # if another version is needed, installation just fails
     # they don't exist anywhere (they start with __)
     _supplement_index_with_system(installed)
+
+    for prec in installed:
+        json_rec = prec.dist_fields_dump()
+        json_rec['depends'] = prec.depends
+        json_rec['build'] = prec.build
+        result['packages'][prec.fn] = json_rec
 
     return installed, result
 
@@ -241,7 +241,7 @@ def remove(args, parser):
 
         to_link, to_unlink = api.solve([],
                                        installed_json_f.name,
-                                       mamba_solve_specs, 
+                                       mamba_solve_specs,
                                        solver_options,
                                        api.SOLVER_ERASE,
                                        False,

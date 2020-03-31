@@ -1,10 +1,13 @@
 name: Mamba Tests
+
 on:
   push:
     branches:
     - master
   pull_request:
-    branches: '*'
+    branches:
+    - master
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -14,16 +17,40 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [ '3.5', '3.6', '3.7', '3.8' ]
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-    - name: Install Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-        architecture: 'x64'
-    - name: Install the Python dependencies
+    - uses: actions/checkout@v1
+    - name: Add conda to $PATH
+      run: echo ::add-path::$CONDA/condabin
+    - name: Update conda on Mac
+      if: matrix.os == 'macos-latest'
       run: |
-        pip install -e .[test]
-    - name: Run the tests
+        # sudo required?
+        sudo conda update -y -n base conda setuptools
+    - name: Update conda on Linux
+      if: matrix.os == 'ubuntu-latest'
       run: |
-        pytest
+        conda update -y -n base conda setuptools
+    - name: Init conda
+      run: |
+        conda init bash
+        conda info -a
+    - name: Create the conda environment
+      run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda
+      env:
+        PYTHON_VERSION: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        source "$CONDA/etc/profile.d/conda.sh"
+        conda activate mamba-tests
+        whereis python
+        python --version
+        python -m pip install ".[test]"
+    - name: Flake8
+      run: |
+        source "$CONDA/etc/profile.d/conda.sh"
+        conda activate mamba-tests
+        python -m flake8 mamba test setup.py
+    - name: Run tests
+      run: |
+        source "$CONDA/etc/profile.d/conda.sh"
+        conda activate mamba-tests
+        py.test test

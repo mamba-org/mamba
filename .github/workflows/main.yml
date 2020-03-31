@@ -44,11 +44,6 @@ jobs:
         whereis python
         python --version
         python -m pip install ".[test]"
-    - name: Flake8
-      run: |
-        source "$CONDA/etc/profile.d/conda.sh"
-        conda activate mamba-tests
-        python -m flake8 mamba test setup.py
     - name: Run tests
       run: |
         source "$CONDA/etc/profile.d/conda.sh"

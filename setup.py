@@ -125,6 +125,7 @@ setup(
     long_description='A (hopefully faster) reimplementation of the slow bits of conda.',
     ext_modules=ext_modules,
     install_requires=['pybind11>=2.2'],
+    extras_require = {'test': ['pytest']},
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )

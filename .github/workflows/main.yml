@@ -32,7 +32,7 @@ jobs:
         conda init bash
         conda info -a
     - name: Create the conda environment
-      run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda
+      run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda libcxx
       env:
         PYTHON_VERSION: ${{ matrix.python-version }}
     - name: Install dependencies

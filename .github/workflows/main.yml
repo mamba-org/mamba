@@ -20,13 +20,11 @@ jobs:
     - uses: actions/checkout@v1
     - name: Add conda to $PATH
       run: echo ::add-path::$CONDA/condabin
-    - name: Update conda on Mac
+    - name: Fix permissions on Mac
       if: matrix.os == 'macos-latest'
       run: |
-        # sudo required?
-        sudo conda update -y -n base conda setuptools
-    - name: Update conda on Linux
-      if: matrix.os == 'ubuntu-latest'
+        sudo chmod -R a+rw /usr/local/miniconda
+    - name: Update conda
       run: |
         conda update -y -n base conda setuptools
     - name: Init conda

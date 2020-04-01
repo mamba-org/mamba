@@ -28,6 +28,7 @@ jobs:
       run: |
         conda update -y -n base conda setuptools
     - name: Init conda
+      if: matrix.os != 'windows-latest'
       run: |
         conda init bash
         conda info -a

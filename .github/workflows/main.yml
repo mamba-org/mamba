@@ -25,10 +25,10 @@ jobs:
       run: |
         sudo chmod -R a+rw /usr/local/miniconda
     - name: Update conda
+      if: matrix.os != 'windows-latest'
       run: |
         conda update -y -n base conda setuptools
     - name: Init conda
-      if: matrix.os != 'windows-latest'
       run: |
         conda init bash
         conda info -a

@@ -430,6 +430,8 @@ def install(args, parser, command='install'):
     if not context.quiet:
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
+    print(channel_json)
+    print(mamba_solve_specs)
     to_link, to_unlink = api.solve(channel_json,
                                    installed_json_f.name,
                                    mamba_solve_specs,

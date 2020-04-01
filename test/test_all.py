@@ -16,7 +16,7 @@ def run(exe, channels, package):
     for channel in channels:
         cmd += ['-c', channel]
     cmd.append(package)
-    subprocess.run(cmd, check=True, capture_output=False)
+    subprocess.run(cmd, check=True)
 
 
 def run_mamba_conda(channels, package):

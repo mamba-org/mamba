@@ -1,4 +1,6 @@
 import subprocess
+import shutil
+import os
 
 
 def get_glibc_version():
@@ -24,7 +26,7 @@ def run_mamba_conda(channels, package):
     run('mamba', channels, package)
 
 
-def test_all():
+def add_glibc_virtual_package():
     version = get_glibc_version()
     with open('test/channel_a/linux-64/repodata.tpl') as f:
         repodata = f.read()
@@ -35,6 +37,18 @@ def test_all():
             glibc_placeholder = ''
         repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
         f.write(repodata)
+
+
+def copy_channels_osx():
+    if not os.path.exists('test/channel_a/osx-64'):
+        shutil.copytree('test/channel_a/linux-64', 'test/channel_a/osx-64')
+    if not os.path.exists('test/channel_b/osx-64'):
+        shutil.copytree('test/channel_b/linux-64', 'test/channel_b/osx-64')
+
+
+def test_all():
+    add_glibc_virtual_package()
+    copy_channels_osx()
 
     channels = ['./test/channel_b', './test/channel_a']
     package = 'a'

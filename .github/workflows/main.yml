@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [ '3.6', '3.7', '3.8' ]
     steps:
     - uses: actions/checkout@v1
@@ -32,7 +32,7 @@ jobs:
         conda init bash
         conda info -a
     - name: Create the conda environment
-      run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda libcxx
+      run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda
       env:
         PYTHON_VERSION: ${{ matrix.python-version }}
     - name: Install dependencies

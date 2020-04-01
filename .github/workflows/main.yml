@@ -1,0 +1,51 @@
+name: Mamba Tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [ '3.5', '3.6', '3.7', '3.8' ]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Add conda to $PATH
+      run: echo ::add-path::$CONDA/condabin
+    - name: Update conda on Mac
+      if: matrix.os == 'macos-latest'
+      run: |
+        # sudo required?
+        sudo conda update -y -n base conda setuptools
+    - name: Update conda on Linux
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        conda update -y -n base conda setuptools
+    - name: Init conda
+      run: |
+        conda init bash
+        conda info -a
+    - name: Create the conda environment
+      run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda
+      env:
+        PYTHON_VERSION: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        source "$CONDA/etc/profile.d/conda.sh"
+        conda activate mamba-tests
+        whereis python
+        python --version
+        python -m pip install ".[test]"
+    - name: Run tests
+      run: |
+        source "$CONDA/etc/profile.d/conda.sh"
+        conda activate mamba-tests
+        py.test test

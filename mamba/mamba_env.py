@@ -43,7 +43,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     for x in index:
         # add priority here
-        priority = len(_channel_priority_map) - _channel_priority_map[x.url_w_subdir][1]
+        priority = len(_channel_priority_map) - _channel_priority_map[x.url_w_credentials][1]
         subpriority = 0 if x.channel.platform == 'noarch' else 1
         if os.path.exists(x.cache_path_solv):
             cache_file = x.cache_path_solv

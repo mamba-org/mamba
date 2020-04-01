@@ -8,7 +8,8 @@ class Context
 {
 public:
 
-	std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
+    // TODO $CONDA_PREFIX doesn't work.
+    std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
 
     Context(Context const&) = delete;
     Context& operator=(Context const&) = delete;

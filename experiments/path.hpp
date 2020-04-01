@@ -13,7 +13,6 @@
 
 namespace fs = std::filesystem;
 
-
 static bool ends_with(const std::string& str, const std::string& suffix)
 {
     return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
@@ -45,10 +44,7 @@ namespace path
 
     std::string cache_fn_url(const std::string& url)
     {
-        // if (repodata_fn != REPODATA_FN)
-        // {
-        //     url += repodata_fn;
-        // }
+        // if (repodata_fn != REPODATA_FN) url += repodata_fn;
 
         unsigned char result[MD5_DIGEST_LENGTH];
         MD5((const unsigned char*) url.c_str(), url.size(), result);
@@ -75,42 +71,6 @@ namespace path
         // cmd = std::string("rm ") + path;
         // std::system(cmd.c_str());
     }
-
-    // def touch(path, mkdir=False, sudo_safe=False):
-    //     # sudo_safe: use any time `path` is within the user's home directory
-    //     # returns:
-    //     #   True if the file did not exist but was created
-    //     #   False if the file already existed
-    //     # raises: NotWritableError, which is also an OSError having attached errno
-    //     try:
-    //         path = expand(path)
-    //         log.trace("touching path %s", path)
-    //         if lexists(path):
-    //             os.utime(path, None)
-    //             return True
-    //         else:
-    //             dirpath = dirname(path)
-    //             if not isdir(dirpath) and mkdir:
-    //                 if sudo_safe:
-    //                     mkdir_p_sudo_safe(dirpath)
-    //                 else:
-    //                     mkdir_p(dirpath)
-    //             else:
-    //                 assert isdir(dirname(path))
-    //             with open(path, 'a'):
-    //                 pass
-    //             # This chown call causes a false positive PermissionError to be
-    //             # raised (similar to #7109) when called in an environment which
-    //             # comes from sudo -u.
-    //             #
-    //             # if sudo_safe and not on_win and os.environ.get('SUDO_UID') is not None:
-    //             #     uid = int(os.environ['SUDO_UID'])
-    //             #     gid = int(os.environ.get('SUDO_GID', -1))
-    //             #     log.trace("chowning %s:%s %s", uid, gid, path)
-    //             #     os.chown(path, uid, gid)
-    //             return False
-    //     except (IOError, OSError) as e:
-    //         raise NotWritableError(path, e.errno, caused_by=e)
 
     // expand user
     // note this should also expand to absolute path etc.

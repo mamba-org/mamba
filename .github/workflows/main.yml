@@ -14,19 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-2016]
         python-version: [ '3.6', '3.7', '3.8' ]
-        include:
-          - compiler: msvc-2017
-            build-platform: x86
-            run-machine: windows-2016
-            generator: Visual Studio 15 2017
-            vc_vars:  C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat
-          - compiler: msvc-2017
-            build-platform: x64
-            run-machine: windows-2016
-            generator: Visual Studio 15 2017 Win64
-            vc_vars:  C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat
 
     steps:
       - uses: actions/checkout@v2
@@ -42,16 +31,6 @@ jobs:
         run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Set MSCV 2017 on Windows
-        if: matrix.os == 'windows-latest'
-        shell: cmd
-        env:
-          INPUT_COMPILER: ${{ matrix.compiler }}
-          INPUT_BUILD_PLATFORM: ${{ matrix.build-platform }}
-          INPUT_GENERATOR: ${{ matrix.generator }}
-          VC_VARS: "${{ matrix.vc_vars }}"
-        run: |
-          call "%VC_VARS%"
       - name: Install dependencies
         shell: bash -l {0}
         run: |

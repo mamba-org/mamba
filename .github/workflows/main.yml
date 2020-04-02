@@ -16,7 +16,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [ '3.6', '3.7', '3.8' ]
-        compiler: [msvc-2017]
     steps:
       - uses: actions/checkout@v2
       - uses: goanpeca/setup-miniconda@v1
@@ -31,6 +30,10 @@ jobs:
         run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv conda
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Set MSCV 2017 on Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
       - name: Install dependencies
         shell: bash -l {0}
         run: |

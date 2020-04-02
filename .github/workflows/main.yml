@@ -32,6 +32,7 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Set MSCV 2017 on Windows
         if: matrix.os == 'windows-latest'
+        shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
       - name: Install dependencies

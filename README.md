@@ -1,5 +1,7 @@
 # mamba, an experiment to make conda faster
 
+[![Build Status](https://github.com/QuantStack/mamba/workflows/CI/badge.svg)](https://github.com/QuantStack/mamba/actions)
+
 **Still in BETA! Don't use mamba to install something in valuable environments!** 
 
 Mamba is a reimplementation of the bits which are somewhat slow in conda. Mamba uses:

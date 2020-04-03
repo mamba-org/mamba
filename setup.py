@@ -54,7 +54,7 @@ if sys.platform == 'win32':
 ext_modules = [
     Extension(
         'mamba.mamba_api',
-        ['include/py_interface.cpp', 'include/solver.cpp'],
+        ['include/py_interface.cpp', 'include/thirdparty/minilog.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),

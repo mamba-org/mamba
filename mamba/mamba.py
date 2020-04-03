@@ -430,14 +430,38 @@ def install(args, parser, command='install'):
     if not context.quiet:
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
-    to_link, to_unlink = api.solve(channel_json,
-                                   installed_json_f.name,
-                                   mamba_solve_specs,
-                                   solver_options,
-                                   solver_task,
-                                   strict_priority,
-                                   context.quiet,
-                                   context.verbosity)
+    pool = api.Pool()
+    pool.set_debuglevel(context.verbosity)
+    repos = []
+
+    # add installed
+    repo = api.Repo(pool, "installed", installed_json_f.name)
+    repo.set_installed()
+    repos.append(repo)
+
+    for channel_name, cache_file, priority, subpriority in channel_json:
+        repo = api.Repo(pool, channel_name, cache_file)
+        repo.set_priority(priority, subpriority)
+        repos.append(repo)
+
+    solver = api.Solver(pool, solver_options)
+    solver.add_jobs(mamba_solve_specs, solver_task)
+    success = solver.solve()
+    if not success:
+        print(solver.problems_to_str())
+        return
+    
+    transaction = api.Transaction(solver)
+    to_link, to_unlink = transaction.to_conda()
+
+    # to_link, to_unlink = api.solve(channel_json,
+    #                                installed_json_f.name,
+    #                                mamba_solve_specs,
+    #                                solver_options,
+    #                                solver_task,
+    #                                strict_priority,
+    #                                context.quiet,
+    #                                context.verbosity)
 
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)

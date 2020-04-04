@@ -53,35 +53,3 @@ def to_package_record_from_subjson(subdir, pkg, jsn_string):
     info['url'] = join_url(channel_url, pkg)
     package_record = PackageRecord(**info)
     return package_record
-
-def _make_virtual_package(name, version=None):
-    return PackageRecord(
-            package_type=PackageType.VIRTUAL_SYSTEM,
-            name=name,
-            version=version or '0',
-            build='0',
-            channel='@',
-            subdir=context.subdir,
-            md5="12345678901234567890123456789012",
-            build_number=0,
-            fn=name,
-    )
-
-def _supplement_index_with_system(index):
-    cuda_version = context.cuda_version
-    if cuda_version is not None:
-        rec = _make_virtual_package('__cuda', cuda_version)
-        index.append(rec)
-
-    dist_name, dist_version = context.os_distribution_name_version
-    if dist_name == 'OSX':
-        dist_version = os.environ.get('CONDA_OVERRIDE_OSX', dist_version)
-        if len(dist_version) > 0:
-            rec = _make_virtual_package('__osx', dist_version)
-            index.append(rec)
-
-    libc_family, libc_version = context.libc_family_version
-    if libc_family and libc_version:
-        libc_version = os.getenv("CONDA_OVERRIDE_{}".format(libc_family.upper()), libc_version)
-        rec = _make_virtual_package('__' + libc_family, libc_version)
-        index.append(rec)

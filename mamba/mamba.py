@@ -10,7 +10,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join
 
 from conda.cli.main import generate_parser, init_loggers
 from conda.base.context import context
-from conda.core.index import calculate_channel_urls, check_whitelist #, get_index
+from conda.core.index import calculate_channel_urls, check_whitelist, _supplement_index_with_system #, get_index
 from conda.models.channel import Channel, prioritize_channels
 from conda.models.records import PackageRecord
 from conda.models.match_spec import MatchSpec
@@ -50,7 +50,7 @@ import logging
 import mamba.mamba_api as api
 
 from mamba.post_solve_handling import post_solve_handling
-from mamba.utils import get_index, to_package_record_from_subjson, _supplement_index_with_system
+from mamba.utils import get_index, to_package_record_from_subjson
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
@@ -88,13 +88,14 @@ def get_installed_packages(prefix, show_channel_urls=None):
     result = {'packages': {}}
 
     # Currently, we need to have pip interop disabled :/
-    installed = list(PrefixData(prefix, pip_interop_enabled=False).iter_records())
+    installed = {rec: rec for rec in PrefixData(prefix, pip_interop_enabled=False).iter_records()}
 
     # add virtual packages as installed packages
     # they are packages installed on the system that conda can do nothing about (e.g. glibc)
     # if another version is needed, installation just fails
     # they don't exist anywhere (they start with __)
     _supplement_index_with_system(installed)
+    installed = list(installed)
 
     for prec in installed:
         json_rec = prec.dist_fields_dump()

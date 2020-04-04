@@ -239,14 +239,24 @@ def remove(args, parser):
 
         solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
 
-        to_link, to_unlink = api.solve([],
-                                       installed_json_f.name,
-                                       mamba_solve_specs,
-                                       solver_options,
-                                       api.SOLVER_ERASE,
-                                       False,
-                                       context.quiet,
-                                       context.verbosity)
+        pool = api.Pool()
+        pool.set_debuglevel(context.verbosity)
+        repos = []
+
+        # add installed
+        repo = api.Repo(pool, "installed", installed_json_f.name)
+        repo.set_installed()
+        repos.append(repo)
+
+        solver = api.Solver(pool, solver_options)
+        solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE)
+        success = solver.solve()
+        if not success:
+            print(solver.problems_to_str())
+            return
+
+        transaction = api.Transaction(solver)
+        to_link, to_unlink = transaction.to_conda()
 
         conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)
@@ -430,14 +440,29 @@ def install(args, parser, command='install'):
     if not context.quiet:
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
-    to_link, to_unlink = api.solve(channel_json,
-                                   installed_json_f.name,
-                                   mamba_solve_specs,
-                                   solver_options,
-                                   solver_task,
-                                   strict_priority,
-                                   context.quiet,
-                                   context.verbosity)
+    pool = api.Pool()
+    pool.set_debuglevel(context.verbosity)
+    repos = []
+
+    # add installed
+    repo = api.Repo(pool, "installed", installed_json_f.name)
+    repo.set_installed()
+    repos.append(repo)
+
+    for channel_name, cache_file, priority, subpriority in channel_json:
+        repo = api.Repo(pool, channel_name, cache_file)
+        repo.set_priority(priority, subpriority)
+        repos.append(repo)
+
+    solver = api.Solver(pool, solver_options)
+    solver.add_jobs(mamba_solve_specs, solver_task)
+    success = solver.solve()
+    if not success:
+        print(solver.problems_to_str())
+        return
+    
+    transaction = api.Transaction(solver)
+    to_link, to_unlink = transaction.to_conda()
 
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
@@ -512,7 +537,6 @@ def _wrapped_main(*args, **kwargs):
 
     init_loggers(context)
 
-    # from .conda_argparse import do_call
     exit_code = do_call(args, p)
     if isinstance(exit_code, int):
         return exit_code

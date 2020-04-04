@@ -56,21 +56,26 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     print("\n\nLooking for: {}\n\n".format(mamba_solve_specs))
 
-    # TODO!
-    installed_json_f = tempfile.NamedTemporaryFile('w', delete=False)
-    installed_json_f.write("") # stupid!
-    installed_json_f.flush()
-
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
-    to_link, to_unlink = api.solve(channel_json,
-                                   installed_json_f.name,
-                                   mamba_solve_specs,
-                                   solver_options,
-                                   api.SOLVER_INSTALL,
-                                   False,
-                                   context.quiet,
-                                   context.verbosity)
+    pool = api.Pool()
+    pool.set_debuglevel(context.verbosity)
+    repos = []
+
+    for channel_name, cache_file, priority, subpriority in channel_json:
+        repo = api.Repo(pool, channel_name, cache_file)
+        repo.set_priority(priority, subpriority)
+        repos.append(repo)
+
+    solver = api.Solver(pool, solver_options)
+    solver.add_jobs(mamba_solve_specs, api.SOLVER_INSTALL)
+    success = solver.solve()
+    if not success:
+        print(solver.problems_to_str())
+        return
+
+    transaction = api.Transaction(solver)
+    to_link, to_unlink = transaction.to_conda()
 
     to_link_records, to_unlink_records = [], []
 

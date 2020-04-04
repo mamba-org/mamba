@@ -1,4 +1,10 @@
+// #include "solver.hpp"
+
+#include "util.hpp"
 #include "solver.hpp"
+#include "pool.hpp"
+#include "transaction.hpp"
+#include "repo.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -6,10 +12,39 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(mamba_api, m) {
+    using namespace mamba;
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
 
-    m.def("solve", &solve);
+    py::class_<MPool>(m, "Pool")
+        .def(py::init<>())
+        .def("set_debuglevel", &MPool::set_debuglevel)
+        .def("create_whatprovides", &MPool::create_whatprovides)
+    ;
+
+    py::class_<MRepo>(m, "Repo")
+        .def(py::init<MPool&, const std::string&, const std::string&>())
+        .def("set_installed", &MRepo::set_installed)
+        .def("set_priority", &MRepo::set_priority)
+        .def("name", &MRepo::name)
+        .def("priority", &MRepo::priority)
+        .def("size", &MRepo::size)
+    ;
+
+    py::class_<MTransaction>(m, "Transaction")
+        .def(py::init<MSolver&>())
+        .def("to_conda", &MTransaction::to_conda)
+        .def("print", &MTransaction::print)
+    ;
+
+    py::class_<MSolver>(m, "Solver")
+        .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
+        .def("add_jobs", &MSolver::add_jobs)
+        .def("set_flags", &MSolver::set_flags)
+        .def("is_solved", &MSolver::is_solved)
+        .def("problems_to_str", &MSolver::problems_to_str)
+        .def("solve", &MSolver::solve)
+    ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

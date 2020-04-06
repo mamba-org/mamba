@@ -6,6 +6,8 @@
 #include "transaction.hpp"
 #include "repo.hpp"
 #include "query.hpp"
+#include "subdirdata.hpp"
+#include "context.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -51,6 +53,29 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MPool&>())
         .def("find", &Query::find)
         .def("whatrequires", &Query::whatrequires)
+
+    py::class_<Handle>(m, "DownloadHandle")
+        .def(py::init<>())
+    ;
+
+    py::class_<MSubdirData>(m, "SubdirData")
+        .def(py::init<const std::string&, const std::string&, const std::string&>())
+        .def("load", &MSubdirData::load)
+        .def("loaded", &MSubdirData::loaded)
+    ;
+
+
+    py::class_<DownloadTargetList>(m, "DownloadTargetList")
+        .def(py::init<>())
+        .def("append", &DownloadTargetList::append)
+        .def("download", &DownloadTargetList::download)
+    ;
+
+    py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
+        .def(py::init([]() {
+            return std::unique_ptr<Context, py::nodelete>(&Context::instance());
+        }))
+        .def_readwrite("verbosity", &Context::verbosity)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

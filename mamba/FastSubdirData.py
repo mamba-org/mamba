@@ -99,7 +99,7 @@ class FastSubdirData(object):
 
     @property
     def url_w_repodata_fn(self):
-        return self.url_w_subdir + '/' + self.repodata_fn
+        return self.url_w_credentials + '/' + self.repodata_fn
 
     @property
     def cache_path_json(self):

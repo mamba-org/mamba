@@ -189,6 +189,7 @@ def remove(args, parser):
 
     prefix = context.target_prefix
     check_non_admin()
+    api.Context.set_verbosity(context.verbosity);
 
     if args.all and prefix == context.default_prefix:
         raise CondaEnvironmentError("cannot remove current environment. \
@@ -241,7 +242,6 @@ def remove(args, parser):
         solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
 
         pool = api.Pool()
-        pool.set_debuglevel(context.verbosity)
         repos = []
 
         # add installed
@@ -268,6 +268,8 @@ def install(args, parser, command='install'):
     """
     context.validate_configuration()
     check_non_admin()
+
+    api.Context().verbosity = context.verbosity;
 
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')
@@ -442,7 +444,7 @@ def install(args, parser, command='install'):
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     pool = api.Pool()
-    pool.set_debuglevel(context.verbosity)
+
     repos = []
 
     # add installed

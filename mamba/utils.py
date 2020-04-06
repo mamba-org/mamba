@@ -16,6 +16,8 @@ import threading
 import json
 import os
 
+import mamba.mamba_api as api
+
 def load_channel(subdir_data, result_container):
     if not context.quiet:
         print("Getting ", subdir_data.channel.name, subdir_data.channel.platform)
@@ -23,26 +25,54 @@ def load_channel(subdir_data, result_container):
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None,
-              repodata_fn="repodata.json"):
+              repodata_fn="repodata.json.bz2"):
     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
     check_whitelist(real_urls)
-    result = get_env_index(real_urls, repodata_fn)
-    return result
 
-def get_env_index(channel_urls, repodata_fn="repodata.json"):
-    threads = []
-    result = []
-    sddata = [FastSubdirData(Channel(x), idx, repodata_fn) for idx, x in enumerate(channel_urls)]
-    for sd in sddata:
-        t = threading.Thread(target=load_channel, args=(sd, result))
-        threads.append(t)
-        t.start()
+    handle = api.DownloadHandle()
+    dlist = api.DownloadTargetList()
 
-    for t in threads:
-        t.join()
+    sddata = []
+    index = []
+    for idx, url in enumerate(real_urls):
+        fsd = FastSubdirData(Channel(url), idx, repodata_fn)
+        index.append(fsd)
+        full_url = fsd.url_w_repodata_fn
+        full_path_cache = fsd.cache_path_json
+        sd = api.SubdirData(fsd.channel.name + '/' + fsd.channel.subdir, full_url, full_path_cache)
+        sd.load()
+        sddata.append(sd)
+        dlist.append(sd)
 
-    result = sorted(result, key=lambda x: x.channel_idx)
-    return result
+    is_downloaded = dlist.download(True)
+    if not is_downloaded:
+        print("Error downloading repodata.")
+    for x in index:
+        x._loaded = True
+    return index
+
+# def get_index(channel_urls=(), prepend=True, platform=None,
+#               use_local=False, use_cache=False, unknown=None, prefix=None,
+#               repodata_fn="repodata.json"):
+#     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
+#     check_whitelist(real_urls)
+#     result = get_env_index(real_urls, repodata_fn)
+#     return result
+
+# def get_env_index(channel_urls, repodata_fn="repodata.json"):
+#     threads = []
+#     result = []
+#     sddata = [FastSubdirData(Channel(x), idx, repodata_fn) for idx, x in enumerate(channel_urls)]
+#     for sd in sddata:
+#         t = threading.Thread(target=load_channel, args=(sd, result))
+#         threads.append(t)
+#         t.start()
+
+#     for t in threads:
+#         t.join()
+
+#     result = sorted(result, key=lambda x: x.channel_idx)
+#     return result
 
 def to_package_record_from_subjson(subdir, pkg, jsn_string):
     channel = subdir.channel

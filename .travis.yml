@@ -24,7 +24,7 @@ install:
     - conda update -q conda
     # Useful for debugging any issues with conda
     - conda info -a
-    - conda install libsolv gxx_linux-64 pybind11 pip libarchive librepo -c conda-forge
+    - conda install libsolv gxx_linux-64 pybind11 pip libarchive librepo pkgconfig -c conda-forge
     - source activate root
     - pip install -e .
 script:

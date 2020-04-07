@@ -503,9 +503,77 @@ def update(args, parser):
     # need to implement some modifications on the update function
     install(args, parser, 'update')
 
+def repoquery(args, parser):
+    prepend = not args.override_channels
+    prefix = context.target_prefix
+
+    index_args = {
+        'use_cache': args.use_index_cache,
+        'channel_urls': context.channels,
+        'unknown': args.unknown,
+        'prepend': not args.override_channels,
+        'use_local': args.use_local
+    }
+
+    index = get_index(channel_urls=index_args['channel_urls'],
+                  prepend=index_args['prepend'], platform=None,
+                  use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                  unknown=index_args['unknown'], prefix=prefix)
+
+    channel_json = []
+    strict_priority = (context.channel_priority == ChannelPriority.STRICT)
+
+    if strict_priority:
+        # first, count unique channels
+        n_channels = len(set([x.channel.canonical_name for x in index]))
+        current_channel = index[0].channel.canonical_name
+        channel_prio = n_channels
+
+    for x in index:
+        # add priority here
+        x.channel_idx
+        if strict_priority:
+            if x.channel.canonical_name != current_channel:
+                channel_prio -= 1
+                current_channel = x.channel.canonical_name
+            priority = channel_prio
+        else:
+            priority = 0
+
+        subpriority = 0 if x.channel.platform == 'noarch' else 1
+        cache_file = x.get_loaded_file_path()
+
+        channel_json.append((str(x.channel), cache_file, priority, subpriority))
+
+    installed_json_f = get_installed_jsonfile(prefix)
+
+    pool = api.Pool()
+    pool.set_debuglevel(context.verbosity)
+    repos = []
+
+    # add installed
+    repo = api.Repo(pool, "installed", installed_json_f.name)
+    repo.set_installed()
+    repos.append(repo)
+
+    if not args.installed:
+        for channel_name, cache_file, priority, subpriority in channel_json:
+            repo = api.Repo(pool, channel_name, cache_file)
+            repo.set_priority(priority, subpriority)
+            repos.append(repo)
+
+    print("\nExecuting the query %s\n" % args.query)
+
+    query = api.Query(pool)
+    if args.whatrequires:
+        print(query.whatrequires(args.query))
+    else:
+        print(query.find(args.query))
+
 
 def do_call(args, parser):
     relative_mod, func_name = args.func.rsplit('.', 1)
+
     # func_name should always be 'execute'
     if relative_mod in ['.main_list', '.main_search', '.main_run', '.main_clean', '.main_info']:
         from importlib import import_module
@@ -519,17 +587,68 @@ def do_call(args, parser):
         exit_code = create(args, parser)
     elif relative_mod == '.main_update':
         exit_code = update(args, parser)
+    elif relative_mod == '.main_repoquery':
+        exit_code = repoquery(args, parser)
     else:
         print("Currently, only install, create, list, search, run, info and clean are supported through mamba.")
 
         return 0
     return exit_code
 
+def configure_parser_repoquery(sub_parsers):
+    help = "Query repositories using mamba. "
+    descr = (help)
+
+    example = ("""
+Examples:
+
+    conda repoquery xtensor>=0.18
+
+    """)
+
+    from argparse import SUPPRESS
+
+    p = sub_parsers.add_parser(
+        'repoquery',
+        description=descr,
+        help=help,
+        epilog=example,
+    )
+
+    p.add_argument(
+        'query',
+        action="store",
+        nargs='?',
+        help="Package query.",
+    )
+
+    p.add_argument(
+        "--whatrequires",
+        action="store_true",
+        help=SUPPRESS,
+    )
+
+    p.add_argument(
+        "--installed",
+        action="store_true",
+        help=SUPPRESS,
+    )
+
+    from conda.cli import conda_argparse
+    conda_argparse.add_parser_channels(p)
+    conda_argparse.add_parser_networking(p)
+    conda_argparse.add_parser_known(p)
+
+    p.set_defaults(func='.main_repoquery.execute')
+    return p
+
+
 def _wrapped_main(*args, **kwargs):
     if len(args) == 1:
         args = args + ('-h',)
 
     p = generate_parser()
+    configure_parser_repoquery(p._subparsers._group_actions[0])
     args = p.parse_args(args[1:])
 
     context.__init__(argparse_args=args)

@@ -274,8 +274,8 @@ def remove(args, parser):
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
         else:
             specs = [s for s in specs_from_args(args.package_names)]
-        if not (context.quiet or context.json):
-            print("Removing specs: {}".format(specs))
+        if not context.quiet:
+            print("Removing specs: {}".format([s.conda_build_form() for s in specs]))
         channel_urls = ()
         subdirs = ()
 
@@ -289,8 +289,9 @@ def remove(args, parser):
         repos = []
 
         # add installed
-        repo = api.Repo(pool, "installed", installed_json_f.name, "")
-        repo.set_installed()
+        prefix_data = api.PrefixData(context.target_prefix)
+        prefix_data.load()
+        repo = api.Repo(pool, prefix_data)
         repos.append(repo)
 
         solver = api.Solver(pool, solver_options)

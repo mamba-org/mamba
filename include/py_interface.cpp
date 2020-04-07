@@ -5,6 +5,7 @@
 #include "pool.hpp"
 #include "transaction.hpp"
 #include "repo.hpp"
+#include "query.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -44,6 +45,12 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("solve", &MSolver::solve)
+    ;
+
+    py::class_<Query>(m, "Query")
+        .def(py::init<MPool&>())
+        .def("find", &Query::find)
+        .def("whatrequires", &Query::whatrequires)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

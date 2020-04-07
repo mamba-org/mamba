@@ -1,3 +1,8 @@
+#pragma once
+
+#include <sstream>
+#include <string_view>
+
 #include "pool.hpp"
 
 extern "C"
@@ -9,6 +14,29 @@ extern "C"
 
 namespace mamba
 {
+    void cut_repo_name(std::ostream& out, const std::string_view& reponame)
+    {
+        if (starts_with(reponame, "https://conda.anaconda.org/"))
+        {
+            out << reponame.substr(27, std::string::npos);
+            return;
+        }
+        if (starts_with(reponame, "https://repo.anaconda.com/"))
+        {
+            out << reponame.substr(26, std::string::npos);
+            return;
+        }
+        out << reponame;
+    }
+
+    void solvable_to_stream(std::ostream& out, Solvable* s)
+    {
+        auto* pool = s->repo->pool;
+        cut_repo_name(out, s->repo->name);
+        out << ": " << pool_id2str(pool, s->name) << " ("
+            << pool_id2str(pool, s->evr) << ", " << solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR) << ")\n";
+    }
+
     class Query
     {
     public:
@@ -37,17 +65,22 @@ namespace mamba
 
             selection_solvables(m_pool.get(), &job, &solvables);
 
+            std::stringstream out;
+            if (solvables.count == 0)
+            {
+                out << "No entries matching \"" << query << "\" found";
+            }
             for (int i = 0; i < solvables.count; i++)
             {
-                Id sid = solvables.elements[i];
-                Solvable* s = pool_id2solvable(m_pool.get(), sid);
-                printf("%s, %s, %s\n", pool_id2str(m_pool.get(), s->name), pool_id2str(m_pool.get(), s->evr), solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)); //, pool_id2str(pool, s->repo->name));
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                solvable_to_stream(out, s);
             }
+            out << std::endl;
 
             queue_free(&job);
             queue_free(&solvables);
 
-            return "worked.";
+            return out.str();
         }
 
         std::string whatrequires(const std::string& query)
@@ -68,17 +101,21 @@ namespace mamba
 
             pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, &solvables, -1);
 
+            std::stringstream out;
+            if (solvables.count == 0)
+            {
+                out << "No entries matching \"" << query << "\" found";
+            }
             for (int i = 0; i < solvables.count; i++)
             {
-                Id sid = solvables.elements[i];
-                Solvable* s = pool_id2solvable(m_pool.get(), sid);
-                printf("%s, %s, %s\n", pool_id2str(m_pool.get(), s->name), pool_id2str(m_pool.get(), s->evr), solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR)); //, pool_id2str(pool, s->repo->name));
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                solvable_to_stream(out, s);
             }
 
             queue_free(&job);
             queue_free(&solvables);
 
-            return "done.";
+            return out.str();
         }
 
         std::reference_wrapper<MPool> m_pool;

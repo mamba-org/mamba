@@ -14,6 +14,7 @@ namespace mamba
             return;
         j[key] = val;
     }
+
     std::string solvable_to_json(Solvable* s)
     {
         nlohmann::json j;

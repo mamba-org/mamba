@@ -563,11 +563,12 @@ def repoquery(args, parser):
             repos.append(repo)
 
     print("\nExecuting the query %s\n" % args.query)
+
     query = api.Query(pool)
     if args.whatrequires:
         print(query.whatrequires(args.query))
     else:
-        query.find(args.query)
+        print(query.find(args.query))
 
 
 def do_call(args, parser):

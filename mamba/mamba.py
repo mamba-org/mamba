@@ -262,7 +262,7 @@ def remove(args, parser):
         conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)
 
-def explicit_packages(mamba_solve_specs, index_args, index, pool, prefix):
+def explicit_packages(mamba_solve_specs, index_args, pool, prefix):
     # handle packages which are requested through an "explicit channel", e.g. quantstack::sphinx
     # we call them "explicit packages"
 
@@ -283,12 +283,14 @@ def explicit_packages(mamba_solve_specs, index_args, index, pool, prefix):
         package_channel[package] = channel
 
     # for each explicit package, create a fake index that has only the explicit channel
+    # this is needed in order to get the repo json (cache file)
     for channel_i, package in enumerate(package_channel):
         fake_index = get_index(channel_urls=(package_channel[package],),
                                prepend=False, platform=None,
                                use_local=index_args['use_local'], use_cache=False,
                                unknown=False, prefix=prefix)
 
+        # create a fake pool with this channel's cache file
         fake_pool = api.Pool()
         fake_pool.set_debuglevel(context.verbosity)
         for i, x in enumerate(fake_index):
@@ -299,13 +301,15 @@ def explicit_packages(mamba_solve_specs, index_args, index, pool, prefix):
             repo = api.Repo(fake_pool, channel_name, cache_file)
             repo.set_priority(priority, subpriority)
 
+        # get the json for this package and write it to a file
         query = api.Query(fake_pool)
-        for package in packages:
-            fake_json = query.pkg_to_json(package)
+        fake_json = query.pkg_to_json(package)
         fake_json_f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
         fake_json_f.write(fake_json)
         fake_json_f.close()
 
+        # add the fake channel to the global pool with the highest priority
+        # so that the explicit package will be picked up through this channel
         fake_channel_name = f'__fake_channel_{channel_i}__'
         repo = api.Repo(pool, fake_channel_name, fake_json_f.name)
         repo.set_priority(2147483647, 0) # highest priority (fits in a 32-bit signed int)
@@ -493,7 +497,7 @@ def install(args, parser, command='install'):
     repo = api.Repo(pool, "installed", installed_json_f.name)
     repo.set_installed()
 
-    explicit_packages(mamba_solve_specs, index_args, index, pool, prefix)
+    explicit_packages(mamba_solve_specs, index_args, pool, prefix)
 
     if not context.quiet:
         print("\nLooking for: {}\n".format(mamba_solve_specs))

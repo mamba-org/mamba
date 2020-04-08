@@ -83,40 +83,6 @@ namespace mamba
             return out.str();
         }
 
-        std::string pkg_to_json(const std::string& query)
-        {
-            Queue job, solvables;
-            queue_init(&job);
-            queue_init(&solvables);
-
-            Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
-            if (id)
-            {
-                queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
-            }
-            else
-            {
-                throw std::runtime_error("Could not generate query for " + query);
-            }
-
-            selection_solvables(m_pool.get(), &job, &solvables);
-
-            std::string s_json = "[";
-            for (int i = 0; i < solvables.count; i++)
-            {
-                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-                s_json += solvable_to_json(s);
-                if (i < solvables.count - 1)
-                    s_json += ", ";
-            }
-            s_json += "]";
-
-            queue_free(&job);
-            queue_free(&solvables);
-
-            return s_json;
-        }
-
         std::string whatrequires(const std::string& query)
         {
             Queue job, solvables;

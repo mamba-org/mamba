@@ -315,8 +315,6 @@ def explicit_packages(mamba_solve_specs, index_args, pool, prefix):
 
         # get the json for this package and insert it in the right cache file
         query = api.Query(fake_pool)
-        fake_json = query.pkg_to_json(package)
-        fake_dict = json.loads(fake_json)[0]
         cache_dicts = []
         prio = 2147483647 # highest priority (fits in a 32-bit signed int)
         for cache_file in cache_files:

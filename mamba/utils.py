@@ -53,3 +53,25 @@ def to_package_record_from_subjson(subdir, pkg, jsn_string):
     info['url'] = join_url(channel_url, pkg)
     package_record = PackageRecord(**info)
     return package_record
+
+def mamba_build_form(spec):
+    builder = []
+    name = spec.get_exact_value('name')
+    assert name
+    channel = spec.get_raw_value('channel')
+    if channel is None:
+        channel = ''
+    else:
+        channel = str(channel)
+    builder.append(channel + '::' + name)
+
+    build = spec.get_raw_value('build')
+    version = spec.get_raw_value('version')
+
+    if build:
+        assert version
+        builder += [version, build]
+    elif version:
+        builder.append(version)
+
+    return ' '.join(builder)

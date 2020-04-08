@@ -50,7 +50,7 @@ import logging
 import mamba.mamba_api as api
 
 from mamba.post_solve_handling import post_solve_handling
-from mamba.utils import get_index, to_package_record_from_subjson
+from mamba.utils import get_index, to_package_record_from_subjson, mamba_build_form
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
@@ -262,6 +262,54 @@ def remove(args, parser):
         conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)
 
+def explicit_packages(mamba_solve_specs, index_args, index, pool, prefix):
+    # handle packages which are requested through an "explicit channel", e.g. quantstack::sphinx
+    # we call them "explicit packages"
+
+    channelpackage_version = [s.split() for s in mamba_solve_specs if not s.startswith(':')]
+    channelpackage = [s[0] for s in channelpackage_version]
+
+    versions = [s[1] if len(s) > 1 else None for s in channelpackage_version]
+    packages = [s[s.rfind(':')+1:] for s in channelpackage]
+    channels = [s[:s[:-len(package)-1].rfind(':')] for package, s in zip(packages, channelpackage)]
+
+    # check that an explicit package is not specified twice with different channels
+    package_channel = {}
+    for channel, package in zip(channels, packages):
+        if package in package_channel:
+            if package_channel[package] != channel:
+                print(f'\nERROR: Package {channel}::{package} already specified with {package_channel[package]}::{package}', file=sys.stderr)
+                sys.exit(1)
+        package_channel[package] = channel
+
+    # for each explicit package, create a fake index that has only the explicit channel
+    for channel_i, package in enumerate(package_channel):
+        fake_index = get_index(channel_urls=(package_channel[package],),
+                               prepend=False, platform=None,
+                               use_local=index_args['use_local'], use_cache=False,
+                               unknown=False, prefix=prefix)
+
+        fake_pool = api.Pool()
+        fake_pool.set_debuglevel(context.verbosity)
+        for i, x in enumerate(fake_index):
+            priority = 0
+            subpriority = 0 if x.channel.platform == 'noarch' else 1
+            channel_name = str(x.channel)
+            cache_file = x.get_loaded_file_path()
+            repo = api.Repo(fake_pool, channel_name, cache_file)
+            repo.set_priority(priority, subpriority)
+
+        query = api.Query(fake_pool)
+        for package in packages:
+            fake_json = query.pkg_to_json(package)
+        fake_json_f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+        fake_json_f.write(fake_json)
+        fake_json_f.close()
+
+        fake_channel_name = f'__fake_channel_{channel_i}__'
+        repo = api.Repo(pool, fake_channel_name, fake_json_f.name)
+        repo.set_priority(2147483647, 0) # highest priority (fits in a 32-bit signed int)
+
 def install(args, parser, command='install'):
     """
     mamba install, mamba update, and mamba create
@@ -436,24 +484,23 @@ def install(args, parser, command='install'):
             version = installed_pkg_recs[i].version
             specs.append(MatchSpec('python==' + version))
 
-    mamba_solve_specs = [s.conda_build_form() for s in specs]
-
-    if not context.quiet:
-        print("\nLooking for: {}\n".format(mamba_solve_specs))
+    mamba_solve_specs = [mamba_build_form(s) for s in specs]
 
     pool = api.Pool()
     pool.set_debuglevel(context.verbosity)
-    repos = []
 
     # add installed
     repo = api.Repo(pool, "installed", installed_json_f.name)
     repo.set_installed()
-    repos.append(repo)
+
+    explicit_packages(mamba_solve_specs, index_args, index, pool, prefix)
+
+    if not context.quiet:
+        print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     for channel_name, cache_file, priority, subpriority in channel_json:
         repo = api.Repo(pool, channel_name, cache_file)
         repo.set_priority(priority, subpriority)
-        repos.append(repo)
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(mamba_solve_specs, solver_task)
@@ -461,7 +508,7 @@ def install(args, parser, command='install'):
     if not success:
         print(solver.problems_to_str())
         return
-    
+
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
 

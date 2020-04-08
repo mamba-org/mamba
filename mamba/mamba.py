@@ -148,8 +148,12 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
             print("No package record found!")
 
     for c, pkg, jsn_s in to_link:
-        sdir = get_channel(c)
-        rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
+        # fake channels are not FastSubdirData objects
+        if type(c) == str and c.startswith('__fake_channel_'):
+            rec = to_package_record_from_subjson(None, pkg, jsn_s, c)
+        else:
+            sdir = get_channel(c)
+            rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
         final_precs.add(rec)
         to_link_records.append(rec)
 
@@ -275,7 +279,7 @@ def explicit_packages(mamba_solve_specs, index_args, pool, prefix):
 
     # check that an explicit package is not specified twice with different channels
     package_channel = {}
-    for channel, package in zip(channels, packages):
+    for channel, package, version in zip(channels, packages, versions):
         if package in package_channel:
             if package_channel[package] != channel:
                 print(f'\nERROR: Package {channel}::{package} already specified with {package_channel[package]}::{package}', file=sys.stderr)
@@ -284,35 +288,61 @@ def explicit_packages(mamba_solve_specs, index_args, pool, prefix):
 
     # for each explicit package, create a fake index that has only the explicit channel
     # this is needed in order to get the repo json (cache file)
+    fake_indexes = {}
     for channel_i, package in enumerate(package_channel):
-        fake_index = get_index(channel_urls=(package_channel[package],),
-                               prepend=False, platform=None,
-                               use_local=index_args['use_local'], use_cache=False,
-                               unknown=False, prefix=prefix)
+        channel = package_channel[package]
+        if channel in fake_indexes:
+            fake_index = fake_indexes[channel]
+        else:
+            fake_index = get_index(channel_urls=(channel,),
+                                   prepend=False, platform=None,
+                                   use_local=index_args['use_local'], use_cache=False,
+                                   unknown=False, prefix=prefix)
+            fake_indexes[channel] = fake_index
 
         # create a fake pool with this channel's cache file
+        cache_files = []
         fake_pool = api.Pool()
         fake_pool.set_debuglevel(context.verbosity)
-        for i, x in enumerate(fake_index):
+        for x in fake_index:
             priority = 0
             subpriority = 0 if x.channel.platform == 'noarch' else 1
             channel_name = str(x.channel)
             cache_file = x.get_loaded_file_path()
+            cache_files.append(cache_file)
             repo = api.Repo(fake_pool, channel_name, cache_file)
             repo.set_priority(priority, subpriority)
 
-        # get the json for this package and write it to a file
+        # get the json for this package and insert it in the right cache file
         query = api.Query(fake_pool)
         fake_json = query.pkg_to_json(package)
-        fake_json_f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
-        fake_json_f.write(fake_json)
-        fake_json_f.close()
+        fake_dict = json.loads(fake_json)[0]
+        cache_dicts = []
+        prio = 2147483647 # highest priority (fits in a 32-bit signed int)
+        for cache_file in cache_files:
+            if cache_file.endswith('.solv'):
+                cache_file = cache_file.replace('.solv', '.json')
+            with open(cache_file) as f:
+                cache_content = f.read()
+            cache_dict = json.loads(cache_content)
+            pkgs = {}
+            # filter out all other packages
+            for pkg in cache_dict['packages']:
+                if cache_dict['packages'][pkg]['name'] == package:
+                    pkgs[pkg] = cache_dict['packages'][pkg]
+            cache_dict['packages'] = pkgs
+            fake_json = json.dumps(cache_dict)
+            fake_json_f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False)
+            fake_json_f.write(fake_json)
+            fake_json_f.close()
 
-        # add the fake channel to the global pool with the highest priority
-        # so that the explicit package will be picked up through this channel
-        fake_channel_name = f'__fake_channel_{channel_i}__'
-        repo = api.Repo(pool, fake_channel_name, fake_json_f.name)
-        repo.set_priority(2147483647, 0) # highest priority (fits in a 32-bit signed int)
+            # add the fake channel to the global pool with the highest priority
+            # so that the explicit package will be picked up through this channel
+            url = cache_dict['_url']
+            fake_channel_name = f'__fake_channel_{channel_i} {url} {channel}'
+            repo = api.Repo(pool, fake_channel_name, fake_json_f.name)
+            repo.set_priority(prio, 0)
+            prio -= 1
 
 def install(args, parser, command='install'):
     """
@@ -497,14 +527,14 @@ def install(args, parser, command='install'):
     repo = api.Repo(pool, "installed", installed_json_f.name)
     repo.set_installed()
 
+    for channel_name, cache_file, priority, subpriority in channel_json:
+        repo = api.Repo(pool, channel_name, cache_file)
+        repo.set_priority(priority, subpriority)
+
     explicit_packages(mamba_solve_specs, index_args, pool, prefix)
 
     if not context.quiet:
         print("\nLooking for: {}\n".format(mamba_solve_specs))
-
-    for channel_name, cache_file, priority, subpriority in channel_json:
-        repo = api.Repo(pool, channel_name, cache_file)
-        repo.set_priority(priority, subpriority)
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(mamba_solve_specs, solver_task)

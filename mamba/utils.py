@@ -44,9 +44,13 @@ def get_env_index(channel_urls, repodata_fn="repodata.json"):
     result = sorted(result, key=lambda x: x.channel_idx)
     return result
 
-def to_package_record_from_subjson(subdir, pkg, jsn_string):
-    channel = subdir.channel
-    channel_url = subdir.url_w_credentials
+def to_package_record_from_subjson(subdir, pkg, jsn_string, channel=''):
+    # fake channels are not FastSubdirData objects
+    if channel == '':
+        channel = subdir.channel
+        channel_url = subdir.url_w_credentials
+    else:
+        _, channel_url, channel = channel.split()
     info = json.loads(jsn_string)
     info['fn'] = pkg
     info['channel'] = channel

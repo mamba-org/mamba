@@ -296,8 +296,8 @@ def explicit_packages(mamba_solve_specs, index_args, pool, prefix):
         else:
             fake_index = get_index(channel_urls=(channel,),
                                    prepend=False, platform=None,
-                                   use_local=index_args['use_local'], use_cache=False,
-                                   unknown=False, prefix=prefix)
+                                   use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                                   unknown=index_args['unknown'], prefix=prefix)
             fake_indexes[channel] = fake_index
 
         # create a fake pool with this channel's cache file
@@ -314,7 +314,6 @@ def explicit_packages(mamba_solve_specs, index_args, pool, prefix):
             repo.set_priority(priority, subpriority)
 
         # get the json for this package and insert it in the right cache file
-        query = api.Query(fake_pool)
         cache_dicts = []
         prio = 2147483647 # highest priority (fits in a 32-bit signed int)
         for cache_file in cache_files:

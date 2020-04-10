@@ -4,6 +4,7 @@
 #include <set>
 
 #include "thirdparty/minilog.hpp"
+#include "prefix_data.hpp"
 #include "match_spec.hpp"
 
 // #include "path.hpp"
@@ -16,10 +17,9 @@ namespace mamba
 class History
 {
 public:
-    // Todo instead of passing a path here, maybe we should have a
-    // dedicated prefix class
-    History(const fs::path& prefix)
-        : m_prefix_path(prefix)
+
+    History(const std::shared_ptr<PrefixData>& prefix)
+        : m_prefix_data(prefix)
     {
     }
 
@@ -33,15 +33,17 @@ public:
     auto parse()
     {
         std::vector<ParseResult> res;
-        std::cout << "checking path: " << (m_prefix_path / "history") << std::endl;
-        if (!fs::exists(m_prefix_path / "history"))
+        fs::path history_file_path = m_prefix_data->meta_dir() / "history";
+        LOG(INFO) << "parsing history: " << history_file_path;
+
+        if (!fs::exists(history_file_path))
         {
             // return empty
             return res;
         }
 
         std::regex head_re("==>\\s*(.+?)\\s*<==");
-        std::ifstream in_file(m_prefix_path  / "history");
+        std::ifstream in_file(history_file_path);
         std::string line;
         while (getline(in_file, line))
         {
@@ -188,12 +190,23 @@ public:
             }
         }
 
-        auto current_records = prefix_data.records();
-        std::remove_if()
+        auto& current_records = m_prefix_data->records();
+        for (auto it = map.begin(); it != map.end();)
+        {
+            if (current_records.find(it->first) == current_records.end())
+            {
+                LOG(INFO) << it->first << " not installed, removing from specs";
+                it = map.erase(it);
+            }
+            else
+            {
+                it++;
+            }
+        }
         return map;
     }
 
-    fs::path m_prefix_path;
+    std::shared_ptr<PrefixData> m_prefix_data;
 };
 
 }

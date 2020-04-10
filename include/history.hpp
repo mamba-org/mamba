@@ -4,6 +4,7 @@
 #include <set>
 
 #include "thirdparty/minilog.hpp"
+#include "match_spec.hpp"
 
 // #include "path.hpp"
 namespace fs = std::filesystem;
@@ -44,7 +45,6 @@ public:
         std::string line;
         while (getline(in_file, line))
         {
-            // std::cout << line << std::endl;
             // line.strip()
             if (line.size() == 0) continue;
             std::smatch base_match;
@@ -66,16 +66,21 @@ public:
         return res;
     }
 
-    struct UserRequests
+    struct UserRequest
     {
         std::string cmd;
         std::string conda_version;
+        std::string date;
+
+        std::vector<std::string> link_dists;
+        std::vector<std::string> unlink_dists;
+
         std::vector<std::string> update;
         std::vector<std::string> remove;
         std::vector<std::string> neutered;
     };
 
-    void parse_comment_line(const std::string& line, UserRequests& req)
+    bool parse_comment_line(const std::string& line, UserRequest& req)
     {
         std::regex com_pat("#\\s*cmd:\\s*(.+)");
         std::regex conda_v_pat("#\\s*conda version:\\s*(.+)");
@@ -117,8 +122,75 @@ public:
             {
                 req.neutered = std::move(pkg_specs);
             }
-
         }
+        return true;
+    }
+
+    auto get_user_requests()
+    {
+        std::vector<UserRequest> res;
+        for (const auto& el : parse())
+        {
+            UserRequest r;
+            r.date = el.head_line;
+            for (const auto& c : el.comments)
+            {
+                parse_comment_line(c, r);
+            }
+
+            for (const auto& x : el.diff)
+            {
+                if (x[0] == '-')
+                {
+                    r.unlink_dists.push_back(x);
+                }
+                else if (x[0] == '+')
+                {
+                    r.link_dists.push_back(x);
+                }
+            }
+            res.push_back(r);
+        }
+        // TODO add some stuff here regarding version of conda?
+        return res;
+    }
+
+    std::unordered_map<std::string, MatchSpec> get_requested_specs_map()
+    {
+        std::unordered_map<std::string, MatchSpec> map;
+
+        auto to_specs = [](const std::vector<std::string>& sv) {
+            std::vector<MatchSpec> v;
+            v.reserve(sv.size());
+            for (const auto& el : sv)
+            {
+                v.emplace_back(el);
+            }
+            return v;
+        };
+
+        for (const auto& request : get_user_requests())
+        {
+            auto remove_specs = to_specs(request.remove);
+            for (auto& spec : remove_specs)
+            {
+                map.erase(spec.name);
+            }
+            auto update_specs = to_specs(request.update);
+            for (auto& spec : update_specs)
+            {
+                map[spec.name] = spec;
+            }
+            auto neutered_specs = to_specs(request.neutered);
+            for (auto& spec : neutered_specs)
+            {
+                map[spec.name] = spec;
+            }
+        }
+
+        auto current_records = prefix_data.records();
+        std::remove_if()
+        return map;
     }
 
     fs::path m_prefix_path;

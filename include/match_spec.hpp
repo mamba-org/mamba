@@ -3,11 +3,11 @@
 #include <regex>
 #include <string>
 
+#include "url.hpp"
 #include "thirdparty/pystring14/pystring.hpp"
 
 namespace mamba
 {
-
     class MatchSpec
     {
     public:
@@ -33,6 +33,11 @@ namespace mamba
 
             if (path::is_package_file(spec_str))
             {
+                if (!is_url(spec_str))
+                {
+                    LOG(INFO) << "need to expand path!";
+                    // spec_str = unquote(path_to_url(expand(spec_str)))
+                }
                 LOG(INFO) << "Got a package file: " << spec_str << std::endl;
             }
 

@@ -384,7 +384,7 @@ def install(args, parser, command='install'):
             try:
                 file_specs = specs_from_url(fpath, json=context.json)
             except Unicode:
-                raise CondaError("Error reading file, file should be a text file containing"
+                raise CondaValueError("Error reading file, file should be a text file containing"
                                  " packages \nconda create --help for details")
         if '@EXPLICIT' in file_specs:
             explicit(file_specs, prefix, verbose=not context.quiet, index_args=index_args)
@@ -411,7 +411,7 @@ def install(args, parser, command='install'):
         for s in args_packages:
             s = MatchSpec(s)
             if not s.is_name_only_spec:
-                raise CondaError("Invalid spec for 'conda update': %s\n"
+                raise CondaValueError("Invalid spec for 'conda update': %s\n"
                                  "Use 'conda install' instead." % s)
             if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, s.name)

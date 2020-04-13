@@ -1,5 +1,5 @@
 #include <string>
-#include <filesystem>
+#include "filesystem.hpp"
 #include <regex>
 
 #include "nlohmann/json.hpp"
@@ -10,22 +10,26 @@
 #include "util.hpp"
 
 extern "C" {
-    #include <glib.h>
-    #include <stdlib.h>
     #include <stdio.h>
-    #include <librepo/librepo.h>
+    #include <string.h>
+
+    /* somewhat unix-specific */
+    #include <sys/time.h>
+    #include <unistd.h>
+
+    #include <curl/curl.h>
     #include <archive.h>
 }
 
-void to_human_readable_filesize(std::ostream& o, double bytes)
+void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0)
 {
     const char* sizes[] = { " B", "KB", "MB", "GB", "TB" };
     int order = 0;
-    while (bytes >= 1024 && order < 5 - 1) {
+    while (bytes >= 1024 && order < (5 - 1)) {
         order++;
         bytes = bytes / 1024;
     }
-    o << int(bytes) << sizes[order];
+    o << std::fixed << std::setprecision(precision) << bytes << sizes[order];
 }
 
 namespace fs = std::filesystem;
@@ -77,42 +81,131 @@ namespace decompress
 namespace mamba
 {
 
-    class Handle
+    class DownloadTarget
     {
     public:
-        Handle() {
-            m_handle = lr_handle_init();
+        static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *self)
+        {
+            auto* s = (DownloadTarget*)self;
+            s->m_file.write(ptr, size * nmemb);
+            return size * nmemb;
         }
 
-        ~Handle() {
-            lr_handle_free(m_handle);
+        DownloadTarget() = default;
+
+        DownloadTarget(const std::string& url, const std::string& filename)
+        {
+            m_file = std::ofstream(filename, std::ios::binary);
+
+            m_target = curl_easy_init();
+
+            curl_easy_setopt(m_target, CURLOPT_URL, url.c_str());
+
+            curl_easy_setopt(m_target, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
+            curl_easy_setopt(m_target, CURLOPT_HEADERDATA, this);
+
+            curl_easy_setopt(m_target, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
+            curl_easy_setopt(m_target, CURLOPT_WRITEDATA, this);
+
+            m_headers = nullptr;
+            if (ends_with(url, ".json"))
+            {
+                curl_easy_setopt(m_target, CURLOPT_ACCEPT_ENCODING, "gzip, deflate, compress, identity");
+                m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
+            }
+            curl_easy_setopt(m_target, CURLOPT_HTTPHEADER, m_headers);
+            curl_easy_setopt(m_target, CURLOPT_VERBOSE, Context::instance().verbosity != 0);
         }
 
-        operator LrHandle*() {
-            return m_handle;
+        void set_mod_etag_headers(const nlohmann::json& mod_etag)
+        {
+            auto to_header = [](const std::string& key, const std::string& value) {
+                return std::string(key + ": " + value);
+            };
+
+            if (mod_etag.find("_etag") != mod_etag.end()) 
+            {
+                m_headers = curl_slist_append(m_headers, to_header("If-None-Match", mod_etag["_etag"]).c_str());
+            }
+            if (mod_etag.find("_mod") != mod_etag.end()) 
+            {
+                m_headers = curl_slist_append(m_headers, to_header("If-Modified-Since", mod_etag["_mod"]).c_str());
+            }
         }
 
-        // Result perform() {
-        //     LrResult* result = lr_result_init();
-        //     GError* tmp_err = NULL;
-        //     std::cout << "Downloading! " << std::endl;
-        //     lr_handle_perform(m_handle, result, &tmp_err);
-        //     // g_error_free(tmp_err);
-        //     char *destdir;
-        //     lr_handle_getinfo(m_handle, NULL, LRI_DESTDIR, &destdir);
+        void set_progress_callback(int (*cb)(void*, curl_off_t, curl_off_t, curl_off_t, curl_off_t), void* data)
+        {
+            curl_easy_setopt(m_target, CURLOPT_XFERINFOFUNCTION, cb);
+            curl_easy_setopt(m_target, CURLOPT_XFERINFODATA, data);
+            curl_easy_setopt(m_target, CURLOPT_NOPROGRESS, 0L);
+        }
 
-        //     if (result) {
-        //         printf("Download successful (Destination dir: %s)\n", destdir);
-        //     } else {
-        //         fprintf(stderr, "Error encountered: %s\n", tmp_err->message);
-        //         g_error_free(tmp_err);
-        //         // rc = EXIT_FAILURE;
-        //     }
+        static size_t header_callback(char *buffer, size_t size, size_t nitems, void *self)
+        {
+            auto* s = (DownloadTarget*)self;
 
-        //     return result;
-        // }
+            std::string_view header(buffer, size * nitems);
+            auto colon_idx = header.find(':');
+            if (colon_idx != std::string_view::npos)
+            {
+                std::string_view key, value;
+                key = header.substr(0, colon_idx);
+                colon_idx++;
+                // remove spaces
+                while (std::isspace(header[colon_idx]))
+                {
+                    ++colon_idx;
+                }
+                // remove \r\n header ending
+                value = header.substr(colon_idx, header.size() - colon_idx - 2);
+                if (key == "ETag")
+                {
+                    s->etag = value;
+                }
+                else if (key == "Cache-Control")
+                {
+                    s->cache_control = value;
+                }
+                else if (key == "Last-Modified")
+                {
+                    s->mod = value;
+                }
+            }
+            return nitems * size;
+        }
 
-        LrHandle* m_handle;
+        bool perform()
+        {
+            return curl_easy_perform(m_target);
+        }
+
+        CURL* handle()
+        {
+            return m_target;
+        }
+
+        curl_off_t get_speed()
+        {
+            curl_off_t speed;
+            CURLcode res = curl_easy_getinfo(m_target, CURLINFO_SPEED_DOWNLOAD_T, &speed);
+            if (!res)
+            {
+                return speed;
+            }
+            return 0;
+        }
+
+        ~DownloadTarget()
+        {
+            curl_easy_cleanup(m_target);
+            curl_slist_free_all(m_headers);
+        }
+
+        std::string etag, mod, cache_control;
+
+        CURL* m_target;
+        curl_slist* m_headers;
+        std::ofstream m_file;
     };
 
     class MSubdirData
@@ -121,17 +214,18 @@ namespace mamba
         MSubdirData(const std::string& name, const std::string& url, const std::string& repodata_fn) :
             m_name(name),
             m_url(url),
-            m_repodata_fn(repodata_fn),
+            m_json_fn(repodata_fn),
+            m_solv_fn(repodata_fn.substr(0, repodata_fn.size() - 4) + "solv"),
             m_loaded(false),
-            m_download_complete(false),
-            m_target(nullptr)
+            m_download_complete(false)
         {
         }
 
-        ptrdiff_t check_cache()
+        // TODO return seconds as double
+        ptrdiff_t check_cache(const fs::path& cache_file)
         {
             try {
-                auto last_write = fs::last_write_time(m_repodata_fn);
+                auto last_write = fs::last_write_time(m_json_fn);
                 auto cftime = decltype(last_write)::clock::now();
                 auto tdiff = cftime - last_write;
                 auto as_seconds = std::chrono::duration_cast<std::chrono::seconds>(tdiff);
@@ -156,15 +250,14 @@ namespace mamba
 
         bool load(/*Handle& handle*/)
         {
-            ptrdiff_t cache_age = check_cache();
+            ptrdiff_t cache_age = check_cache(m_json_fn);
             nlohmann::json mod_etag_headers;
-            if (check_cache() != -1)
+            if (cache_age != -1)
             {
                 LOG(INFO) << "Found valid cache file.";
 
                 mod_etag_headers = read_mod_and_etag();
                 if (mod_etag_headers.size() != 0) {
-                    std::cout << mod_etag_headers << std::endl;
 
                     int max_age = 0;
                     if (Context::instance().local_repodata_ttl > 1)
@@ -177,12 +270,21 @@ namespace mamba
                         auto el = mod_etag_headers.value("_cache_control", std::string(""));
                         max_age = get_cache_control_max_age(el);
                     }
-
                     if ((max_age > cache_age || Context::instance().offline) && !forbid_cache())
                     {
                         // cache valid!
                         LOG(INFO) << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
                         m_loaded = true;
+                        m_json_cache_valid = true;
+
+                        // check solv cache
+                        auto solv_age = check_cache(m_solv_fn);
+                        if (solv_age != -1 && solv_age <= cache_age)
+                        {
+                            LOG(INFO) << "Also using .solv cache file";
+                            m_solv_cache_valid = true;
+                        }
+
                         return true;
                     }
                 }
@@ -190,25 +292,30 @@ namespace mamba
                 {
                     LOG(WARNING) << "Could not determine mod / etag headers.";
                 }
-
+                create_target(mod_etag_headers);
             }
             else
             {
-                // now we need to download the file
-                LOG(INFO) << "Local cache timed out for " << m_url;
-                create_target(mod_etag_headers); //, handle);
+                LOG(INFO) << "No cache found " << m_url;
+                create_target(mod_etag_headers);
             }
-
-            // raw_repodata_str = fetch_repodata_remote_request(self.url_w_credentials,
-            //                                                  mod_etag_headers.get('_etag'),
-            //                                                  mod_etag_headers.get('_mod'),
-            //                                                  repodata_fn=self.repodata_fn)
-            // if not raw_repodata_str and self.repodata_fn != REPODATA_FN:
-            //     raise UnavailableInvalidChannel(self.url_w_repodata_fn, 404)
             return true;
         }
 
-        LrDownloadTarget* target() const
+        std::string cache_path() const
+        {
+            if (m_json_cache_valid && m_solv_cache_valid)
+            {
+                return m_solv_fn;
+            }
+            else if (m_json_cache_valid)
+            {
+                return m_json_fn;
+            }
+            throw std::runtime_error("Cache not loaded!");
+        }
+
+        std::unique_ptr<DownloadTarget>& target()
         {
             return m_target;
         }
@@ -224,6 +331,81 @@ namespace mamba
             p_multi_progress = ptr;
         }
 
+        int finalize_transfer(int status)
+        {
+            auto& mp = *(p_multi_progress);
+
+            LOG(INFO) << "HTTP response code: " << status;
+            if (status == 304)
+            {
+                // cache still valid
+                ptrdiff_t cache_age = check_cache(m_json_fn);
+                ptrdiff_t solv_age = check_cache(m_solv_fn);
+
+                using fs_time_t = decltype(fs::last_write_time(fs::path()));
+                fs::last_write_time(m_json_fn, fs_time_t::clock::now());
+                if(solv_age <= cache_age) {
+                    fs::last_write_time(m_solv_fn, fs_time_t::clock::now());
+                    m_solv_cache_valid = true;
+                }
+
+                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Cache valid"});
+                mp[m_multi_progress_idx].set_progress(100);
+                mp[m_multi_progress_idx];
+
+                m_json_cache_valid = true;
+                m_loaded = true;
+
+                return 0;
+            }
+
+            LOG(INFO) << "Finalized transfer: " << m_url;
+
+            nlohmann::json prepend_header;
+
+            prepend_header["_url"] = m_url;
+            prepend_header["_etag"] = m_target->etag;
+            prepend_header["_mod"] = m_target->mod;
+            prepend_header["_cache_control"] = m_target->cache_control;
+
+            LOG(INFO) << "Opening: " << m_json_fn;
+            std::ofstream final_file(m_json_fn);
+            // TODO make sure that cache directory exists!
+            if (!final_file.is_open())
+            {
+                throw std::runtime_error("Could not open file.");
+            }
+
+            if (ends_with(m_url, ".bz2"))
+            {
+                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Decomp..."});
+                m_temp_name = decompress();
+            }
+
+            mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Finalizing..."});
+
+            std::ifstream temp_file(m_temp_name);
+            std::stringstream temp_json;
+            temp_json << prepend_header.dump();
+            // replace `}` with `,`
+            temp_json.seekp(-1, temp_json.cur); temp_json << ',';
+            final_file << temp_json.str();
+            temp_file.seekg(1);
+            std::copy(
+                std::istreambuf_iterator<char>(temp_file),
+                std::istreambuf_iterator<char>(),
+                std::ostreambuf_iterator<char>(final_file)
+            );
+            mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Done"});
+            mp[m_multi_progress_idx].set_progress(100);
+            mp[m_multi_progress_idx].mark_as_completed();
+
+            m_json_cache_valid = true;
+            m_loaded = true;
+            return 0;
+        }
+
+
     private:
 
         std::string decompress()
@@ -238,78 +420,37 @@ namespace mamba
             return json_temp_name;
         }
 
-        static int finalize_transfer(void* self, LrTransferStatus status, const char* msg)
-        {
-            auto* s = (MSubdirData*)self;
-            auto& mp = (*(s->p_multi_progress));
-
-            LOG(INFO) << "Finalized transfer: " << s->m_url;
-
-            nlohmann::json prepend_header;
-
-            // saved_fields = {'_url': url}
-            // add_http_value_to_dict(resp, 'Etag', saved_fields, '_etag')
-            // add_http_value_to_dict(resp, 'Last-Modified', saved_fields, '_mod')
-            // add_http_value_to_dict(resp, 'Cache-Control', saved_fields, '_cache_control')
-
-            prepend_header["_url"] = s->m_url;
-
-            LOG(INFO) << "Opening: " << s->m_repodata_fn;
-            std::ofstream final_file(s->m_repodata_fn);
-            // TODO make sure that cache directory exists!
-            if (!final_file.is_open())
-            {
-                throw std::runtime_error("Could not open file.");
-            }
-
-            if (ends_with(s->m_url, ".bz2"))
-            {
-                mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{"Decomp..."});
-                s->m_temp_name = s->decompress();
-            }
-
-            mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{"Finalizing..."});
-
-            std::ifstream temp_file(s->m_temp_name);
-            std::stringstream temp_json;
-            temp_json << prepend_header.dump();
-            // replace `}` with `,`
-            temp_json.seekp(-1, temp_json.cur); temp_json << ',';
-            final_file << temp_json.str();
-            temp_file.seekg(1);
-            std::copy(
-                std::istreambuf_iterator<char>(temp_file),
-                std::istreambuf_iterator<char>(),
-                std::ostreambuf_iterator<char>(final_file)
-            );
-            mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{"Done"});
-            mp[s->m_multi_progress_idx].set_progress(100);
-            mp[s->m_multi_progress_idx].mark_as_completed();
-
-            return 0;
-        }
-
-        static int progress_callback(void *self, double total_to_download, double now_downloaded)
+        static int progress_callback(void *self, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
         {
             auto* s = (MSubdirData*)self;
             auto& mp = (*(s->p_multi_progress));
 
             if (!s->m_download_complete && total_to_download != 0)
             {
-                if (total_to_download != 0)
+                double perc = double(now_downloaded) / double(total_to_download);
+                std::stringstream postfix;
+                to_human_readable_filesize(postfix, now_downloaded);
+                postfix << " / ";
+                to_human_readable_filesize(postfix, total_to_download);
+                postfix << " (";
+                to_human_readable_filesize(postfix, s->target()->get_speed(), 2);
+                postfix << "/s)";
+                mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{postfix.str()});
+                mp[s->m_multi_progress_idx].set_progress(perc * 100.);
+                if (std::ceil(perc * 100.) >= 100)
                 {
-                    std::stringstream postfix;
-                    to_human_readable_filesize(postfix, now_downloaded);
-                    postfix << " / ";
-                    to_human_readable_filesize(postfix, total_to_download);
-                    mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{postfix.str()});
-                    mp[s->m_multi_progress_idx].set_progress((now_downloaded / total_to_download) * 100);
-                }
-                if (int(now_downloaded / total_to_download) * 100 >= 100)
-                {
-                    // mp[s->m_multi_progress_idx].mark_as_completed();
+                    mp[s->m_multi_progress_idx].mark_as_completed();
                     s->m_download_complete = true;
                 }
+            }
+            if (total_to_download == 0 && now_downloaded != 0)
+            {
+                std::stringstream postfix;
+                to_human_readable_filesize(postfix, now_downloaded);
+                postfix << " / ?? (";
+                to_human_readable_filesize(postfix, s->target()->get_speed(), 2);
+                postfix << "/s)";
+                mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{postfix.str()});
             }
             return 0;
         }
@@ -317,46 +458,9 @@ namespace mamba
         void create_target(nlohmann::json& mod_etag /*, Handle& handle*/)
         {
             m_temp_name = std::tmpnam(nullptr);
-            m_target = lr_downloadtarget_new(
-                // handle,           // ptr to handle
-                nullptr,           // ptr to handle
-                m_url.c_str(),    // url (absolute, or relative)
-                nullptr,          // base url
-                -1,               // file descriptor (opened)
-                m_temp_name.c_str(), // filename
-                nullptr,          // possible checksums
-                0,                // expected size
-                true,             // resume
-                &MSubdirData::progress_callback,// progress cb
-                this, // cb data
-                // reinterpret_cast<int(void*, LrTransferStatus, const char*)>(&MSubdirData::finalize_transfer),     // end cb
-                &MSubdirData::finalize_transfer,     // end cb
-                nullptr,          // mirror failure cb
-                nullptr,          // user data
-                0,                // byte range start (download only range)
-                0,                // byte range end
-                nullptr,          // range string (overrides start / end, usage unclear)
-                false,            // no_cache (tell proxy server that we want fresh data)
-                false             // is zchunk
-            );
-
-            // auto to_header = [](const std::string& key, const std::string& value) {
-            //     return std::string(key + ": " + value);
-            // };
-
-            // struct curl_slist *headers = nullptr;
-            // if (mod_etag.find("_etag") != mod_etag.end()) 
-            // {
-            //     headers = curl_slist_append(headers, to_header("If-None-Match", mod_etag["_etag"]).c_str());
-            // }
-            // if (mod_etag.find("_mod") != mod_etag.end()) 
-            // {
-            //     headers = curl_slist_append(headers, to_header("If-Modified-Since", mod_etag["_mod"]).c_str());
-            // }
-
-            // headers = curl_slist_append(headers, "Accept-Encoding: gzip, deflate, compress, identity");
-            // headers = curl_slist_append(headers, "Content-Type: application/json");
-            // m_target->curl_rqheaders = headers;
+            m_target = std::make_unique<DownloadTarget>(m_url, m_temp_name);
+            m_target->set_progress_callback(&MSubdirData::progress_callback, this);
+            m_target->set_mod_etag_headers(mod_etag);
         }
 
         std::size_t get_cache_control_max_age(const std::string& val)
@@ -371,7 +475,11 @@ namespace mamba
         nlohmann::json read_mod_and_etag()
         {
             // parse json at the beginning of the stream such as
-            // {"_url": "https://conda.anaconda.org/conda-forge/linux-64", "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"", "_mod": "Sat, 04 Apr 2020 03:29:49 GMT", "_cache_control": "public, max-age=1200", 
+            // {"_url": "https://conda.anaconda.org/conda-forge/linux-64", 
+            // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"", 
+            // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
+            // "_cache_control": "public, max-age=1200"
+
             auto extract_subjson = [](std::ifstream& s)
             {
                 char next;
@@ -404,7 +512,7 @@ namespace mamba
                 return std::string();
             };
 
-            std::ifstream in_file(m_repodata_fn);
+            std::ifstream in_file(m_json_fn);
             auto json = extract_subjson(in_file);
             nlohmann::json result;
             try {
@@ -418,27 +526,58 @@ namespace mamba
             }
         }
 
-        LrDownloadTarget* m_target;
+        std::unique_ptr<DownloadTarget> m_target;
+
+        bool m_json_cache_valid = false;
+        bool m_solv_cache_valid = false;
+
+        std::ofstream out_file;
 
         indicators::DynamicProgress<indicators::ProgressBar>* p_multi_progress;
         std::size_t m_multi_progress_idx;
+
         bool m_loaded, m_download_complete;
         std::string m_url;
         std::string m_name;
-        std::string m_repodata_fn;
+        std::string m_json_fn;
+        std::string m_solv_fn;
         std::string m_temp_name;
     };
 
-    class DownloadTargetList
+    class MultiDownloadTarget
     {
     public:
-
-        DownloadTargetList()
+        MultiDownloadTarget()
         {
+            m_handle = curl_multi_init();
         }
 
-        void append(MSubdirData& subdirdata)
+        ~MultiDownloadTarget()
         {
+            curl_multi_cleanup(m_handle);
+        }
+
+        void add(MSubdirData& subdirdata)
+        {
+            if (subdirdata.loaded())
+            {
+                LOG(WARNING) << "Adding cached or previously loaded subdirdata, ignoring";
+                return;
+            }
+            if (subdirdata.target() == nullptr)
+            {
+                LOG(WARNING) << "Subdirdata load not called, ignoring";
+                return;
+            }
+            CURLMcode code = curl_multi_add_handle(m_handle, subdirdata.target()->handle());
+            if(code != CURLM_CALL_MULTI_PERFORM)
+            {
+                if(code != CURLM_OK)
+                {
+                    throw std::runtime_error(curl_multi_strerror(code));
+                }
+            }
+
             const std::size_t PREFIX_LENGTH = 25;
             if (subdirdata.target() != nullptr)
             {
@@ -452,48 +591,150 @@ namespace mamba
                 }
 
                 m_progress_bars.push_back(std::make_unique<indicators::ProgressBar>(
-                    indicators::option::BarWidth{25},
+                    indicators::option::BarWidth{15},
                     indicators::option::ForegroundColor{indicators::Color::unspecified},
                     indicators::option::ShowElapsedTime{true},
                     indicators::option::ShowRemainingTime{false},
+                    indicators::option::MaxPostfixTextLen{36},
                     indicators::option::PrefixText(prefix)
                 ));
+
                 auto idx = m_multi_progress.push_back(*m_progress_bars[m_progress_bars.size() - 1].get());
                 subdirdata.set_progress_bar(idx, &m_multi_progress);
-
-                m_download_targets = g_slist_append(m_download_targets, subdirdata.target());
+                m_subdir_data.push_back(&subdirdata);
             }
+        }
+
+        bool check_msgs()
+        {
+            int msgs_in_queue;
+            CURLMsg *msg;
+
+            while (msg = curl_multi_info_read(m_handle, &msgs_in_queue)) {
+                if (msg->msg != CURLMSG_DONE) {
+                    // We are only interested in messages about finished transfers
+                    continue;
+                }
+                MSubdirData* subdir_data = nullptr;
+                for (auto& sd : m_subdir_data)
+                {
+                    if (sd->target()->handle() == msg->easy_handle)
+                    {
+                        subdir_data = sd;
+                        break;
+                    }
+                }
+                if (!subdir_data)
+                {
+                    throw std::runtime_error("transfer failed");   
+                }
+
+                int response_code;
+                curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
+                subdir_data->finalize_transfer(response_code);
+            }
+            return true;
         }
 
         bool download(bool failfast)
         {
-            std::cout << "Downloading metadata\n\n";
             m_multi_progress.set_option(indicators::option::HideBarWhenComplete{false});
             for (auto& bar : m_progress_bars)
             {
                 bar->set_progress(0);
             }
             LOG(INFO) << "Starting to download targets";
-            if (m_download_targets == nullptr)
-            {
-                LOG(WARNING) << "Nothing to download";
-                return true;
-            }
-            GError* tmp_err = NULL;
-            bool result = lr_download(m_download_targets, failfast, &tmp_err);
 
-            if (result) {
-                LOG(INFO) << "All downloads successful";
-            } else {
-                LOG(ERROR) << "Error encountered: " << tmp_err->message;
-                g_error_free(tmp_err);
+            int still_running = 1;
+            while(still_running)
+            {
+                CURLMcode code = curl_multi_perform(m_handle, &still_running);                
+
+                if(code != CURLM_OK)
+                {
+                    throw std::runtime_error(curl_multi_strerror(code));
+                }
+
+                check_msgs();
+
+                struct timeval timeout;
+                int rc; /* select() return code */
+                long curl_timeo = -1;
+
+                fd_set fdread;
+                fd_set fdwrite;
+                fd_set fdexcep;
+                int maxfd;
+                
+                FD_ZERO(&fdread);
+                FD_ZERO(&fdwrite);
+                FD_ZERO(&fdexcep);
+                
+                /* set a suitable timeout to play around with */
+                timeout.tv_sec = 1;
+                timeout.tv_usec = 0;
+
+                curl_multi_timeout(m_handle, &curl_timeo);
+                if(curl_timeo >= 0)
+                {
+                    timeout.tv_sec = curl_timeo / 1000;
+                    if(timeout.tv_sec > 1)
+                    {
+                        timeout.tv_sec = 1;
+                    }
+                    else
+                    {
+                        timeout.tv_usec = (curl_timeo % 1000) * 1000;
+                    }
+                }
+
+                CURLMcode mc;
+                /* get file descriptors from the transfers */
+                mc = curl_multi_fdset(m_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
+ 
+                if(mc != CURLM_OK) {
+                  throw std::runtime_error("curl_multi_fdset() failed, code" + std::to_string(mc));
+                }
+
+                if(maxfd == -1)
+                {
+                #ifdef _WIN32
+                    Sleep(100);
+                    rc = 0;
+                #else
+                    /* Portable sleep for platforms other than Windows. */ 
+                    struct timeval wait = { 0, 100 * 1000 }; /* 100ms */ 
+                    rc = select(0, NULL, NULL, NULL, &wait);
+                #endif
+                }
+                else
+                {
+                    /* Note that on some platforms 'timeout' may be modified by select().
+                       If you need access to the original value save a copy beforehand. */ 
+                    rc = select(maxfd + 1, &fdread, &fdwrite, &fdexcep, &timeout);
+                }               
+
+                switch (rc)
+                {
+                  case -1:
+                    /* select error */
+                    still_running = 0;
+                    throw std::runtime_error("select() returns error, this is bad");
+                    break;
+                  case 0:
+                  default:
+                    /* timeout or readable/writable sockets */
+                    break;
+                }
             }
-            return result;
+
+            return true;
         }
 
         std::vector<std::unique_ptr<indicators::ProgressBar>> m_progress_bars;
         indicators::DynamicProgress<indicators::ProgressBar> m_multi_progress;
-        GSList* m_download_targets = nullptr;
-    };
 
+        std::vector<MSubdirData*> m_subdir_data;
+        CURLM* m_handle;
+    };
 }

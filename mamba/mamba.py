@@ -134,9 +134,9 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
     final_precs = IndexedSet(prefix_data.iter_records())
 
     def get_channel(c):
-        for x in index:
-            if str(x.channel) == c:
-                return x
+        for _, chan in index:
+            if str(chan) == c:
+                return chan
 
     for c, pkg in to_unlink:
         for i_rec in installed_pkg_recs:
@@ -357,25 +357,25 @@ def install(args, parser, command='install'):
 
     if strict_priority:
         # first, count unique channels
-        n_channels = len(set([x.channel.canonical_name for x in index]))
-        current_channel = index[0].channel.canonical_name
+        n_channels = len(set([channel.canonical_name for _, channel in index]))
+        current_channel = index[0].canonical_name
         channel_prio = n_channels
 
-    for x in index:
+    for subdir, chan in index:
         # add priority here
-        x.channel_idx
         if strict_priority:
-            if x.channel.canonical_name != current_channel:
+            if chan.canonical_name != current_channel:
                 channel_prio -= 1
-                current_channel = x.channel.canonical_name
+                current_channel = chan.canonical_name
             priority = channel_prio
         else:
             priority = 0
 
-        subpriority = 0 if x.channel.platform == 'noarch' else 1
-        cache_file = x.get_loaded_file_path()
+        subpriority = 0 if chan.platform == 'noarch' else 1
 
-        channel_json.append((str(x.channel), cache_file, priority, subpriority))
+        if context.verbosity != 0:
+            print("Cache path: ", subdir.cache_path())
+        channel_json.append((str(chan), subdir.cache_path(), priority, subpriority))
 
     installed_json_f = get_installed_jsonfile(prefix)
 

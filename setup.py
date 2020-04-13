@@ -52,12 +52,6 @@ if sys.platform == 'win32':
     except:
         print("could not find conda prefix")
 
-glib_config = pkgconfig.parse('glib-2.0')
-print(glib_config)
-glib_libs = pkgconfig.libs('glib-2.0')
-glib_cflags = pkgconfig.cflags('glib-2.0')
-
-
 ext_modules = [
     Extension(
         'mamba.mamba_api',
@@ -67,9 +61,9 @@ ext_modules = [
             get_pybind_include(user=True),
             os.path.join(libsolv_prefix, 'include'),
             "include/thirdparty/"
-        ] + glib_config['include_dirs'],
-        library_dirs=library_dir + glib_config['library_dirs'],
-        libraries=['solv', 'solvext', 'repo', 'archive'] + glib_config['libraries'],
+        ],
+        library_dirs=library_dir,
+        libraries=['solv', 'solvext', 'curl', 'archive'] + ['stdc++fs'],
         language='c++'
     ),
 ]

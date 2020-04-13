@@ -41,6 +41,7 @@ SOFTWARE.
 #include <thread>
 #include <tuple>
 #include <type_traits>
+#include <sys/ioctl.h>
 
 namespace indicators {
 
@@ -243,10 +244,15 @@ private:
 
     if (get_value<details::ProgressBarOption::max_postfix_text_len>() == 0)
       get_value<details::ProgressBarOption::max_postfix_text_len>() = 10;
-    std::cout << " " << get_value<details::ProgressBarOption::postfix_text>()
-              << std::string(get_value<details::ProgressBarOption::max_postfix_text_len>(), ' ')
-              << "\r";
+    std::cout << " " << get_value<details::ProgressBarOption::postfix_text>();
+    if (get_value<details::ProgressBarOption::max_postfix_text_len>() > get_value<details::ProgressBarOption::postfix_text>().size())
+    {
+      auto l = get_value<details::ProgressBarOption::max_postfix_text_len>() - get_value<details::ProgressBarOption::postfix_text>().size();
+      std::cout << std::string(l, ' ');
+    }
+    std::cout << "\r";
     std::cout.flush();
+
     if (progress_ > 100) {
       get_value<details::ProgressBarOption::completed>() = true;
     }

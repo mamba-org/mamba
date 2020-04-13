@@ -54,21 +54,17 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("find", &Query::find)
         .def("whatrequires", &Query::whatrequires)
 
-    py::class_<Handle>(m, "DownloadHandle")
-        .def(py::init<>())
-    ;
-
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init<const std::string&, const std::string&, const std::string&>())
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
+        .def("cache_path", &MSubdirData::cache_path)
     ;
 
-
-    py::class_<DownloadTargetList>(m, "DownloadTargetList")
+    py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
         .def(py::init<>())
-        .def("append", &DownloadTargetList::append)
-        .def("download", &DownloadTargetList::download)
+        .def("add", &MultiDownloadTarget::add)
+        .def("download", &MultiDownloadTarget::download)
     ;
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")

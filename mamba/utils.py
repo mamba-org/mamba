@@ -11,6 +11,7 @@ from conda.models.records import PackageRecord
 from conda.models.enums import PackageType
 from conda.common.url import join_url
 from conda.base.context import context
+from conda.core.subdir_data import cache_fn_url, create_cache_dir
 
 import threading
 import json
@@ -29,26 +30,33 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
     check_whitelist(real_urls)
 
-    handle = api.DownloadHandle()
     dlist = api.DownloadTargetList()
 
     sddata = []
     index = []
     for idx, url in enumerate(real_urls):
-        fsd = FastSubdirData(Channel(url), idx, repodata_fn)
-        index.append(fsd)
-        full_url = fsd.url_w_repodata_fn
-        full_path_cache = fsd.cache_path_json
-        sd = api.SubdirData(fsd.channel.name + '/' + fsd.channel.subdir, full_url, full_path_cache)
+        channel = Channel(url)
+        # fsd = FastSubdirData(, idx, repodata_fn)
+        # index.append(fsd)
+
+        full_url = channel.url(with_credentials=True) + '/' + repodata_fn
+
+        full_path_cache= os.path.join(
+            create_cache_dir(),
+            cache_fn_url(full_url, repodata_fn))
+
+        sd = api.SubdirData(channel.name + '/' + channel.subdir,
+                            full_url,
+                            full_path_cache)
+        index.append((sd, channel))
         sd.load()
-        sddata.append(sd)
-        dlist.append(sd)
+        dlist.add(sd)
 
     is_downloaded = dlist.download(True)
+
     if not is_downloaded:
-        print("Error downloading repodata.")
-    for x in index:
-        x._loaded = True
+        raise RuntimeError("Error downloading repodata.")
+
     return index
 
 # def get_index(channel_urls=(), prepend=True, platform=None,
@@ -74,9 +82,9 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 #     result = sorted(result, key=lambda x: x.channel_idx)
 #     return result
 
-def to_package_record_from_subjson(subdir, pkg, jsn_string):
-    channel = subdir.channel
-    channel_url = subdir.url_w_credentials
+def to_package_record_from_subjson(channel, pkg, jsn_string):
+    channel = channel
+    channel_url = channel.url(with_credentials=True)
     info = json.loads(jsn_string)
     info['fn'] = pkg
     info['channel'] = channel

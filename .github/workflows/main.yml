@@ -28,7 +28,7 @@ jobs:
         run: conda info
       - name: Create the conda environment
         shell: bash -l {0}
-        run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv libarchive librepo pkgconfig nlohmann_json conda cxx-compiler
+        run: conda create -q -y -n mamba-tests -c conda-forge python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies

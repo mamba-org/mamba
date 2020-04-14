@@ -39,7 +39,12 @@ namespace mamba
             for (const auto& job : jobs)
             {
                 Id inst_id = pool_conda_matchspec(m_solver->pool, job.c_str());
-                queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                if (job.rfind("python ", 0) == 0)
+                    // python specified with a version: stick to currently installed python
+                    // override possible update flag with install flag
+                    queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                else
+                    queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
             }
         }
 

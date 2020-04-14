@@ -53,6 +53,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MPool&>())
         .def("find", &Query::find)
         .def("whatrequires", &Query::whatrequires)
+    ;
 
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init<const std::string&, const std::string&, const std::string&>())

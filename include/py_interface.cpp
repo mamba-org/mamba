@@ -73,6 +73,7 @@ PYBIND11_MODULE(mamba_api, m) {
             return std::unique_ptr<Context, py::nodelete>(&Context::instance());
         }))
         .def_readwrite("verbosity", &Context::verbosity)
+        .def("set_verbosity", &Context::set_verbosity)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

@@ -189,7 +189,7 @@ def remove(args, parser):
 
     prefix = context.target_prefix
     check_non_admin()
-    api.Context.verbosity = context.verbosity;
+    api.Context().set_verbosity(context.verbosity);
 
     if args.all and prefix == context.default_prefix:
         raise CondaEnvironmentError("cannot remove current environment. \
@@ -269,7 +269,7 @@ def install(args, parser, command='install'):
     context.validate_configuration()
     check_non_admin()
 
-    api.Context().verbosity = context.verbosity;
+    api.Context().set_verbosity(context.verbosity);
 
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')
@@ -509,7 +509,7 @@ def repoquery(args, parser):
     prepend = not args.override_channels
     prefix = context.target_prefix
 
-    api.Context.verbosity = context.verbosity;
+    api.Context().set_verbosity(context.verbosity);
 
     index_args = {
         'use_cache': args.use_index_cache,

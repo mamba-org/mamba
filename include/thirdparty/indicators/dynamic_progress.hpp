@@ -57,6 +57,7 @@ public:
   size_t push_back(Indicator &bar) {
     std::lock_guard<std::mutex> lock{mutex_};
     bar.multi_progress_mode_ = true;
+    bar.set_progress(0);
     bars_.push_back(bar);
     ++total_count_;
     ++incomplete_count_;

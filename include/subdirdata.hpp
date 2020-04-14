@@ -1,5 +1,5 @@
 #include <string>
-#include "filesystem.hpp"
+#include "thirdparty/filesystem.hpp"
 #include <regex>
 
 #include "nlohmann/json.hpp"
@@ -21,6 +21,8 @@ extern "C" {
     #include <archive.h>
 }
 
+namespace fs = ghc::filesystem;
+
 #define PREFIX_LENGTH 25
 
 void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0)
@@ -34,14 +36,14 @@ void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t preci
     o << std::fixed << std::setprecision(precision) << bytes << sizes[order];
 }
 
-namespace fs = std::filesystem;
-
 namespace decompress
 {
     bool raw(const std::string& in, const std::string& out)
     {
         int r;
         ssize_t size;
+
+        LOG(INFO) << "Decompressing from " << in << " to " << out;
 
         struct archive *a = archive_read_new();
         archive_read_support_filter_bzip2(a);
@@ -64,15 +66,16 @@ namespace decompress
 
         while (true)
         {
-          size = archive_read_data(a, &buff, buffsize);
-          if (size < 0) {
-              /* ERROR */
-          }
-          if (size == 0)
-          {
-              break;
-          }
-          out_file.write(buff, size);
+            size = archive_read_data(a, &buff, buffsize);
+            if (size < ARCHIVE_OK)
+            {
+                throw std::runtime_error(std::string("Could not read archive: ") + archive_error_string(a));
+            }
+            if (size == 0)
+            {
+                break;
+            }
+            out_file.write(buff, size);
         }
 
         archive_read_free(a);
@@ -195,6 +198,11 @@ namespace mamba
                 return speed;
             }
             return 0;
+        }
+
+        bool finalize()
+        {
+            m_file.flush();
         }
 
         ~DownloadTarget()
@@ -338,7 +346,7 @@ namespace mamba
         {
             auto& mp = *(p_multi_progress);
 
-            LOG(INFO) << "HTTP response code: " << status;
+            LOG(WARNING) << "HTTP response code: " << status;
             if (status == 304)
             {
                 // cache still valid
@@ -353,9 +361,12 @@ namespace mamba
                     m_solv_cache_valid = true;
                 }
 
-                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"No change"});
-                mp[m_multi_progress_idx].set_progress(100);
-                mp[m_multi_progress_idx].mark_as_completed();
+                if (!Context::instance().quiet)
+                {
+                    mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"No change"});
+                    mp[m_multi_progress_idx].set_progress(100);
+                    mp[m_multi_progress_idx].mark_as_completed();
+                }
 
                 m_json_cache_valid = true;
                 m_loaded = true;
@@ -363,7 +374,7 @@ namespace mamba
                 return 0;
             }
 
-            LOG(INFO) << "Finalized transfer: " << m_url;
+            LOG(WARNING) << "Finalized transfer: " << m_url;
 
             nlohmann::json prepend_header;
 
@@ -372,7 +383,7 @@ namespace mamba
             prepend_header["_mod"] = m_target->mod;
             prepend_header["_cache_control"] = m_target->cache_control;
 
-            LOG(INFO) << "Opening: " << m_json_fn;
+            LOG(WARNING) << "Opening: " << m_json_fn;
             std::ofstream final_file(m_json_fn);
             // TODO make sure that cache directory exists!
             if (!final_file.is_open())
@@ -382,11 +393,17 @@ namespace mamba
 
             if (ends_with(m_url, ".bz2"))
             {
-                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Decomp..."});
+                if (!Context::instance().quiet)
+                {
+                    mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Decomp..."});
+                }
                 m_temp_name = decompress();
             }
 
-            mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Finalizing..."});
+            if (!Context::instance().quiet)
+            {
+                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Finalizing..."});
+            }
 
             std::ifstream temp_file(m_temp_name);
             std::stringstream temp_json;
@@ -400,9 +417,13 @@ namespace mamba
                 std::istreambuf_iterator<char>(),
                 std::ostreambuf_iterator<char>(final_file)
             );
-            mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Done"});
-            mp[m_multi_progress_idx].set_progress(100);
-            mp[m_multi_progress_idx].mark_as_completed();
+
+            if (!Context::instance().quiet)
+            {
+                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Done"});
+                mp[m_multi_progress_idx].set_progress(100);
+                mp[m_multi_progress_idx].mark_as_completed();
+            }
 
             m_json_cache_valid = true;
             m_loaded = true;
@@ -427,19 +448,24 @@ namespace mamba
         static int progress_callback(void *self, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
         {
             auto* s = (MSubdirData*)self;
+            if (Context::instance().quiet)
+            {
+                return 0;
+            }
+
             auto& mp = (*(s->p_multi_progress));
 
             if (!s->m_download_complete && total_to_download != 0)
             {
                 double perc = double(now_downloaded) / double(total_to_download);
-                std::stringstream postfix;
-                to_human_readable_filesize(postfix, now_downloaded);
-                postfix << " / ";
-                to_human_readable_filesize(postfix, total_to_download);
-                postfix << " (";
-                to_human_readable_filesize(postfix, s->target()->get_speed(), 2);
-                postfix << "/s)";
-                mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{postfix.str()});
+                // std::stringstream postfix;
+                // to_human_readable_filesize(postfix, now_downloaded);
+                // postfix << " / ";
+                // to_human_readable_filesize(postfix, total_to_download);
+                // postfix << " (";
+                // to_human_readable_filesize(postfix, s->target()->get_speed(), 2);
+                // postfix << "/s)";
+                // mp[s->m_multi_progress_idx].set_option(indicators::option::PostfixText{postfix.str()});
                 mp[s->m_multi_progress_idx].set_progress(perc * 100.);
                 if (std::ceil(perc * 100.) >= 100)
                 {
@@ -613,13 +639,26 @@ namespace mamba
             int msgs_in_queue;
             CURLMsg *msg;
 
-            while (msg = curl_multi_info_read(m_handle, &msgs_in_queue)) {
+            while ((msg = curl_multi_info_read(m_handle, &msgs_in_queue))) {
+
+                if (msg->data.result != CURLE_OK) {
+                    char* effective_url = nullptr;
+                    curl_easy_getinfo(msg->easy_handle,
+                                      CURLINFO_EFFECTIVE_URL,
+                                      &effective_url);
+                    std::stringstream err;
+                    err << "Download error (" << msg->data.result << ") " <<
+                           curl_easy_strerror(msg->data.result) << "[" << effective_url << "]";
+
+                    throw std::runtime_error(err.str());
+                }
                 if (msg->msg != CURLMSG_DONE) {
                     // We are only interested in messages about finished transfers
                     continue;
                 }
+
                 MSubdirData* subdir_data = nullptr;
-                for (auto& sd : m_subdir_data)
+                for (const auto& sd : m_subdir_data)
                 {
                     if (sd->target()->handle() == msg->easy_handle)
                     {
@@ -627,13 +666,19 @@ namespace mamba
                         break;
                     }
                 }
+                subdir_data->target()->finalize();
+
                 if (!subdir_data)
                 {
                     throw std::runtime_error("transfer failed");   
                 }
 
                 int response_code;
+                char* effective_url = nullptr;
                 curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
+                curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
+
+                LOG(INFO) << "response_code " << response_code << " @ " << effective_url;
                 subdir_data->finalize_transfer(response_code);
             }
             return true;
@@ -650,6 +695,7 @@ namespace mamba
 
             int still_running, repeats = 0;
             const long max_wait_msecs = 400;
+            int i = 0;
             do
             {
                 CURLMcode code = curl_multi_perform(m_handle, &still_running);                
@@ -658,7 +704,6 @@ namespace mamba
                 {
                     throw std::runtime_error(curl_multi_strerror(code));
                 }
-
                 check_msgs();
 
                 int numfds;

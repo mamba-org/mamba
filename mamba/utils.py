@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .FastSubdirData import FastSubdirData
 from conda.models.channel import Channel, prioritize_channels
 from conda.core.index import calculate_channel_urls, check_whitelist #, get_index
 from conda.models.records import PackageRecord

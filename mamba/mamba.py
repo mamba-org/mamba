@@ -509,6 +509,8 @@ def repoquery(args, parser):
     prepend = not args.override_channels
     prefix = context.target_prefix
 
+    api.Context.verbosity = context.verbosity;
+
     index_args = {
         'use_cache': args.use_index_cache,
         'channel_urls': context.channels,
@@ -522,35 +524,9 @@ def repoquery(args, parser):
                   use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                   unknown=index_args['unknown'], prefix=prefix)
 
-    channel_json = []
-    strict_priority = (context.channel_priority == ChannelPriority.STRICT)
-
-    if strict_priority:
-        # first, count unique channels
-        n_channels = len(set([x.channel.canonical_name for x in index]))
-        current_channel = index[0].channel.canonical_name
-        channel_prio = n_channels
-
-    for x in index:
-        # add priority here
-        x.channel_idx
-        if strict_priority:
-            if x.channel.canonical_name != current_channel:
-                channel_prio -= 1
-                current_channel = x.channel.canonical_name
-            priority = channel_prio
-        else:
-            priority = 0
-
-        subpriority = 0 if x.channel.platform == 'noarch' else 1
-        cache_file = x.get_loaded_file_path()
-
-        channel_json.append((str(x.channel), cache_file, priority, subpriority))
-
     installed_json_f = get_installed_jsonfile(prefix)
 
     pool = api.Pool()
-    pool.set_debuglevel(context.verbosity)
     repos = []
 
     # add installed
@@ -559,10 +535,11 @@ def repoquery(args, parser):
     repos.append(repo)
 
     if not args.installed:
-        for channel_name, cache_file, priority, subpriority in channel_json:
-            repo = api.Repo(pool, channel_name, cache_file)
-            repo.set_priority(priority, subpriority)
+        for subdir, channel in index:
+            repo = api.Repo(pool, str(channel), subdir.cache_path())
+            repo.set_priority(0, 0)
             repos.append(repo)
+
 
     print("\nExecuting the query %s\n" % args.query)
 

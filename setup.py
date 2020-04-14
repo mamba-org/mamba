@@ -3,7 +3,6 @@
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys, os, platform
-import pkgconfig
 import setuptools
 
 here = os.path.dirname(os.path.abspath(__file__))

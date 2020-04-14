@@ -189,7 +189,7 @@ def remove(args, parser):
 
     prefix = context.target_prefix
     check_non_admin()
-    api.Context.set_verbosity(context.verbosity);
+    api.Context.verbosity = context.verbosity;
 
     if args.all and prefix == context.default_prefix:
         raise CondaEnvironmentError("cannot remove current environment. \
@@ -358,7 +358,7 @@ def install(args, parser, command='install'):
     if strict_priority:
         # first, count unique channels
         n_channels = len(set([channel.canonical_name for _, channel in index]))
-        current_channel = index[0].canonical_name
+        current_channel = index[0][1].canonical_name
         channel_prio = n_channels
 
     for subdir, chan in index:

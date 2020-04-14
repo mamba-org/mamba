@@ -1,5 +1,9 @@
 // #include "solver.hpp"
 
+#include "thirdparty/filesystem.hpp"
+
+namespace fs = ghc::filesystem;
+
 #include "util.hpp"
 #include "solver.hpp"
 #include "pool.hpp"

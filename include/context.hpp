@@ -15,6 +15,7 @@ public:
     bool use_index_cache = false;
     std::size_t local_repodata_ttl = 1; // take from header
     bool offline = false;
+    bool quiet = false;
 
     int verbosity = 4;
 

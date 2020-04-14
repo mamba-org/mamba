@@ -2,6 +2,11 @@
 
 #include <stdexcept>
 #include <string_view>
+#include <iostream>
+
+#define OUTPUT(x)                   \
+    if (!Context::instance().quiet) \
+        std::cout << x << "\n";
 
 class mamba_error
     : public std::runtime_error

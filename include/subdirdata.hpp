@@ -21,6 +21,8 @@ extern "C" {
     #include <archive.h>
 }
 
+#define PREFIX_LENGTH 25
+
 void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0)
 {
     const char* sizes[] = { " B", "KB", "MB", "GB", "TB" };
@@ -222,13 +224,13 @@ namespace mamba
         }
 
         // TODO return seconds as double
-        ptrdiff_t check_cache(const fs::path& cache_file)
+        double check_cache(const fs::path& cache_file)
         {
             try {
-                auto last_write = fs::last_write_time(m_json_fn);
+                auto last_write = fs::last_write_time(cache_file);
                 auto cftime = decltype(last_write)::clock::now();
                 auto tdiff = cftime - last_write;
-                auto as_seconds = std::chrono::duration_cast<std::chrono::seconds>(tdiff);
+                auto as_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(tdiff);
                 return as_seconds.count();
             }
             catch(...)
@@ -250,12 +252,11 @@ namespace mamba
 
         bool load(/*Handle& handle*/)
         {
-            ptrdiff_t cache_age = check_cache(m_json_fn);
+            double cache_age = check_cache(m_json_fn);
             nlohmann::json mod_etag_headers;
             if (cache_age != -1)
             {
                 LOG(INFO) << "Found valid cache file.";
-
                 mod_etag_headers = read_mod_and_etag();
                 if (mod_etag_headers.size() != 0) {
 
@@ -274,11 +275,12 @@ namespace mamba
                     {
                         // cache valid!
                         LOG(INFO) << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
+                        OUTPUT(std::left << std::setw(PREFIX_LENGTH) << m_name << "Using cache");
                         m_loaded = true;
                         m_json_cache_valid = true;
 
                         // check solv cache
-                        auto solv_age = check_cache(m_solv_fn);
+                        double solv_age = check_cache(m_solv_fn);
                         if (solv_age != -1 && solv_age <= cache_age)
                         {
                             LOG(INFO) << "Also using .solv cache file";
@@ -304,6 +306,7 @@ namespace mamba
 
         std::string cache_path() const
         {
+            // TODO invalidate solv cache on version updates!!
             if (m_json_cache_valid && m_solv_cache_valid)
             {
                 return m_solv_fn;
@@ -339,19 +342,20 @@ namespace mamba
             if (status == 304)
             {
                 // cache still valid
-                ptrdiff_t cache_age = check_cache(m_json_fn);
-                ptrdiff_t solv_age = check_cache(m_solv_fn);
+                double cache_age = check_cache(m_json_fn);
+                double solv_age = check_cache(m_solv_fn);
 
                 using fs_time_t = decltype(fs::last_write_time(fs::path()));
                 fs::last_write_time(m_json_fn, fs_time_t::clock::now());
-                if(solv_age <= cache_age) {
+
+                if(solv_age != -1 && solv_age <= cache_age) {
                     fs::last_write_time(m_solv_fn, fs_time_t::clock::now());
                     m_solv_cache_valid = true;
                 }
 
-                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"Cache valid"});
+                mp[m_multi_progress_idx].set_option(indicators::option::PostfixText{"No change"});
                 mp[m_multi_progress_idx].set_progress(100);
-                mp[m_multi_progress_idx];
+                mp[m_multi_progress_idx].mark_as_completed();
 
                 m_json_cache_valid = true;
                 m_loaded = true;
@@ -578,7 +582,6 @@ namespace mamba
                 }
             }
 
-            const std::size_t PREFIX_LENGTH = 25;
             if (subdirdata.target() != nullptr)
             {
                 std::string prefix = subdirdata.name();
@@ -645,8 +648,9 @@ namespace mamba
             }
             LOG(INFO) << "Starting to download targets";
 
-            int still_running = 1;
-            while(still_running)
+            int still_running, repeats = 0;
+            const long max_wait_msecs = 400;
+            do
             {
                 CURLMcode code = curl_multi_perform(m_handle, &still_running);                
 
@@ -657,76 +661,34 @@ namespace mamba
 
                 check_msgs();
 
-                struct timeval timeout;
-                int rc; /* select() return code */
-                long curl_timeo = -1;
+                int numfds;
+                code = curl_multi_wait(m_handle, NULL, 0, max_wait_msecs, &numfds);
 
-                fd_set fdread;
-                fd_set fdwrite;
-                fd_set fdexcep;
-                int maxfd;
-                
-                FD_ZERO(&fdread);
-                FD_ZERO(&fdwrite);
-                FD_ZERO(&fdexcep);
-                
-                /* set a suitable timeout to play around with */
-                timeout.tv_sec = 1;
-                timeout.tv_usec = 0;
-
-                curl_multi_timeout(m_handle, &curl_timeo);
-                if(curl_timeo >= 0)
+                if (code != CURLM_OK)
                 {
-                    timeout.tv_sec = curl_timeo / 1000;
-                    if(timeout.tv_sec > 1)
-                    {
-                        timeout.tv_sec = 1;
-                    }
-                    else
-                    {
-                        timeout.tv_usec = (curl_timeo % 1000) * 1000;
-                    }
+                    throw std::runtime_error(curl_multi_strerror(code));
                 }
 
-                CURLMcode mc;
-                /* get file descriptors from the transfers */
-                mc = curl_multi_fdset(m_handle, &fdread, &fdwrite, &fdexcep, &maxfd);
- 
-                if(mc != CURLM_OK) {
-                  throw std::runtime_error("curl_multi_fdset() failed, code" + std::to_string(mc));
-                }
-
-                if(maxfd == -1)
+                if(!numfds)
                 {
-                #ifdef _WIN32
-                    Sleep(100);
-                    rc = 0;
-                #else
-                    /* Portable sleep for platforms other than Windows. */ 
-                    struct timeval wait = { 0, 100 * 1000 }; /* 100ms */ 
-                    rc = select(0, NULL, NULL, NULL, &wait);
-                #endif
+                    repeats++; // count number of repeated zero numfds
+                    if(repeats > 1)
+                    {
+                    // wait 100 ms
+                    #ifdef _WIN32
+                        Sleep(100)
+                    #else
+                        // Portable sleep for platforms other than Windows.
+                        struct timeval wait = { 0, 100 * 1000 };
+                        (void) select(0, NULL, NULL, NULL, &wait);
+                    #endif
+                    }
                 }
                 else
                 {
-                    /* Note that on some platforms 'timeout' may be modified by select().
-                       If you need access to the original value save a copy beforehand. */ 
-                    rc = select(maxfd + 1, &fdread, &fdwrite, &fdexcep, &timeout);
-                }               
-
-                switch (rc)
-                {
-                  case -1:
-                    /* select error */
-                    still_running = 0;
-                    throw std::runtime_error("select() returns error, this is bad");
-                    break;
-                  case 0:
-                  default:
-                    /* timeout or readable/writable sockets */
-                    break;
+                    repeats = 0;
                 }
-            }
+            } while (still_running);
 
             return true;
         }

@@ -25,7 +25,7 @@ def load_channel(subdir_data, result_container):
 
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None,
-              repodata_fn="repodata.json.bz2"):
+              repodata_fn="repodata.json"):
     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
     check_whitelist(real_urls)
 
@@ -35,20 +35,18 @@ def get_index(channel_urls=(), prepend=True, platform=None,
     index = []
     for idx, url in enumerate(real_urls):
         channel = Channel(url)
-        # fsd = FastSubdirData(, idx, repodata_fn)
-        # index.append(fsd)
 
         full_url = channel.url(with_credentials=True) + '/' + repodata_fn
-
-        full_path_cache= os.path.join(
+        full_path_cache = os.path.join(
             create_cache_dir(),
             cache_fn_url(full_url, repodata_fn))
 
         sd = api.SubdirData(channel.name + '/' + channel.subdir,
                             full_url,
                             full_path_cache)
-        index.append((sd, channel))
+
         sd.load()
+        index.append((sd, channel))
         dlist.add(sd)
 
     is_downloaded = dlist.download(True)
@@ -57,29 +55,6 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         raise RuntimeError("Error downloading repodata.")
 
     return index
-
-# def get_index(channel_urls=(), prepend=True, platform=None,
-#               use_local=False, use_cache=False, unknown=None, prefix=None,
-#               repodata_fn="repodata.json"):
-#     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-#     check_whitelist(real_urls)
-#     result = get_env_index(real_urls, repodata_fn)
-#     return result
-
-# def get_env_index(channel_urls, repodata_fn="repodata.json"):
-#     threads = []
-#     result = []
-#     sddata = [FastSubdirData(Channel(x), idx, repodata_fn) for idx, x in enumerate(channel_urls)]
-#     for sd in sddata:
-#         t = threading.Thread(target=load_channel, args=(sd, result))
-#         threads.append(t)
-#         t.start()
-
-#     for t in threads:
-#         t.join()
-
-#     result = sorted(result, key=lambda x: x.channel_idx)
-#     return result
 
 def to_package_record_from_subjson(channel, pkg, jsn_string):
     channel = channel

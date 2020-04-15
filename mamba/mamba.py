@@ -254,7 +254,8 @@ def remove(args, parser):
         success = solver.solve()
         if not success:
             print(solver.problems_to_str())
-            return
+            exit_code = 1
+            return exit_code
 
         transaction = api.Transaction(solver)
         to_link, to_unlink = transaction.to_conda()
@@ -460,8 +461,9 @@ def install(args, parser, command='install'):
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())
-        return
-    
+        exit_code = 1
+        return exit_code
+
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
 
@@ -685,14 +687,16 @@ def main(*args, **kwargs):
         return mamba_env.main()
 
     def exception_converter(*args, **kwargs):
+        exit_code = 0
         try:
-            _wrapped_main(*args, **kwargs)
+            exit_code = _wrapped_main(*args, **kwargs)
         except api.MambaNativeException as e:
             print(e)
         except MambaException as e:
             print(e)
         except Exception as e:
             raise e
+        return exit_code
 
     from conda.exceptions import conda_exception_handler
     return conda_exception_handler(exception_converter, *args, **kwargs)

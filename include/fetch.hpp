@@ -7,9 +7,11 @@ extern "C" {
     #include <stdio.h>
     #include <string.h>
 
-    /* somewhat unix-specific */
+    // unix-specific
+    #ifndef _WIN32
     #include <sys/time.h>
     #include <unistd.h>
+    #endif
 
     #include <curl/curl.h>
     #include <archive.h>
@@ -295,7 +297,7 @@ namespace mamba
                     {
                     // wait 100 ms
                     #ifdef _WIN32
-                        Sleep(100)
+                        Sleep(100);
                     #else
                         // Portable sleep for platforms other than Windows.
                         struct timeval wait = { 0, 100 * 1000 };

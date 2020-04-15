@@ -51,6 +51,10 @@ if sys.platform == 'win32':
     except:
         print("could not find conda prefix")
 
+    CURL_LIB = 'libcurl'
+else:
+    CURL_LIB = 'curl'
+
 ext_modules = [
     Extension(
         'mamba.mamba_api',
@@ -62,7 +66,7 @@ ext_modules = [
             "include/thirdparty/"
         ],
         library_dirs=library_dir,
-        libraries=['solv', 'solvext', 'curl', 'archive'],
+        libraries=['archive', 'solv', 'solvext', CURL_LIB],
         language='c++'
     ),
 ]
@@ -85,7 +89,7 @@ def has_flag(compiler, flagname):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'msvc': ['/EHsc', '/std:c++latest', '/Ox'],
+        'msvc': ['/EHsc', '/std:c++17', '/Ox'],
         'unix': ['-std=c++17', '-O3'],
     }
 

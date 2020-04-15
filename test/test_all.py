@@ -1,6 +1,8 @@
 import subprocess
 import shutil
 import os
+from distutils.version import StrictVersion
+from utils import Environment
 
 
 def get_glibc_version():
@@ -50,7 +52,7 @@ def copy_channels_osx():
                 f.write(repodata)
 
 
-def test_all():
+def test_install():
     add_glibc_virtual_package()
     copy_channels_osx()
 
@@ -63,3 +65,15 @@ def test_all():
 
     channels = channels[::-1]
     run_mamba_conda(channels, package)
+
+
+def test_update():
+    with Environment() as env:
+        version = '1.25.7'
+        env.execute('$MAMBA install -q -y urllib3=' + version)
+        out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
+        assert out == version
+
+        env.execute('$MAMBA update -q -y urllib3')
+        out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
+        assert StrictVersion(out) > StrictVersion(version)

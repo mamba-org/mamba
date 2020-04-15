@@ -158,38 +158,6 @@ public:
     print_progress();
   }
 
-private:
-  template <details::ProgressBarOption id>
-  auto get_value() -> decltype((details::get_value<id>(std::declval<Settings &>()).value)) {
-    return details::get_value<id>(settings_).value;
-  }
-
-  template <details::ProgressBarOption id>
-  auto get_value() const
-      -> decltype((details::get_value<id>(std::declval<const Settings &>()).value)) {
-    return details::get_value<id>(settings_).value;
-  }
-
-  size_t progress_{0};
-  Settings settings_;
-  std::chrono::nanoseconds elapsed_;
-  std::chrono::time_point<std::chrono::high_resolution_clock> start_time_point_;
-  std::mutex mutex_;
-
-  template <typename Indicator, size_t count> friend class MultiProgress;
-  template <typename Indicator> friend class DynamicProgress;
-  std::atomic<bool> multi_progress_mode_{false};
-
-  void save_start_time() {
-    auto &show_elapsed_time = get_value<details::ProgressBarOption::show_elapsed_time>();
-    auto &saved_start_time = get_value<details::ProgressBarOption::saved_start_time>();
-    auto &show_remaining_time = get_value<details::ProgressBarOption::show_remaining_time>();
-    if ((show_elapsed_time || show_remaining_time) && !saved_start_time) {
-      start_time_point_ = std::chrono::high_resolution_clock::now();
-      saved_start_time = true;
-    }
-  }
-
   void print_progress(bool from_multi_progress = false) {
     std::lock_guard<std::mutex> lock{mutex_};
     if (multi_progress_mode_ && !from_multi_progress) {
@@ -200,7 +168,12 @@ private:
     }
     auto now = std::chrono::high_resolution_clock::now();
     if (!get_value<details::ProgressBarOption::completed>())
-      elapsed_ = std::chrono::duration_cast<std::chrono::nanoseconds>(now - start_time_point_);
+    {
+      if (get_value<details::ProgressBarOption::saved_start_time>())
+        elapsed_ = std::chrono::duration_cast<std::chrono::nanoseconds>(now - start_time_point_);
+      else
+        elapsed_ = std::chrono::nanoseconds(0);
+    }
 
     // std::cout << termcolor::bold;
     if (get_value<details::ProgressBarOption::foreground_color>() != Color::unspecified)
@@ -259,6 +232,39 @@ private:
     if (get_value<details::ProgressBarOption::completed>() &&
         !from_multi_progress) // Don't std::endl if calling from MultiProgress
       std::cout << termcolor::reset << std::endl;
+  }
+
+  std::atomic<bool> multi_progress_mode_{false};
+
+private:
+  template <details::ProgressBarOption id>
+  auto get_value() -> decltype((details::get_value<id>(std::declval<Settings &>()).value)) {
+    return details::get_value<id>(settings_).value;
+  }
+
+  template <details::ProgressBarOption id>
+  auto get_value() const
+      -> decltype((details::get_value<id>(std::declval<const Settings &>()).value)) {
+    return details::get_value<id>(settings_).value;
+  }
+
+  size_t progress_{0};
+  Settings settings_;
+  std::chrono::nanoseconds elapsed_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start_time_point_;
+  std::mutex mutex_;
+
+  template <typename Indicator, size_t count> friend class MultiProgress;
+  template <typename Indicator> friend class DynamicProgress;
+
+  void save_start_time() {
+    auto &show_elapsed_time = get_value<details::ProgressBarOption::show_elapsed_time>();
+    auto &saved_start_time = get_value<details::ProgressBarOption::saved_start_time>();
+    auto &show_remaining_time = get_value<details::ProgressBarOption::show_remaining_time>();
+    if ((show_elapsed_time || show_remaining_time) && !saved_start_time) {
+      start_time_point_ = std::chrono::high_resolution_clock::now();
+      saved_start_time = true;
+    }
   }
 };
 

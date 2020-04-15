@@ -1,5 +1,3 @@
-// #include "solver.hpp"
-
 #include "thirdparty/filesystem.hpp"
 
 namespace fs = ghc::filesystem;
@@ -68,7 +66,9 @@ PYBIND11_MODULE(mamba_api, m) {
 
     py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
         .def(py::init<>())
-        .def("add", &MultiDownloadTarget::add)
+        .def("add", [](MultiDownloadTarget& self, MSubdirData& sub) -> void {
+            self.add(sub.target());
+        })
         .def("download", &MultiDownloadTarget::download)
     ;
 

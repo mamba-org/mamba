@@ -72,6 +72,7 @@ namespace mamba
         {
             std::string prefix = name;
             prefix.resize(PREFIX_LENGTH - 1, ' ');
+            prefix += ' ';
 
             m_progress_bars.push_back(std::make_unique<indicators::ProgressBar>(
                 indicators::option::BarWidth{15},
@@ -93,6 +94,7 @@ namespace mamba
 
         void print_progress()
         {
+            if (Context::instance().quiet) return;
             auto count_up = m_progress_bars.size();
             if (m_progress_started)
             {

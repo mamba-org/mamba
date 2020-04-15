@@ -79,6 +79,14 @@ banner = """
 █████████████████████████████████████████████████████████████
 """
 
+def init_api_context():
+    api_ctx = api.Context()
+    api_ctx.set_verbosity(context.verbosity);
+    api_ctx.quiet = context.quiet;
+    api_ctx.offline = context.offline;
+    api_ctx.local_repodata_ttl = context.local_repodata_ttl;
+    api_ctx.use_index_cache = context.use_index_cache;
+
 class MambaException(Exception):
     pass
 
@@ -189,7 +197,7 @@ def remove(args, parser):
 
     prefix = context.target_prefix
     check_non_admin()
-    api.Context().set_verbosity(context.verbosity);
+    init_api_context()
 
     if args.all and prefix == context.default_prefix:
         raise CondaEnvironmentError("cannot remove current environment. \
@@ -269,7 +277,7 @@ def install(args, parser, command='install'):
     context.validate_configuration()
     check_non_admin()
 
-    api.Context().set_verbosity(context.verbosity);
+    init_api_context()
 
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')
@@ -509,7 +517,7 @@ def repoquery(args, parser):
     prepend = not args.override_channels
     prefix = context.target_prefix
 
-    api.Context().set_verbosity(context.verbosity);
+    init_api_context()
 
     index_args = {
         'use_cache': args.use_index_cache,

@@ -1,6 +1,5 @@
-#include "thirdparty/filesystem.hpp"
-
-namespace fs = ghc::filesystem;
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "util.hpp"
 #include "solver.hpp"
@@ -10,9 +9,6 @@ namespace fs = ghc::filesystem;
 #include "query.hpp"
 #include "subdirdata.hpp"
 #include "context.hpp"
-
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 
 namespace py = pybind11;
 
@@ -77,6 +73,10 @@ PYBIND11_MODULE(mamba_api, m) {
             return std::unique_ptr<Context, py::nodelete>(&Context::instance());
         }))
         .def_readwrite("verbosity", &Context::verbosity)
+        .def_readwrite("quiet", &Context::quiet)
+        .def_readwrite("offline", &Context::offline)
+        .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
+        .def_readwrite("use_index_cache", &Context::use_index_cache)
         .def("set_verbosity", &Context::set_verbosity)
     ;
 

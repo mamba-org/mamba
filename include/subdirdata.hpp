@@ -129,7 +129,7 @@ namespace mamba
                         LOG(INFO) << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
                         std::string prefix = m_name;
                         prefix.resize(PREFIX_LENGTH - 1, ' ');
-                        Output::print() << prefix << "Using cache\n";
+                        Output::print() << prefix << " Using cache\n";
 
                         m_loaded = true;
                         m_json_cache_valid = true;
@@ -154,7 +154,10 @@ namespace mamba
             else
             {
                 LOG(INFO) << "No cache found " << m_url;
-                create_target(mod_etag_headers);
+                if (!Context::instance().offline)
+                {
+                    create_target(mod_etag_headers);
+                }
             }
             return true;
         }

@@ -24,7 +24,7 @@ PYBIND11_MODULE(mamba_api, m) {
     ;
 
     py::class_<MRepo>(m, "Repo")
-        .def(py::init<MPool&, const std::string&, const std::string&>())
+        .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)
@@ -36,6 +36,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MSolver&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("print", &MTransaction::print)
+        .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
     ;
 
     py::class_<MSolver>(m, "Solver")
@@ -78,6 +79,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
+        .def_readwrite("max_parallel_downloads", &Context::max_parallel_downloads)
         .def("set_verbosity", &Context::set_verbosity)
     ;
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <string>
 
@@ -6,6 +8,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+#define PREFIX_LENGTH 25
 
 namespace mamba
 {

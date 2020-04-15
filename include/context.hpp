@@ -18,6 +18,7 @@ public:
     bool quiet = false;
     bool json = false;
 
+    long max_parallel_downloads = 5;
     int verbosity = 4;
 
     void set_verbosity(int lvl)

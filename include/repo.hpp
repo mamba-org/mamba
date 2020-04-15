@@ -17,7 +17,9 @@ namespace mamba
     class MRepo
     {
     public:
-        MRepo(MPool& pool, const std::string& name, const std::string& filename)
+        MRepo(MPool& pool, const std::string& name,
+              const std::string& filename, const std::string& url)
+            : m_url(url)
         {
             m_repo = repo_create(pool, name.c_str());
             // pool.add_repo(this);
@@ -48,6 +50,16 @@ namespace mamba
         const char* name()
         {
             return m_repo->name;
+        }
+
+        const std::string& url()
+        {
+            return m_url;
+        }
+
+        Repo* repo()
+        {
+            return m_repo;
         }
 
         std::tuple<int, int> priority() const
@@ -113,6 +125,8 @@ namespace mamba
         }
 
         std::string m_json_file, m_solv_file;
+        std::string m_url;
+
         Repo* m_repo;
     };
 }

@@ -25,6 +25,7 @@ from conda.cli.install import handle_txn, check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.core.envs_manager import unregister_env
+from conda.core.package_cache_data import PackageCacheData
 
 # create support
 from conda.common.path import paths_equal
@@ -254,7 +255,7 @@ def remove(args, parser):
         repos = []
 
         # add installed
-        repo = api.Repo(pool, "installed", installed_json_f.name)
+        repo = api.Repo(pool, "installed", installed_json_f.name, "")
         repo.set_installed()
         repos.append(repo)
 
@@ -385,7 +386,7 @@ def install(args, parser, command='install'):
 
         if context.verbosity != 0:
             print("Cache path: ", subdir.cache_path())
-        channel_json.append((str(chan), subdir.cache_path(), priority, subpriority))
+        channel_json.append((chan, subdir.cache_path(), priority, subpriority))
 
     installed_json_f = get_installed_jsonfile(prefix)
 
@@ -458,12 +459,12 @@ def install(args, parser, command='install'):
     repos = []
 
     # add installed
-    repo = api.Repo(pool, "installed", installed_json_f.name)
+    repo = api.Repo(pool, "installed", installed_json_f.name, "")
     repo.set_installed()
     repos.append(repo)
 
-    for channel_name, cache_file, priority, subpriority in channel_json:
-        repo = api.Repo(pool, channel_name, cache_file)
+    for channel, cache_file, priority, subpriority in channel_json:
+        repo = api.Repo(pool, str(channel), cache_file, channel.url(with_credentials=True))
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
@@ -478,7 +479,11 @@ def install(args, parser, command='install'):
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
 
+    transaction.fetch_extract_packages(PackageCacheData.first_writable().pkgs_dir, repos)
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
+    # import IPython; IPython.embed()
+    # print(conda_transaction)
+
     handle_txn(conda_transaction, prefix, args, newenv)
 
     try:

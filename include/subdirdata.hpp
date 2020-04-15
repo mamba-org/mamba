@@ -192,6 +192,11 @@ namespace mamba
         int finalize_transfer()
         {
             LOG(WARNING) << "HTTP response code: " << m_target->http_status;
+            if (m_target->http_status == 200 || m_target->http_status == 304)
+            {
+                m_download_complete = true;
+            }
+
             if (m_target->http_status == 304)
             {
                 // cache still valid
@@ -278,50 +283,13 @@ namespace mamba
             return json_temp_name;
         }
 
-        static int progress_callback(void *self, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
-        {
-            auto* s = (MSubdirData*)self;
-            if (Context::instance().quiet || Context::instance().json)
-            {
-                return 0;
-            }
-
-            if (!s->m_download_complete && total_to_download != 0)
-            {
-                double perc = double(now_downloaded) / double(total_to_download);
-                std::stringstream postfix;
-                to_human_readable_filesize(postfix, now_downloaded);
-                postfix << " / ";
-                to_human_readable_filesize(postfix, total_to_download);
-                postfix << " (";
-                to_human_readable_filesize(postfix, s->target()->get_speed(), 2);
-                postfix << "/s)";
-                s->m_progress_bar.set_option(indicators::option::PostfixText{postfix.str()});
-                s->m_progress_bar.set_progress(perc * 100.);
-                if (std::ceil(perc * 100.) >= 100)
-                {
-                    s->m_progress_bar.mark_as_completed();
-                    s->m_download_complete = true;
-                }
-            }
-            if (total_to_download == 0 && now_downloaded != 0)
-            {
-                std::stringstream postfix;
-                to_human_readable_filesize(postfix, now_downloaded);
-                postfix << " / ?? (";
-                to_human_readable_filesize(postfix, s->target()->get_speed(), 2);
-                postfix << "/s)";
-                s->m_progress_bar.set_option(indicators::option::PostfixText{postfix.str()});
-            }
-            return 0;
-        }
-
         void create_target(nlohmann::json& mod_etag)
         {
             m_temp_name = std::tmpnam(nullptr);
             m_progress_bar = Output::instance().add_progress_bar(m_name);
+            // m_target->set_progress_callback(&MSubdirData::progress_callback, this);
             m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_name);
-            m_target->set_progress_callback(&MSubdirData::progress_callback, this);
+            m_target->set_progress_bar(&m_progress_bar);
             m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
             m_target->set_mod_etag_headers(mod_etag);
         }

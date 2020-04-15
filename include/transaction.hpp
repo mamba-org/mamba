@@ -4,7 +4,12 @@
 #include "nlohmann/json.hpp"
 
 #include "thirdparty/minilog.hpp"
+#include "thirdparty/filesystem.hpp"
 
+#include "repo.hpp"
+#include "fetch.hpp"
+
+namespace fs = ghc::filesystem;
 
 namespace mamba
 {
@@ -159,6 +164,49 @@ namespace mamba
             }
 
             return std::make_tuple(to_install_structured, to_remove_structured);
+        }
+
+        auto fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)
+        {
+            fs::path cache_path(cache_dir);
+            std::vector<std::unique_ptr<DownloadTarget>> targets;
+            MultiDownloadTarget multi_dl;
+
+            Output::instance().init_multi_progress();
+
+            for (auto& s : m_to_install)
+            {
+                std::string filename = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                if (!fs::exists(cache_path / filename))
+                {
+                    // need to download this file
+                    auto* pool = s->repo->pool;
+                    std::string url;
+                    for (auto& r : repos)
+                    {
+                        if (r->repo() == s->repo)
+                        {
+                            url = r->url();
+                        }
+                    }
+                    if (!url.size()) 
+                    {
+                        throw std::runtime_error("Repo not associated.");
+                    }
+
+                    url += "/" + filename;
+                    auto* name = pool_id2str(pool, s->name);
+
+                    LOG(INFO) << "Adding " << name << " with " << url;
+
+                    auto progress_proxy = Output::instance().add_progress_bar(name);
+                    auto target = std::make_unique<DownloadTarget>(name, url, cache_path / filename);
+                    target->set_progress_bar(&progress_proxy);
+                    multi_dl.add(target);
+                    targets.push_back(std::move(target));
+                }
+            }
+            multi_dl.download(true);
         }
 
         void print()

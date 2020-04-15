@@ -3,6 +3,10 @@
 
 #include "context.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace mamba
 {
     class NullBuffer : public std::streambuf
@@ -95,10 +99,9 @@ namespace mamba
         void print_progress()
         {
             if (Context::instance().quiet) return;
-            auto count_up = m_progress_bars.size();
             if (m_progress_started)
             {
-                std::cout << "\x1b[" << count_up << "A";
+                std::cout << "\x1b[" << m_progress_bars.size() << "A";
             }
             for (auto& bar : m_progress_bars)
             {
@@ -117,7 +120,13 @@ namespace mamba
         NullStream null_stream;
 
     private:
-        Output() {}
+        Output() {
+        #ifdef _WIN32
+            // initialize ANSI codes on Win terminals
+            auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+            SetConsoleMode(hStdout, ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        #endif
+        }
 
         std::vector<std::unique_ptr<indicators::ProgressBar>> m_progress_bars;
         bool m_progress_started = false;

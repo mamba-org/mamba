@@ -41,7 +41,6 @@ SOFTWARE.
 #include <thread>
 #include <tuple>
 #include <type_traits>
-#include <sys/ioctl.h>
 
 namespace indicators {
 
@@ -148,7 +147,7 @@ public:
 
   size_t current() {
     std::lock_guard<std::mutex> lock{mutex_};
-    return std::min(progress_, size_t(100));
+    return (std::min)(progress_, size_t(100));
   }
 
   bool is_completed() const { return get_value<details::ProgressBarOption::completed>(); }
@@ -192,7 +191,7 @@ public:
     std::cout << get_value<details::ProgressBarOption::end>();
 
     if (get_value<details::ProgressBarOption::show_percentage>()) {
-      std::cout << " " << std::min(progress_, size_t(100)) << "%";
+      std::cout << " " << (std::min)(progress_, size_t(100)) << "%";
     }
 
     if (get_value<details::ProgressBarOption::show_elapsed_time>()) {

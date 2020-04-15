@@ -95,9 +95,11 @@
 #ifdef ANDROID
 #  include <android/log.h>
 #else
-#include <pthread.h>
-#include <sys/time.h>
-#include <unistd.h>
+  #ifndef _WIN32
+    #include <pthread.h>
+    #include <sys/time.h>
+    #include <unistd.h>
+  #endif
 #endif  // ANDROID
 
 #include <algorithm>

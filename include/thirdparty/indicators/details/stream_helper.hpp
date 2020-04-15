@@ -76,7 +76,7 @@ public:
   std::ostream &write(float progress) {
     std::string fill_text{"█"};
     std::vector<std::string> lead_characters{" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"};
-    auto value = std::min(1.0f, std::max(0.0f, progress / 100.0f));
+    auto value = (std::min)(1.0f, (std::max)(0.0f, progress / 100.0f));
     auto whole_width = std::floor(value * bar_width);
     auto remainder_width = fmod((value * bar_width), 1.0f);
     auto part_width = std::floor(remainder_width * lead_characters.size());

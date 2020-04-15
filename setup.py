@@ -58,10 +58,11 @@ ext_modules = [
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
-            os.path.join(libsolv_prefix, 'include')
+            os.path.join(libsolv_prefix, 'include'),
+            "include/thirdparty/"
         ],
         library_dirs=library_dir,
-        libraries=['solv', 'solvext'],
+        libraries=['solv', 'solvext', 'curl', 'archive'],
         language='c++'
     ),
 ]

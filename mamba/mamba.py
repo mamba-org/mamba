@@ -79,6 +79,14 @@ banner = """
 █████████████████████████████████████████████████████████████
 """
 
+def init_api_context():
+    api_ctx = api.Context()
+    api_ctx.set_verbosity(context.verbosity);
+    api_ctx.quiet = context.quiet;
+    api_ctx.offline = context.offline;
+    api_ctx.local_repodata_ttl = context.local_repodata_ttl;
+    api_ctx.use_index_cache = context.use_index_cache;
+
 class MambaException(Exception):
     pass
 
@@ -134,9 +142,9 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
     final_precs = IndexedSet(prefix_data.iter_records())
 
     def get_channel(c):
-        for x in index:
-            if str(x.channel) == c:
-                return x
+        for _, chan in index:
+            if str(chan) == c:
+                return chan
 
     for c, pkg in to_unlink:
         for i_rec in installed_pkg_recs:
@@ -189,6 +197,7 @@ def remove(args, parser):
 
     prefix = context.target_prefix
     check_non_admin()
+    init_api_context()
 
     if args.all and prefix == context.default_prefix:
         raise CondaEnvironmentError("cannot remove current environment. \
@@ -241,7 +250,6 @@ def remove(args, parser):
         solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
 
         pool = api.Pool()
-        pool.set_debuglevel(context.verbosity)
         repos = []
 
         # add installed
@@ -269,6 +277,8 @@ def install(args, parser, command='install'):
     """
     context.validate_configuration()
     check_non_admin()
+
+    init_api_context()
 
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')
@@ -356,25 +366,25 @@ def install(args, parser, command='install'):
 
     if strict_priority:
         # first, count unique channels
-        n_channels = len(set([x.channel.canonical_name for x in index]))
-        current_channel = index[0].channel.canonical_name
+        n_channels = len(set([channel.canonical_name for _, channel in index]))
+        current_channel = index[0][1].canonical_name
         channel_prio = n_channels
 
-    for x in index:
+    for subdir, chan in index:
         # add priority here
-        x.channel_idx
         if strict_priority:
-            if x.channel.canonical_name != current_channel:
+            if chan.canonical_name != current_channel:
                 channel_prio -= 1
-                current_channel = x.channel.canonical_name
+                current_channel = chan.canonical_name
             priority = channel_prio
         else:
             priority = 0
 
-        subpriority = 0 if x.channel.platform == 'noarch' else 1
-        cache_file = x.get_loaded_file_path()
+        subpriority = 0 if chan.platform == 'noarch' else 1
 
-        channel_json.append((str(x.channel), cache_file, priority, subpriority))
+        if context.verbosity != 0:
+            print("Cache path: ", subdir.cache_path())
+        channel_json.append((str(chan), subdir.cache_path(), priority, subpriority))
 
     installed_json_f = get_installed_jsonfile(prefix)
 
@@ -443,7 +453,7 @@ def install(args, parser, command='install'):
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     pool = api.Pool()
-    pool.set_debuglevel(context.verbosity)
+
     repos = []
 
     # add installed
@@ -509,6 +519,8 @@ def repoquery(args, parser):
     prepend = not args.override_channels
     prefix = context.target_prefix
 
+    init_api_context()
+
     index_args = {
         'use_cache': args.use_index_cache,
         'channel_urls': context.channels,
@@ -522,35 +534,9 @@ def repoquery(args, parser):
                   use_local=index_args['use_local'], use_cache=index_args['use_cache'],
                   unknown=index_args['unknown'], prefix=prefix)
 
-    channel_json = []
-    strict_priority = (context.channel_priority == ChannelPriority.STRICT)
-
-    if strict_priority:
-        # first, count unique channels
-        n_channels = len(set([x.channel.canonical_name for x in index]))
-        current_channel = index[0].channel.canonical_name
-        channel_prio = n_channels
-
-    for x in index:
-        # add priority here
-        x.channel_idx
-        if strict_priority:
-            if x.channel.canonical_name != current_channel:
-                channel_prio -= 1
-                current_channel = x.channel.canonical_name
-            priority = channel_prio
-        else:
-            priority = 0
-
-        subpriority = 0 if x.channel.platform == 'noarch' else 1
-        cache_file = x.get_loaded_file_path()
-
-        channel_json.append((str(x.channel), cache_file, priority, subpriority))
-
     installed_json_f = get_installed_jsonfile(prefix)
 
     pool = api.Pool()
-    pool.set_debuglevel(context.verbosity)
     repos = []
 
     # add installed
@@ -559,10 +545,11 @@ def repoquery(args, parser):
     repos.append(repo)
 
     if not args.installed:
-        for channel_name, cache_file, priority, subpriority in channel_json:
-            repo = api.Repo(pool, channel_name, cache_file)
-            repo.set_priority(priority, subpriority)
+        for subdir, channel in index:
+            repo = api.Repo(pool, str(channel), subdir.cache_path())
+            repo.set_priority(0, 0)
             repos.append(repo)
+
 
     print("\nExecuting the query %s\n" % args.query)
 

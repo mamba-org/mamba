@@ -1,4 +1,5 @@
-// #include "solver.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "util.hpp"
 #include "solver.hpp"
@@ -6,9 +7,8 @@
 #include "transaction.hpp"
 #include "repo.hpp"
 #include "query.hpp"
-
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "subdirdata.hpp"
+#include "context.hpp"
 
 namespace py = pybind11;
 
@@ -51,6 +51,33 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MPool&>())
         .def("find", &Query::find)
         .def("whatrequires", &Query::whatrequires)
+    ;
+
+    py::class_<MSubdirData>(m, "SubdirData")
+        .def(py::init<const std::string&, const std::string&, const std::string&>())
+        .def("load", &MSubdirData::load)
+        .def("loaded", &MSubdirData::loaded)
+        .def("cache_path", &MSubdirData::cache_path)
+    ;
+
+    py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
+        .def(py::init<>())
+        .def("add", [](MultiDownloadTarget& self, MSubdirData& sub) -> void {
+            self.add(sub.target());
+        })
+        .def("download", &MultiDownloadTarget::download)
+    ;
+
+    py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
+        .def(py::init([]() {
+            return std::unique_ptr<Context, py::nodelete>(&Context::instance());
+        }))
+        .def_readwrite("verbosity", &Context::verbosity)
+        .def_readwrite("quiet", &Context::quiet)
+        .def_readwrite("offline", &Context::offline)
+        .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
+        .def_readwrite("use_index_cache", &Context::use_index_cache)
+        .def("set_verbosity", &Context::set_verbosity)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

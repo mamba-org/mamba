@@ -21,6 +21,9 @@ public:
     long max_parallel_downloads = 5;
     int verbosity = 4;
 
+    bool on_ci = false;
+    bool no_progress_bars = false;
+
     void set_verbosity(int lvl)
     {
         if (lvl == 0)
@@ -56,5 +59,10 @@ public:
 private:
     Context() {
         set_verbosity(0);
+        on_ci = (std::getenv("CI") != nullptr);
+        if (on_ci)
+        {
+            no_progress_bars = true;
+        }
     }
 };

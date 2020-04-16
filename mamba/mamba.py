@@ -546,13 +546,13 @@ def repoquery(args, parser):
     repos = []
 
     # add installed
-    repo = api.Repo(pool, "installed", installed_json_f.name)
+    repo = api.Repo(pool, "installed", installed_json_f.name, "")
     repo.set_installed()
     repos.append(repo)
 
     if not args.installed:
         for subdir, channel in index:
-            repo = api.Repo(pool, str(channel), subdir.cache_path())
+            repo = api.Repo(pool, str(channel), subdir.cache_path(), channel.url(with_credentials=True))
             repo.set_priority(0, 0)
             repos.append(repo)
 

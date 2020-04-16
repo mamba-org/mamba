@@ -43,8 +43,21 @@ namespace mamba
                 return 0;
             }
 
-            // if (!s->m_download_complete && total_to_download != 0)
-            if (total_to_download != 0)
+            auto now = std::chrono::steady_clock::now();
+            if (now - m_progress_throttle_time < std::chrono::milliseconds(150))
+            {
+                return 0;
+            }
+            m_progress_throttle_time = now;
+
+
+            if (total_to_download != 0 && now_downloaded == 0 && m_expected_size != 0)
+            {
+                now_downloaded = total_to_download;
+                total_to_download = m_expected_size;
+            }
+
+            if ((total_to_download != 0 || m_expected_size != 0) && now_downloaded != 0)
             {
                 double perc = double(now_downloaded) / double(total_to_download);
                 std::stringstream postfix;
@@ -54,21 +67,18 @@ namespace mamba
                 postfix << " (";
                 to_human_readable_filesize(postfix, get_speed(), 2);
                 postfix << "/s)";
-                p_progress_bar->set_option(indicators::option::PostfixText{postfix.str()});
-                p_progress_bar->set_progress(perc * 100.);
-                if (std::ceil(perc * 100.) >= 100)
-                {
-                    p_progress_bar->mark_as_completed();
-                }
+                m_progress_bar.set_progress(perc * 100.);
+                m_progress_bar.set_option(indicators::option::PostfixText{postfix.str()});
             }
-            if (total_to_download == 0 && now_downloaded != 0)
+            if (now_downloaded == 0 && total_to_download != 0)
             {
                 std::stringstream postfix;
-                to_human_readable_filesize(postfix, now_downloaded);
+                to_human_readable_filesize(postfix, total_to_download);
                 postfix << " / ?? (";
                 to_human_readable_filesize(postfix, get_speed(), 2);
                 postfix << "/s)";
-                p_progress_bar->set_option(indicators::option::PostfixText{postfix.str()});
+                m_progress_bar.set_progress(0);
+                m_progress_bar.set_option(indicators::option::PostfixText{postfix.str()});
             }
             return 0;
         }
@@ -114,20 +124,19 @@ namespace mamba
             }
         }
 
-        // void set_progress_callback(int (*cb)(void*, curl_off_t, curl_off_t, curl_off_t, curl_off_t), void* data)
-        // {
-        //     curl_easy_setopt(m_target, CURLOPT_XFERINFOFUNCTION, cb);
-        //     curl_easy_setopt(m_target, CURLOPT_XFERINFODATA, data);
-        //     curl_easy_setopt(m_target, CURLOPT_NOPROGRESS, 0L);
-        // }
-
-        void set_progress_bar(Output::ProgressProxy* progress_proxy)
+        void set_progress_bar(Output::ProgressProxy progress_proxy)
         {
             using namespace std::placeholders;
-            p_progress_bar = progress_proxy;
+            m_has_progress_bar = true;
+            m_progress_bar = progress_proxy;
             curl_easy_setopt(m_target, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
             curl_easy_setopt(m_target, CURLOPT_XFERINFODATA, this);
             curl_easy_setopt(m_target, CURLOPT_NOPROGRESS, 0L);
+        }
+
+        void set_expected_size(std::size_t size)
+        {
+            m_expected_size = size;
         }
 
         static size_t header_callback(char *buffer, size_t size, size_t nitems, void *self)
@@ -220,6 +229,13 @@ namespace mamba
             {
                 return m_finalize_callback();
             }
+            else
+            {
+                if (m_has_progress_bar)
+                {
+                    m_progress_bar.mark_as_completed("Downloaded " + m_name);
+                }
+            }
             return true;
         }
 
@@ -237,10 +253,14 @@ namespace mamba
     private:
         std::function<int()> m_finalize_callback;
         std::string m_name;
+        std::size_t m_expected_size = 0;
+        std::chrono::steady_clock::time_point m_progress_throttle_time;
+
         CURL* m_target;
         curl_slist* m_headers;
 
-        Output::ProgressProxy* p_progress_bar;
+        bool m_has_progress_bar = false;
+        Output::ProgressProxy m_progress_bar;
 
         std::ofstream m_file;
     };
@@ -251,7 +271,8 @@ namespace mamba
         MultiDownloadTarget()
         {
             m_handle = curl_multi_init();
-            curl_multi_setopt(m_handle, CURLMOPT_MAXCONNECTS, Context::instance().max_parallel_downloads);
+            curl_multi_setopt(m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS,
+                              Context::instance().max_parallel_downloads);
         }
 
         ~MultiDownloadTarget()
@@ -270,8 +291,6 @@ namespace mamba
                     throw std::runtime_error(curl_multi_strerror(code));
                 }
             }
-
-            // subdirdata.set_progress_bar(idx, &m_multi_progress);
             m_targets.push_back(target.get());
         }
 

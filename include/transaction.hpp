@@ -195,13 +195,14 @@ namespace mamba
                     }
 
                     url += "/" + filename;
-                    auto* name = pool_id2str(pool, s->name);
+                    std::string name = pool_id2str(pool, s->name);
 
                     LOG(INFO) << "Adding " << name << " with " << url;
 
                     auto progress_proxy = Output::instance().add_progress_bar(name);
                     auto target = std::make_unique<DownloadTarget>(name, url, cache_path / filename);
-                    target->set_progress_bar(&progress_proxy);
+                    target->set_expected_size(solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, 0));
+                    target->set_progress_bar(progress_proxy);
                     multi_dl.add(target);
                     targets.push_back(std::move(target));
                 }

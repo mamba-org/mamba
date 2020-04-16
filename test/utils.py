@@ -1,4 +1,6 @@
 import subprocess
+import shutil
+import os
 import uuid
 
 
@@ -27,11 +29,11 @@ class Shell:
         self.process.stdin.write(self.echo_sentinel)
         self.process.stdin.flush()
 
-        out = ''
+        out = []
         for line in get_lines(self.process.stdout):
             if not self.sentinel in line:
                 print(line, end='')
-                out = line[:-1]
+                out.append(line[:-1])
             else:
                 break
 
@@ -59,3 +61,50 @@ class Environment:
         self.shell.execute('conda deactivate')
         self.shell.execute(f'conda remove -q -y --name {self.name} --all')
         self.shell.exit()
+
+
+def get_glibc_version():
+    try:
+        output = subprocess.check_output(['ldd', '--version'])
+    except:
+        return
+    output.splitlines()
+    version = output.splitlines()[0].split()[-1]
+    return version.decode('ascii')
+
+
+def run(exe, channels, package):
+    cmd = [exe, 'create', '-n', 'xxx', '--override-channels', '--strict-channel-priority', '--dry-run']
+    for channel in channels:
+        cmd += ['-c', channel]
+    cmd.append(package)
+    subprocess.run(cmd, check=True)
+
+
+def run_mamba_conda(channels, package):
+    run('conda', channels, package)
+    run('mamba', channels, package)
+
+
+def add_glibc_virtual_package():
+    version = get_glibc_version()
+    with open('test/channel_a/linux-64/repodata.tpl') as f:
+        repodata = f.read()
+    with open('test/channel_a/linux-64/repodata.json', 'w') as f:
+        if version is not None:
+            glibc_placeholder = ', "__glibc=' + version + '"'
+        else:
+            glibc_placeholder = ''
+        repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
+        f.write(repodata)
+
+
+def copy_channels_osx():
+    for channel in ['a', 'b']:
+        if not os.path.exists(f'test/channel_{channel}/osx-64'):
+            shutil.copytree(f'test/channel_{channel}/linux-64', f'test/channel_{channel}/osx-64')
+            with open(f'test/channel_{channel}/osx-64/repodata.json') as f:
+                repodata = f.read()
+            with open(f'test/channel_{channel}/osx-64/repodata.json', 'w') as f:
+                repodata = repodata.replace('linux', 'osx')
+                f.write(repodata)

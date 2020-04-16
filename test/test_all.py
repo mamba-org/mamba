@@ -1,55 +1,5 @@
-import subprocess
-import shutil
-import os
 from distutils.version import StrictVersion
-from utils import Environment
-
-
-def get_glibc_version():
-    try:
-        output = subprocess.check_output(['ldd', '--version'])
-    except:
-        return
-    output.splitlines()
-    version = output.splitlines()[0].split()[-1]
-    return version.decode('ascii')
-
-
-def run(exe, channels, package):
-    cmd = [exe, 'create', '-n', 'xxx', '--override-channels', '--strict-channel-priority', '--dry-run']
-    for channel in channels:
-        cmd += ['-c', channel]
-    cmd.append(package)
-    subprocess.run(cmd, check=True)
-
-
-def run_mamba_conda(channels, package):
-    run('conda', channels, package)
-    run('mamba', channels, package)
-
-
-def add_glibc_virtual_package():
-    version = get_glibc_version()
-    with open('test/channel_a/linux-64/repodata.tpl') as f:
-        repodata = f.read()
-    with open('test/channel_a/linux-64/repodata.json', 'w') as f:
-        if version is not None:
-            glibc_placeholder = ', "__glibc=' + version + '"'
-        else:
-            glibc_placeholder = ''
-        repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
-        f.write(repodata)
-
-
-def copy_channels_osx():
-    for channel in ['a', 'b']:
-        if not os.path.exists(f'test/channel_{channel}/osx-64'):
-            shutil.copytree(f'test/channel_{channel}/linux-64', f'test/channel_{channel}/osx-64')
-            with open(f'test/channel_{channel}/osx-64/repodata.json') as f:
-                repodata = f.read()
-            with open(f'test/channel_{channel}/osx-64/repodata.json', 'w') as f:
-                repodata = repodata.replace('linux', 'osx')
-                f.write(repodata)
+from utils import Environment, add_glibc_virtual_package, copy_channels_osx, run_mamba_conda
 
 
 def test_install():
@@ -68,12 +18,33 @@ def test_install():
 
 
 def test_update():
+    # check updating a package when a newer version
     with Environment() as env:
+        # first install an older version
         version = '1.25.7'
-        env.execute('$MAMBA install -q -y urllib3=' + version)
+        env.execute(f'$MAMBA install -q -y urllib3={version}')
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
-        assert out == version
+        # check that the installed version is the old one
+        assert out[-1] == version
 
+        # then update package
         env.execute('$MAMBA update -q -y urllib3')
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
-        assert StrictVersion(out) > StrictVersion(version)
+        # check that the installed version is newer
+        assert StrictVersion(out[-1]) > StrictVersion(version)
+
+
+def test_track_features():
+    with Environment() as env:
+        # should install CPython since PyPy has track features
+        version = '3.6.9'
+        env.execute(f'$MAMBA install -q -y python={version}')
+        out = env.execute('python -c "import sys; print(sys.version)"')
+        assert out[-2].startswith(version)
+        assert out[-1].startswith('[GCC')
+
+        # now force PyPy install
+        env.execute(f'$MAMBA install -q -y python={version}=*pypy')
+        out = env.execute('python -c "import sys; print(sys.version)"')
+        assert out[-2].startswith(version)
+        assert out[-1].startswith('[PyPy')

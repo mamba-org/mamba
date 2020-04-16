@@ -88,6 +88,8 @@ def init_api_context():
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
     api_ctx.use_index_cache = context.use_index_cache
+    api_ctx.always_yes = context.always_yes
+    api_ctx.dry_run = context.dry_run
 
 class MambaException(Exception):
     pass
@@ -479,11 +481,10 @@ def install(args, parser, command='install'):
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
 
-    transaction.fetch_extract_packages(PackageCacheData.first_writable().pkgs_dir, repos)
-    conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
-    # import IPython; IPython.embed()
-    # print(conda_transaction)
+    if not context.dry_run:
+        transaction.fetch_extract_packages(PackageCacheData.first_writable().pkgs_dir, repos)
 
+    conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
 
     try:

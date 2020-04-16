@@ -12,7 +12,6 @@
 
 namespace py = pybind11;
 
-
 PYBIND11_MODULE(mamba_api, m) {
     using namespace mamba;
 
@@ -81,6 +80,8 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)
         .def_readwrite("max_parallel_downloads", &Context::max_parallel_downloads)
+        .def_readwrite("always_yes", &Context::always_yes)
+        .def_readwrite("dry_run", &Context::dry_run)
         .def("set_verbosity", &Context::set_verbosity)
     ;
 

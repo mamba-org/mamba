@@ -23,6 +23,8 @@ public:
 
     bool on_ci = false;
     bool no_progress_bars = false;
+    bool dry_run = false;
+    bool always_yes = false;
 
     void set_verbosity(int lvl)
     {

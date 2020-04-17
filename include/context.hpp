@@ -16,6 +16,7 @@ public:
     std::size_t local_repodata_ttl = 1; // take from header
     bool offline = false;
     bool quiet = false;
+    bool json = false;
 
     int verbosity = 4;
 

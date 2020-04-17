@@ -32,19 +32,19 @@ namespace mamba
     public:
         static std::ostream& print()
         {
-            if (!Context::instance().quiet)
+            if (Context::instance().quiet || Context::instance().json)
             {
-                return std::cout;
+                return Output::instance().null_stream;
             }
             else
             {
-                return Output::instance().null_stream;
+                return std::cout;
             }
         }
 
         static void print(const std::string_view& str)
         {
-            if (!Context::instance().quiet)
+            if (!(Context::instance().quiet || Context::instance().json))
             {
                 std::cout << str << std::endl;
             }
@@ -98,7 +98,7 @@ namespace mamba
 
         void print_progress()
         {
-            if (Context::instance().quiet) return;
+            if (Context::instance().quiet || Context::instance().json) return;
             if (m_progress_started)
             {
                 std::cout << "\x1b[" << m_progress_bars.size() << "A";

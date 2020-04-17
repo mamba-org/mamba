@@ -5,6 +5,9 @@
 #include <iostream>
 #include <iomanip>
 
+#include "thirdparty/filesystem.hpp"
+namespace fs = ghc::filesystem;
+
 class mamba_error
     : public std::runtime_error
 {
@@ -32,3 +35,39 @@ void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t preci
     }
     o << std::fixed << std::setprecision(precision) << bytes << sizes[order];
 }
+
+class TemporaryDirectory
+{
+public:
+    TemporaryDirectory()
+    {
+        std::string template_path = fs::temp_directory_path() / "mambaXXXXXXX";
+        char* pth = mkdtemp((char*) template_path.c_str());
+        if (!pth)
+        {
+            throw std::runtime_error("Could not create temporary directory!");
+        }
+        else
+        {
+            m_path = pth;
+        }
+    }
+
+    ~TemporaryDirectory()
+    {
+        fs::remove_all(m_path);
+    }
+
+    fs::path& path()
+    {
+        return m_path;
+    }
+
+    operator fs::path()
+    {
+        return m_path;
+    }
+
+private:
+    fs::path m_path;
+};

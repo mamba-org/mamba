@@ -91,6 +91,7 @@ namespace mamba
                 m_progress_proxy = Output::instance().add_progress_bar(m_name);
                 m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / filename);
                 m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
+                m_target->set_expected_size(solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
                 m_target->set_progress_bar(m_progress_proxy);
             }
             return m_target;

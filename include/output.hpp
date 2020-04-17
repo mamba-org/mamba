@@ -197,11 +197,8 @@ namespace mamba
 
             void set_progress(std::size_t p)
             {
-                // if (p != p_bar->get_progress())
-                // {
                 p_bar->set_progress(p);
                 Output::instance().print_progress(m_idx);
-                // }
             }
             template <class T>
             void set_option(T&& option)

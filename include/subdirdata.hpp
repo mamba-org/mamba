@@ -129,7 +129,7 @@ namespace mamba
                         LOG(INFO) << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
                         std::string prefix = m_name;
                         prefix.resize(PREFIX_LENGTH - 1, ' ');
-                        Output::print() << prefix << " Using cache" << std::endl;
+                        Output::print() << prefix << " Using cache";
 
                         m_loaded = true;
                         m_json_cache_valid = true;

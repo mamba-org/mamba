@@ -103,37 +103,26 @@ namespace cursor
 
 namespace mamba
 {
-    class NullBuffer : public std::streambuf
-    {
-    public:
-      int overflow(int c) { return c; }
-    };
-
-    class NullStream : public std::ostream
-    {
-    public:
-        NullStream()
-            : std::ostream(&m_sb)
-        {
-        }
-
-    private:
-        NullBuffer m_sb;
-    };
-
     class Output
     {
     public:
-        static std::ostream& print()
+        class SpecialStream : public std::stringstream
         {
-            if (Context::instance().quiet || Context::instance().json)
+        public:
+            SpecialStream()
+                : std::stringstream()
             {
-                return Output::instance().null_stream;
             }
-            else
+
+            ~SpecialStream()
             {
-                return std::cout;
+                Output::instance().print(str());
             }
+        };
+
+        static SpecialStream print()
+        {
+            return SpecialStream();
         }
 
         static void print(const std::string_view& str)
@@ -157,6 +146,41 @@ namespace mamba
                     std::cout << str << std::endl;
                 }
             }
+        }
+
+        static bool prompt(const std::string_view& message, char fallback='_')
+        {
+            if (Context::instance().always_yes) {
+                return true;
+            }
+            char in;
+            while (!Context::instance().sig_interrupt) {
+                std::cout << message << ": ";
+                if (fallback == 'n') {
+                    std::cout << "[y/N] ";
+                }
+                else if (fallback == 'y') {
+                    std::cout << "[Y/n] ";
+                }
+                else {
+                    std::cout << "[y/n] ";
+                }
+                in = std::cin.get();
+                if (in == '\n')
+                {
+                    // enter pressed
+                    in = fallback;
+                }
+                if (in == 'y' || in == 'Y')
+                {
+                    return true && !Context::instance().sig_interrupt;
+                }
+                if (in == 'n' || in == 'N')
+                {
+                    return false;
+                }
+            }
+            return false;
         }
 
         struct ProgressProxy
@@ -309,8 +333,6 @@ namespace mamba
             static Output out;
             return out;
         }
-
-        NullStream null_stream;
 
     private:
         Output() {

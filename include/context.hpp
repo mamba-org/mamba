@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <csignal>
 
 // Context singleton class
 class Context
@@ -25,6 +26,8 @@ public:
     bool no_progress_bars = false;
     bool dry_run = false;
     bool always_yes = false;
+
+    bool sig_interrupt = false;
 
     void set_verbosity(int lvl)
     {
@@ -66,5 +69,9 @@ private:
         {
             no_progress_bars = true;
         }
+
+        std::signal(SIGINT, [](int signum) {
+            instance().sig_interrupt = true;
+        });
     }
 };

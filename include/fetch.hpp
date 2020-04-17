@@ -4,6 +4,7 @@
 #include "thirdparty/indicators/progress_bar.hpp"
 
 #include "output.hpp"
+#include "validate.hpp"
 
 extern "C" {
     #include <stdio.h>
@@ -84,7 +85,7 @@ namespace mamba
         }
 
         DownloadTarget(const std::string& name, const std::string& url, const std::string& filename)
-            : m_name(name)
+            : m_name(name), m_filename(filename)
         {
             m_file = std::ofstream(filename, std::ios::binary);
 
@@ -221,8 +222,9 @@ namespace mamba
             char* effective_url = nullptr;
             curl_easy_getinfo(m_target, CURLINFO_RESPONSE_CODE, &http_status);
             curl_easy_getinfo(m_target, CURLINFO_EFFECTIVE_URL, &effective_url);
+            curl_easy_getinfo(m_target, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-            LOG(INFO) << "Transfer finalized, status: " << http_status << " @ " << effective_url;
+            LOG(INFO) << "Transfer finalized, status: " << http_status << " @ " << effective_url << " " << downloaded_size << " bytes";
 
             final_url = effective_url;
             if (m_finalize_callback)
@@ -231,12 +233,32 @@ namespace mamba
             }
             else
             {
+                validate();
                 if (m_has_progress_bar)
                 {
                     m_progress_bar.mark_as_completed("Downloaded " + m_name);
                 }
             }
             return true;
+        }
+
+        void validate()
+        {
+            if (m_expected_size)
+            {
+                curl_off_t dl_size;
+                curl_easy_getinfo(m_target, CURLINFO_SIZE_DOWNLOAD_T, &dl_size);
+                if (dl_size != m_expected_size)
+                {
+                    throw std::runtime_error("Download of " + m_name + " does not have expected size!");
+                }
+                validate::sha256(m_filename, dl_size, m_sha256);
+            }
+        }
+
+        void set_sha256(const std::string& sha256)
+        {
+            m_sha256 = sha256;
         }
 
         ~DownloadTarget()
@@ -247,13 +269,19 @@ namespace mamba
 
         int http_status;
         std::string final_url;
+        curl_off_t downloaded_size;
 
         std::string etag, mod, cache_control;
 
     private:
         std::function<int()> m_finalize_callback;
-        std::string m_name;
+
+        std::string m_name, m_filename;
+
+        // validation
         std::size_t m_expected_size = 0;
+        std::string m_sha256;
+
         std::chrono::steady_clock::time_point m_progress_throttle_time;
 
         CURL* m_target;
@@ -380,8 +408,13 @@ namespace mamba
                 {
                     repeats = 0;
                 }
-            } while (still_running);
+            } while (still_running && !Context::instance().sig_interrupt);
 
+            if (Context::instance().sig_interrupt)
+            {
+                std::cout << "Download interrupted" << std::endl;
+                curl_multi_cleanup(m_handle);
+            }
             return true;
         }
 

@@ -37,6 +37,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("to_conda", &MTransaction::to_conda)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
+        .def("prompt", &MTransaction::prompt)
     ;
 
     py::class_<MSolver>(m, "Solver")

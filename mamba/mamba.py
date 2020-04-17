@@ -328,8 +328,6 @@ def install(args, parser, command='install'):
             else:
                 raise EnvironmentLocationNotFound(prefix)
 
-    # context.__init__(argparse_args=args)
-
     prepend = not args.override_channels
     prefix = context.target_prefix
 
@@ -481,8 +479,9 @@ def install(args, parser, command='install'):
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
 
-    if not context.dry_run:
-        transaction.fetch_extract_packages(PackageCacheData.first_writable().pkgs_dir, repos)
+    mamba_cache_path = os.path.join(PackageCacheData.first_writable().pkgs_dir, "mamba")
+    mkdir_p(mamba_cache_path)
+    transaction.prompt(mamba_cache_path, repos)
 
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)

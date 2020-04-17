@@ -12,6 +12,8 @@ extern "C"
     #include "solv/repo_conda.h"
 }
 
+#include "pool.hpp"
+
 namespace mamba
 {
     class MRepo

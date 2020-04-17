@@ -281,7 +281,7 @@ namespace mamba
         static int progress_callback(void *self, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
         {
             auto* s = (MSubdirData*)self;
-            if (Context::instance().quiet)
+            if (Context::instance().quiet || Context::instance().json)
             {
                 return 0;
             }

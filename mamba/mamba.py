@@ -81,11 +81,12 @@ banner = """
 
 def init_api_context():
     api_ctx = api.Context()
-    api_ctx.set_verbosity(context.verbosity);
-    api_ctx.quiet = context.quiet;
-    api_ctx.offline = context.offline;
-    api_ctx.local_repodata_ttl = context.local_repodata_ttl;
-    api_ctx.use_index_cache = context.use_index_cache;
+    api_ctx.set_verbosity(context.verbosity)
+    api_ctx.quiet = context.quiet
+    api_ctx.json = context.json
+    api_ctx.offline = context.offline
+    api_ctx.local_repodata_ttl = context.local_repodata_ttl
+    api_ctx.use_index_cache = context.use_index_cache
 
 class MambaException(Exception):
     pass
@@ -238,7 +239,7 @@ def remove(args, parser):
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
         else:
             specs = [s for s in specs_from_args(args.package_names)]
-        if not context.quiet:
+        if not (context.quiet or context.json):
             print("Removing specs: {}".format(specs))
         channel_urls = ()
         subdirs = ()
@@ -350,7 +351,7 @@ def install(args, parser, command='install'):
     num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
-            explicit(args_packages, prefix, verbose=not context.quiet)
+            explicit(args_packages, prefix, verbose=not (context.quiet or context.json))
             return
         else:
             raise CondaValueError("cannot mix specifications with conda package"
@@ -398,7 +399,7 @@ def install(args, parser, command='install'):
                 raise CondaValueError("Error reading file, file should be a text file containing"
                                  " packages \nconda create --help for details")
         if '@EXPLICIT' in file_specs:
-            explicit(file_specs, prefix, verbose=not context.quiet, index_args=index_args)
+            explicit(file_specs, prefix, verbose=not (context.quiet or context.json), index_args=index_args)
             return
         specs.extend([MatchSpec(s) for s in file_specs])
 
@@ -432,7 +433,7 @@ def install(args, parser, command='install'):
             raise TooManyArgumentsError(0, len(args.packages), list(args.packages),
                                         'did not expect any arguments for --clone')
 
-        clone(args.clone, prefix, json=context.json, quiet=context.quiet, index_args=index_args)
+        clone(args.clone, prefix, json=context.json, quiet=(context.quiet or context.json), index_args=index_args)
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
         return
@@ -449,7 +450,7 @@ def install(args, parser, command='install'):
 
     mamba_solve_specs = [s.conda_build_form() for s in specs]
 
-    if not context.quiet:
+    if not (context.quiet or context.json):
         print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     pool = api.Pool()
@@ -641,7 +642,7 @@ def _wrapped_main(*args, **kwargs):
     args = p.parse_args(args[1:])
 
     context.__init__(argparse_args=args)
-    if not context.quiet:
+    if not (context.quiet or context.json):
         print(banner)
 
     init_loggers(context)

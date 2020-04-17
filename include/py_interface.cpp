@@ -74,6 +74,7 @@ PYBIND11_MODULE(mamba_api, m) {
         }))
         .def_readwrite("verbosity", &Context::verbosity)
         .def_readwrite("quiet", &Context::quiet)
+        .def_readwrite("json", &Context::json)
         .def_readwrite("offline", &Context::offline)
         .def_readwrite("local_repodata_ttl", &Context::local_repodata_ttl)
         .def_readwrite("use_index_cache", &Context::use_index_cache)

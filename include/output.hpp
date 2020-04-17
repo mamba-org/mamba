@@ -34,7 +34,6 @@ namespace cursor
         return o;
     }
 
-
     class CursorMod {
     public:
         CursorMod(const char* mod)
@@ -214,6 +213,11 @@ namespace mamba
                 p_bar->mark_as_completed();
                 Output::instance().deactivate_progress_bar(m_idx);
 
+                if (Context::instance().quiet || Context::instance().json)
+                {
+                    return;
+                }
+
                 if (final_message.size())
                 {
                     {
@@ -277,10 +281,6 @@ namespace mamba
             if (it != m_active_progress_bars.end())
             {
                 m_active_progress_bars.erase(it);
-            }
-            else
-            {
-                std::cout << "Error in finding active progress bar" << std::endl;
             }
         }
 

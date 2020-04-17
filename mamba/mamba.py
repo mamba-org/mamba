@@ -8,6 +8,7 @@ import sys, os
 
 from os.path import abspath, basename, exists, isdir, isfile, join
 
+from conda.cli import common as cli_common
 from conda.cli.main import generate_parser, init_loggers
 from conda.base.context import context
 from conda.core.index import calculate_channel_urls, check_whitelist, _supplement_index_with_system #, get_index
@@ -21,7 +22,7 @@ from conda.common.serialize import json_dump
 from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
 from conda.core.subdir_data import SubdirData
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
-from conda.cli.install import handle_txn, check_prefix, clone, print_activate
+from conda.cli.install import check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.core.envs_manager import unregister_env
@@ -182,6 +183,48 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
 
     conda_transaction = UnlinkLinkTransaction(pref_setup)
     return conda_transaction
+
+use_mamba_download = False
+
+def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+    if unlink_link_transaction.nothing_to_do:
+        if remove_op:
+            # No packages found to remove from environment
+            raise PackagesNotFoundError(args.package_names)
+        elif not newenv:
+            if context.json:
+                cli_common.stdout_json_success(message='All requested packages already installed.')
+            else:
+                print('\n# All requested packages already installed.\n')
+            return
+
+    # don't confirm / print if using mamba for download
+    if not context.json and not use_mamba_download:
+        unlink_link_transaction.print_transaction_summary()
+        confirm_yn()
+
+    elif context.dry_run:
+        actions = unlink_link_transaction._make_legacy_action_groups()[0]
+        cli_common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
+        raise DryRunExit()
+
+    try:
+        unlink_link_transaction.download_and_extract()
+        if context.download_only:
+            raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
+                                '--download-only option.')
+        unlink_link_transaction.execute()
+
+    except SystemExit as e:
+        raise CondaSystemExit('Exiting', e)
+
+    if newenv:
+        touch_nonadmin(prefix)
+        print_activate(args.name if args.name else prefix)
+
+    if context.json:
+        actions = unlink_link_transaction._make_legacy_action_groups()[0]
+        cli_common.stdout_json_success(prefix=prefix, actions=actions)
 
 installed_pkg_recs = None
 
@@ -479,9 +522,9 @@ def install(args, parser, command='install'):
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
 
-    mamba_cache_path = os.path.join(PackageCacheData.first_writable().pkgs_dir, "mamba")
-    mkdir_p(mamba_cache_path)
-    transaction.prompt(mamba_cache_path, repos)
+    if use_mamba_download:
+        transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
+        PackageCacheData.first_writable().reload()
 
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)
@@ -641,6 +684,14 @@ Examples:
 def _wrapped_main(*args, **kwargs):
     if len(args) == 1:
         args = args + ('-h',)
+
+    import copy
+    argv = list(args)
+    if "--mamba-download" in argv:
+        global use_mamba_download
+        use_mamba_download = True
+        argv.remove('--mamba-download')
+        args = argv
 
     p = generate_parser()
     configure_parser_repoquery(p._subparsers._group_actions[0])

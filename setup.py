@@ -66,7 +66,7 @@ ext_modules = [
             "include/thirdparty/"
         ],
         library_dirs=library_dir,
-        libraries=['archive', 'solv', 'solvext', CURL_LIB],
+        libraries=['archive', 'solv', 'solvext', CURL_LIB, 'crypto'],
         language='c++'
     ),
 ]

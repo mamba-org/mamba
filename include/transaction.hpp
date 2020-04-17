@@ -4,7 +4,20 @@
 #include "nlohmann/json.hpp"
 
 #include "thirdparty/minilog.hpp"
+#include "thirdparty/filesystem.hpp"
 
+#include "repo.hpp"
+#include "fetch.hpp"
+#include "package_handling.hpp"
+
+extern "C"
+{
+    #include "solv/transaction.h"
+}
+
+#include "solver.hpp"
+
+namespace fs = ghc::filesystem;
 
 namespace mamba
 {
@@ -15,7 +28,7 @@ namespace mamba
         j[key] = val;
     }
 
-    std::string solvable_to_json(Solvable* s)
+    nlohmann::json solvable_to_json(Solvable* s)
     {
         nlohmann::json j;
         auto* pool = s->repo->pool;
@@ -43,6 +56,7 @@ namespace mamba
         try_add(j, "sha256", solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type));
 
         j["subdir"] = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
+        j["fn"] = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
 
         std::vector<std::string> depends, constrains;
         Queue q;
@@ -62,11 +76,112 @@ namespace mamba
         }
         queue_free(&q);
 
-        if (depends.size()) j["depends"] = depends;
-        if (constrains.size()) j["constrains"] = constrains;
+        j["depends"] = depends;
+        j["constrains"] = constrains;
 
-        return j.dump(4);
+        return j;
     }
+
+    class PackageDownloadExtractTarget
+    {
+    public:
+        PackageDownloadExtractTarget(MRepo* repo, Solvable* solvable)
+            : m_repo(repo), m_solv(solvable)
+        {
+        }
+
+        void write_repodata_record(const fs::path& base_path)
+        {
+            fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
+            nlohmann::json j = solvable_to_json(m_solv);
+            j["url"] = m_url;
+            j["channel"] = m_channel;
+            j["fn"] = m_filename;
+
+            std::ofstream repodata_record(repodata_record_path);
+            repodata_record << j.dump(4);
+        }
+
+        void add_url()
+        {
+            std::ofstream urls_txt(m_cache_path / "urls.txt", std::ios::app);
+            urls_txt << m_url << std::endl;
+        }
+
+        int finalize_callback()
+        {
+            Id __unused__;
+
+            m_progress_proxy.set_option(indicators::option::PostfixText{"Validating..."});
+
+            // Validation
+            auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
+            std::string sha256_check = solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &__unused__);
+
+            if (m_target->downloaded_size != expected_size)
+            {
+                throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            }
+            if (!validate::sha256(m_tarball_path, expected_size, sha256_check))
+            {
+                throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            }
+
+            m_progress_proxy.set_option(indicators::option::PostfixText{"Decompressing..."});
+            auto extract_path = extract(m_tarball_path);
+            write_repodata_record(extract_path);
+            add_url();
+            m_progress_proxy.set_option(indicators::option::PostfixText{"Done"});
+            m_progress_proxy.mark_as_completed("Downloaded & extracted " + m_name);
+            return 0;
+        }
+
+        std::unique_ptr<DownloadTarget>& target(const fs::path& cache_path)
+        {
+            m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
+            m_cache_path = cache_path;
+            m_tarball_path = cache_path / m_filename;
+            bool tarball_exists = fs::exists(m_tarball_path);
+
+            bool valid = false;
+
+            Id __unused__;
+            if (tarball_exists)
+            {
+                // validate that this tarball has the right size and MD5 sum
+                std::uintmax_t file_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
+                valid = validate::file_size(m_tarball_path, file_size);
+                valid = valid && validate::md5(m_tarball_path, file_size, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &__unused__));
+                LOG(INFO) << m_tarball_path << " is " << valid;
+            }
+
+            if (!tarball_exists || !valid)
+            {
+                // need to download this file
+                m_channel = m_repo->url();
+                m_url = m_channel + "/" + m_filename;
+                m_name = pool_id2str(m_solv->repo->pool, m_solv->name);
+
+                LOG(INFO) << "Adding " << m_name << " with " << m_url;
+
+                m_progress_proxy = Output::instance().add_progress_bar(m_name);
+                m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
+                m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
+                m_target->set_expected_size(solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
+                m_target->set_progress_bar(m_progress_proxy);
+            }
+            return m_target;
+        }
+
+        MRepo* m_repo;
+        Solvable* m_solv;
+
+        Output::ProgressProxy m_progress_proxy;
+        std::unique_ptr<DownloadTarget> m_target;
+
+        std::string m_url, m_name, m_channel, m_filename;
+        fs::path m_tarball_path, m_cache_path;
+    };
 
     class MTransaction
     {
@@ -154,11 +269,76 @@ namespace mamba
             for (Solvable* s : m_to_install)
             {
                 const char* mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-                std::string s_json = solvable_to_json(s);
+                std::string s_json = solvable_to_json(s).dump(4);
                 to_install_structured.emplace_back(s->repo->name, mediafile, s_json);
             }
 
             return std::make_tuple(to_install_structured, to_remove_structured);
+        }
+
+        auto fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)
+        {
+            fs::path cache_path(cache_dir);
+            std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
+            MultiDownloadTarget multi_dl;
+
+            Output::instance().init_multi_progress();
+
+            for (auto& s : m_to_install)
+            {
+                std::string url;
+                MRepo* mamba_repo = nullptr;
+                for (auto& r : repos)
+                {
+                    if (r->repo() == s->repo)
+                    {
+                        mamba_repo = r;
+                        break;
+                    }
+                }
+                if (mamba_repo == nullptr)
+                {
+                    throw std::runtime_error("Repo not associated.");
+                }
+
+                auto dl_target = std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s);
+                multi_dl.add(dl_target->target(cache_path));
+                targets.push_back(std::move(dl_target));
+            }
+            multi_dl.download(true);
+        }
+
+        bool empty()
+        {
+            return m_to_install.size() == 0 && m_to_remove.size() == 0;
+        }
+
+        bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos)
+        {
+            if (Context::instance().quiet && Context::instance().always_yes)
+            {
+                return true;
+            }
+            // check size of transaction
+            Output::print("\n");
+            if (empty())
+            {
+                Output::print("# All requested packages already installed\n");
+                return true;
+            }
+
+            // we print, even if quiet
+            print();
+            if (Context::instance().dry_run)
+            {
+                return true;
+            }
+            bool res = Output::prompt("Confirm changes", 'y');
+            if (res)
+            {
+                fetch_extract_packages(cache_dir, repos);
+            }
+            return true;
         }
 
         void print()

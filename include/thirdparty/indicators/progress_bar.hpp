@@ -235,7 +235,6 @@ public:
 
   std::atomic<bool> multi_progress_mode_{false};
 
-private:
   template <details::ProgressBarOption id>
   auto get_value() -> decltype((details::get_value<id>(std::declval<Settings &>()).value)) {
     return details::get_value<id>(settings_).value;
@@ -246,6 +245,8 @@ private:
       -> decltype((details::get_value<id>(std::declval<const Settings &>()).value)) {
     return details::get_value<id>(settings_).value;
   }
+
+private:
 
   size_t progress_{0};
   Settings settings_;

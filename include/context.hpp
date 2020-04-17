@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <csignal>
 
 // Context singleton class
 class Context
@@ -18,7 +19,15 @@ public:
     bool quiet = false;
     bool json = false;
 
+    long max_parallel_downloads = 5;
     int verbosity = 4;
+
+    bool on_ci = false;
+    bool no_progress_bars = false;
+    bool dry_run = false;
+    bool always_yes = false;
+
+    bool sig_interrupt = false;
 
     void set_verbosity(int lvl)
     {
@@ -55,5 +64,14 @@ public:
 private:
     Context() {
         set_verbosity(0);
+        on_ci = (std::getenv("CI") != nullptr);
+        if (on_ci)
+        {
+            no_progress_bars = true;
+        }
+
+        std::signal(SIGINT, [](int signum) {
+            instance().sig_interrupt = true;
+        });
     }
 };

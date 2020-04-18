@@ -4,6 +4,7 @@
 #include <string_view>
 #include <iostream>
 #include <iomanip>
+#include <cassert>
 
 #include "thirdparty/filesystem.hpp"
 namespace fs = ghc::filesystem;
@@ -41,15 +42,26 @@ class TemporaryDirectory
 public:
     TemporaryDirectory()
     {
-        std::string template_path = fs::temp_directory_path() / "mambaXXXXXXX";
-        char* pth = mkdtemp((char*) template_path.c_str());
-        if (!pth)
+        bool success = false;
+        #ifndef _WIN32
+            std::string template_path = fs::temp_directory_path() / "mambaXXXXXXX";
+            char* pth = mkdtemp((char*)template_path.c_str());
+            success = (pth != nullptr);
+            template_path = pth;
+        #else
+            std::string template_path = fs::temp_directory_path() / "mambaXXXXXXX";
+            // include \0 terminator
+            auto err = _mktemp_s((char*)template_path.c_str(), template_path.size() + 1);
+            assert(err == 0);
+            success = fs::create_directory(template_path);
+        #endif
+        if (!success)
         {
             throw std::runtime_error("Could not create temporary directory!");
         }
         else
         {
-            m_path = pth;
+            m_path = template_path;
         }
     }
 

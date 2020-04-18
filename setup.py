@@ -52,8 +52,10 @@ if sys.platform == 'win32':
         print("could not find conda prefix")
 
     CURL_LIB = 'libcurl'
+    CRYPTO_LIB = 'libcrypto'
 else:
     CURL_LIB = 'curl'
+    CRYPTO_LIB = 'crypto'
 
 ext_modules = [
     Extension(
@@ -66,7 +68,7 @@ ext_modules = [
             "include/thirdparty/"
         ],
         library_dirs=library_dir,
-        libraries=['archive', 'solv', 'solvext', CURL_LIB, 'crypto'],
+        libraries=['archive', 'solv', 'solvext', CURL_LIB, CRYPTO_LIB],
         language='c++'
     ),
 ]

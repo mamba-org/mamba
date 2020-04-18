@@ -1,7 +1,12 @@
 #pragma once
 
 #include <sstream>
+#ifdef _WIN32
+#include "thirdparty/string_view.hpp"
+namespace std { using nonstd::string_view; }
+#else
 #include <string_view>
+#endif
 
 #include "pool.hpp"
 

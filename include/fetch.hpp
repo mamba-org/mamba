@@ -160,15 +160,15 @@ namespace mamba
                 value = header.substr(colon_idx, header.size() - colon_idx - 2);
                 if (key == "ETag")
                 {
-                    s->etag = value;
+                    s->etag = std::string(value);
                 }
                 else if (key == "Cache-Control")
                 {
-                    s->cache_control = value;
+                    s->cache_control = std::string(value);
                 }
                 else if (key == "Last-Modified")
                 {
-                    s->mod = value;
+                    s->mod = std::string(value);
                 }
             }
             return nitems * size;

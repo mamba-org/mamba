@@ -113,13 +113,18 @@ namespace mamba
             {
             }
 
+            SpecialStream(SpecialStream&& rhs)
+                : std::stringstream(std::move(rhs))
+            {
+            }
+
             ~SpecialStream()
             {
                 Output::instance().print(str());
             }
         };
 
-        static SpecialStream print()
+        static auto print()
         {
             return SpecialStream();
         }

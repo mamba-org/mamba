@@ -1,10 +1,16 @@
 #pragma once
 
 #include <stdexcept>
-#include <string_view>
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+
+#ifdef _WIN32
+#include "thirdparty/string_view.hpp"
+namespace std { using nonstd::string_view; }
+#else
+#include <string_view>
+#endif
 
 #include "thirdparty/filesystem.hpp"
 namespace fs = ghc::filesystem;

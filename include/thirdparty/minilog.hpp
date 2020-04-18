@@ -119,6 +119,12 @@
 // Modified from ceres miniglog version [end] ---------------------------------
 
 // Log severity level constants.
+
+#undef FATAL
+#undef ERROR
+#undef WARNING
+#undef INFO
+
 const int FATAL   = -3;
 const int ERROR   = -2;
 const int WARNING = -1;

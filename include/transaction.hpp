@@ -93,13 +93,23 @@ namespace mamba
         void write_repodata_record(const fs::path& base_path)
         {
             fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
-            nlohmann::json j = solvable_to_json(m_solv);
-            j["url"] = m_url;
-            j["channel"] = m_channel;
-            j["fn"] = m_filename;
+            fs::path index_path = base_path / "info" / "index.json";
+
+            nlohmann::json index, solvable_json;
+            std::ifstream index_file(index_path);
+            index_file >> index;
+
+            solvable_json = solvable_to_json(m_solv);
+
+            // merge those two
+            index.insert(solvable_json.cbegin(), solvable_json.cend());
+
+            index["url"] = m_url;
+            index["channel"] = m_channel;
+            index["fn"] = m_filename;
 
             std::ofstream repodata_record(repodata_record_path);
-            repodata_record << j.dump(4);
+            repodata_record << index.dump(4);
         }
 
         void add_url()

@@ -1,13 +1,8 @@
-import os
-
 from distutils.version import StrictVersion
 from utils import Environment, add_glibc_virtual_package, copy_channels_arch, run_mamba_conda
 
 
 def test_install():
-    if os.name == 'nt':
-        return
-
     add_glibc_virtual_package()
     copy_channels_arch()
 
@@ -24,8 +19,6 @@ def test_install():
 
 def test_update():
     # check updating a package when a newer version
-    if os.name == 'nt':
-        return
     with Environment() as env:
         # first install an older version
         version = '1.25.7'
@@ -43,9 +36,6 @@ def test_update():
 
 
 def test_track_features():
-    if os.name == 'nt':
-        return
-
     with Environment() as env:
         # should install CPython since PyPy has track features
         version = '3.6.9'

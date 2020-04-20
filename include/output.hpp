@@ -28,7 +28,7 @@ namespace cursor
         int m_n;
     };
 
-    std::ostream& operator<<(std::ostream& o, const CursorMovementTriple& m)
+    inline std::ostream& operator<<(std::ostream& o, const CursorMovementTriple& m)
     {
         o << m.m_esc << m.m_n << m.m_mod;
         return o;
@@ -49,52 +49,52 @@ namespace cursor
         const char* m_mod;
     };
 
-    auto up(int n)
+    inline auto up(int n)
     {
         return CursorMovementTriple("up[", n, "A");
     }
 
-    auto down(int n)
+    inline auto down(int n)
     {
         return CursorMovementTriple("\x1b[", n, "B");
     }
 
-    auto forward(int n)
+    inline auto forward(int n)
     {
         return CursorMovementTriple("\x1b[", n, "C");
     }
 
-    auto back(int n)
+    inline auto back(int n)
     {
         return CursorMovementTriple("\x1b[", n, "D");
     }
 
-    auto next_line(int n)
+    inline auto next_line(int n)
     {
         return CursorMovementTriple("\x1b[", n, "E");
     }
 
-    auto prev_line(int n)
+    inline auto prev_line(int n)
     { 
         return CursorMovementTriple("\x1b[", n, "F");
     }
 
-    auto horizontal_abs(int n)
+    inline auto horizontal_abs(int n)
     {
         return CursorMovementTriple("\x1b[", n, "G");
     }
 
-    auto erase_line(int n = 0)
+    inline auto erase_line(int n = 0)
     {
         return CursorMovementTriple("\x1b[", n, "K");
     }
 
-    auto show(int n)
+    inline auto show(int n)
     {
         return CursorMod("\x1b[?25h");
     }
 
-    auto hide(int n)
+    inline auto hide(int n)
     {
         return CursorMod("\x1b[?25l");
     }

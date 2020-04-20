@@ -58,7 +58,11 @@ class Environment:
             self.shell.execute('conda activate ' + self.name)
         else:
             self.shell.execute('MAMBA=mamba')
-            self.shell.execute(f'conda create -q -y -n {self.name} --clone mamba-tests')
+            out = self.shell.execute('which mamba')
+            mamba_path = out[-1].replace('/c', 'C:').replace('/', '\\\\')
+            src = mamba_path[:i]
+            dst = mamba_path[:i] + '\\\\envs\\\\' + self.name
+            self.shell.execute(f'cp -r {src} {dst}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
             self.shell.execute('conda activate ' + self.name)

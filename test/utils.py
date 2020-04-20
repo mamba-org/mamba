@@ -61,9 +61,12 @@ class Environment:
             out = self.shell.execute('echo $CONDA_PREFIX')
             conda_prefix = out[-1].replace('\\', '\\\\')
             i = conda_prefix.rfind('\\\\')
-            dst = conda_prefix[:i] + '\\\\' + self.name
-            print(conda_prefix, dst)
-            self.shell.execute(f'cp -r {conda_prefix} {dst}')
+            dst = conda_prefix[:i] + '\\\\copy'
+            if not os.path.isdir(dst):
+                self.shell.execute(f'cp -r {conda_prefix} {dst}')
+            src = dst
+            dst = conda_prefix + '\\\\envs\\\\' + self.name
+            self.shell.execute(f'cp -r {src} {dst}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
             self.shell.execute('conda activate ' + self.name)

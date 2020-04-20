@@ -31,7 +31,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda install -q -y python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler
+          conda install -q -y python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler conda
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies

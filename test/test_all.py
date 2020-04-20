@@ -25,6 +25,7 @@ def test_update():
         env.execute(f'$MAMBA install -q -y urllib3={version}')
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
         # check that the installed version is the old one
+        print(out)
         assert out[-1] == version
 
         # then update package
@@ -40,11 +41,15 @@ def test_track_features():
         version = '3.6.9'
         env.execute(f'$MAMBA install -q -y python={version}')
         out = env.execute('python -c "import sys; print(sys.version)"')
+        print(out)
+
         assert out[-2].startswith(version)
         assert out[-1].startswith('[GCC')
 
         # now force PyPy install
         env.execute(f'$MAMBA install -q -y python={version}=*pypy')
         out = env.execute('python -c "import sys; print(sys.version)"')
+        print(out)
+        
         assert out[-2].startswith(version)
         assert out[-1].startswith('[PyPy')

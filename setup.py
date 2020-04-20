@@ -64,6 +64,7 @@ ext_modules = [
          'include/thirdparty/minilog.cpp',
          'src/context.cpp',
          'src/fetch.cpp',
+         'src/package_handling.cpp',
          'src/transaction.cpp',
          'src/util.cpp',
          'src/validate.cpp'],

@@ -59,7 +59,7 @@ class Environment:
         else:
             out = self.shell.execute('python --version')
             py_ver = out[-1].split()[-1]
-            #self.shell.execute('PATH=$CONDA_PREFIX/lib/site-packages:$PATH')
+            self.shell.execute('PATH=$CONDA_PREFIX/lib/site-packages:$PATH')
             out = self.shell.execute('which mamba')
             mamba_path = out[-1].replace('/c', 'C:').replace('/', '\\\\')
             self.shell.execute(f'MAMBA={mamba_path}')

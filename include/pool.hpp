@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MAMBA_POOL_HPP
+#define MAMBA_POOL_HPP
 
 #include "thirdparty/minilog.hpp"
 #include "context.hpp"
@@ -13,34 +14,24 @@ namespace mamba
     class MPool
     {
     public:
-        MPool()
-        {
-            m_pool = pool_create();
-            pool_setdisttype(m_pool, DISTTYPE_CONDA);
-            set_debuglevel();
-        }
 
-        ~MPool()
-        {
-            LOG(INFO) << "Freeing pool.";
-            pool_free(m_pool);
-        }
+        MPool();
+        ~MPool();
 
-        void set_debuglevel()
-        {
-            pool_setdebuglevel(m_pool, Context::instance().verbosity);
-        }
+        MPool(const MPool&) = delete;
+        MPool& operator=(const MPool&) = delete;
+        MPool(MPool&&) = delete;
+        MPool& operator=(MPool&&) = delete;
 
-        void create_whatprovides()
-        {
-            pool_createwhatprovides(m_pool);
-        }
+        void set_debuglevel();
+        void create_whatprovides();
 
-        operator Pool*()
-        {
-            return m_pool;
-        }
+        operator Pool*();
+
+    private:
 
         Pool* m_pool;
     };
 }
+
+#endif // MAMBA_POOL_HPP

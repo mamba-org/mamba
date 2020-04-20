@@ -5,6 +5,9 @@ from utils import Environment, add_glibc_virtual_package, copy_channels_arch, ru
 
 
 def test_install():
+    if os.name == 'nt':
+        return
+
     add_glibc_virtual_package()
     copy_channels_arch()
 

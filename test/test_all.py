@@ -22,14 +22,14 @@ def test_update():
     with Environment() as env:
         # first install an older version
         version = '1.25.7'
-        env.execute(f'$MAMBA install -q -y urllib3={version}')
+        env.execute(f'mamba install -q -y urllib3={version}')
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
         # check that the installed version is the old one
         print(out)
         assert out[-1] == version
 
         # then update package
-        env.execute('$MAMBA update -q -y urllib3')
+        env.execute('mamba update -q -y urllib3')
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
         # check that the installed version is newer
         assert StrictVersion(out[-1]) > StrictVersion(version)
@@ -39,7 +39,7 @@ def test_track_features():
     with Environment() as env:
         # should install CPython since PyPy has track features
         version = '3.6.9'
-        env.execute(f'$MAMBA install -q -y python={version}')
+        env.execute(f'mamba install -q -y python={version}')
         out = env.execute('python -c "import sys; print(sys.version)"')
         print(out)
 
@@ -47,7 +47,7 @@ def test_track_features():
         assert out[-1].startswith('[GCC')
 
         # now force PyPy install
-        env.execute(f'$MAMBA install -q -y python={version}=*pypy')
+        env.execute(f'mamba install -q -y python={version}=*pypy')
         out = env.execute('python -c "import sys; print(sys.version)"')
         print(out)
         

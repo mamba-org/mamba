@@ -48,28 +48,10 @@ class Environment:
     def __init__(self):
         self.shell = Shell()
         self.name = 'env_' + str(uuid.uuid1())
-        if os.name != 'nt':
-            out = self.shell.execute('which mamba')
-            mamba_path = out[-1]
-            self.shell.execute(f'MAMBA={mamba_path}')
-            self.shell.execute('conda create -q -y -n ' + self.name)
-            self.shell.execute('CONDA_BASE=$(conda info --base)')
-            self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
-            self.shell.execute('conda activate ' + self.name)
-        else:
-            self.shell.execute('MAMBA=mamba')
-            out = self.shell.execute('echo $CONDA_PREFIX')
-            conda_prefix = out[-1].replace('\\', '\\\\')
-            i = conda_prefix.rfind('\\\\')
-            dst = conda_prefix[:i] + '\\\\copy'
-            if not os.path.isdir(dst):
-                self.shell.execute(f'cp -r {conda_prefix} {dst}')
-            src = dst
-            dst = conda_prefix + '\\\\envs\\\\' + self.name
-            self.shell.execute(f'cp -r {src} {dst}')
-            self.shell.execute('CONDA_BASE=$(conda info --base)')
-            self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
-            self.shell.execute('conda activate ' + self.name)
+        self.shell.execute('conda create -q -y -n ' + self.name)
+        self.shell.execute('CONDA_BASE=$(conda info --base)')
+        self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
+        self.shell.execute('conda activate ' + self.name)
 
     def __enter__(self):
         return self.shell

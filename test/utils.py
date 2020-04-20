@@ -58,13 +58,11 @@ class Environment:
             self.shell.execute('conda activate ' + self.name)
         else:
             self.shell.execute('MAMBA=mamba')
-            out = self.shell.execute('which mamba')
-            mamba_path = out[-1].replace('/c', 'C:').replace('/', '\\\\')
-            i = mamba_path.rfind('\\\\')
-            i = mamba_path[:i].rfind('\\\\')
-            src = mamba_path[:i]
-            dst = mamba_path[:i] + '\\\\envs\\\\' + self.name
-            self.shell.execute(f'cp -r {src} {dst}')
+            out = self.shell.execute('echo $CONDA_PREFIX')
+            conda_prefix = out[-1].replace('/c', 'C:').replace('/', '\\\\')
+            i = conda_prefix.rfind('\\\\')
+            dst = conda_prefix[:i] + '\\\\' + self.name
+            self.shell.execute(f'cp -r {conda_prefix} {dst}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
             self.shell.execute('conda activate ' + self.name)

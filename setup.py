@@ -64,6 +64,7 @@ ext_modules = [
          'include/thirdparty/minilog.cpp',
          'src/context.cpp',
          'src/fetch.cpp',
+         'src/util.cpp',
          'src/validate.cpp'],
         include_dirs=[
             get_pybind_include(),

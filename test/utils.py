@@ -99,7 +99,7 @@ def add_glibc_virtual_package():
         f.write(repodata)
 
 
-def copy_channels_osx():
+def copy_channels_arch():
     for channel in ['a', 'b']:
         if not os.path.exists(f'test/channel_{channel}/osx-64'):
             shutil.copytree(f'test/channel_{channel}/linux-64', f'test/channel_{channel}/osx-64')
@@ -108,3 +108,12 @@ def copy_channels_osx():
             with open(f'test/channel_{channel}/osx-64/repodata.json', 'w') as f:
                 repodata = repodata.replace('linux', 'osx')
                 f.write(repodata)
+
+        if not os.path.exists(f'test/channel_{channel}/win-64'):
+            shutil.copytree(f'test/channel_{channel}/linux-64', f'test/channel_{channel}/win-64')
+            with open(f'test/channel_{channel}/win-64/repodata.json') as f:
+                repodata = f.read()
+            with open(f'test/channel_{channel}/win-64/repodata.json', 'w') as f:
+                repodata = repodata.replace('linux', 'win')
+                f.write(repodata)
+

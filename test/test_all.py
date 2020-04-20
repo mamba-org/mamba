@@ -1,10 +1,10 @@
 from distutils.version import StrictVersion
-from utils import Environment, add_glibc_virtual_package, copy_channels_osx, run_mamba_conda
+from utils import Environment, add_glibc_virtual_package, copy_channels_arch, run_mamba_conda
 
 
 def test_install():
     add_glibc_virtual_package()
-    copy_channels_osx()
+    copy_channels_arch()
 
     channels = ['./test/channel_b', './test/channel_a']
     package = 'a'

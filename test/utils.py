@@ -55,7 +55,8 @@ class Environment:
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
             self.shell.execute('conda activate ' + self.name)
         else:
-            self.shell.execute('PATH=$CONDA_PREFIX/Lib/site-packages:$PATH')
+            self.shell.execute('which mamba')
+            self.shell.execute('PATH=$CONDA_PREFIX/lib/site-packages:$PATH')
             self.shell.execute('MAMBA=$CONDA_PREFIX/Scripts/mamba')
             self.shell.execute('conda create -q -y -n ' + self.name)
             self.shell.execute('CONDA_BASE=$(conda info --base)')

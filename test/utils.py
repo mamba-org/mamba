@@ -61,7 +61,7 @@ class Environment:
             py_ver = out[-1].split()[-1]
             #self.shell.execute('PATH=$CONDA_PREFIX/lib/site-packages:$PATH')
             out = self.shell.execute('which mamba')
-            mamba_path = out[-1].replace('/c', 'C:').replace('/', '\\')
+            mamba_path = out[-1].replace('/c', 'C:').replace('/', '\\\\')
             self.shell.execute(f'MAMBA={mamba_path}')
             self.shell.execute(f'conda create -q -y -n {self.name} python={py_ver}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')

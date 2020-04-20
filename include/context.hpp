@@ -1,77 +1,50 @@
-#pragma once
+#ifndef MAMBA_CONTEXT_HPP
+#define MAMBA_CONTEXT_HPP
 
 #include <vector>
 #include <string>
-#include <memory>
-#include <csignal>
 
-// Context singleton class
-class Context
+namespace mamba
 {
-public:
-
-    // TODO $CONDA_PREFIX doesn't work.
-    std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
-
-    bool use_index_cache = false;
-    std::size_t local_repodata_ttl = 1; // take from header
-    bool offline = false;
-    bool quiet = false;
-    bool json = false;
-
-    long max_parallel_downloads = 5;
-    int verbosity = 4;
-
-    bool on_ci = false;
-    bool no_progress_bars = false;
-    bool dry_run = false;
-    bool always_yes = false;
-
-    bool sig_interrupt = false;
-
-    void set_verbosity(int lvl)
+    // Context singleton class
+    class Context
     {
-        if (lvl == 0)
-        {
-            minilog::global_log_severity = 3;
-        }
-        else if (lvl == 1)
-        {
-            minilog::global_log_severity = 1;
-        }
-        else 
-        {
-            minilog::global_log_severity = 0;
-        }
+    public:
 
-        this->verbosity = lvl;
-    }
+        // TODO $CONDA_PREFIX doesn't work.
+        std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
 
-    Context(Context const&) = delete;
-    Context& operator=(Context const&) = delete;
+        bool use_index_cache = false;
+        std::size_t local_repodata_ttl = 1; // take from header
+        bool offline = false;
+        bool quiet = false;
+        bool json = false;
 
-    Context& operator()()
-    {
-        return instance();
-    }
+        long max_parallel_downloads = 5;
+        int verbosity = 4;
 
-    static Context& instance()
-    {
-        static Context ctx;
-        return ctx;
-    }
+        bool on_ci = false;
+        bool no_progress_bars = false;
+        bool dry_run = false;
+        bool always_yes = false;
 
-private:
-    Context() {
-        set_verbosity(0);
-        on_ci = (std::getenv("CI") != nullptr);
-        if (on_ci)
-        {
-            no_progress_bars = true;
-        }
+        bool sig_interrupt = false;
 
-        std::signal(SIGINT, [](int signum) {
-            instance().sig_interrupt = true;
-        });
-    }
-};
+        void set_verbosity(int lvl);
+    
+        static Context& instance();
+
+        Context(const Context&) = delete;
+        Context& operator=(const Context&) = delete;
+
+        Context(Context&&) = delete;
+        Context& operator=(Context&&) = delete;
+
+    private:
+
+        Context();
+        ~Context() = default;
+    };
+}
+
+#endif // MAMBA_CONTEXT_HPP

@@ -60,11 +60,14 @@ else:
 ext_modules = [
     Extension(
         'mamba.mamba_api',
-        ['include/py_interface.cpp', 'include/thirdparty/minilog.cpp'],
+        ['include/py_interface.cpp',
+         'include/thirdparty/minilog.cpp',
+         'src/context.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
             os.path.join(libsolv_prefix, 'include'),
+            "include/",
             "include/thirdparty/"
         ],
         library_dirs=library_dir,

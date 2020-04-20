@@ -37,7 +37,7 @@ namespace mamba
         }
     }
 
-    void extract_archive(const fs::path& file, const fs::path& destination)
+    inline void extract_archive(const fs::path& file, const fs::path& destination)
     {
         struct archive *a;
         struct archive *ext;
@@ -117,7 +117,7 @@ namespace mamba
         archive_write_free(ext);
     }
 
-    void extract_conda(const fs::path& file, const fs::path& dest_dir, const std::vector<std::string>& parts = {"info", "pkg"})
+    inline void extract_conda(const fs::path& file, const fs::path& dest_dir, const std::vector<std::string>& parts = {"info", "pkg"})
     {
         TemporaryDirectory tdir;
         extract_archive(file, tdir);
@@ -148,7 +148,7 @@ namespace mamba
         }
     }
 
-    fs::path extract(const fs::path& file)
+    inline fs::path extract(const fs::path& file)
     {
         std::string dest_dir = file;
         if (ends_with(dest_dir, ".tar.bz2"))

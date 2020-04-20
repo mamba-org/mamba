@@ -12,7 +12,7 @@ namespace fs = ghc::filesystem;
 
 namespace validate
 {
-    std::string sha256sum(const std::string& path, std::size_t filesize)
+    inline std::string sha256sum(const std::string& path, std::size_t filesize)
     {
         unsigned char hash[SHA256_DIGEST_LENGTH];
 
@@ -47,7 +47,7 @@ namespace validate
         return out.str();
     }
 
-    std::string md5sum(const std::string& path, std::size_t filesize)
+    inline std::string md5sum(const std::string& path, std::size_t filesize)
     {
         unsigned char hash[MD5_DIGEST_LENGTH];
 
@@ -82,15 +82,15 @@ namespace validate
         return out.str();
     }
 
-    bool sha256(const std::string& path, std::size_t filesize, const std::string& validation) {
+    inline bool sha256(const std::string& path, std::size_t filesize, const std::string& validation) {
         return sha256sum(path, filesize) == validation;
     }
 
-    bool md5(const std::string& path, std::size_t filesize, const std::string& validation) {
+    inline bool md5(const std::string& path, std::size_t filesize, const std::string& validation) {
         return md5sum(path, filesize) == validation;
     }
 
-    bool file_size(const fs::path& path, std::uintmax_t validation)
+    inline bool file_size(const fs::path& path, std::uintmax_t validation)
     {
         return fs::file_size(path) == validation;
     }

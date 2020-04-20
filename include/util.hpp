@@ -26,7 +26,7 @@ static bool starts_with(const std::string_view& str, const std::string_view& pre
     return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
 }
 
-void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0)
+inline void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0)
 {
     const char* sizes[] = { " B", "KB", "MB", "GB", "TB" };
     int order = 0;

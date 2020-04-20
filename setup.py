@@ -62,7 +62,8 @@ ext_modules = [
         'mamba.mamba_api',
         ['include/py_interface.cpp',
          'include/thirdparty/minilog.cpp',
-         'src/context.cpp'],
+         'src/context.cpp',
+         'src/fetch.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),

@@ -59,9 +59,10 @@ class Environment:
         else:
             self.shell.execute('MAMBA=mamba')
             out = self.shell.execute('echo $CONDA_PREFIX')
-            conda_prefix = out[-1].replace('/c', 'C:').replace('/', '\\\\')
+            conda_prefix = out[-1].replace('\\', '\\\\')
             i = conda_prefix.rfind('\\\\')
             dst = conda_prefix[:i] + '\\\\' + self.name
+            print(conda_prefix, dst)
             self.shell.execute(f'cp -r {conda_prefix} {dst}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')

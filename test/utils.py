@@ -64,8 +64,8 @@ class Environment:
             i = mamba_path.rfind('\\\\')
             i = mamba_path[:i].rfind('\\\\')
             pythonpath = mamba_path[:i] + '\\\\lib\\\\site-packages'
-            print('PYTHONPATH', pythonpath)
-            self.shell.execute(f'PYTHONPATH={pythonpath}')
+            self.shell.execute(f'PATH={pythonpath}:$PATH')
+            self.shell.execute('echo $PATH')
             self.shell.execute(f'MAMBA={mamba_path}')
             self.shell.execute(f'conda create -q -y -n {self.name} python={py_ver}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')

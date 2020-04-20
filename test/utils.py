@@ -61,9 +61,9 @@ class Environment:
             py_ver = out[-1].split()[-1]
             out = self.shell.execute('which mamba')
             mamba_path = out[-1].replace('/c', 'C:').replace('/', '\\\\')
-            i = mamba_path.rfind('\\')
-            i = mamba_path[:i].rfind('\\')
-            pythonpath = mamba_path[:i] + '\\lib\\site-packages'
+            i = mamba_path.rfind('\\\\')
+            i = mamba_path[:i].rfind('\\\\')
+            pythonpath = mamba_path[:i] + '\\\\lib\\\\site-packages'
             print('PYTHONPATH', pythonpath)
             self.shell.execute(f'PYTHONPATH={pythonpath}')
             self.shell.execute(f'MAMBA={mamba_path}')

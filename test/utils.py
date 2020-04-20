@@ -49,7 +49,9 @@ class Environment:
         self.shell = Shell()
         self.name = 'env_' + str(uuid.uuid1())
         if os.name != 'nt':
-            self.shell.execute('MAMBA=$CONDA_PREFIX/bin/mamba')
+            out = self.shell.execute('which mamba')
+            mamba_path = out[-1]
+            self.shell.execute(f'MAMBA={mamba_path}')
             self.shell.execute('conda create -q -y -n ' + self.name)
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
@@ -59,7 +61,8 @@ class Environment:
             py_ver = out[-1].split()[-1]
             #self.shell.execute('PATH=$CONDA_PREFIX/lib/site-packages:$PATH')
             out = self.shell.execute('which mamba')
-            self.shell.execute(f'MAMBA={out}')
+            mamba_path = out[-1]
+            self.shell.execute(f'MAMBA={mamba_path}')
             self.shell.execute(f'conda create -q -y -n {self.name} python={py_ver}')
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')

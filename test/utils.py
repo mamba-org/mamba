@@ -49,7 +49,7 @@ class Environment:
         self.shell = Shell()
         self.name = 'env_' + str(uuid.uuid1())
         if os.name != 'nt':
-            self.shell.execute('MAMBA=$CONDA_PREFIX/condabin/mamba')
+            self.shell.execute('MAMBA=$CONDA_PREFIX/bin/mamba')
             self.shell.execute('conda create -q -y -n ' + self.name)
             self.shell.execute('CONDA_BASE=$(conda info --base)')
             self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
@@ -71,6 +71,9 @@ class Environment:
 
 
 def get_glibc_version():
+    if os.name == 'nt':
+        return
+
     try:
         output = subprocess.check_output(['ldd', '--version'])
     except:
@@ -94,17 +97,16 @@ def run_mamba_conda(channels, package):
 
 
 def add_glibc_virtual_package():
-    if not os.name == 'nt':
-        version = get_glibc_version()
-        with open('test/channel_a/linux-64/repodata.tpl') as f:
-            repodata = f.read()
-        with open('test/channel_a/linux-64/repodata.json', 'w') as f:
-            if version is not None:
-                glibc_placeholder = ', "__glibc=' + version + '"'
-            else:
-                glibc_placeholder = ''
-            repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
-            f.write(repodata)
+    version = get_glibc_version()
+    with open('test/channel_a/linux-64/repodata.tpl') as f:
+        repodata = f.read()
+    with open('test/channel_a/linux-64/repodata.json', 'w') as f:
+        if version is not None:
+            glibc_placeholder = ', "__glibc=' + version + '"'
+        else:
+            glibc_placeholder = ''
+        repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
+        f.write(repodata)
 
 
 def copy_channels_arch():

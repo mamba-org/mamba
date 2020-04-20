@@ -63,7 +63,9 @@ ext_modules = [
         ['include/py_interface.cpp',
          'include/thirdparty/minilog.cpp',
          'src/context.cpp',
-         'src/fetch.cpp'],
+         'src/fetch.cpp',
+         'src/util.cpp',
+         'src/validate.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),

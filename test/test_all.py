@@ -1,3 +1,5 @@
+import os
+
 from distutils.version import StrictVersion
 from utils import Environment, add_glibc_virtual_package, copy_channels_arch, run_mamba_conda
 

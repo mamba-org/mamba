@@ -48,11 +48,18 @@ class Environment:
     def __init__(self):
         self.shell = Shell()
         self.name = 'env_' + str(uuid.uuid1())
-        self.shell.execute('MAMBA=$CONDA_PREFIX/bin/mamba')
-        self.shell.execute('conda create -q -y -n ' + self.name)
-        self.shell.execute('CONDA_BASE=$(conda info --base)')
-        self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
-        self.shell.execute('conda activate ' + self.name)
+        if os.name != 'nt':
+            self.shell.execute('MAMBA=$CONDA_PREFIX/condabin/mamba')
+            self.shell.execute('conda create -q -y -n ' + self.name)
+            self.shell.execute('CONDA_BASE=$(conda info --base)')
+            self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
+            self.shell.execute('conda activate ' + self.name)
+        else:
+            self.shell.execute('MAMBA=$CONDA_PREFIX/Scripts/mamba')
+            self.shell.execute('conda create -q -y -n ' + self.name)
+            self.shell.execute('CONDA_BASE=$(conda info --base)')
+            self.shell.execute('source $CONDA_BASE/etc/profile.d/conda.sh')
+            self.shell.execute('conda activate ' + self.name)
 
     def __enter__(self):
         return self.shell
@@ -87,16 +94,17 @@ def run_mamba_conda(channels, package):
 
 
 def add_glibc_virtual_package():
-    version = get_glibc_version()
-    with open('test/channel_a/linux-64/repodata.tpl') as f:
-        repodata = f.read()
-    with open('test/channel_a/linux-64/repodata.json', 'w') as f:
-        if version is not None:
-            glibc_placeholder = ', "__glibc=' + version + '"'
-        else:
-            glibc_placeholder = ''
-        repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
-        f.write(repodata)
+    if not os.name == 'nt':
+        version = get_glibc_version()
+        with open('test/channel_a/linux-64/repodata.tpl') as f:
+            repodata = f.read()
+        with open('test/channel_a/linux-64/repodata.json', 'w') as f:
+            if version is not None:
+                glibc_placeholder = ', "__glibc=' + version + '"'
+            else:
+                glibc_placeholder = ''
+            repodata = repodata.replace('GLIBC_PLACEHOLDER', glibc_placeholder)
+            f.write(repodata)
 
 
 def copy_channels_arch():

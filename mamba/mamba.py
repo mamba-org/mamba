@@ -83,6 +83,9 @@ banner = """
 
 def init_api_context():
     api_ctx = api.Context()
+    # print(context.ssl_verify)
+    # print(context.client_ssl_cert)
+    # print(context.client_ssl_cert_key)
     api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.json = context.json
@@ -91,6 +94,10 @@ def init_api_context():
     api_ctx.use_index_cache = context.use_index_cache
     api_ctx.always_yes = context.always_yes
     api_ctx.dry_run = context.dry_run
+    if context.ssl_verify == False:
+        api_ctx.ssl_verify = "<false>"
+    elif context.ssl_verify is not True:
+        api_ctx.ssl_verify = context.ssl_verify 
 
 class MambaException(Exception):
     pass

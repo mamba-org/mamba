@@ -1,6 +1,11 @@
 #include <iostream>
 #include <iomanip>
 
+#ifdef _WIN32
+#include <io.h>
+#include <cassert>
+#endif
+
 #include "util.hpp"
 
 namespace mamba

@@ -30,6 +30,11 @@ namespace mamba
 
         bool sig_interrupt = false;
 
+        // ssl verify can be either an empty string (regular SSL verification),
+        // the string "<false>" to indicate no SSL verification, or a path to 
+        // a directory with cert files, or a cert file.
+        std::string ssl_verify = "";
+
         void set_verbosity(int lvl);
     
         static Context& instance();

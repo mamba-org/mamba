@@ -83,6 +83,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("max_parallel_downloads", &Context::max_parallel_downloads)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
+        .def_readwrite("ssl_verify", &Context::ssl_verify)
         .def("set_verbosity", &Context::set_verbosity)
     ;
 

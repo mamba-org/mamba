@@ -1,3 +1,4 @@
+#include "context.hpp"
 #include "fetch.hpp"
 #include "util.hpp"
 
@@ -31,6 +32,70 @@ namespace mamba
         }
         curl_easy_setopt(m_target, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_target, CURLOPT_VERBOSE, Context::instance().verbosity != 0);
+
+        const std::string& ssl_verify = Context::instance().ssl_verify;
+        if (ssl_verify.size())
+        {
+            if (ssl_verify == "<false>")
+            {
+                curl_easy_setopt(m_target, CURLOPT_SSL_VERIFYPEER, 0L);
+                curl_easy_setopt(m_target, CURLOPT_SSL_VERIFYHOST, 0L);
+            }
+            else
+            {
+                if (!fs::exists(ssl_verify))
+                {
+                    throw std::runtime_error("ssl_verify does not contain a valid file path.");
+                }
+                else
+                {
+                    // the next option can be "PEM", "DER" or "P12" (on iOS)
+                    // not sure if we should extract this from the filename?!
+
+                    // figure out the format:
+                    const char* pem[] = {".pem", ".crt", ".ca-bundle"};
+                    const char* der[] = {".der", ".cer"};
+                    // PKCS#7 .p7b .p7s
+                    // PKCS#12 .pfx, .p12
+
+                    bool found = false;
+                    for (auto& e : pem)
+                    {
+                        if (ends_with(ssl_verify, e))
+                        {
+                            curl_easy_setopt(m_target, CURLOPT_SSLCERTTYPE, "PEM");
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        for (auto& e : der)
+                        {
+                            if (ends_with(ssl_verify, e))
+                            {
+                                curl_easy_setopt(m_target, CURLOPT_SSLCERTTYPE, "DER");
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!found)
+                    {
+                        throw std::runtime_error("Currently we only support .pem, .crt, .ca-bundle, .der and .cer extensions");
+                    }
+
+                    curl_easy_setopt(m_target, CURLOPT_SSLCERT, ssl_verify.c_str());
+                }
+                // if ssl_verify points to a file?
+            }
+        }
+        else
+        {
+            curl_easy_setopt(m_target, CURLOPT_SSL_VERIFYPEER, 1L);
+            curl_easy_setopt(m_target, CURLOPT_SSL_VERIFYHOST, 2L);
+        }
+
     }
 
     DownloadTarget::~DownloadTarget()

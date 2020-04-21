@@ -134,8 +134,15 @@ namespace mamba
                     {
                         const std::lock_guard<std::mutex> lock(instance().m_mutex);
                         const auto& ps = instance().m_active_progress_bars.size();
-                        std::cout << cursor::prev_line(ps) << cursor::erase_line()
-                                  << str << std::endl;
+                        if (ps > 0)
+                        {
+                            std::cout << cursor::prev_line(ps) << cursor::erase_line()
+                                      << str << std::endl;
+                        }
+                        else
+                        {
+                            std::cout << std << std::endl;
+                        }
                     }
                     Output::instance().print_progress(-1);
                 }

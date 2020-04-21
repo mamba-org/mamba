@@ -214,12 +214,18 @@ namespace mamba
         }
         m_transaction = solver_create_transaction(solver);
         init();
+        Console::instance().json_down("actions");
     }
 
     MTransaction::~MTransaction()
     {
         LOG_INFO << "Freeing transaction.";
         transaction_free(m_transaction);
+        Console::instance().json_write("PREFIX", Context::instance().target_prefix);
+        Console::instance().json_up();
+        Console::instance().json_write("dry_run", Context::instance().dry_run);
+        Console::instance().json_write("prefix", Context::instance().target_prefix);
+        Console::instance().json_print();
     }
 
     void MTransaction::init()
@@ -275,10 +281,11 @@ namespace mamba
         queue_free(&pkgs);
     }
 
-    auto MTransaction::to_conda() -> to_conda_type 
+    auto MTransaction::to_conda() -> to_conda_type
     {
-        to_install_type to_install_structured; 
+        to_install_type to_install_structured;
         to_remove_type to_remove_structured;
+        Console::instance().json_down("FETCH");
 
         for (Solvable* s : m_to_remove)
         {
@@ -289,9 +296,12 @@ namespace mamba
         for (Solvable* s : m_to_install)
         {
             const char* mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-            std::string s_json = solvable_to_json(s).dump(4);
+            nlohmann::json j = solvable_to_json(s);
+            std::string s_json = j.dump(4);
             to_install_structured.emplace_back(s->repo->name, mediafile, s_json);
+            Console::instance().json_append(j);
         }
+        Console::instance().json_up();
 
         return std::make_tuple(to_install_structured, to_remove_structured);
     }
@@ -366,4 +376,3 @@ namespace mamba
         transaction_print(m_transaction);
     }
 }
-

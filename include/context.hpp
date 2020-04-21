@@ -26,6 +26,7 @@ namespace mamba
         bool on_ci = false;
         bool no_progress_bars = false;
         bool dry_run = false;
+        std::string target_prefix;
         bool always_yes = false;
 
         bool sig_interrupt = false;

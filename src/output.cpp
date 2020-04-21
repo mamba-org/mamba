@@ -194,7 +194,7 @@ namespace mamba
     /*****************
      * ProgressProxy *
      *****************/
-        
+
     ProgressProxy::ProgressProxy(ProgressBar* ptr, std::size_t idx)
         : p_bar(ptr)
         , m_idx(idx)
@@ -368,9 +368,9 @@ namespace mamba
         {
             return;
         }
-        
+
         std::lock_guard<std::mutex> lock(instance().m_mutex);
-        
+
         std::size_t cursor_up = m_active_progress_bars.size();
         if (m_progress_started && cursor_up > 0)
         {
@@ -488,4 +488,3 @@ namespace mamba
         return sev;
     }
 }
-

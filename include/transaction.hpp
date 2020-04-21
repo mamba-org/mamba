@@ -9,6 +9,7 @@
 #include "repo.hpp"
 #include "fetch.hpp"
 #include "package_handling.hpp"
+#include "output.hpp"
 
 extern "C"
 {

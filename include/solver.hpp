@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "pool.hpp"
+#include "output.hpp"
 
 extern "C"
 {

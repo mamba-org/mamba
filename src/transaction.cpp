@@ -105,7 +105,7 @@ namespace mamba
     {
         Id unused;
 
-        m_progress_proxy.set_option(indicators::option::PostfixText{"Validating..."});
+        m_progress_proxy.set_postfix("Validating...");
 
         // Validation
         auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
@@ -120,11 +120,11 @@ namespace mamba
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
 
-        m_progress_proxy.set_option(indicators::option::PostfixText{"Decompressing..."});
+        m_progress_proxy.set_postfix("Decompressing...");
         auto extract_path = extract(m_tarball_path);
         write_repodata_record(extract_path);
         add_url();
-        m_progress_proxy.set_option(indicators::option::PostfixText{"Done"});
+        m_progress_proxy.set_postfix("Done");
         m_progress_proxy.mark_as_completed("Downloaded & extracted " + m_name);
         return 0;
     }
@@ -321,7 +321,7 @@ namespace mamba
         {
             fetch_extract_packages(cache_dir, repos);
         }
-        return true;
+        return res;
     }
 
     void MTransaction::print()

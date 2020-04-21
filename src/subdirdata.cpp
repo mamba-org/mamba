@@ -194,7 +194,7 @@ namespace mamba
                 m_solv_cache_valid = true;
             }
 
-            m_progress_bar.set_option(indicators::option::PostfixText{"No change"});
+            m_progress_bar.set_postfix("No change");
             m_progress_bar.set_progress(100);
             m_progress_bar.mark_as_completed();
 
@@ -223,11 +223,11 @@ namespace mamba
 
         if (ends_with(m_url, ".bz2"))
         {
-            m_progress_bar.set_option(indicators::option::PostfixText{"Decomp..."});
+            m_progress_bar.set_postfix("Decomp...");
             m_temp_name = decompress();
         }
 
-        m_progress_bar.set_option(indicators::option::PostfixText{"Finalizing..."});
+        m_progress_bar.set_postfix("Finalizing...");
 
         std::ifstream temp_file(m_temp_name);
         std::stringstream temp_json;
@@ -243,7 +243,7 @@ namespace mamba
             std::ostreambuf_iterator<char>(final_file)
         );
 
-        m_progress_bar.set_option(indicators::option::PostfixText{"Done"});
+        m_progress_bar.set_postfix("Done");
         m_progress_bar.set_progress(100);
         m_progress_bar.mark_as_completed();
 
@@ -268,7 +268,6 @@ namespace mamba
     {
         m_temp_name = std::tmpnam(nullptr);
         m_progress_bar = Console::instance().add_progress_bar(m_name);
-        // m_target->set_progress_callback(&MSubdirData::progress_callback, this);
         m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_name);
         m_target->set_progress_bar(m_progress_bar);
         m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);

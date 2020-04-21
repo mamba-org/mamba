@@ -112,7 +112,7 @@ namespace mamba
             to_human_readable_filesize(postfix, get_speed(), 2);
             postfix << "/s)";
             m_progress_bar.set_progress(perc * 100.);
-            m_progress_bar.set_option(indicators::option::PostfixText{postfix.str()});
+            m_progress_bar.set_postfix(postfix.str());
         }
         if (now_downloaded == 0 && total_to_download != 0)
         {
@@ -121,8 +121,8 @@ namespace mamba
             postfix << " / ?? (";
             to_human_readable_filesize(postfix, get_speed(), 2);
             postfix << "/s)";
-            m_progress_bar.set_progress(0);
-            m_progress_bar.set_option(indicators::option::PostfixText{postfix.str()});
+            m_progress_bar.set_progress(-1);
+            m_progress_bar.set_postfix(postfix.str());
         }
         return 0;
     }

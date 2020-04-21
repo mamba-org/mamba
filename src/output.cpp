@@ -17,7 +17,7 @@ namespace mamba
         #else
 
         CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
         return coninfo.dwSize.X;
         #endif
 

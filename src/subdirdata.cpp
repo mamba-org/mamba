@@ -5,7 +5,7 @@ namespace decompress
     bool raw(const std::string& in, const std::string& out)
     {
         int r;
-        ssize_t size;
+        std::ptrdiff_t size;
 
         LOG(INFO) << "Decompressing from " << in << " to " << out;
 

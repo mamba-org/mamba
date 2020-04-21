@@ -53,7 +53,7 @@ namespace mamba
 
         std::ofstream out_file;
 
-        Output::ProgressProxy m_progress_bar;
+        ProgressProxy m_progress_bar;
 
         bool m_loaded, m_download_complete;
         std::string m_url;

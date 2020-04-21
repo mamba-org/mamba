@@ -112,7 +112,7 @@ namespace mamba
                     LOG(INFO) << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
                     std::string prefix = m_name;
                     prefix.resize(PREFIX_LENGTH - 1, ' ');
-                    Output::print() << prefix << " Using cache";
+                    Console::print() << prefix << " Using cache";
 
                     m_loaded = true;
                     m_json_cache_valid = true;
@@ -267,7 +267,7 @@ namespace mamba
     void MSubdirData::create_target(nlohmann::json& mod_etag)
     {
         m_temp_name = std::tmpnam(nullptr);
-        m_progress_bar = Output::instance().add_progress_bar(m_name);
+        m_progress_bar = Console::instance().add_progress_bar(m_name);
         // m_target->set_progress_callback(&MSubdirData::progress_callback, this);
         m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_name);
         m_target->set_progress_bar(m_progress_bar);

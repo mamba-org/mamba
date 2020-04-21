@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MAMBA_OUTPUT_HPP
+#define MAMBA_OUTPUT_HPP
 
 #include "thirdparty/minilog.hpp"
 #include "thirdparty/indicators/progress_bar.hpp"
@@ -8,10 +9,6 @@
 #include <mutex>
 
 #include "context.hpp"
-
-#ifdef _WIN32
-#include <windows.h>
-#endif
 
 #define PREFIX_LENGTH 25
 
@@ -102,247 +99,91 @@ namespace cursor
 
 namespace mamba
 {
-    class Output
+    // Todo: replace public inheritance with
+    // private one + using directives
+    class ConsoleStringStream : public std::stringstream
     {
     public:
-        class SpecialStream : public std::stringstream
-        {
-        public:
-            SpecialStream()
-                : std::stringstream()
-            {
-            }
 
-            ~SpecialStream()
-            {
-                Output::instance().print(str());
-            }
-        };
+        ConsoleStringStream() = default;
+        ~ConsoleStringStream();
+    };
 
-        static SpecialStream print()
-        {
-            return SpecialStream();
-        }
+    class ProgressProxy
+    {
+    public:
 
-        static void print(const std::string_view& str)
-        {
-            if (!(Context::instance().quiet || Context::instance().json))
-            {
-                // print above the progress bars
-                if (Output::instance().m_progress_started)
-                {
-                    {
-                        const std::lock_guard<std::mutex> lock(instance().m_mutex);
-                        const auto& ps = instance().m_active_progress_bars.size();
-                        std::cout << cursor::prev_line(ps) << cursor::erase_line()
-                                  << str << std::endl;
-                    }
-                    Output::instance().print_progress(-1);
-                }
-                else
-                {
-                    const std::lock_guard<std::mutex> lock(instance().m_mutex);
-                    std::cout << str << std::endl;
-                }
-            }
-        }
+        ProgressProxy() = default;
+        ~ProgressProxy() = default;
 
-        static bool prompt(const std::string_view& message, char fallback='_')
-        {
-            if (Context::instance().always_yes) {
-                return true;
-            }
-            char in;
-            while (!Context::instance().sig_interrupt) {
-                std::cout << message << ": ";
-                if (fallback == 'n') {
-                    std::cout << "[y/N] ";
-                }
-                else if (fallback == 'y') {
-                    std::cout << "[Y/n] ";
-                }
-                else {
-                    std::cout << "[y/n] ";
-                }
-                in = std::cin.get();
-                if (in == '\n')
-                {
-                    // enter pressed
-                    in = fallback;
-                }
-                if (in == 'y' || in == 'Y')
-                {
-                    return true && !Context::instance().sig_interrupt;
-                }
-                if (in == 'n' || in == 'N')
-                {
-                    return false;
-                }
-            }
-            return false;
-        }
+        ProgressProxy(const ProgressProxy&) = default;
+        ProgressProxy& operator=(const ProgressProxy&) = default;
+        ProgressProxy(ProgressProxy&&) = default;
+        ProgressProxy& operator=(ProgressProxy&&) = default;
 
-        struct ProgressProxy
-        {
-            indicators::ProgressBar* p_bar;
-            std::size_t m_idx;
-
-            ProgressProxy() = default;
-
-            ProgressProxy(indicators::ProgressBar* ptr, std::size_t idx)
-                : p_bar(ptr), m_idx(idx)
-            {
-            }
-
-            void set_progress(std::size_t p)
-            {
-                p_bar->set_progress(p);
-                Output::instance().print_progress(m_idx);
-            }
-            template <class T>
-            void set_option(T&& option)
-            {
-                p_bar->set_option(std::forward<T>(option));
-                Output::instance().print_progress(m_idx);
-            }
-
-            void mark_as_completed(const std::string_view& final_message = "") const
-            {
-                // mark as completed should print bar or message at FIRST position!
-                // then discard
-                p_bar->mark_as_completed();
-                Output::instance().deactivate_progress_bar(m_idx);
-
-                if (Context::instance().quiet || Context::instance().json)
-                {
-                    return;
-                }
-
-                if (final_message.size())
-                {
-                    {
-                        const std::lock_guard<std::mutex> lock(instance().m_mutex);
-                        int ps = instance().m_active_progress_bars.size();
-                        std::cout << cursor::prev_line(ps + 1) << cursor::erase_line()
-                                  << final_message << std::endl;
-                    }
-                    Output::instance().print_progress(-1);
-                }
-                else if (Context::instance().no_progress_bars == false)
-                {
-                    {
-                        const std::lock_guard<std::mutex> lock(instance().m_mutex);
-                        int ps = instance().m_active_progress_bars.size();
-                        std::cout << cursor::prev_line(ps + 1) << cursor::erase_line();
-                        p_bar->print_progress(true);
-                        std::cout << "\n";
-                    }
-                    Output::instance().print_progress(-1);
-                }
-                else if (Context::instance().no_progress_bars)
-                {
-                    Output::print("Finished downloading " + p_bar->get_value<indicators::details::ProgressBarOption::prefix_text>());
-                }
-            }
-        };
-
-        ProgressProxy add_progress_bar(const std::string& name)
-        {
-            std::string prefix = name;
-            prefix.resize(PREFIX_LENGTH - 1, ' ');
-            prefix += ' ';
-
-            m_progress_bars.push_back(std::make_unique<indicators::ProgressBar>(
-                indicators::option::BarWidth{15},
-                indicators::option::ForegroundColor{indicators::Color::unspecified},
-                indicators::option::ShowElapsedTime{true},
-                indicators::option::ShowRemainingTime{false},
-                indicators::option::MaxPostfixTextLen{36},
-                indicators::option::PrefixText(prefix)
-            ));
-
-            m_progress_bars[m_progress_bars.size() - 1].get()->multi_progress_mode_ = true;
-            return ProgressProxy(m_progress_bars[m_progress_bars.size() - 1].get(),
-                                 m_progress_bars.size() - 1);
-        }
-
-        void init_multi_progress()
-        {
-            m_active_progress_bars.clear();
-            m_progress_bars.clear();
-            m_progress_started = false;
-        }
-
-        void deactivate_progress_bar(std::size_t idx)
-        {
-            const std::lock_guard<std::mutex> lock(instance().m_mutex);
-
-            auto it = std::find(m_active_progress_bars.begin(), m_active_progress_bars.end(), m_progress_bars[idx].get());
-            if (it != m_active_progress_bars.end())
-            {
-                m_active_progress_bars.erase(it);
-            }
-        }
-
-        void print_progress(std::ptrdiff_t idx)
-        {
-            if (Context::instance().quiet || Context::instance().json || Context::instance().no_progress_bars) return;
-
-            const std::lock_guard<std::mutex> lock(instance().m_mutex);
-            std::size_t cursor_up = m_active_progress_bars.size();
-            if (idx != -1)
-            {
-                auto it = std::find(m_active_progress_bars.begin(), m_active_progress_bars.end(), m_progress_bars[idx].get());
-                if (it == m_active_progress_bars.end())
-                {
-                    m_active_progress_bars.push_back(m_progress_bars[idx].get());
-                }
-            }
-
-            if (idx == -1 && m_progress_started)
-            {
-                for (auto& bar : m_active_progress_bars)
-                {
-                    bar->print_progress(true);
-                    std::cout << "\n";
-                }
-                return;
-            }
-
-            if (m_progress_started && cursor_up > 0)
-            {
-                std::cout << cursor::prev_line(cursor_up);
-            }
-
-            for (auto& bar : m_active_progress_bars)
-            {
-                bar->print_progress(true);
-                std::cout << "\n";
-            }
-            if (m_progress_started == false && idx != -1)
-            {
-                m_progress_started = true;
-            }
-        }
-
-        static Output& instance()
-        {
-            static Output out;
-            return out;
-        }
+        void set_progress(std::size_t p);
+        
+        template <class T>
+        void set_option(T&& option);
+        void mark_as_completed(const std::string_view& final_message = "");
 
     private:
-        Output() {
-        #ifdef _WIN32
-            // initialize ANSI codes on Win terminals
-            auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-            SetConsoleMode(hStdout, ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-        #endif
-        }
 
+        ProgressProxy(indicators::ProgressBar* ptr, std::size_t idx);
+
+        indicators::ProgressBar* p_bar;
+        std::size_t m_idx;
+
+        friend class Console;
+    };
+
+    class Console
+    {
+    public:
+
+        Console(const Console&) = delete;
+        Console& operator=(const Console&) = delete;
+        
+        Console(Console&&) = delete;
+        Console& operator=(Console&&) = delete;
+
+        static Console& instance();
+
+        static ConsoleStringStream print();
+        static void print(const std::string_view& str);
+        static bool prompt(const std::string_view& message, char fallback='_');
+
+        ProgressProxy add_progress_bar(const std::string& name);
+        void init_multi_progress();
+
+    private:
+
+        using progress_bar_ptr = std::unique_ptr<indicators::ProgressBar>;
+
+        Console();
+        ~Console() = default;
+
+        void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
+        void print_progress(std::size_t idx);
+        void print_progress();
+        void print_progress_unlocked();
+        bool skip_progress_bars() const;
+        
         std::mutex m_mutex;
-        std::vector<std::unique_ptr<indicators::ProgressBar>> m_progress_bars;
+        std::vector<progress_bar_ptr> m_progress_bars;
         std::vector<indicators::ProgressBar*> m_active_progress_bars;
         bool m_progress_started = false;
+
+        friend class ProgressProxy;
     };
+
+    template <class T>
+    void ProgressProxy::set_option(T&& option)
+    {
+        p_bar->set_option(std::forward<T>(option));
+        Console::instance().print_progress(m_idx);
+    }
 }
+
+#endif
+

@@ -41,7 +41,7 @@ namespace mamba
         MRepo* m_repo;
         Solvable* m_solv;
 
-        Output::ProgressProxy m_progress_proxy;
+        ProgressProxy m_progress_proxy;
         std::unique_ptr<DownloadTarget> m_target;
 
         std::string m_url, m_name, m_channel, m_filename;

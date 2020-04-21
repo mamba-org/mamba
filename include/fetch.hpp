@@ -40,7 +40,7 @@ namespace mamba
 
         int progress_callback(void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
         void set_mod_etag_headers(const nlohmann::json& mod_etag);
-        void set_progress_bar(Output::ProgressProxy progress_proxy);
+        void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
 
         const std::string& name() const;
@@ -81,7 +81,7 @@ namespace mamba
         curl_slist* m_headers;
 
         bool m_has_progress_bar = false;
-        Output::ProgressProxy m_progress_bar;
+        ProgressProxy m_progress_bar;
 
         std::ofstream m_file;
     };

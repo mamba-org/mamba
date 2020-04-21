@@ -6,8 +6,6 @@
 #include <regex>
 
 #include "nlohmann/json.hpp"
-#include "thirdparty/indicators/dynamic_progress.hpp"
-#include "thirdparty/indicators/progress_bar.hpp"
 
 #include "context.hpp"
 #include "util.hpp"

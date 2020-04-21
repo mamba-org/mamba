@@ -1,11 +1,127 @@
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <sys/ioctl.h>
 #endif
 
 #include "output.hpp"
 
 namespace mamba
 {
+    inline int get_console_width()
+    {
+        #ifndef _WIN32
+        struct winsize w;
+        ioctl(0, TIOCGWINSZ, &w);
+        return w.ws_col;
+        #else
+
+        CONSOLE_SCREEN_BUFFER_INFO coninfo;
+        res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+        return coninfo.dwSize.X;
+        #endif
+
+        return -1;
+    }
+
+    ProgressBar::ProgressBar(const std::string& prefix)
+        : m_prefix(prefix), m_start_time_saved(false)
+    {
+    }
+
+    void ProgressBar::set_start()
+    {
+        m_start_time = std::chrono::high_resolution_clock::now();
+        m_start_time_saved = true;
+    }
+
+    void ProgressBar::set_progress(char p)
+    {
+        if (!m_start_time_saved)
+        {
+            set_start();
+        }
+
+        if (p == -1)
+        {
+            m_activate_bob = true;
+            m_progress += 5;
+        }
+        else
+        {
+            m_activate_bob = false;
+            m_progress = p;
+        }
+    }
+
+    void ProgressBar::set_postfix(const std::string& postfix_text)
+    {
+        m_postfix = postfix_text;
+    }
+
+    const std::string& ProgressBar::prefix() const
+    {
+        return m_prefix;
+    }
+
+    void ProgressBar::print()
+    {
+        std::cout << cursor::erase_line(2) << "\r";
+        std::cout << m_prefix << "[";
+
+        std::stringstream pf;
+        if (m_start_time_saved)
+        {
+            auto now = std::chrono::high_resolution_clock::now();
+            m_elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_start_time);
+            pf << "(";
+            write_duration(pf, m_elapsed_ns);
+            pf << ") ";
+        }
+        else
+        {
+            pf << "(--:--) ";
+        }
+        pf << m_postfix;
+        auto fpf = pf.str();
+        int width = get_console_width();
+        width = (width == -1) ? 20 : (std::min)(int(width - (m_prefix.size() + 4) - fpf.size()), 20);
+
+        if (!m_activate_bob)
+        {
+            ProgressScaleWriter w{width, "=", ">", " "};
+            w.write(std::cout, m_progress);
+        }
+        else
+        {
+            auto pos = static_cast<std::size_t>(m_progress * width / 100.0);
+            for (size_t i = 0; i < width; ++i) {
+              if (i == pos - 1)
+              {
+                std::cout << '<';
+              }
+              else if (i == pos)
+              {
+                std::cout << '=';
+              }
+              else if (i == pos + 1)
+              {
+                std::cout << '>';
+              }
+              else
+              {
+                std::cout << ' ';
+              }
+            }
+        }
+        std::cout << "] " << fpf;
+    }
+
+    void ProgressBar::mark_as_completed()
+    {
+        // todo
+    }
+
     /***********************
      * ConsoleStringStream *
      ***********************/
@@ -19,13 +135,13 @@ namespace mamba
      * ProgressProxy *
      *****************/
         
-    ProgressProxy::ProgressProxy(indicators::ProgressBar* ptr, std::size_t idx)
+    ProgressProxy::ProgressProxy(ProgressBar* ptr, std::size_t idx)
         : p_bar(ptr)
         , m_idx(idx)
     {
     }
 
-    void ProgressProxy::set_progress(std::size_t p)
+    void ProgressProxy::set_progress(char p)
     {
         p_bar->set_progress(p);
         Console::instance().print_progress(m_idx);
@@ -132,18 +248,8 @@ namespace mamba
         prefix.resize(PREFIX_LENGTH - 1, ' ');
         prefix += ' ';
 
-        m_progress_bars.push_back(
-            std::make_unique<indicators::ProgressBar>(
-                indicators::option::BarWidth{15},
-                indicators::option::ForegroundColor{indicators::Color::unspecified},
-                indicators::option::ShowElapsedTime{true},
-                indicators::option::ShowRemainingTime{false},
-                indicators::option::MaxPostfixTextLen{36},
-                indicators::option::PrefixText(prefix)
-            )
-        );
+        m_progress_bars.push_back(std::make_unique<ProgressBar>(prefix));
 
-        m_progress_bars[m_progress_bars.size() - 1]->multi_progress_mode_ = true;
         return ProgressProxy(m_progress_bars[m_progress_bars.size() - 1].get(),
                              m_progress_bars.size() - 1);
     }
@@ -168,7 +274,7 @@ namespace mamba
         if (Context::instance().no_progress_bars)
         {
             Console::print("Finished downloading "
-                    + m_progress_bars[idx]->get_value<indicators::details::ProgressBarOption::prefix_text>());
+                    + m_progress_bars[idx]->prefix());
         }
         else
         {
@@ -176,7 +282,7 @@ namespace mamba
             std::cout << cursor::prev_line(ps + 1) << cursor::erase_line();
             if (msg.empty())
             {
-                m_progress_bars[idx]->print_progress(true);
+                m_progress_bars[idx]->print();
                 std::cout << "\n";
             }
             else
@@ -230,7 +336,7 @@ namespace mamba
     {
         for (auto& bar : m_active_progress_bars)
         {
-            bar->print_progress(true);
+            bar->print();
             std::cout << "\n";
         }
     }

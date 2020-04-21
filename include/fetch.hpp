@@ -3,9 +3,6 @@
 
 #include "nlohmann/json.hpp"
 
-#include "thirdparty/indicators/dynamic_progress.hpp"
-#include "thirdparty/indicators/progress_bar.hpp"
-
 #include "output.hpp"
 #include "validate.hpp"
 

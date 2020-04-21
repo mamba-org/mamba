@@ -523,7 +523,9 @@ def install(args, parser, command='install'):
     to_link, to_unlink = transaction.to_conda()
 
     if use_mamba_download:
-        transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
+        downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
+        if not downloaded:
+            exit(0)
         PackageCacheData.first_writable().reload()
 
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)

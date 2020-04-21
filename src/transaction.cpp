@@ -157,7 +157,7 @@ namespace mamba
 
             LOG(INFO) << "Adding " << m_name << " with " << m_url;
 
-            m_progress_proxy = Output::instance().add_progress_bar(m_name);
+            m_progress_proxy = Console::instance().add_progress_bar(m_name);
             m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
             m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
             m_target->set_expected_size(solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
@@ -266,7 +266,7 @@ namespace mamba
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
         MultiDownloadTarget multi_dl;
 
-        Output::instance().init_multi_progress();
+        Console::instance().init_multi_progress();
 
         for (auto& s : m_to_install)
         {
@@ -303,10 +303,10 @@ namespace mamba
             return true;
         }
         // check size of transaction
-        Output::print("\n");
+        Console::print("\n");
         if (empty())
         {
-            Output::print("# All requested packages already installed\n");
+            Console::print("# All requested packages already installed\n");
             return true;
         }
 
@@ -316,7 +316,7 @@ namespace mamba
         {
             return true;
         }
-        bool res = Output::prompt("Confirm changes", 'y');
+        bool res = Console::prompt("Confirm changes", 'y');
         if (res)
         {
             fetch_extract_packages(cache_dir, repos);

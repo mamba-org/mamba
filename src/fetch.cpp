@@ -143,7 +143,7 @@ namespace mamba
         }
     }
     
-    void DownloadTarget::set_progress_bar(Output::ProgressProxy progress_proxy)
+    void DownloadTarget::set_progress_bar(ProgressProxy progress_proxy)
     {
         m_has_progress_bar = true;
         m_progress_bar = progress_proxy;

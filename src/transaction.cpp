@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "transaction.hpp"
 
 namespace mamba
@@ -67,6 +69,8 @@ namespace mamba
      * PackageDownloadExtractTarget *
      ********************************/
 
+    std::mutex PackageDownloadExtractTarget::extract_mutex;
+
     PackageDownloadExtractTarget::PackageDownloadExtractTarget(MRepo* repo, Solvable* solvable)
         : m_repo(repo)
         , m_solv(solvable)
@@ -107,30 +111,60 @@ namespace mamba
 
     int PackageDownloadExtractTarget::finalize_callback()
     {
-        Id unused;
-
-        m_progress_proxy.set_postfix("Validating...");
-
-        // Validation
-        auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
-        std::string sha256_check = solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
-
-        if (m_target->downloaded_size != expected_size)
+        curl_off_t avg_speed;
+        auto cres = curl_easy_getinfo(m_target->handle(), CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
+        if (cres != CURLE_OK)
         {
-            throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
-        }
-        if (!validate::sha256(m_tarball_path, expected_size, sha256_check))
-        {
-            throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            avg_speed = 0;
         }
 
-        m_progress_proxy.set_postfix("Decompressing...");
-        auto extract_path = extract(m_tarball_path);
-        write_repodata_record(extract_path);
-        add_url();
-        m_progress_proxy.set_postfix("Done");
-        m_progress_proxy.mark_as_completed("Downloaded & extracted " + m_name);
+        m_extract_future = std::async(std::launch::async, [this, avg_speed]() -> bool {
+            Id unused;
+
+            this->m_progress_proxy.set_progress(100);
+            this->m_progress_proxy.set_postfix("Validating...");
+
+            // Validation
+            auto expected_size = solvable_lookup_num(this->m_solv, SOLVABLE_DOWNLOADSIZE, 0);
+            std::string sha256_check = solvable_lookup_checksum(this->m_solv, SOLVABLE_CHECKSUM, &unused);
+
+            if (this->m_target->downloaded_size != expected_size)
+            {
+                throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            }
+            if (!validate::sha256(this->m_tarball_path, expected_size, sha256_check))
+            {
+                throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            }
+
+            m_progress_proxy.set_postfix("Waiting...");
+
+            // Extract path is __not__ yet thread safe it seems...
+            std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
+            m_progress_proxy.set_postfix("Decompressing...");
+            auto extract_path = extract(this->m_tarball_path);
+            this->write_repodata_record(extract_path);
+            this->add_url();
+            this->m_progress_proxy.set_postfix("Done");
+
+            std::stringstream final_msg;
+
+            final_msg << "Finished " << std::left << std::setw(40) << m_name << std::right << std::setw(8);
+            to_human_readable_filesize(final_msg, avg_speed);
+            final_msg << "/s | " << std::setw(7);
+            to_human_readable_filesize(final_msg, expected_size);
+
+            this->m_progress_proxy.mark_as_completed(final_msg.str(), true);
+            this->m_finished = true;
+            return this->m_finished;
+        });
+
         return 0;
+    }
+
+    bool PackageDownloadExtractTarget::finished()
+    {
+        return m_target == nullptr ? true : m_finished;
     }
 
     std::unique_ptr<DownloadTarget>& PackageDownloadExtractTarget::target(const fs::path& cache_path)
@@ -339,7 +373,28 @@ namespace mamba
             multi_dl.add(dl_target->target(cache_path));
             targets.push_back(std::move(dl_target));
         }
-        return multi_dl.download(true);
+        bool downloaded = multi_dl.download(true);
+
+        if (!downloaded)
+        {
+            return false;
+        }
+        // make sure that all targets have finished extracting
+        while (!Context::instance().sig_interrupt)
+        {
+            bool all_finished = true;
+            for (const auto& t : targets)
+            {
+                all_finished = all_finished && t->finished();
+            }
+            if (all_finished)
+            {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        return !Context::instance().sig_interrupt && downloaded;
     }
 
     bool MTransaction::empty()

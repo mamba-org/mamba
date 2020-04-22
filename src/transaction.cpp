@@ -137,15 +137,15 @@ namespace mamba
         m_progress_proxy.set_postfix("Waiting...");
 
         // Extract path is __not__ yet thread safe it seems...
-        std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
-        m_progress_proxy.set_postfix("Decompressing...");
-        auto extract_path = extract(m_tarball_path);
-        write_repodata_record(extract_path);
-        add_url();
-        m_progress_proxy.set_postfix("Done");
+        {
+            std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
+            m_progress_proxy.set_postfix("Decompressing...");
+            auto extract_path = extract(m_tarball_path);
+            write_repodata_record(extract_path);
+            add_url();
+        }
 
         std::stringstream final_msg;
-
         final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
         m_progress_proxy.elapsed_time_to_stream(final_msg);
         final_msg << " " << std::setw(12 + 2);

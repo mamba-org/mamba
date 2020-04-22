@@ -3,6 +3,7 @@
 
 #include "thirdparty/minilog.hpp"
 
+#include <string_view>
 #include <iostream>
 #include <iomanip>
 #include <chrono>

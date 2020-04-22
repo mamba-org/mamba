@@ -36,12 +36,12 @@ namespace mamba
     {
         bool success = false;
         #ifndef _WIN32
-            std::string template_path = fs::temp_directory_path() / "mambaXXXXXXX";
+            std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
             char* pth = mkdtemp((char*)template_path.c_str());
             success = (pth != nullptr);
             template_path = pth;
         #else
-            std::string template_path = fs::temp_directory_path() / "mambaXXXXXXX";
+            std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
             // include \0 terminator
             auto err = _mktemp_s((char*)template_path.c_str(), template_path.size() + 1);
             assert(err == 0);
@@ -72,6 +72,50 @@ namespace mamba
         return m_path;
     }
 
+    TemporaryFile::TemporaryFile()
+    {
+        bool success = false;
+
+        std::string template_path = fs::temp_directory_path() / "mambafXXXXXX";
+        #ifndef _WIN32
+            int fd = mkstemp((char*) template_path.c_str());
+            success = (fd != 0);
+        #else
+            // include \0 terminator
+            auto err = _mktemp_s((char*)template_path.c_str(), template_path.size() + 1);
+            assert(err == 0);
+            std::ofstream fcreate(template_path);
+            fcreate.close();
+        #endif
+        if (!success)
+        {
+            throw std::runtime_error("Could not create temporary directory!");
+        }
+        else
+        {
+            m_path = template_path;
+            std::cout << "created temporary file " << m_path << std::endl;
+            #ifndef _WIN32
+            close(fd);
+            #endif
+        }
+    }
+
+    TemporaryFile::~TemporaryFile()
+    {
+        std::cout << "deleted temporary file " << m_path << std::endl;
+        fs::remove(m_path);
+    }
+
+    fs::path& TemporaryFile::path()
+    {
+        return m_path;
+    }
+
+    TemporaryFile::operator fs::path()
+    {
+        return m_path;
+    }
 
 }
 

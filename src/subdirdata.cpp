@@ -200,7 +200,7 @@ namespace mamba
 
             m_json_cache_valid = true;
             m_loaded = true;
-
+            m_temp_file.reset(nullptr);
             return 0;
         }
 
@@ -224,12 +224,12 @@ namespace mamba
         if (ends_with(m_url, ".bz2"))
         {
             m_progress_bar.set_postfix("Decomp...");
-            m_temp_name = decompress();
+            decompress();
         }
 
         m_progress_bar.set_postfix("Finalizing...");
 
-        std::ifstream temp_file(m_temp_name);
+        std::ifstream temp_file(m_temp_file->path());
         std::stringstream temp_json;
         temp_json << prepend_header.dump();
 
@@ -249,26 +249,30 @@ namespace mamba
 
         m_json_cache_valid = true;
         m_loaded = true;
+
+        m_temp_file.reset(nullptr);
+
         return 0;
     }
 
-    std::string MSubdirData::decompress()
+    bool MSubdirData::decompress()
     {
         LOG(INFO) << "Decompressing metadata";
-        auto json_temp_name = std::tmpnam(nullptr);
-        bool result = decompress::raw(m_temp_name, json_temp_name);
+        auto json_temp_file = std::make_unique<TemporaryFile>();
+        bool result = decompress::raw(m_temp_file->path(), json_temp_file->path());
         if (!result)
         {
-            LOG(WARNING) << "Could not decompress " << m_temp_name;
+            LOG(WARNING) << "Could not decompress " << m_temp_file->path();
         }
-        return json_temp_name;
+        std::swap(json_temp_file, m_temp_file);
+        return result;
     }
 
     void MSubdirData::create_target(nlohmann::json& mod_etag)
     {
-        m_temp_name = std::tmpnam(nullptr);
+        m_temp_file = std::make_unique<TemporaryFile>();
         m_progress_bar = Console::instance().add_progress_bar(m_name);
-        m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_name);
+        m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
         m_target->set_progress_bar(m_progress_bar);
         m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         m_target->set_mod_etag_headers(mod_etag);

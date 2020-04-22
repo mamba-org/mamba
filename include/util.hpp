@@ -28,6 +28,10 @@ namespace mamba
         TemporaryDirectory();
         ~TemporaryDirectory();
 
+        TemporaryDirectory(const TemporaryDirectory&) = delete;
+        TemporaryDirectory& operator=(const TemporaryDirectory&) = delete;
+        TemporaryDirectory& operator=(TemporaryDirectory&&) = default;
+
         fs::path& path();
         operator fs::path();
 
@@ -35,6 +39,26 @@ namespace mamba
     
         fs::path m_path;
     };
+
+    class TemporaryFile
+    {
+    public:
+
+        TemporaryFile();
+        ~TemporaryFile();
+
+        TemporaryFile(const TemporaryFile&) = delete;
+        TemporaryFile& operator=(const TemporaryFile&) = delete;
+        TemporaryFile& operator=(TemporaryFile&&) = default;
+
+        fs::path& path();
+        operator fs::path();
+
+    private:
+
+        fs::path m_path;
+    };
+
 }
 
 #endif // MAMBA_UTIL_HPP

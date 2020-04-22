@@ -39,7 +39,7 @@ namespace mamba
 
     private:
 
-        std::string decompress();
+        bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
         nlohmann::json read_mod_and_etag();
@@ -58,7 +58,7 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
-        std::string m_temp_name;
+        std::unique_ptr<TemporaryFile> m_temp_file;
     };
 }
 

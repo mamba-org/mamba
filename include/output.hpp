@@ -235,6 +235,12 @@ namespace mamba
         Console::instance().print_progress(m_idx);
     }
 
+#undef DEBUG
+#undef INFO
+#undef WARNING
+#undef ERROR
+#undef FATAL
+
     enum class LogSeverity
     {
         DEBUG,
@@ -243,7 +249,6 @@ namespace mamba
         ERROR,
         FATAL
     };
-
 
     class MessageLogger
     {

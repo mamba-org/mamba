@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include "context.hpp"
+#include "nlohmann/json.hpp"
 
 #define PREFIX_LENGTH 25
 
@@ -73,7 +74,7 @@ namespace cursor
     }
 
     inline auto prev_line(int n)
-    { 
+    {
         return CursorMovementTriple("\x1b[", n, "F");
     }
 
@@ -163,7 +164,7 @@ namespace mamba
         ProgressProxy& operator=(ProgressProxy&&) = default;
 
         void set_progress(char p);
-        
+
         void set_postfix(const std::string& s);
         void mark_as_completed(const std::string_view& final_message = "");
 
@@ -193,14 +194,14 @@ namespace mamba
 
         Console(const Console&) = delete;
         Console& operator=(const Console&) = delete;
-        
+
         Console(Console&&) = delete;
         Console& operator=(Console&&) = delete;
 
         static Console& instance();
 
         static ConsoleStream stream();
-        static void print(const std::string_view& str);
+        static void print(const std::string_view& str, bool force_print=false);
         static bool prompt(const std::string_view& message, char fallback='_');
 
         ProgressProxy add_progress_bar(const std::string& name);
@@ -218,7 +219,7 @@ namespace mamba
         void print_progress();
         void print_progress_unlocked();
         bool skip_progress_bars() const;
-        
+
         std::mutex m_mutex;
         std::vector<progress_bar_ptr> m_progress_bars;
         std::vector<ProgressBar*> m_active_progress_bars;
@@ -260,6 +261,37 @@ namespace mamba
         int m_line;
         LogSeverity m_severity;
         std::stringstream m_stream;
+
+    };
+
+    class JsonLogger
+    {
+    public:
+
+        JsonLogger(const JsonLogger&) = delete;
+        JsonLogger& operator=(const JsonLogger&) = delete;
+
+        JsonLogger(JsonLogger&&) = delete;
+        JsonLogger& operator=(JsonLogger&&) = delete;
+
+        static JsonLogger& instance();
+
+        nlohmann::json json_log;
+        void json_write(const std::string& key, bool value);
+        void json_write(const std::string& key, const std::string& value);
+        void json_write(const nlohmann::json& j);
+        void json_append(const std::string& value);
+        void json_append(const nlohmann::json& j);
+        void json_down(const std::string& key);
+        void json_up();
+
+    private:
+
+        JsonLogger();
+        ~JsonLogger() = default;
+
+        std::string json_hier;
+        unsigned int json_index;
     };
 }
 
@@ -270,5 +302,4 @@ namespace mamba
 #define LOG_ERROR LOG(mamba::LogSeverity::ERROR)
 #define LOG_FATAL LOG(mamba::LogSeverity::FATAL)
 
-#endif
-
+#endif // MAMBA_OUTPUT_HPP

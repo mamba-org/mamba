@@ -214,12 +214,18 @@ namespace mamba
         }
         m_transaction = solver_create_transaction(solver);
         init();
+        JsonLogger::instance().json_down("actions");
     }
 
     MTransaction::~MTransaction()
     {
         LOG_INFO << "Freeing transaction.";
         transaction_free(m_transaction);
+        JsonLogger::instance().json_write("PREFIX", Context::instance().target_prefix);
+        JsonLogger::instance().json_up();
+        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
+        if (Context::instance().json)
+            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
     }
 
     void MTransaction::init()
@@ -275,10 +281,11 @@ namespace mamba
         queue_free(&pkgs);
     }
 
-    auto MTransaction::to_conda() -> to_conda_type 
+    auto MTransaction::to_conda() -> to_conda_type
     {
-        to_install_type to_install_structured; 
+        to_install_type to_install_structured;
         to_remove_type to_remove_structured;
+        JsonLogger::instance().json_down("FETCH");
 
         for (Solvable* s : m_to_remove)
         {
@@ -294,6 +301,13 @@ namespace mamba
         }
 
         return std::make_tuple(to_install_structured, to_remove_structured);
+    }
+
+    void MTransaction::log_json()
+    {
+        for (Solvable* s : m_to_install)
+            JsonLogger::instance().json_append(solvable_to_json(s));
+        JsonLogger::instance().json_up();
     }
 
     bool MTransaction::fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)
@@ -366,4 +380,3 @@ namespace mamba
         transaction_print(m_transaction);
     }
 }
-

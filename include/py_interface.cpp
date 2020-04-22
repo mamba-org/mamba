@@ -35,6 +35,7 @@ PYBIND11_MODULE(mamba_api, m) {
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<MSolver&>())
         .def("to_conda", &MTransaction::to_conda)
+        .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
@@ -85,6 +86,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("ssl_verify", &Context::ssl_verify)
         .def_readonly("sig_interrupt", &Context::sig_interrupt)
+        .def_readwrite("target_prefix", &Context::target_prefix)
         .def("set_verbosity", &Context::set_verbosity)
     ;
 

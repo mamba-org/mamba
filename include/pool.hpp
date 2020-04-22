@@ -1,7 +1,6 @@
 #ifndef MAMBA_POOL_HPP
 #define MAMBA_POOL_HPP
 
-#include "thirdparty/minilog.hpp"
 #include "context.hpp"
 
 extern "C"

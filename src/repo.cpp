@@ -1,4 +1,5 @@
 #include "repo.hpp"
+#include "output.hpp"
 
 namespace mamba
 {
@@ -59,7 +60,7 @@ namespace mamba
 
     bool MRepo::read_file(const std::string& filename)
     {
-        LOG(INFO) << m_repo->name << ": reading repo file " << filename;
+        LOG_INFO << m_repo->name << ": reading repo file " << filename;
         auto fp = fopen(filename.c_str(), "r");
         if (!fp)
         {
@@ -70,7 +71,7 @@ namespace mamba
         if (std::equal(filename.end() - ending.size(), filename.end(), ending.begin()))
         {
             repo_add_solv(m_repo, fp, 0);
-            LOG(INFO) << "loading from solv " << filename;
+            LOG_INFO << "loading from solv " << filename;
             m_solv_file = filename;
             m_json_file = filename.substr(0, filename.size() - ending.size());
             m_json_file += std::string(".json");
@@ -78,7 +79,7 @@ namespace mamba
         }
         else
         {
-            LOG(INFO) << "loading from json " << filename;
+            LOG_INFO << "loading from json " << filename;
             repo_add_conda(m_repo, fp, 0);
             repo_internalize(m_repo);
 
@@ -87,7 +88,7 @@ namespace mamba
             #ifndef WIN32
             m_solv_file = filename.substr(0, filename.size() - ending.size());
             m_solv_file += ending;
-            LOG(INFO) << "creating solv: " << m_solv_file;
+            LOG_INFO << "creating solv: " << m_solv_file;
 
             auto sfile = fopen(m_solv_file.c_str(), "w");
             if (sfile)
@@ -97,7 +98,7 @@ namespace mamba
             }
             else 
             {
-                LOG(INFO) << "could not create solv";
+                LOG_INFO << "could not create solv";
             }
             #endif
         }

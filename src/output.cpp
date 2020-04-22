@@ -4,11 +4,40 @@
 #include <sys/ioctl.h>
 #endif
 
+#include <algorithm>
+#include <cstdlib>
 #include "output.hpp"
 
 namespace mamba
 {
-    inline int get_console_width()
+    std::ostream& write_duration(std::ostream &os, std::chrono::nanoseconds ns)
+    {
+        using namespace std::chrono;
+
+        using days = duration<int, std::ratio<86400>>;
+        char fill = os.fill();
+        os.fill('0');
+        auto d = duration_cast<days>(ns);
+        ns -= d;
+        auto h = duration_cast<hours>(ns);
+        ns -= h;
+        auto m = duration_cast<minutes>(ns);
+        ns -= m;
+        auto s = duration_cast<seconds>(ns);
+        if (d.count() > 0)
+        {
+            os << std::setw(2) << d.count() << "d:";
+        }
+        if (h.count() > 0)
+        {
+            os << std::setw(2) << h.count() << "h:";
+        }
+        os << std::setw(2) << m.count() << "m:" << std::setw(2) << s.count() << 's';
+        os.fill(fill);
+        return os;
+    }
+
+    int get_console_width()
     {
         #ifndef _WIN32
         struct winsize w;
@@ -23,6 +52,46 @@ namespace mamba
 
         return -1;
     }
+
+    /***********************
+     * ProgressScaleWriter *
+     ***********************/
+
+    ProgressScaleWriter::ProgressScaleWriter(int bar_width,
+                                             const std::string& fill,
+                                             const std::string& lead,
+                                             const std::string& remainder)
+        : m_bar_width(bar_width)
+        , m_fill(fill)
+        , m_lead(lead)
+        , m_remainder(remainder)
+    {
+    }
+
+    std::ostream& ProgressScaleWriter::write(std::ostream& os, std::size_t progress) const
+    {
+        auto pos = static_cast<size_t>(progress * m_bar_width / 100.0);
+        for (size_t i = 0; i < m_bar_width; ++i)
+        {
+            if (i < pos)
+            {
+                os << m_fill;
+            }
+            else if (i == pos)
+            {
+                os << m_lead;
+            }
+            else
+            {
+                os << m_remainder;
+            }
+        }
+        return os;
+    }
+
+    /***************
+     * ProgressBar *
+     ***************/
 
     ProgressBar::ProgressBar(const std::string& prefix)
         : m_prefix(prefix), m_start_time_saved(false)
@@ -122,15 +191,6 @@ namespace mamba
         // todo
     }
 
-    /***********************
-     * ConsoleStringStream *
-     ***********************/
-
-    ConsoleStringStream::~ConsoleStringStream()
-    {
-        Console::instance().print(str());
-    }
-
     /*****************
      * ProgressProxy *
      *****************/
@@ -155,6 +215,15 @@ namespace mamba
         Console::instance().deactivate_progress_bar(m_idx, final_message);
     }
 
+    /*****************
+     * ConsoleStream *
+     *****************/
+
+    ConsoleStream::~ConsoleStream()
+    {
+        Console::instance().print(str());
+    }
+
     /***********
      * Console *
      ***********/
@@ -174,9 +243,9 @@ namespace mamba
         return c;
     }
 
-    ConsoleStringStream Console::print()
+    ConsoleStream Console::stream()
     {
-        return ConsoleStringStream();
+        return ConsoleStream();
     }
 
     void Console::print(const std::string_view& str)
@@ -254,7 +323,7 @@ namespace mamba
                              m_progress_bars.size() - 1);
     }
 
-    void Console::reset_multi_progress()
+    void Console::init_multi_progress()
     {
         m_active_progress_bars.clear();
         m_progress_bars.clear();
@@ -344,6 +413,79 @@ namespace mamba
     bool Console::skip_progress_bars() const
     {
         return Context::instance().quiet || Context::instance().json || Context::instance().no_progress_bars;
+    }
+
+    /*****************
+     * MessageLogger *
+     *****************/
+
+    std::string strip_file_prefix(const std::string& file)
+    {
+#if WIN32
+        char sep = '\':
+#else
+        char sep = '/';
+#endif
+        size_t pos = file.rfind(sep);
+        return pos != std::string::npos ?
+                file.substr(pos + 1, std::string::npos) :
+                file;
+    }
+
+    MessageLogger::MessageLogger(const char* file, int line, LogSeverity severity)
+        : m_file(strip_file_prefix(file))
+        , m_line(line)
+        , m_severity(severity)
+        , m_stream()
+    {
+        m_stream << m_file << ":" << m_line << " ";
+    }
+
+    MessageLogger::~MessageLogger()
+    {
+        if (m_severity < global_log_severity())
+        {
+            return;
+        }
+
+        m_stream << "\n";
+        switch(m_severity)
+        {
+        case LogSeverity::FATAL:
+            Console::stream() << "\033[1;35m" << "FATAL   " << m_stream.str() << "\033[0m";
+            break;
+        case LogSeverity::ERROR:
+            Console::stream() << "\033[1;31m" << "ERROR   " << m_stream.str() << "\033[0m";
+            break;
+        case LogSeverity::WARNING:
+            Console::stream() << "\033[1;33m" << "WARNING " << m_stream.str() << "\033[0m";
+            break;
+        case LogSeverity::INFO:
+            Console::stream()                 << "INFO    " << m_stream.str();
+            break;
+        case LogSeverity::DEBUG:
+            Console::stream()                 << "DEBUG   " << m_stream.str();
+            break;
+        default:
+            Console::stream()                 << "UNKOWN  " << m_stream.str();
+            break;
+        }
+
+        if (m_severity == LogSeverity::FATAL)
+        {
+            std::abort();
+        }
+    }
+
+    std::stringstream& MessageLogger::stream()
+    {
+        return m_stream;
+    }
+
+    LogSeverity& MessageLogger::global_log_severity()
+    {
+        static LogSeverity sev = LogSeverity::WARNING;
+        return sev;
     }
 }
 

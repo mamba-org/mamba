@@ -149,7 +149,7 @@ namespace mamba
             std::uintmax_t file_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
             valid = validate::file_size(m_tarball_path, file_size);
             valid = valid && validate::md5(m_tarball_path, file_size, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused));
-            LOG(INFO) << m_tarball_path << " is " << valid;
+            LOG_INFO << m_tarball_path << " is " << valid;
         }
 
         if (dest_dir_exists)
@@ -168,12 +168,12 @@ namespace mamba
                     valid = valid && repodata_record["url"].get<std::string>() == m_url;
                     if (!valid)
                     {
-                        LOG(WARNING) << "Found directory with same name, but different size, channel, url or checksum " << repodata_record_path;
+                        LOG_WARNING << "Found directory with same name, but different size, channel, url or checksum " << repodata_record_path;
                     }
                 }
                 catch (...)
                 {
-                    LOG(WARNING) << "Found corrupted repodata_record file " << repodata_record_path;
+                    LOG_WARNING << "Found corrupted repodata_record file " << repodata_record_path;
                 }
             }
         }
@@ -187,7 +187,7 @@ namespace mamba
         if (!valid)
         {
             // need to download this file
-            LOG(INFO) << "Adding " << m_name << " with " << m_url;
+            LOG_INFO << "Adding " << m_name << " with " << m_url;
 
             m_progress_proxy = Console::instance().add_progress_bar(m_name);
             m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
@@ -197,7 +197,7 @@ namespace mamba
         }
         else
         {
-            LOG(INFO) << "Using cache " << m_name;
+            LOG_INFO << "Using cache " << m_name;
         }
         return m_target;
     }
@@ -218,7 +218,7 @@ namespace mamba
 
     MTransaction::~MTransaction()
     {
-        LOG(INFO) << "Freeing transaction.";
+        LOG_INFO << "Freeing transaction.";
         transaction_free(m_transaction);
     }
 
@@ -265,7 +265,7 @@ namespace mamba
                     case SOLVER_TRANSACTION_VENDORCHANGE:
                     case SOLVER_TRANSACTION_ARCHCHANGE:
                     default:
-                        LOG(WARNING) << "CASE NOT HANDLED. " << cls;
+                        LOG_WARNING << "CASE NOT HANDLED. " << cls;
                         break;
                 }
             }
@@ -302,7 +302,7 @@ namespace mamba
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
         MultiDownloadTarget multi_dl;
 
-        Console::instance().reset_multi_progress();
+        Console::instance().init_multi_progress();
 
         for (auto& s : m_to_install)
         {

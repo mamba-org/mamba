@@ -7,7 +7,6 @@
 #include <sstream>
 
 #include "pool.hpp"
-#include "thirdparty/minilog.hpp"
 
 extern "C"
 {

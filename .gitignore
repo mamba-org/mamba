@@ -10,3 +10,4 @@ __pycache__
 build/
 tmp/
 mamba.egg-info/
+*.orig

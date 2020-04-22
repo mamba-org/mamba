@@ -83,9 +83,6 @@ banner = """
 
 def init_api_context():
     api_ctx = api.Context()
-    # print(context.ssl_verify)
-    # print(context.client_ssl_cert)
-    # print(context.client_ssl_cert_key)
     api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.json = context.json

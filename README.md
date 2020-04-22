@@ -23,7 +23,7 @@ conda install mamba -c conda-forge
 
 Make sure to have the following requirements in your conda environment:
 
-- `conda install pybind11 pybind11_json libsolv libarchive libcurl nlohmann_json pip -c conda-forge`
+- `conda install pybind11_json libsolv libarchive libcurl nlohmann_json pip -c conda-forge`
 
 If you build mamba in a different environment than base, you must also install conda in
 that environment:

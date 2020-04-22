@@ -85,7 +85,6 @@ namespace mamba
             auto err = _mktemp_s((char*)template_path.c_str(), template_path.size() + 1);
             assert(err == 0);
             std::ofstream fcreate(template_path);
-            fcreate.close();
             success = true;
         #endif
         if (!success)
@@ -95,16 +94,16 @@ namespace mamba
         else
         {
             m_path = template_path;
-            std::cout << "created temporary file " << m_path << std::endl;
             #ifndef _WIN32
             close(fd);
+            #else
+            fcreate.close();
             #endif
         }
     }
 
     TemporaryFile::~TemporaryFile()
     {
-        std::cout << "deleted temporary file " << m_path << std::endl;
         fs::remove(m_path);
     }
 

@@ -254,7 +254,7 @@ namespace mamba
                              m_progress_bars.size() - 1);
     }
 
-    void Console::init_multi_progress()
+    void Console::reset_multi_progress()
     {
         m_active_progress_bars.clear();
         m_progress_bars.clear();

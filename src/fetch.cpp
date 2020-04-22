@@ -381,8 +381,10 @@ namespace mamba
 
         if (Context::instance().sig_interrupt)
         {
-            std::cout << "Download interrupted" << std::endl;
+            Console::instance().reset_multi_progress();
+            Console::print("Download interrupted");
             curl_multi_cleanup(m_handle);
+            return false;
         }
         return true;
     }

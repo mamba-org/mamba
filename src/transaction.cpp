@@ -71,6 +71,10 @@ namespace mamba
         : m_repo(repo)
         , m_solv(solvable)
     {
+        m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
+        m_channel = m_repo->url();
+        m_url = m_channel + "/" + m_filename;
+        m_name = pool_id2str(m_solv->repo->pool, m_solv->name);
     }
 
     void PackageDownloadExtractTarget::write_repodata_record(const fs::path& base_path)
@@ -131,11 +135,11 @@ namespace mamba
 
     std::unique_ptr<DownloadTarget>& PackageDownloadExtractTarget::target(const fs::path& cache_path)
     {
-        m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
         m_cache_path = cache_path;
         m_tarball_path = cache_path / m_filename;
         bool tarball_exists = fs::exists(m_tarball_path);
-
+        fs::path dest_dir = strip_package_name(m_tarball_path);
+        bool dest_dir_exists = fs::exists(dest_dir);
         bool valid = false;
 
         Id unused;
@@ -148,13 +152,41 @@ namespace mamba
             LOG(INFO) << m_tarball_path << " is " << valid;
         }
 
-        if (!tarball_exists || !valid)
+        if (dest_dir_exists)
+        {
+            auto repodata_record_path = dest_dir / "info" / "repodata_record.json";
+            if (fs::exists(repodata_record_path))
+            {
+                try
+                {
+                    std::ifstream repodata_record_f(repodata_record_path);
+                    nlohmann::json repodata_record;
+                    repodata_record_f >> repodata_record;
+                    valid = (repodata_record["size"].get<std::size_t>() == solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
+                    valid = valid && repodata_record["sha256"].get<std::string>() == solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
+                    valid = valid && repodata_record["channel"].get<std::string>() == m_channel;
+                    valid = valid && repodata_record["url"].get<std::string>() == m_url;
+                    if (!valid)
+                    {
+                        LOG(WARNING) << "Found directory with same name, but different size, channel, url or checksum " << repodata_record_path;
+                    }
+                }
+                catch (...)
+                {
+                    LOG(WARNING) << "Found corrupted repodata_record file " << repodata_record_path;
+                }
+            }
+        }
+
+        if (tarball_exists && !dest_dir_exists)
+        {
+            // TODO add extract job here
+        }
+
+        // tarball can be removed, it's fine if only the correct dest dir exists
+        if (!valid)
         {
             // need to download this file
-            m_channel = m_repo->url();
-            m_url = m_channel + "/" + m_filename;
-            m_name = pool_id2str(m_solv->repo->pool, m_solv->name);
-
             LOG(INFO) << "Adding " << m_name << " with " << m_url;
 
             m_progress_proxy = Console::instance().add_progress_bar(m_name);
@@ -162,6 +194,10 @@ namespace mamba
             m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
             m_target->set_expected_size(solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
             m_target->set_progress_bar(m_progress_proxy);
+        }
+        else
+        {
+            LOG(INFO) << "Using cache " << m_name;
         }
         return m_target;
     }
@@ -260,13 +296,13 @@ namespace mamba
         return std::make_tuple(to_install_structured, to_remove_structured);
     }
 
-    void MTransaction::fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)
+    bool MTransaction::fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)
     {
         fs::path cache_path(cache_dir);
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
         MultiDownloadTarget multi_dl;
 
-        Console::instance().init_multi_progress();
+        Console::instance().reset_multi_progress();
 
         for (auto& s : m_to_install)
         {
@@ -288,7 +324,8 @@ namespace mamba
             auto dl_target = std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s);
             multi_dl.add(dl_target->target(cache_path));
             targets.push_back(std::move(dl_target));
-        }            multi_dl.download(true);
+        }
+        return multi_dl.download(true);
     }
 
     bool MTransaction::empty()
@@ -319,7 +356,7 @@ namespace mamba
         bool res = Console::prompt("Confirm changes", 'y');
         if (res)
         {
-            fetch_extract_packages(cache_dir, repos);
+            return fetch_extract_packages(cache_dir, repos);
         }
         return res;
     }

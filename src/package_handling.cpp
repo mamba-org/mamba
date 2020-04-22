@@ -140,6 +140,22 @@ namespace mamba
         }
     }
 
+    fs::path strip_package_name(const std::string& file)
+    {
+        if (ends_with(file, ".tar.bz2"))
+        {
+            return file.substr(0, file.size() - 8);
+        }
+        else if (ends_with(file, ".conda"))
+        {
+            return file.substr(0, file.size() - 6);
+        }
+        else
+        {
+            throw std::runtime_error("Don't know how to handle " + file);
+        }
+    }
+
     fs::path extract(const fs::path& file)
     {
         std::string dest_dir = file;

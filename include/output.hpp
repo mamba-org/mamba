@@ -245,7 +245,7 @@ namespace mamba
         static bool prompt(const std::string_view& message, char fallback='_');
 
         ProgressProxy add_progress_bar(const std::string& name);
-        void init_multi_progress();
+        void reset_multi_progress();
 
     private:
 

@@ -216,7 +216,7 @@ namespace mamba
         
     bool DownloadTarget::finalize()
     {
-        m_file.flush();
+        m_file.close();
 
         char* effective_url = nullptr;
         curl_easy_getinfo(m_target, CURLINFO_RESPONSE_CODE, &http_status);

@@ -250,6 +250,7 @@ namespace mamba
         m_json_cache_valid = true;
         m_loaded = true;
 
+        temp_file.close();
         m_temp_file.reset(nullptr);
 
         return 0;

@@ -86,10 +86,11 @@ namespace mamba
             assert(err == 0);
             std::ofstream fcreate(template_path);
             fcreate.close();
+            success = true;
         #endif
         if (!success)
         {
-            throw std::runtime_error("Could not create temporary directory!");
+            throw std::runtime_error("Could not create temporary file!");
         }
         else
         {

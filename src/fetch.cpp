@@ -223,7 +223,7 @@ namespace mamba
         curl_easy_getinfo(m_target, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_target, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-        LOG(INFO) << "Transfer finalized, status: " << http_status << " @ " << effective_url << " " << downloaded_size << " bytes";
+        LOG_INFO << "Transfer finalized, status: " << http_status << " @ " << effective_url << " " << downloaded_size << " bytes";
 
         final_url = effective_url;
         if (m_finalize_callback)
@@ -337,7 +337,7 @@ namespace mamba
 
     bool MultiDownloadTarget::download(bool failfast)
     {
-        LOG(INFO) << "Starting to download targets";
+        LOG_INFO << "Starting to download targets";
 
         int still_running, repeats = 0;
         const long max_wait_msecs = 400;
@@ -383,7 +383,7 @@ namespace mamba
 
         if (Context::instance().sig_interrupt)
         {
-            Console::instance().reset_multi_progress();
+            Console::instance().init_multi_progress();
             Console::print("Download interrupted");
             curl_multi_cleanup(m_handle);
             return false;

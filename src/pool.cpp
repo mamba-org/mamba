@@ -1,4 +1,5 @@
 #include "pool.hpp"
+#include "output.hpp"
 
 namespace mamba
 {
@@ -11,7 +12,7 @@ namespace mamba
 
     MPool::~MPool()
     {
-        LOG(INFO) << "Freeing pool.";
+        LOG_INFO << "Freeing pool.";
         pool_free(m_pool);
     }
 

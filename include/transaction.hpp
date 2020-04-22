@@ -4,7 +4,6 @@
 #include <iomanip>
 #include "nlohmann/json.hpp"
 
-#include "thirdparty/minilog.hpp"
 #include "thirdparty/filesystem.hpp"
 
 #include "repo.hpp"

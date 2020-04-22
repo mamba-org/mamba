@@ -1,4 +1,5 @@
 #include "solver.hpp"
+#include "output.hpp"
 
 namespace mamba
 {
@@ -12,7 +13,7 @@ namespace mamba
 
     MSolver::~MSolver()
     {
-        LOG(INFO) << "Freeing solver.";
+        LOG_INFO << "Freeing solver.";
         solver_free(m_solver);
     }
 
@@ -51,7 +52,7 @@ namespace mamba
     {
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;
-        LOG(WARNING) << "Problem count: " << solver_problem_count(m_solver) << std::endl;
+        LOG_WARNING << "Problem count: " << solver_problem_count(m_solver) << std::endl;
         return solver_problem_count(m_solver) == 0;
     }
 

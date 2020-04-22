@@ -1,7 +1,6 @@
 #include <csignal>
 
-// TODO: remove minilog
-#include "minilog.hpp"
+#include "output.hpp"
 #include "context.hpp"
 
 namespace mamba
@@ -28,19 +27,7 @@ namespace mamba
 
     void Context::set_verbosity(int lvl)
     {
-        if (lvl == 0)
-        {
-            minilog::global_log_severity = 3;
-        }
-        else if (lvl == 1)
-        {
-            minilog::global_log_severity = 1;
-        }
-        else 
-        {
-            minilog::global_log_severity = 0;
-        }
-
+        MessageLogger::global_log_severity() = LogSeverity(lvl);
         this->verbosity = lvl;
     }
 }

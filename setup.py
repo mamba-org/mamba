@@ -61,7 +61,6 @@ ext_modules = [
     Extension(
         'mamba.mamba_api',
         ['include/py_interface.cpp',
-         'include/thirdparty/minilog.cpp',
          'src/context.cpp',
          'src/fetch.cpp',
          'src/output.cpp',

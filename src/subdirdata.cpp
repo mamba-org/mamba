@@ -1,4 +1,5 @@
 #include "subdirdata.hpp"
+#include "output.hpp"
 
 namespace decompress
 {
@@ -7,7 +8,7 @@ namespace decompress
         int r;
         std::ptrdiff_t size;
 
-        LOG(INFO) << "Decompressing from " << in << " to " << out;
+        LOG_INFO << "Decompressing from " << in << " to " << out;
 
         struct archive *a = archive_read_new();
         archive_read_support_filter_bzip2(a);
@@ -91,7 +92,7 @@ namespace mamba
         nlohmann::json mod_etag_headers;
         if (cache_age != -1)
         {
-            LOG(INFO) << "Found valid cache file.";
+            LOG_INFO << "Found valid cache file.";
             mod_etag_headers = read_mod_and_etag();
             if (mod_etag_headers.size() != 0)
             {
@@ -109,10 +110,10 @@ namespace mamba
                 if ((max_age > cache_age || Context::instance().offline) && !forbid_cache())
                 {
                     // cache valid!
-                    LOG(INFO) << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
+                    LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
                     std::string prefix = m_name;
                     prefix.resize(PREFIX_LENGTH - 1, ' ');
-                    Console::print() << prefix << " Using cache";
+                    Console::stream() << prefix << " Using cache";
 
                     m_loaded = true;
                     m_json_cache_valid = true;
@@ -121,7 +122,7 @@ namespace mamba
                     double solv_age = check_cache(m_solv_fn);
                     if (solv_age != -1 && solv_age <= cache_age)
                     {
-                        LOG(INFO) << "Also using .solv cache file";
+                        LOG_INFO << "Also using .solv cache file";
                         m_solv_cache_valid = true;
                     }
                     return true;
@@ -129,13 +130,13 @@ namespace mamba
             }
             else
             {
-                LOG(WARNING) << "Could not determine mod / etag headers.";
+                LOG_WARNING << "Could not determine mod / etag headers.";
             }
             create_target(mod_etag_headers);
         }
         else
         {
-            LOG(INFO) << "No cache found " << m_url;
+            LOG_INFO << "No cache found " << m_url;
             if (!Context::instance().offline)
             {
                 create_target(mod_etag_headers);
@@ -173,7 +174,7 @@ namespace mamba
 
     int MSubdirData::finalize_transfer()
     {
-        LOG(WARNING) << "HTTP response code: " << m_target->http_status;
+        LOG_WARNING << "HTTP response code: " << m_target->http_status;
         if (m_target->http_status == 200 || m_target->http_status == 304)
         {
             m_download_complete = true;
@@ -204,7 +205,7 @@ namespace mamba
             return 0;
         }
 
-        LOG(WARNING) << "Finalized transfer: " << m_url;
+        LOG_WARNING << "Finalized transfer: " << m_url;
 
         nlohmann::json prepend_header;
 
@@ -213,7 +214,7 @@ namespace mamba
         prepend_header["_mod"] = m_target->mod;
         prepend_header["_cache_control"] = m_target->cache_control;
 
-        LOG(WARNING) << "Opening: " << m_json_fn;
+        LOG_WARNING << "Opening: " << m_json_fn;
         std::ofstream final_file(m_json_fn);
         // TODO make sure that cache directory exists!
         if (!final_file.is_open())
@@ -258,12 +259,12 @@ namespace mamba
 
     bool MSubdirData::decompress()
     {
-        LOG(INFO) << "Decompressing metadata";
+        LOG_INFO << "Decompressing metadata";
         auto json_temp_file = std::make_unique<TemporaryFile>();
         bool result = decompress::raw(m_temp_file->path(), json_temp_file->path());
         if (!result)
         {
-            LOG(WARNING) << "Could not decompress " << m_temp_file->path();
+            LOG_WARNING << "Could not decompress " << m_temp_file->path();
         }
         std::swap(json_temp_file, m_temp_file);
         return result;
@@ -339,7 +340,7 @@ namespace mamba
         }
         catch(...)
         {
-            LOG(WARNING) << "Could not parse mod / etag header!";
+            LOG_WARNING << "Could not parse mod / etag header!";
             return nlohmann::json();
         }
     }

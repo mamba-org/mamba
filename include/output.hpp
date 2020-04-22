@@ -1,13 +1,12 @@
 #ifndef MAMBA_OUTPUT_HPP
 #define MAMBA_OUTPUT_HPP
 
-#include "thirdparty/minilog.hpp"
-
 #include <string_view>
 #include <iostream>
 #include <iomanip>
 #include <chrono>
 #include <string>
+#include <sstream>
 #include <mutex>
 
 #include "context.hpp"
@@ -104,69 +103,26 @@ namespace mamba
     // The next two functions / classes were ported from the awesome indicators library 
     // by p-ranav (MIT License)
     // https://github.com/p-ranav/indicators
-    inline std::ostream& write_duration(std::ostream &os, std::chrono::nanoseconds ns) {
-        using namespace std::chrono;
-
-        using days = duration<int, std::ratio<86400>>;
-        char fill = os.fill();
-        os.fill('0');
-        auto d = duration_cast<days>(ns);
-        ns -= d;
-        auto h = duration_cast<hours>(ns);
-        ns -= h;
-        auto m = duration_cast<minutes>(ns);
-        ns -= m;
-        auto s = duration_cast<seconds>(ns);
-        if (d.count() > 0)
-        {
-            os << std::setw(2) << d.count() << "d:";
-        }
-        if (h.count() > 0)
-        {
-            os << std::setw(2) << h.count() << "h:";
-        }
-        os << std::setw(2) << m.count() << "m:" << std::setw(2) << s.count() << 's';
-        os.fill(fill);
-        return os;
-    }
+    std::ostream& write_duration(std::ostream &os, std::chrono::nanoseconds ns);
+    int get_console_width();
 
     class ProgressScaleWriter
     {
     public:
+
         inline ProgressScaleWriter(int bar_width,
                             const std::string& fill,
                             const std::string& lead,
-                            const std::string& remainder)
-          : m_bar_width(bar_width), m_fill(fill), m_lead(lead), m_remainder(remainder)
-        {
-        }
+                            const std::string& remainder);
 
-        inline std::ostream& write(std::ostream& os, std::size_t progress)
-        {
-            auto pos = static_cast<size_t>(progress * m_bar_width / 100.0);
-            for (size_t i = 0; i < m_bar_width; ++i)
-            {
-                if (i < pos)
-                {
-                    os << m_fill;
-                }
-                else if (i == pos)
-                {
-                    os << m_lead;
-                }
-                else
-                {
-                    os << m_remainder;
-                }
-            }
-            return os;
-        }
+        std::ostream& write(std::ostream& os, std::size_t progress) const;
 
     private:
-      int m_bar_width;
-      std::string m_fill;
-      std::string m_lead;
-      std::string m_remainder;
+
+        int m_bar_width;
+        std::string m_fill;
+        std::string m_lead;
+        std::string m_remainder;
     };
 
     int get_console_width();
@@ -174,6 +130,7 @@ namespace mamba
     class ProgressBar
     {
     public:
+        
         ProgressBar(const std::string& prefix);
 
         void set_start();
@@ -184,22 +141,13 @@ namespace mamba
         const std::string& prefix() const;
 
     private:
+
         std::chrono::nanoseconds m_elapsed_ns;
         std::chrono::time_point<std::chrono::high_resolution_clock> m_start_time;
 
         std::string m_prefix, m_postfix;
         bool m_start_time_saved, m_activate_bob;
         char m_progress = 0;
-    };
-
-    // Todo: replace public inheritance with
-    // private one + using directives
-    class ConsoleStringStream : public std::stringstream
-    {
-    public:
-
-        ConsoleStringStream() = default;
-        ~ConsoleStringStream();
     };
 
     class ProgressProxy
@@ -229,6 +177,16 @@ namespace mamba
         friend class Console;
     };
 
+    // Todo: replace public inheritance with
+    // private one + using directives
+    class ConsoleStream : public std::stringstream
+    {
+    public:
+
+        ConsoleStream() = default;
+        ~ConsoleStream();
+    };
+
     class Console
     {
     public:
@@ -241,12 +199,12 @@ namespace mamba
 
         static Console& instance();
 
-        static ConsoleStringStream print();
+        static ConsoleStream stream();
         static void print(const std::string_view& str);
         static bool prompt(const std::string_view& message, char fallback='_');
 
         ProgressProxy add_progress_bar(const std::string& name);
-        void reset_multi_progress();
+        void init_multi_progress();
 
     private:
 
@@ -274,7 +232,43 @@ namespace mamba
         p_bar->set_postfix(s);
         Console::instance().print_progress(m_idx);
     }
+
+    enum class LogSeverity
+    {
+        DEBUG,
+        INFO,
+        WARNING,
+        ERROR,
+        FATAL
+    };
+
+
+    class MessageLogger
+    {
+    public:
+
+        MessageLogger(const char* file, int line, LogSeverity severity);
+        ~MessageLogger();
+
+        std::stringstream& stream();
+
+        static LogSeverity& global_log_severity();
+
+    private:
+
+        std::string m_file;
+        int m_line;
+        LogSeverity m_severity;
+        std::stringstream m_stream;
+    };
 }
+
+#define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
+#define LOG_DEBUG LOG(mamba::LogSeverity::DEBUG)
+#define LOG_INFO LOG(mamba::LogSeverity::INFO)
+#define LOG_WARNING LOG(mamba::LogSeverity::WARNING)
+#define LOG_ERROR LOG(mamba::LogSeverity::ERROR)
+#define LOG_FATAL LOG(mamba::LogSeverity::FATAL)
 
 #endif
 

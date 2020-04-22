@@ -74,6 +74,7 @@ namespace mamba
     PackageDownloadExtractTarget::PackageDownloadExtractTarget(MRepo* repo, Solvable* solvable)
         : m_repo(repo)
         , m_solv(solvable)
+        , m_finished(false)
     {
         m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
         m_channel = m_repo->url();
@@ -109,8 +110,10 @@ namespace mamba
         urls_txt << m_url << std::endl;
     }
 
-    int PackageDownloadExtractTarget::finalize_callback()
+    bool PackageDownloadExtractTarget::validate_extract()
     {
+        Id unused;
+
         curl_off_t avg_speed;
         auto cres = curl_easy_getinfo(m_target->handle(), CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
         if (cres != CURLE_OK)
@@ -118,48 +121,52 @@ namespace mamba
             avg_speed = 0;
         }
 
-        m_extract_future = std::async(std::launch::async, [this, avg_speed]() -> bool {
-            Id unused;
+        // Validation
+        auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
+        std::string sha256_check = solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
 
-            this->m_progress_proxy.set_progress(100);
-            this->m_progress_proxy.set_postfix("Validating...");
+        if (m_target->downloaded_size != expected_size)
+        {
+            throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
+        }
+        if (!validate::sha256(m_tarball_path, expected_size, sha256_check))
+        {
+            throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+        }
 
-            // Validation
-            auto expected_size = solvable_lookup_num(this->m_solv, SOLVABLE_DOWNLOADSIZE, 0);
-            std::string sha256_check = solvable_lookup_checksum(this->m_solv, SOLVABLE_CHECKSUM, &unused);
+        m_progress_proxy.set_postfix("Waiting...");
 
-            if (this->m_target->downloaded_size != expected_size)
-            {
-                throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
-            }
-            if (!validate::sha256(this->m_tarball_path, expected_size, sha256_check))
-            {
-                throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
-            }
+        // Extract path is __not__ yet thread safe it seems...
+        std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
+        m_progress_proxy.set_postfix("Decompressing...");
+        auto extract_path = extract(m_tarball_path);
+        write_repodata_record(extract_path);
+        add_url();
+        m_progress_proxy.set_postfix("Done");
 
-            m_progress_proxy.set_postfix("Waiting...");
+        std::stringstream final_msg;
 
-            // Extract path is __not__ yet thread safe it seems...
-            std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
-            m_progress_proxy.set_postfix("Decompressing...");
-            auto extract_path = extract(this->m_tarball_path);
-            this->write_repodata_record(extract_path);
-            this->add_url();
-            this->m_progress_proxy.set_postfix("Done");
+        final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
+        m_progress_proxy.elapsed_time_to_stream(final_msg);
+        final_msg << " " << std::setw(12 + 2);
+        to_human_readable_filesize(final_msg, expected_size);
+        final_msg << " " << std::setw(6);
+        to_human_readable_filesize(final_msg, avg_speed);
+        final_msg << "/s";
+        m_progress_proxy.mark_as_completed(final_msg.str());
 
-            std::stringstream final_msg;
+        m_finished = true;
+        return m_finished;
+    }
 
-            final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
-            this->m_progress_proxy.elapsed_time_to_stream(final_msg);
-            final_msg << " " << std::setw(12 + 2);
-            to_human_readable_filesize(final_msg, expected_size);
-            final_msg << " " << std::setw(6);
-            to_human_readable_filesize(final_msg, avg_speed);
-            final_msg << "/s";
-            this->m_progress_proxy.mark_as_completed(final_msg.str());
-            this->m_finished = true;
-            return this->m_finished;
-        });
+    int PackageDownloadExtractTarget::finalize_callback()
+    {
+        m_progress_proxy.set_progress(100);
+        m_progress_proxy.set_postfix("Validating...");
+
+        m_extract_future = std::async(std::launch::async,
+                                      &PackageDownloadExtractTarget::validate_extract,
+                                      this);
 
         return 0;
     }
@@ -371,14 +378,14 @@ namespace mamba
                 throw std::runtime_error("Repo not associated.");
             }
 
-            auto dl_target = std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s);
-            multi_dl.add(dl_target->target(cache_path));
-            targets.push_back(std::move(dl_target));
+            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s));
+            multi_dl.add(targets[targets.size() - 1]->target(cache_path));
         }
         bool downloaded = multi_dl.download(true);
 
         if (!downloaded)
         {
+            LOG_ERROR << "Download didn't finish!";
             return false;
         }
         // make sure that all targets have finished extracting
@@ -387,7 +394,11 @@ namespace mamba
             bool all_finished = true;
             for (const auto& t : targets)
             {
-                all_finished = all_finished && t->finished();
+                if (!t->finished())
+                {
+                    all_finished = false;
+                    break;
+                }
             }
             if (all_finished)
             {

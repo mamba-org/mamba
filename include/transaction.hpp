@@ -37,6 +37,7 @@ namespace mamba
         void add_url();
         int finalize_callback();
         bool finished();
+        bool validate_extract();
         std::unique_ptr<DownloadTarget>& target(const fs::path& cache_path);
 
     private:

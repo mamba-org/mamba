@@ -139,6 +139,7 @@ namespace mamba
         void set_postfix(const std::string& postfix_text);
         void print();
         void mark_as_completed();
+        void elapsed_time_to_stream(std::stringstream& s);
         const std::string& prefix() const;
 
     private:
@@ -164,7 +165,7 @@ namespace mamba
         ProgressProxy& operator=(ProgressProxy&&) = default;
 
         void set_progress(char p);
-
+        void elapsed_time_to_stream(std::stringstream& s);
         void set_postfix(const std::string& s);
         void mark_as_completed(const std::string_view& final_message = "");
 

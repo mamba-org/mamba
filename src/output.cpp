@@ -133,24 +133,29 @@ namespace mamba
         return m_prefix;
     }
 
+    void ProgressBar::elapsed_time_to_stream(std::stringstream& s)
+    {
+        if (m_start_time_saved)
+        {
+            auto now = std::chrono::high_resolution_clock::now();
+            m_elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_start_time);
+            s << "(";
+            write_duration(s, m_elapsed_ns);
+            s << ") ";
+        }
+        else
+        {
+            s << "(--:--) ";
+        }
+    }
+
     void ProgressBar::print()
     {
         std::cout << cursor::erase_line(2) << "\r";
         std::cout << m_prefix << "[";
 
         std::stringstream pf;
-        if (m_start_time_saved)
-        {
-            auto now = std::chrono::high_resolution_clock::now();
-            m_elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_start_time);
-            pf << "(";
-            write_duration(pf, m_elapsed_ns);
-            pf << ") ";
-        }
-        else
-        {
-            pf << "(--:--) ";
-        }
+        elapsed_time_to_stream(pf);
         pf << m_postfix;
         auto fpf = pf.str();
         int width = get_console_width();
@@ -205,6 +210,11 @@ namespace mamba
     {
         p_bar->set_progress(p);
         Console::instance().print_progress(m_idx);
+    }
+
+    void ProgressProxy::elapsed_time_to_stream(std::stringstream& s)
+    {
+        p_bar->elapsed_time_to_stream(s);
     }
 
     void ProgressProxy::mark_as_completed(const std::string_view& final_message)
@@ -421,8 +431,8 @@ namespace mamba
 
     std::string strip_file_prefix(const std::string& file)
     {
-#if WIN32
-        char sep = '\':
+#ifdef _WIN32
+        char sep = '\\';
 #else
         char sep = '/';
 #endif

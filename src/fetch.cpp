@@ -33,7 +33,7 @@ namespace mamba
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
         curl_easy_setopt(m_target, CURLOPT_HTTPHEADER, m_headers);
-        curl_easy_setopt(m_target, CURLOPT_VERBOSE, Context::instance().verbosity != 0);
+        curl_easy_setopt(m_target, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
 
         std::string& ssl_verify = Context::instance().ssl_verify;
 
@@ -135,10 +135,13 @@ namespace mamba
         {
             double perc = double(now_downloaded) / double(total_to_download);
             std::stringstream postfix;
+            postfix << std::setw(6);
             to_human_readable_filesize(postfix, now_downloaded);
             postfix << " / ";
+            postfix << std::setw(6);
             to_human_readable_filesize(postfix, total_to_download);
             postfix << " (";
+            postfix << std::setw(6);
             to_human_readable_filesize(postfix, get_speed(), 2);
             postfix << "/s)";
             m_progress_bar.set_progress(perc * 100.);

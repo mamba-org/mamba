@@ -149,12 +149,14 @@ namespace mamba
 
             std::stringstream final_msg;
 
-            final_msg << "Finished " << std::left << std::setw(40) << m_name << std::right << std::setw(8);
-            to_human_readable_filesize(final_msg, avg_speed);
-            final_msg << "/s | " << std::setw(7);
+            final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
+            this->m_progress_proxy.elapsed_time_to_stream(final_msg);
+            final_msg << " " << std::setw(12 + 2);
             to_human_readable_filesize(final_msg, expected_size);
-
-            this->m_progress_proxy.mark_as_completed(final_msg.str(), true);
+            final_msg << " " << std::setw(6);
+            to_human_readable_filesize(final_msg, avg_speed);
+            final_msg << "/s";
+            this->m_progress_proxy.mark_as_completed(final_msg.str());
             this->m_finished = true;
             return this->m_finished;
         });

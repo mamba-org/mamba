@@ -201,21 +201,11 @@ namespace mamba
         static Console& instance();
 
         static ConsoleStream stream();
-        static void print(const std::string_view& str);
+        static void print(const std::string_view& str, bool force_print=false);
         static bool prompt(const std::string_view& message, char fallback='_');
 
         ProgressProxy add_progress_bar(const std::string& name);
         void init_multi_progress();
-
-        nlohmann::json json_log;
-        void json_write(const std::string& key, bool value);
-        void json_write(const std::string& key, const std::string& value);
-        void json_write(const nlohmann::json& j);
-        void json_append(const std::string& value);
-        void json_append(const nlohmann::json& j);
-        void json_down(const std::string& key);
-        void json_up();
-        void json_print();
 
     private:
 
@@ -233,8 +223,6 @@ namespace mamba
         std::mutex m_mutex;
         std::vector<progress_bar_ptr> m_progress_bars;
         std::vector<ProgressBar*> m_active_progress_bars;
-        std::string json_hier;
-        unsigned int json_index;
         bool m_progress_started = false;
 
         friend class ProgressProxy;
@@ -273,6 +261,37 @@ namespace mamba
         int m_line;
         LogSeverity m_severity;
         std::stringstream m_stream;
+
+    };
+
+    class JsonLogger
+    {
+    public:
+
+        JsonLogger(const JsonLogger&) = delete;
+        JsonLogger& operator=(const JsonLogger&) = delete;
+
+        JsonLogger(JsonLogger&&) = delete;
+        JsonLogger& operator=(JsonLogger&&) = delete;
+
+        static JsonLogger& instance();
+
+        nlohmann::json json_log;
+        void json_write(const std::string& key, bool value);
+        void json_write(const std::string& key, const std::string& value);
+        void json_write(const nlohmann::json& j);
+        void json_append(const std::string& value);
+        void json_append(const nlohmann::json& j);
+        void json_down(const std::string& key);
+        void json_up();
+
+    private:
+
+        JsonLogger();
+        ~JsonLogger() = default;
+
+        std::string json_hier;
+        unsigned int json_index;
     };
 }
 

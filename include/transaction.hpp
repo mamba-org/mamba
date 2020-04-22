@@ -66,6 +66,7 @@ namespace mamba
 
         void init();
         to_conda_type to_conda();
+        void log_json();
         bool fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos);
         bool empty();
         bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos);

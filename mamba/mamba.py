@@ -323,6 +323,7 @@ def remove(args, parser):
 
         transaction = api.Transaction(solver)
         to_link, to_unlink = transaction.to_conda()
+        transaction.log_json()
 
         conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)
@@ -530,6 +531,7 @@ def install(args, parser, command='install'):
 
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
+    transaction.log_json()
 
     if use_mamba_download:
         downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)

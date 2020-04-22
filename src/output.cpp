@@ -248,9 +248,9 @@ namespace mamba
         return ConsoleStream();
     }
 
-    void Console::print(const std::string_view& str)
+    void Console::print(const std::string_view& str, bool force_print)
     {
-        if (!(Context::instance().quiet || Context::instance().json))
+        if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
             // print above the progress bars
             if (Console::instance().m_progress_started)
@@ -486,5 +486,75 @@ namespace mamba
     {
         static LogSeverity sev = LogSeverity::WARNING;
         return sev;
+    }
+
+    /***************
+     * JsonLogger *
+     ***************/
+
+    JsonLogger::JsonLogger()
+    {
+    }
+
+    JsonLogger& JsonLogger::instance()
+    {
+        static JsonLogger j;
+        return j;
+    }
+
+    void JsonLogger::json_write(const std::string& key, bool value)
+    {
+        json_write(key, value ? std::string("true") : std::string("false"));
+    }
+
+    void JsonLogger::json_write(const std::string& key, const std::string& value)
+    {
+        if (Context::instance().json)
+            json_log[json_hier + '/' + key] = value;
+    }
+
+    void JsonLogger::json_write(const nlohmann::json& j)
+    {
+        if (Context::instance().json)
+        {
+            nlohmann::json tmp = j.flatten();
+            for (auto it = tmp.begin(); it != tmp.end(); ++it)
+                json_log[json_hier + it.key()] = it.value();
+        }
+    }
+
+    void JsonLogger::json_append(const std::string& value)
+    {
+        if (Context::instance().json)
+        {
+            json_log[json_hier + '/' + std::to_string(json_index)] = value;
+            json_index += 1;
+        }
+    }
+
+    void JsonLogger::json_append(const nlohmann::json& j)
+    {
+        if (Context::instance().json)
+        {
+            nlohmann::json tmp = j.flatten();
+            for (auto it = tmp.begin(); it != tmp.end(); ++it)
+                json_log[json_hier + '/' + std::to_string(json_index) + it.key()] = it.value();
+            json_index += 1;
+        }
+    }
+
+    void JsonLogger::json_down(const std::string& key)
+    {
+        if (Context::instance().json)
+        {
+            json_hier += '/' + key;
+            json_index = 0;
+        }
+    }
+
+    void JsonLogger::json_up()
+    {
+        if (Context::instance().json)
+            json_hier.erase(json_hier.rfind('/'));
     }
 }

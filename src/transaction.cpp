@@ -214,18 +214,18 @@ namespace mamba
         }
         m_transaction = solver_create_transaction(solver);
         init();
-        Console::instance().json_down("actions");
+        JsonLogger::instance().json_down("actions");
     }
 
     MTransaction::~MTransaction()
     {
         LOG_INFO << "Freeing transaction.";
         transaction_free(m_transaction);
-        Console::instance().json_write("PREFIX", Context::instance().target_prefix);
-        Console::instance().json_up();
-        Console::instance().json_write("dry_run", Context::instance().dry_run);
-        Console::instance().json_write("prefix", Context::instance().target_prefix);
-        Console::instance().json_print();
+        JsonLogger::instance().json_write("PREFIX", Context::instance().target_prefix);
+        JsonLogger::instance().json_up();
+        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
+        if (Context::instance().json)
+            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
     }
 
     void MTransaction::init()
@@ -285,7 +285,7 @@ namespace mamba
     {
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
-        Console::instance().json_down("FETCH");
+        JsonLogger::instance().json_down("FETCH");
 
         for (Solvable* s : m_to_remove)
         {
@@ -296,14 +296,18 @@ namespace mamba
         for (Solvable* s : m_to_install)
         {
             const char* mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-            nlohmann::json j = solvable_to_json(s);
-            std::string s_json = j.dump(4);
+            std::string s_json = solvable_to_json(s).dump(4);
             to_install_structured.emplace_back(s->repo->name, mediafile, s_json);
-            Console::instance().json_append(j);
         }
-        Console::instance().json_up();
 
         return std::make_tuple(to_install_structured, to_remove_structured);
+    }
+
+    void MTransaction::log_json()
+    {
+        for (Solvable* s : m_to_install)
+            JsonLogger::instance().json_append(solvable_to_json(s));
+        JsonLogger::instance().json_up();
     }
 
     bool MTransaction::fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)

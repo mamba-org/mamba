@@ -31,7 +31,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11_json libsolv libarchive libcurl nlohmann_json conda cxx-compiler
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies

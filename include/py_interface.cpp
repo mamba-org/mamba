@@ -35,6 +35,7 @@ PYBIND11_MODULE(mamba_api, m) {
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<MSolver&>())
         .def("to_conda", &MTransaction::to_conda)
+        .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)

@@ -16,21 +16,19 @@ namespace validate
 
         std::ifstream infile(path, std::ios::binary);
 
-        // 1 MB buffer size
-        constexpr std::size_t BUFSIZE = 1024 * 1024;
-
-        char buffer[BUFSIZE];
+        constexpr std::size_t BUFSIZE = 32768;
+        std::vector<char> buffer(BUFSIZE);
 
         while (infile)
         {
-            infile.read(buffer, BUFSIZE);
+            infile.read(buffer.data(), BUFSIZE);
             size_t count = infile.gcount();
             if (!count) 
                 break;
-            SHA256_Update(&sha256, buffer, count);
+            SHA256_Update(&sha256, buffer.data(), count);
         }
 
-       SHA256_Final(hash, &sha256);
+        SHA256_Final(hash, &sha256);
 
         std::stringstream out;
         out.fill('0');
@@ -51,18 +49,16 @@ namespace validate
 
         std::ifstream infile(path, std::ios::binary);
 
-        // 1 MB buffer size
-        constexpr std::size_t BUFSIZE = 1024 * 1024;
-
-        char buffer[BUFSIZE];
+        constexpr std::size_t BUFSIZE = 32768;
+        std::vector<char> buffer(BUFSIZE);
 
         while (infile)
         {
-            infile.read(buffer, BUFSIZE);
+            infile.read(buffer.data(), BUFSIZE);
             size_t count = infile.gcount();
             if (!count) 
                 break;
-            MD5_Update(&md5, buffer, count);
+            MD5_Update(&md5, buffer.data(), count);
         }
 
         MD5_Final(hash, &md5);

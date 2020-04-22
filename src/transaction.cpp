@@ -1,3 +1,5 @@
+#include <thread>
+
 #include "transaction.hpp"
 
 namespace mamba
@@ -67,9 +69,12 @@ namespace mamba
      * PackageDownloadExtractTarget *
      ********************************/
 
+    std::mutex PackageDownloadExtractTarget::extract_mutex;
+
     PackageDownloadExtractTarget::PackageDownloadExtractTarget(MRepo* repo, Solvable* solvable)
         : m_repo(repo)
         , m_solv(solvable)
+        , m_finished(false)
     {
         m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
         m_channel = m_repo->url();
@@ -105,11 +110,16 @@ namespace mamba
         urls_txt << m_url << std::endl;
     }
 
-    int PackageDownloadExtractTarget::finalize_callback()
+    bool PackageDownloadExtractTarget::validate_extract()
     {
         Id unused;
 
-        m_progress_proxy.set_postfix("Validating...");
+        curl_off_t avg_speed;
+        auto cres = curl_easy_getinfo(m_target->handle(), CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
+        if (cres != CURLE_OK)
+        {
+            avg_speed = 0;
+        }
 
         // Validation
         auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
@@ -124,13 +134,46 @@ namespace mamba
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
 
-        m_progress_proxy.set_postfix("Decompressing...");
-        auto extract_path = extract(m_tarball_path);
-        write_repodata_record(extract_path);
-        add_url();
-        m_progress_proxy.set_postfix("Done");
-        m_progress_proxy.mark_as_completed("Downloaded & extracted " + m_name);
+        m_progress_proxy.set_postfix("Waiting...");
+
+        // Extract path is __not__ yet thread safe it seems...
+        {
+            std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
+            m_progress_proxy.set_postfix("Decompressing...");
+            auto extract_path = extract(m_tarball_path);
+            write_repodata_record(extract_path);
+            add_url();
+        }
+
+        std::stringstream final_msg;
+        final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
+        m_progress_proxy.elapsed_time_to_stream(final_msg);
+        final_msg << " " << std::setw(12 + 2);
+        to_human_readable_filesize(final_msg, expected_size);
+        final_msg << " " << std::setw(6);
+        to_human_readable_filesize(final_msg, avg_speed);
+        final_msg << "/s";
+        m_progress_proxy.mark_as_completed(final_msg.str());
+
+        m_finished = true;
+        return m_finished;
+    }
+
+    int PackageDownloadExtractTarget::finalize_callback()
+    {
+        m_progress_proxy.set_progress(100);
+        m_progress_proxy.set_postfix("Validating...");
+
+        m_extract_future = std::async(std::launch::async,
+                                      &PackageDownloadExtractTarget::validate_extract,
+                                      this);
+
         return 0;
+    }
+
+    bool PackageDownloadExtractTarget::finished()
+    {
+        return m_target == nullptr ? true : m_finished;
     }
 
     std::unique_ptr<DownloadTarget>& PackageDownloadExtractTarget::target(const fs::path& cache_path)
@@ -335,11 +378,36 @@ namespace mamba
                 throw std::runtime_error("Repo not associated.");
             }
 
-            auto dl_target = std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s);
-            multi_dl.add(dl_target->target(cache_path));
-            targets.push_back(std::move(dl_target));
+            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s));
+            multi_dl.add(targets[targets.size() - 1]->target(cache_path));
         }
-        return multi_dl.download(true);
+        bool downloaded = multi_dl.download(true);
+
+        if (!downloaded)
+        {
+            LOG_ERROR << "Download didn't finish!";
+            return false;
+        }
+        // make sure that all targets have finished extracting
+        while (!Context::instance().sig_interrupt)
+        {
+            bool all_finished = true;
+            for (const auto& t : targets)
+            {
+                if (!t->finished())
+                {
+                    all_finished = false;
+                    break;
+                }
+            }
+            if (all_finished)
+            {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        return !Context::instance().sig_interrupt && downloaded;
     }
 
     bool MTransaction::empty()

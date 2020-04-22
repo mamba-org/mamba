@@ -21,7 +21,7 @@ namespace mamba
         bool json = false;
 
         long max_parallel_downloads = 5;
-        int verbosity = 4;
+        int verbosity = 0;
 
         bool on_ci = false;
         bool no_progress_bars = false;

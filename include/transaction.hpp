@@ -2,6 +2,8 @@
 #define MAMBA_TRANSACTION_HPP
 
 #include <iomanip>
+#include <future>
+
 #include "nlohmann/json.hpp"
 
 #include "thirdparty/filesystem.hpp"
@@ -34,6 +36,8 @@ namespace mamba
         void write_repodata_record(const fs::path& base_path);
         void add_url();
         int finalize_callback();
+        bool finished();
+        bool validate_extract();
         std::unique_ptr<DownloadTarget>& target(const fs::path& cache_path);
 
     private:
@@ -46,6 +50,11 @@ namespace mamba
 
         std::string m_url, m_name, m_channel, m_filename;
         fs::path m_tarball_path, m_cache_path;
+
+        std::future<bool> m_extract_future;
+        bool m_finished;
+
+        static std::mutex extract_mutex;
     };
 
     class MTransaction

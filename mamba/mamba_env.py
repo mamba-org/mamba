@@ -7,7 +7,7 @@
 from __future__ import absolute_import, print_function
 
 from os.path import basename
-import os
+import os, sys
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.context import context
@@ -21,7 +21,7 @@ from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.models.prefix_graph import PrefixGraph
 
-from mamba.utils import get_env_index, to_package_record_from_subjson
+from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
 import mamba.mamba_api as api
 
 import tempfile
@@ -30,6 +30,8 @@ import sys
 
 def mamba_install(prefix, specs, args, env, *_, **kwargs):
     # TODO: support all various ways this happens
+    init_api_context()
+
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = [chan for chan in env.channels if chan != 'nodefaults']
 
@@ -37,19 +39,15 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
-    index = get_env_index(_channel_priority_map)
+    index = get_index(tuple(_channel_priority_map.keys()))
 
     channel_json = []
 
-    for x in index:
+    for subdir, chan in index:
         # add priority here
-        priority = len(_channel_priority_map) - _channel_priority_map[x.url_w_credentials][1]
-        subpriority = 0 if x.channel.platform == 'noarch' else 1
-        if os.path.exists(x.cache_path_solv):
-            cache_file = x.cache_path_solv
-        else:
-            cache_file = x.cache_path_json
-        channel_json.append((str(x.channel), cache_file, priority, subpriority))
+        priority = len(_channel_priority_map) - _channel_priority_map[chan.url(with_credentials=True)][1]
+        subpriority = 0 if chan.platform == 'noarch' else 1
+        channel_json.append((chan, subdir.cache_path(), priority, subpriority))
 
     specs = [MatchSpec(s) for s in specs]
     mamba_solve_specs = [s.conda_build_form() for s in specs]
@@ -59,11 +57,10 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
     pool = api.Pool()
-    pool.set_debuglevel(context.verbosity)
     repos = []
 
-    for channel_name, cache_file, priority, subpriority in channel_json:
-        repo = api.Repo(pool, channel_name, cache_file)
+    for channel, cache_file, priority, subpriority in channel_json:
+        repo = api.Repo(pool, str(channel), cache_file, channel.url(with_credentials=True))
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
@@ -72,7 +69,6 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())
-        return
 
     transaction = api.Transaction(solver)
     to_link, to_unlink = transaction.to_conda()
@@ -82,18 +78,9 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     final_precs = IndexedSet(PrefixData(prefix).iter_records())
 
     def get_channel(c):
-        for x in index:
-            if str(x.channel) == c:
-                return x
-
-    for c, pkg in to_unlink:
-        for i_rec in installed_pkg_recs:
-            if i_rec.fn == pkg:
-                final_precs.remove(i_rec)
-                to_unlink_records.append(i_rec)
-                break
-        else:
-            print("No package record found!")
+        for _, chan in index:
+            if str(chan) == c:
+                return chan
 
     for c, pkg, jsn_s in to_link:
         sdir = get_channel(c)
@@ -120,12 +107,6 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     pfe = conda_transaction._get_pfe()
     pfe.execute()
     conda_transaction.execute()
-
-    try:
-        installed_json_f.close()
-        os.unlink(installed_json_f.name)
-    except:
-        pass
 
 conda.install = mamba_install
 

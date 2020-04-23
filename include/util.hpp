@@ -20,6 +20,7 @@ namespace mamba
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
     bool starts_with(const std::string_view& str, const std::string_view& prefix);
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0);
+    bool lexists(const fs::path& p);
 
     class TemporaryDirectory
     {

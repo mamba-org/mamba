@@ -20,6 +20,11 @@ namespace mamba
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
     }
 
+    bool lexists(const fs::path& path)
+    {
+        return fs::status_known(fs::symlink_status(path));
+    }
+
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
         const char* sizes[] = { " B", "KB", "MB", "GB", "TB" };

@@ -52,7 +52,7 @@ import logging
 import mamba.mamba_api as api
 
 from mamba.post_solve_handling import post_solve_handling
-from mamba.utils import get_index, to_package_record_from_subjson
+from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
 
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
@@ -80,26 +80,6 @@ banner = """
 
 █████████████████████████████████████████████████████████████
 """
-
-def init_api_context():
-    api_ctx = api.Context()
-    api_ctx.json = context.json
-    if context.json:
-        context.always_yes = True
-        context.quiet = True
-        context.json = False
-    api_ctx.set_verbosity(context.verbosity)
-    api_ctx.quiet = context.quiet
-    api_ctx.offline = context.offline
-    api_ctx.local_repodata_ttl = context.local_repodata_ttl
-    api_ctx.use_index_cache = context.use_index_cache
-    api_ctx.always_yes = context.always_yes
-    api_ctx.dry_run = context.dry_run
-    if context.ssl_verify == False:
-        api_ctx.ssl_verify = "<false>"
-    elif context.ssl_verify is not True:
-        api_ctx.ssl_verify = context.ssl_verify
-    api_ctx.target_prefix = context.target_prefix
 
 class MambaException(Exception):
     pass

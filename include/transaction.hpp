@@ -35,7 +35,7 @@ namespace mamba
 
         void write_repodata_record(const fs::path& base_path);
         void add_url();
-        int finalize_callback();
+        bool finalize_callback();
         bool finished();
         bool validate_extract();
         std::unique_ptr<DownloadTarget>& target(const fs::path& cache_path);

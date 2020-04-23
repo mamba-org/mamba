@@ -1,4 +1,5 @@
 #include <string_view>
+#include <thread>
 
 #include "context.hpp"
 #include "fetch.hpp"
@@ -13,27 +14,33 @@ namespace mamba
     DownloadTarget::DownloadTarget(const std::string& name, const std::string& url, const std::string& filename)
         : m_name(name)
         , m_filename(filename)
+        , m_url(url)
     {
         m_file = std::ofstream(filename, std::ios::binary);
 
-        m_target = curl_easy_init();
+        m_handle = curl_easy_init();
 
-        curl_easy_setopt(m_target, CURLOPT_URL, url.c_str());
+        init_curl_target(m_url);
+    }
 
-        curl_easy_setopt(m_target, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
-        curl_easy_setopt(m_target, CURLOPT_HEADERDATA, this);
+    void DownloadTarget::init_curl_target(const std::string& url)
+    {
+        curl_easy_setopt(m_handle, CURLOPT_URL, url.c_str());
 
-        curl_easy_setopt(m_target, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
-        curl_easy_setopt(m_target, CURLOPT_WRITEDATA, this);
+        curl_easy_setopt(m_handle, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
+        curl_easy_setopt(m_handle, CURLOPT_HEADERDATA, this);
+
+        curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
+        curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, this);
 
         m_headers = nullptr;
         if (ends_with(url, ".json"))
         {
-            curl_easy_setopt(m_target, CURLOPT_ACCEPT_ENCODING, "gzip, deflate, compress, identity");
+            curl_easy_setopt(m_handle, CURLOPT_ACCEPT_ENCODING, "gzip, deflate, compress, identity");
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
-        curl_easy_setopt(m_target, CURLOPT_HTTPHEADER, m_headers);
-        curl_easy_setopt(m_target, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+        curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
+        curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
 
         std::string& ssl_verify = Context::instance().ssl_verify;
 
@@ -46,8 +53,8 @@ namespace mamba
         {
             if (ssl_verify == "<false>")
             {
-                curl_easy_setopt(m_target, CURLOPT_SSL_VERIFYPEER, 0L);
-                curl_easy_setopt(m_target, CURLOPT_SSL_VERIFYHOST, 0L);
+                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
             }
             else
             {
@@ -57,15 +64,42 @@ namespace mamba
                 }
                 else
                 {
-                    curl_easy_setopt(m_target, CURLOPT_CAINFO, ssl_verify.c_str());
+                    curl_easy_setopt(m_handle, CURLOPT_CAINFO, ssl_verify.c_str());
                 }
             }
         }
     }
 
+    bool DownloadTarget::can_retry()
+    {
+        return m_retries < Context::instance().max_retries;
+    }
+
+    CURL* DownloadTarget::retry()
+    {
+        auto now = std::chrono::steady_clock::now();
+        if (now >= m_next_retry)
+        {
+            init_curl_target(m_url);
+            if (m_has_progress_bar)
+            {
+                curl_easy_setopt(m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
+                curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
+            }
+            m_retry_wait_seconds = m_retry_wait_seconds * Context::instance().retry_backoff;
+            m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);
+            m_retries++;
+            return m_handle;
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
     DownloadTarget::~DownloadTarget()
     {
-        curl_easy_cleanup(m_target);
+        curl_easy_cleanup(m_handle);
         curl_slist_free_all(m_headers);
     }
 
@@ -180,9 +214,9 @@ namespace mamba
     {
         m_has_progress_bar = true;
         m_progress_bar = progress_proxy;
-        curl_easy_setopt(m_target, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-        curl_easy_setopt(m_target, CURLOPT_XFERINFODATA, this);
-        curl_easy_setopt(m_target, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
+        curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
+        curl_easy_setopt(m_handle, CURLOPT_NOPROGRESS, 0L);
     }
 
     void DownloadTarget::set_expected_size(std::size_t size)
@@ -197,7 +231,7 @@ namespace mamba
 
     bool DownloadTarget::perform()
     {
-        CURLcode res = curl_easy_perform(m_target);
+        CURLcode res = curl_easy_perform(m_handle);
         if (res != CURLE_OK)
         {
             throw std::runtime_error(curl_easy_strerror(res));
@@ -207,26 +241,43 @@ namespace mamba
 
     CURL* DownloadTarget::handle()
     {
-        return m_target;
+        return m_handle;
     }
 
     curl_off_t DownloadTarget::get_speed()
     {
         curl_off_t speed;
-        CURLcode res = curl_easy_getinfo(m_target, CURLINFO_SPEED_DOWNLOAD_T, &speed);
+        CURLcode res = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &speed);
         return res == CURLE_OK ? speed : 0;
+    }
+
+    void DownloadTarget::set_failed(const std::string& msg)
+    {
+        LOG_WARNING << "Transfer failed, retrying";
+        m_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
+        m_progress_bar.set_progress(0);
+        m_progress_bar.set_postfix(msg);
     }
         
     bool DownloadTarget::finalize()
     {
-        m_file.close();
-
         char* effective_url = nullptr;
-        curl_easy_getinfo(m_target, CURLINFO_RESPONSE_CODE, &http_status);
-        curl_easy_getinfo(m_target, CURLINFO_EFFECTIVE_URL, &effective_url);
-        curl_easy_getinfo(m_target, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
+        curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
+        curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
+        curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
         LOG_INFO << "Transfer finalized, status: " << http_status << " @ " << effective_url << " " << downloaded_size << " bytes";
+
+        if (http_status >= 400)
+        {
+            // this request didn't work!
+            std::stringstream msg;
+            msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
+            set_failed(msg.str());
+            return false;
+        }
+
+        m_file.close();
 
         final_url = effective_url;
         if (m_finalize_callback)
@@ -235,32 +286,12 @@ namespace mamba
         }
         else
         {
-            validate();
             if (m_has_progress_bar)
             {
                 m_progress_bar.mark_as_completed("Downloaded " + m_name);
             }
         }
         return true;
-    }
-
-    void DownloadTarget::validate()
-    {
-        if (m_expected_size)
-        {
-            curl_off_t dl_size;
-            curl_easy_getinfo(m_target, CURLINFO_SIZE_DOWNLOAD_T, &dl_size);
-            if (dl_size != m_expected_size)
-            {
-                throw std::runtime_error("Download of " + m_name + " does not have expected size!");
-            }
-            validate::sha256(m_filename, dl_size, m_sha256);
-        }
-    }
-
-    void DownloadTarget::set_sha256(const std::string& sha256)
-    {
-        m_sha256 = sha256;
     }
 
     /**************************************
@@ -283,9 +314,9 @@ namespace mamba
     {
         if (!target) return;
         CURLMcode code = curl_multi_add_handle(m_handle, target->handle());
-        if(code != CURLM_CALL_MULTI_PERFORM)
+        if (code != CURLM_CALL_MULTI_PERFORM)
         {
-            if(code != CURLM_OK)
+            if (code != CURLM_OK)
             {
                 throw std::runtime_error(curl_multi_strerror(code));
             }
@@ -300,8 +331,31 @@ namespace mamba
 
         while ((msg = curl_multi_info_read(m_handle, &msgs_in_queue)))
         {
+            // TODO maybe refactor so that `msg` is passed to current target?
+            DownloadTarget* current_target = nullptr;
+            for (const auto& target : m_targets)
+            {
+                if (target->handle() == msg->easy_handle)
+                {
+                    current_target = target;
+                    break;
+                }
+            }
+
+            if (!current_target)
+            {
+                throw std::runtime_error("Could not find target associated with multi request");
+            }
+
             if (msg->data.result != CURLE_OK)
             {
+                if (current_target->can_retry())
+                {
+                    current_target->set_failed(curl_easy_strerror(msg->data.result));
+                    curl_multi_remove_handle(m_handle, current_target->handle());
+                    m_retry_targets.push_back(current_target);
+                    continue;
+                }
                 char* effective_url = nullptr;
                 curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
                 std::stringstream err;
@@ -317,23 +371,22 @@ namespace mamba
                 continue;
             }
 
-            DownloadTarget* current_target = nullptr;
-            for (const auto& target : m_targets)
-            {
-                if (target->handle() == msg->easy_handle)
-                {
-                    current_target = target;
-                    break;
-                }
-            }
-
-            if (!current_target)
-            {
-                throw std::runtime_error("Could not find target associated with multi request");   
-            }
+            curl_multi_remove_handle(m_handle, current_target->handle());
 
             // flush file & finalize transfer
-            current_target->finalize();
+            if (!current_target->finalize())
+            {
+                // transfer did not work! can we retry?
+                if (current_target->can_retry())
+                {
+                    LOG_WARNING << "Adding target to retry!";
+                    m_retry_targets.push_back(current_target);
+                }
+                else
+                {
+                    throw std::runtime_error("Download failed.");
+                }
+            }
         }
         return true;
     }
@@ -343,7 +396,7 @@ namespace mamba
         LOG_INFO << "Starting to download targets";
 
         int still_running, repeats = 0;
-        const long max_wait_msecs = 400;
+        const long max_wait_msecs = 1000;
         do
         {
             CURLMcode code = curl_multi_perform(m_handle, &still_running);                
@@ -354,9 +407,40 @@ namespace mamba
             }
             check_msgs();
 
-            int numfds;
-            code = curl_multi_wait(m_handle, NULL, 0, max_wait_msecs, &numfds);
+            if (!m_retry_targets.empty())
+            {
+                auto it = m_retry_targets.begin();
+                while (it != m_retry_targets.end())
+                {
+                    CURL* curl_handle = (*it)->retry();
+                    if (curl_handle != nullptr)
+                    {
+                        curl_multi_add_handle(m_handle, curl_handle);
+                        it = m_retry_targets.erase(it);
+                        still_running = 1;
+                    }
+                    else
+                    {
+                        ++it;
+                    }
+                }
+            }
 
+            long curl_timeout = -1;
+            code = curl_multi_timeout(m_handle, &curl_timeout);
+            if (code != CURLM_OK)
+            {
+                throw std::runtime_error(curl_multi_strerror(code));
+            }
+
+            if (curl_timeout == 0) // No wait
+                continue;
+
+            if (curl_timeout < 0 || curl_timeout > max_wait_msecs) // Wait no more than 1s
+                curl_timeout = max_wait_msecs;
+
+            int numfds;
+            code = curl_multi_wait(m_handle, NULL, 0, curl_timeout, &numfds);
             if (code != CURLM_OK)
             {
                 throw std::runtime_error(curl_multi_strerror(code));
@@ -364,17 +448,11 @@ namespace mamba
 
             if(!numfds)
             {
+                LOG_WARNING << "Nothing happend " << repeats;
                 repeats++; // count number of repeated zero numfds
                 if(repeats > 1)
                 {
-                    // wait 100 ms
-                    #ifdef _WIN32
-                        Sleep(100);
-                    #else
-                        // Portable sleep for platforms other than Windows.
-                        struct timeval wait = { 0, 100 * 1000 };
-                        (void) select(0, NULL, NULL, NULL, &wait);
-                    #endif
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
             else
@@ -382,7 +460,7 @@ namespace mamba
                 repeats = 0;
             }
         }
-        while (still_running && !Context::instance().sig_interrupt);
+        while ((still_running || !m_retry_targets.empty()) && !Context::instance().sig_interrupt);
 
         if (Context::instance().sig_interrupt)
         {

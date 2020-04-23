@@ -8,15 +8,6 @@
 
 extern "C"
 {
-    #include <stdio.h>
-    #include <string.h>
-
-    // unix-specific
-    #ifndef _WIN32
-    #include <sys/time.h>
-    #include <unistd.h>
-    #endif
-
     #include <curl/curl.h>
     #include <archive.h>
 }
@@ -39,42 +30,52 @@ namespace mamba
         void set_mod_etag_headers(const nlohmann::json& mod_etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
+        void set_failed(const std::string& str);
 
         const std::string& name() const;
 
+        void init_curl_target(const std::string& url);
         bool perform();
         CURL* handle();
+
         curl_off_t get_speed();
 
         template <class C>
-        void set_finalize_callback(int (C::*cb)(), C* data)
+        void set_finalize_callback(bool (C::*cb)(), C* data)
         {
             m_finalize_callback = std::bind(cb, data);
         }
 
         bool finalize();
-        void validate();
-        void set_sha256(const std::string& sha256);
 
-        int http_status;
+        bool can_retry();
+        CURL* retry();
+
+        void validate();
+
+        int http_status = 10000;
+        curl_off_t downloaded_size = 0;
         std::string final_url;
-        curl_off_t downloaded_size;
 
         std::string etag, mod, cache_control;
 
     private:
 
-        std::function<int()> m_finalize_callback;
+        std::function<bool()> m_finalize_callback;
 
-        std::string m_name, m_filename;
+        std::string m_name, m_filename, m_url;
 
         // validation
         std::size_t m_expected_size = 0;
-        std::string m_sha256;
 
         std::chrono::steady_clock::time_point m_progress_throttle_time;
 
-        CURL* m_target;
+        // retry & backoff
+        std::chrono::steady_clock::time_point m_next_retry;
+        std::size_t m_retry_wait_seconds = Context::instance().retry_timeout;
+        std::size_t m_retries = 0;
+
+        CURL* m_handle;
         curl_slist* m_headers;
 
         bool m_has_progress_bar = false;
@@ -97,6 +98,7 @@ namespace mamba
     private:
 
         std::vector<DownloadTarget*> m_targets;
+        std::vector<DownloadTarget*> m_retry_targets;
         CURLM* m_handle;
     };
 

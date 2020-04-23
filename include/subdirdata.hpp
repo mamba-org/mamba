@@ -35,7 +35,7 @@ namespace mamba
         std::string cache_path() const;
         std::unique_ptr<DownloadTarget>& target();
         const std::string& name() const;
-        int finalize_transfer();
+        bool finalize_transfer();
 
     private:
 

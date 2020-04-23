@@ -172,7 +172,7 @@ namespace mamba
         return m_name;
     }
 
-    int MSubdirData::finalize_transfer()
+    bool MSubdirData::finalize_transfer()
     {
         LOG_WARNING << "HTTP response code: " << m_target->http_status;
         if (m_target->http_status == 200 || m_target->http_status == 304)
@@ -202,7 +202,7 @@ namespace mamba
             m_json_cache_valid = true;
             m_loaded = true;
             m_temp_file.reset(nullptr);
-            return 0;
+            return true;
         }
 
         LOG_WARNING << "Finalized transfer: " << m_url;
@@ -254,7 +254,7 @@ namespace mamba
         temp_file.close();
         m_temp_file.reset(nullptr);
 
-        return 0;
+        return true;
     }
 
     bool MSubdirData::decompress()

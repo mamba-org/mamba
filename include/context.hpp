@@ -31,6 +31,10 @@ namespace mamba
 
         bool sig_interrupt = false;
 
+        int retry_timeout = 2; // seconds
+        int retry_backoff = 3; // retry_timeout * retry_backoff
+        int max_retries = 3;  // max number of retries
+
         // ssl verify can be either an empty string (regular SSL verification),
         // the string "<false>" to indicate no SSL verification, or a path to 
         // a directory with cert files, or a cert file.

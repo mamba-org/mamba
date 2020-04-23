@@ -18,7 +18,10 @@ namespace mamba
 
     void MPool::set_debuglevel()
     {
-        pool_setdebuglevel(m_pool, Context::instance().verbosity);
+        if (Context::instance().verbosity > 2)
+        {
+            pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
+        }
     }
 
     void MPool::create_whatprovides()

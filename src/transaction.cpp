@@ -159,7 +159,7 @@ namespace mamba
         return m_finished;
     }
 
-    int PackageDownloadExtractTarget::finalize_callback()
+    bool PackageDownloadExtractTarget::finalize_callback()
     {
         m_progress_proxy.set_progress(100);
         m_progress_proxy.set_postfix("Validating...");
@@ -168,7 +168,7 @@ namespace mamba
                                       &PackageDownloadExtractTarget::validate_extract,
                                       this);
 
-        return 0;
+        return true;
     }
 
     bool PackageDownloadExtractTarget::finished()

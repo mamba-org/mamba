@@ -49,13 +49,13 @@ namespace pystring
 namespace detail
 {
 	template <class S>
-	auto size(const S& s)
+	inline auto size(const S& s)
 	{
 	    return s.size();
 	}
 
 	template <class T, std::size_t N>
-	auto size(const T (&str)[N])
+	inline auto size(const T (&str)[N])
 	{
 	    return std::strlen(str);
 	}
@@ -65,31 +65,31 @@ namespace detail
 	    const char* pos;
 	    const char* end;
 
-	    operator std::string()
+	    inline operator std::string()
 	    {
 	        return {pos, end};
 	    }
 	};
 
-	auto size(const char_substr& str)
+	inline auto size(const char_substr& str)
 	{
 	    return std::distance(str.pos, str.end);
 	}
 
 	template <class T>
-	bool operator==(const char_substr& lhs, const T& rhs)
+	inline bool operator==(const char_substr& lhs, const T& rhs)
 	{
 	    return std::equal(lhs.pos, lhs.end, std::begin(rhs)) && size(lhs) == size(rhs);
 	}
 
 	template <class S>
-	auto substr(S& str, std::size_t pos, std::size_t len)
+	inline auto substr(S& str, std::size_t pos, std::size_t len)
 	{
 	    return str.substr(pos, len);
 	}
 
 	template <class T, std::size_t N>
-	auto substr(T (&str)[N], std::size_t pos, std::size_t len)
+	inline auto substr(T (&str)[N], std::size_t pos, std::size_t len)
 	{
 	    return char_substr{str + pos, str + pos + len};
 	}
@@ -98,7 +98,7 @@ namespace detail
 	using std::begin;
 
 	template <class C, std::size_t N>
-	auto end(const C (&c)[N])
+	inline auto end(const C (&c)[N])
 	{
 		return &c[0] + std::strlen(c);
 	}
@@ -106,36 +106,36 @@ namespace detail
     struct fast_end_t {};
 
     template <class C>
-    auto fast_end(C& c)
+    inline auto fast_end(C& c)
     {
         return c.end();
     }
 
     template <class T, std::size_t N>
-    auto fast_end(T (&)[N])
+    inline auto fast_end(T (&)[N])
     {
         return fast_end_t();
     }
 
     template <class It>
-    bool operator==(It it, fast_end_t)
+    inline bool operator==(It it, fast_end_t)
     {
         return (*it == '\0');
     }
 
     template <class It>
-    bool operator!=(It it, fast_end_t)
+    inline bool operator!=(It it, fast_end_t)
     {
         return !(it == fast_end_t());
     }
 
-    const char* c_str(const std::string& str)
+    inline const char* c_str(const std::string& str)
     {
         return str.c_str();
     }
 
     template <std::size_t N>
-    const char* c_str(const char(&str)[N])
+    inline const char* c_str(const char(&str)[N])
     {
         return str;
     }

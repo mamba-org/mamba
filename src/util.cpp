@@ -33,6 +33,11 @@ namespace mamba
         return fs::exists(path); // && fs::status_known(fs::symlink_status(path));
     }
 
+    bool is_package_file(const std::string_view& fn)
+    {
+        return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
+    }
+
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
         const char* sizes[] = { " B", "KB", "MB", "GB", "TB" };

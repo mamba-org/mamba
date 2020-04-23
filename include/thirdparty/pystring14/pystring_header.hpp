@@ -18,31 +18,31 @@ namespace pystring {
 // @brief Return a copy of the string with only its first character capitalized.
 //
 template <class S>
-S capitalize(const S& str);
+inline S capitalize(const S& str);
 
 ///
 // @brief Return centered in a string of length width. Padding is done using spaces.
 //
-string center(const string_view& str, std::ptrdiff_t width);
+inline string center(const string_view& str, std::ptrdiff_t width);
 
 //
 // @brief Return the number of occurrences of substring sub in string S[start:end]. Optional
 // arguments start and end are interpreted as in slice notation.
 //
 template <class S>
-std::ptrdiff_t count(const S& str, const S& substr, std::ptrdiff_t start = 0, std::ptrdiff_t end = std::numeric_limits<std::ptrdiff_t>::max());
+inline std::ptrdiff_t count(const S& str, const S& substr, std::ptrdiff_t start = 0, std::ptrdiff_t end = std::numeric_limits<std::ptrdiff_t>::max());
 
 // @brief Return True if the string ends with the specified suffix, otherwise return False. With
 // optional start, test beginning at that position. With optional end, stop comparing at that position.
 //
 template <class S, class C>
-bool endswith(const S& str, const C& suffix, std::ptrdiff_t start = 0, std::ptrdiff_t end = std::numeric_limits<std::ptrdiff_t>::max());
+inline bool endswith(const S& str, const C& suffix, std::ptrdiff_t start = 0, std::ptrdiff_t end = std::numeric_limits<std::ptrdiff_t>::max());
 
 ///
 // @brief Return a copy of the string where all tab characters are expanded using spaces. If tabsize
 // is not given, a tab size of 8 characters is assumed.
 //
-string expandtabs(const string_view& str, std::ptrdiff_t tabsize = 8);
+inline string expandtabs(const string_view& str, std::ptrdiff_t tabsize = 8);
 
 ///
 // @brief Return the lowest index in the string where substring sub is found, such that sub is

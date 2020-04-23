@@ -1,13 +1,12 @@
-#pragma once
+#ifndef MAMBA_URL
+#define MAMBA_URL
+
+#include <string>
+#include <stdexcept>
 
 extern "C" {
-    #include <stdio.h>
     #include <curl/curl.h>
 }
-
-#if !CURL_AT_LEAST_VERSION(7, 62, 0)
-#error "this example requires curl 7.62.0 or later"
-#endif
 
 // typedef enum {
 //   CURLUE_OK,
@@ -33,68 +32,20 @@ extern "C" {
 namespace mamba
 {
 
+bool is_url(const std::string& url);
+
 class URLParser
 {
 public:
-    URLParser(const std::string& url)
-        : m_url(url)
-    {
-        char* host;
-        char* path;
+    URLParser(const std::string& url);
+    ~URLParser();
 
-        handle = curl_url(); /* get a handle to work with */ 
-        if (!handle)
-        {
-            throw std::runtime_error("Could not initiate URL parser.");
-        }
-        CURLUcode uc;
-        uc = curl_url_set(handle, CURLUPART_URL, url.c_str(), CURLU_NON_SUPPORT_SCHEME);
-        if (uc)
-        {
-            throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) + ")");
-        }
-    }
-
-    std::string scheme()
-    {
-        char* scheme;
-        auto rc = curl_url_get(handle, CURLUPART_SCHEME, &scheme, 0);
-        if (!rc)
-        {
-            std::string res(scheme);
-            curl_free(scheme);
-            return res;
-        }
-        else
-        {
-            throw std::runtime_error("Could not find SCHEME of url " + m_url);
-        }
-    }
-
-    ~URLParser()
-    {
-        curl_url_cleanup(handle);
-    }
+    std::string scheme();
 
     std::string m_url;
     CURLU* handle;
 };
 
-bool is_url(const std::string& url)
-{
-    if (url.size() == 0) return false;
-    try {
-        URLParser p(url);
-        if (p.scheme().size() != 0) {
-            return true;
-        }
-    }
-    catch(...)
-    {
-        return false;
-    }
-    return false;
 }
 
-
-}
+#endif

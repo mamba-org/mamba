@@ -472,20 +472,23 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
+    spec_names = [s.name for s in specs]
+
+    if not (context.quiet or context.json):
+        print("\nLooking for: {}\n".format(spec_names))
+
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
-    spec_names = [s.name for s in specs]
+    python_added = False
     if 'python' not in spec_names:
         installed_names = [i_rec.name for i_rec in installed_pkg_recs]
         if 'python' in installed_names:
             i = installed_names.index('python')
             version = installed_pkg_recs[i].version
             specs.append(MatchSpec('python==' + version))
+            python_added = True
 
     mamba_solve_specs = [s.conda_build_form() for s in specs]
-
-    if not (context.quiet or context.json):
-        print("\nLooking for: {}\n".format(mamba_solve_specs))
 
     pool = api.Pool()
 
@@ -518,6 +521,9 @@ def install(args, parser, command='install'):
         if not downloaded:
             exit(0)
         PackageCacheData.first_writable().reload()
+
+    if python_added:
+        specs = [s for s in specs if s.name != 'python']
 
     conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
     handle_txn(conda_transaction, prefix, args, newenv)

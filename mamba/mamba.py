@@ -279,8 +279,6 @@ def remove(args, parser):
         channel_urls = ()
         subdirs = ()
 
-        installed_json_f = get_installed_jsonfile(prefix)
-
         mamba_solve_specs = [s.conda_build_form() for s in specs]
 
         solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
@@ -493,8 +491,9 @@ def install(args, parser, command='install'):
     repos = []
 
     # add installed
-    repo = api.Repo(pool, "installed", installed_json_f.name, "")
-    repo.set_installed()
+    prefix_data = api.PrefixData(context.target_prefix)
+    prefix_data.load()
+    repo = api.Repo(pool, prefix_data)
     repos.append(repo)
 
     for channel, cache_file, priority, subpriority in channel_json:

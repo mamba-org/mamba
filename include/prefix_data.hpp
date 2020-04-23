@@ -12,7 +12,7 @@ namespace mamba
     {
     public:
 
-        PackageRecord(const nlohmann::json&& j);
+        PackageRecord(nlohmann::json&& j);
 
         std::string name;
         std::string version;

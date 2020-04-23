@@ -6,6 +6,7 @@
 #include "pool.hpp"
 #include "transaction.hpp"
 #include "repo.hpp"
+#include "prefix_data.hpp"
 #include "query.hpp"
 #include "subdirdata.hpp"
 #include "context.hpp"
@@ -25,6 +26,7 @@ PYBIND11_MODULE(mamba_api, m) {
 
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
+        .def(py::init<MPool&, const PrefixData&>())
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)
@@ -88,6 +90,11 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readonly("sig_interrupt", &Context::sig_interrupt)
         .def_readwrite("target_prefix", &Context::target_prefix)
         .def("set_verbosity", &Context::set_verbosity)
+    ;
+
+    py::class_<PrefixData>(m, "PrefixData")
+        .def(py::init<const std::string&>())
+        .def("load", &PrefixData::load)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

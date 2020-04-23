@@ -4,12 +4,15 @@
 #include <string>
 #include <tuple>
 
+#include "prefix_data.hpp"
+
 extern "C"
 {
     #include "common_write.c"
 
     #include "solv/repo.h"
     #include "solv/repo_solv.h"
+    #include "solv/conda.h"
     #include "solv/repo_conda.h"
 }
 
@@ -21,6 +24,7 @@ namespace mamba
     {
     public:
 
+        MRepo(MPool& pool, const PrefixData& prefix_data);
         MRepo(MPool& pool, const std::string& name,
               const std::string& filename, const std::string& url);
         ~MRepo();

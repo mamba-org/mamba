@@ -174,6 +174,7 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
     return conda_transaction
 
 use_mamba_download = False
+use_mamba_experimental = False
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
@@ -274,8 +275,8 @@ def remove(args, parser):
             specs = tuple(MatchSpec(track_features=f) for f in set(args.package_names))
         else:
             specs = [s for s in specs_from_args(args.package_names)]
-        if not (context.quiet or context.json):
-            print("Removing specs: {}".format(specs))
+        if not context.quiet:
+            print("Removing specs: {}".format([s.conda_build_form() for s in specs]))
         channel_urls = ()
         subdirs = ()
 
@@ -289,9 +290,15 @@ def remove(args, parser):
         repos = []
 
         # add installed
-        repo = api.Repo(pool, "installed", installed_json_f.name, "")
-        repo.set_installed()
-        repos.append(repo)
+        if use_mamba_experimental:
+            prefix_data = api.PrefixData(context.target_prefix)
+            prefix_data.load()
+            repo = api.Repo(pool, prefix_data)
+            repos.append(repo)
+        else:
+            repo = api.Repo(pool, "installed", installed_json_f.name, "")
+            repo.set_installed()
+            repos.append(repo)
 
         solver = api.Solver(pool, solver_options)
         solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE)
@@ -495,9 +502,16 @@ def install(args, parser, command='install'):
     repos = []
 
     # add installed
-    repo = api.Repo(pool, "installed", installed_json_f.name, "")
-    repo.set_installed()
-    repos.append(repo)
+    if use_mamba_experimental:
+        prefix_data = api.PrefixData(context.target_prefix)
+        prefix_data.load()
+        repo = api.Repo(pool, prefix_data)
+        repos.append(repo)
+    else:
+        repo = api.Repo(pool, "installed", installed_json_f.name, "")
+        repo.set_installed()
+        repos.append(repo)
+
 
     for channel, cache_file, priority, subpriority in channel_json:
         repo = api.Repo(pool, str(channel), cache_file, channel.url(with_credentials=True))
@@ -690,7 +704,13 @@ def _wrapped_main(*args, **kwargs):
         global use_mamba_download
         use_mamba_download = True
         argv.remove('--mamba-download')
-        args = argv
+
+    if "--mamba-experimental" in argv:
+        global use_mamba_experimental
+        use_mamba_experimental = True
+        argv.remove('--mamba-experimental')
+
+    args = argv
 
     p = generate_parser()
     configure_parser_repoquery(p._subparsers._group_actions[0])

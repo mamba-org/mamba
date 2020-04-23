@@ -65,6 +65,7 @@ ext_modules = [
          'src/fetch.cpp',
          'src/output.cpp',
          'src/package_handling.cpp',
+         'src/prefix_data.cpp',
          'src/pool.cpp',
          'src/query.cpp',
          'src/repo.cpp',

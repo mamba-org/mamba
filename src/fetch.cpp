@@ -310,7 +310,7 @@ namespace mamba
         curl_multi_cleanup(m_handle);
     }
 
-    void MultiDownloadTarget::add(std::unique_ptr<DownloadTarget>& target)
+    void MultiDownloadTarget::add(DownloadTarget* target)
     {
         if (!target) return;
         CURLMcode code = curl_multi_add_handle(m_handle, target->handle());
@@ -321,7 +321,7 @@ namespace mamba
                 throw std::runtime_error(curl_multi_strerror(code));
             }
         }
-        m_targets.push_back(target.get());
+        m_targets.push_back(target);
     }
 
     bool MultiDownloadTarget::check_msgs()

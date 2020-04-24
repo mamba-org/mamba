@@ -71,13 +71,12 @@ namespace mamba
 
     std::mutex PackageDownloadExtractTarget::extract_mutex;
 
-    PackageDownloadExtractTarget::PackageDownloadExtractTarget(MRepo* repo, Solvable* solvable)
-        : m_repo(repo)
-        , m_solv(solvable)
+    PackageDownloadExtractTarget::PackageDownloadExtractTarget(const MRepo& repo, Solvable* solvable)
+        : m_solv(solvable)
         , m_finished(false)
     {
         m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
-        m_channel = m_repo->url();
+        m_channel = repo.url();
         m_url = m_channel + "/" + m_filename;
         m_name = pool_id2str(m_solv->repo->pool, m_solv->name);
     }
@@ -176,7 +175,7 @@ namespace mamba
         return m_target == nullptr ? true : m_finished;
     }
 
-    std::unique_ptr<DownloadTarget>& PackageDownloadExtractTarget::target(const fs::path& cache_path)
+    DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path)
     {
         m_cache_path = cache_path;
         m_tarball_path = cache_path / m_filename;
@@ -242,7 +241,7 @@ namespace mamba
         {
             LOG_INFO << "Using cache " << m_name;
         }
-        return m_target;
+        return m_target.get();
     }
 
     /*******************************
@@ -378,7 +377,7 @@ namespace mamba
                 throw std::runtime_error("Repo not associated.");
             }
 
-            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(mamba_repo, s));
+            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(*mamba_repo, s));
             multi_dl.add(targets[targets.size() - 1]->target(cache_path));
         }
         bool downloaded = multi_dl.download(true);

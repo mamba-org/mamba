@@ -33,7 +33,7 @@ namespace mamba
         bool forbid_cache();
         bool load();
         std::string cache_path() const;
-        std::unique_ptr<DownloadTarget>& target();
+        DownloadTarget* target();
         const std::string& name() const;
         bool finalize_transfer();
 

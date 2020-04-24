@@ -118,47 +118,91 @@ namespace mamba
     bool MRepo::read_file(const std::string& filename)
     {
         LOG_INFO << m_repo->name << ": reading repo file " << filename;
+
+        bool is_solv = ends_with(filename, ".solv");
+
+        if (is_solv)
+        {
+            m_solv_file = filename;
+            m_json_file = filename.substr(0, filename.size() - strlen(".solv")) + ".json";
+        }
+        else
+        {
+            m_json_file = filename;
+            m_solv_file = filename.substr(0, filename.size() - strlen(".json")) + ".solv";
+        }
+
         auto fp = fopen(filename.c_str(), "r");
         if (!fp)
         {
             throw std::runtime_error("Could not open repository file " + filename);
         }
-        std::string ending = ".solv";
 
-        if (std::equal(filename.end() - ending.size(), filename.end(), ending.begin()))
+        if (is_solv)
         {
-            repo_add_solv(m_repo, fp, 0);
-            LOG_INFO << "loading from solv " << filename;
-            m_solv_file = filename;
-            m_json_file = filename.substr(0, filename.size() - ending.size());
-            m_json_file += std::string(".json");
-            repo_internalize(m_repo);
+            LOG_INFO << "Attempt load from solv " << m_solv_file;
+
+            int ret = repo_add_solv(m_repo, fp, 0);
+            auto* repodata = repo_last_repodata(m_repo);
+            if (!repodata)
+            {
+                LOG_ERROR << "Could not find valid repodata attached to solv file";
+            }
+            else
+            {
+                const char* repo_tool_version = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
+                if (ret != 0)
+                {
+                    LOG_ERROR << "Could not load .solv file, falling back to JSON" << pool_errstr(m_repo->pool);
+                }
+                else if (repo_tool_version == nullptr || std::strcmp(MAMBA_SOLV_VERSION, repo_tool_version) != 0)
+                {
+                    LOG_ERROR << "solv file was written with a previous version of libsolv or mamba " <<
+                                 (repo_tool_version != nullptr ? repo_tool_version : "<NULL>") << ", updating it now!";
+                }
+                else
+                {
+                    LOG_INFO << "Loaded from solv " << m_solv_file;
+                    repo_internalize(m_repo);
+                    fclose(fp);
+                    return true;
+                }
+            }
+
+            // fallback to JSON file
+            repo_empty(m_repo, /*reuseids*/ 0);
+            fclose(fp);
+            fp = fopen(m_json_file.c_str(), "r");
+            if (!fp)
+            {
+                throw std::runtime_error("Could not open repository file " + m_json_file);
+            }
+        }
+
+        LOG_INFO << "loading from json " << m_json_file;
+        int ret = repo_add_conda(m_repo, fp, 0);
+        if (ret != 0)
+        {
+            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") " + std::string(pool_errstr(m_repo->pool)));
+        }
+        repo_internalize(m_repo);
+
+        // disabling solv caching for now on Windows
+        #ifndef WIN32
+        LOG_INFO << "creating solv: " << m_solv_file;
+
+        auto sfile = fopen(m_solv_file.c_str(), "w");
+        if (sfile)
+        {
+            // TODO add error handling to tool_write
+            tool_write(m_repo, sfile);
+            fclose(sfile);
         }
         else
         {
-            LOG_INFO << "loading from json " << filename;
-            repo_add_conda(m_repo, fp, 0);
-            repo_internalize(m_repo);
-
-            m_json_file = filename;
-            // disabling solv caching for now on Windows
-            #ifndef WIN32
-            m_solv_file = filename.substr(0, filename.size() - ending.size());
-            m_solv_file += ending;
-            LOG_INFO << "creating solv: " << m_solv_file;
-
-            auto sfile = fopen(m_solv_file.c_str(), "w");
-            if (sfile)
-            {
-                tool_write(m_repo, sfile);
-                fclose(sfile);
-            }
-            else 
-            {
-                LOG_INFO << "could not create solv";
-            }
-            #endif
+            LOG_INFO << "could not create solv";
         }
+        #endif
 
         fclose(fp);
         return true;

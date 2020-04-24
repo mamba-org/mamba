@@ -28,7 +28,7 @@ namespace mamba
         MSubdirData(const std::string& name, const std::string& url, const std::string& repodata_fn);
 
         // TODO return seconds as double
-        double check_cache(const fs::path& cache_file);
+        fs::file_time_type::duration check_cache(const fs::path& cache_file, const fs::file_time_type::clock::time_point& ref);
         bool loaded();
         bool forbid_cache();
         bool load();

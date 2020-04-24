@@ -1,6 +1,11 @@
 #include "repo.hpp"
 #include "output.hpp"
 
+extern "C"
+{
+    #include "common_write.c"
+}
+
 namespace mamba
 {
     MRepo::MRepo(MPool& pool, const std::string& name,

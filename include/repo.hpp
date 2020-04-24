@@ -8,8 +8,6 @@
 
 extern "C"
 {
-    #include "common_write.c"
-
     #include "solv/repo.h"
     #include "solv/repo_solv.h"
     #include "solv/conda.h"

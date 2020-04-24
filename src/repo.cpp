@@ -138,8 +138,6 @@ namespace mamba
             throw std::runtime_error("Could not open repository file " + filename);
         }
 
-        bool loaded = false;
-
         if (is_solv)
         {
             LOG_INFO << "Attempt load from solv " << m_solv_file;
@@ -164,16 +162,14 @@ namespace mamba
                 }
                 else
                 {
-                    repo_internalize(m_repo);
-                    loaded = true;
                     LOG_INFO << "Loaded from solv " << m_solv_file;
+                    repo_internalize(m_repo);
+                    fclose(fp);
+                    return true;
                 }
             }
-        }
 
-        // fallback to JSON file
-        if (is_solv && !loaded)
-        {
+            // fallback to JSON file
             repo_empty(m_repo, /*reuseids*/ 0);
             fclose(fp);
             fp = fopen(m_json_file.c_str(), "r");
@@ -183,33 +179,30 @@ namespace mamba
             }
         }
 
-        if (!is_solv || !loaded)
+        LOG_INFO << "loading from json " << m_json_file;
+        int ret = repo_add_conda(m_repo, fp, 0);
+        if (ret != 0)
         {
-            LOG_INFO << "loading from json " << m_json_file;
-            int ret = repo_add_conda(m_repo, fp, 0);
-            if (ret != 0)
-            {
-                throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") " + std::string(pool_errstr(m_repo->pool)));
-            }
-            repo_internalize(m_repo);
-
-            // disabling solv caching for now on Windows
-            #ifndef WIN32
-            LOG_INFO << "creating solv: " << m_solv_file;
-
-            auto sfile = fopen(m_solv_file.c_str(), "w");
-            if (sfile)
-            {
-                // TODO add error handling to tool_write
-                tool_write(m_repo, sfile);
-                fclose(sfile);
-            }
-            else 
-            {
-                LOG_INFO << "could not create solv";
-            }
-            #endif
+            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") " + std::string(pool_errstr(m_repo->pool)));
         }
+        repo_internalize(m_repo);
+
+        // disabling solv caching for now on Windows
+        #ifndef WIN32
+        LOG_INFO << "creating solv: " << m_solv_file;
+
+        auto sfile = fopen(m_solv_file.c_str(), "w");
+        if (sfile)
+        {
+            // TODO add error handling to tool_write
+            tool_write(m_repo, sfile);
+            fclose(sfile);
+        }
+        else
+        {
+            LOG_INFO << "could not create solv";
+        }
+        #endif
 
         fclose(fp);
         return true;

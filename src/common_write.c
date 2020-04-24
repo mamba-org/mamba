@@ -22,7 +22,7 @@
 
 #define MAMBA_TOOL_VERSION "1.1"
 
-#define MAMBA_SOLV_VERSION MAMBA_TOOLVERSION "_" LIBSOLV_VERSION_STRING
+#define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 
 static int
 keyfilter_solv(Repo *repo, Repokey *key, void *kfdata)

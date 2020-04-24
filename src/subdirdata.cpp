@@ -60,19 +60,19 @@ namespace mamba
     {
     }
 
-    double MSubdirData::check_cache(const fs::path& cache_file)
+    fs::file_time_type::duration MSubdirData::check_cache(const fs::path& cache_file, const fs::file_time_type::clock::time_point& ref)
     {
         try {
             auto last_write = fs::last_write_time(cache_file);
-            auto cftime = decltype(last_write)::clock::now();
-            auto tdiff = cftime - last_write;
-            auto as_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(tdiff);
-            return as_seconds.count();
+            auto tdiff = ref - last_write;
+            return tdiff;
+            // auto as_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(tdiff);
+            // return as_seconds.count();
         }
         catch(...)
         {
             // could not open the file...
-            return -1;
+            return fs::file_time_type::duration::max();
         }
     }
 
@@ -88,9 +88,10 @@ namespace mamba
 
     bool MSubdirData::load()
     {
-        double cache_age = check_cache(m_json_fn);
+        auto now = fs::file_time_type::clock::now();
+        auto cache_age = check_cache(m_json_fn, now);
         nlohmann::json mod_etag_headers;
-        if (cache_age != -1)
+        if (cache_age != fs::file_time_type::duration::max())
         {
             LOG_INFO << "Found valid cache file.";
             mod_etag_headers = read_mod_and_etag();
@@ -107,10 +108,12 @@ namespace mamba
                     auto el = mod_etag_headers.value("_cache_control", std::string(""));
                     max_age = get_cache_control_max_age(el);
                 }
-                if ((max_age > cache_age || Context::instance().offline) && !forbid_cache())
+
+                auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+                if ((max_age > cache_age_seconds || Context::instance().offline) && !forbid_cache())
                 {
                     // cache valid!
-                    LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age << " / " << max_age;
+                    LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age_seconds << " / " << max_age;
                     std::string prefix = m_name;
                     prefix.resize(PREFIX_LENGTH - 1, ' ');
                     Console::stream() << prefix << " Using cache";
@@ -119,9 +122,9 @@ namespace mamba
                     m_json_cache_valid = true;
 
                     // check solv cache
-                    double solv_age = check_cache(m_solv_fn);
-                    LOG_INFO << "Solv cache age in seconds: " << solv_age;
-                    if (solv_age != -1 && solv_age <= cache_age)
+                    auto solv_age = check_cache(m_solv_fn, now);
+                    LOG_INFO << "Solv cache age in seconds: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count();
+                    if (solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
                     {
                         LOG_INFO << "Also using .solv cache file";
                         m_solv_cache_valid = true;
@@ -184,13 +187,14 @@ namespace mamba
         if (m_target->http_status == 304)
         {
             // cache still valid
-            double cache_age = check_cache(m_json_fn);
-            double solv_age = check_cache(m_solv_fn);
+            auto now = fs::file_time_type::clock::now();
+            auto cache_age = check_cache(m_json_fn, now);
+            auto solv_age = check_cache(m_solv_fn, now);
 
             using fs_time_t = decltype(fs::last_write_time(fs::path()));
             fs::last_write_time(m_json_fn, fs_time_t::clock::now());
-            LOG_INFO << "Solv age: " << solv_age << ", JSON age: " << cache_age;
-            if(solv_age != -1 && solv_age <= cache_age)
+            LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count() << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+            if(solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
             {
                 fs::last_write_time(m_solv_fn, fs_time_t::clock::now());
                 m_solv_cache_valid = true;

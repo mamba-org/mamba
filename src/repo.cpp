@@ -155,7 +155,7 @@ namespace mamba
                 {
                     LOG_ERROR << "Could not load .solv file, falling back to JSON" << pool_errstr(m_repo->pool);
                 }
-                else if (repo_tool_version == nullptr || std::strcmp(MAMBA_SOLV_VERSION, repo_tool_version) != 0)
+                else if (repo_tool_version == nullptr || std::strcmp(mamba_tool_version(), repo_tool_version) != 0)
                 {
                     LOG_ERROR << "solv file was written with a previous version of libsolv or mamba " <<
                                  (repo_tool_version != nullptr ? repo_tool_version : "<NULL>") << ", updating it now!";

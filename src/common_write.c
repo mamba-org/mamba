@@ -24,6 +24,17 @@
 
 #define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 
+static char*
+mamba_tool_version()
+{
+  static char MTV[30];
+  MTV[0] = '\0';
+  strcat(MTV, MAMBA_TOOL_VERSION);
+  strcat(MTV, "_");
+  strcat(MTV, solv_version);
+  return MTV;
+}
+
 static int
 keyfilter_solv(Repo *repo, Repokey *key, void *kfdata)
 {
@@ -43,7 +54,7 @@ tool_write(Repo *repo, FILE *fp)
   Repowriter *writer;
 
   info = repo_add_repodata(repo, 0);	/* add new repodata for our meta info */
-  repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, MAMBA_SOLV_VERSION);
+  repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, mamba_tool_version());
   repodata_unset(info, SOLVID_META, REPOSITORY_EXTERNAL);	/* do not propagate this */
 
   queue_init(&addedfileprovides);

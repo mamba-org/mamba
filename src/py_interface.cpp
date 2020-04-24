@@ -56,6 +56,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MPool&>())
         .def("find", &Query::find)
         .def("whatrequires", &Query::whatrequires)
+        .def("dependencytree", &Query::dependencytree)
     ;
 
     py::class_<MSubdirData>(m, "SubdirData")

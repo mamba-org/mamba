@@ -611,6 +611,8 @@ def repoquery(args, parser):
     query = api.Query(pool)
     if args.whatrequires:
         print(query.whatrequires(args.query))
+    elif args.tree:
+        print(query.dependencytree(args.query))
     else:
         print(query.find(args.query))
 
@@ -674,6 +676,12 @@ Examples:
 
     p.add_argument(
         "--installed",
+        action="store_true",
+        help=SUPPRESS,
+    )
+
+    p.add_argument(
+        "--tree",
         action="store_true",
         help=SUPPRESS,
     )

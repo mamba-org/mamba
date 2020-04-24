@@ -17,6 +17,7 @@ namespace mamba
 {
     void cut_repo_name(std::ostream& out, const std::string_view& reponame);
     void solvable_to_stream(std::ostream& out, Solvable* s);
+    void print_dep_graph(std::ostream& out, Solvable* s, int level, int max_level);
 
     class Query
     {
@@ -26,6 +27,7 @@ namespace mamba
 
         std::string find(const std::string& query);
         std::string whatrequires(const std::string& query);
+        std::string dependencytree(const std::string& query);
 
     private:
 

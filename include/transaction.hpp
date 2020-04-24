@@ -31,18 +31,17 @@ namespace mamba
     {
     public:
 
-        PackageDownloadExtractTarget(MRepo* repo, Solvable* solvable);
+        PackageDownloadExtractTarget(const MRepo& repo, Solvable* solvable);
 
         void write_repodata_record(const fs::path& base_path);
         void add_url();
         bool finalize_callback();
         bool finished();
         bool validate_extract();
-        std::unique_ptr<DownloadTarget>& target(const fs::path& cache_path);
+        DownloadTarget* target(const fs::path& cache_path);
 
     private:
 
-        MRepo* m_repo;
         Solvable* m_solv;
 
         ProgressProxy m_progress_proxy;

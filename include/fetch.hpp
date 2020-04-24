@@ -91,7 +91,7 @@ namespace mamba
         MultiDownloadTarget();
         ~MultiDownloadTarget();
 
-        void add(std::unique_ptr<DownloadTarget>& target);
+        void add(DownloadTarget* target);
         bool check_msgs();
         bool download(bool failfast);
 

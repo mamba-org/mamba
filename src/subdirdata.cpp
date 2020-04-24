@@ -166,9 +166,9 @@ namespace mamba
         throw std::runtime_error("Cache not loaded!");
     }
 
-    std::unique_ptr<DownloadTarget>& MSubdirData::target()
+    DownloadTarget* MSubdirData::target()
     {
-        return m_target;
+        return m_target.get();
     }
 
     const std::string& MSubdirData::name() const

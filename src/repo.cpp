@@ -132,14 +132,14 @@ namespace mamba
             m_solv_file = filename.substr(0, filename.size() - strlen(".json")) + ".solv";
         }
 
-        auto fp = fopen(filename.c_str(), "r");
-        if (!fp)
-        {
-            throw std::runtime_error("Could not open repository file " + filename);
-        }
-
         if (is_solv)
         {
+            auto fp = fopen(m_solv_file.c_str(), "rb");
+            if (!fp)
+            {
+                throw std::runtime_error("Could not open repository file " + filename);
+            }
+
             LOG_INFO << "Attempt load from solv " << m_solv_file;
 
             int ret = repo_add_solv(m_repo, fp, 0);
@@ -172,11 +172,12 @@ namespace mamba
             // fallback to JSON file
             repo_empty(m_repo, /*reuseids*/ 0);
             fclose(fp);
-            fp = fopen(m_json_file.c_str(), "r");
-            if (!fp)
-            {
-                throw std::runtime_error("Could not open repository file " + m_json_file);
-            }
+        }
+
+        auto fp = fopen(m_json_file.c_str(), "r");
+        if (!fp)
+        {
+            throw std::runtime_error("Could not open repository file " + m_json_file);
         }
 
         LOG_INFO << "loading from json " << m_json_file;
@@ -188,10 +189,9 @@ namespace mamba
         repo_internalize(m_repo);
 
         // disabling solv caching for now on Windows
-        #ifndef WIN32
         LOG_INFO << "creating solv: " << m_solv_file;
 
-        auto sfile = fopen(m_solv_file.c_str(), "w");
+        auto sfile = fopen(m_solv_file.c_str(), "wb");
         if (sfile)
         {
             // TODO add error handling to tool_write
@@ -202,7 +202,6 @@ namespace mamba
         {
             LOG_INFO << "could not create solv";
         }
-        #endif
 
         fclose(fp);
         return true;

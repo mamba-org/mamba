@@ -31,7 +31,7 @@ mamba_tool_version()
   MTV[0] = '\0';
   strcat(MTV, MAMBA_TOOL_VERSION);
   strcat(MTV, "_");
-  strcat(MTV, solv_version);
+  strcat(MTV, "111");
   return MTV;
 }
 

@@ -60,7 +60,7 @@ else:
 ext_modules = [
     Extension(
         'mamba.mamba_api',
-        ['include/py_interface.cpp',
+        ['src/py_interface.cpp',
          'src/context.cpp',
          'src/fetch.cpp',
          'src/output.cpp',

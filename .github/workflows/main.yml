@@ -47,5 +47,5 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mamba-tests
           py.test test
-          mamba create -n test_env xtensor -c conda-forge --mamba-download -y
+          mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test.yml

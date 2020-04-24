@@ -173,7 +173,6 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
     conda_transaction = UnlinkLinkTransaction(pref_setup)
     return conda_transaction
 
-use_mamba_download = False
 use_mamba_experimental = False
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
@@ -188,12 +187,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
                 print('\n# All requested packages already installed.\n')
             return
 
-    # don't confirm / print if using mamba for download
-    if not context.json and not use_mamba_download:
-        unlink_link_transaction.print_transaction_summary()
-        confirm_yn()
-
-    elif context.dry_run:
+    if context.dry_run:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
         cli_common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
         raise DryRunExit()
@@ -530,11 +524,10 @@ def install(args, parser, command='install'):
     to_link, to_unlink = transaction.to_conda()
     transaction.log_json()
 
-    if use_mamba_download:
-        downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
-        if not downloaded:
-            exit(0)
-        PackageCacheData.first_writable().reload()
+    downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
+    if not downloaded:
+        exit(0)
+    PackageCacheData.first_writable().reload()
 
     if python_added:
         specs = [s for s in specs if s.name != 'python']
@@ -700,10 +693,6 @@ def _wrapped_main(*args, **kwargs):
 
     import copy
     argv = list(args)
-    if "--mamba-download" in argv:
-        global use_mamba_download
-        use_mamba_download = True
-        argv.remove('--mamba-download')
 
     if "--mamba-experimental" in argv:
         global use_mamba_experimental

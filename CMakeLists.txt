@@ -29,7 +29,7 @@ include_directories(
 file(GLOB MAMBA_SOURCES src/*.cpp)
 
 pybind11_add_module(mamba_api
-	include/py_interface.cpp
+	src/py_interface.cpp
 	${MAMBA_SOURCES}
 )
 

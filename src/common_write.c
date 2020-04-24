@@ -20,6 +20,10 @@
  * 1.1: changed PRODUCT_ENDOFLIFE parsing
 */
 
+#define MAMBA_TOOL_VERSION "1.1"
+
+#define MAMBA_SOLV_VERSION MAMBA_TOOLVERSION "_" LIBSOLV_VERSION_STRING
+
 static int
 keyfilter_solv(Repo *repo, Repokey *key, void *kfdata)
 {
@@ -39,7 +43,7 @@ tool_write(Repo *repo, FILE *fp)
   Repowriter *writer;
 
   info = repo_add_repodata(repo, 0);	/* add new repodata for our meta info */
-  repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, LIBSOLV_TOOLVERSION);
+  repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, MAMBA_SOLV_VERSION);
   repodata_unset(info, SOLVID_META, REPOSITORY_EXTERNAL);	/* do not propagate this */
 
   queue_init(&addedfileprovides);

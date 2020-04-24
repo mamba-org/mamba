@@ -120,6 +120,7 @@ namespace mamba
 
                     // check solv cache
                     double solv_age = check_cache(m_solv_fn);
+                    LOG_INFO << "Solv cache age in seconds: " << solv_age;
                     if (solv_age != -1 && solv_age <= cache_age)
                     {
                         LOG_INFO << "Also using .solv cache file";
@@ -188,7 +189,7 @@ namespace mamba
 
             using fs_time_t = decltype(fs::last_write_time(fs::path()));
             fs::last_write_time(m_json_fn, fs_time_t::clock::now());
-
+            LOG_INFO << "Solv age: " << solv_age << ", JSON age: " << cache_age;
             if(solv_age != -1 && solv_age <= cache_age)
             {
                 fs::last_write_time(m_solv_fn, fs_time_t::clock::now());

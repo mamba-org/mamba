@@ -71,9 +71,7 @@ namespace mamba
             spec_str.erase(match.position(1), match.length(1));
         }
 
-        std::cout << spec_str << std::endl;
-
-        auto m5 = pystring::rsplit(spec, ":", 2);
+        auto m5 = pystring::rsplit(spec_str, ":", 2);
         auto m5_len = m5.size();
         std::string channel_str;
         if (m5_len == 3)

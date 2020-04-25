@@ -152,14 +152,11 @@ namespace mamba
     std::string MSubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!
-        #ifndef _WIN32
         if (m_json_cache_valid && m_solv_cache_valid)
         {
             return m_solv_fn;
         }
-        else
-        #endif
-        if (m_json_cache_valid)
+        else if (m_json_cache_valid)
         {
             return m_json_fn;
         }

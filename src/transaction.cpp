@@ -1,6 +1,7 @@
 #include <thread>
 
 #include "transaction.hpp"
+#include "link.hpp"
 
 namespace mamba
 {
@@ -321,6 +322,89 @@ namespace mamba
 
         queue_free(&classes);
         queue_free(&pkgs);
+    }
+
+    bool MTransaction::execute(const std::string& cache_dir, const std::string& prefix)
+    {
+        Queue classes, pkgs;
+
+        queue_init(&classes);
+        queue_init(&pkgs);
+
+        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
+                   SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+
+        transaction_classify(m_transaction, mode, &classes);
+
+        Id cls;
+        std::string location;
+
+        // TODO use better way of concatenating strings here
+        auto to_conda_shortname = [](Solvable* s) -> std::string
+        {
+            auto* pool = s->repo->pool;
+
+            std::string name = pool_id2str(pool, s->name);
+            std::string version = pool_id2str(pool, s->evr);
+
+            return name + "-" + version + "-" + solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+        };
+
+        for (int i = 0; i < classes.count; i += 4)
+        {
+            cls = classes.elements[i];
+            // cnt = classes.elements[i + 1];
+
+            transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2], 
+                                      classes.elements[i + 3], &pkgs);
+            for (int j = 0; j < pkgs.count; j++)
+            {
+                Id p = pkgs.elements[j];
+                Solvable *s = m_transaction->pool->solvables + p;
+
+                switch (cls)
+                {
+                    case SOLVER_TRANSACTION_DOWNGRADED:
+                    case SOLVER_TRANSACTION_UPGRADED:
+                    case SOLVER_TRANSACTION_CHANGED:
+                    {
+                        UnlinkPackage up(to_conda_shortname(s), prefix);
+                        up.execute();
+                        Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
+                        LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s2), prefix);
+                        lp.execute();
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_ERASE:
+                    {
+                        UnlinkPackage up(to_conda_shortname(s), prefix);
+                        up.execute();
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_INSTALL:
+                    {
+                        LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), prefix);
+                        lp.execute();
+                        break;
+                    }
+                    case SOLVER_TRANSACTION_VENDORCHANGE:
+                    case SOLVER_TRANSACTION_ARCHCHANGE:
+                    default:
+                        LOG_WARNING << "CASE NOT HANDLED. " << cls;
+                        break;
+                }
+            }
+        }
+
+        queue_free(&classes);
+        queue_free(&pkgs);
+
+        if (!fs::exists(fs::path(prefix) / "meta" / "history"))
+        {
+            std::ofstream(fs::path(prefix) / "meta" / "history");
+        }
+
+        return true;
     }
 
     auto MTransaction::to_conda() -> to_conda_type

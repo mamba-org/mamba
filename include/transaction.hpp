@@ -79,6 +79,7 @@ namespace mamba
         bool empty();
         bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos);
         void print();
+        bool execute(const std::string& cache_dir, const std::string& prefix);
 
     private:
 

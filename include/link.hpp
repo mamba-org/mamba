@@ -31,7 +31,7 @@ public:
 
     LinkPackage(const fs::path& source, const fs::path& prefix);
 
-    bool link_path(const nlohmann::json& path_data);
+    std::string link_path(const nlohmann::json& path_data);
     bool execute();
 
 private:

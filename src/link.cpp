@@ -1,5 +1,6 @@
 #include "link.hpp"
 #include "output.hpp"
+#include "validate.hpp"
 
 namespace mamba
 {
@@ -49,7 +50,7 @@ namespace mamba
 
     }
 
-    bool LinkPackage::link_path(const nlohmann::json& path_data)
+    std::string LinkPackage::link_path(const nlohmann::json& path_data)
     {
         std::string subtarget = path_data["_path"].get<std::string>();
         LOG_INFO << "linking path! " << subtarget;
@@ -62,10 +63,8 @@ namespace mamba
 
         if (fs::exists(dst))
         {
-            // TODO this is certainly not correct! :)
             // This needs to raise a clobberwarning
-            fs::remove(dst);
-            // return true;
+            throw std::runtime_error("clobberwarning");
         }
 
         std::string path_type = path_data["path_type"].get<std::string>();
@@ -109,14 +108,13 @@ namespace mamba
 
                 fs::permissions(dst, fs::status(src).permissions());
             }
-            return true;
+            return validate::sha256sum(dst);
         }
 
         if (path_type == "hardlink")
         {
             std::cout << "linked " << dst << std::endl;
             fs::create_hard_link(src, dst);
-            return true;
         }
         else if (path_type == "softlink")
         {
@@ -124,12 +122,13 @@ namespace mamba
             // fs::path link_target = fs::read_symlink(src);
             std::cout << "soft linked " << dst << std::endl;
             fs::copy_symlink(src, dst);
-            return true;
         }
         else
         {
             throw std::runtime_error("Path type not implemented: " + path_type);
         }
+        // TODO we could also use the SHA256 sum of the paths json
+        return validate::sha256sum(dst);
     }
 
     bool LinkPackage::execute()
@@ -148,8 +147,9 @@ namespace mamba
         // TODO record SHA256 in prefix!
         for (auto& path : paths_json["paths"])
         {
-            link_path(path);
+            auto sha256_in_prefix = link_path(path);
             files_record.push_back(path["_path"].get<std::string>());
+            path["sha256_in_prefix"] = sha256_in_prefix;
         }
 
         LOG_INFO << "Reading repodata_record.json";

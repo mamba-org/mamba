@@ -129,7 +129,7 @@ namespace mamba
         {
             throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
-        if (!validate::sha256(m_tarball_path, expected_size, sha256_check))
+        if (!validate::sha256(m_tarball_path, sha256_check))
         {
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
@@ -191,7 +191,7 @@ namespace mamba
             // validate that this tarball has the right size and MD5 sum
             std::uintmax_t file_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
             valid = validate::file_size(m_tarball_path, file_size);
-            valid = valid && validate::md5(m_tarball_path, file_size, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused));
+            valid = valid && validate::md5(m_tarball_path, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused));
             LOG_INFO << m_tarball_path << " is " << valid;
         }
 
@@ -326,15 +326,7 @@ namespace mamba
 
     bool MTransaction::execute(const std::string& cache_dir, const std::string& prefix)
     {
-        Queue classes, pkgs;
-
-        queue_init(&classes);
-        queue_init(&pkgs);
-
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
-                   SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-
-        transaction_classify(m_transaction, mode, &classes);
+        transaction_order(m_transaction, 0);
 
         Id cls;
         std::string location;
@@ -349,59 +341,61 @@ namespace mamba
 
             return name + "-" + version + "-" + solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
         };
+        // TODO check that update is ALSO handled correctly here.
+        // if (!trans->steps.count)
+        // print Nothing to do
 
-        for (int i = 0; i < classes.count; i += 4)
+        auto* pool = m_transaction->pool;
+        transaction_order(m_transaction, 0);
+
+        for (int i = 0; i < m_transaction->steps.count; i++)
         {
-            cls = classes.elements[i];
-            // cnt = classes.elements[i + 1];
+            int j;
+            Id type;
 
-            transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2], 
-                                      classes.elements[i + 3], &pkgs);
-            for (int j = 0; j < pkgs.count; j++)
+            Id p = m_transaction->steps.elements[i];
+            type = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Solvable *s = pool_id2solvable(pool, p);
+            switch (type)
             {
-                Id p = pkgs.elements[j];
-                Solvable *s = m_transaction->pool->solvables + p;
-
-                switch (cls)
+                case SOLVER_TRANSACTION_DOWNGRADED:
+                case SOLVER_TRANSACTION_UPGRADED:
+                case SOLVER_TRANSACTION_CHANGED:
                 {
-                    case SOLVER_TRANSACTION_DOWNGRADED:
-                    case SOLVER_TRANSACTION_UPGRADED:
-                    case SOLVER_TRANSACTION_CHANGED:
-                    {
-                        UnlinkPackage up(to_conda_shortname(s), prefix);
-                        up.execute();
-                        Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
-                        LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s2), prefix);
-                        lp.execute();
-                        break;
-                    }
-                    case SOLVER_TRANSACTION_ERASE:
-                    {
-                        UnlinkPackage up(to_conda_shortname(s), prefix);
-                        up.execute();
-                        break;
-                    }
-                    case SOLVER_TRANSACTION_INSTALL:
-                    {
-                        LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), prefix);
-                        lp.execute();
-                        break;
-                    }
-                    case SOLVER_TRANSACTION_VENDORCHANGE:
-                    case SOLVER_TRANSACTION_ARCHCHANGE:
-                    default:
-                        LOG_WARNING << "CASE NOT HANDLED. " << cls;
-                        break;
+                    Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
+                    LOG_INFO << "UPGRADE " << to_conda_shortname(s) << " ==> " << to_conda_shortname(s2);
+
+                    UnlinkPackage up(to_conda_shortname(s), prefix);
+                    up.execute();
+
+                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), prefix);
+                    lp.execute();
+
+                    break;
                 }
+                case SOLVER_TRANSACTION_ERASE:
+                {
+                    LOG_INFO << "UNLINK " << to_conda_shortname(s);
+                    UnlinkPackage up(to_conda_shortname(s), prefix);
+                    up.execute();
+                    break;
+                }
+                case SOLVER_TRANSACTION_INSTALL:
+                {
+                    LOG_INFO << "LINK " << to_conda_shortname(s);
+                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), prefix);
+                    lp.execute();
+                    break;
+                }
+                default:
+                    LOG_WARNING << "CASE NOT HANDLED. " << cls;
+                    break;
             }
         }
 
-        queue_free(&classes);
-        queue_free(&pkgs);
-
-        if (!fs::exists(fs::path(prefix) / "meta" / "history"))
+        if (!fs::exists(fs::path(prefix) / "conda-meta" / "history"))
         {
-            std::ofstream(fs::path(prefix) / "meta" / "history");
+            std::ofstream(fs::path(prefix) / "conda-meta" / "history");
         }
 
         return true;

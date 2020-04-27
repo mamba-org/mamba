@@ -47,6 +47,10 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         # add priority here
         priority = len(_channel_priority_map) - _channel_priority_map[chan.url(with_credentials=True)][1]
         subpriority = 0 if chan.platform == 'noarch' else 1
+        if subdir.loaded() == False and chan.platform != 'noarch':
+            # ignore non-loaded subdir if channel is != noarch
+            continue
+
         channel_json.append((chan, subdir.cache_path(), priority, subpriority))
 
     specs = [MatchSpec(s) for s in specs]

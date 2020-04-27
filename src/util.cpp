@@ -178,7 +178,6 @@ namespace mamba
         return end == std::string::npos ? "" : input.substr(0, end + 1);
     }
 
-
     std::vector<std::string_view> split(const std::string_view& input,
                                         char sep,
                                         std::size_t max_split)
@@ -219,6 +218,74 @@ namespace mamba
         if(nb_split < max_split && end != 0)
         {
             res.push_back(input.substr(start + 1, end - start - 1));
+        }
+        std::reverse(res.begin(), res.end());
+        return res;
+    }
+
+    std::vector<std::string_view> split(const std::string_view& input,
+                                        const std::string_view& sep,
+                                        std::size_t max_split)
+    {
+        std::vector<std::string_view> res;
+        size_t sep_size = sep.size();
+        size_t nb_split = size_t(0);
+        size_t start = 0;
+
+        while (nb_split < max_split && start != std::string_view::npos)
+        {
+            auto start_sep = input.find(sep, start);
+            while (start_sep == start)
+            {
+                start = start_sep + sep_size;
+                start_sep = input.find(sep, start);
+            }
+
+            if (start == input.size())
+            {
+                break;
+            }
+
+            res.push_back(input.substr(start, start_sep - start));
+            ++nb_split;
+            start = start_sep != std::string_view::npos ?
+                    start_sep + sep_size :
+                    start_sep;
+        }
+        return res;
+    }
+
+    std::vector<std::string_view> rsplit(const std::string_view& input,
+                                         const std::string_view& sep,
+                                         std::size_t max_split)
+    {
+        std::vector<std::string_view> res;
+        size_t sep_size = sep.size();
+        size_t nb_split = size_t(0);
+        auto end = input.size();
+
+        while (nb_split < 4/*max_split*/ && end != size_t(0))
+        {
+            auto start_sep = input.rfind(sep, end - 1);
+            while(start_sep != std::string_view::npos && start_sep + sep_size == end)
+            {
+                end = start_sep;
+                start_sep = input.rfind(sep, end - 1);
+            }
+            
+            if (end == 0)
+            {
+                break;
+            }
+
+            auto start = start_sep == std::string_view::npos ?
+                         size_t(0) :
+                         start_sep + sep_size;
+            res.push_back(input.substr(start, end - start));
+            ++nb_split;
+            end = start_sep == std::string_view::npos ?
+                  size_t(0) :
+                  start_sep;
         }
         std::reverse(res.begin(), res.end());
         return res;

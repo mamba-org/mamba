@@ -82,13 +82,13 @@ namespace mamba
                                          char sep = ' ',
                                          std::size_t max_split = SIZE_MAX);
 
-    /*std::vector<string_view> split(const std::string_view& input,
+    std::vector<string_view> split(const std::string_view& input,
                                    const std::string_view& sep,
                                    std::size_t max_split = SIZE_MAX);
 
     std::vector<string_view> split(const std::string_view& input,
                                    const std::string_view& sep,
-                                   std::size_t max_split = SIZE_MAX);*/
+                                   std::size_t max_split = SIZE_MAX);
 }
 
 #endif // MAMBA_UTIL_HPP

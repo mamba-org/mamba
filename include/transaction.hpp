@@ -12,6 +12,7 @@
 #include "fetch.hpp"
 #include "package_handling.hpp"
 #include "output.hpp"
+#include "transaction_context.hpp"
 
 extern "C"
 {
@@ -83,6 +84,7 @@ namespace mamba
 
     private:
 
+        TransactionContext m_transaction_context;
         std::vector<Solvable*> m_to_install, m_to_remove;
         Transaction* m_transaction;
     };  

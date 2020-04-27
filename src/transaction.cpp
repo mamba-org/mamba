@@ -311,10 +311,12 @@ namespace mamba
                     case SOLVER_TRANSACTION_INSTALL:
                         m_to_install.push_back(s);
                         break;
+                    case SOLVER_TRANSACTION_IGNORE:
+                        break;
                     case SOLVER_TRANSACTION_VENDORCHANGE:
                     case SOLVER_TRANSACTION_ARCHCHANGE:
                     default:
-                        LOG_WARNING << "CASE NOT HANDLED. " << cls;
+                        LOG_WARNING << "Print case not handled: " << cls;
                         break;
                 }
             }
@@ -326,6 +328,22 @@ namespace mamba
 
     bool MTransaction::execute(const std::string& cache_dir, const std::string& prefix)
     {
+        // TODO check if python is linked, unlinked or installed and return the version
+        m_transaction_context.target_prefix = prefix;
+        for (Solvable* s : m_to_install)
+        {
+            if (strcmp(pool_id2str(s->repo->pool, s->name), "python") == 0)
+            {
+                m_transaction_context.python_version = pool_id2str(s->repo->pool, s->evr);
+                m_transaction_context.short_python_version = compute_short_python_version(m_transaction_context.python_version);
+                m_transaction_context.python_path = get_python_short_path(m_transaction_context.short_python_version);
+                m_transaction_context.site_packages_path = get_python_site_packages_short_path(m_transaction_context.short_python_version);
+
+                LOG_INFO << "Found python version in installation packages\n" << m_transaction_context.python_version << " == " << m_transaction_context.short_python_version 
+                         << "\n" << m_transaction_context.python_path << "\n" << m_transaction_context.site_packages_path;
+            }
+        }
+
         transaction_order(m_transaction, 0);
 
         Id cls;
@@ -365,10 +383,10 @@ namespace mamba
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
                     LOG_INFO << "UPGRADE " << to_conda_shortname(s) << " ==> " << to_conda_shortname(s2);
 
-                    UnlinkPackage up(to_conda_shortname(s), prefix);
+                    UnlinkPackage up(to_conda_shortname(s), &m_transaction_context);
                     up.execute();
 
-                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), prefix);
+                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), &m_transaction_context);
                     lp.execute();
 
                     break;
@@ -376,19 +394,21 @@ namespace mamba
                 case SOLVER_TRANSACTION_ERASE:
                 {
                     LOG_INFO << "UNLINK " << to_conda_shortname(s);
-                    UnlinkPackage up(to_conda_shortname(s), prefix);
+                    UnlinkPackage up(to_conda_shortname(s), &m_transaction_context);
                     up.execute();
                     break;
                 }
                 case SOLVER_TRANSACTION_INSTALL:
                 {
                     LOG_INFO << "LINK " << to_conda_shortname(s);
-                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), prefix);
+                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), &m_transaction_context);
                     lp.execute();
                     break;
                 }
+                case SOLVER_TRANSACTION_IGNORE:
+                    break;
                 default:
-                    LOG_WARNING << "CASE NOT HANDLED. " << cls;
+                    LOG_WARNING << "Exec case not handled: " << cls;
                     break;
             }
         }

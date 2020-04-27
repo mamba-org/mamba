@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MAMBA_PREFIX_DATA_HPP
+#define MAMBA_PREFIX_DATA_HPP
 
 #include <unordered_map>
 
@@ -40,5 +41,6 @@ namespace mamba
         std::unordered_map<std::string, PackageRecord> m_package_records;
         fs::path m_prefix_path;
     };
-
 }
+
+#endif

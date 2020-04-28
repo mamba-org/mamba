@@ -268,7 +268,7 @@ namespace mamba
 
         LOG_INFO << "Transfer finalized, status: " << http_status << " @ " << effective_url << " " << downloaded_size << " bytes";
 
-        if (http_status >= 400)
+        if (http_status >= 500 && can_retry())
         {
             // this request didn't work!
             std::stringstream msg;

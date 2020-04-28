@@ -3,29 +3,35 @@
 #include "query.hpp"
 #include "util.hpp"
 
+#include "tabulate/table.hpp"
+
 namespace mamba
 {
-    void cut_repo_name(std::ostream& out, const std::string_view& reponame)
+    std::string cut_repo_name(std::ostream& out, const std::string_view& reponame)
     {
         if (starts_with(reponame, "https://conda.anaconda.org/"))
         {
-            out << reponame.substr(27, std::string::npos);
-            return;
+            return reponame.substr(27, std::string::npos).data();
         }
         if (starts_with(reponame, "https://repo.anaconda.com/"))
         {
-            out << reponame.substr(26, std::string::npos);
-            return;
+            return reponame.substr(26, std::string::npos).data();
         }
-        out << reponame;
+        return reponame.data();
     }
 
-    void solvable_to_stream(std::ostream& out, Solvable* s)
+    void solvable_to_stream(std::ostream& out, Solvable* s, int row_count,
+        tabulate::Table& query_result)
     {
-        auto* pool = s->repo->pool;
-        cut_repo_name(out, s->repo->name);
-        out << ": " << pool_id2str(pool, s->name) << " ("
-            << pool_id2str(pool, s->evr) << ", " << solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR) << ")\n";
+        Pool* pool = s->repo->pool;
+
+        std::string channel = cut_repo_name(out, s->repo->name);
+        std::string name = pool_id2str(pool, s->name);
+        std::string evr = pool_id2str(pool, s->evr); 
+        std::string build_flavor = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+
+        query_result.add_row({name, evr, build_flavor, channel});
+        query_result[row_count].format().border_top(" ").border_bottom(" ");
     }
 
     void print_dep_graph(std::ostream& out, Solvable* s, int level, int max_level)
@@ -100,16 +106,23 @@ namespace mamba
         if (solvables.count == 0)
         {
             out << "No entries matching \"" << query << "\" found";
+            return out.str();
         }
 
-        // Stream solvables
+        tabulate::Table find_table_results;
+        find_table_results.add_row({"Name", "Version", "Build", "Channel"});
         for (int i = 0; i < solvables.count; i++)
         {
             Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-            solvable_to_stream(out, s);
+            solvable_to_stream(out, s, i + 1, find_table_results);
         }
 
-        out << std::endl;
+        find_table_results[0].format()
+            .border_top("-")
+            .font_style({tabulate::FontStyle::bold});
+        find_table_results[1].format().border_top("-");
+        find_table_results[solvables.count].format().border_bottom("-");
+        out << find_table_results << std::endl;
 
         queue_free(&job);
         queue_free(&solvables);
@@ -140,11 +153,19 @@ namespace mamba
         {
             out << "No entries matching \"" << query << "\" found";
         }
+        tabulate::Table whatrequires_table_results;
+        whatrequires_table_results.add_row({"Name", "Version", "Build", "Channel"});
         for (int i = 0; i < solvables.count; i++)
         {
             Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-            solvable_to_stream(out, s);
+            solvable_to_stream(out, s, i + 1, whatrequires_table_results);
         }
+        whatrequires_table_results[0].format()
+            .border_top("-")
+            .font_style({tabulate::FontStyle::bold});
+        whatrequires_table_results[1].format().border_top("-");
+        whatrequires_table_results[solvables.count].format().border_bottom("-");
+        out << whatrequires_table_results << std::endl;
 
         queue_free(&job);
         queue_free(&solvables);
@@ -193,4 +214,3 @@ namespace mamba
     }
 
 }
-

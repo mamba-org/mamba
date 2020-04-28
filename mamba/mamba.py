@@ -418,6 +418,10 @@ def install(args, parser, command='install'):
 
         subpriority = 0 if chan.platform == 'noarch' else 1
 
+        if subdir.loaded() == False and chan.platform != 'noarch':
+            # ignore non-loaded subdir if channel is != noarch
+            continue
+
         if context.verbosity != 0:
             print("Cache path: ", subdir.cache_path())
         channel_json.append((chan, subdir.cache_path(), priority, subpriority))

@@ -6,8 +6,13 @@
 
 #include "pool.hpp"
 
+namespace tabulate {
+    class Table;
+}
+
 extern "C"
 {
+    #include "solv/repo.h"
     #include "solv/conda.h"
     #include "solv/solver.h"
     #include "solv/selection.h"
@@ -15,8 +20,9 @@ extern "C"
 
 namespace mamba
 {
-    void cut_repo_name(std::ostream& out, const std::string_view& reponame);
-    void solvable_to_stream(std::ostream& out, Solvable* s);
+    std::string cut_repo_name(std::ostream& out, const std::string_view& reponame);
+    void solvable_to_stream(std::ostream& out, Solvable* s, int row_count,
+        tabulate::Table& query_result);
     void print_dep_graph(std::ostream& out, Solvable* s, int level, int max_level);
 
     class Query

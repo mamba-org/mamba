@@ -63,6 +63,7 @@ ext_modules = [
         ['src/py_interface.cpp',
          'src/context.cpp',
          'src/fetch.cpp',
+         'src/match_spec.cpp',
          'src/output.cpp',
          'src/package_handling.cpp',
          'src/prefix_data.cpp',
@@ -72,6 +73,7 @@ ext_modules = [
          'src/solver.cpp',
          'src/subdirdata.cpp',
          'src/transaction.cpp',
+         'src/url.cpp',
          'src/util.cpp',
          'src/validate.cpp'],
         include_dirs=[
@@ -105,7 +107,7 @@ def has_flag(compiler, flagname):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'msvc': ['/EHsc', '/std:c++17', '/Ox'],
+        'msvc': ['/EHsc', '/std:c++17', '/Ox', '/DNOMINMAX'],
         'unix': ['-std=c++17', '-O3'],
     }
 

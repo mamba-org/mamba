@@ -152,14 +152,11 @@ namespace mamba
     std::string MSubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!
-        #ifndef _WIN32
         if (m_json_cache_valid && m_solv_cache_valid)
         {
             return m_solv_fn;
         }
-        else
-        #endif
-        if (m_json_cache_valid)
+        else if (m_json_cache_valid)
         {
             return m_json_fn;
         }
@@ -210,7 +207,18 @@ namespace mamba
             return true;
         }
 
-        LOG_WARNING << "Finalized transfer: " << m_url;
+        if ((m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch"))
+        {
+            // we're ignoring a 404 on non-noarch channels like conda does
+            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
+            m_progress_bar.set_postfix("404 Ignored");
+            m_progress_bar.set_progress(100);
+            m_progress_bar.mark_as_completed();
+            m_loaded = false;
+            return true;
+        }
+
+        LOG_INFO << "Finalized transfer: " << m_url;
 
         nlohmann::json prepend_header;
 

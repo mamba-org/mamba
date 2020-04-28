@@ -31,14 +31,20 @@ namespace mamba
         long max_parallel_downloads = 5;
         int verbosity = 0;
 
+        bool dev = false;
         bool on_ci = false;
         bool no_progress_bars = false;
         bool dry_run = false;
         bool always_yes = false;
 
+        // debug helpers
+        bool keep_temp_files = false;
+        bool keep_temp_directories = false;
+
         bool sig_interrupt = false;
 
         bool change_ps1 = true;
+        std::string root_prefix = "/home/wolfv/miniconda3/";
 
         int retry_timeout = 2; // seconds
         int retry_backoff = 3; // retry_timeout * retry_backoff

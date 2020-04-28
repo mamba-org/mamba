@@ -8,6 +8,7 @@
 #endif
 
 #include "util.hpp"
+#include "context.hpp"
 
 namespace mamba
 {
@@ -100,7 +101,10 @@ namespace mamba
 
     TemporaryDirectory::~TemporaryDirectory()
     {
-        fs::remove_all(m_path);
+        if (!Context::instance().keep_temp_directories)
+        {
+            fs::remove_all(m_path);
+        }
     }
 
     fs::path& TemporaryDirectory::path()
@@ -145,7 +149,10 @@ namespace mamba
 
     TemporaryFile::~TemporaryFile()
     {
-        fs::remove(m_path);
+        if (!Context::instance().keep_temp_files)
+        {
+            fs::remove(m_path);
+        }
     }
 
     fs::path& TemporaryFile::path()
@@ -170,11 +177,6 @@ namespace mamba
     bool starts_with(const std::string_view& str, const std::string_view& prefix)
     {
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-    }
-
-    namespace
-    {
-        const std::string WHITESPACES = " \r\n\t\f\v";
     }
 
     std::string_view strip(const std::string_view& input)

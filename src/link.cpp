@@ -3,10 +3,16 @@
 #include "link.hpp"
 #include "output.hpp"
 #include "validate.hpp"
+#include "environment.hpp"
 #include "util.hpp"
 
 #include "thirdparty/subprocess.hpp"
 #include "thirdparty/pystring14/pystring.hpp"
+
+extern "C"
+{
+    extern char **environ;
+}
 
 namespace mamba
 {
@@ -60,7 +66,7 @@ namespace mamba
             auto directory = py_path.parent_path();
             auto py_file_stem = py_path.stem();
             auto py_ver_nodot = pystring::replace(py_ver, ".", "");
-            return fs::path("__pycache__") / concat(py_file_stem.c_str(), ".cpython-", py_ver_nodot, ".pyc");
+            return directory / fs::path("__pycache__") / concat(py_file_stem.c_str(), ".cpython-", py_ver_nodot, ".pyc");
         }
     }
 
@@ -76,28 +82,21 @@ namespace mamba
         return result;
     }
 
-    // def replace_long_shebang(mode, data):
-    //     # this function only changes a shebang line if it exists and is greater than 127 characters
-    //     if mode == FileMode.text:
-    //         if not isinstance(data, bytes):
-    //             try:
-    //                 data = bytes(data, encoding='utf-8')
-    //             except:
-    //                 data = data.encode('utf-8')
-
-    //         shebang_match = re.match(SHEBANG_REGEX, data, re.MULTILINE)
-    //         if shebang_match:
-    //             whole_shebang, executable, options = shebang_match.groups()
-    //             if len(whole_shebang) > 127:
-    //                 executable_name = executable.decode('utf-8').split('/')[-1]
-    //                 new_shebang = '#!/usr/bin/env %s%s' % (executable_name, options.decode('utf-8'))
-    //                 data = data.replace(whole_shebang, new_shebang.encode('utf-8'))
-
-    //     else:
-    //         # TODO: binary shebangs exist; figure this out in the future if text works well
-    //         pass
-    //     return data
-
+    std::string replace_long_shebang(const std::string& shebang)
+    {
+        if (shebang.size() <= 127)
+        {
+            return shebang;
+        }
+        else
+        {
+            assert(shebang.substr(0, 2) == "#!");
+            auto path_begin = shebang.find_first_not_of(WHITESPACES);
+            auto path_end = shebang.substr(path_begin).find_first_not_of(WHITESPACES);
+            fs::path shebang_path = shebang.substr(path_begin, path_end);
+            return concat("#!/usr/bin/env ", std::string(shebang_path.filename()), " ", shebang.substr(path_end));
+        }
+    }
 
     inline void make_executable(const fs::path& p)
     {
@@ -214,58 +213,221 @@ namespace mamba
     //         fo.write(entry_point)
     //     make_executable(target_full_path)
 
-    // {
-    //     def compile_multiple_pyc(python_exe_full_path, py_full_paths, pyc_full_paths, prefix, py_ver):
-    //         py_full_paths = tuple(py_full_paths)
-    //         pyc_full_paths = tuple(pyc_full_paths)
-    //         if len(py_full_paths) == 0:
-    //             return []
+    std::string get_prefix_messages(const fs::path& prefix)
+    {
+        auto messages_file = prefix / ".messages.txt";
+        if (fs::exists(messages_file))
+        {
+            try
+            {
+                std::ifstream msgs(messages_file);
+                std::stringstream res;
+                std::copy(std::istreambuf_iterator<char>(msgs),
+                          std::istreambuf_iterator<char>(),
+                          std::ostreambuf_iterator<char>(res));
+                return res.str();
+            }
+            catch (...)
+            {
+                // ignore
+            }
+            fs::remove(messages_file);
+        }
+    }
 
-    //         fd, filename = tempfile.mkstemp()
-    //         try:
-    //             for f in py_full_paths:
-    //                 f = os.path.relpath(f, prefix)
-    //                 if hasattr(f, 'encode'):
-    //                     f = f.encode(sys.getfilesystemencoding(), errors='replace')
-    //                 os.write(fd, f + b"\n")
-    //             os.close(fd)
-    //             command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", filename]
-    //             # if the python version in the prefix is 3.5+, we have some extra args.
-    //             #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
-    //             if int(py_ver[0]) >= 3 and int(py_ver.split('.')[1]) > 5:
-    //                 command.extend(["-j", "0"])
-    //             command[0:0] = [python_exe_full_path]
-    //             # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
-    //             log.trace(command)
-    //             from conda.gateways.subprocess import any_subprocess
-    //             # from conda.common.io import env_vars
-    //             # This stack does not maintain its _argparse_args correctly?
-    //             # from conda.base.context import stack_context_default
-    //             # with env_vars({}, stack_context_default):
-    //             #     stdout, stderr, rc = run_command(Commands.RUN, *command)
-    //             stdout, stderr, rc = any_subprocess(command, prefix)
-    //         finally:
-    //             os.remove(filename)
+    std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
+                            const fs::path& prefix, 
+                            bool dev_mode,
+                            bool debug_wrapper_scripts,
+                            const std::vector<std::string>& arguments)
+    {
+        // todo add abspath here
+        fs::path tmp_prefix = prefix / ".tmp";
+        bool multiline = false;
+        
+        #ifdef _WIN32
+        // TODO
 
-    //         created_pyc_paths = []
-    //         for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
-    //             if not isfile(pyc_full_path):
-    //                 message = dals("""
-    //                 pyc file failed to compile successfully (run_command failed)
-    //                 python_exe_full_path: %s
-    //                 py_full_path: %s
-    //                 pyc_full_path: %s
-    //                 compile rc: %s
-    //                 compile stdout: %s
-    //                 compile stderr: %s
-    //                 """)
-    //                 log.info(message, python_exe_full_path, py_full_path, pyc_full_path,
-    //                          rc, stdout, stderr)
-    //             else:
-    //                 created_pyc_paths.append(pyc_full_path)
+        #else
 
-    //         return created_pyc_paths
-    // }
+        // During tests, we sometimes like to have a temp env with e.g. an old python in it
+        // and have it run tests against the very latest development sources. For that to
+        // work we need extra smarts here, we want it to be instead:
+        std::string shebang;
+        std::string dev_arg;
+        if (dev_mode)
+        {
+            shebang += std::string(root_prefix / "bin" / "python");
+            shebang += " -m conda";
+
+            dev_arg = "--dev";
+        }
+        else
+        {
+            if (std::getenv("CONDA_EXE"))
+            {
+                shebang = std::getenv("CONDA_EXE");
+            }
+            else
+            {
+                shebang = std::string(root_prefix / "bin" / "conda");
+            }
+        }
+
+        auto tf = std::make_unique<TemporaryFile>();
+        std::ofstream out(tf->path());
+
+        if (dev_mode)
+        {
+            // tf << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+        }
+
+        std::stringstream hook_quoted;
+        hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
+        if (debug_wrapper_scripts)
+        {
+            out << "set -x\n";
+            out << ">&2 echo \"*** environment before ***\"\n"
+                << ">&2 env\n"
+                << ">&2 echo \"$(" << hook_quoted.str() << ")\"\n";
+        }
+        out << "eval \"$(" << hook_quoted.str() << ")\"\n";
+        out << "conda activate " << dev_arg << " " << std::quoted(prefix.c_str()) << "\n";
+
+        if (debug_wrapper_scripts)
+        {
+            out << ">&2 echo \"*** environment after ***\"\n"
+                << ">&2 env\n";
+        }
+
+        out << "\n"
+            << pystring::join(" ", arguments);
+        out.close();
+
+        #endif
+    
+        return std::move(tf);
+    }
+
+    /*
+        call the post-link or pre-unlink script and return true / false on success / failure
+    */
+    bool run_script(const fs::path& prefix, const std::string& name,
+                    const std::string& action = "post-link",
+                    const std::string& env_prefix = "",
+                    bool activate = false)
+    {
+        #ifdef _WIN32
+        auto path = prefix / get_bin_directory_short_path() / concat(".", name, "-", action, ".bat");
+        #else
+        auto path = prefix / get_bin_directory_short_path() / concat(".", name, "-", action, ".sh");
+        #endif
+
+        if (!fs::exists(path))
+        {
+            LOG_INFO << action << " script for " << name << " does not exist (" << path << ")";
+            return true;
+        }
+
+        // TODO impl.
+        std::map<std::string, std::string> envmap = env::copy();
+
+        if (action == "pre-link")
+        {
+            throw std::runtime_error("mamba does not support pre-link scripts");
+        }
+
+        // script_caller = None
+        std::vector<std::string> command_args;
+        #ifdef _WIN32
+        ensure_comspec_set()
+        try:
+            comspec = os.environ[str('COMSPEC')]
+        except KeyError:
+            log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
+            return False
+        if activate:
+            script_caller, command_args = wrap_subprocess_call(
+                on_win, context.root_prefix, prefix, context.dev, False, ('@CALL', path)
+            )
+        else:
+            command_args = [comspec, '/d', '/c', path]
+        #else
+        // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
+        fs::path shell_path = env::which("bash");
+        if (shell_path.empty())
+        {
+            shell_path = env::which("sh");
+        }
+
+        std::unique_ptr<TemporaryFile> script_file;
+        if (activate)
+        {
+            // std::string caller
+            script_file = wrap_call(
+                Context::instance().root_prefix,
+                prefix,
+                Context::instance().dev,
+                false,
+                {".", path}
+            );
+            command_args.push_back(shell_path);
+            command_args.push_back(script_file->path());
+        }
+        else
+        {
+            command_args.push_back(shell_path);
+            command_args.push_back("-x");
+            command_args.push_back(path);
+        }
+        #endif
+
+        envmap["ROOT_PREFIX"] = Context::instance().root_prefix;
+        envmap["PREFIX"] = env_prefix.size() ? env_prefix : std::string(prefix);
+        // envmap["PKG_NAME"] = prec.name
+        // envmap["PKG_VERSION"] = prec.version
+        // envmap["PKG_BUILDNUM"] = prec.build_number
+
+        std::string PATH = env::get("PATH");
+
+        // prepend directory to current PATH variable
+        std::string cargs = "";
+        for (auto& x : command_args)
+        {
+            std::cout << x << " ";
+            cargs += x;
+            cargs += " ";
+        }
+
+        // std::string cargs = pystring::join(" ", command_args);
+        envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
+        LOG_DEBUG << "for " << name << " at " << envmap["PREFIX"] << ", executing script: $ " << cargs;
+
+        int response = subprocess::call(cargs, subprocess::environment{envmap}, subprocess::cwd{path.parent_path()});
+        auto msg = get_prefix_messages(envmap["PREFIX"]);
+        if (Context::instance().json)
+        {
+            // TODO implement cerr also on Console?
+            std::cerr << msg;
+        }
+        else
+        {
+            Console::print(msg);
+        }
+        if (response != 0)
+        {
+            LOG_ERROR << "response code: " << response;
+            if (script_file != nullptr && env::get("CONDA_TEST_SAVE_TEMPS").size())
+            {
+                LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
+            }
+            throw std::runtime_error("failed to execute pre/post link script for " + name);
+        }
+        else
+        {
+            return true;
+        }
+    } 
 
     UnlinkPackage::UnlinkPackage(const std::string& specifier, TransactionContext* context)
         : m_specifier(specifier), m_context(context)
@@ -425,26 +587,21 @@ namespace mamba
         std::vector<std::string> command = {
             std::string(m_context->target_prefix / "bin" / "python"), 
             "-Wi", "-m", "compileall", "-q", "-l", "-i",
-            all_py_files.path().c_str()
+            all_py_files.path()
         };
 
         auto py_ver_split = pystring::split(m_context->python_version, ".");
 
         if (std::stoi(std::string(py_ver_split[0])) >= 3 && std::stoi(std::string(py_ver_split[1])) > 5)
         {
+            // activate parallel pyc compilation
             command.push_back("-j0");
         }
 
-        // Also looks good: https://github.com/tsaarni/cpp-subprocess/blob/master/include/subprocess.hpp
         auto out = subprocess::check_output(command, subprocess::cwd{std::string(m_context->target_prefix)});
-
-        std::cout << "Data : " << out.buf.data() << std::endl;
-        std::cout << "Data len: " << out.length << std::endl;
 
         return pyc_files;
     }
-
-
 
     bool LinkPackage::execute()
     {
@@ -456,17 +613,17 @@ namespace mamba
         repodata_f >> index_json;
 
         bool noarch_python = false;
+
         // handle noarch packages
         if (index_json.find("noarch") != index_json.end())
         {
             if (index_json["noarch"].get<std::string>() == "python")
             {
                 noarch_python = true;
-                LOG_INFO << "Install Python noarch package";
+                LOG_INFO << "Installing Python noarch package";
             }
         }
 
-        // TODO should we take this from `files.txt`?
         std::vector<std::string> files_record;
 
         for (auto& path : paths_json["paths"])
@@ -496,45 +653,68 @@ namespace mamba
         if (noarch_python)
         {
             fs::path link_json_path = m_source / "info" / "link.json";
+            nlohmann::json link_json;
             if (fs::exists(link_json_path))
             {
                 std::ifstream link_json_file(link_json_path);
-                nlohmann::json link_json;
                 link_json_file >> link_json;
-                // {
-                //   "noarch": {
-                //     "entry_points": [
-                //       "wheel = wheel.cli:main"
-                //     ],
-                //     "type": "python"
-                //   },
-                //   "package_metadata_version": 1
-                // }
-                LOG_WARNING << "Creating entry points ... ";
+            }
+
+            std::vector<fs::path> for_compilation;
+            std::regex py_file_re("^site-packages[/\\\\][^\\t\\n\\r\\f\\v]+\\.py$");
+            for (auto& sub_path_json : paths_json["paths"])
+            {
+                std::string path = sub_path_json["_path"];
+                if (std::regex_match(path, py_file_re))
+                {
+                    for_compilation.push_back(get_python_noarch_target_path(path, m_context->site_packages_path));
+                    LOG_WARNING << get_python_noarch_target_path(path, m_context->site_packages_path);
+                }
+            }
+            std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
+
+            for (const fs::path& pyc_path : pyc_files)
+            {
+                out_json["paths_data"]["paths"].push_back(
+                {
+                    {"_path", std::string(pyc_path)},
+                    {"path_type", "pyc_file"}
+                });
+
+                out_json["files"].push_back(pyc_path);
+            }
+
+            if (link_json.find("noarch") != link_json.end() && 
+                link_json["noarch"].find("entry_points") != link_json["noarch"].end())
+            {
                 for (auto& ep : link_json["noarch"]["entry_points"])
                 {
                     // install entry points
                     auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
-                    LOG_WARNING << "Entry point: " << entry_point_parsed.command << ", " << entry_point_parsed.module << ", " << entry_point_parsed.func;
-                    create_python_entry_point(m_context->target_prefix / get_bin_directory_short_path() / entry_point_parsed.command,
+                    auto entry_point_path = get_bin_directory_short_path() / entry_point_parsed.command;
+                    create_python_entry_point(m_context->target_prefix / entry_point_path,
                                               m_context->target_prefix / m_context->python_path,
                                               entry_point_parsed);
+                    
+                    out_json["paths_data"]["paths"].push_back(
+                    {
+                        {"_path", std::string(entry_point_path)},
+                        {"type", "unix_python_entry_point"}
+                    });
+                    out_json["files"].push_back(entry_point_path);
                 }
             }
+        }
 
-            std::regex py_file_re("^site-packages[/\\\\][^\\t\\n\\r\\f\\v]+\\.py$");
-            std::vector<fs::path> for_compilation;
-            for (auto& sub_path_json : paths_json["paths"])
-            {
-                std::string path = sub_path_json["_path"];
-                LOG_WARNING << "Checking file " << path << " for compilation";
-                if (std::regex_match(path, py_file_re))
-                {
-                    LOG_WARNING << "Checking file " << path << " <<< MATCHES!";
-                    for_compilation.push_back(get_python_noarch_target_path(path, m_context->site_packages_path));
-                }
-            }
-            std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
+        // bool run_script(const fs::path& prefix, const std::string& name,
+        //                 const std::string& action = "post-link",
+        //                 const std::string& env_prefix = "",
+        //                 bool activate = false)
+
+        bool did_run = run_script(m_context->target_prefix, "widgetsnbextension", "post-link", "", true);
+        if (!did_run)
+        {
+            throw std::runtime_error("ULALAL");
         }
 
         fs::path prefix_meta = m_context->target_prefix / "conda-meta";
@@ -542,8 +722,8 @@ namespace mamba
         {
             fs::create_directory(prefix_meta);
         }
-        LOG_INFO << "Writing out.json";
 
+        LOG_INFO << "Finalizing package " << f_name << " installation";
         std::ofstream out_file(prefix_meta / (f_name + ".json"));
         out_file << out_json.dump(4);
     }

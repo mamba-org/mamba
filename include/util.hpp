@@ -86,6 +86,8 @@ namespace mamba
      * utils for std::string *
      *************************/
 
+    constexpr const char* WHITESPACES(" \r\n\t\f\v");
+
     bool starts_with(const std::string_view& str, const std::string_view& prefix);
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
 

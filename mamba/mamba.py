@@ -588,11 +588,6 @@ def repoquery(args, parser):
         'use_local': args.use_local
     }
 
-    index = get_index(channel_urls=index_args['channel_urls'],
-                  prepend=index_args['prepend'], platform=None,
-                  use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                  unknown=index_args['unknown'], prefix=prefix)
-
     installed_json_f = get_installed_jsonfile(prefix)
 
     pool = api.Pool()
@@ -604,7 +599,16 @@ def repoquery(args, parser):
     repos.append(repo)
 
     if not args.installed:
+        index = get_index(channel_urls=index_args['channel_urls'],
+                      prepend=index_args['prepend'], platform=None,
+                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
+                      unknown=index_args['unknown'], prefix=prefix)
+
         for subdir, channel in index:
+            if subdir.loaded() == False and channel.platform != 'noarch':
+                # ignore non-loaded subdir if channel is != noarch
+                continue
+
             repo = api.Repo(pool, str(channel), subdir.cache_path(), channel.url(with_credentials=True))
             repo.set_priority(0, 0)
             repos.append(repo)

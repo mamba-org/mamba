@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string_view>
 #include <string>
+#include <random>
+#include <array>
 
 
 #include "thirdparty/filesystem.hpp"
@@ -44,6 +46,32 @@ namespace mamba
 
     std::string get_file_contents(const fs::path& path);
 
+    template <typename T = std::mt19937>
+    inline auto random_generator() -> T
+    {
+        auto constexpr seed_bits = sizeof(typename T::result_type) * T::state_size;
+        auto constexpr seed_len = seed_bits / std::numeric_limits<std::seed_seq::result_type>::digits;
+        auto seed = std::array<std::seed_seq::result_type, seed_len>{};
+        auto dev = std::random_device{};
+        std::generate_n(begin(seed), seed_len, std::ref(dev));
+        auto seed_seq = std::seed_seq(begin(seed), end(seed));
+        return T{seed_seq};
+    }
+
+    inline std::string generate_random_alphanumeric_string(std::size_t len)
+    {
+        static constexpr auto chars =
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+        thread_local auto rng = random_generator<std::mt19937>();
+
+        auto dist = std::uniform_int_distribution{{}, std::strlen(chars)};
+        auto result = std::string(len, '\0');
+        std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
+        return result;
+    }
+
     class TemporaryDirectory
     {
     public:
@@ -67,7 +95,7 @@ namespace mamba
     {
     public:
 
-        TemporaryFile();
+        TemporaryFile(const std::string& prefix = "mambaf", const std::string& suffix = "");
         ~TemporaryFile();
 
         TemporaryFile(const TemporaryFile&) = delete;

@@ -9,11 +9,6 @@
 #include "thirdparty/subprocess.hpp"
 #include "thirdparty/pystring14/pystring.hpp"
 
-extern "C"
-{
-    extern char **environ;
-}
-
 namespace mamba
 {
     struct python_entry_point_parsed
@@ -233,6 +228,29 @@ namespace mamba
             }
             fs::remove(messages_file);
         }
+        return "";
+    }
+
+    bool ensure_comspec_set()
+    {
+        std::string cmd_exe = env::get("COMSPEC");
+        if (!ends_with(pystring::lower(cmd_exe), "cmd.exe"))
+        {
+            cmd_exe = fs::path(env::get("SystemRoot")) / "System32" / "cmd.exe";
+            if (!fs::is_regular_file(cmd_exe))
+            {
+                cmd_exe = fs::path(env::get("windir")) / "System32" / "cmd.exe";
+            }
+            if (!fs::is_regular_file(cmd_exe))
+            {
+                LOG_WARNING << "cmd.exe could not be found. Looked in SystemRoot and windir env vars.";
+            }
+            else
+            {
+                env::set("COMSPEC", cmd_exe);
+            }
+        }
+        return true;
     }
 
     std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
@@ -246,7 +264,65 @@ namespace mamba
         bool multiline = false;
         
         #ifdef _WIN32
+        ensure_comspec_set();
+        std::string comspec = env::get("COMSPEC");
+        std::string conda_bat;
+
         // TODO
+        std::string CONDA_PACKAGE_ROOT = "";
+
+        if (dev_mode)
+        {
+            conda_bat = fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat";
+        }
+        else
+        {
+            conda_bat = env::get("CONDA_BAT");
+            if (conda_bat.size() == 0)
+            {
+                // TODO add call to abspath
+                conda_bat = root_prefix / "condabin" / "conda.bat";
+            }
+        }
+        auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
+
+        std::ofstream out(tf->path());
+
+        std::string silencer;
+        if (!debug_wrapper_scripts) silencer = "@";
+
+        out << silencer << "ECHO OFF\n";
+        out << silencer << "SET PYTHONIOENCODING=utf-8\n";
+        out << silencer << "SET PYTHONUTF8=1\n";
+        out << silencer << "FOR /F \"tokens=2 delims=:.\" %%A in (\'chcp\') do for %%B in (%%A) do set \"_CONDA_OLD_CHCP=%%B\"\n";
+        out << silencer << "chcp 65001 > NUL\n";
+
+        if (dev_mode)
+        {
+            // from conda.core.initialize import CONDA_PACKAGE_ROOT
+            out << silencer << "SET CONDA_DEV=1\n";
+            // In dev mode, conda is really:
+            // 'python -m conda'
+            // *with* PYTHONPATH set.
+            out << silencer << "SET PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            out << silencer << "SET CONDA_EXE=" << "python.exe" << "\n"; // TODO this should be `sys.executable`
+            out << silencer << "SET _CE_M=-m\n";
+            out << silencer << "SET _CE_CONDA=conda\n";
+        }
+
+        if (debug_wrapper_scripts)
+        {
+            out << "echo *** environment before *** 1>&2\n";
+            out << "SET 1>&2\n";
+        }
+
+        out << silencer << "CALL \"" << conda_bat << "\" activate \"" << prefix << "\"\n";
+        out << silencer << "IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n";
+        if (debug_wrapper_scripts)
+        {
+            out << "echo *** environment after *** 1>&2\n";
+            out << "SET 1>&2\n";
+        }
 
         #else
 
@@ -302,10 +378,10 @@ namespace mamba
 
         out << "\n"
             << pystring::join(" ", arguments);
+        #endif
+
         out.close();
 
-        #endif
-    
         return std::move(tf);
     }
 
@@ -330,7 +406,7 @@ namespace mamba
         }
 
         // TODO impl.
-        std::map<std::string, std::string> envmap = env::copy();
+        std::map<std::string, std::string> envmap; // = env::copy();
 
         if (action == "pre-link")
         {
@@ -340,18 +416,27 @@ namespace mamba
         // script_caller = None
         std::vector<std::string> command_args;
         #ifdef _WIN32
-        ensure_comspec_set()
-        try:
-            comspec = os.environ[str('COMSPEC')]
-        except KeyError:
-            log.info("failed to run %s for %s due to COMSPEC KeyError", action, prec.dist_str())
-            return False
-        if activate:
-            script_caller, command_args = wrap_subprocess_call(
-                on_win, context.root_prefix, prefix, context.dev, False, ('@CALL', path)
-            )
-        else:
-            command_args = [comspec, '/d', '/c', path]
+        ensure_comspec_set();
+        std::string comspec = env::get("COMSPEC");
+        if (comspec.size() == 0)
+        {
+            LOG_ERROR << "Failed to run " << action << " for " << name << " due to COMSPEC not set in env vars.";
+            return false;
+        }
+        LOG_WARNING << "COMSPEC " << comspec;
+
+        std::unique_ptr<TemporaryFile> script_file;
+        if (activate)
+        {
+            script_file = wrap_call(Context::instance().root_prefix, prefix,
+                                    Context::instance().dev, false, {"@CALL", path});
+
+            command_args = {comspec, "/d", "/c", script_file->path()};
+        }
+        else
+        {
+            command_args = {comspec, "/d", "/c", path};
+        }
         #else
         // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
         fs::path shell_path = env::which("bash");
@@ -390,6 +475,8 @@ namespace mamba
 
         std::string PATH = env::get("PATH");
 
+        LOG_WARNING << "PATH " << PATH;
+
         // prepend directory to current PATH variable
         std::string cargs = "";
         for (auto& x : command_args)
@@ -402,6 +489,7 @@ namespace mamba
         // std::string cargs = pystring::join(" ", command_args);
         envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
         LOG_DEBUG << "for " << name << " at " << envmap["PREFIX"] << ", executing script: $ " << cargs;
+        LOG_WARNING << "Caling " << cargs;
 
         int response = subprocess::call(cargs, subprocess::environment{envmap}, subprocess::cwd{path.parent_path()});
         auto msg = get_prefix_messages(envmap["PREFIX"]);
@@ -448,6 +536,7 @@ namespace mamba
             fs::remove(parent_path);
             parent_path = parent_path.parent_path();
         }
+        return true;
     }
 
     bool UnlinkPackage::execute()
@@ -467,6 +556,8 @@ namespace mamba
         json_file.close();
 
         fs::remove(json);
+
+        return true;
     }
 
     LinkPackage::LinkPackage(const fs::path& source, TransactionContext* context)
@@ -605,11 +696,16 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
+        std::cout << "EXECUTE INSTALL " << m_source;
         nlohmann::json paths_json, index_json, out_json;
-        std::ifstream paths_file(m_source / "info" / "paths.json");
+        LOG_WARNING << "Opening: " << m_source / "info" / "paths.json";
 
+        std::ifstream paths_file(m_source / "info" / "paths.json");
         paths_file >> paths_json;
+
+        LOG_WARNING << "Opening: " << m_source / "info" / "repodata_record.json";
         std::ifstream repodata_f(m_source / "info" / "repodata_record.json");
+
         repodata_f >> index_json;
 
         bool noarch_python = false;
@@ -726,5 +822,7 @@ namespace mamba
         LOG_INFO << "Finalizing package " << f_name << " installation";
         std::ofstream out_file(prefix_meta / (f_name + ".json"));
         out_file << out_json.dump(4);
+
+        return true;
     }
 }

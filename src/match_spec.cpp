@@ -66,7 +66,7 @@ namespace mamba
                 {
                     throw std::runtime_error("key-value mismatch in brackets " + spec);
                 }
-                text_iter += kv_match.length() + kv_match.position();
+                text_iter += kv_match.position() + kv_match.length();
                 brackets[key] = value;
             }
             spec_str.erase(match.position(1), match.length(1));

@@ -163,7 +163,7 @@ namespace mamba
     {
         size_t start = input.find_first_not_of(chars);
         size_t stop = input.find_last_not_of(chars);
-        return start == std::string::npos ? "" : input.substr(start, stop);
+        return start == std::string::npos ? "" : input.substr(start, stop + 1);
     }
 
     std::string_view lstrip(const std::string_view& input, const std::string_view& chars)

@@ -696,7 +696,7 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
-        std::cout << "EXECUTE INSTALL " << m_source;
+        LOG_INFO << "Executing install for " << m_source;
         nlohmann::json paths_json, index_json, out_json;
         LOG_WARNING << "Opening: " << m_source / "info" / "paths.json";
 

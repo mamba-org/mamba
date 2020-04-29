@@ -1,4 +1,5 @@
 #include "history.hpp"
+#include <fstream>
 
 namespace mamba
 {
@@ -11,17 +12,17 @@ namespace mamba
     std::vector<History::ParseResult> History::parse()
     {
         std::vector<ParseResult> res;
-        fs::path history_file_path = fs::path(m_prefix_data) / "conda-meta" / "history";
-        LOG_INFO << "parsing history: " << history_file_path;
+        m_history_file_path = fs::path(m_prefix_data) / "conda-meta" / "history";
+        LOG_INFO << "parsing history: " << m_history_file_path;
 
-        if (!fs::exists(history_file_path))
+        if (!fs::exists(m_history_file_path))
         {
             // return empty
             return res;
         }
 
         std::regex head_re("==>\\s*(.+?)\\s*<==");
-        std::ifstream in_file(history_file_path);
+        std::ifstream in_file(m_history_file_path);
         std::string line;
         while (getline(in_file, line))
         {
@@ -71,10 +72,10 @@ namespace mamba
             std::cmatch ematch;
             std::vector<std::string> pkg_specs;
             const char* text_iter = elems.c_str();
-            while (std::regex_search(text_iter, (const char*) elems.c_str() + elems.size(), ematch, elems_pat))
+            while (std::regex_search(text_iter, ematch, elems_pat))
             {
                 pkg_specs.push_back(ematch[1].str());
-                text_iter += ematch[0].length();
+                text_iter += ematch.position() + ematch.length();
             }
             if (action == "update" || action == "install" || action == "create")
             {
@@ -169,5 +170,61 @@ namespace mamba
         //     }
         // }
         return map;
+    }
+
+    void History::add_entry(const std::vector<History::UserRequest> user_request)
+    {
+        std::ofstream out;
+        out.open(m_history_file_path, std::ios_base::app);
+        if (out.fail())
+        {
+            throw std::runtime_error("Couldn't open file: " + m_history_file_path.string());
+        }
+        else
+        {
+            for (auto request : user_request)
+            {
+                out << "==> " << request.date << " <==" << std::endl;
+                out << "# cmd: " << request.cmd << std::endl;
+                out << "# conda version: " << request.conda_version << std::endl;
+                for (auto unlink_dist : request.unlink_dists)
+                {
+                    out << unlink_dist << std::endl;
+                }
+                for (auto link_dist : request.link_dists)
+                {
+                    out << link_dist << std::endl;
+                }
+                if (request.update.size() > 0)
+                {
+                    out << "# update specs: [";
+                    std::string update_string;
+                    for (auto u : request.update)
+                    {
+                        update_string += "'" + u + "',";
+                    }
+                        update_string.back() = ']';
+                        out << update_string << std::endl;
+                }
+                if (request.remove.size() > 0)
+                {
+                    out << "# remove specs: [";
+                    for (auto r : request.remove)
+                    {
+                        out << "'" << r << "',";
+                    }
+                        out << "]" << std::endl;
+                }
+                if (request.neutered.size() > 0)
+                {
+                    out << "# neutered specs: [";
+                    for (auto n : request.neutered)
+                    {
+                        out << "'" << n << "',";
+                    }
+                        out << "]" << std::endl;
+                }
+            }
+        }
     }
 }

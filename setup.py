@@ -84,6 +84,7 @@ ext_modules = [
             "include/thirdparty/"
         ],
         library_dirs=library_dir,
+        extra_link_args=extra_link_args,
         libraries=['archive', 'solv', 'solvext', CURL_LIB, CRYPTO_LIB],
         language='c++'
     ),
@@ -109,6 +110,7 @@ class BuildExt(build_ext):
     c_opts = {
         'msvc': ['/EHsc', '/std:c++17', '/Ox', '/DNOMINMAX'],
         'unix': ['-std=c++17', '-O3'],
+        # 'unix': ['-std=c++17', '-Og', '-g'],
     }
 
     def build_extensions(self):

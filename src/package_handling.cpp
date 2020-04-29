@@ -1,9 +1,11 @@
 #include <sstream>
+
 #include "package_handling.hpp"
+#include "output.hpp"
 
 namespace mamba
 {
-    int copy_data(archive *ar, archive *aw)
+    static int copy_data(archive *ar, archive *aw)
     {
         int r;
         const void *buff;
@@ -15,11 +17,11 @@ namespace mamba
             r = archive_read_data_block(ar, &buff, &size, &offset);
             if (r == ARCHIVE_EOF)
             {
-                return (ARCHIVE_OK);
+                return ARCHIVE_OK;
             }
             if (r < ARCHIVE_OK)
             {
-                throw std::runtime_error(archive_error_string(aw));
+                throw std::runtime_error(archive_error_string(ar));
             }
             r = archive_write_data_block(aw, buff, size, offset);
             if (r < ARCHIVE_OK)
@@ -27,10 +29,20 @@ namespace mamba
                 throw std::runtime_error(archive_error_string(aw));
             }
         }
+        return r;
     }
 
     void extract_archive(const fs::path& file, const fs::path& destination)
     {
+        LOG_INFO << "Extracting " << file << " to " << destination;
+
+        auto prev_path = fs::current_path();
+        if (!fs::exists(destination))
+        {
+            fs::create_directories(destination);
+        }
+        fs::current_path(destination);
+
         struct archive *a;
         struct archive *ext;
         struct archive_entry *entry;
@@ -42,9 +54,7 @@ namespace mamba
         flags |= ARCHIVE_EXTRACT_PERM;
         flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
         flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
-
-        // TODO check if we can do this security check ourselves?
-        // flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
+        flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
         flags |= ARCHIVE_EXTRACT_SPARSE;
         flags |= ARCHIVE_EXTRACT_UNLINK;
 
@@ -74,39 +84,40 @@ namespace mamba
                 throw std::runtime_error(archive_error_string(a));
             }
 
-            // modify path to extract to directory
-            // Either we do this here or we temporarily have to `chdir` to the dest dir
-            const char* relative_file_path = archive_entry_pathname(entry);
-            if (relative_file_path[0] == '/')
-            {
-                throw std::runtime_error("Cannot extract archive with absolute paths.");
-            }
-            fs::path full_output_path = destination / relative_file_path;
-            archive_entry_set_pathname(entry, full_output_path.c_str());
-
             r = archive_write_header(ext, entry);
             if (r < ARCHIVE_OK)
             {
-                throw std::runtime_error(archive_error_string(a));
+                throw std::runtime_error(archive_error_string(ext));
             }
-            else
+            else if (archive_entry_size(entry) > 0)
             {
                 r = copy_data(a, ext);
                 if (r < ARCHIVE_OK)
                 {
-                    throw std::runtime_error(archive_error_string(a));
+                    const char* err_str = archive_error_string(ext);
+                    if (err_str == nullptr)
+                    {
+                        err_str = archive_error_string(a);
+                    }
+                    if (err_str != nullptr)
+                    {
+                        throw std::runtime_error(err_str);
+                    }
+                    throw std::runtime_error("Extraction: writing data was not successful.");
                 }
             }
             r = archive_write_finish_entry(ext);
             if (r < ARCHIVE_OK)
             {
-                throw std::runtime_error(archive_error_string(a));
+                throw std::runtime_error(archive_error_string(ext));
             }
         }
         archive_read_close(a);
         archive_read_free(a);
         archive_write_close(ext);
         archive_write_free(ext);
+
+        fs::current_path(prev_path);
     }
 
     void extract_conda(const fs::path& file, const fs::path& dest_dir, const std::vector<std::string>& parts)
@@ -173,7 +184,7 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Unknown file format.");
+            throw std::runtime_error("Unknown file format (" + std::string(file) + ")");
         }
     }
 }

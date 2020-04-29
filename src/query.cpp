@@ -1,4 +1,5 @@
 #include <sstream>
+#include <iomanip>
 
 #include "query.hpp"
 #include "util.hpp"
@@ -34,44 +35,63 @@ namespace mamba
         query_result[row_count].format().border_top(" ").border_bottom(" ");
     }
 
-    void print_dep_graph(std::ostream& out, Solvable* s, int level, int max_level)
+    void print_dep_graph(std::ostream& out, Solvable* s, int level, int max_level,
+                         bool last, const std::string& prefix)
     {
-       if (level <= max_level) {
-         auto* pool = s->repo->pool;
-         for(int i = 0; i< level; i++)
-           out << "\x74 ";
-          out << pool_id2str(pool, s->name) << "-v-" << pool_id2str(pool, s->evr)<< std::endl;
-
-          if (s->requires)
-          {
-            Id *reqp = s->repo->idarraydata + s->requires;
-            Id req = *reqp;
-            while (req != 0)            /* go through all requires */
+        if (level <= max_level)
+        {
+            auto* pool = s->repo->pool;
+            out << prefix;
+            if (level)
             {
-              Queue job, rec_solvables;
-              queue_init(&rec_solvables);
-              queue_init(&job);
-
-              queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, req);
-              selection_solvables(pool, &job, &rec_solvables);
-              int index = 0;
-              for (int i = 0; i < rec_solvables.count; i++)
-              {
-                Solvable* s = pool_id2solvable(pool, rec_solvables.elements[i]);
-                if (s->name == req){
-                    index = i;
+                if (last)
+                {
+                    out << "└─ ";
                 }
-              }
-              Solvable *sreq = pool_id2solvable(pool, rec_solvables.elements[index]);
-              print_dep_graph(out, sreq, level + 1, max_level);
-
-              queue_free(&rec_solvables);
-              ++reqp;
-              req = *reqp;
+                else
+                {
+                    out << "├─ ";
+                }
             }
-          }
 
-       }
+            out << pool_id2str(pool, s->name) << " [" << pool_id2str(pool, s->evr) << "]\n";
+
+            if (s->requires)
+            {
+                Id* reqp = s->repo->idarraydata + s->requires;
+                Id req = *reqp;
+                while (req != 0) /* go through all requires */
+                {
+                    Queue job, rec_solvables;
+                    queue_init(&rec_solvables);
+                    queue_init(&job);
+
+                    queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, req);
+                    selection_solvables(pool, &job, &rec_solvables);
+                    int index = 0;
+                    for (int i = 0; i < rec_solvables.count; i++)
+                    {
+                        Solvable* s = pool_id2solvable(pool, rec_solvables.elements[i]);
+                        if (s->name == req)
+                        {
+                            index = i;
+                        }
+                    }
+                    Solvable* sreq = pool_id2solvable(pool, rec_solvables.elements[index]);
+
+                    bool next_is_last = *(reqp + 1) == 0;
+                    std::string next_prefix = prefix;
+                    next_prefix += last ? "  " : "│ ";
+
+                    print_dep_graph(out, sreq, level + 1, max_level,
+                                    next_is_last, next_prefix);
+
+                    queue_free(&rec_solvables);
+                    ++reqp;
+                    req = *reqp;
+                }
+            }
+        }
     }
 
     /************************
@@ -191,18 +211,22 @@ namespace mamba
 
         selection_solvables(m_pool.get(), &job, &solvables);
 
+        // Print conda-tree like dependency graph for upto a recursion limit
+        int dependency_recursion_limit = 3;
+
         std::stringstream out;
         if (solvables.count == 0)
         {
             out << "No entries matching \"" << query << "\" found";
         }
-
-        // Print conda-tree like dependency graph for upto a recursion limit
-        int dependency_recursion_limit = 3;
+        else
+        {
+            out << "Printing up to " << dependency_recursion_limit << " levels of dependencies\n\n";
+        }
         if (solvables.count > 0)
         {
-           Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-           print_dep_graph(out, s, 0, dependency_recursion_limit);
+           Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[solvables.count - 1]);
+           print_dep_graph(out, s, 0, dependency_recursion_limit, true, "");
         }
 
         out << std::endl;

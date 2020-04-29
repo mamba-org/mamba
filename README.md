@@ -35,6 +35,19 @@ in the conda environment.
 
 Now you are ready to install packages with `mamba install xtensor-r -c conda-forge` for example.
 
+### Testing
+
+For the C++ tests, one needs Google Tests installed (e.g. `conda install gtest`).
+To build the program using CMake, the following line needs to be used:
+
+```
+cmake .. \
+	-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+	-DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
+	-DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
+	-DENABLE_TESTS=ON
+```
+
 ### Support us
 
 If you want to stay up to date with Mamba development, follow [@wuoulf](https://twitter.com/wuoulf) on Twitter.

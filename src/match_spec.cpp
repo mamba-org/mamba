@@ -54,11 +54,11 @@ namespace mamba
         {
             auto brackets_str = match[1].str();
             brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
-            std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(?:[, ]|$)");
+            std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
 
             std::cmatch kv_match;
             const char* text_iter = brackets_str.c_str();
-            while (std::regex_search(text_iter, (const char*) brackets_str.c_str() + brackets_str.size(), kv_match, kv_re))
+            while (std::regex_search(text_iter, kv_match, kv_re))
             {
                 auto key = kv_match[1].str();
                 auto value = kv_match[3].str();
@@ -66,7 +66,7 @@ namespace mamba
                 {
                     throw std::runtime_error("key-value mismatch in brackets " + spec);
                 }
-                text_iter += kv_match.length(0);
+                text_iter += kv_match.length() + kv_match.position();
                 brackets[key] = value;
             }
             spec_str.erase(match.position(1), match.length(1));
@@ -77,9 +77,10 @@ namespace mamba
         std::string channel_str;
         if (m5_len == 3)
         {
-            channel_str = m5[0];
+            channel = m5[2];
+            std::cout << m5[0] << ", " << m5[1] << ", " << m5[2] << std::endl;
             ns = m5[1];
-            spec_str = m5[2];
+            spec_str = m5[0];
         }
         else if (m5_len == 2)
         {
@@ -95,7 +96,7 @@ namespace mamba
             throw std::runtime_error("Parsing of channel / namespace / subdir failed.");
         }
         // TODO implement Channel, and parsing of the channel here!
-        channel = subdir = channel_str;
+        // channel = subdir = channel_str;
         // channel, subdir = _parse_channel(channel_str)
         // if 'channel' in brackets:
         //     b_channel, b_subdir = _parse_channel(brackets.pop('channel'))
@@ -112,7 +113,7 @@ namespace mamba
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {
             name = vb_match[1].str();
-            version = vb_match[2].str();
+            version = strip(vb_match[2].str());
             if (name.size() == 0)
             {
                 throw std::runtime_error("Invalid spec, no package name found: " + spec_str);

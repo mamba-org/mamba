@@ -6,6 +6,7 @@
 #include "environment.hpp"
 #include "util.hpp"
 #include "match_spec.hpp"
+#include "transaction_context.hpp"
 
 #include "thirdparty/subprocess.hpp"
 #include "thirdparty/pystring14/pystring.hpp"
@@ -100,14 +101,22 @@ namespace mamba
     }
 
     // for noarch python packages that have entry points
-    void create_python_entry_point(const fs::path& target, const fs::path& python, const python_entry_point_parsed& entry_point)
+    auto create_python_entry_point(const fs::path& target, const fs::path& python, const python_entry_point_parsed& entry_point)
     {
         if (fs::exists(target))
         {
             throw std::runtime_error("clobber warning");
         }
 
-        std::ofstream out_file(target);
+        #ifdef _WIN32
+        // We add -script.py to WIN32, and link the conda.exe launcher which will automatically find
+        // the correct script to launch
+        std::string win_script = target;
+        win_script += "-script.py";
+        std::ofstream out_file(win_script);
+        #else
+        std::ofstream out_file(target);        
+        #endif
 
         if (!python.empty())
         {
@@ -126,11 +135,30 @@ namespace mamba
         python_entry_point_template(out_file, entry_point);
         out_file.close();
 
+        #ifdef _WIN32
+        fs::path conda_exe = target;
+        conda_exe.replace_filename("conda.exe");
+        fs::path script_exe = target;
+        script_exe.replace_extension("exe");
+
+        if (fs::exists(script_exe))
+        {
+            LOG_ERROR << "Clobberwarning " << script_exe;
+            fs::remove(script_exe);
+        }
+        LOG_INFO << "Linking exe " << conda_exe << " --> " << script_exe;
+        fs::create_hard_link(conda_exe, script_exe);
+        make_executable(script_exe);
+        return std::array<std::string, 2>{win_script, script_exe};
+        #else
         if (!python.empty())
         {
             // make executable (-rwxrwxr-x.)
             make_executable(target);
         }
+
+        return target;
+        #endif
     }
 
     std::string ensure_pad(const std::string& str, char pad = '_')
@@ -577,6 +605,7 @@ namespace mamba
             // This needs to raise a clobberwarning
             // throw std::runtime_error("Clobberwarning: " );
             LOG_ERROR << "Clobberwarning: " << dst;
+            fs::remove(dst);
         }
 
         std::string path_type = path_data["path_type"].get<std::string>();
@@ -662,7 +691,7 @@ namespace mamba
         all_py_files_f.close();
         // TODO use the real python file here?!
         std::vector<std::string> command = {
-            std::string(m_context->target_prefix / "bin" / "python"), 
+            m_context->target_prefix / m_context->python_path, 
             "-Wi", "-m", "compileall", "-q", "-l", "-i",
             all_py_files.path()
         };
@@ -774,16 +803,31 @@ namespace mamba
                     // install entry points
                     auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
                     auto entry_point_path = get_bin_directory_short_path() / entry_point_parsed.command;
-                    create_python_entry_point(m_context->target_prefix / entry_point_path,
-                                              m_context->target_prefix / m_context->python_path,
-                                              entry_point_parsed);
+                    auto files = create_python_entry_point(m_context->target_prefix / entry_point_path,
+                                                           m_context->target_prefix / m_context->python_path,
+                                                           entry_point_parsed);
                     
+                    #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(
                     {
-                        {"_path", std::string(entry_point_path)},
+                        {"_path", files[0]},
+                        {"type", "win_python_entry_point"}
+                    });
+                    out_json["paths_data"]["paths"].push_back(
+                    {
+                        {"_path", files[1]},
+                        {"type", "windows_python_entry_point_exe"}
+                    });
+                    out_json["files"].push_back(files[0]);
+                    out_json["files"].push_back(files[1]);
+                    #else
+                    out_json["paths_data"]["paths"].push_back(
+                    {
+                        {"_path", files},
                         {"type", "unix_python_entry_point"}
                     });
-                    out_json["files"].push_back(entry_point_path);
+                    out_json["files"].push_back(files);
+                    #endif
                 }
             }
         }

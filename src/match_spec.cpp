@@ -15,6 +15,12 @@ namespace mamba
         build_number = solvable_lookup_num(s, SOLVABLE_BUILDVERSION, 0L);
     }
 
+    PackageInfo::PackageInfo(const std::string& n, const std::string& v,
+                             const std::string b, std::size_t bn)
+        : name(n), version(v), build(b), build_number(bn)
+    {
+    }
+
     std::string PackageInfo::str() const
     {
         return concat(name, "-", version, "-", build);

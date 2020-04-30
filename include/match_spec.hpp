@@ -19,6 +19,8 @@ namespace mamba
     public:
 
         PackageInfo(Solvable* s);
+        PackageInfo(const std::string& name, const std::string& version,
+                    const std::string build, std::size_t build_number);
 
         std::string str() const;
 

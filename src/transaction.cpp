@@ -335,9 +335,6 @@ namespace mamba
             if (strcmp(pool_id2str(s->repo->pool, s->name), "python") == 0)
             {
                 m_transaction_context.python_version = pool_id2str(s->repo->pool, s->evr);
-                m_transaction_context.short_python_version = compute_short_python_version(m_transaction_context.python_version);
-                m_transaction_context.python_path = get_python_short_path(m_transaction_context.short_python_version);
-                m_transaction_context.site_packages_path = get_python_site_packages_short_path(m_transaction_context.short_python_version);
 
                 LOG_INFO << "Found python version in installation packages\n" << m_transaction_context.python_version << " == " << m_transaction_context.short_python_version 
                          << "\n" << m_transaction_context.python_path << "\n" << m_transaction_context.site_packages_path;

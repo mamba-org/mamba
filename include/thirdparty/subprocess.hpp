@@ -236,10 +236,10 @@ namespace util
   FILE *file_from_handle(HANDLE h, const char *mode)
   {
     int md;
-    if (mode == "w") {
+    if (strcmp(mode, "w") == 0) {
       md = _O_WRONLY;
     }
-    else if (mode == "r") {
+    else if (strcmp(mode, "r") == 0) {
       md = _O_RDONLY;
     }
     else {

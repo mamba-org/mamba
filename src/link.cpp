@@ -811,12 +811,12 @@ namespace mamba
                     out_json["paths_data"]["paths"].push_back(
                     {
                         {"_path", files[0]},
-                        {"type", "win_python_entry_point"}
+                        {"path_type", "win_python_entry_point"}
                     });
                     out_json["paths_data"]["paths"].push_back(
                     {
                         {"_path", files[1]},
-                        {"type", "windows_python_entry_point_exe"}
+                        {"path_type", "windows_python_entry_point_exe"}
                     });
                     out_json["files"].push_back(files[0]);
                     out_json["files"].push_back(files[1]);
@@ -824,7 +824,7 @@ namespace mamba
                     out_json["paths_data"]["paths"].push_back(
                     {
                         {"_path", files},
-                        {"type", "unix_python_entry_point"}
+                        {"path_type", "unix_python_entry_point"}
                     });
                     out_json["files"].push_back(files);
                     #endif

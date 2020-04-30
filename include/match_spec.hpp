@@ -5,6 +5,10 @@
 #include <string>
 #include <unordered_map>
 
+extern "C" {
+    #include <solv/solvable.h>
+}
+
 namespace mamba
 {
     class MatchSpec
@@ -13,6 +17,7 @@ namespace mamba
 
         MatchSpec() = default;
         MatchSpec(const std::string& i_spec);
+        MatchSpec(const Solvable* s);
 
         void parse();
 

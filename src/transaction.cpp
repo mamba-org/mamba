@@ -359,9 +359,6 @@ namespace mamba
 
             return name + "-" + version + "-" + solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
         };
-        // TODO check that update is ALSO handled correctly here.
-        // if (!trans->steps.count)
-        // print Nothing to do
 
         auto* pool = m_transaction->pool;
         transaction_order(m_transaction, 0);

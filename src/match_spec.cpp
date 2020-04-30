@@ -12,6 +12,20 @@ namespace mamba
         parse();
     }
 
+    MatchSpec::MatchSpec(const Solvable* s)
+    {
+        auto* pool = s->repo->pool;
+
+        name = pool_id2str(pool, s->name);
+        version = pool_id2str(pool, s->evr);
+        build = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+    }
+
+    std::string MatchSpec::triple() const
+    {
+        return concat(name, "-", version, "-", build);
+    }
+
     void MatchSpec::parse()
     {
         LOG_INFO << "Parsing MatchSpec " << spec;

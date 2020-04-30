@@ -195,34 +195,31 @@ namespace mamba
                 {
                     out << link_dist << std::endl;
                 }
+
+
+                auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
+                    std::string spec_string;
+                    spec_string ="# " + action + " specs: [";
+                    for (auto spec : specs)
+                    {
+                        spec_string += "'" + spec + "',";
+                    }
+                    spec_string.back() = ']';
+                    spec_string += '\n';
+                    return spec_string;
+                };
+
                 if (request.update.size() > 0)
                 {
-                    out << "# update specs: [";
-                    std::string update_string;
-                    for (auto u : request.update)
-                    {
-                        update_string += "'" + u + "',";
-                    }
-                        update_string.back() = ']';
-                        out << update_string << std::endl;
+                    out << specs_output("update", request.update);
                 }
                 if (request.remove.size() > 0)
                 {
-                    out << "# remove specs: [";
-                    for (auto r : request.remove)
-                    {
-                        out << "'" << r << "',";
-                    }
-                        out << "]" << std::endl;
+                    out << specs_output("remove", request.remove);
                 }
                 if (request.neutered.size() > 0)
                 {
-                    out << "# neutered specs: [";
-                    for (auto n : request.neutered)
-                    {
-                        out << "'" << n << "',";
-                    }
-                        out << "]" << std::endl;
+                    out << specs_output("neutered", request.neutered);
                 }
             }
         }

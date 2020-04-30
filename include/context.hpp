@@ -44,7 +44,6 @@ namespace mamba
         bool sig_interrupt = false;
 
         bool change_ps1 = true;
-        std::string root_prefix = "/home/wolfv/miniconda3/";
 
         int retry_timeout = 2; // seconds
         int retry_backoff = 3; // retry_timeout * retry_backoff

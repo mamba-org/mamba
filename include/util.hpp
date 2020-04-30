@@ -46,6 +46,11 @@ namespace mamba
 
     std::string get_file_contents(const fs::path& path);
 
+    inline void make_executable(const fs::path& p)
+    {
+        fs::permissions(p, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_exec);
+    }
+
     template <typename T = std::mt19937>
     inline auto random_generator() -> T
     {

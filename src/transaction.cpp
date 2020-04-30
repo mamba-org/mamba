@@ -328,29 +328,35 @@ namespace mamba
 
     std::string MTransaction::find_python_version() 
     {
-        // We need to find the python version that is there after this Transaction is finished
+        // We need to find the python version that will be there after this Transaction is finished
         // in order to compile the noarch packages correctly, for example
         Pool* pool = m_transaction->pool;
+        assert (pool != nullptr);
+
         std::string py_ver;
         Id python = pool_str2id(pool, "python", 0);
+
         for (Solvable* s : m_to_install)
         {
             if (s->name == python)
             {
                 py_ver = pool_id2str(pool, s->evr);
-                LOG_INFO << "Found python version in installation packages " << py_ver;
+                LOG_INFO << "Found python version in packages to be installed " << py_ver;
                 return py_ver;
             }
         }
         if (pool->installed != nullptr)
         {
-            Id idx;
+            Id p;
             Solvable* s;
-            FOR_REPO_SOLVABLES(pool->installed, idx, s) {
+
+            FOR_REPO_SOLVABLES(pool->installed, p, s)
+            {
                 if (s->name == python)
                 {
                     py_ver = pool_id2str(pool, s->evr);
                     LOG_INFO << "Found python in installed packages " << py_ver;
+                    break;
                 }
             }
         }
@@ -367,6 +373,7 @@ namespace mamba
 
     bool MTransaction::execute(const fs::path& cache_dir, const fs::path& prefix)
     {
+        LOG_WARNING << "Executing ...";
         m_transaction_context = TransactionContext(prefix, find_python_version());
 
         transaction_order(m_transaction, 0);

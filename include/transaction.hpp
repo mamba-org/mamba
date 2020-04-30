@@ -82,7 +82,7 @@ namespace mamba
         void print();
         bool execute(const fs::path& cache_dir, const fs::path& prefix);
 
-        std::string MTransaction::find_python_version();
+        std::string find_python_version();
 
     private:
 

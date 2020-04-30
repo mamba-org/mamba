@@ -23,6 +23,7 @@ namespace mamba
 		TransactionContext() = default;
 		TransactionContext(const fs::path& prefix, const std::string& py_version);
 
+		bool has_python;
 		fs::path target_prefix;
 	    fs::path site_packages_path;
 	    fs::path python_path;

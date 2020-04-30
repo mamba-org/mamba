@@ -13,11 +13,6 @@
 
 namespace mamba
 {
-    struct python_entry_point_parsed
-    {
-        std::string command, module, func;
-    };
-
     void python_entry_point_template(std::ostream& out,
                                      const python_entry_point_parsed& p)
     {
@@ -95,14 +90,10 @@ namespace mamba
         }
     }
 
-    inline void make_executable(const fs::path& p)
-    {
-        fs::permissions(p, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_exec);
-    }
-
     // for noarch python packages that have entry points
-    auto create_python_entry_point(const fs::path& target, const fs::path& python, const python_entry_point_parsed& entry_point)
+    auto LinkPackage::create_python_entry_point(const fs::path& path, const python_entry_point_parsed& entry_point)
     {
+        fs::path target = m_context->target_prefix / path;
         if (fs::exists(target))
         {
             throw std::runtime_error("clobber warning");
@@ -111,16 +102,21 @@ namespace mamba
         #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will automatically find
         // the correct script to launch
-        std::string win_script = target;
+        std::string win_script = path;
         win_script += "-script.py";
-        std::ofstream out_file(win_script);
+        std::ofstream out_file(m_context->target_prefix / win_script);
         #else
         std::ofstream out_file(target);        
         #endif
 
-        if (!python.empty())
+        fs::path python_path;
+        if (m_context->has_python)
         {
-            std::string py_str = python.c_str();
+            python_path = m_context->target_prefix / m_context->python_path;
+        }
+        if (!python_path.empty())
+        {
+            std::string py_str = python_path.c_str();
             // Shebangs cannot be longer than 127 characters
             if (py_str.size() > (127 - 2))
             {
@@ -136,28 +132,26 @@ namespace mamba
         out_file.close();
 
         #ifdef _WIN32
-        fs::path conda_exe = target;
+        fs::path conda_exe = path;
         conda_exe.replace_filename("conda.exe");
-        fs::path script_exe = target;
+        fs::path script_exe = path;
         script_exe.replace_extension("exe");
 
-        if (fs::exists(script_exe))
+        if (fs::exists(m_context->target_prefix / script_exe))
         {
-            LOG_ERROR << "Clobberwarning " << script_exe;
-            fs::remove(script_exe);
+            LOG_ERROR << "Clobberwarning " << m_context->target_prefix / script_exe;
+            fs::remove(m_context->target_prefix / script_exe);
         }
         LOG_INFO << "Linking exe " << conda_exe << " --> " << script_exe;
-        fs::create_hard_link(conda_exe, script_exe);
-        make_executable(script_exe);
+        fs::create_hard_link(m_context->target_prefix / conda_exe, m_context->target_prefix / script_exe);
+        make_executable(m_context->target_prefix / script_exe);
         return std::array<std::string, 2>{win_script, script_exe};
         #else
-        if (!python.empty())
+        if (!python_path.empty())
         {
-            // make executable (-rwxrwxr-x.)
             make_executable(target);
         }
-
-        return target;
+        return path;
         #endif
     }
 
@@ -580,18 +574,20 @@ namespace mamba
     {
     }
 
-    std::string LinkPackage::link_path(const nlohmann::json& path_data, bool noarch_python)
+    std::tuple<std::string, std::string> LinkPackage::link_path(const nlohmann::json& path_data, bool noarch_python)
     {
         std::string subtarget = path_data["_path"].get<std::string>();
         LOG_INFO << "linking path " << subtarget;
-        fs::path dst;
+        fs::path dst, rel_dst;
         if (noarch_python)
         {
-            dst = m_context->target_prefix / get_python_noarch_target_path(subtarget, m_context->site_packages_path);
+            rel_dst = get_python_noarch_target_path(subtarget, m_context->site_packages_path);
+            dst = m_context->target_prefix / rel_dst;
         }
         else
         {
-            dst = m_context->target_prefix / subtarget;
+            rel_dst = subtarget;
+            dst = m_context->target_prefix / rel_dst;
         }
 
         fs::path src = m_source / subtarget;
@@ -650,7 +646,7 @@ namespace mamba
 
                 fs::permissions(dst, fs::status(src).permissions());
             }
-            return validate::sha256sum(dst);
+            return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 
         if (path_type == "hardlink")
@@ -668,7 +664,7 @@ namespace mamba
             throw std::runtime_error("Path type not implemented: " + path_type);
         }
         // TODO we could also use the SHA256 sum of the paths json
-        return validate::sha256sum(dst);
+        return std::make_tuple(validate::sha256sum(dst), rel_dst);
     }
 
     std::vector<fs::path> LinkPackage::compile_pyc_files(const std::vector<fs::path>& py_files)
@@ -739,8 +735,9 @@ namespace mamba
 
         for (auto& path : paths_json["paths"])
         {
-            auto sha256_in_prefix = link_path(path, noarch_python);
-            files_record.push_back(path["_path"].get<std::string>());
+            auto [sha256_in_prefix, final_path] = link_path(path, noarch_python);
+            files_record.push_back(final_path);
+            path["_path"] = final_path;
             path["sha256_in_prefix"] = sha256_in_prefix;
         }
  
@@ -803,9 +800,8 @@ namespace mamba
                     // install entry points
                     auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
                     auto entry_point_path = get_bin_directory_short_path() / entry_point_parsed.command;
-                    auto files = create_python_entry_point(m_context->target_prefix / entry_point_path,
-                                                           m_context->target_prefix / m_context->python_path,
-                                                           entry_point_parsed);
+                    LOG_INFO << "entry point path: " << entry_point_path << std::endl;
+                    auto files = create_python_entry_point(entry_point_path, entry_point_parsed);
                     
                     #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(

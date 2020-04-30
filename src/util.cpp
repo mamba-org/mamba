@@ -1,11 +1,8 @@
 #include <iostream>
 #include <iomanip>
-<<<<<<< HEAD
 #include <cerrno>
-=======
 #include <thread>
 #include <mutex>
->>>>>>> a10a98b... add initial windows run_script support
 
 #ifdef _WIN32
 #include <io.h>

@@ -1,4 +1,5 @@
 #include "transaction_context.hpp"
+#include "output.hpp"
 #include "util.hpp"
 
 namespace mamba
@@ -60,10 +61,17 @@ namespace mamba
     }
 
 	TransactionContext::TransactionContext(const fs::path& prefix, const std::string& py_version)
-			: target_prefix(prefix), python_version(py_version)
+			: target_prefix(prefix), python_version(py_version), has_python(python_version.size() != 0)
     {
-        short_python_version = compute_short_python_version(python_version);
-        python_path = get_python_short_path(short_python_version);
-        site_packages_path = get_python_site_packages_short_path(short_python_version);
+        if (python_version.size() == 0)
+        {
+            LOG_INFO << "No python version given to TransactionContext, leaving it empty";
+        }
+        else
+        {
+            short_python_version = compute_short_python_version(python_version);
+            python_path = get_python_short_path(short_python_version);
+            site_packages_path = get_python_site_packages_short_path(short_python_version);
+        }
     }
 }

@@ -9,13 +9,13 @@ on:
     - master
 
 jobs:
-  build:
+  build_unix:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [ '3.6', '3.7', '3.8' ]
+        python-version: [ '3.6', '3.8' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -41,10 +41,45 @@ jobs:
           conda activate mamba-tests
           python --version
           python -m pip install ".[test]"
-      - name: Run tests
+      - name: Run tests OS X and Linux
         shell: bash -l {0}
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mamba-tests
+          py.test test
+          mamba create -n test_env xtensor -c conda-forge -y
+          mamba env create -f test.yml
+
+  build_win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        run: conda info
+      - name: Create the conda environment
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cpp-tabulate>=1.2
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          conda activate mamba-tests
+          python --version
+          python -m pip install ".[test]"
+      - name: Run tests on Windows
+        run: |
           conda activate mamba-tests
           py.test test
           mamba create -n test_env xtensor -c conda-forge -y

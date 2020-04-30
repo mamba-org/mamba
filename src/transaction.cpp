@@ -326,20 +326,39 @@ namespace mamba
         queue_free(&pkgs);
     }
 
-    bool MTransaction::execute(const fs::path& cache_dir, const fs::path& prefix)
+    std::string MTransaction::find_python_version() 
     {
         // TODO check if python is linked, unlinked or installed and return the version
-        m_transaction_context.target_prefix = prefix;
+        Pool* pool = m_transaction->pool;
+        std::string py_ver;
+        Id python = pool_str2id(pool, "python", 0);
         for (Solvable* s : m_to_install)
         {
-            if (strcmp(pool_id2str(s->repo->pool, s->name), "python") == 0)
+            if (s->name == python)
             {
-                m_transaction_context.python_version = pool_id2str(s->repo->pool, s->evr);
-
-                LOG_INFO << "Found python version in installation packages\n" << m_transaction_context.python_version << " == " << m_transaction_context.short_python_version 
-                         << "\n" << m_transaction_context.python_path << "\n" << m_transaction_context.site_packages_path;
+                py_ver = pool_id2str(pool, s->evr);
+                LOG_INFO << "Found python version in installation packages " << py_ver;
+                return py_ver;
             }
         }
+        if (pool->installed != nullptr)
+        {
+            Id idx;
+            Solvable* s;
+            FOR_REPO_SOLVABLES(pool->installed, idx, s) {
+                if (s->name == python)
+                {
+                    py_ver = pool_id2str(pool, s->evr);
+                    LOG_INFO << "Found python in installed packages " << py_ver;
+                    return py_ver;
+                }
+            }
+        }
+    }
+
+    bool MTransaction::execute(const fs::path& cache_dir, const fs::path& prefix)
+    {
+        m_transaction_context = TransactionContext(prefix, find_python_version());
 
         transaction_order(m_transaction, 0);
 

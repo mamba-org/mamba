@@ -6,19 +6,19 @@
 
 namespace mamba
 {
-    TEST(cpp_install, install)
-    {
-        Context::instance().set_verbosity(3);
-        PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
-        fs::path prefix = "C:\\Users\\wolfv\\miniconda3\\";
-        TransactionContext tc(prefix, "3.8.x");
-        // try {
-            UnlinkPackage up(pkg, &tc);
-            up.execute();
-        // } catch (...) { std::cout << "Nothing to delete ... \n"; }
-        LinkPackage lp(pkg, prefix / "pkgs" , &tc);
-        lp.execute();
-    }
+    // TEST(cpp_install, install)
+    // {
+    //     Context::instance().set_verbosity(3);
+    //     PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
+    //     fs::path prefix = "C:\\Users\\wolfv\\miniconda3\\";
+    //     TransactionContext tc(prefix, "3.8.x");
+    //     // try {
+    //         UnlinkPackage up(pkg, &tc);
+    //         up.execute();
+    //     // } catch (...) { std::cout << "Nothing to delete ... \n"; }
+    //     LinkPackage lp(pkg, prefix / "pkgs" , &tc);
+    //     lp.execute();
+    // }
 
     TEST(match_spec, parse)
     {

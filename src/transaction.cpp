@@ -328,7 +328,8 @@ namespace mamba
 
     std::string MTransaction::find_python_version() 
     {
-        // TODO check if python is linked, unlinked or installed and return the version
+        // We need to find the python version that is there after this Transaction is finished
+        // in order to compile the noarch packages correctly, for example
         Pool* pool = m_transaction->pool;
         std::string py_ver;
         Id python = pool_str2id(pool, "python", 0);
@@ -350,10 +351,18 @@ namespace mamba
                 {
                     py_ver = pool_id2str(pool, s->evr);
                     LOG_INFO << "Found python in installed packages " << py_ver;
-                    return py_ver;
                 }
             }
         }
+        if (py_ver.size())
+        {
+            // we need to make sure that we're not about to remove python!
+            for (Solvable* s : m_to_remove)
+            {
+                if (s->name == python) return "";
+            }
+        }
+        return py_ver;
     }
 
     bool MTransaction::execute(const fs::path& cache_dir, const fs::path& prefix)

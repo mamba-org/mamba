@@ -7,19 +7,36 @@
 
 extern "C" {
     #include <solv/solvable.h>
+    #include <solv/pool.h>
+    #include <solv/repo.h>
+    #include <solv/poolid.h>
 }
 
 namespace mamba
 {
+    class PackageInfo
+    {
+    public:
+
+        PackageInfo(Solvable* s);
+
+        std::string str() const;
+
+        std::string name;
+        std::string version;
+        std::string build;
+        std::size_t build_number;
+    };
+
     class MatchSpec
     {
     public:
 
         MatchSpec() = default;
         MatchSpec(const std::string& i_spec);
-        MatchSpec(const Solvable* s);
 
         void parse();
+        std::string triple() const;
 
         std::string spec;
 

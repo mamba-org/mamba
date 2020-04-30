@@ -1,6 +1,7 @@
 #include <thread>
 
 #include "transaction.hpp"
+#include "match_spec.hpp"
 #include "link.hpp"
 
 namespace mamba
@@ -284,7 +285,6 @@ namespace mamba
         transaction_classify(m_transaction, mode, &classes);
 
         Id cls;
-        std::string location;
         for (int i = 0; i < classes.count; i += 4)
         {
             cls = classes.elements[i];
@@ -326,7 +326,7 @@ namespace mamba
         queue_free(&pkgs);
     }
 
-    bool MTransaction::execute(const std::string& cache_dir, const std::string& prefix)
+    bool MTransaction::execute(const fs::path& cache_dir, const fs::path& prefix)
     {
         // TODO check if python is linked, unlinked or installed and return the version
         m_transaction_context.target_prefix = prefix;
@@ -346,66 +346,49 @@ namespace mamba
 
         transaction_order(m_transaction, 0);
 
-        Id cls;
-        std::string location;
-
-        // TODO use better way of concatenating strings here
-        auto to_conda_shortname = [](Solvable* s) -> std::string
-        {
-            auto* pool = s->repo->pool;
-
-            std::string name = pool_id2str(pool, s->name);
-            std::string version = pool_id2str(pool, s->evr);
-
-            return name + "-" + version + "-" + solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
-        };
-
         auto* pool = m_transaction->pool;
         transaction_order(m_transaction, 0);
 
         for (int i = 0; i < m_transaction->steps.count; i++)
         {
-            int j;
-            Id type;
-
             Id p = m_transaction->steps.elements[i];
-            type = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable *s = pool_id2solvable(pool, p);
-            switch (type)
+            switch (ttype)
             {
                 case SOLVER_TRANSACTION_DOWNGRADED:
                 case SOLVER_TRANSACTION_UPGRADED:
                 case SOLVER_TRANSACTION_CHANGED:
                 {
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
-                    LOG_INFO << "UPGRADE " << to_conda_shortname(s) << " ==> " << to_conda_shortname(s2);
+                    LOG_INFO << "UPGRADE " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
 
-                    UnlinkPackage up(to_conda_shortname(s), &m_transaction_context);
+                    UnlinkPackage up(PackageInfo(s), &m_transaction_context);
                     up.execute();
 
-                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), &m_transaction_context);
+                    LinkPackage lp(PackageInfo(s2), fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
 
                     break;
                 }
                 case SOLVER_TRANSACTION_ERASE:
                 {
-                    LOG_INFO << "UNLINK " << to_conda_shortname(s);
-                    UnlinkPackage up(to_conda_shortname(s), &m_transaction_context);
+                    LOG_INFO << "UNLINK " << PackageInfo(s).str();
+                    UnlinkPackage up(PackageInfo(s), &m_transaction_context);
                     up.execute();
                     break;
                 }
                 case SOLVER_TRANSACTION_INSTALL:
                 {
-                    LOG_INFO << "LINK " << to_conda_shortname(s);
-                    LinkPackage lp(fs::path(cache_dir) / to_conda_shortname(s), &m_transaction_context);
+                    LOG_INFO << "LINK " << PackageInfo(s).str();
+                    LinkPackage lp(PackageInfo(s), fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
                     break;
                 }
                 case SOLVER_TRANSACTION_IGNORE:
                     break;
                 default:
-                    LOG_WARNING << "Exec case not handled: " << cls;
+                    LOG_WARNING << "Exec case not handled: " << ttype;
                     break;
             }
         }

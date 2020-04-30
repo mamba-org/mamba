@@ -46,7 +46,7 @@ keyfilter_solv(Repo *repo, Repokey *key, void *kfdata)
 /*
  * Write <repo> to fp
  */
-inline void
+static void
 tool_write(Repo *repo, FILE *fp)
 {
   Repodata *info;

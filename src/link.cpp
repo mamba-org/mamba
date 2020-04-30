@@ -5,6 +5,7 @@
 #include "validate.hpp"
 #include "environment.hpp"
 #include "util.hpp"
+#include "match_spec.hpp"
 
 #include "thirdparty/subprocess.hpp"
 #include "thirdparty/pystring14/pystring.hpp"
@@ -388,20 +389,20 @@ namespace mamba
     /*
         call the post-link or pre-unlink script and return true / false on success / failure
     */
-    bool run_script(const fs::path& prefix, const std::string& name,
+    bool run_script(const fs::path& prefix, const PackageInfo& pkg_info,
                     const std::string& action = "post-link",
                     const std::string& env_prefix = "",
                     bool activate = false)
     {
         #ifdef _WIN32
-        auto path = prefix / get_bin_directory_short_path() / concat(".", name, "-", action, ".bat");
+        auto path = prefix / get_bin_directory_short_path() / concat(".", pkg_info.name, "-", action, ".bat");
         #else
-        auto path = prefix / get_bin_directory_short_path() / concat(".", name, "-", action, ".sh");
+        auto path = prefix / get_bin_directory_short_path() / concat(".", pkg_info.name, "-", action, ".sh");
         #endif
 
         if (!fs::exists(path))
         {
-            LOG_INFO << action << " script for " << name << " does not exist (" << path << ")";
+            LOG_INFO << action << " script for " << pkg_info.name << " does not exist (" << path << ")";
             return true;
         }
 
@@ -415,17 +416,17 @@ namespace mamba
 
         // script_caller = None
         std::vector<std::string> command_args;
+        std::unique_ptr<TemporaryFile> script_file;
+
         #ifdef _WIN32
         ensure_comspec_set();
         std::string comspec = env::get("COMSPEC");
         if (comspec.size() == 0)
         {
-            LOG_ERROR << "Failed to run " << action << " for " << name << " due to COMSPEC not set in env vars.";
+            LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name << " due to COMSPEC not set in env vars.";
             return false;
         }
-        LOG_WARNING << "COMSPEC " << comspec;
 
-        std::unique_ptr<TemporaryFile> script_file;
         if (activate)
         {
             script_file = wrap_call(Context::instance().root_prefix, prefix,
@@ -445,7 +446,6 @@ namespace mamba
             shell_path = env::which("sh");
         }
 
-        std::unique_ptr<TemporaryFile> script_file;
         if (activate)
         {
             // std::string caller
@@ -469,27 +469,16 @@ namespace mamba
 
         envmap["ROOT_PREFIX"] = Context::instance().root_prefix;
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : std::string(prefix);
-        // envmap["PKG_NAME"] = prec.name
-        // envmap["PKG_VERSION"] = prec.version
-        // envmap["PKG_BUILDNUM"] = prec.build_number
+        envmap["PKG_NAME"] = pkg_info.name;
+        envmap["PKG_VERSION"] = pkg_info.version;
+        envmap["PKG_BUILDNUM"] = pkg_info.build_number;
 
         std::string PATH = env::get("PATH");
 
-        LOG_WARNING << "PATH " << PATH;
-
-        // prepend directory to current PATH variable
-        std::string cargs = "";
-        for (auto& x : command_args)
-        {
-            std::cout << x << " ";
-            cargs += x;
-            cargs += " ";
-        }
-
-        // std::string cargs = pystring::join(" ", command_args);
+        std::string cargs = pystring::join(" ", command_args);
         envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
-        LOG_DEBUG << "for " << name << " at " << envmap["PREFIX"] << ", executing script: $ " << cargs;
-        LOG_WARNING << "Caling " << cargs;
+        LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"] << ", executing script: $ " << cargs;
+        LOG_WARNING << "Calling " << cargs;
 
         int response = subprocess::call(cargs, subprocess::environment{envmap}, subprocess::cwd{path.parent_path()});
         auto msg = get_prefix_messages(envmap["PREFIX"]);
@@ -502,6 +491,7 @@ namespace mamba
         {
             Console::print(msg);
         }
+
         if (response != 0)
         {
             LOG_ERROR << "response code: " << response;
@@ -509,16 +499,13 @@ namespace mamba
             {
                 LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
             }
-            throw std::runtime_error("failed to execute pre/post link script for " + name);
+            throw std::runtime_error("failed to execute pre/post link script for " + pkg_info.name);
         }
-        else
-        {
-            return true;
-        }
+        return true;
     } 
 
-    UnlinkPackage::UnlinkPackage(const std::string& specifier, TransactionContext* context)
-        : m_specifier(specifier), m_context(context)
+    UnlinkPackage::UnlinkPackage(const PackageInfo& pkg_info, TransactionContext* context)
+        : m_pkg_info(pkg_info), m_specifier(m_pkg_info.str()), m_context(context)
     {
     }
 
@@ -560,15 +547,15 @@ namespace mamba
         return true;
     }
 
-    LinkPackage::LinkPackage(const fs::path& source, TransactionContext* context)
-        : m_source(source), m_context(context)
+    LinkPackage::LinkPackage(const PackageInfo& pkg_info, const fs::path& cache_dir, TransactionContext* context)
+        : m_pkg_info(pkg_info), m_source(cache_dir / m_pkg_info.str()), m_context(context)
     {
     }
 
     std::string LinkPackage::link_path(const nlohmann::json& path_data, bool noarch_python)
     {
         std::string subtarget = path_data["_path"].get<std::string>();
-        LOG_INFO << "linking path! " << subtarget;
+        LOG_INFO << "linking path " << subtarget;
         fs::path dst;
         if (noarch_python)
         {
@@ -588,7 +575,8 @@ namespace mamba
         if (fs::exists(dst))
         {
             // This needs to raise a clobberwarning
-            throw std::runtime_error("clobberwarning");
+            // throw std::runtime_error("Clobberwarning: " );
+            LOG_ERROR << "Clobberwarning: " << dst;
         }
 
         std::string path_type = path_data["path_type"].get<std::string>();
@@ -643,8 +631,6 @@ namespace mamba
         }
         else if (path_type == "softlink")
         {
-            // if (fs::islink())
-            // fs::path link_target = fs::read_symlink(src);
             LOG_INFO << "soft linked " << src << " -> " << dst;
             fs::copy_symlink(src, dst);
         }
@@ -802,16 +788,7 @@ namespace mamba
             }
         }
 
-        // bool run_script(const fs::path& prefix, const std::string& name,
-        //                 const std::string& action = "post-link",
-        //                 const std::string& env_prefix = "",
-        //                 bool activate = false)
-
-        bool did_run = run_script(m_context->target_prefix, "widgetsnbextension", "post-link", "", true);
-        if (!did_run)
-        {
-            throw std::runtime_error("ULALAL");
-        }
+        run_script(m_context->target_prefix, m_pkg_info, "post-link", "", true);
 
         fs::path prefix_meta = m_context->target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))

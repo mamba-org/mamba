@@ -37,7 +37,7 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common_write.c
     ${CMAKE_SOURCE_DIR}/src/context.cpp
     ${CMAKE_SOURCE_DIR}/src/fetch.cpp
-    # ${CMAKE_SOURCE_DIR}/src/link.cpp
+    ${CMAKE_SOURCE_DIR}/src/link.cpp
     ${CMAKE_SOURCE_DIR}/src/history.cpp
     ${CMAKE_SOURCE_DIR}/src/match_spec.cpp
     ${CMAKE_SOURCE_DIR}/src/url.cpp
@@ -63,6 +63,7 @@ pybind11_add_module(mamba_api
 )
 target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba_lib)
 set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
+<<<<<<< HEAD
 
 option(BUILD_EXE OFF)
 
@@ -74,6 +75,8 @@ if (BUILD_EXE)
     add_executable(mamba ${MAMBA_EXE})
     target_link_libraries(mamba PUBLIC mamba_lib)
 endif()
+=======
+>>>>>>> ead9857... add package linking to mamba-experimental flag
 
 install(TARGETS mamba_api
         LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/mamba/)

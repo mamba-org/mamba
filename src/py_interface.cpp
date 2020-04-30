@@ -49,6 +49,9 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
+        .def("execute", [](MTransaction& self, const std::string& cache_dir, const std::string& target_prefix) -> bool {
+            return self.execute(cache_dir, target_prefix);
+        })
     ;
 
     py::class_<MSolver>(m, "Solver")

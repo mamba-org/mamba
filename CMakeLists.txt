@@ -1,8 +1,11 @@
 cmake_minimum_required (VERSION 2.8.11)
 project (mamba)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++17 -Og -g -pthread")
-
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /DNOMINMAX")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++17 -Og -g -pthread")
+endif()
 find_package(Threads REQUIRED)
 find_library(LIBSOLV_LIBRARIES NAMES solv)
 find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)

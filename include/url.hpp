@@ -42,12 +42,27 @@ namespace mamba
         URLParser(const std::string& url);
         ~URLParser();
 
+        std::string url();
+
         std::string scheme();
+        std::string host();
+        std::string path();
+        std::string port();
+
+        std::string query();
+        std::string fragment();
+        std::string options();
+
+        std::string user();
+        std::string password();
+        std::string zoneid();
 
     private:
 
+        std::string get_part(CURLUPart part);
+
         std::string m_url;
-        CURLU* handle;
+        CURLU* m_handle;
     };
 
 }

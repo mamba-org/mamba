@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [ '3.6', '3.7', '3.8' ]
+        python-version: [ '3.6', '3.8' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -78,7 +78,7 @@ jobs:
           conda activate mamba-tests
           python --version
           python -m pip install ".[test]"
-      - name: Run tests OS X and Linux
+      - name: Run tests on Windows
         run: |
           conda activate mamba-tests
           py.test test

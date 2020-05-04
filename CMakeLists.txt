@@ -2,10 +2,9 @@ cmake_minimum_required (VERSION 2.8.11)
 project (mamba)
 
 if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /DNOMINMAX")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++17 -Og -g -pthread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
 endif()
+
 find_package(Threads REQUIRED)
 find_library(LIBSOLV_LIBRARIES NAMES solv)
 find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
@@ -55,6 +54,10 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/validate.cpp
 )
 
+set(MAMBA_EXE
+    ${CMAKE_SOURCE_DIR}/src/main.cpp
+)
+
 add_library(mamba_api ${MAMBA_SOURCES})
 target_link_libraries(mamba_api PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
 set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
@@ -64,6 +67,9 @@ pybind11_add_module(py_mamba_api
 )
 target_link_libraries(py_mamba_api PUBLIC pybind11::pybind11 mamba_api)
 set_property(TARGET py_mamba_api PROPERTY CXX_STANDARD 17)
+
+add_executable(mamba ${MAMBA_EXE})
+target_link_libraries(mamba PUBLIC mamba_api)
 
 install(TARGETS py_mamba_api
         LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/mamba/)

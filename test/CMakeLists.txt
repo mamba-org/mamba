@@ -5,6 +5,8 @@ find_package(GTest REQUIRED)
 set(TEST_SRCS
 	test_cpp.cpp
 	test_url.cpp
+	test_shell_init.cpp
+	test_activation.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

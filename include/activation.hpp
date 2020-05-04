@@ -162,7 +162,7 @@ namespace mamba
                     // TODO there may be more missing here.
                 }
 
-                auto conda_stacked_env = join(';', prompt_stack);
+                auto conda_stacked_env = join(";", prompt_stack);
 
                 std::string prompt = Context::instance().env_prompt;
                 replace_all(prompt, "{default_env}", conda_default_env);
@@ -212,8 +212,7 @@ namespace mamba
             std::vector<fs::path> path;
             if (m_env.find("PATH") != m_env.end())
             {
-                // TODO use pathsep!!
-                auto strings = split(m_env["PATH"], ':');
+                auto strings = split(m_env["PATH"], env::pathsep());
                 for (auto& s : strings)
                 {
                     path.push_back(s);
@@ -565,7 +564,7 @@ namespace mamba
             if (clobbering_env_vars.size())
             {
                 LOG_WARNING << "WARNING: overwriting environment variables set in the machine";
-                LOG_WARNING << "Overwriting variables: " << join(',', clobbering_env_vars);
+                LOG_WARNING << "Overwriting variables: " << join(",", clobbering_env_vars);
             }
 
             std::vector<std::pair<std::string, std::string>> env_vars_to_export;

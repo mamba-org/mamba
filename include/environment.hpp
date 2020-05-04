@@ -24,12 +24,12 @@ namespace mamba
 
 namespace env
 {
-    constexpr inline const char pathsep()
+    constexpr inline const char* pathsep()
     {
     #ifdef _WIN32
-        return ';';
+        return ";";
     #else
-        return ':';
+        return ":";
     #endif
     }
 

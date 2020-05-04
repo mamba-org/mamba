@@ -72,15 +72,14 @@ namespace mamba
             spec_str.erase(match.position(1), match.length(1));
         }
 
-        auto m5 = rsplit(spec_str, ':', 2);
+        auto m5 = rsplit(spec_str, ":", 2);
         auto m5_len = m5.size();
         std::string channel_str;
         if (m5_len == 3)
         {
-            channel = m5[2];
-            std::cout << m5[0] << ", " << m5[1] << ", " << m5[2] << std::endl;
+            channel = m5[0];
             ns = m5[1];
-            spec_str = m5[0];
+            spec_str = m5[2];
         }
         else if (m5_len == 2)
         {

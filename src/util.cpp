@@ -212,55 +212,59 @@ namespace mamba
     }
 
 
-    std::vector<std::string_view> split(const std::string_view& input,
-                                        char sep,
-                                        std::size_t max_split)
+    std::vector<std::string> split(const std::string_view& input,
+                                   const std::string_view& sep,
+                                   std::size_t max_split)
     {
-        std::vector<std::string_view> res;
-        size_t nb_split = size_t(0);
-        auto start = input.find_first_not_of(sep);
-        auto end = input.find(sep, start + 1);
-        
-        while (nb_split < max_split && start != std::string_view::npos)
+        std::vector<std::string> result;
+        std::size_t i = 0, j = 0, len = input.size(), n = sep.size();
+
+        while (i + n <= len)
         {
-            res.push_back(input.substr(start, end - start));
-            ++nb_split;
-            start = input.find_first_not_of(sep, end);
-            end = input.find(sep, start);
+            if (input[i] == sep[0] && input.substr(i, n) == sep)
+            {
+                if (max_split-- <= 0) break;
+                result.emplace_back(input.substr(j, i - j));
+                i = j = i + n;
+            }
+            else
+            {
+                i++;
+            }
         }
-        if (nb_split == max_split && start != std::string_view::npos)
-        {
-            res.push_back(input.substr(start));
-        }
-        return res;
+        result.emplace_back(input.substr(j, len - j));
+        return result;
     }
 
-    std::vector<std::string_view> rsplit(const std::string_view& input,
-                                         char sep,
-                                         std::size_t max_split)
+    std::vector<std::string> rsplit(const std::string_view& input,
+                                    const std::string_view& sep,
+                                    std::size_t max_split)
     {
-        if (max_split == SIZE_MAX) return split(input, sep);
+        if (max_split == SIZE_MAX) return split(input, sep, max_split);
 
-        std::vector<std::string_view> res;
-        auto nb_split = max_split;
-        auto end = input.find_last_not_of(sep);
-        auto start = input.find_last_of(sep, end);
-        ++end;
+        std::vector<std::string> result;
 
-        while(nb_split > 0 && start + 1 != 0)
+        std::ptrdiff_t i, j, len = static_cast<std::ptrdiff_t>(input.size()),
+                             n   = static_cast<std::ptrdiff_t>(sep.size());
+        i = j = len;
+
+        while (i >= n)
         {
-            res.push_back(input.substr(start + 1, end - start - 1));
-            --nb_split;
-            end = input.find_last_not_of(sep, start);
-            start = end != std::string_view::npos ? input.find_last_of(sep, end) : end;
-            ++end;
+            if (input[i - 1] == sep[n - 1] && input.substr(i - n, n) == sep)
+            {
+                if (max_split-- <= 0) { break; }
+                result.emplace_back(input.substr(i, j - i));
+                i = j = i - n;
+            }
+            else
+            {
+                i--;
+            }
         }
-        if(nb_split == 0 && start + 1 != 0)
-        {
-            res.push_back(input.substr(0, end));
-        }
-        std::reverse(res.begin(), res.end());
-        return res;
+        result.emplace_back(input.substr(0, j));
+        std::reverse(result.begin(), result.end());
+
+        return result;
     }
 
     void replace_all(std::string& data, const std::string& search, const std::string& replace)

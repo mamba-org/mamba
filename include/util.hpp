@@ -95,16 +95,16 @@ namespace mamba
     std::string_view lstrip(const std::string_view& input, const std::string_view& chars);
     std::string_view rstrip(const std::string_view& input, const std::string_view& chars);
 
-    std::vector<std::string_view> split(const std::string_view& input,
-                                        char sep = ' ',
-                                        std::size_t max_split = SIZE_MAX);
+    std::vector<std::string> split(const std::string_view& input,
+                                   const std::string_view& sep,
+                                   std::size_t max_split = SIZE_MAX);
 
-    std::vector<std::string_view> rsplit(const std::string_view& input,
-                                         char sep = ' ',
-                                         std::size_t max_split = SIZE_MAX);
+    std::vector<std::string> rsplit(const std::string_view& input,
+                                    const std::string_view& sep,
+                                    std::size_t max_split = SIZE_MAX);
 
     template <class S>
-    inline std::string join(char j, const S& container)
+    inline std::string join(const char* j, const S& container)
     {
         if (container.empty()) return "";
         std::string result = container[0];

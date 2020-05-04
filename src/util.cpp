@@ -228,6 +228,10 @@ namespace mamba
             start = input.find_first_not_of(sep, end);
             end = input.find(sep, start);
         }
+        if (nb_split == max_split && start != std::string_view::npos)
+        {
+            res.push_back(input.substr(start));
+        }
         return res;
     }
 
@@ -235,23 +239,25 @@ namespace mamba
                                          char sep,
                                          std::size_t max_split)
     {
+        if (max_split == SIZE_MAX) return split(input, sep);
+
         std::vector<std::string_view> res;
-        auto nb_split = size_t(0);
+        auto nb_split = max_split;
         auto end = input.find_last_not_of(sep);
         auto start = input.find_last_of(sep, end);
         ++end;
 
-        while(nb_split < 5 && start + 1 != 0)
+        while(nb_split > 0 && start + 1 != 0)
         {
             res.push_back(input.substr(start + 1, end - start - 1));
-            ++nb_split;
+            --nb_split;
             end = input.find_last_not_of(sep, start);
             start = end != std::string_view::npos ? input.find_last_of(sep, end) : end;
             ++end;
         }
-        if(nb_split < max_split && end != 0)
+        if(nb_split == 0 && start + 1 != 0)
         {
-            res.push_back(input.substr(start + 1, end - start - 1));
+            res.push_back(input.substr(0, end));
         }
         std::reverse(res.begin(), res.end());
         return res;

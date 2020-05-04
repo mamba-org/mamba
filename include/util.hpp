@@ -103,14 +103,6 @@ namespace mamba
                                          char sep = ' ',
                                          std::size_t max_split = SIZE_MAX);
 
-    /*std::vector<string_view> split(const std::string_view& input,
-                                   const std::string_view& sep,
-                                   std::size_t max_split = SIZE_MAX);
-
-    std::vector<string_view> split(const std::string_view& input,
-                                   const std::string_view& sep,
-                                   std::size_t max_split = SIZE_MAX);*/
-
     template <class S>
     inline std::string join(char j, const S& container)
     {
@@ -128,6 +120,7 @@ namespace mamba
                      const std::string& search,
                      const std::string& replace);
 
+    // Note: this function only works for non-unicode!
     std::string to_upper(const std::string_view& input);
 }
 

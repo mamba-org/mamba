@@ -16,6 +16,14 @@ namespace py = pybind11;
 PYBIND11_MODULE(mamba_api, m) {
     using namespace mamba;
 
+    py::class_<ghc::filesystem::path>(m, "Path")
+        .def(py::init<std::string>())
+        .def("__repr__", [](ghc::filesystem::path& self) -> std::string {
+            return std::string("ghc::filesystem::path[") + std::string(self) + "]";
+        })
+    ;
+    py::implicitly_convertible<std::string, ghc::filesystem::path>();
+
     py::register_exception<mamba_error>(m, "MambaNativeException");
 
     py::class_<MPool>(m, "Pool")

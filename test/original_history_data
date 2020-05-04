@@ -1,0 +1,71 @@
+==> 2020-05-03 11:18:43 <==
+# cmd: /usr/bin/conda create -n mamba
+# conda version: 4.8.3
+==> 2020-05-03 11:19:42 <==
+# cmd: /usr/bin/conda install pybind11 libsolv libarchive libcurl nlohmann_json pip cpp-tabulate -c conda-forge
+# conda version: 4.8.3
++conda-forge/linux-64::_libgcc_mutex-0.1-conda_forge
++conda-forge/linux-64::_openmp_mutex-4.5-0_gnu
++conda-forge/linux-64::bzip2-1.0.8-h516909a_2
++conda-forge/linux-64::ca-certificates-2020.4.5.1-hecc5488_0
++conda-forge/linux-64::certifi-2020.4.5.1-py38h32f6830_0
++conda-forge/linux-64::cpp-tabulate-1.2-hc9558a2_0
++conda-forge/linux-64::icu-64.2-he1b5a44_1
++conda-forge/linux-64::krb5-1.17.1-h2fd8d38_0
++conda-forge/linux-64::ld_impl_linux-64-2.34-h53a641e_0
++conda-forge/linux-64::libarchive-3.3.3-h3a8160c_1008
++conda-forge/linux-64::libcurl-7.69.1-hf7181ac_0
++conda-forge/linux-64::libedit-3.1.20170329-hf8c457e_1001
++conda-forge/linux-64::libffi-3.2.1-he1b5a44_1007
++conda-forge/linux-64::libgcc-ng-9.2.0-h24d8f2e_2
++conda-forge/linux-64::libgomp-9.2.0-h24d8f2e_2
++conda-forge/linux-64::libiconv-1.15-h516909a_1006
++conda-forge/linux-64::libsolv-0.7.13-h8b12597_2
++conda-forge/linux-64::libssh2-1.8.2-h22169c7_2
++conda-forge/linux-64::libstdcxx-ng-9.2.0-hdf63c60_2
++conda-forge/linux-64::libxml2-2.9.10-hee79883_0
++conda-forge/linux-64::lz4-c-1.9.2-he1b5a44_0
++conda-forge/linux-64::lzo-2.10-h14c3975_1000
++conda-forge/linux-64::ncurses-6.1-hf484d3e_1002
++conda-forge/linux-64::nlohmann_json-3.7.3-he1b5a44_1
++conda-forge/linux-64::openssl-1.1.1g-h516909a_0
++conda-forge/linux-64::pybind11-2.5.0-py38hbf85e49_0
++conda-forge/linux-64::python-3.8.2-he5300dc_7_cpython
++conda-forge/linux-64::python_abi-3.8-1_cp38
++conda-forge/linux-64::readline-8.0-hf8c457e_0
++conda-forge/linux-64::setuptools-46.1.3-py38h32f6830_0
++conda-forge/linux-64::sqlite-3.30.1-hcee41ef_0
++conda-forge/linux-64::tk-8.6.10-hed695b0_0
++conda-forge/linux-64::xz-5.2.5-h516909a_0
++conda-forge/linux-64::zlib-1.2.11-h516909a_1006
++conda-forge/linux-64::zstd-1.4.4-h6597ccf_3
++conda-forge/noarch::pip-20.1-pyh9f0ad1d_0
++conda-forge/noarch::wheel-0.34.2-py_1
+# update specs: ['cpp-tabulate', 'libsolv', 'nlohmann_json', 'pybind11', 'pip', 'libarchive', 'libcurl']==> 2020-05-03 23:07:11 <==
+# cmd: /usr/bin/conda install -c conda-forge gtest
+# conda version: 4.8.3
++conda-forge/linux-64::gtest-1.10.0-hc9558a2_2
+# update specs: ['gtest']
+==> 2020-05-04 08:58:01 <==
+# cmd: /home/mariana/.local/bin/mamba remove cpp-tabulate pybind11 pip
+# conda version: 4.8.3
+-conda-forge/linux-64::certifi-2020.4.5.1-py38h32f6830_0
+-conda-forge/linux-64::cpp-tabulate-1.2-hc9558a2_0
+-conda-forge/linux-64::pybind11-2.5.0-py38hbf85e49_0
+-conda-forge/linux-64::python-3.8.2-he5300dc_7_cpython
+-conda-forge/linux-64::python_abi-3.8-1_cp38
+-conda-forge/linux-64::setuptools-46.1.3-py38h32f6830_0
+-conda-forge/noarch::pip-20.1-pyh9f0ad1d_0
+-conda-forge/noarch::wheel-0.34.2-py_1
+# remove specs: ['cpp-tabulate', 'pybind11', 'pip']
+==> 2020-05-04 08:59:15 <==
+# cmd: /home/mariana/.local/bin/mamba install -c conda-forge cpp-tabulate==1.0.0
+# conda version: 4.8.3
++conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
+# update specs: ['cpp-tabulate==1.0.0']
+==> 2020-05-04 09:00:02 <==
+# cmd: /home/mariana/.local/bin/mamba upgrade -c conda-forge cpp-tabulate
+# conda version: 4.8.3
+-conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
++conda-forge/linux-64::cpp-tabulate-1.2-hc9558a2_0
+# update specs: ['cpp-tabulate']

@@ -9,14 +9,13 @@
 #include "transaction_context.hpp"
 
 #include "thirdparty/subprocess.hpp"
-#include "thirdparty/pystring14/pystring.hpp"
 
 namespace mamba
 {
     void python_entry_point_template(std::ostream& out,
                                      const python_entry_point_parsed& p)
     {
-        auto import_name = pystring::split(p.func, ".")[0];
+        auto import_name = split(p.func, ".")[0];
         out << "# -*- coding: utf-8 -*-\n";
         out << "import re\n";
         out << "import sys\n\n";
@@ -57,7 +56,8 @@ namespace mamba
         {
             auto directory = py_path.parent_path();
             auto py_file_stem = py_path.stem();
-            auto py_ver_nodot = pystring::replace(py_ver, ".", "");
+            std::string py_ver_nodot = py_ver;
+            replace_all(py_ver_nodot, ".", "");
             return directory / fs::path("__pycache__") / concat(py_file_stem.c_str(), ".cpython-", py_ver_nodot, ".pyc");
         }
     }
@@ -65,12 +65,12 @@ namespace mamba
     python_entry_point_parsed parse_entry_point(const std::string& ep_def)
     {
         // def looks like: "wheel = wheel.cli:main"
-        auto cmd_mod_func = pystring::rsplit(ep_def, ":", 1);
-        auto command_module = pystring::rsplit(cmd_mod_func[0], "=", 1);
+        auto cmd_mod_func = rsplit(ep_def, ":", 1);
+        auto command_module = rsplit(cmd_mod_func[0], "=", 1);
         python_entry_point_parsed result;
-        result.command = pystring::strip(command_module[0]);
-        result.module = pystring::strip(command_module[1]);
-        result.func = pystring::strip(cmd_mod_func[1]);
+        result.command = strip(command_module[0]);
+        result.module = strip(command_module[1]);
+        result.func = strip(cmd_mod_func[1]);
         return result;
     }
 
@@ -181,7 +181,9 @@ namespace mamba
     std::string win_path_double_escape(const std::string& path)
     {
         #ifdef _WIN32
-        return pystring::replace(path, "\\", "\\\\");
+        std::string path_copy = path;
+        replace_all(path_copy, "\\", "\\\\");
+        return path_copy;
         #else
         return path;
         #endif
@@ -257,7 +259,7 @@ namespace mamba
     bool ensure_comspec_set()
     {
         std::string cmd_exe = env::get("COMSPEC");
-        if (!ends_with(pystring::lower(cmd_exe), "cmd.exe"))
+        if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
         {
             cmd_exe = fs::path(env::get("SystemRoot")) / "System32" / "cmd.exe";
             if (!fs::is_regular_file(cmd_exe))
@@ -400,7 +402,7 @@ namespace mamba
         }
 
         out << "\n"
-            << pystring::join(" ", arguments);
+            << join(" ", arguments);
         #endif
 
         out.close();
@@ -497,7 +499,7 @@ namespace mamba
 
         std::string PATH = env::get("PATH");
 
-        std::string cargs = pystring::join(" ", command_args);
+        std::string cargs = join(" ", command_args);
         envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"] << ", executing script: $ " << cargs;
         LOG_WARNING << "Calling " << cargs;
@@ -692,7 +694,7 @@ namespace mamba
             all_py_files.path()
         };
 
-        auto py_ver_split = pystring::split(m_context->python_version, ".");
+        auto py_ver_split = split(m_context->python_version, ".");
 
         if (std::stoi(std::string(py_ver_split[0])) >= 3 && std::stoi(std::string(py_ver_split[1])) > 5)
         {

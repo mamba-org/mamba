@@ -9,7 +9,6 @@
 
 
 #include "thirdparty/filesystem.hpp"
-#include "thirdparty/pystring14/pystring.hpp"
 
 namespace fs = ghc::filesystem;
 
@@ -159,6 +158,8 @@ namespace mamba
 
     // Note: this function only works for non-unicode!
     std::string to_upper(const std::string_view& input);
+    std::string to_lower(const std::string_view& input);
+
     namespace concat_impl
     {
         template <class T>

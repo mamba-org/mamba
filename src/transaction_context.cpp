@@ -6,7 +6,7 @@ namespace mamba
 {
     std::string compute_short_python_version(const std::string& long_version)
     {
-        auto sv = pystring::split(long_version, ".", 2);
+        auto sv = split(long_version, ".");
         return concat(sv[0], '.', sv[1]);
     }
 

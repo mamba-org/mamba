@@ -287,13 +287,23 @@ namespace mamba
         }
     }
 
-    std::string to_upper(const std::string_view& input)
+    std::string string_transform(const std::string_view& input, int (*functor)(int))
     {
         std::string res(input);
         std::transform(res.begin(), res.end(), res.begin(), 
-                       [](unsigned char c) { return std::toupper(c); }
+                       [&](unsigned char c) { return functor(c); }
         );
         return res;
+    }
+
+    std::string to_upper(const std::string_view& input)
+    {
+        return string_transform(input, std::toupper);
+    }
+
+    std::string to_lower(const std::string_view& input)
+    {
+        return string_transform(input, std::tolower);
     }
 
     std::string get_file_contents(const fs::path& path)

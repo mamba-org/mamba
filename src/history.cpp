@@ -202,10 +202,10 @@ namespace mamba
                     spec_string ="# " + action + " specs: [";
                     for (auto spec : specs)
                     {
-                        spec_string += "'" + spec + "',";
+                        spec_string += "'" + spec + "', ";
                     }
-                    spec_string.back() = ']';
-                    spec_string += '\n';
+                    spec_string[spec_string.size() - 2] = ']';
+                    spec_string.back() = '\n';
                     return spec_string;
                 };
 

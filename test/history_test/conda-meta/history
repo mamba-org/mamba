@@ -21,27 +21,4 @@
 # conda version: 4.8.3
 -conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
 +conda-forge/linux-64::cpp-tabulate-1.2-hc9558a2_0
-# update specs: ['cpp-tabulate']==> 2020-05-03 11:18:43 <==
-# cmd: /usr/bin/conda create -n mamba
-# conda version: 4.8.3
-==> 2020-05-03 11:19:42 <==
-# cmd: /usr/bin/conda install pybind11 libsolv libarchive libcurl nlohmann_json pip cpp-tabulate -c conda-forge
-# conda version: 4.8.3
-+conda-forge/linux-64::_libgcc_mutex-0.1-conda_forge
-# update specs: ['cpp-tabulate', 'libsolv', 'nlohmann_json', 'pybind11', 'pip', 'libarchive', 'libcurl']
-==> 2020-05-04 08:58:01 <==
-# cmd: /home/mariana/.local/bin/mamba remove cpp-tabulate pybind11 pip
-# conda version: 4.8.3
--conda-forge/noarch::wheel-0.34.2-py_1
-# remove specs: ['cpp-tabulate', 'pybind11', 'pip']
-==> 2020-05-04 08:59:15 <==
-# cmd: /home/mariana/.local/bin/mamba install -c conda-forge cpp-tabulate==1.0.0
-# conda version: 4.8.3
-+conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
-# update specs: ['cpp-tabulate==1.0.0']
-==> 2020-05-04 09:00:02 <==
-# cmd: /home/mariana/.local/bin/mamba upgrade -c conda-forge cpp-tabulate
-# conda version: 4.8.3
--conda-forge/linux-64::cpp-tabulate-1.0-hc9558a2_0
-+conda-forge/linux-64::cpp-tabulate-1.2-hc9558a2_0
 # update specs: ['cpp-tabulate']

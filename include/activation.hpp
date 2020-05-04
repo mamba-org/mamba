@@ -134,9 +134,7 @@ namespace mamba
                     prompt_stack.push_back(env_i);
                 }
 
-                // # Modify prompt stack according to pending operation
-                // deactivate = getattr(self, '_deactivate', False)
-                // reactivate = getattr(self, '_reactivate', False)
+                // Modify prompt stack according to pending operation
                 if (m_action == DEACTIVATE)
                 {
                     if (prompt_stack.size())
@@ -172,12 +170,6 @@ namespace mamba
                 replace_all(prompt, "{prefix}", prefix);
                 replace_all(prompt, "{name}", prefix.stem());
                 return prompt;
-                // return context.env_prompt.format(
-                //     default_env=conda_default_env,
-                //     stacked_env=conda_stacked_env,
-                //     prefix=prefix,
-                //     name=basename(prefix),
-                // )
             }
             else
             {

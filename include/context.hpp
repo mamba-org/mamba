@@ -4,6 +4,10 @@
 #include <vector>
 #include <string>
 
+#include "thirdparty/filesystem.hpp"
+
+namespace fs = ghc::filesystem;
+
 namespace mamba
 {
     // Context singleton class
@@ -13,6 +17,10 @@ namespace mamba
 
         // TODO $CONDA_PREFIX doesn't work.
         std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
+
+        fs::path target_prefix;
+        fs::path root_prefix;
+        fs::path conda_prefix;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1; // take from header
@@ -26,14 +34,17 @@ namespace mamba
         bool on_ci = false;
         bool no_progress_bars = false;
         bool dry_run = false;
-        std::string target_prefix;
         bool always_yes = false;
 
         bool sig_interrupt = false;
 
+        bool change_ps1 = true;
+
         int retry_timeout = 2; // seconds
         int retry_backoff = 3; // retry_timeout * retry_backoff
         int max_retries = 3;  // max number of retries
+
+        std::string env_prompt = "({default_env}) ";
 
         // ssl verify can be either an empty string (regular SSL verification),
         // the string "<false>" to indicate no SSL verification, or a path to 

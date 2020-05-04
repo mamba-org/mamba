@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <cerrno>
 
 #ifdef _WIN32
 #include <io.h>
@@ -38,6 +39,38 @@ namespace mamba
             bytes = bytes / 1024;
         }
         o << std::fixed << std::setprecision(precision) << bytes << sizes[order];
+    }
+
+    std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix)
+    {
+        std::vector<fs::path> result;
+        if (fs::exists(dir) && fs::is_directory(dir))
+        {
+            for (const auto& entry : fs::directory_iterator(dir))
+            {
+                if (suffix.size())
+                {
+                    if (!entry.is_directory() && entry.path().extension() == suffix)
+                    {
+                        result.push_back(entry.path());
+                    }
+                }
+                else
+                {
+                    if (entry.is_directory() == false)
+                    {
+                        result.push_back(entry.path());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    // TODO expand variables, ~ and make absolute
+    bool paths_equal(const fs::path& lhs, const fs::path& rhs)
+    {
+        return lhs == rhs;
     }
 
     TemporaryDirectory::TemporaryDirectory()
@@ -223,5 +256,40 @@ namespace mamba
         std::reverse(res.begin(), res.end());
         return res;
     }
-}
 
+    void replace_all(std::string& data, const std::string& search, const std::string& replace)
+    {
+        std::size_t pos = data.find(search);
+        while (pos != std::string::npos)
+        {
+            data.replace(pos, search.size(), replace);
+            pos = data.find(search, pos + replace.size());
+        }
+    }
+
+    std::string to_upper(const std::string_view& input)
+    {
+        std::string res(input);
+        std::transform(res.begin(), res.end(), res.begin(), 
+                       [](unsigned char c) { return std::toupper(c); }
+        );
+        return res;
+    }
+
+    std::string get_file_contents(const fs::path& path)
+    {
+        std::ifstream in(path, std::ios::in | std::ios::binary);
+        if (in)
+        {
+            std::string contents;
+            in.seekg(0, std::ios::end);
+            contents.resize(in.tellg());
+            in.seekg(0, std::ios::beg);
+            in.read(&contents[0], contents.size());
+            in.close();
+            return(contents);
+        }
+        throw(errno);
+    }
+
+}

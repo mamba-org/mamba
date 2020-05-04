@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include <string_view>
+#include <string>
 
 
 #include "thirdparty/filesystem.hpp"
@@ -10,6 +11,22 @@ namespace fs = ghc::filesystem;
 
 namespace mamba
 {
+    #if __APPLE__ || __MACH__
+    static constexpr bool on_win = false;
+    static constexpr bool on_linux = false;
+    static constexpr bool on_mac = true;
+    #elif __linux__
+    static constexpr bool on_win = false;
+    static constexpr bool on_linux = false;
+    static constexpr bool on_mac = true;
+    #elif _WIN32
+    static constexpr bool on_win = true;
+    static constexpr bool on_linux = false;
+    static constexpr bool on_mac = false;
+    #else
+    #error "no supported OS detected"
+    #endif
+
     class mamba_error : public std::runtime_error
     {
     public:
@@ -20,6 +37,10 @@ namespace mamba
     bool is_package_file(const std::string_view& fn);
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0);
     bool lexists(const fs::path& p);
+    std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix);
+    bool paths_equal(const fs::path& lhs, const fs::path& rhs);
+
+    std::string get_file_contents(const fs::path& path);
 
     class TemporaryDirectory
     {
@@ -89,6 +110,25 @@ namespace mamba
     std::vector<string_view> split(const std::string_view& input,
                                    const std::string_view& sep,
                                    std::size_t max_split = SIZE_MAX);*/
+
+    template <class S>
+    inline std::string join(char j, const S& container)
+    {
+        if (container.empty()) return "";
+        std::string result = container[0];
+        for (std::size_t i = 1; i < container.size(); ++i)
+        {
+            result += j;
+            result += container[i];
+        }
+        return result;
+    }
+
+    void replace_all(std::string& data,
+                     const std::string& search,
+                     const std::string& replace);
+
+    std::string to_upper(const std::string_view& input);
 }
 
 #endif // MAMBA_UTIL_HPP

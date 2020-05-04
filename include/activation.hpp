@@ -166,7 +166,12 @@ namespace mamba
 
                 auto conda_stacked_env = join(';', prompt_stack);
 
-                return "(" + conda_default_env + ") ";
+                std::string prompt = Context::instance().env_prompt;
+                replace_all(prompt, "{default_env}", conda_default_env);
+                replace_all(prompt, "{stacked_env}", conda_stacked_env);
+                replace_all(prompt, "{prefix}", prefix);
+                replace_all(prompt, "{name}", prefix.stem());
+                return prompt;
                 // return context.env_prompt.format(
                 //     default_env=conda_default_env,
                 //     stacked_env=conda_stacked_env,

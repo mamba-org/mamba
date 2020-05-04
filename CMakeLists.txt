@@ -54,10 +54,6 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/validate.cpp
 )
 
-set(MAMBA_EXE
-    ${CMAKE_SOURCE_DIR}/src/main.cpp
-)
-
 add_library(mamba_lib ${MAMBA_SOURCES})
 target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
 set_property(TARGET mamba_lib PROPERTY CXX_STANDARD 17)
@@ -68,8 +64,16 @@ pybind11_add_module(mamba_api
 target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba_lib)
 set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
 
-add_executable(mamba ${MAMBA_EXE})
-target_link_libraries(mamba PUBLIC mamba_lib)
+option(BUILD_EXE OFF)
+
+if (BUILD_EXE)
+    set(MAMBA_EXE
+        ${CMAKE_SOURCE_DIR}/src/main.cpp
+    )
+
+    add_executable(mamba ${MAMBA_EXE})
+    target_link_libraries(mamba PUBLIC mamba_lib)
+endif()
 
 install(TARGETS mamba_api
         LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/mamba/)

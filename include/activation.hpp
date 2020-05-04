@@ -34,13 +34,16 @@ namespace mamba
         Activator()
         {
             m_env = env::copy();
-            m_shell_extension = ".sh";
         }
+
+        virtual std::string script(const EnvironmentTransform& env) = 0;
+        virtual std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) = 0;
+        virtual std::string shell_extension() = 0;
 
         std::vector<fs::path> get_activate_scripts(const fs::path& prefix)
         {
             fs::path script_dir = prefix / "etc" / "conda" / "activate.d";
-            std::vector<fs::path> result = filter_dir(script_dir, m_shell_extension);
+            std::vector<fs::path> result = filter_dir(script_dir, shell_extension());
             std::sort(result.begin(), result.end());
             return result;
         }
@@ -48,7 +51,7 @@ namespace mamba
         std::vector<fs::path> get_deactivate_scripts(const fs::path& prefix)
         {
             fs::path script_dir = prefix / "etc" / "conda" / "deactivate.d";
-            std::vector<fs::path> result = filter_dir(script_dir, m_shell_extension);
+            std::vector<fs::path> result = filter_dir(script_dir, shell_extension());
             // reverse sort!
             std::sort(result.begin(), result.end(), std::greater<fs::path>());
             return result;
@@ -614,20 +617,11 @@ namespace mamba
             return envt;
         }
 
-        virtual std::string script(const EnvironmentTransform& env) = 0;
-        virtual std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) = 0;
-
-        std::string activate(const fs::path& prefix)
+        std::string activate(const fs::path& prefix, bool stack)
         {
+            m_stack = stack;
             m_action = ACTIVATE;
-            if (m_stack)
-            {
-                // ...
-            }
-            else
-            {
-                return script(build_activate(prefix));
-            }
+            return script(build_activate(prefix));
         }
 
         std::string deactivate()
@@ -647,6 +641,11 @@ namespace mamba
         : public Activator
     {
     public:
+
+        std::string shell_extension() override
+        {
+            return ".sh";
+        }
 
         std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) override
         {

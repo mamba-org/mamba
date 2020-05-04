@@ -437,36 +437,42 @@ namespace mamba
             }
             else
             {
-                // TODO!
-                // assert old_conda_shlvl > 1
-                // new_prefix = self.environ.get('CONDA_PREFIX_%d' % new_conda_shlvl)
-                // conda_default_env = self._default_env(new_prefix)
-                // conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
-                // new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)
+                assert (old_conda_shlvl > 1);
+                std::string new_prefix = m_env.at("CONDA_PREFIX_" + std::to_string(new_conda_shlvl));
+                std::string conda_default_env = get_default_env(new_prefix);
+                std::string conda_prompt_modifier = get_prompt_modifier(new_prefix, conda_default_env, old_conda_shlvl);
+                auto new_conda_environment_env_vars = get_environment_vars(new_prefix);
 
-                // old_prefix_stacked = 'CONDA_STACKED_%d' % old_conda_shlvl in self.environ
-                // new_path = ''
+                bool old_prefix_stacked = (m_env.find("CONDA_STACKED_" + std::to_string(old_conda_shlvl)) != m_env.end());
+                std::string new_path;
+                envt.unset_vars.push_back("CONDA_PREFIX_" + std::to_string(new_conda_shlvl));
 
-                // unset_vars = ['CONDA_PREFIX_%d' % new_conda_shlvl]
-                // if old_prefix_stacked:
-                //     new_path = self.pathsep_join(self._remove_prefix_from_path(old_conda_prefix))
-                //     unset_vars.append('CONDA_STACKED_%d' % old_conda_shlvl)
-                // else:
-                //     new_path = self.pathsep_join(
-                //         self._replace_prefix_in_path(old_conda_prefix, new_prefix)
-                //     )
+                if (old_prefix_stacked)
+                {
+                    new_path = remove_prefix_from_path(old_conda_prefix);
+                    envt.unset_vars.push_back("CONDA_STACKED_" + std::to_string(old_conda_shlvl));
+                }
+                else
+                {
+                    new_path = replace_prefix_in_path(old_conda_prefix, new_prefix);
+                }
 
-                // env_vars_to_export = OrderedDict((
-                //     ('conda_prefix', new_prefix),
-                //     ('conda_shlvl', new_conda_shlvl),
-                //     ('conda_default_env', conda_default_env),
-                //     ('conda_prompt_modifier', conda_prompt_modifier)))
-                // for k, v in new_conda_environment_env_vars.items():
-                //     env_vars_to_export[k] = v
-                // export_vars, unset_vars2 = self.get_export_unset_vars(odargs=env_vars_to_export)
-                // unset_vars += unset_vars2
-                // export_path = {'PATH': new_path, }
-                // activate_scripts = self._get_activate_scripts(new_prefix)
+                std::vector<std::pair<std::string, std::string>> env_vars_to_export = {
+                    {"conda_prefix", "new_prefix"},
+                    {"conda_shlvl", std::to_string(new_conda_shlvl)},
+                    {"conda_default_env", conda_default_env},
+                    {"conda_prompt_modifier", conda_prompt_modifier}
+                };
+
+                get_export_unset_vars(envt, env_vars_to_export);
+
+                for (auto& [k, v] : new_conda_environment_env_vars)
+                {
+                    envt.export_vars.push_back({k, v});
+                }
+
+                envt.export_path = new_path;
+                envt.activate_scripts = get_activate_scripts(new_prefix);
             }
 
             if (Context::instance().change_ps1)

@@ -532,10 +532,10 @@ def install(args, parser, command='install'):
     if python_added:
         specs = [s for s in specs if s.name != 'python']
 
-    if use_mamba_experimental:
+    if use_mamba_experimental and not os.name == 'nt':
         if command == 'create' and not isdir(context.target_prefix):
             mkdir_p(prefix)
-        transaction.execute(PackageCacheData.first_writable().pkgs_dir, context.target_prefix)
+        transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
     else:
         conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
         handle_txn(conda_transaction, prefix, args, newenv)

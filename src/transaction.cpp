@@ -378,7 +378,7 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
-        LOG_WARNING << "Executing ...";
+        std::cout << "\n\nTransaction starting\n";
         m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
@@ -399,7 +399,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 {
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
-                    LOG_INFO << "UPGRADE " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
+                    std::cout << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str() << "\n";
                     PackageInfo p_unlink(s);
                     PackageInfo p_link(s2);
                     UnlinkPackage up(PackageInfo(s), &m_transaction_context);
@@ -416,7 +416,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_ERASE:
                 {
                     PackageInfo p(s);
-                    LOG_INFO << "UNLINK " << p.str();
+                    std::cout << "Unlinking " << PackageInfo(s).str() << "\n";
                     UnlinkPackage up(p, &m_transaction_context);
                     up.execute();
                     m_history_entry.unlink_dists.push_back(p.long_str());
@@ -425,7 +425,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_INSTALL:
                 {
                     PackageInfo p(s);
-                    LOG_INFO << "LINK " << p.str();
+                    std::cout << "Linking " << PackageInfo(s).str() << "\n";
                     LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
                     m_history_entry.link_dists.push_back(p.long_str());
@@ -434,11 +434,12 @@ namespace mamba
                 case SOLVER_TRANSACTION_IGNORE:
                     break;
                 default:
-                    LOG_WARNING << "Exec case not handled: " << ttype;
+                    LOG_ERROR << "Exec case not handled: " << ttype;
                     break;
             }
         }
 
+        std::cout << "Transaction finished" << std::endl;
         prefix.history().add_entry(m_history_entry);
 
         return true;

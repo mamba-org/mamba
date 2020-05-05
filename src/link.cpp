@@ -600,8 +600,7 @@ namespace mamba
 
         if (fs::exists(dst))
         {
-            // This needs to raise a clobberwarning
-            // throw std::runtime_error("Clobberwarning: " );
+            // Sometimes we might want to raise here ...
             LOG_ERROR << "Clobberwarning: " << dst;
             fs::remove(dst);
         }
@@ -673,7 +672,7 @@ namespace mamba
 
         if (path_type == "hardlink")
         {
-            LOG_INFO << "linked " << src << "-->" << dst << std::endl;
+            LOG_INFO << "hard linked " << src << " --> " << dst;
             fs::create_hard_link(src, dst);
         }
         else if (path_type == "softlink")

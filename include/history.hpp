@@ -43,7 +43,6 @@ public:
             char mbstr[100];
             if (std::strftime(mbstr, sizeof(mbstr), "%Y-%m-%d %H:%M:%S", std::localtime(&t)))
             {
-                std::cout << mbstr << '\n';
                 ur.date = mbstr;
             }
             ur.cmd = Context::instance().current_command;

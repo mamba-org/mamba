@@ -63,6 +63,7 @@ ext_modules = [
         [
             'src/py_interface.cpp',
             'src/context.cpp',
+            'src/history.cpp',
             'src/fetch.cpp',
             'src/match_spec.cpp',
             'src/output.cpp',
@@ -74,6 +75,7 @@ ext_modules = [
             'src/solver.cpp',
             'src/subdirdata.cpp',
             'src/transaction.cpp',
+            'src/transaction_context.cpp',
             'src/url.cpp',
             'src/util.cpp',
             'src/validate.cpp',

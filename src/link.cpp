@@ -622,13 +622,7 @@ namespace mamba
             if (text_mode)
             {
                 buffer = get_file_contents(src, std::ios::in);
-
-                std::size_t pos = buffer.find(prefix_placeholder);
-                while (pos != std::string::npos)
-                {
-                    buffer.replace(pos, new_prefix.size(), new_prefix);
-                    pos = buffer.find(prefix_placeholder, pos + new_prefix.size());
-                }
+                replace_all(buffer, prefix_placeholder, new_prefix);
             }
             else
             {

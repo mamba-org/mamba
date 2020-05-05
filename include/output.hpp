@@ -301,6 +301,10 @@ namespace mamba
     };
 }
 
+#undef ERROR
+#undef WARNING
+#undef FATAL
+
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
 #define LOG_DEBUG LOG(mamba::LogSeverity::DEBUG)
 #define LOG_INFO LOG(mamba::LogSeverity::INFO)

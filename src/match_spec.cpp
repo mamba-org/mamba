@@ -5,6 +5,34 @@
 
 namespace mamba
 {
+    PackageInfo::PackageInfo(Solvable* s)
+    {
+        Pool* pool = s->repo->pool;
+
+        name = pool_id2str(pool, s->name);
+        version = pool_id2str(pool, s->evr);
+        build = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+        build_number = solvable_lookup_num(s, SOLVABLE_BUILDVERSION, 0L);
+
+        channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+        subdir = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
+    }
+
+    PackageInfo::PackageInfo(const std::string& n, const std::string& v,
+                             const std::string b, std::size_t bn)
+        : name(n), version(v), build(b), build_number(bn)
+    {
+    }
+
+    std::string PackageInfo::str() const
+    {
+        return concat(name, "-", version, "-", build);
+    }
+
+    std::string PackageInfo::long_str() const
+    {
+        return concat(channel, "/", subdir, "::", name, "-", version, "-", build);
+    }
 
     MatchSpec::MatchSpec(const std::string& i_spec)
         : spec(i_spec)

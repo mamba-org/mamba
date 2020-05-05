@@ -271,8 +271,6 @@ def remove(args, parser):
             specs = [s for s in specs_from_args(args.package_names)]
         if not context.quiet:
             print("Removing specs: {}".format([s.conda_build_form() for s in specs]))
-        channel_urls = ()
-        subdirs = ()
 
         installed_json_f = get_installed_jsonfile(prefix)
 
@@ -362,7 +360,6 @@ def install(args, parser, command='install'):
             else:
                 raise EnvironmentLocationNotFound(prefix)
 
-    prepend = not args.override_channels
     prefix = context.target_prefix
 
     index_args = {
@@ -510,7 +507,6 @@ def install(args, parser, command='install'):
         repo.set_installed()
         repos.append(repo)
 
-
     for channel, cache_file, priority, subpriority in channel_json:
         repo = api.Repo(pool, str(channel), cache_file, channel.url(with_credentials=True))
         repo.set_priority(priority, subpriority)
@@ -536,8 +532,13 @@ def install(args, parser, command='install'):
     if python_added:
         specs = [s for s in specs if s.name != 'python']
 
-    conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
-    handle_txn(conda_transaction, prefix, args, newenv)
+    if use_mamba_experimental and not os.name == 'nt':
+        if command == 'create' and not isdir(context.target_prefix):
+            mkdir_p(prefix)
+        transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
+    else:
+        conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
+        handle_txn(conda_transaction, prefix, args, newenv)
 
     try:
         installed_json_f.close()
@@ -575,7 +576,6 @@ def update(args, parser):
     install(args, parser, 'update')
 
 def repoquery(args, parser):
-    prepend = not args.override_channels
     prefix = context.target_prefix
 
     init_api_context()

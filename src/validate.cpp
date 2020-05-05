@@ -7,7 +7,7 @@
 
 namespace validate
 {
-    std::string sha256sum(const std::string& path, std::size_t filesize)
+    std::string sha256sum(const std::string& path)
     {
         unsigned char hash[SHA256_DIGEST_LENGTH];
 
@@ -40,7 +40,7 @@ namespace validate
         return out.str();
     }
 
-    std::string md5sum(const std::string& path, std::size_t filesize)
+    std::string md5sum(const std::string& path)
     {
         unsigned char hash[MD5_DIGEST_LENGTH];
 
@@ -73,12 +73,14 @@ namespace validate
         return out.str();
     }
 
-    bool sha256(const std::string& path, std::size_t filesize, const std::string& validation) {
-        return sha256sum(path, filesize) == validation;
+    bool sha256(const std::string& path, const std::string& validation)
+    {
+        return sha256sum(path) == validation;
     }
 
-    bool md5(const std::string& path, std::size_t filesize, const std::string& validation) {
-        return md5sum(path, filesize) == validation;
+    bool md5(const std::string& path, const std::string& validation)
+    {
+        return md5sum(path) == validation;
     }
 
     bool file_size(const fs::path& path, std::uintmax_t validation)

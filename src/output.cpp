@@ -458,7 +458,6 @@ namespace mamba
             return;
         }
 
-        m_stream << "\n";
         switch(m_severity)
         {
         case LogSeverity::FATAL:

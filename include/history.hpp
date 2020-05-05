@@ -36,6 +36,20 @@ public:
 
     struct UserRequest
     {
+        static UserRequest prefilled()
+        {
+            UserRequest ur;
+            std::time_t t = std::time(nullptr);
+            char mbstr[100];
+            if (std::strftime(mbstr, sizeof(mbstr), "%Y-%m-%d %H:%M:%S", std::localtime(&t)))
+            {
+                ur.date = mbstr;
+            }
+            ur.cmd = Context::instance().current_command;
+            ur.conda_version = Context::instance().conda_version;
+            return ur;
+        }
+
         std::string date;
         std::string cmd;
         std::string conda_version;
@@ -52,10 +66,10 @@ public:
     bool parse_comment_line(const std::string& line, UserRequest& req);
     std::vector<UserRequest> get_user_requests();
     std::unordered_map<std::string, MatchSpec> get_requested_specs_map();
-    void add_entry(const std::vector<History::UserRequest> user_request);
+    void add_entry(const History::UserRequest& entry);
 
     // std::shared_ptr<PrefixData> m_prefix_data;
-    std::string m_prefix_data;
+    std::string m_prefix;
     fs::path m_history_file_path;
 };
 

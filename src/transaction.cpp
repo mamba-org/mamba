@@ -1,6 +1,8 @@
 #include <thread>
 
 #include "transaction.hpp"
+#include "match_spec.hpp"
+#include "link.hpp"
 
 namespace mamba
 {
@@ -128,7 +130,7 @@ namespace mamba
         {
             throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
-        if (!validate::sha256(m_tarball_path, expected_size, sha256_check))
+        if (!validate::sha256(m_tarball_path, sha256_check))
         {
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
@@ -190,7 +192,7 @@ namespace mamba
             // validate that this tarball has the right size and MD5 sum
             std::uintmax_t file_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
             valid = validate::file_size(m_tarball_path, file_size);
-            valid = valid && validate::md5(m_tarball_path, file_size, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused));
+            valid = valid && validate::md5(m_tarball_path, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused));
             LOG_INFO << m_tarball_path << " is " << valid;
         }
 
@@ -255,6 +257,11 @@ namespace mamba
             throw std::runtime_error("Cannot create transaction without calling solver.solve() first.");
         }
         m_transaction = solver_create_transaction(solver);
+
+        m_history_entry = History::UserRequest::prefilled();
+        m_history_entry.update = solver.install_specs();
+        m_history_entry.remove = solver.remove_specs();
+
         init();
         JsonLogger::instance().json_down("actions");
     }
@@ -283,7 +290,6 @@ namespace mamba
         transaction_classify(m_transaction, mode, &classes);
 
         Id cls;
-        std::string location;
         for (int i = 0; i < classes.count; i += 4)
         {
             cls = classes.elements[i];
@@ -310,10 +316,12 @@ namespace mamba
                     case SOLVER_TRANSACTION_INSTALL:
                         m_to_install.push_back(s);
                         break;
+                    case SOLVER_TRANSACTION_IGNORE:
+                        break;
                     case SOLVER_TRANSACTION_VENDORCHANGE:
                     case SOLVER_TRANSACTION_ARCHCHANGE:
                     default:
-                        LOG_WARNING << "CASE NOT HANDLED. " << cls;
+                        LOG_WARNING << "Print case not handled: " << cls;
                         break;
                 }
             }
@@ -321,6 +329,120 @@ namespace mamba
 
         queue_free(&classes);
         queue_free(&pkgs);
+    }
+
+    std::string MTransaction::find_python_version() 
+    {
+        // We need to find the python version that will be there after this Transaction is finished
+        // in order to compile the noarch packages correctly, for example
+        Pool* pool = m_transaction->pool;
+        assert (pool != nullptr);
+
+        std::string py_ver;
+        Id python = pool_str2id(pool, "python", 0);
+
+        for (Solvable* s : m_to_install)
+        {
+            if (s->name == python)
+            {
+                py_ver = pool_id2str(pool, s->evr);
+                LOG_INFO << "Found python version in packages to be installed " << py_ver;
+                return py_ver;
+            }
+        }
+        if (pool->installed != nullptr)
+        {
+            Id p;
+            Solvable* s;
+
+            FOR_REPO_SOLVABLES(pool->installed, p, s)
+            {
+                if (s->name == python)
+                {
+                    py_ver = pool_id2str(pool, s->evr);
+                    LOG_INFO << "Found python in installed packages " << py_ver;
+                    break;
+                }
+            }
+        }
+        if (py_ver.size())
+        {
+            // we need to make sure that we're not about to remove python!
+            for (Solvable* s : m_to_remove)
+            {
+                if (s->name == python) return "";
+            }
+        }
+        return py_ver;
+    }
+
+    bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
+    {
+        std::cout << "\n\nTransaction starting\n";
+        m_transaction_context = TransactionContext(prefix.path(), find_python_version());
+        History::UserRequest ur = History::UserRequest::prefilled();
+
+        transaction_order(m_transaction, 0);
+
+        auto* pool = m_transaction->pool;
+        transaction_order(m_transaction, 0);
+
+        for (int i = 0; i < m_transaction->steps.count; i++)
+        {
+            Id p = m_transaction->steps.elements[i];
+            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Solvable *s = pool_id2solvable(pool, p);
+            switch (ttype)
+            {
+                case SOLVER_TRANSACTION_DOWNGRADED:
+                case SOLVER_TRANSACTION_UPGRADED:
+                case SOLVER_TRANSACTION_CHANGED:
+                {
+                    Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
+                    std::cout << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str() << "\n";
+                    PackageInfo p_unlink(s);
+                    PackageInfo p_link(s2);
+                    UnlinkPackage up(PackageInfo(s), &m_transaction_context);
+                    up.execute();
+
+                    LinkPackage lp(PackageInfo(s2), fs::path(cache_dir), &m_transaction_context);
+                    lp.execute();
+
+                    m_history_entry.unlink_dists.push_back(p_unlink.long_str());
+                    m_history_entry.link_dists.push_back(p_link.long_str());
+
+                    break;
+                }
+                case SOLVER_TRANSACTION_ERASE:
+                {
+                    PackageInfo p(s);
+                    std::cout << "Unlinking " << PackageInfo(s).str() << "\n";
+                    UnlinkPackage up(p, &m_transaction_context);
+                    up.execute();
+                    m_history_entry.unlink_dists.push_back(p.long_str());
+                    break;
+                }
+                case SOLVER_TRANSACTION_INSTALL:
+                {
+                    PackageInfo p(s);
+                    std::cout << "Linking " << PackageInfo(s).str() << "\n";
+                    LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
+                    lp.execute();
+                    m_history_entry.link_dists.push_back(p.long_str());
+                    break;
+                }
+                case SOLVER_TRANSACTION_IGNORE:
+                    break;
+                default:
+                    LOG_ERROR << "Exec case not handled: " << ttype;
+                    break;
+            }
+        }
+
+        std::cout << "Transaction finished" << std::endl;
+        prefix.history().add_entry(m_history_entry);
+
+        return true;
     }
 
     auto MTransaction::to_conda() -> to_conda_type

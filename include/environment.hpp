@@ -97,7 +97,6 @@ namespace env
         }
 
         char* current = start;
-        std::cout << current << std::endl;
         while (*current != '\0')
         {
             std::string_view s = current;

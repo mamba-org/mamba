@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "util.hpp"
 #include "shell_init.hpp"
 
 namespace mamba
@@ -17,6 +18,9 @@ namespace mamba
     TEST(shell_init, expand_path)
     {
         auto expanded = expand_path("~/this/is/a/test");
-        std::cout << expanded << std::endl;
+        if (on_linux)
+        {
+            EXPECT_TRUE(starts_with(expanded, "/home/"));
+        }
     }
 }

@@ -30,6 +30,15 @@ namespace mamba
             }
             else
             {
+                if (job_flag & SOLVER_INSTALL)
+                {
+                    m_install_specs.insert(m_install_specs.end(), jobs.begin(), jobs.end());
+                }
+                if (job_flag & SOLVER_ERASE)
+                {
+                    m_remove_specs.insert(m_remove_specs.end(), jobs.begin(), jobs.end());
+                }
+
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
             }
         }
@@ -46,6 +55,16 @@ namespace mamba
     bool MSolver::is_solved()
     {
         return m_is_solved;
+    }
+
+    const std::vector<std::string>& MSolver::install_specs() const
+    {
+        return m_install_specs;
+    }
+
+    const std::vector<std::string>& MSolver::remove_specs() const
+    {
+        return m_remove_specs;
     }
 
     bool MSolver::solve()

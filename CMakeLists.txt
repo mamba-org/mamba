@@ -37,7 +37,8 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common_write.c
     ${CMAKE_SOURCE_DIR}/src/context.cpp
     ${CMAKE_SOURCE_DIR}/src/fetch.cpp
-    # ${CMAKE_SOURCE_DIR}/src/link.cpp
+    ${CMAKE_SOURCE_DIR}/src/transaction_context.cpp
+    ${CMAKE_SOURCE_DIR}/src/link.cpp
     ${CMAKE_SOURCE_DIR}/src/history.cpp
     ${CMAKE_SOURCE_DIR}/src/match_spec.cpp
     ${CMAKE_SOURCE_DIR}/src/url.cpp

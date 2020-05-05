@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iomanip>
 #include <cerrno>
+#include <thread>
+#include <mutex>
 
 #ifdef _WIN32
 #include <io.h>
@@ -8,6 +10,7 @@
 #endif
 
 #include "util.hpp"
+#include "context.hpp"
 
 namespace mamba
 {
@@ -100,7 +103,10 @@ namespace mamba
 
     TemporaryDirectory::~TemporaryDirectory()
     {
-        fs::remove_all(m_path);
+        if (!Context::instance().keep_temp_directories)
+        {
+            fs::remove_all(m_path);
+        }
     }
 
     fs::path& TemporaryDirectory::path()
@@ -113,39 +119,48 @@ namespace mamba
         return m_path;
     }
 
-    TemporaryFile::TemporaryFile()
+    TemporaryFile::TemporaryFile(const std::string& prefix, const std::string& suffix)
     {
-        bool success = false;
+        static std::mutex file_creation_mutex;
 
-        std::string template_path = fs::temp_directory_path() / "mambafXXXXXX";
-        #ifndef _WIN32
-            int fd = mkstemp((char*) template_path.c_str());
-            success = (fd != 0);
-        #else
-            // include \0 terminator
-            auto err = _mktemp_s((char*)template_path.c_str(), template_path.size() + 1);
-            assert(err == 0);
-            std::ofstream fcreate(template_path);
+        bool success = false;
+        fs::path temp_path = fs::temp_directory_path(), final_path;
+
+        std::lock_guard<std::mutex> file_creation_lock(file_creation_mutex);
+
+        do
+        {
+            std::string random_file_name = generate_random_alphanumeric_string(10);
+            final_path = temp_path / concat(prefix, random_file_name, suffix);
+        } while (fs::exists(final_path));
+
+        try
+        {
+            std::ofstream f(final_path);
+            f.close();
             success = true;
-        #endif
+        }
+        catch (...)
+        {
+            success = false;
+        }
+
         if (!success)
         {
             throw std::runtime_error("Could not create temporary file!");
         }
         else
         {
-            m_path = template_path;
-            #ifndef _WIN32
-            close(fd);
-            #else
-            fcreate.close();
-            #endif
+            m_path = final_path;
         }
     }
 
     TemporaryFile::~TemporaryFile()
     {
-        fs::remove(m_path);
+        if (!Context::instance().keep_temp_files)
+        {
+            fs::remove(m_path);
+        }
     }
 
     fs::path& TemporaryFile::path()
@@ -170,11 +185,6 @@ namespace mamba
     bool starts_with(const std::string_view& str, const std::string_view& prefix)
     {
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-    }
-
-    namespace
-    {
-        const std::string WHITESPACES = " \r\n\t\f\v";
     }
 
     std::string_view strip(const std::string_view& input)
@@ -277,18 +287,28 @@ namespace mamba
         }
     }
 
-    std::string to_upper(const std::string_view& input)
+    std::string string_transform(const std::string_view& input, int (*functor)(int))
     {
         std::string res(input);
         std::transform(res.begin(), res.end(), res.begin(), 
-                       [](unsigned char c) { return std::toupper(c); }
+                       [&](unsigned char c) { return functor(c); }
         );
         return res;
     }
 
-    std::string get_file_contents(const fs::path& path)
+    std::string to_upper(const std::string_view& input)
     {
-        std::ifstream in(path, std::ios::in | std::ios::binary);
+        return string_transform(input, std::toupper);
+    }
+
+    std::string to_lower(const std::string_view& input)
+    {
+        return string_transform(input, std::tolower);
+    }
+
+    std::string get_file_contents(const fs::path& path, std::ios::openmode mode)
+    {
+        std::ifstream in(path, std::ios::in | mode);
         if (in)
         {
             std::string contents;

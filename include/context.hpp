@@ -15,6 +15,8 @@ namespace mamba
     {
     public:
 
+        std::string conda_version = "3.8.0";
+        std::string current_command = "mamba";
         // TODO $CONDA_PREFIX doesn't work.
         std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
 
@@ -31,10 +33,15 @@ namespace mamba
         long max_parallel_downloads = 5;
         int verbosity = 0;
 
+        bool dev = false;
         bool on_ci = false;
         bool no_progress_bars = false;
         bool dry_run = false;
         bool always_yes = false;
+
+        // debug helpers
+        bool keep_temp_files = false;
+        bool keep_temp_directories = false;
 
         bool sig_interrupt = false;
 

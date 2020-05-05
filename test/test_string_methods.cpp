@@ -45,4 +45,24 @@ namespace mamba
 
         EXPECT_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1), v21);
     }
+
+    TEST(util, replace_all)
+    {
+        std::string testbuf = "this is just a test a just a a abc bca";
+
+        replace_all(testbuf, "just", "JU");
+        EXPECT_EQ(testbuf, "this is JU a test a JU a a abc bca");
+        replace_all(testbuf, "a", "MAMBA");
+        EXPECT_EQ(testbuf, "this is JU MAMBA test MAMBA JU MAMBA MAMBA MAMBAbc bcMAMBA");
+        replace_all(testbuf, " ", "");
+        EXPECT_EQ(testbuf, "thisisJUMAMBAtestMAMBAJUMAMBAMAMBAMAMBAbcbcMAMBA");
+        std::string prefix = "/I/am/a/PREFIX\n\nabcdefg\nxyz";
+
+        replace_all(prefix, "/I/am/a/PREFIX", "/Yes/Thats/great/");
+        EXPECT_TRUE(starts_with(prefix, "/Yes/Thats/great/\n"));
+
+        std::string prefix_unicode = "/I/am/Dörteæœ©æ©fðgb®/PREFIX\n\nabcdefg\nxyz";
+        replace_all(prefix_unicode, "/I/am/Dörteæœ©æ©fðgb®/PREFIX", "/home/åéäáßðæœ©ðfßfáðß/123123123");
+        EXPECT_EQ(prefix_unicode, "/home/åéäáßðæœ©ðfßfáðß/123123123\n\nabcdefg\nxyz");
+    }
 }

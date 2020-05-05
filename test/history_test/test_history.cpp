@@ -30,7 +30,10 @@ namespace mamba
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
-        history_instance.add_entry(user_reqs);
+        for (const auto& req : user_reqs)
+        {
+            history_instance.add_entry(req);
+        }
 
         history_file.open("history_test/conda-meta/history");
         std::stringstream updated_history_buffer;
@@ -43,7 +46,7 @@ namespace mamba
         ASSERT_EQ(updated_history_buffer.str(), check_buffer.str());
 
         std::ofstream src_end("history_test/conda-meta/history", std::ios::binary);
-        std::ifstream dst_end("history_test/conda-meta/aux_file",   std::ios::binary);
+        std::ifstream dst_end("history_test/conda-meta/aux_file", std::ios::binary);
         src_end << dst_end.rdbuf();
         src_end.close();
         dst_end.close();

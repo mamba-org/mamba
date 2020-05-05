@@ -3,6 +3,7 @@
 #include "match_spec.hpp"
 #include "context.hpp"
 #include "link.hpp"
+#include "history.hpp"
 
 namespace mamba
 {
@@ -45,5 +46,12 @@ namespace mamba
             EXPECT_EQ(ms.name, "xtensor");
             // EXPECT_EQ(ms.channel, "conda-forge/linux64");
         }
+    }
+
+    TEST(history, user_request)
+    {
+        auto u = History::UserRequest::prefilled();
+        // update in 100 years!
+        EXPECT_TRUE(u.date[0] == '2' && u.date[1] == '0');
     }
 }

@@ -5,14 +5,14 @@ namespace mamba
 {
 
     History::History(const std::string& prefix)
-        : m_prefix_data(prefix)
+        : m_prefix(prefix)
     {
     }
 
     std::vector<History::ParseResult> History::parse()
     {
         std::vector<ParseResult> res;
-        m_history_file_path = fs::path(m_prefix_data) / "conda-meta" / "history";
+        m_history_file_path = fs::path(m_prefix) / "conda-meta" / "history";
         LOG_INFO << "parsing history: " << m_history_file_path;
 
         if (!fs::exists(m_history_file_path))
@@ -156,7 +156,7 @@ namespace mamba
         }
 
         // TODO Add this back in once we merge the PrefixData PR!
-        // auto& current_records = m_prefix_data->records();
+        // auto& current_records = m_prefix->records();
         // for (auto it = map.begin(); it != map.end();)
         // {
         //     if (current_records.find(it->first) == current_records.end())
@@ -172,55 +172,52 @@ namespace mamba
         return map;
     }
 
-    void History::add_entry(const std::vector<History::UserRequest> user_request)
+    void History::add_entry(const History::UserRequest& entry)
     {
         std::ofstream out;
-        out.open(m_history_file_path, std::ios_base::app);
+        out.open(m_history_file_path, std::ios::app);
         if (out.fail())
         {
             throw std::runtime_error("Couldn't open file: " + m_history_file_path.string());
         }
         else
         {
-            for (auto request : user_request)
+            out << "==> " << entry.date << " <==" << std::endl;
+            out << "# cmd: " << entry.cmd << std::endl;
+            out << "# conda version: " << entry.conda_version << std::endl;
+
+            for (auto unlink_dist : entry.unlink_dists)
             {
-                out << "==> " << request.date << " <==" << std::endl;
-                out << "# cmd: " << request.cmd << std::endl;
-                out << "# conda version: " << request.conda_version << std::endl;
-                for (auto unlink_dist : request.unlink_dists)
-                {
-                    out << unlink_dist << std::endl;
-                }
-                for (auto link_dist : request.link_dists)
-                {
-                    out << link_dist << std::endl;
-                }
+                out << unlink_dist << std::endl;
+            }
+            for (auto link_dist : entry.link_dists)
+            {
+                out << link_dist << std::endl;
+            }
 
+            auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
+                std::string spec_string;
+                spec_string ="# " + action + " specs: [";
+                for (auto spec : specs)
+                {
+                    spec_string += "'" + spec + "', ";
+                }
+                spec_string[spec_string.size() - 2] = ']';
+                spec_string.back() = '\n';
+                return spec_string;
+            };
 
-                auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
-                    std::string spec_string;
-                    spec_string ="# " + action + " specs: [";
-                    for (auto spec : specs)
-                    {
-                        spec_string += "'" + spec + "', ";
-                    }
-                    spec_string[spec_string.size() - 2] = ']';
-                    spec_string.back() = '\n';
-                    return spec_string;
-                };
-
-                if (request.update.size() > 0)
-                {
-                    out << specs_output("update", request.update);
-                }
-                if (request.remove.size() > 0)
-                {
-                    out << specs_output("remove", request.remove);
-                }
-                if (request.neutered.size() > 0)
-                {
-                    out << specs_output("neutered", request.neutered);
-                }
+            if (entry.update.size() > 0)
+            {
+                out << specs_output("update", entry.update);
+            }
+            if (entry.remove.size() > 0)
+            {
+                out << specs_output("remove", entry.remove);
+            }
+            if (entry.neutered.size() > 0)
+            {
+                out << specs_output("neutered", entry.neutered);
             }
         }
     }

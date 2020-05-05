@@ -15,6 +15,8 @@ namespace mamba
     {
     public:
 
+        std::string conda_version = "3.8.0";
+        std::string current_command = "mamba";
         // TODO $CONDA_PREFIX doesn't work.
         std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
 

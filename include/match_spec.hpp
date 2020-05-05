@@ -23,11 +23,14 @@ namespace mamba
                     const std::string build, std::size_t build_number);
 
         std::string str() const;
+        std::string long_str() const;
 
         std::string name;
         std::string version;
         std::string build;
         std::size_t build_number;
+        std::string channel;
+        std::string subdir;
     };
 
     class MatchSpec

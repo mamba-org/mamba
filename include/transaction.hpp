@@ -12,6 +12,7 @@
 #include "fetch.hpp"
 #include "package_handling.hpp"
 #include "output.hpp"
+#include "prefix_data.hpp"
 #include "transaction_context.hpp"
 
 extern "C"
@@ -80,7 +81,7 @@ namespace mamba
         bool empty();
         bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos);
         void print();
-        bool execute(const fs::path& cache_dir, const fs::path& prefix);
+        bool execute(PrefixData& prefix, const fs::path& cache_dir);
 
         std::string find_python_version();
 
@@ -88,6 +89,7 @@ namespace mamba
 
         TransactionContext m_transaction_context;
         std::vector<Solvable*> m_to_install, m_to_remove;
+        History::UserRequest m_history_entry;
         Transaction* m_transaction;
     };  
 }

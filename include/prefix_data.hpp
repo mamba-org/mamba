@@ -5,6 +5,7 @@
 
 #include "nlohmann/json.hpp"
 
+#include "history.hpp"
 #include "util.hpp"
 
 namespace mamba
@@ -38,6 +39,10 @@ namespace mamba
         const package_map& records() const;
         void load_single_record(const fs::path& path);
 
+        History& history();
+        const fs::path& path() const;
+
+        History m_history;
         std::unordered_map<std::string, PackageRecord> m_package_records;
         fs::path m_prefix_path;
     };

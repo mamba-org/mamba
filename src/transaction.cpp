@@ -257,6 +257,11 @@ namespace mamba
             throw std::runtime_error("Cannot create transaction without calling solver.solve() first.");
         }
         m_transaction = solver_create_transaction(solver);
+
+        m_history_entry = History::UserRequest::prefilled();
+        m_history_entry.update = solver.install_specs();
+        m_history_entry.remove = solver.remove_specs();
+
         init();
         JsonLogger::instance().json_down("actions");
     }
@@ -371,10 +376,11 @@ namespace mamba
         return py_ver;
     }
 
-    bool MTransaction::execute(const fs::path& cache_dir, const fs::path& prefix)
+    bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
         LOG_WARNING << "Executing ...";
-        m_transaction_context = TransactionContext(prefix, find_python_version());
+        m_transaction_context = TransactionContext(prefix.path(), find_python_version());
+        History::UserRequest ur = History::UserRequest::prefilled();
 
         transaction_order(m_transaction, 0);
 
@@ -394,27 +400,35 @@ namespace mamba
                 {
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
                     LOG_INFO << "UPGRADE " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
-
+                    PackageInfo p_unlink(s);
+                    PackageInfo p_link(s2);
                     UnlinkPackage up(PackageInfo(s), &m_transaction_context);
                     up.execute();
 
                     LinkPackage lp(PackageInfo(s2), fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
 
+                    m_history_entry.unlink_dists.push_back(p_unlink.long_str());
+                    m_history_entry.link_dists.push_back(p_link.long_str());
+
                     break;
                 }
                 case SOLVER_TRANSACTION_ERASE:
                 {
-                    LOG_INFO << "UNLINK " << PackageInfo(s).str();
-                    UnlinkPackage up(PackageInfo(s), &m_transaction_context);
+                    PackageInfo p(s);
+                    LOG_INFO << "UNLINK " << p.str();
+                    UnlinkPackage up(p, &m_transaction_context);
                     up.execute();
+                    m_history_entry.unlink_dists.push_back(p.long_str());
                     break;
                 }
                 case SOLVER_TRANSACTION_INSTALL:
                 {
-                    LOG_INFO << "LINK " << PackageInfo(s).str();
-                    LinkPackage lp(PackageInfo(s), fs::path(cache_dir), &m_transaction_context);
+                    PackageInfo p(s);
+                    LOG_INFO << "LINK " << p.str();
+                    LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
+                    m_history_entry.link_dists.push_back(p.long_str());
                     break;
                 }
                 case SOLVER_TRANSACTION_IGNORE:
@@ -425,10 +439,7 @@ namespace mamba
             }
         }
 
-        if (!fs::exists(fs::path(prefix) / "conda-meta" / "history"))
-        {
-            std::ofstream(fs::path(prefix) / "conda-meta" / "history");
-        }
+        prefix.history().add_entry(m_history_entry);
 
         return true;
     }

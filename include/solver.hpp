@@ -36,10 +36,17 @@ namespace mamba
         bool is_solved();
         bool solve();
         std::string problems_to_str();
+
+        const std::vector<std::string>& install_specs() const;
+        const std::vector<std::string>& remove_specs() const;
+
         operator Solver*();
 
     private:
 
+        std::vector<std::string> m_install_specs;
+        std::vector<std::string> m_remove_specs;
+        std::vector<std::string> m_neuter_specs; // unused for now
         bool m_is_solved;
         Solver* m_solver;
         Queue m_jobs;

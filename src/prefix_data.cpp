@@ -16,7 +16,8 @@ namespace mamba
     }
 
     PrefixData::PrefixData(const std::string& prefix_path)
-        : m_prefix_path(fs::path(prefix_path))
+        : m_prefix_path(fs::path(prefix_path)),
+          m_history(prefix_path)
     {
     }
 
@@ -38,6 +39,16 @@ namespace mamba
     const PrefixData::package_map& PrefixData::records() const
     {
         return m_package_records;
+    }
+
+    History& PrefixData::history()
+    {
+        return m_history;
+    }
+
+    const fs::path& PrefixData::path() const
+    {
+        return m_prefix_path;
     }
 
     void PrefixData::load_single_record(const fs::path& path)

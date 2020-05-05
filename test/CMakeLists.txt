@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIR})
 
 set(TEST_SRCS
 	test_cpp.cpp
@@ -13,7 +14,10 @@ set(TEST_SRCS
 
 add_executable(test_mamba ${TEST_SRCS})
 
-install(FILES original_history_data aux_history_data DESTINATION .)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/history
+    ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/history COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
+    ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/aux_file COPYONLY)
 
 target_link_libraries(test_mamba PRIVATE ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(test_mamba PUBLIC mamba_lib)

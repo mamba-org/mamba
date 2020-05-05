@@ -306,9 +306,9 @@ namespace mamba
         return string_transform(input, std::tolower);
     }
 
-    std::string get_file_contents(const fs::path& path)
+    std::string get_file_contents(const fs::path& path, std::ios::openmode mode)
     {
-        std::ifstream in(path, std::ios::in | std::ios::binary);
+        std::ifstream in(path, std::ios::in | mode);
         if (in)
         {
             std::string contents;

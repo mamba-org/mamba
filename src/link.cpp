@@ -615,39 +615,59 @@ namespace mamba
             std::string prefix_placeholder = path_data["prefix_placeholder"].get<std::string>();
             std::string new_prefix = m_context->target_prefix;
             bool text_mode = path_data["file_mode"].get<std::string>() == "text";
-            if (!text_mode)
-            {
-                assert(path_data["file_mode"].get<std::string>() == "binary");
-                new_prefix.resize(prefix_placeholder.size(), '\0');
-            }
 
             LOG_INFO << "copied file & replace prefix " << src << " -> " << dst;
             // TODO windows does something else here
-            // if (path_data["file_mode"].get<std::string>() == "text")
+            std::string buffer;
+
+            if (text_mode)
             {
-                std::ifstream fi;
-                text_mode ? fi.open(src) : fi.open(src, std::ios::binary);
-                fi.seekg(0, std::ios::end);
-                size_t size = fi.tellg();
-                std::string buffer;
-                buffer.resize(size);
-                fi.seekg(0);
-                fi.read(&buffer[0], size);
+                buffer = get_file_contents(src, std::ios::in);
 
                 std::size_t pos = buffer.find(prefix_placeholder);
                 while (pos != std::string::npos)
                 {
-                    buffer.replace(pos, prefix_placeholder.size(), new_prefix);
+                    buffer.replace(pos, new_prefix.size(), new_prefix);
                     pos = buffer.find(prefix_placeholder, pos + new_prefix.size());
                 }
-
-                std::ofstream fo;
-                text_mode ? fo.open(dst) : fo.open(dst, std::ios::binary);
-                fo << buffer;
-                fo.close();
-
-                fs::permissions(dst, fs::status(src).permissions());
             }
+            else
+            {
+                assert(path_data["file_mode"].get<std::string>() == "binary");
+                // TODO use get_file_contents
+                buffer = get_file_contents(src, std::ios::in | std::ios::binary);
+                std::size_t old_size = buffer.size();
+
+                std::string padding(prefix_placeholder.size() - new_prefix.size(), '\0');
+
+                auto binary_replace = [&](std::size_t pos, std::size_t end, const std::string& suffix) {
+                    std::string replacement = concat(new_prefix, suffix, padding);
+                    buffer.replace(pos, end - pos, replacement);
+                };
+
+                std::size_t pos = buffer.find(prefix_placeholder);
+                while (pos != std::string::npos)
+                {
+                    std::size_t end = pos + prefix_placeholder.size();
+                    std::string suffix;
+
+                    while (end < buffer.size() && buffer[end] != '\0')
+                    {
+                        suffix += buffer[end];
+                        ++end;
+                    }
+
+                    binary_replace(pos, end, suffix);
+                    pos = buffer.find(prefix_placeholder, end);
+                }
+            }
+
+            std::ofstream fo(dst, text_mode ? std::ios::out : std::ios::out | std::ios::binary);
+            fo << buffer;
+            fo.close();
+
+            fs::permissions(dst, fs::status(src).permissions());
+
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 

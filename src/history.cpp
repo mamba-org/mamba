@@ -5,14 +5,14 @@ namespace mamba
 {
 
     History::History(const std::string& prefix)
-        : m_prefix(prefix)
+        : m_prefix(prefix),
+          m_history_file_path(fs::path(m_prefix) / "conda-meta" / "history")
     {
     }
 
     std::vector<History::ParseResult> History::parse()
     {
         std::vector<ParseResult> res;
-        m_history_file_path = fs::path(m_prefix) / "conda-meta" / "history";
         LOG_INFO << "parsing history: " << m_history_file_path;
 
         if (!fs::exists(m_history_file_path))
@@ -174,8 +174,9 @@ namespace mamba
 
     void History::add_entry(const History::UserRequest& entry)
     {
-        std::ofstream out;
-        out.open(m_history_file_path, std::ios::app);
+        LOG_INFO << "Opening history file: " << m_history_file_path;
+        std::ofstream out(m_history_file_path, std::ios::app);
+
         if (out.fail())
         {
             throw std::runtime_error("Couldn't open file: " + m_history_file_path.string());

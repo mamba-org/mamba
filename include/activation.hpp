@@ -632,6 +632,23 @@ namespace mamba
             return script(build_deactivate());
         }
 
+        virtual std::string hook_preamble() = 0;
+        virtual std::string hook_postamble() = 0;
+        virtual fs::path hook_source_path() = 0;
+
+        std::string hook()
+        {
+            std::stringstream builder;
+            builder << hook_preamble() << "\n";
+            builder << get_file_contents(hook_source_path()) << "\n";
+            if (Context::instance().auto_activate_base)
+            {
+                builder << "mamba activate base\n";
+            }
+            builder << hook_postamble() << "\n";
+            return builder.str();
+        }
+
     protected:
         bool m_stack = false;
         ActivationType m_action;
@@ -647,6 +664,36 @@ namespace mamba
         std::string shell_extension() override
         {
             return ".sh";
+        }
+
+        std::string hook_preamble() override
+        {
+            // result = ''
+            // for key, value in context.conda_exe_vars_dict.items():
+            //     if value is None:
+            //         # Using `unset_var_tmpl` would cause issues for people running
+            //         # with shell flag -u set (error on unset).
+            //         # result += join(self.unset_var_tmpl % key) + '\n'
+            //         result += join(self.export_var_tmpl % (key, '')) + '\n'
+            //     else:
+            //         if key in ('PYTHONPATH', 'CONDA_EXE'):
+            //             result += join(self.export_var_tmpl % (
+            //                 key, self.path_conversion(value))) + '\n'
+            //         else:
+            //             result += join(self.export_var_tmpl % (key, value)) + '\n'
+            // return result
+            std::string preamble;
+            return preamble;
+        }
+
+        std::string hook_postamble()
+        {
+            return "";
+        }
+
+        fs::path hook_source_path()
+        {
+            return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.sh";
         }
 
         std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) override
@@ -705,21 +752,5 @@ namespace mamba
 
             return out.str();
         }
-
-        // def _hook_preamble(self):
-        //     result = ''
-        //     for key, value in context.conda_exe_vars_dict.items():
-        //         if value is None:
-        //             # Using `unset_var_tmpl` would cause issues for people running
-        //             # with shell flag -u set (error on unset).
-        //             # result += join(self.unset_var_tmpl % key) + '\n'
-        //             result += join(self.export_var_tmpl % (key, '')) + '\n'
-        //         else:
-        //             if key in ('PYTHONPATH', 'CONDA_EXE'):
-        //                 result += join(self.export_var_tmpl % (
-        //                     key, self.path_conversion(value))) + '\n'
-        //             else:
-        //                 result += join(self.export_var_tmpl % (key, value)) + '\n'
-        //     return result
     };
 }

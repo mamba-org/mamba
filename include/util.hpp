@@ -20,8 +20,8 @@ namespace mamba
     static constexpr bool on_mac = true;
     #elif __linux__
     static constexpr bool on_win = false;
-    static constexpr bool on_linux = false;
-    static constexpr bool on_mac = true;
+    static constexpr bool on_linux = true;
+    static constexpr bool on_mac = false;
     #elif _WIN32
     static constexpr bool on_win = true;
     static constexpr bool on_linux = false;
@@ -43,7 +43,7 @@ namespace mamba
     std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix);
     bool paths_equal(const fs::path& lhs, const fs::path& rhs);
 
-    std::string get_file_contents(const fs::path& path, std::ios::openmode mode = std::ios::in | std::ios::binary);
+    std::string get_file_contents(const fs::path& path, std::ios::openmode mode = std::ios::in);
 
     inline void make_executable(const fs::path& p)
     {

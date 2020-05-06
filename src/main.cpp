@@ -10,6 +10,17 @@
 #include "solver.hpp"
 #include "shell_init.hpp"
 
+const char banner[] = R"MAMBARAW(
+              ____               _                                          _            
+             / . .\             (_)                                        | |           
+             \  ----<  _ __ ___  _  ___ _ __ ___  _ __ ___   __ _ _ __ ___ | |__   __ _  
+              \  /    | '_ ` _ \| |/ __| '__/ _ \| '_ ` _ \ / _` | '_ ` _ \| '_ \ / _` | 
+    __________/ /     | | | | | | | (__| | | (_) | | | | | | (_| | | | | | | |_) | (_| | 
+ -=:___________/      |_| |_| |_|_|\___|_|  \___/|_| |_| |_|\__,_|_| |_| |_|_.__/ \__,_| 
+)MAMBARAW";
+
+
+
 using namespace mamba;
 
 static struct {
@@ -82,6 +93,8 @@ void init_shell_parser(CLI::App* subcom)
 
 void install_specs(const std::vector<std::string>& specs)
 {
+    std::cout << termcolor::red << banner << termcolor::reset << std::endl;
+
     auto& ctx = Context::instance();
     ctx.set_verbosity(global_options.verbosity);
 

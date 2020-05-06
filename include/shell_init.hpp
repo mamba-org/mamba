@@ -1,17 +1,39 @@
+#ifndef MAMBA_SHELL_INIT
+#define MAMBA_SHELL_INIT
+
 #include <string>
 #include <regex>
 
 #include "output.hpp"
 #include "util.hpp"
+#include "activation.hpp"
+
 #include "thirdparty/filesystem.hpp"
+namespace fs = ghc::filesystem;
 
 #include "thirdparty/termcolor.hpp"
 
-namespace fs = ghc::filesystem;
 
 #ifndef _WIN32
-#include <wordexp.h>
+    #include <wordexp.h>
+    #if defined(__APPLE__)
+        #include <mach-o/dyld.h>
+    #endif
+    #include <inttypes.h>
+    #if defined(__linux__)
+        #include <linux/limits.h>
+    #else
+        #include <limits.h>
+    #endif
+#else
+    #include <windows.h>
+    #include <intrin.h>
 #endif
+
+// Here we are embedding the shell scripts
+constexpr const char mamba_sh[] =
+    #include "../data/mamba.sh"
+;
 
 namespace mamba
 {
@@ -29,6 +51,7 @@ namespace mamba
     #endif
 
     // Heavily inspired by https://github.com/gpakosz/whereami/
+    // check their source to add support for other OS
     fs::path get_self_exe_path()
     {
         #ifdef _WIN32
@@ -62,7 +85,11 @@ namespace mamba
         }
         return fs::absolute(buffer);
         #else
-        return fs::read_symlink("/proc/self/exe");
+            #if defined(__sun)
+                return fs::read_symlink("/proc/self/path/a.out");
+            #else
+                return fs::read_symlink("/proc/self/exe");
+            #endif
         #endif
     }
 
@@ -92,6 +119,8 @@ namespace mamba
         std::stringstream content;
         content << "# >>> mamba initialize >>>\n";
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "export MAMBA_EXE=" << mamba_exe << ";\n";
+        content << "export MAMBA_ROOT_PREFIX=" << env_prefix << ";\n";
         content << "__mamba_setup=\"$(" << std::quoted(mamba_exe.string(), '\'') << " shell hook --shell "
                 << shell << " --prefix " << std::quoted(env_prefix.string(), '\'') << " 2> /dev/null)\"\n";
         content << "if [ $? -eq 0 ]; then\n";
@@ -142,8 +171,28 @@ namespace mamba
         return true;
     }
 
+    void init_root_prefix(const fs::path& root_prefix)
+    {
+        Context::instance().root_prefix = root_prefix;
+        if (fs::exists(root_prefix))
+        {
+            if (!Console::prompt("Prefix at " + root_prefix.string() + " already exists, use as root prefix?"))
+            {
+                Console::print("OK, exiting.");
+                exit(0);
+            }
+        }
+
+        PosixActivator a;
+        auto sh_source_path = a.hook_source_path();
+        fs::create_directories(sh_source_path.parent_path());
+        std::ofstream sh_file(sh_source_path);
+        sh_file << mamba_sh;
+    }
+
     void init_shell(const std::string& shell, const fs::path& conda_prefix)
     {
+        init_root_prefix(conda_prefix);
         auto mamba_exe = get_self_exe_path();
         fs::path home = home_directory();
         if (shell == "bash")
@@ -157,3 +206,5 @@ namespace mamba
         }
     }
 }
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef MAMBA_ACTIVATION
+#define MAMBA_ACTIVATION
+
 #include "util.hpp"
 #include "context.hpp"
 #include "environment.hpp"
@@ -352,8 +355,21 @@ namespace mamba
             }
         }
 
-        auto build_reactivate(const fs::path& conda_prefix, int conda_shlvl)
+        auto build_reactivate()
         {
+            std::string conda_prefix;
+            int conda_shlvl = 0;
+            if (m_env.find("CONDA_SHLVL") != m_env.end())
+            {
+                std::string env_shlvl(strip(m_env["CONDA_SHLVL"]));
+                conda_shlvl = std::stoi(env_shlvl);
+            }
+
+            if (m_env.find("CONDA_PREFIX") != m_env.end())
+            {
+                conda_prefix = m_env["CONDA_PREFIX"];
+            }
+
             EnvironmentTransform envt;
             if (conda_prefix.empty() || conda_shlvl < 1)
             {
@@ -390,6 +406,9 @@ namespace mamba
             //         env_vars_to_unset = env_vars_to_unset + (k,)
             //     else:
             //         env_vars_to_export[k] = v
+
+            envt.deactivate_scripts = get_deactivate_scripts(conda_prefix);
+            envt.activate_scripts = get_activate_scripts(conda_prefix);
 
             return envt;
         }
@@ -524,7 +543,7 @@ namespace mamba
 
             if (old_conda_prefix == prefix && old_conda_shlvl > 0)
             {
-                return build_reactivate(prefix, old_conda_shlvl);
+                return build_reactivate();
             }
 
             if (old_conda_shlvl &&
@@ -624,6 +643,12 @@ namespace mamba
             m_stack = stack;
             m_action = ACTIVATE;
             return script(build_activate(prefix));
+        }
+
+        std::string reactivate()
+        {
+            m_action = REACTIVATE;
+            return script(build_reactivate());
         }
 
         std::string deactivate()
@@ -754,3 +779,5 @@ namespace mamba
         }
     };
 }
+
+#endif

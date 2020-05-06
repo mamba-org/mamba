@@ -154,7 +154,6 @@ void init_create_parser(CLI::App* subcom)
     // subcom->add_option("-n,--name" create_options.name, "Prefix name");
 
     subcom->callback([&]() {
-
         auto& ctx = Context::instance();
         ctx.set_verbosity(global_options.verbosity);
         ctx.target_prefix = create_options.prefix;
@@ -167,50 +166,7 @@ void init_create_parser(CLI::App* subcom)
         {
             fs::create_directories(ctx.target_prefix);
         }
-
         install_specs(create_options.specs);
-        // fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
-        // fs::create_directories(cache_dir);
-
-        // MSubdirData cfl("conda-forge/linux-64",
-        //                 "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
-        //                 cache_dir / "cf_linux64.json");
-        // MSubdirData cfn("conda-forge/noarch",
-        //                 "https://conda.anaconda.org/conda-forge/noarch/repodata.json",
-        //                 cache_dir / "cf_noarch.json");
-        // cfl.load();
-        // cfn.load();
-        // MultiDownloadTarget multi_dl;
-        // multi_dl.add(cfl.target());
-        // multi_dl.add(cfn.target());
-        // multi_dl.download(true);
-
-        // std::vector<MRepo*> repos;
-        // MPool pool;
-        // PrefixData prefix_data(ctx.target_prefix);
-        // prefix_data.load();
-        // auto repo = MRepo(pool, prefix_data);
-        // repos.push_back(&repo);
-
-        // MRepo cfl_r(pool, "conda-forge/linux-64", cfl.cache_path(), "https://conda.anaconda.org/conda-forge/linux-64/");
-        // cfl_r.set_priority(0, 1);
-        // repos.push_back(&cfl_r);
-
-        // MRepo cfl_n(pool, "conda-forge/noarch", cfn.cache_path(), "https://conda.anaconda.org/conda-forge/noarch/");
-        // cfl_n.set_priority(0, 0);
-        // repos.push_back(&cfl_n);
-
-        // MSolver solver(pool, {{SOLVER_FLAG_ALLOW_DOWNGRADE, 1}});
-        // solver.add_jobs(create_options.specs, SOLVER_INSTALL);
-        // // solver.add_jobs({"xtensor"}, SOLVER_UPDATE);
-        // solver.solve();
-
-        // mamba::MTransaction trans(solver);
-        // trans.print();
-        // bool yes = trans.prompt(ctx.root_prefix / "pkgs", repos);
-        // if (!yes) exit(0);
-
-        // trans.execute(prefix_data, ctx.root_prefix / "pkgs");
 
         return 0;
     });

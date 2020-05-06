@@ -319,7 +319,10 @@ namespace mamba
             in.close();
             return(contents);
         }
-        throw(errno);
+        else
+        {
+            throw std::runtime_error("Could not open file (" + path.string() + ") ERRNO: " + std::to_string(errno));
+        }
     }
 
 }

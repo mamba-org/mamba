@@ -20,15 +20,17 @@ namespace mamba
         // TODO $CONDA_PREFIX doesn't work.
         std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
 
-        fs::path target_prefix;
-        fs::path root_prefix;
-        fs::path conda_prefix;
+        fs::path target_prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";;
+        // Need to prevent circular imports here (otherwise using env::get())
+        fs::path root_prefix = std::getenv("MAMBA_ROOT_PREFIX") ? std::getenv("MAMBA_ROOT_PREFIX") : "";
+        fs::path conda_prefix = root_prefix;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1; // take from header
         bool offline = false;
         bool quiet = false;
         bool json = false;
+        bool auto_activate_base = false;
 
         long max_parallel_downloads = 5;
         int verbosity = 0;

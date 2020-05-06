@@ -20,7 +20,7 @@ namespace mamba
         auto expanded = expand_path("~/this/is/a/test");
         if (on_linux)
         {
-            EXPECT_TRUE(starts_with(expanded, "/home/"));
+            EXPECT_TRUE(starts_with(expanded.string(), "/home/"));
         }
     }
 }

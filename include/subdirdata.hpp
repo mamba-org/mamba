@@ -35,7 +35,7 @@ namespace mamba
         std::string cache_path() const;
         DownloadTarget* target();
         const std::string& name() const;
-        bool finalize_transfer();
+        bool finalize_transfer(CURLcode code);
 
     private:
 

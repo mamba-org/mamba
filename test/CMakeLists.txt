@@ -10,6 +10,7 @@ set(TEST_SRCS
 	test_shell_init.cpp
 	test_activation.cpp
 	test_string_methods.cpp
+	test_transfer.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

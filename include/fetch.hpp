@@ -41,12 +41,12 @@ namespace mamba
         curl_off_t get_speed();
 
         template <class C>
-        void set_finalize_callback(bool (C::*cb)(), C* data)
+        void set_finalize_callback(bool (C::*cb)(CURLcode), C* data)
         {
             m_finalize_callback = std::bind(cb, data);
         }
 
-        bool finalize();
+        bool finalize(CURLcode res);
 
         bool can_retry();
         CURL* retry();
@@ -61,7 +61,7 @@ namespace mamba
 
     private:
 
-        std::function<bool()> m_finalize_callback;
+        std::function<bool(CURLcode)> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
 

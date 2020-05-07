@@ -111,7 +111,7 @@ namespace mamba
         return m_finished;
     }
 
-    bool PackageDownloadExtractTarget::finalize_callback()
+    bool PackageDownloadExtractTarget::finalize_callback(CURLcode res)
     {
         m_progress_proxy.set_progress(100);
         m_progress_proxy.set_postfix("Validating...");

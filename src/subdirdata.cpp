@@ -173,7 +173,7 @@ namespace mamba
         return m_name;
     }
 
-    bool MSubdirData::finalize_transfer()
+    bool MSubdirData::finalize_transfer(CURLcode code)
     {
         LOG_WARNING << "HTTP response code: " << m_target->http_status;
         if (m_target->http_status == 200 || m_target->http_status == 304)
@@ -190,7 +190,8 @@ namespace mamba
 
             using fs_time_t = decltype(fs::last_write_time(fs::path()));
             fs::last_write_time(m_json_fn, fs_time_t::clock::now());
-            LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count() << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+            LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
+                     << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
             if(solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
             {
                 fs::last_write_time(m_solv_fn, fs_time_t::clock::now());
@@ -207,9 +208,11 @@ namespace mamba
             return true;
         }
 
-        if ((m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch"))
+        if (
+            (m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch")
+        )
         {
-            // we're ignoring a 404 on non-noarch channels like conda does
+            // we're ignoring a 404 or file not retrieved on non-noarch channels like conda does
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
             m_progress_bar.set_postfix("404 Ignored");
             m_progress_bar.set_progress(100);

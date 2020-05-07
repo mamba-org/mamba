@@ -72,7 +72,7 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        return m_retries < Context::instance().max_retries;
+        return m_retries < Context::instance().max_retries && !starts_with(m_url, "file://");
     }
 
     CURL* DownloadTarget::retry()
@@ -232,11 +232,11 @@ namespace mamba
     bool DownloadTarget::perform()
     {
         CURLcode res = curl_easy_perform(m_handle);
-        if (res != CURLE_OK)
-        {
-            throw std::runtime_error(curl_easy_strerror(res));
-        }
-        return m_finalize_callback ? m_finalize_callback() : true;
+        // if (res != CURLE_OK)
+        // {
+        //     throw std::runtime_error(curl_easy_strerror(res));
+        // }
+        return m_finalize_callback ? m_finalize_callback(res) : true;
     }
 
     CURL* DownloadTarget::handle()
@@ -259,7 +259,7 @@ namespace mamba
         m_progress_bar.set_postfix(msg);
     }
         
-    bool DownloadTarget::finalize()
+    bool DownloadTarget::finalize(CURLcode res)
     {
         char* effective_url = nullptr;
         curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
@@ -282,7 +282,7 @@ namespace mamba
         final_url = effective_url;
         if (m_finalize_callback)
         {
-            return m_finalize_callback();
+            return m_finalize_callback(res);
         }
         else
         {
@@ -374,7 +374,7 @@ namespace mamba
             curl_multi_remove_handle(m_handle, current_target->handle());
 
             // flush file & finalize transfer
-            if (!current_target->finalize())
+            if (!current_target->finalize(msg->data.result))
             {
                 // transfer did not work! can we retry?
                 if (current_target->can_retry())

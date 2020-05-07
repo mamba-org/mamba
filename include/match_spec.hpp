@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "nlohmann/json.hpp"
+
 extern "C" {
     #include <solv/solvable.h>
     #include <solv/pool.h>
@@ -19,6 +21,7 @@ namespace mamba
     public:
 
         PackageInfo(Solvable* s);
+        PackageInfo(nlohmann::json&& j);
         PackageInfo(const std::string& name, const std::string& version,
                     const std::string build, std::size_t build_number);
 
@@ -30,7 +33,18 @@ namespace mamba
         std::string build;
         std::size_t build_number;
         std::string channel;
+        std::string url;
         std::string subdir;
+        std::string fn;
+        std::string license;
+        std::size_t size;
+        std::size_t timestamp;
+        std::string md5;
+        std::string sha256;
+        std::vector<std::string> depends;
+        std::vector<std::string> constrains;
+
+        nlohmann::json json;
     };
 
     class MatchSpec

@@ -343,33 +343,32 @@ namespace mamba
     void Console::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
     {
         std::lock_guard<std::mutex> lock(instance().m_mutex);
+
+        if (Context::instance().no_progress_bars && !(Context::instance().quiet || Context::instance().json))
+        {
+            std::cout << m_progress_bars[idx]->prefix() << " " << msg << "\n";
+        }
+
         auto it = std::find(m_active_progress_bars.begin(), m_active_progress_bars.end(), m_progress_bars[idx].get());
         if (it == m_active_progress_bars.end() || Context::instance().quiet || Context::instance().json)
         {
+            // if no_progress_bars is true, should return here as no progress bars are active
             return;
         }
 
         m_active_progress_bars.erase(it);
-        if (Context::instance().no_progress_bars)
+        int ps = m_active_progress_bars.size();
+        std::cout << cursor::prev_line(ps + 1) << cursor::erase_line();
+        if (msg.empty())
         {
-            Console::print("Finished downloading "
-                    + m_progress_bars[idx]->prefix());
+            m_progress_bars[idx]->print();
+            std::cout << "\n";
         }
         else
         {
-            int ps = m_active_progress_bars.size();
-            std::cout << cursor::prev_line(ps + 1) << cursor::erase_line();
-            if (msg.empty())
-            {
-                m_progress_bars[idx]->print();
-                std::cout << "\n";
-            }
-            else
-            {
-                std::cout << msg << std::endl;
-            }
-            print_progress_unlocked();
+            std::cout << msg << std::endl;
         }
+        print_progress_unlocked();
     }
 
     void Console::print_progress(std::size_t idx)

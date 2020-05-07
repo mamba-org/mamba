@@ -54,4 +54,19 @@ namespace mamba
         // update in 100 years!
         EXPECT_TRUE(u.date[0] == '2' && u.date[1] == '0');
     }
+
+    TEST(output, no_progress_bars)
+    {
+        Context::instance().no_progress_bars = true;
+        testing::internal::CaptureStdout();
+
+        auto proxy = Console::instance().add_progress_bar("conda-forge");
+        proxy.set_progress(50);
+        proxy.set_postfix("Downloading");
+        proxy.mark_as_completed("conda-forge channel downloaded");
+        std::string output = testing::internal::GetCapturedStdout();
+        EXPECT_TRUE(ends_with(output, "conda-forge channel downloaded\n"));
+        Context::instance().no_progress_bars = false;
+
+    }
 }

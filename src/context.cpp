@@ -2,6 +2,7 @@
 
 #include "output.hpp"
 #include "context.hpp"
+#include "thirdparty/termcolor.hpp"
 
 namespace mamba
 {
@@ -9,7 +10,7 @@ namespace mamba
     {
         set_verbosity(0);
         on_ci = (std::getenv("CI") != nullptr);
-        if (on_ci)
+        if (on_ci || !termcolor::_internal::is_atty(std::cout))
         {
             no_progress_bars = true;
         }

@@ -25,6 +25,7 @@ namespace mamba
         PackageInfo(const std::string& name, const std::string& version,
                     const std::string build, std::size_t build_number);
 
+        nlohmann::json json() const;
         std::string str() const;
         std::string long_str() const;
 
@@ -43,8 +44,6 @@ namespace mamba
         std::string sha256;
         std::vector<std::string> depends;
         std::vector<std::string> constrains;
-
-        nlohmann::json json;
     };
 
     class MatchSpec

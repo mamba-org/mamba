@@ -14,63 +14,31 @@ namespace mamba
         Queue q;
 
         name = pool_id2str(pool, s->name);
-        json["name"] = name;
-
         version = pool_id2str(pool, s->evr);
-        json["version"] = version;
-
         str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
         if (str)
-        {
             build = str;
-            json["build"] = str;
-        }
-
         str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
         if (str)
         {
             n = std::stoi(str);
-            json["build_number"] = n;
             build_number = n;
         }
-
         channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
-        json["channel"] = channel;
-
         url = channel + "/" + solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-
         subdir = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
-        json["subdir"] = subdir;
-
         fn = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-        json["fn"] = fn;
-
         str = solvable_lookup_str(s, SOLVABLE_LICENSE);
         if (str)
-        {
             license = str;
-            json["license"] = str;
-        }
-
         size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
-        json["size"] = size;
-
         timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0) * 1000;
-        json["timestamp"] = timestamp;
-
         str = solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type);
         if (str)
-        {
             md5 = str;
-            json["md5"] = str;
-        }
-
         str = solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type);
         if (str)
-        {
             sha256 = str;
-            json["sha256"] = str;
-        }
 
         queue_init(&q);
         solvable_lookup_deparray(s, SOLVABLE_REQUIRES, &q, -1);
@@ -87,63 +55,57 @@ namespace mamba
             constrains[i] = pool_dep2str(pool, q.elements[i]);
         }
         queue_free(&q);
-        json["depends"] = depends;
-        json["constrains"] = constrains;
     }
 
     PackageInfo::PackageInfo(nlohmann::json&& j)
-            : json(std::move(j))
     {
         name = j["name"];
-
         version = j["version"];
-
-        if (j.find("build") != j.end())
-        {
-            build = j["build"];
-        }
-
-        if (j.find("build_number") != j.end())
-        {
-            build_number = j["build_number"];
-        }
-
         channel = j["channel"];
-
         url = j["url"];
-
         subdir = j["subdir"];
-
         fn = j["fn"];
-
-        if (j.find("license") != j.end())
-        {
-            license = j["license"];
-        }
-
         size = j["size"];
-
         timestamp = j["timestamp"];
-
-        if (j.find("md5") != j.end())
-        {
+        if (j.contains("build"))
+            build = j["build"];
+        if (j.contains("build_number"))
+            build_number = j["build_number"];
+        if (j.contains("license"))
+            license = j["license"];
+        if (j.contains("md5"))
             md5 = j["md5"];
-        }
-
-        if (j.find("sha256") != j.end())
-        {
+        if (j.contains("sha256"))
             sha256 = j["sha256"];
-        }
     }
 
     PackageInfo::PackageInfo(const std::string& n, const std::string& v,
                              const std::string b, std::size_t bn)
         : name(n), version(v), build(b), build_number(bn)
     {
-        json["name"] = n;
-        json["version"] = v;
-        json["build"] = b;
-        json["build_number"] = bn;
+    }
+
+    nlohmann::json PackageInfo::json() const
+    {
+        nlohmann::json j;
+        j["name"] = name;
+        j["version"] = version;
+        j["channel"] = channel;
+        j["url"] = url;
+        j["subdir"] = subdir;
+        j["fn"] = fn;
+        j["size"] = size;
+        j["timestamp"] = timestamp;
+        j["build"] = build;
+        j["build_number"] = build_number;
+        j["license"] = license;
+        j["md5"] = md5;
+        j["sha256"] = sha256;
+        if (!depends.empty())
+            j["depends"] = depends;
+        if (!constrains.empty())
+            j["constrains"] = constrains;
+        return j;
     }
 
     std::string PackageInfo::str() const

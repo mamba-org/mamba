@@ -15,7 +15,7 @@ namespace mamba
 
     nlohmann::json solvable_to_json(Solvable* s)
     {
-        return PackageInfo(s).json;
+        return PackageInfo(s).json();
     }
 
     /********************************

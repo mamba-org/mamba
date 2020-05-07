@@ -36,10 +36,10 @@ namespace mamba
             s->evr = pool_str2id(pool, record.version.c_str(), 1);
 
             repodata_set_location(data, handle, 0, record.subdir.c_str(), record.fn.c_str());
-            if (record.json.find("depends") != record.json.end())
+            if (record.json().contains("depends"))
             {
-                assert(record.json["depends"].is_array());
-                for (std::string dep : record.json["depends"])
+                assert(record.json()["depends"].is_array());
+                for (std::string dep : record.json()["depends"])
                 {
                     Id dep_id = pool_conda_matchspec(pool, dep.c_str());
                     if (dep_id)
@@ -49,10 +49,10 @@ namespace mamba
                 }
             }
 
-            if (record.json.find("constrains") != record.json.end())
+            if (record.json().contains("constrains"))
             {
-                assert(record.json["constrains"].is_array());
-                for (std::string cst : record.json["constrains"])
+                assert(record.json()["constrains"].is_array());
+                for (std::string cst : record.json()["constrains"])
                 {
                     Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
                     if (constrains_id)

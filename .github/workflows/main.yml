@@ -31,7 +31,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cmake gtest cpp-tabulate>=1.2
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -81,7 +81,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cmake gtest cpp-tabulate>=1.2
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies

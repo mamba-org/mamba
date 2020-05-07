@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/QuantStack/mamba/workflows/CI/badge.svg)](https://github.com/QuantStack/mamba/actions)
 
-**Still in BETA! Don't use mamba to install something in valuable environments!** 
+**Still in BETA! Don't use mamba to install something in valuable environments!**
 
 Mamba is a reimplementation of the bits which are somewhat slow in conda. Mamba uses:
 
@@ -23,7 +23,7 @@ conda install mamba -c conda-forge
 
 Make sure to have the following requirements in your conda environment:
 
-- `conda install pybind11 libsolv libarchive libcurl nlohmann_json pip cpp-tabulate -c conda-forge`
+- `conda install pybind11 libsolv libarchive libcurl nlohmann_json pip cpp-tabulate">=1.2" -c conda-forge`
 
 If you build mamba in a different environment than base, you must also install conda in
 that environment:

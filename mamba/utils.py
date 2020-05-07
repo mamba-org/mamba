@@ -63,13 +63,14 @@ def init_api_context():
         context.always_yes = True
         context.quiet = True
         context.json = False
+    api_ctx.dry_run = context.dry_run
+    context.dry_run = False
     api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
     api_ctx.use_index_cache = context.use_index_cache
     api_ctx.always_yes = context.always_yes
-    api_ctx.dry_run = context.dry_run
     if context.ssl_verify == False:
         api_ctx.ssl_verify = "<false>"
     elif context.ssl_verify is not True:

@@ -41,12 +41,22 @@ namespace mamba
         curl_off_t get_speed();
 
         template <class C>
-        void set_finalize_callback(bool (C::*cb)(CURLcode), C* data)
+        inline void set_finalize_callback(bool (C::*cb)(), C* data)
         {
             m_finalize_callback = std::bind(cb, data);
         }
 
-        bool finalize(CURLcode res);
+        inline void set_ignore_failure(bool yes)
+        {
+            m_ignore_failure = yes;
+        }
+
+        inline bool ignore_failure() const
+        {
+            return m_ignore_failure;
+        }
+
+        bool finalize();
 
         bool can_retry();
         CURL* retry();
@@ -61,7 +71,7 @@ namespace mamba
 
     private:
 
-        std::function<bool(CURLcode)> m_finalize_callback;
+        std::function<bool()> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
 
@@ -79,6 +89,8 @@ namespace mamba
         curl_slist* m_headers;
 
         bool m_has_progress_bar = false;
+        bool m_ignore_failure = false;
+
         ProgressProxy m_progress_bar;
 
         std::ofstream m_file;

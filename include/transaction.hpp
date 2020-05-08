@@ -37,7 +37,7 @@ namespace mamba
 
         void write_repodata_record(const fs::path& base_path);
         void add_url();
-        bool finalize_callback(CURLcode res);
+        bool finalize_callback();
         bool finished();
         bool validate_extract();
         DownloadTarget* target(const fs::path& cache_path);

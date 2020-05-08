@@ -8,8 +8,13 @@
 
 namespace fs = ghc::filesystem;
 
+#define ROOT_ENV_NAME "base"
+
 namespace mamba
 {
+    std::string env_name(const fs::path& prefix);
+    fs::path locate_prefix_by_name(const std::string& name);
+
     // Context singleton class
     class Context
     {
@@ -17,13 +22,14 @@ namespace mamba
 
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
-        // TODO $CONDA_PREFIX doesn't work.
-        std::vector<std::string> pkgs_dirs = {"$CONDA_PREFIX/pkgs"};
 
         fs::path target_prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";;
         // Need to prevent circular imports here (otherwise using env::get())
         fs::path root_prefix = std::getenv("MAMBA_ROOT_PREFIX") ? std::getenv("MAMBA_ROOT_PREFIX") : "";
         fs::path conda_prefix = root_prefix;
+
+        // TODO check writable and add other potential dirs
+        std::vector<fs::path> envs_dirs = { root_prefix / "envs" };
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1; // take from header

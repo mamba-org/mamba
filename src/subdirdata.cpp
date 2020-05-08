@@ -173,7 +173,7 @@ namespace mamba
         return m_name;
     }
 
-    bool MSubdirData::finalize_transfer(CURLcode code)
+    bool MSubdirData::finalize_transfer()
     {
         LOG_WARNING << "HTTP response code: " << m_target->http_status;
         if (m_target->http_status == 200 || m_target->http_status == 304)
@@ -208,9 +208,7 @@ namespace mamba
             return true;
         }
 
-        if (
-            (m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch")
-        )
+        if ((m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch"))
         {
             // we're ignoring a 404 or file not retrieved on non-noarch channels like conda does
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
@@ -292,6 +290,11 @@ namespace mamba
         m_progress_bar = Console::instance().add_progress_bar(m_name);
         m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
         m_target->set_progress_bar(m_progress_bar);
+        // if we get something _other_ than the noarch, we DO NOT throw if the file can't be retrieved
+        if (!ends_with(m_name, "/noarch"))
+        {
+            m_target->set_ignore_failure(true);
+        }
         m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         m_target->set_mod_etag_headers(mod_etag);
     }

@@ -232,11 +232,11 @@ namespace mamba
     bool DownloadTarget::perform()
     {
         CURLcode res = curl_easy_perform(m_handle);
-        // if (res != CURLE_OK)
-        // {
-        //     throw std::runtime_error(curl_easy_strerror(res));
-        // }
-        return m_finalize_callback ? m_finalize_callback(res) : true;
+        if (res != CURLE_OK && m_ignore_failure == false)
+        {
+            throw std::runtime_error(curl_easy_strerror(res));
+        }
+        return m_finalize_callback ? m_finalize_callback() : true;
     }
 
     CURL* DownloadTarget::handle()
@@ -259,7 +259,7 @@ namespace mamba
         m_progress_bar.set_postfix(msg);
     }
         
-    bool DownloadTarget::finalize(CURLcode res)
+    bool DownloadTarget::finalize()
     {
         char* effective_url = nullptr;
         curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
@@ -282,7 +282,7 @@ namespace mamba
         final_url = effective_url;
         if (m_finalize_callback)
         {
-            return m_finalize_callback(res);
+            return m_finalize_callback();
         }
         else
         {
@@ -356,13 +356,16 @@ namespace mamba
                     m_retry_targets.push_back(current_target);
                     continue;
                 }
-                char* effective_url = nullptr;
-                curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
-                std::stringstream err;
-                err << "Download error (" << msg->data.result << ") " <<
-                        curl_easy_strerror(msg->data.result) << " [" << effective_url << "]";
+                if (current_target->ignore_failure() == false)
+                {
+                    char* effective_url = nullptr;
+                    curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
+                    std::stringstream err;
+                    err << "Download error (" << msg->data.result << ") " <<
+                            curl_easy_strerror(msg->data.result) << " [" << effective_url << "]";
 
-                throw std::runtime_error(err.str());
+                    throw std::runtime_error(err.str());
+                }
             }
 
             if (msg->msg != CURLMSG_DONE)
@@ -374,7 +377,7 @@ namespace mamba
             curl_multi_remove_handle(m_handle, current_target->handle());
 
             // flush file & finalize transfer
-            if (!current_target->finalize(msg->data.result))
+            if (!current_target->finalize())
             {
                 // transfer did not work! can we retry?
                 if (current_target->can_retry())

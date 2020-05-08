@@ -10,28 +10,10 @@
 
 namespace mamba
 {
-    class  PackageRecord
-    {
-    public:
-
-        PackageRecord(nlohmann::json&& j);
-
-        std::string name;
-        std::string version;
-        std::string build;
-        std::size_t build_number;
-
-        std::string channel;
-        std::string subdir;
-        std::string fn;
-
-        nlohmann::json json;
-    };
-
     class PrefixData
     {
     public:
-        using package_map = std::unordered_map<std::string, PackageRecord>;
+        using package_map = std::unordered_map<std::string, PackageInfo>;
 
         PrefixData(const std::string& prefix_path);
 
@@ -43,7 +25,7 @@ namespace mamba
         const fs::path& path() const;
 
         History m_history;
-        std::unordered_map<std::string, PackageRecord> m_package_records;
+        std::unordered_map<std::string, PackageInfo> m_package_records;
         fs::path m_prefix_path;
     };
 }

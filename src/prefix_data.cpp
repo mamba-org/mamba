@@ -3,18 +3,6 @@
 
 namespace mamba
 {
-    PackageRecord::PackageRecord(nlohmann::json&& j)
-            : json(std::move(j))
-    {
-        name = json["name"];
-        version = json["version"];
-        build = json["build"];
-        build_number = json["build_number"];
-        channel = json["channel"];
-        subdir = json["subdir"];
-        fn = json["fn"];
-    }
-
     PrefixData::PrefixData(const std::string& prefix_path)
         : m_prefix_path(fs::path(prefix_path)),
           m_history(prefix_path)
@@ -57,7 +45,7 @@ namespace mamba
         std::ifstream infile(path);
         nlohmann::json j;
         infile >> j;
-        auto prec = PackageRecord(std::move(j));
+        auto prec = PackageInfo(std::move(j));
         m_package_records.insert({prec.name, std::move(prec)});
     }
 }

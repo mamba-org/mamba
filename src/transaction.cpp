@@ -15,56 +15,7 @@ namespace mamba
 
     nlohmann::json solvable_to_json(Solvable* s)
     {
-        nlohmann::json j;
-        auto* pool = s->repo->pool;
-
-        j["name"] = pool_id2str(pool, s->name);
-        j["version"] = pool_id2str(pool, s->evr);
-
-        try_add(j, "build", solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR));
-        // Note we should?! fix this in libsolv?!
-        const char* build_number = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
-        if (build_number)
-        {
-            j["build_number"] = std::stoi(build_number);
-        }
-
-        try_add(j, "license", solvable_lookup_str(s, SOLVABLE_LICENSE));
-        j["size"] = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
-
-        std::size_t timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0);
-        if (timestamp != 0) timestamp *= 1000;
-        j["timestamp"] = timestamp;
-
-        Id check_type;
-        try_add(j, "md5", solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type));
-        try_add(j, "sha256", solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type));
-
-        j["subdir"] = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
-        j["fn"] = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-
-        std::vector<std::string> depends, constrains;
-        Queue q;
-        queue_init(&q);
-        solvable_lookup_deparray(s, SOLVABLE_REQUIRES, &q, -1);
-        depends.resize(q.count);
-        for (int i = 0; i < q.count; ++i)
-        {
-            depends[i] = pool_dep2str(pool, q.elements[i]);
-        }
-        queue_empty(&q);
-        solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, &q, -1);
-        constrains.resize(q.count);
-        for (int i = 0; i < q.count; ++i)
-        {
-            constrains[i] = pool_dep2str(pool, q.elements[i]);
-        }
-        queue_free(&q);
-
-        j["depends"] = depends;
-        j["constrains"] = constrains;
-
-        return j;
+        return PackageInfo(s).json();
     }
 
     /********************************

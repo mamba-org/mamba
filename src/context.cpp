@@ -62,7 +62,7 @@ namespace mamba
         return prefix;
     }
 
-    // Find the location of a prefix given a conda env name. 
+    // Find the location of a prefix given a conda env name.
     // If the location does not exist, an error is raised.
     fs::path locate_prefix_by_name(const std::string& name)
     {

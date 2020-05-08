@@ -87,7 +87,7 @@ namespace mamba
             EXPECT_EQ(env_name(prefix), "/home/user/micromamba/envs/abc/a.txt");
             prefix = "/home/user/env";
             EXPECT_EQ(env_name(prefix), "/home/user/env");
-        
+
             EXPECT_THROW(locate_prefix_by_name("test"), std::runtime_error);
             // TODO implement tests for locate_prefix_by_name
         }

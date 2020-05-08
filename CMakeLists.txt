@@ -12,6 +12,7 @@ find_package(CURL REQUIRED)
 find_library(ARCHIVE_LIBRARIES NAMES archive)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(tabulate REQUIRED)
 
 set(MAMBA_REQUIRED_LIBS
     ${LIBSOLV_LIBRARIES}
@@ -20,6 +21,7 @@ set(MAMBA_REQUIRED_LIBS
     ${CURL_LIBRARIES}
     ${OPENSSL_CRYPTO_LIBRARY}
     nlohmann_json::nlohmann_json
+    tabulate::tabulate
 )
 
 message("Found libraries: ${MAMBA_REQUIRED_LIBS}")

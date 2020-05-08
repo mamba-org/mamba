@@ -13,7 +13,7 @@ namespace mamba
             mamba::MultiDownloadTarget multi_dl;
             mamba::MSubdirData cf("conda-forge/linux-64",
                                   "file:///nonexistent/repodata.json",
-                                  "/home/wolfv/miniconda3/pkgs/cache/xyz.json");
+                                  "/tmp/zyx.json");
             cf.load();
             multi_dl.add(cf.target());
             multi_dl.download(true);

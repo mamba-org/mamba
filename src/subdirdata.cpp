@@ -175,10 +175,25 @@ namespace mamba
 
     bool MSubdirData::finalize_transfer()
     {
+        if (m_target->result != 0 || m_target->http_status >= 400)
+        {
+            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
+            m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
+            m_progress_bar.set_progress(100);
+            m_progress_bar.mark_as_completed();
+            m_loaded = false;
+            return false;
+        }
+
         LOG_WARNING << "HTTP response code: " << m_target->http_status;
-        if (m_target->http_status == 200 || m_target->http_status == 304)
+        // Note HTTP status == 0 for files
+        if (m_target->http_status == 0 || m_target->http_status == 200 || m_target->http_status == 304)
         {
             m_download_complete = true;
+        }
+        else
+        {
+            throw std::runtime_error("Unhandled HTTP code: " + std::to_string(m_target->http_status));
         }
 
         if (m_target->http_status == 304)
@@ -190,7 +205,8 @@ namespace mamba
 
             using fs_time_t = decltype(fs::last_write_time(fs::path()));
             fs::last_write_time(m_json_fn, fs_time_t::clock::now());
-            LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count() << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+            LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
+                     << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
             if(solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
             {
                 fs::last_write_time(m_solv_fn, fs_time_t::clock::now());
@@ -204,17 +220,6 @@ namespace mamba
             m_json_cache_valid = true;
             m_loaded = true;
             m_temp_file.reset(nullptr);
-            return true;
-        }
-
-        if ((m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch"))
-        {
-            // we're ignoring a 404 on non-noarch channels like conda does
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
-            m_progress_bar.set_postfix("404 Ignored");
-            m_progress_bar.set_progress(100);
-            m_progress_bar.mark_as_completed();
-            m_loaded = false;
             return true;
         }
 
@@ -289,6 +294,11 @@ namespace mamba
         m_progress_bar = Console::instance().add_progress_bar(m_name);
         m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
         m_target->set_progress_bar(m_progress_bar);
+        // if we get something _other_ than the noarch, we DO NOT throw if the file can't be retrieved
+        if (!ends_with(m_name, "/noarch"))
+        {
+            m_target->set_ignore_failure(true);
+        }
         m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         m_target->set_mod_etag_headers(mod_etag);
     }

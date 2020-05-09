@@ -67,6 +67,29 @@ namespace mamba
         std::string output = testing::internal::GetCapturedStdout();
         EXPECT_TRUE(ends_with(output, "conda-forge channel downloaded\n"));
         Context::instance().no_progress_bars = false;
+    }
 
+    TEST(context, env_name)
+    {
+        if (on_mac || on_linux)
+        {
+            auto& ctx = Context::instance();
+            ctx.root_prefix = "/home/user/micromamba/";
+            ctx.envs_dirs = { ctx.root_prefix / "envs" };
+            fs::path prefix = "/home/user/micromamba/envs/testprefix";
+
+            EXPECT_EQ(env_name(prefix), "testprefix");
+            prefix = "/home/user/micromamba/envs/a.txt";
+            EXPECT_EQ(env_name(prefix), "a.txt");
+            prefix = "/home/user/micromamba/envs/a.txt";
+            EXPECT_EQ(env_name(prefix), "a.txt");
+            prefix = "/home/user/micromamba/envs/abc/a.txt";
+            EXPECT_EQ(env_name(prefix), "/home/user/micromamba/envs/abc/a.txt");
+            prefix = "/home/user/env";
+            EXPECT_EQ(env_name(prefix), "/home/user/env");
+
+            EXPECT_THROW(locate_prefix_by_name("test"), std::runtime_error);
+            // TODO implement tests for locate_prefix_by_name
+        }
     }
 }

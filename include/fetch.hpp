@@ -30,7 +30,6 @@ namespace mamba
         void set_mod_etag_headers(const nlohmann::json& mod_etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
-        void set_failed(const std::string& str);
 
         const std::string& name() const;
 
@@ -41,18 +40,29 @@ namespace mamba
         curl_off_t get_speed();
 
         template <class C>
-        void set_finalize_callback(bool (C::*cb)(), C* data)
+        inline void set_finalize_callback(bool (C::*cb)(), C* data)
         {
             m_finalize_callback = std::bind(cb, data);
         }
 
+        inline void set_ignore_failure(bool yes)
+        {
+            m_ignore_failure = yes;
+        }
+
+        inline bool ignore_failure() const
+        {
+            return m_ignore_failure;
+        }
+
+        void set_result(CURLcode r);
         bool finalize();
 
         bool can_retry();
         CURL* retry();
 
-        void validate();
-
+        CURLcode result;
+        bool failed = false;
         int http_status = 10000;
         curl_off_t downloaded_size = 0;
         std::string final_url;
@@ -79,6 +89,8 @@ namespace mamba
         curl_slist* m_headers;
 
         bool m_has_progress_bar = false;
+        bool m_ignore_failure = false;
+
         ProgressProxy m_progress_bar;
 
         std::ofstream m_file;
@@ -92,7 +104,7 @@ namespace mamba
         ~MultiDownloadTarget();
 
         void add(DownloadTarget* target);
-        bool check_msgs();
+        bool check_msgs(bool failfast);
         bool download(bool failfast);
 
     private:

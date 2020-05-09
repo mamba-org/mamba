@@ -186,7 +186,8 @@ namespace mamba
         }
 
         LOG_WARNING << "HTTP response code: " << m_target->http_status;
-        if (m_target->http_status == 200 || m_target->http_status == 304)
+        // Note HTTP status == 0 for files
+        if (m_target->http_status == 0 || m_target->http_status == 200 || m_target->http_status == 304)
         {
             m_download_complete = true;
         }

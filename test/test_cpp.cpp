@@ -21,17 +21,64 @@ namespace mamba
     //     lp.execute();
     // }
 
+    TEST(match_spec, parse_version_build)
+    {
+        std::string v, b;
+        // >>> _parse_version_plus_build("=1.2.3 0")
+        // ('=1.2.3', '0')
+        // >>> _parse_version_plus_build("1.2.3=0")
+        // ('1.2.3', '0')
+        // >>> _parse_version_plus_build(">=1.0 , < 2.0 py34_0")
+        // ('>=1.0,<2.0', 'py34_0')
+        // >>> _parse_version_plus_build(">=1.0 , < 2.0 =py34_0")
+        // ('>=1.0,<2.0', 'py34_0')
+        // >>> _parse_version_plus_build("=1.2.3 ")
+        // ('=1.2.3', None)
+        // >>> _parse_version_plus_build(">1.8,<2|==1.7")
+        // ('>1.8,<2|==1.7', None)
+        // >>> _parse_version_plus_build("* openblas_0")
+        // ('*', 'openblas_0')
+        // >>> _parse_version_plus_build("* *")
+        // ('*', '*')
+        std::tie(v, b) = MatchSpec::parse_version_and_build("=1.2.3 0");
+        EXPECT_EQ(v, "=1.2.3");
+        EXPECT_EQ(b, "0");
+        std::tie(v, b) = MatchSpec::parse_version_and_build("=1.2.3=0");
+        EXPECT_EQ(v, "=1.2.3");
+        EXPECT_EQ(b, "0");
+        std::tie(v, b) = MatchSpec::parse_version_and_build(">=1.0 , < 2.0 py34_0");
+        EXPECT_EQ(v, ">=1.0,<2.0");
+        EXPECT_EQ(b, "py34_0");
+        std::tie(v, b) = MatchSpec::parse_version_and_build(">=1.0 , < 2.0 =py34_0");
+        EXPECT_EQ(v, ">=1.0,<2.0");
+        EXPECT_EQ(b, "py34_0");
+        std::tie(v, b) = MatchSpec::parse_version_and_build("=1.2.3 ");
+        EXPECT_EQ(v, "=1.2.3");
+        EXPECT_EQ(b, "");
+        std::tie(v, b) = MatchSpec::parse_version_and_build(">1.8,<2|==1.7");
+        EXPECT_EQ(v, ">1.8,<2|==1.7");
+        EXPECT_EQ(b, "");
+        std::tie(v, b) = MatchSpec::parse_version_and_build("* openblas_0");
+        EXPECT_EQ(v, "*");
+        EXPECT_EQ(b, "openblas_0");
+        std::tie(v, b) = MatchSpec::parse_version_and_build("* *");
+        EXPECT_EQ(v, "*");
+        EXPECT_EQ(b, "*");
+    }
+
     TEST(match_spec, parse)
     {
         {
             MatchSpec ms("xtensor==0.12.3");   
-            EXPECT_EQ(ms.version, "==0.12.3");
+            EXPECT_EQ(ms.version, "0.12.3");
             EXPECT_EQ(ms.name, "xtensor");
         }
         {
             MatchSpec ms("numpy 1.7*");   
             EXPECT_EQ(ms.version, "1.7*");
             EXPECT_EQ(ms.name, "numpy");
+            EXPECT_EQ(ms.conda_build_form(), "numpy 1.7*");
+            EXPECT_EQ(ms.str(), "numpy=1.7");
         }
         {
             MatchSpec ms("numpy[version='1.7|1.8']");   
@@ -39,10 +86,11 @@ namespace mamba
             // EXPECT_EQ(ms.version, "1.7|1.8");
             EXPECT_EQ(ms.name, "numpy");
             EXPECT_EQ(ms.brackets["version"], "1.7|1.8");
+            EXPECT_EQ(ms.str(), "numpy[version='1.7|1.8']");
         }
         {
             MatchSpec ms("conda-forge/linux64::xtensor==0.12.3");   
-            EXPECT_EQ(ms.version, "==0.12.3");
+            EXPECT_EQ(ms.version, "0.12.3");
             EXPECT_EQ(ms.name, "xtensor");
             EXPECT_EQ(ms.channel, "conda-forge/linux64");
             EXPECT_EQ(ms.optional, false);
@@ -73,6 +121,11 @@ namespace mamba
             EXPECT_EQ(ms.name, "xtensor");
             EXPECT_EQ(ms.brackets["url"], "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
             EXPECT_EQ(ms.fn, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+        }
+        {
+            MatchSpec ms("foo=1.0=2");
+            EXPECT_EQ(ms.conda_build_form(), "foo 1.0 2");
+            EXPECT_EQ(ms.str(), "foo==1.0=2");
         }
     }
 

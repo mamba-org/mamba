@@ -55,7 +55,10 @@ namespace mamba
 
         void parse();
         std::string triple() const;
+        std::string conda_build_form() const;
+        std::string str() const;
 
+        static std::tuple<std::string, std::string> parse_version_and_build(const std::string& s);
         std::string spec;
 
         std::string name;

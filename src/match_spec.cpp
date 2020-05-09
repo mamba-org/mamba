@@ -124,6 +124,41 @@ namespace mamba
         parse();
     }
 
+    std::tuple<std::string, std::string> MatchSpec::parse_version_and_build(const std::string& s)
+    {
+        std::size_t pos = s.find_last_of(" =");
+        if (pos == s.npos || pos == 0)
+        {
+            std::string tmp = s;
+            replace_all(tmp, " ", "");
+            return { tmp, "" };
+        }
+        else
+        {
+            char c = s[pos];
+            if (c == '=')
+            {
+                std::size_t pm1 = pos - 1;
+                char d = s[pm1];
+                if (d == '=' || d == '!' || d == '|' ||
+                    d == ',' || d == '<' || d == '>' || d == '~')
+                {
+                    std::string tmp = s;
+                    replace_all(tmp, " ", "");
+                    return { tmp , "" };
+                }
+            }
+            // c is either ' ' or pm1 is none of the forbidden chars
+
+            std::string v = s.substr(0, pos),
+                        b = s.substr(pos + 1);
+            replace_all(v, " ", "");
+            replace_all(b, " ", "");
+            return { v, b };
+        }
+    };
+
+
     void MatchSpec::parse()
     {
         LOG_INFO << "Parsing MatchSpec " << spec;
@@ -242,6 +277,49 @@ namespace mamba
             throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
         }
 
+        // # Step 7. otherwise sort out version + build
+        // spec_str = spec_str and spec_str.strip()
+        if (!version.empty())
+        {
+            if (version.find("[") != version.npos)
+            {
+                throw std::runtime_error("Invalid match spec: multiple bracket sections not allowed " + spec);
+            }
+
+            version = std::string(strip(version));
+            auto [pv, pb] = parse_version_and_build(std::string(strip(version)));
+
+            version = pv;
+            build = pb;
+
+            // translate version '=1.2.3' to '1.2.3*'
+            // is it a simple version starting with '='? i.e. '=1.2.3'
+            if (version.size() >= 2 && version[0] == '=')
+            {
+                auto rest = version.substr(1);
+                if (version[1] == '=' and build.empty())
+                {
+                    version = version.substr(2);
+                }
+                else if (rest.find_first_of("=,|") == rest.npos)
+                {
+                    if (build.empty() && version[version.size() - 1] != '*')
+                    {
+                        version = concat(version, "*");
+                    }
+                    else
+                    {
+                        version = rest;
+                    }
+                }
+            }
+        }
+        else
+        {
+            version = "";
+            build = "";
+        }
+
         // TODO think about using a hash function here, (and elsewhere), like:
         // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
         for (auto& [k, v] : brackets)
@@ -277,4 +355,136 @@ namespace mamba
             }
         }
     }
-} 
+
+    std::string MatchSpec::conda_build_form() const
+    {
+        assert(!name.empty());
+        assert(!version.empty());
+        std::stringstream res;
+        res << name << " " << version;
+        if (!build.empty())
+            res << " " << build;
+        return res.str();
+    }
+
+    std::string MatchSpec::str() const
+    {
+        std::stringstream res;
+        // builder = []
+        // brackets = []
+
+        // channel_matcher = self._match_components.get('channel')
+        // if channel_matcher and channel_matcher.exact_value:
+        //     builder.append(text_type(channel_matcher))
+        // elif channel_matcher and not channel_matcher.matches_all:
+        //     brackets.append("channel=%s" % text_type(channel_matcher))
+
+        // subdir_matcher = self._match_components.get('subdir')
+        // if subdir_matcher:
+        //     if channel_matcher and channel_matcher.exact_value:
+        //         builder.append('/%s' % subdir_matcher)
+        //     else:
+        //         brackets.append("subdir=%s" % subdir_matcher)
+
+        if (!channel.empty())
+        {
+            res << channel;
+            if (!subdir.empty())
+            {
+                res << "/" << subdir;
+            }
+            res << "::";
+        }
+        // TODO when namespaces are implemented!
+        // if (!ns.empty())
+        // {
+        //     res << ns;
+        //     res << ":";
+        // }
+        res << (!name.empty() ? name : "*");
+        std::vector<std::string> brackets;
+        bool version_exact = false;
+
+        auto is_complex_relation = [](const std::string& s)
+        {
+            return s.find_first_of("><$^|,") != s.npos;
+        };
+
+        if (!version.empty())
+        {
+            if (is_complex_relation(version))
+            {
+                brackets.push_back(concat("version='", version, "'"));
+            }
+            else if (starts_with(version, "!=") || starts_with(version, "~="))
+            {
+                if (!build.empty())
+                {
+                    brackets.push_back(concat("version='", version, "'"));
+                }
+                else
+                {
+                    res << " " << version;
+                }
+            }
+            else if (ends_with(version, ".*"))
+            {
+                res << "=" + version.substr(0, version.size() - 2);
+            }
+            else if (ends_with(version, "*"))
+            {
+                res << "=" + version.substr(0, version.size() - 1);
+            }
+            else if (starts_with(version, "=="))
+            {
+                res << version;
+                version_exact = true;
+            }
+            else
+            {
+                res << "==" << version;
+                version_exact = true;
+            }
+        }
+
+        if (!build.empty())
+        {
+            if (is_complex_relation(build))
+            {
+                brackets.push_back(concat("build='", build, "'"));
+            }
+            else if (build.find("*") != build.npos)
+            {
+                brackets.push_back(concat("build=", build));
+            }
+            else if (version_exact)
+            {
+                res << "=" << build;
+            }
+            else
+            {
+                brackets.push_back(concat("build=", build));
+            }
+        }
+
+        // _skip = {'channel', 'subdir', 'name', 'version', 'build'}
+        // if 'url' in self._match_components and 'fn' in self._match_components:
+        //     _skip.add('fn')
+        // for key in self.FIELD_NAMES:
+        //     if key not in _skip and key in self._match_components:
+        //         if key == 'url' and channel_matcher:
+        //             # skip url in canonical str if channel already included
+        //             continue
+        //         value = text_type(self._match_components[key])
+        //         if any(s in value for s in ', ='):
+        //             brackets.append("%s='%s'" % (key, value))
+        //         else:
+        //             brackets.append("%s=%s" % (key, value))
+
+        if (brackets.size())
+        {
+            res << "[" << join(",", brackets) << "]";
+        }
+        return res.str();
+    }
+}

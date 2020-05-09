@@ -183,8 +183,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         elif not newenv:
             if context.json:
                 cli_common.stdout_json_success(message='All requested packages already installed.')
-            else:
-                print('\n# All requested packages already installed.\n')
             return
 
     if context.dry_run:

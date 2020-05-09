@@ -146,40 +146,47 @@ namespace mamba
             LOG_INFO << "Got a package file: " << spec_str << std::endl;
         }
 
-        // # Step 3. strip off brackets portion
-        // brackets = {}
-        // m3 = re.match(r'.*(?:(\[.*\]))', spec_str)
-        // if m3:
-        //     brackets_str = m3.groups()[0]
-        //     spec_str = spec_str.replace(brackets_str, '')
-        //     brackets_str = brackets_str[1:-1]
-        //     m3b = re.finditer(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str)
-        //     for match in m3b:
-        //         key, _, value, _ = match.groups()
-        //         if not key or not value:
-        //             raise InvalidMatchSpec(original_spec_str, "key-value mismatch in brackets")
-        //         brackets[key] = value
-
-        std::regex brackets_re(".*(?:(\\[.*\\]))");
-        std::smatch match;
-        if (std::regex_match(spec_str, match, brackets_re))
+        auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
         {
-            auto brackets_str = match[1].str();
-            brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
             std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
-
             std::cmatch kv_match;
-            const char* text_iter = brackets_str.c_str();
+            const char* text_iter = kv_string.c_str();
+
             while (std::regex_search(text_iter, kv_match, kv_re))
             {
                 auto key = kv_match[1].str();
                 auto value = kv_match[3].str();
                 if (key.size() == 0 || value.size() == 0) 
                 {
-                    throw std::runtime_error("key-value mismatch in brackets " + spec);
+                    throw std::runtime_error("key-value mismatch in brackets " + spec_str);
                 }
                 text_iter += kv_match.position() + kv_match.length();
-                brackets[key] = value;
+                map[key] = value;
+            }
+        };
+
+        std::smatch match;
+
+        // Step 3. strip off brackets portion
+        std::regex brackets_re(".*(?:(\\[.*\\]))");
+        if (std::regex_search(spec_str, match, brackets_re))
+        {
+            auto brackets_str = match[1].str();
+            brackets_str = brackets_str.substr(1, brackets_str.size() - 2);
+            extract_kv(brackets_str, brackets);
+            spec_str.erase(match.position(1), match.length(1));
+        }
+
+        // Step 4. strip off parens portion
+        std::regex parens_re(".*(?:(\\(.*\\)))");
+        if (std::regex_search(spec_str, match, parens_re))
+        {
+            auto parens_str = match[1].str();
+            parens_str = parens_str.substr(1, parens_str.size() - 2);
+            extract_kv(parens_str, this->parens);
+            if (parens_str.find("optional") != parens_str.npos)
+            {
+                optional = true;
             }
             spec_str.erase(match.position(1), match.length(1));
         }
@@ -233,6 +240,41 @@ namespace mamba
         else
         {
             throw std::runtime_error("Invalid spec, no package name found: " + spec_str);
+        }
+
+        // TODO think about using a hash function here, (and elsewhere), like:
+        // https://hbfs.wordpress.com/2017/01/10/strings-in-c-switchcase-statements/
+        for (auto& [k, v] : brackets)
+        {
+            if (k == "build_number")
+            {
+                build_number = v;
+            }
+            else if (k == "build")
+            {
+                build = v;
+            }
+            else if (k == "version")
+            {
+                version = v;
+            }
+            else if (k == "channel")
+            {
+                channel = v;
+            }
+            else if (k == "subdir")
+            {
+                subdir = v;
+            }
+            else if (k == "url")
+            {
+                is_file = true;
+                fn = v;
+            }
+            else if (k == "fn")
+            {
+                fn = v;
+            }
         }
     }
 } 

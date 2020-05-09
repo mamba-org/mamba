@@ -77,6 +77,11 @@ def init_api_context():
         api_ctx.ssl_verify = context.ssl_verify
     api_ctx.target_prefix = context.target_prefix
 
+    api_ctx.read_timeout_secs = int(round(context.remote_read_timeout_secs))
+    api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))
+    api_ctx.max_retries = context.remote_max_retries
+    api_ctx.retry_backoff = context.remote_backoff_factor
+
 def to_package_record_from_subjson(channel, pkg, jsn_string):
     channel = channel
     channel_url = channel.url(with_credentials=True)

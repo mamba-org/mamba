@@ -16,7 +16,14 @@ namespace mamba
                                   "/tmp/zyx.json");
             cf.load();
             multi_dl.add(cf.target());
+
+            // file:// url shoudl not retry
+            EXPECT_EQ(cf.target()->can_retry(), false);
+
             multi_dl.download(true);
+
+            // File does not exist
+            EXPECT_EQ(cf.target()->result, 37);
         }
         {
             mamba::MultiDownloadTarget multi_dl;

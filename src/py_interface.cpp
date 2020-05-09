@@ -99,8 +99,13 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("ssl_verify", &Context::ssl_verify)
-        .def_readonly("sig_interrupt", &Context::sig_interrupt)
+        .def_readwrite("max_retries", &Context::max_retries)
+        .def_readwrite("retry_timeout", &Context::retry_timeout)
+        .def_readwrite("retry_backoff", &Context::retry_backoff)
+        .def_readwrite("read_timeout_secs", &Context::read_timeout_secs)
+        .def_readwrite("connect_timeout_secs", &Context::connect_timeout_secs)
         .def_readwrite("target_prefix", &Context::target_prefix)
+        .def_readonly("sig_interrupt", &Context::sig_interrupt)
         .def("set_verbosity", &Context::set_verbosity)
     ;
 

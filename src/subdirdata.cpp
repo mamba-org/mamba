@@ -208,15 +208,15 @@ namespace mamba
             return true;
         }
 
-        if ((m_target->http_status == 404 || m_target->http_status == 403) && !ends_with(m_name, "/noarch"))
+        if (m_target->http_status >= 400)
         {
             // we're ignoring a 404 or file not retrieved on non-noarch channels like conda does
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
-            m_progress_bar.set_postfix("404 Ignored");
+            m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
             m_progress_bar.set_progress(100);
             m_progress_bar.mark_as_completed();
             m_loaded = false;
-            return true;
+            return false;
         }
 
         LOG_INFO << "Finalized transfer: " << m_url;

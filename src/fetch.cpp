@@ -42,6 +42,9 @@ namespace mamba
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
 
+        curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, Context::instance().read_timeout_secs);
+        curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
+
         std::string& ssl_verify = Context::instance().ssl_verify;
 
         if (!ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
@@ -72,7 +75,9 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        return m_retries < Context::instance().max_retries && !starts_with(m_url, "file://");
+        return m_retries < Context::instance().max_retries &&
+               http_status >= 500 &&
+               !starts_with(m_url, "file://");
     }
 
     CURL* DownloadTarget::retry()
@@ -231,11 +236,8 @@ namespace mamba
 
     bool DownloadTarget::perform()
     {
-        CURLcode res = curl_easy_perform(m_handle);
-        if (res != CURLE_OK && m_ignore_failure == false)
-        {
-            throw std::runtime_error(curl_easy_strerror(res));
-        }
+        result = curl_easy_perform(m_handle);
+        set_result(result);
         return m_finalize_callback ? m_finalize_callback() : true;
     }
 
@@ -251,12 +253,27 @@ namespace mamba
         return res == CURLE_OK ? speed : 0;
     }
 
-    void DownloadTarget::set_failed(const std::string& msg)
+    void DownloadTarget::set_result(CURLcode r)
     {
-        LOG_WARNING << "Transfer failed, retrying";
-        m_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
-        m_progress_bar.set_progress(0);
-        m_progress_bar.set_postfix(msg);
+        result = r;
+        if (r != CURLE_OK)
+        {
+            char* effective_url = nullptr;
+            curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
+
+            std::stringstream err;
+            err << "Download error (" << result << ") " <<
+                    curl_easy_strerror(result) << " [" << effective_url << "]";
+            LOG_WARNING << err.str();
+
+            m_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
+            m_progress_bar.set_progress(0);
+            m_progress_bar.set_postfix(curl_easy_strerror(result));
+            if (m_ignore_failure == false && can_retry() == false)
+            {
+                throw std::runtime_error(err.str());
+            }
+        }
     }
         
     bool DownloadTarget::finalize()
@@ -266,14 +283,16 @@ namespace mamba
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-        LOG_INFO << "Transfer finalized, status: " << http_status << " @ " << effective_url << " " << downloaded_size << " bytes";
+        LOG_INFO << "Transfer finalized, status: " << http_status << " [" << effective_url << "] " << downloaded_size << " bytes";
 
         if (http_status >= 500 && can_retry())
         {
             // this request didn't work!
+            m_next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
             std::stringstream msg;
             msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
-            set_failed(msg.str());
+            m_progress_bar.set_progress(0);
+            m_progress_bar.set_postfix(msg.str());
             return false;
         }
 
@@ -324,7 +343,7 @@ namespace mamba
         m_targets.push_back(target);
     }
 
-    bool MultiDownloadTarget::check_msgs()
+    bool MultiDownloadTarget::check_msgs(bool failfast)
     {
         int msgs_in_queue;
         CURLMsg *msg;
@@ -347,47 +366,40 @@ namespace mamba
                 throw std::runtime_error("Could not find target associated with multi request");
             }
 
+            current_target->set_result(msg->data.result);
             if (msg->data.result != CURLE_OK)
             {
+                LOG_WARNING << "NOT OK, CAN RETRY? " << current_target->can_retry();
                 if (current_target->can_retry())
                 {
-                    current_target->set_failed(curl_easy_strerror(msg->data.result));
                     curl_multi_remove_handle(m_handle, current_target->handle());
                     m_retry_targets.push_back(current_target);
                     continue;
                 }
-                if (current_target->ignore_failure() == false)
-                {
-                    char* effective_url = nullptr;
-                    curl_easy_getinfo(msg->easy_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
-                    std::stringstream err;
-                    err << "Download error (" << msg->data.result << ") " <<
-                            curl_easy_strerror(msg->data.result) << " [" << effective_url << "]";
-
-                    throw std::runtime_error(err.str());
-                }
             }
 
-            if (msg->msg != CURLMSG_DONE)
+            if (msg->msg == CURLMSG_DONE)
             {
+                LOG_WARNING << "Transfer done ...";
                 // We are only interested in messages about finished transfers
-                continue;
-            }
+                curl_multi_remove_handle(m_handle, current_target->handle());
 
-            curl_multi_remove_handle(m_handle, current_target->handle());
-
-            // flush file & finalize transfer
-            if (!current_target->finalize())
-            {
-                // transfer did not work! can we retry?
-                if (current_target->can_retry())
+                // flush file & finalize transfer
+                if (!current_target->finalize())
                 {
-                    LOG_WARNING << "Adding target to retry!";
-                    m_retry_targets.push_back(current_target);
-                }
-                else
-                {
-                    throw std::runtime_error("Download failed.");
+                    // transfer did not work! can we retry?
+                    if (current_target->can_retry())
+                    {
+                        LOG_WARNING << "Adding target to retry!";
+                        m_retry_targets.push_back(current_target);
+                    }
+                    else
+                    {
+                        if (failfast)
+                        {
+                            throw std::runtime_error("Multi-download failed.");
+                        }
+                    }
                 }
             }
         }
@@ -408,7 +420,7 @@ namespace mamba
             {
                 throw std::runtime_error(curl_multi_strerror(code));
             }
-            check_msgs();
+            check_msgs(failfast);
 
             if (!m_retry_targets.empty())
             {
@@ -451,7 +463,6 @@ namespace mamba
 
             if(!numfds)
             {
-                LOG_WARNING << "Nothing happend " << repeats;
                 repeats++; // count number of repeated zero numfds
                 if(repeats > 1)
                 {

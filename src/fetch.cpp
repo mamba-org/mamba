@@ -369,7 +369,6 @@ namespace mamba
             current_target->set_result(msg->data.result);
             if (msg->data.result != CURLE_OK)
             {
-                LOG_WARNING << "NOT OK, CAN RETRY? " << current_target->can_retry();
                 if (current_target->can_retry())
                 {
                     curl_multi_remove_handle(m_handle, current_target->handle());
@@ -395,7 +394,7 @@ namespace mamba
                     }
                     else
                     {
-                        if (failfast)
+                        if (failfast && current_target->ignore_failure() == false)
                         {
                             throw std::runtime_error("Multi-download failed.");
                         }

@@ -66,8 +66,12 @@ namespace mamba
         std::string build;
         std::string fn;
         std::string url;
+        std::string build_number;
 
+        bool is_file = false;
+        bool optional = false;
         std::unordered_map<std::string, std::string> brackets;
+        std::unordered_map<std::string, std::string> parens;
     };
 }
 

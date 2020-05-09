@@ -44,7 +44,35 @@ namespace mamba
             MatchSpec ms("conda-forge/linux64::xtensor==0.12.3");   
             EXPECT_EQ(ms.version, "==0.12.3");
             EXPECT_EQ(ms.name, "xtensor");
-            // EXPECT_EQ(ms.channel, "conda-forge/linux64");
+            EXPECT_EQ(ms.channel, "conda-forge/linux64");
+            EXPECT_EQ(ms.optional, false);
+        }
+        {
+            MatchSpec ms("conda-forge::foo[build=3](target=blarg,optional)");
+            EXPECT_EQ(ms.version, "");
+            EXPECT_EQ(ms.name, "foo");
+            EXPECT_EQ(ms.channel, "conda-forge");
+            EXPECT_EQ(ms.brackets["build"], "3");
+            EXPECT_EQ(ms.parens["target"], "blarg");
+            EXPECT_EQ(ms.optional, true);
+        }
+        {
+            MatchSpec ms("python[build_number=3]");
+            EXPECT_EQ(ms.name, "python");
+            EXPECT_EQ(ms.brackets["build_number"], "3");
+            EXPECT_EQ(ms.build_number, "3");
+        }
+        {
+            MatchSpec ms("python[build_number='<=3']");
+            EXPECT_EQ(ms.name, "python");
+            EXPECT_EQ(ms.brackets["build_number"], "<=3");
+            EXPECT_EQ(ms.build_number, "<=3");
+        }
+        {
+            MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]");
+            EXPECT_EQ(ms.name, "xtensor");
+            EXPECT_EQ(ms.brackets["url"], "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            EXPECT_EQ(ms.fn, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
     }
 

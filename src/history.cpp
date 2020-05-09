@@ -109,11 +109,11 @@ namespace mamba
             {
                 if (x[0] == '-')
                 {
-                    r.unlink_dists.push_back(x);
+                    r.unlink_dists.push_back(x.substr(1));
                 }
                 else if (x[0] == '+')
                 {
-                    r.link_dists.push_back(x);
+                    r.link_dists.push_back(x.substr(1));
                 }
             }
             res.push_back(r);
@@ -189,14 +189,15 @@ namespace mamba
 
             for (auto unlink_dist : entry.unlink_dists)
             {
-                out << unlink_dist << std::endl;
+                out << "-" << unlink_dist << std::endl;
             }
             for (auto link_dist : entry.link_dists)
             {
-                out << link_dist << std::endl;
+                out << "+" << link_dist << std::endl;
             }
 
             auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
+                if (specs.empty()) return "";
                 std::string spec_string;
                 spec_string ="# " + action + " specs: [";
                 for (auto spec : specs)
@@ -208,18 +209,9 @@ namespace mamba
                 return spec_string;
             };
 
-            if (entry.update.size() > 0)
-            {
-                out << specs_output("update", entry.update);
-            }
-            if (entry.remove.size() > 0)
-            {
-                out << specs_output("remove", entry.remove);
-            }
-            if (entry.neutered.size() > 0)
-            {
-                out << specs_output("neutered", entry.neutered);
-            }
+            out << specs_output("update", entry.update);
+            out << specs_output("remove", entry.remove);
+            out << specs_output("neutered", entry.neutered);
         }
     }
 }

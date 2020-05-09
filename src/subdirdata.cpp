@@ -177,7 +177,6 @@ namespace mamba
     {
         if (m_target->result != 0 || m_target->http_status >= 400)
         {
-            // we're ignoring a 404 or file not retrieved on non-noarch channels like conda does
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
             m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
             m_progress_bar.set_progress(100);
@@ -190,6 +189,10 @@ namespace mamba
         if (m_target->http_status == 200 || m_target->http_status == 304)
         {
             m_download_complete = true;
+        }
+        else
+        {
+            throw std::runtime_error("Unhandled HTTP code: " + std::to_string(m_target->http_status));
         }
 
         if (m_target->http_status == 304)

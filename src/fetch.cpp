@@ -42,6 +42,8 @@ namespace mamba
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
 
+        curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
         curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, Context::instance().read_timeout_secs);
         curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
 

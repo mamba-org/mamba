@@ -21,7 +21,7 @@ namespace mamba
             return res;
         }
 
-        std::regex head_re("==>\\s*(.+?)\\s*<==");
+        static std::regex head_re("==>\\s*(.+?)\\s*<==");
         std::ifstream in_file(m_history_file_path);
         std::string line;
         while (getline(in_file, line))
@@ -49,10 +49,10 @@ namespace mamba
 
     bool History::parse_comment_line(const std::string& line, UserRequest& req)
     {
-        std::regex com_pat("#\\s*cmd:\\s*(.+)");
-        std::regex conda_v_pat("#\\s*conda version:\\s*(.+)");
-        std::regex spec_pat("#\\s*(\\w+)\\s*specs:\\s*(.+)?");
-        std::regex elems_pat("'([^',]+)'");
+        static std::regex com_pat("#\\s*cmd:\\s*(.+)");
+        static std::regex conda_v_pat("#\\s*conda version:\\s*(.+)");
+        static std::regex spec_pat("#\\s*(\\w+)\\s*specs:\\s*(.+)?");
+        static std::regex elems_pat("'([^',]+)'");
         std::smatch rmatch;
 
         if (std::regex_match(line, rmatch, com_pat))

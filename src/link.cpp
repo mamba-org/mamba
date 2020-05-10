@@ -784,7 +784,7 @@ namespace mamba
             }
 
             std::vector<fs::path> for_compilation;
-            std::regex py_file_re("^site-packages[/\\\\][^\\t\\n\\r\\f\\v]+\\.py$");
+            static std::regex py_file_re("^site-packages[/\\\\][^\\t\\n\\r\\f\\v]+\\.py$");
             for (auto& sub_path_json : paths_json["paths"])
             {
                 std::string path = sub_path_json["_path"];

@@ -99,13 +99,13 @@ namespace mamba
         return expand_path("~");
     }
 
-    std::regex CONDA_INITIALIZE_RE_BLOCK("# >>> mamba initialize >>>(?:\n|\r\n)?"
-                                         "([\\s\\S]*?)"
-                                         "# <<< mamba initialize <<<(?:\n|\r\n)?");
+    static std::regex CONDA_INITIALIZE_RE_BLOCK("# >>> mamba initialize >>>(?:\n|\r\n)?"
+                                                "([\\s\\S]*?)"
+                                                "# <<< mamba initialize <<<(?:\n|\r\n)?");
 
-    std::regex CONDA_INITIALIZE_PS_RE_BLOCK("^#region mamba initialize(?:\n|\r\n)"
-                                            "([\\s\\S]*?)"
-                                            "#endregion(?:\n|\r\n)?");
+    static std::regex CONDA_INITIALIZE_PS_RE_BLOCK("^#region mamba initialize(?:\n|\r\n)"
+                                                   "([\\s\\S]*?)"
+                                                   "#endregion(?:\n|\r\n)?");
 
     std::string rcfile_content(const fs::path& env_prefix, const std::string& shell, const fs::path& mamba_exe)
     {

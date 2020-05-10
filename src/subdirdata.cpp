@@ -295,7 +295,7 @@ namespace mamba
 
     std::size_t MSubdirData::get_cache_control_max_age(const std::string& val)
     {
-        std::regex max_age_re("max-age=(\\d+)");
+        static std::regex max_age_re("max-age=(\\d+)");
         std::smatch max_age_match;
         bool matches = std::regex_search(val, max_age_match, max_age_re);
         if (!matches) return 0;

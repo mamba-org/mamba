@@ -183,7 +183,7 @@ namespace mamba
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
         {
-            std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
+            static std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
             std::cmatch kv_match;
             const char* text_iter = kv_string.c_str();
 
@@ -203,7 +203,7 @@ namespace mamba
         std::smatch match;
 
         // Step 3. strip off brackets portion
-        std::regex brackets_re(".*(?:(\\[.*\\]))");
+        static std::regex brackets_re(".*(?:(\\[.*\\]))");
         if (std::regex_search(spec_str, match, brackets_re))
         {
             auto brackets_str = match[1].str();
@@ -213,7 +213,7 @@ namespace mamba
         }
 
         // Step 4. strip off parens portion
-        std::regex parens_re(".*(?:(\\(.*\\)))");
+        static std::regex parens_re(".*(?:(\\(.*\\)))");
         if (std::regex_search(spec_str, match, parens_re))
         {
             auto parens_str = match[1].str();
@@ -261,7 +261,7 @@ namespace mamba
         //     subdir = brackets.pop('subdir')
 
         // TODO This is #6 of the spec parsing -- we still need to port the others!
-        std::regex version_build_re("([^ =<>!~]+)?([><!=~ ].+)?");
+        static std::regex version_build_re("([^ =<>!~]+)?([><!=~ ].+)?");
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
         {

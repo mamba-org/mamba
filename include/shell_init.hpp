@@ -13,9 +13,7 @@ namespace fs = ghc::filesystem;
 
 #include "thirdparty/termcolor.hpp"
 
-
 #ifndef _WIN32
-    #include <wordexp.h>
     #if defined(__APPLE__)
         #include <mach-o/dyld.h>
     #endif
@@ -37,19 +35,6 @@ constexpr const char mamba_sh[] =
 
 namespace mamba
 {
-    #ifndef _WIN32
-    fs::path expand_path(const fs::path& path)
-    {
-        wordexp_t w{};
-        std::unique_ptr<wordexp_t, void(*)(wordexp_t*)> hold{&w, ::wordfree};
-        ::wordexp(path.c_str(), &w, 0);
-        if (w.we_wordc != 1)
-            throw std::runtime_error("Cannot expand path: " + path.string());
-        fs::path result = w.we_wordv[0];
-        return result;
-    }
-    #endif
-
     // Heavily inspired by https://github.com/gpakosz/whereami/
     // check their source to add support for other OS
     fs::path get_self_exe_path()
@@ -91,12 +76,6 @@ namespace mamba
                 return fs::read_symlink("/proc/self/exe");
             #endif
         #endif
-    }
-
-
-    fs::path home_directory()
-    {
-        return expand_path("~");
     }
 
     static std::regex CONDA_INITIALIZE_RE_BLOCK("# >>> mamba initialize >>>(?:\n|\r\n)?"
@@ -194,7 +173,7 @@ namespace mamba
     {
         init_root_prefix(conda_prefix);
         auto mamba_exe = get_self_exe_path();
-        fs::path home = home_directory();
+        fs::path home = env::home_directory();
         if (shell == "bash")
         {
             fs::path bashrc_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";

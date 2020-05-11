@@ -23,7 +23,7 @@ namespace mamba
         PackageInfo(Solvable* s);
         PackageInfo(nlohmann::json&& j);
         PackageInfo(const std::string& name, const std::string& version,
-                    const std::string build, std::size_t build_number);
+                    const std::string build_string, std::size_t build_number);
 
         nlohmann::json json() const;
         std::string str() const;
@@ -31,7 +31,7 @@ namespace mamba
 
         std::string name;
         std::string version;
-        std::string build;
+        std::string build_string;
         std::size_t build_number;
         std::string channel;
         std::string url;

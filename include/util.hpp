@@ -7,6 +7,7 @@
 #include <random>
 #include <array>
 
+#include "nlohmann/json.hpp"
 #include "thirdparty/filesystem.hpp"
 
 namespace fs = ghc::filesystem;
@@ -32,7 +33,7 @@ namespace mamba
     class mamba_error : public std::runtime_error
     {
     public:
-    
+
         using std::runtime_error::runtime_error;
     };
 
@@ -78,7 +79,7 @@ namespace mamba
     class TemporaryDirectory
     {
     public:
-    
+
         TemporaryDirectory();
         ~TemporaryDirectory();
 
@@ -90,7 +91,7 @@ namespace mamba
         operator fs::path();
 
     private:
-    
+
         fs::path m_path;
     };
 
@@ -203,6 +204,17 @@ namespace mamba
         result.reserve(len);
         concat_impl::concat_foreach(result, args...);
         return result;
+    }
+
+    // get the value corresponding to a key in a JSON object and assign it to target
+    // if the key is not found, assign default_value to target
+    template <typename T>
+    void assign_or(nlohmann::json j, const char* key, T& target, T default_value)
+    {
+        if (j.contains(key))
+            target = j[key];
+        else
+            target = default_value;
     }
 }
 

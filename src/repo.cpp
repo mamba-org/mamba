@@ -31,7 +31,7 @@ namespace mamba
             Solvable *s;
             s = pool_id2solvable(pool, handle);
             repodata_set_str(data, handle, SOLVABLE_BUILDVERSION, std::to_string(record.build_number).c_str());
-            repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, record.build.c_str());
+            repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, record.build_string.c_str());
             s->name = pool_str2id(pool, record.name.c_str(), 1);
             s->evr = pool_str2id(pool, record.version.c_str(), 1);
 

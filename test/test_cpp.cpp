@@ -4,6 +4,7 @@
 #include "context.hpp"
 #include "link.hpp"
 #include "history.hpp"
+#include "fsutil.hpp"
 
 namespace mamba
 {
@@ -171,6 +172,51 @@ namespace mamba
 
             EXPECT_THROW(locate_prefix_by_name("test"), std::runtime_error);
             // TODO implement tests for locate_prefix_by_name
+        }
+    }
+
+    TEST(fsutil, starts_with_home)
+    {
+        if (on_linux)
+        {
+            auto home = env::expand_user("~");
+            EXPECT_EQ(path::starts_with_home(home / "test" / "file.txt" ), true);
+            EXPECT_EQ(path::starts_with_home("~"), true);
+            EXPECT_EQ(path::starts_with_home("/opt/bin"), false);
+        }
+    }
+
+    TEST(fsutil, expand_user)
+    {
+        fs::path pbefore = "/tmp/test/xyz.txt";
+        fs::path p = env::expand_user(pbefore);
+        EXPECT_EQ(p, pbefore);
+    }
+
+    TEST(fsutil, touch)
+    {
+        if (on_linux)
+        {
+            path::touch("/tmp/dir/file.txt", true);
+            EXPECT_TRUE(fs::exists("/tmp/dir/file.txt"));
+        }
+    }
+
+    TEST(fsutil, is_writable)
+    {
+        if (on_linux)
+        {
+            EXPECT_TRUE(path::is_writable("/tmp/test.txt"));
+            EXPECT_TRUE(path::is_writable(env::expand_user("~/hello.txt")));
+            // if (env::is_admin())
+            // {
+            //     EXPECT_TRUE(path::is_writable("/opt/test.txt"));
+            // }
+            // else
+            // {
+            //     EXPECT_FALSE(path::is_writable("/opt/test.txt"));
+            // }
+            EXPECT_THROW(path::is_writable("/tmp/this/path/doesnt/exist"), std::runtime_error);
         }
     }
 }

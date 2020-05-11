@@ -15,9 +15,9 @@ namespace mamba
         // modify_rc_file("/home/wolfv/Programs/mamba/test/.bashrc", "/home/wolfv/superconda/", "bash");
     }
 
-    TEST(shell_init, expand_path)
+    TEST(shell_init, expand_user)
     {
-        auto expanded = expand_path("~/this/is/a/test");
+        auto expanded = env::expand_user("~/this/is/a/test");
         if (on_linux)
         {
             EXPECT_TRUE(starts_with(expanded.string(), "/home/"));

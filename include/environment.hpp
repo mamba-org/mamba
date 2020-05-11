@@ -10,8 +10,16 @@
 
 namespace fs = ghc::filesystem;
 
+#ifdef _WIN32
+#include <Shlobj.h>;
+#endif
+
 #ifndef _WIN32
 #include <sys/utsname.h>
+#include <wordexp.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 extern "C"
 {
@@ -132,6 +140,66 @@ namespace env
         return "win32";
         #endif
     }
+
+    inline fs::path home_directory()
+    {
+    #ifdef _WIN32
+        std::string maybe_home = env::get("USERPROFILE");
+        if (maybe_home.empty())
+        {
+            maybe_home = concat(env::get("HOMEDRIVE"), env::get("HOMEPATH"));
+        }
+        if (maybe_home.empty())
+        {
+            throw std::runtime_error("Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)");
+        }
+    #else
+        std::string maybe_home = env::get("HOME");
+        if (maybe_home.empty())
+        {
+            maybe_home = getpwuid(getuid())->pw_dir;
+        }
+        if (maybe_home.empty())
+        {
+            throw std::runtime_error("HOME not set.");
+        }
+    #endif
+        return maybe_home;
+    }
+
+    inline fs::path expand_user(const fs::path& path)
+    {
+        auto p = path.string();
+        if (p[0] == '~')
+        {
+            p.replace(0, 1, home_directory());
+        }
+        return p;
+    }
+
+    inline bool is_admin()
+    {
+        #ifdef _WIN32
+        return IsUserAnAdmin();
+        #else
+        return geteuid() == 0 || getegid() == 0;
+        #endif
+    }
+
+    // inline fs::path expand_vars(const fs::path& path)
+    // {
+    //     #ifndef _WIN32
+    //     wordexp_t w{};
+    //     std::unique_ptr<wordexp_t, void(*)(wordexp_t*)> hold{&w, ::wordfree};
+    //     ::wordexp(path.c_str(), &w, 0);
+    //     if (w.we_wordc != 1)
+    //         throw std::runtime_error("Cannot expand path: " + path.string());
+    //     fs::path result = fs::absolute(w.we_wordv[0]);
+    //     return result;
+    //     #else
+    //     // ExpandEnvironmentStringsW
+    //     #endif
+    // }
 }
 
 }

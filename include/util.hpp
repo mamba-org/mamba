@@ -7,7 +7,6 @@
 #include <random>
 #include <array>
 
-
 #include "thirdparty/filesystem.hpp"
 
 namespace fs = ghc::filesystem;

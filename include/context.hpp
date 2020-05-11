@@ -30,6 +30,7 @@ namespace mamba
 
         // TODO check writable and add other potential dirs
         std::vector<fs::path> envs_dirs = { root_prefix / "envs" };
+        std::vector<fs::path> pkgs_dirs = { root_prefix / "pkgs" };
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1; // take from header

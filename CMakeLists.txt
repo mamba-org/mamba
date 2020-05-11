@@ -46,6 +46,7 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/url.cpp
     ${CMAKE_SOURCE_DIR}/src/output.cpp
     ${CMAKE_SOURCE_DIR}/src/package_handling.cpp
+    ${CMAKE_SOURCE_DIR}/src/package_cache.cpp
     ${CMAKE_SOURCE_DIR}/src/pool.cpp
     ${CMAKE_SOURCE_DIR}/src/prefix_data.cpp
     ${CMAKE_SOURCE_DIR}/src/query.cpp

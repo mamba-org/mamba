@@ -11,12 +11,12 @@
 #include "shell_init.hpp"
 
 const char banner[] = R"MAMBARAW(
-              ____               _                                          _            
-             / . .\             (_)                                        | |           
-             \  ----<  _ __ ___  _  ___ _ __ ___  _ __ ___   __ _ _ __ ___ | |__   __ _  
-              \  /    | '_ ` _ \| |/ __| '__/ _ \| '_ ` _ \ / _` | '_ ` _ \| '_ \ / _` | 
-    __________/ /     | | | | | | | (__| | | (_) | | | | | | (_| | | | | | | |_) | (_| | 
- -=:___________/      |_| |_| |_|_|\___|_|  \___/|_| |_| |_|\__,_|_| |_| |_|_.__/ \__,_| 
+            _                                          _            
+           (_)                                        | |           
+  _ __ ___  _  ___ _ __ ___  _ __ ___   __ _ _ __ ___ | |__   __ _  
+ | '_ ` _ \| |/ __| '__/ _ \| '_ ` _ \ / _` | '_ ` _ \| '_ \ / _` | 
+ | | | | | | | (__| | | (_) | | | | | | (_| | | | | | | |_) | (_| | 
+ |_| |_| |_|_|\___|_|  \___/|_| |_| |_|\__,_|_| |_| |_|_.__/ \__,_| 
 )MAMBARAW";
 
 
@@ -187,7 +187,7 @@ void init_create_parser(CLI::App* subcom)
 
 int main(int argc, char** argv)
 {
-    CLI::App app{"App description"};
+    CLI::App app{banner};
 
     app.add_flag("-v", global_options.verbosity, "Enbable verbose mode (higher verbosity with multiple -v, e.g. -vvv)");
 
@@ -197,7 +197,7 @@ int main(int argc, char** argv)
     CLI::App* create_subcom = app.add_subcommand("create", "Create new environment");
     init_create_parser(create_subcom);
 
-    CLI::App* install_subcom = app.add_subcommand("install", "Install packages in active");
+    CLI::App* install_subcom = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
 
     CLI11_PARSE(app, argc, argv);

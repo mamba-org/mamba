@@ -133,7 +133,7 @@ namespace mamba
         m_cache_path = cache_path;
         m_tarball_path = cache_path / m_filename;
         bool tarball_exists = fs::exists(m_tarball_path);
-        fs::path dest_dir = strip_package_name(m_tarball_path);
+        fs::path dest_dir = strip_package_extension(m_tarball_path);
         bool dest_dir_exists = fs::exists(dest_dir);
         bool valid = false;
 

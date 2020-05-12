@@ -93,7 +93,7 @@ void init_shell_parser(CLI::App* subcom)
 
 void install_specs(const std::vector<std::string>& specs)
 {
-    std::cout << termcolor::red << banner << termcolor::reset << std::endl;
+    Console::print(banner);
 
     auto& ctx = Context::instance();
     ctx.set_verbosity(global_options.verbosity);

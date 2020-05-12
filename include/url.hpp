@@ -35,12 +35,23 @@ namespace mamba
 
     bool is_url(const std::string& url);
 
-    class URLParser
+    void split_anaconda_token(const std::string& url,
+                              std::string& cleaned_url,
+                              std::string& token);
+    
+    void split_scheme_auth_token(const std::string& url,
+                                 std::string& remaining_url,
+                                 std::string& scheme,
+                                 std::string& auth,
+                                 std::string& token);
+
+
+    class URLHandler
     {
     public:
     
-        URLParser(const std::string& url);
-        ~URLParser();
+        URLHandler(const std::string& url = "");
+        ~URLHandler();
 
         std::string url();
 
@@ -53,18 +64,33 @@ namespace mamba
         std::string fragment();
         std::string options();
 
+        std::string auth();
         std::string user();
         std::string password();
         std::string zoneid();
 
+        void set_scheme(const std::string& scheme);
+        void set_host(const std::string& host);
+        void set_path(const std::string& path);
+        void set_port(const std::string& port);
+
+        void set_query(const std::string& query);
+        void set_fragment(const std::string& fragment);
+        void set_options(const std::string& options);
+
+        void set_user(const std::string& user);
+        void set_password(const std::string& password);
+        void set_zoneid(const std::string& zoneid);
+
     private:
 
         std::string get_part(CURLUPart part);
+        void set_part(CURLUPart part, const std::string& s);
 
         std::string m_url;
         CURLU* m_handle;
+        bool m_scheme_set;
     };
-
 }
 
 #endif

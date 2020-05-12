@@ -1,5 +1,11 @@
 #include <sstream>
 
+#include <archive.h>
+#include <archive_entry.h>
+
+#include "util.hpp"
+#include "nlohmann/json.hpp"
+
 #include "package_handling.hpp"
 #include "output.hpp"
 
@@ -151,20 +157,41 @@ namespace mamba
         }
     }
 
-    fs::path strip_package_name(const std::string& file)
+    void split_package_extension(const std::string& file, std::string& name, std::string& extension)
     {
-        if (ends_with(file, ".tar.bz2"))
+        if (ends_with(file, ".conda"))
         {
-            return file.substr(0, file.size() - 8);
+            name = file.substr(0, file.size() - 6);
+            extension = ".conda";
         }
-        else if (ends_with(file, ".conda"))
+        else if (ends_with(file, ".tar.bz2"))
         {
-            return file.substr(0, file.size() - 6);
+            name = file.substr(0, file.size() - 8);
+            extension = ".tar.bz2";
+        }
+        else if (ends_with(file, ".json"))
+        {
+            name = file.substr(0, file.size() - 5);
+            extension = ".json";
         }
         else
         {
+            name = file;
+            extension = "";
+        }
+    }
+
+    fs::path strip_package_extension(const std::string& file)
+    {
+        std::string name, extension;
+        split_package_extension(file, name, extension);
+
+        if (extension == "")
+        {
             throw std::runtime_error("Don't know how to handle " + file);
         }
+
+        return name;
     }
 
     fs::path extract(const fs::path& file)

@@ -554,7 +554,7 @@ namespace mamba
     {
         // find the recorded JSON file
         fs::path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
-        std::cout << "opening " << json << std::endl;
+        LOG_INFO << "unlink: opening " << json << std::endl;
         std::ifstream json_file(json);
         nlohmann::json json_record;
         json_file >> json_record;

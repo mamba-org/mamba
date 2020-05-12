@@ -329,7 +329,7 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
-        std::cout << "\n\nTransaction starting\n";
+        Console::stream() << "\n\nTransaction starting";
         m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
@@ -350,7 +350,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 {
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
-                    std::cout << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str() << "\n";
+                    Console::stream() << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
                     PackageInfo p_link(s2);
                     UnlinkPackage up(PackageInfo(s), &m_transaction_context);
@@ -367,7 +367,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_ERASE:
                 {
                     PackageInfo p(s);
-                    std::cout << "Unlinking " << PackageInfo(s).str() << "\n";
+                    Console::stream() << "Unlinking " << PackageInfo(s).str();
                     UnlinkPackage up(p, &m_transaction_context);
                     up.execute();
                     m_history_entry.unlink_dists.push_back(p.long_str());
@@ -376,7 +376,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_INSTALL:
                 {
                     PackageInfo p(s);
-                    std::cout << "Linking " << p.str() << "\n";
+                    Console::stream() << "Linking " << p.str();
                     LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
                     m_history_entry.link_dists.push_back(p.long_str());
@@ -404,7 +404,7 @@ namespace mamba
             }
         }
 
-        std::cout << "Transaction finished" << std::endl;
+        Console::stream() << "Transaction finished";
         prefix.history().add_entry(m_history_entry);
 
         // back to the top level if any action was required
@@ -416,7 +416,6 @@ namespace mamba
         // finally, print the JSON
         if (Context::instance().json) {
             Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
-            std::cout << "JSON printed\n";
         }
 
         return true;

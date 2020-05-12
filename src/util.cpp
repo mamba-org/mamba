@@ -34,7 +34,7 @@ namespace mamba
 
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
-        const char* sizes[] = { " B", "KB", "MB", "GB", "TB" };
+        const char* sizes[] = { "  B", " KB", " MB", " GB", " TB" };
         int order = 0;
         while (bytes >= 1024 && order < (5 - 1))
         {

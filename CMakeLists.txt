@@ -74,8 +74,8 @@ if (BUILD_EXE)
         ${CMAKE_SOURCE_DIR}/src/main.cpp
     )
 
-    add_executable(mamba ${MAMBA_EXE})
-    target_link_libraries(mamba PUBLIC mamba_lib)
+    add_executable(micromamba ${MAMBA_EXE})
+    target_link_libraries(micromamba PUBLIC mamba_lib)
 endif()
 
 install(TARGETS mamba_api

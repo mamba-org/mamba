@@ -42,7 +42,7 @@ __mamba_activate() {
     CONDA_INTERNAL_OLDPATH="${PATH}"
     __add_sys_prefix_to_path
     \local prefix="$@"
-    if [ "$rest" = "" ]; then
+    if [ "$prefix" = "" ]; then
         prefix="base"
     fi
     ask_conda="$(PS1="$PS1" "$MAMBA_EXE" shell --shell bash "$cmd" --prefix "$prefix")" || \return $?
@@ -65,7 +65,7 @@ __mamba_reactivate() {
     __conda_hashr
 }
 
-mamba() {
+micromamba() {
     if [ "$#" -lt 1 ]; then
         "$MAMBA_EXE"
     else

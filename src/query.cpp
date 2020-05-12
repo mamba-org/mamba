@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iomanip>
+#include <numeric>
 #include <set>
 
 #include "query.hpp"

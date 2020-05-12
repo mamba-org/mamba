@@ -214,18 +214,18 @@ namespace mamba
         m_history_entry.remove = solver.remove_specs();
 
         init();
-        JsonLogger::instance().json_down("actions");
+        // if no action required, don't even start logging them
+        if (!empty())
+        {
+            JsonLogger::instance().json_down("actions");
+            JsonLogger::instance().json_write({{"PREFIX", Context::instance().target_prefix}});
+        }
     }
 
     MTransaction::~MTransaction()
     {
         LOG_INFO << "Freeing transaction.";
         transaction_free(m_transaction);
-        JsonLogger::instance().json_write("PREFIX", Context::instance().target_prefix);
-        JsonLogger::instance().json_up();
-        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
-        if (Context::instance().json)
-            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
     }
 
     void MTransaction::init()
@@ -376,10 +376,24 @@ namespace mamba
                 case SOLVER_TRANSACTION_INSTALL:
                 {
                     PackageInfo p(s);
-                    std::cout << "Linking " << PackageInfo(s).str() << "\n";
+                    std::cout << "Linking " << p.str() << "\n";
                     LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
                     m_history_entry.link_dists.push_back(p.long_str());
+
+                    JsonLogger::instance().json_down("LINK");
+                    JsonLogger::instance().json_append(nlohmann::json(
+                        {
+                            {"build_number", p.build_number},
+                            {"build_string", p.build_string},
+                            {"dist_name", p.str()},
+                            {"channel", p.channel},
+                            {"name", p.name},
+                            {"version", p.version}
+                        }
+                    ));
+                    JsonLogger::instance().json_up();
+
                     break;
                 }
                 case SOLVER_TRANSACTION_IGNORE:
@@ -392,6 +406,18 @@ namespace mamba
 
         std::cout << "Transaction finished" << std::endl;
         prefix.history().add_entry(m_history_entry);
+
+        // back to the top level if any action was required
+        if (!empty())
+            JsonLogger::instance().json_up();
+        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
+        if (empty())
+            JsonLogger::instance().json_write({{"message", "All requested packages already installed"}});
+        // finally, print the JSON
+        if (Context::instance().json) {
+            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
+            std::cout << "JSON printed\n";
+        }
 
         return true;
     }

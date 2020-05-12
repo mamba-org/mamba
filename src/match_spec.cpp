@@ -17,7 +17,7 @@ namespace mamba
         version = pool_id2str(pool, s->evr);
         str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
         if (str)
-            build = str;
+            build_string = str;
         str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
         if (str)
         {
@@ -59,29 +59,24 @@ namespace mamba
 
     PackageInfo::PackageInfo(nlohmann::json&& j)
     {
-        name = j["name"];
-        version = j["version"];
-        channel = j["channel"];
-        url = j["url"];
-        subdir = j["subdir"];
-        fn = j["fn"];
-        size = j["size"];
-        timestamp = j["timestamp"];
-        if (j.contains("build"))
-            build = j["build"];
-        if (j.contains("build_number"))
-            build_number = j["build_number"];
-        if (j.contains("license"))
-            license = j["license"];
-        if (j.contains("md5"))
-            md5 = j["md5"];
-        if (j.contains("sha256"))
-            sha256 = j["sha256"];
+        assign_or(j, "name", name, (std::string)"");
+        assign_or(j, "version", version, (std::string)"");
+        assign_or(j, "channel", channel, (std::string)"");
+        assign_or(j, "url", url, (std::string)"");
+        assign_or(j, "subdir", subdir, (std::string)"");
+        assign_or(j, "fn", fn, (std::string)"");
+        assign_or(j, "size", size, (size_t)0);
+        assign_or(j, "timestamp", timestamp, (size_t)0);
+        assign_or(j, "build_string", build_string, (std::string)"0");
+        assign_or(j, "build_number", build_number, (size_t)0);
+        assign_or(j, "license", license, (std::string)"");
+        assign_or(j, "md5", md5, (std::string)"");
+        assign_or(j, "sha256", sha256, (std::string)"");
     }
 
     PackageInfo::PackageInfo(const std::string& n, const std::string& v,
                              const std::string b, std::size_t bn)
-        : name(n), version(v), build(b), build_number(bn)
+        : name(n), version(v), build_string(b), build_number(bn)
     {
     }
 
@@ -96,7 +91,7 @@ namespace mamba
         j["fn"] = fn;
         j["size"] = size;
         j["timestamp"] = timestamp;
-        j["build"] = build;
+        j["build_string"] = build_string;
         j["build_number"] = build_number;
         j["license"] = license;
         j["md5"] = md5;
@@ -110,12 +105,12 @@ namespace mamba
 
     std::string PackageInfo::str() const
     {
-        return concat(name, "-", version, "-", build);
+        return concat(name, "-", version, "-", build_string);
     }
 
     std::string PackageInfo::long_str() const
     {
-        return concat(channel, "/", subdir, "::", name, "-", version, "-", build);
+        return concat(channel, "/", subdir, "::", name, "-", version, "-", build_string);
     }
 
     MatchSpec::MatchSpec(const std::string& i_spec)

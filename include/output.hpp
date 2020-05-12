@@ -283,8 +283,6 @@ namespace mamba
         static JsonLogger& instance();
 
         nlohmann::json json_log;
-        void json_write(const std::string& key, bool value);
-        void json_write(const std::string& key, const std::string& value);
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);

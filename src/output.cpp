@@ -510,17 +510,7 @@ namespace mamba
         return j;
     }
 
-    void JsonLogger::json_write(const std::string& key, bool value)
-    {
-        json_write(key, value ? std::string("true") : std::string("false"));
-    }
-
-    void JsonLogger::json_write(const std::string& key, const std::string& value)
-    {
-        if (Context::instance().json)
-            json_log[json_hier + '/' + key] = value;
-    }
-
+    // write all the key/value pairs of a JSON object into the current entry, which is then a JSON object
     void JsonLogger::json_write(const nlohmann::json& j)
     {
         if (Context::instance().json)
@@ -531,6 +521,7 @@ namespace mamba
         }
     }
 
+    // append a value to the current entry, which is then a list
     void JsonLogger::json_append(const std::string& value)
     {
         if (Context::instance().json)
@@ -540,6 +531,7 @@ namespace mamba
         }
     }
 
+    // append a JSON object to the current entry, which is then a list
     void JsonLogger::json_append(const nlohmann::json& j)
     {
         if (Context::instance().json)
@@ -551,6 +543,7 @@ namespace mamba
         }
     }
 
+    // go down in the hierarchy in the "key" entry, create it if it doesn't exist
     void JsonLogger::json_down(const std::string& key)
     {
         if (Context::instance().json)
@@ -560,6 +553,7 @@ namespace mamba
         }
     }
 
+    // go up in the hierarchy
     void JsonLogger::json_up()
     {
         if (Context::instance().json)

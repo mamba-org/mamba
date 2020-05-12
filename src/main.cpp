@@ -144,7 +144,6 @@ void install_specs(const std::vector<std::string>& specs)
     solver.solve();
 
     mamba::MTransaction trans(solver);
-    trans.print();
     bool yes = trans.prompt(ctx.root_prefix / "pkgs", repos);
     if (!yes) exit(0);
 
@@ -178,6 +177,8 @@ void init_create_parser(CLI::App* subcom)
         else
         {
             fs::create_directories(ctx.target_prefix);
+            fs::create_directories(ctx.target_prefix / "conda-meta");
+            fs::create_directories(ctx.target_prefix / "pkgs");
         }
         install_specs(create_options.specs);
 

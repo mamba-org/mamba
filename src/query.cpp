@@ -11,8 +11,6 @@ extern "C" {
     #include <solv/evr.h>
 }
 
-#include "tabulate/table.hpp"
-
 namespace mamba
 {
     namespace printers
@@ -133,6 +131,45 @@ namespace mamba
         }
     }
 
+    void reverse_walk_graph(printers::Node<std::string>& parent, 
+                            Solvable* s,
+                            std::set<Solvable*>& visited_solvs)
+    {
+
+        if (s)
+        {
+            auto* pool = s->repo->pool;
+            // figure out who requires `s`
+            Queue solvables;
+            queue_init(&solvables);
+
+            pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, &solvables, -1);
+
+            if (solvables.count != 0)
+            {
+                Solvable* rs;
+                for (int i = 0; i < solvables.count; i++)
+                {
+                    rs = pool_id2solvable(pool, solvables.elements[i]);
+                    if (visited_solvs.count(rs) == 0)
+                    {
+                        printers::Node<std::string> next_node(concat(pool_id2str(pool, rs->name), " [", pool_id2str(pool, rs->evr), "]"));
+                        visited_solvs.insert(rs);
+                        reverse_walk_graph(next_node, rs, visited_solvs);
+                        parent.add_child(next_node);
+                    }
+                    else
+                    {
+                        parent.add_child(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m"));
+                    }
+                }
+                queue_free(&solvables);
+            }
+            return;
+        }
+    }
+
+
     /************************
      * Query implementation *
      ************************/
@@ -183,7 +220,7 @@ namespace mamba
         return out.str();
     }
 
-    std::string Query::whatrequires(const std::string& query)
+    std::string Query::whatrequires(const std::string& query, bool tree)
     {
         Queue job, solvables;
         queue_init(&job);
@@ -199,26 +236,49 @@ namespace mamba
             throw std::runtime_error("Could not generate query for " + query);
         }
 
-        pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, &solvables, -1);
-
-        std::stringstream out;
-        if (solvables.count == 0)
+        if (tree)
         {
-            out << "No entries matching \"" << query << "\" found";
-        }
-        
-        printers::Table whatrequires_table_results({"Name", "Version", "Build", "Channel"});
-        for (int i = 0; i < solvables.count; i++)
-        {
-            Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-            solvable_to_stream(out, s, i + 1, whatrequires_table_results);
-        }
-        whatrequires_table_results.print();
+            selection_solvables(m_pool.get(), &job, &solvables);
 
+            if (solvables.count)
+            {
+                Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
+                printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
+                root.set_root(true);
+                std::set<Solvable*> visited { latest };
+
+                reverse_walk_graph(root, latest, visited);
+                root.print("", false);
+            }
+            else
+            {
+                std::cout << "No matching package found" << std::endl;
+            }
+        }
+        else
+        {
+            pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, &solvables, -1);
+
+            std::stringstream out;
+            if (solvables.count == 0)
+            {
+                out << "No entries matching \"" << query << "\" found";
+            }
+
+            printers::Table whatrequires_table_results({"Name", "Version", "Build", "Channel"});
+            for (int i = 0; i < solvables.count; i++)
+            {
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                solvable_to_stream(out, s, i + 1, whatrequires_table_results);
+            }
+            whatrequires_table_results.print();
+
+        }
         queue_free(&job);
         queue_free(&solvables);
 
-        return out.str();
+        return "";
+        // return out.str();
     }
 
    std::string Query::dependencytree(const std::string& query)
@@ -265,8 +325,6 @@ namespace mamba
             }
             printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
             root.set_root(true);
-            // std::stringstream solv_str;
-            // solv_str << pool_id2str(m_pool.get(), latest->name) << " == " << ;
             std::set<Solvable*> visited { latest };
             walk_graph(root, latest, visited);
             root.print("", false);

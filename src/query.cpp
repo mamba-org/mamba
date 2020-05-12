@@ -1,5 +1,6 @@
 #include <sstream>
 #include <iomanip>
+#include <set>
 
 #include "query.hpp"
 #include "util.hpp"
@@ -12,6 +13,114 @@ extern "C" {
 
 namespace mamba
 {
+    namespace printers
+    {
+        enum alignment : int
+        {
+            left  = 0b0001,
+            right = 0b0010,
+            fill =  0b0100
+        };
+
+        class Table
+        {
+        public:
+
+            Table(const std::vector<std::string>& header)
+                : m_header(header)
+            {
+            }
+
+            void set_alignment(const std::vector<int>& a)
+            {
+                m_align = a;
+            }
+
+            void add_row(const std::vector<std::string>& r)
+            {
+                m_table.push_back(r);
+            }
+
+            void print()
+            {
+                if (m_table.size() == 0) return;
+                if (m_align.size() == 0) m_align = std::vector<int>(m_table[0].size(), alignment::left);
+                std::vector<std::size_t> cell_sizes(m_table[0].size());
+                for (auto i = 0; i < m_header.size(); ++i)
+                    cell_sizes[i] = m_header[i].size();
+                for (auto i = 0; i < m_table.size(); ++i)
+                    for (auto j = 0; j < m_table[i].size(); ++j)
+                        cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
+
+                for (auto& c : cell_sizes) c += 1;
+
+                std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
+                for (int i = 0; i < m_header.size(); ++i)
+                    std::cout << (m_align[i] & alignment::left ? std::left : std::right) << std::setw(cell_sizes[i]) << m_header[i];
+
+                std::cout << "\n";
+                for (int i = 0; i < total_length; ++i) std::cout << "─";
+                std::cout << "\n";
+
+                for (auto i = 0; i < m_table.size(); ++i)
+                {
+                    for (auto j = 0; j < m_table[i].size(); ++j)
+                        std::cout << (m_align[j] & alignment::left ? std::left : std::right) << std::setw(cell_sizes[j]) << m_table[i][j];
+                    std::cout << "\n";
+                }
+            }
+
+            std::vector<std::string> m_header;
+            std::vector<int> m_align;
+            std::vector<std::vector<std::string>> m_table;
+        };
+
+        template <class V>
+        class Node
+        {
+        public:
+            Node(const V& s)
+                : m_self(s)
+            {
+            }
+
+            void set_root(bool r)
+            {
+                m_root = r;
+            }
+
+            V m_self;
+            std::vector<Node<V>> m_children;
+            bool m_root = false;
+
+            void add_child(const V& n) 
+            {
+                m_children.push_back(Node<V>(n));
+            }
+
+            void add_child(const Node<V>& n) 
+            {
+                m_children.push_back(n);
+            }
+
+            void print(const std::string& prefix, bool is_last)
+            {
+                std::cout << prefix;
+                if (!m_root)
+                {
+                    std::cout << (is_last ? "└─ " : "├─ ");
+                }
+                std::cout << m_self << "\n";
+                for (std::size_t i = 0; i < m_children.size(); ++i)
+                {
+                    std::string next_prefix = prefix;
+                    next_prefix += (is_last || m_root) ? "  " : "│ ";
+                    m_children[i].print(next_prefix, i == m_children.size() - 1);
+                }
+            }
+        };
+    }
+
     std::string cut_repo_name(std::ostream& out, const std::string_view& reponame)
     {
         if (starts_with(reponame, "https://conda.anaconda.org/"))
@@ -26,7 +135,7 @@ namespace mamba
     }
 
     void solvable_to_stream(std::ostream& out, Solvable* s, int row_count,
-        tabulate::Table& query_result)
+        printers::Table& query_result)
     {
         Pool* pool = s->repo->pool;
 
@@ -36,76 +145,62 @@ namespace mamba
         std::string build_flavor = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
         query_result.add_row({name, evr, build_flavor, channel});
-        query_result[row_count].format().border_top(" ").border_bottom(" ");
     }
 
-    void print_dep_graph(std::ostream& out, Solvable* s, const std::string& solv_str,
-                         int level, int max_level, bool last, const std::string& prefix)
+    void walk_graph(printers::Node<std::string>& parent, 
+                    Solvable* s,
+                    std::set<Solvable*>& visited_solvs)
     {
-        if (level <= max_level)
+        if (s && s->requires)
         {
-            out << prefix;
-            if (level)
+            auto* pool = s->repo->pool;
+
+            Id* reqp = s->repo->idarraydata + s->requires;
+            Id req = *reqp;
+            while (req != 0) /* go through all requires */
             {
-                if (last)
+                Queue job, rec_solvables;
+                queue_init(&rec_solvables);
+                queue_init(&job);
+                // the following prints the requested version
+                queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, req);
+                selection_solvables(pool, &job, &rec_solvables);
+                int index = 0;
+
+                bool next_is_last = *(reqp + 1) == 0;
+
+                if (rec_solvables.count != 0)
                 {
-                    out << "└─ ";
-                }
-                else
-                {
-                    out << "├─ ";
-                }
-            }
-
-            out << solv_str << "\n";
-
-            if (s && s->requires)
-            {
-                auto* pool = s->repo->pool;
-
-                Id* reqp = s->repo->idarraydata + s->requires;
-                Id req = *reqp;
-                while (req != 0) /* go through all requires */
-                {
-                    Queue job, rec_solvables;
-                    queue_init(&rec_solvables);
-                    queue_init(&job);
-                    // the following prints the requested version
-                    queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, req);
-                    selection_solvables(pool, &job, &rec_solvables);
-                    int index = 0;
-
-                    bool next_is_last = *(reqp + 1) == 0;
-                    std::string next_prefix = prefix;
-                    next_prefix += last ? "  " : "│ ";
-
-                    std::stringstream solv_str;
-                    solv_str << pool_id2str(pool, req) << " [" << pool_id2evr(pool, req) << "]";
-
-                    if (rec_solvables.count != 0)
+                    Solvable* rs;
+                    for (int i = 0; i < rec_solvables.count; i++)
                     {
-                        for (int i = 0; i < rec_solvables.count; i++)
+                        rs = pool_id2solvable(pool, rec_solvables.elements[i]);
+                        if (rs->name == req)
                         {
-                            Solvable* s = pool_id2solvable(pool, rec_solvables.elements[i]);
-                            if (s->name == req)
-                            {
-                                index = i;
-                            }
+                            break;
                         }
-                        Solvable* sreq = pool_id2solvable(pool, rec_solvables.elements[index]);
-
-                        print_dep_graph(out, sreq, solv_str.str(), level + 1, max_level,
-                                        next_is_last, next_prefix);
+                    }
+                    if (visited_solvs.count(rs) == 0)
+                    {
+                        printers::Node<std::string> next_node(concat(pool_id2str(pool, req), " [", pool_id2evr(pool, req), "]"));
+                        visited_solvs.insert(rs);
+                        walk_graph(next_node, rs, visited_solvs);
+                        parent.add_child(next_node);
                     }
                     else
                     {
-                        print_dep_graph(out, nullptr, ">>> NOT FOUND <<< " + solv_str.str(), level + 1, max_level,
-                                        next_is_last, next_prefix);
+                        parent.add_child(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m"));
                     }
-                    queue_free(&rec_solvables);
-                    ++reqp;
-                    req = *reqp;
                 }
+                else
+                {
+                    parent.add_child(concat(pool_id2str(pool, req), " >>> NOT FOUND <<<"));
+                    // print_dep_graph(out, nullptr, ">>> NOT FOUND <<< " + solv_str.str(), level + 1, max_level,
+                    //                 next_is_last, next_prefix);
+                }
+                queue_free(&rec_solvables);
+                ++reqp;
+                req = *reqp;
             }
         }
     }
@@ -145,20 +240,14 @@ namespace mamba
             return out.str();
         }
 
-        tabulate::Table find_table_results;
-        find_table_results.add_row({"Name", "Version", "Build", "Channel"});
+        printers::Table find_table_results({"Name", "Version", "Build", "Channel"});
         for (int i = 0; i < solvables.count; i++)
         {
             Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
             solvable_to_stream(out, s, i + 1, find_table_results);
         }
 
-        find_table_results[0].format()
-            .border_top("-")
-            .font_style({tabulate::FontStyle::bold});
-        find_table_results[1].format().border_top("-");
-        find_table_results[solvables.count].format().border_bottom("-");
-        out << find_table_results << std::endl;
+        find_table_results.print();
 
         queue_free(&job);
         queue_free(&solvables);
@@ -189,19 +278,14 @@ namespace mamba
         {
             out << "No entries matching \"" << query << "\" found";
         }
-        tabulate::Table whatrequires_table_results;
-        whatrequires_table_results.add_row({"Name", "Version", "Build", "Channel"});
+        
+        printers::Table whatrequires_table_results({"Name", "Version", "Build", "Channel"});
         for (int i = 0; i < solvables.count; i++)
         {
             Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
             solvable_to_stream(out, s, i + 1, whatrequires_table_results);
         }
-        whatrequires_table_results[0].format()
-            .border_top("-")
-            .font_style({tabulate::FontStyle::bold});
-        whatrequires_table_results[1].format().border_top("-");
-        whatrequires_table_results[solvables.count].format().border_bottom("-");
-        out << whatrequires_table_results << std::endl;
+        whatrequires_table_results.print();
 
         queue_free(&job);
         queue_free(&solvables);
@@ -228,8 +312,6 @@ namespace mamba
         selection_solvables(m_pool.get(), &job, &solvables);
 
         // Print conda-tree like dependency graph for upto a recursion limit
-        int dependency_recursion_limit = 3;
-
         std::stringstream out;
         if (solvables.count == 0)
         {
@@ -237,10 +319,7 @@ namespace mamba
         }
         else
         {
-            out << "Printing up to " << dependency_recursion_limit << " levels of dependencies\n\n";
-        }
-        if (solvables.count > 0)
-        {
+
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
             if (solvables.count > 1)
             {
@@ -256,12 +335,14 @@ namespace mamba
                     }
                 }
             }
-            std::stringstream solv_str;
-            solv_str << pool_id2str(m_pool.get(), latest->name) << " == " << pool_id2str(m_pool.get(), latest->evr);
-            print_dep_graph(out, latest, solv_str.str(), 0, dependency_recursion_limit, true, "");
+            printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
+            root.set_root(true);
+            // std::stringstream solv_str;
+            // solv_str << pool_id2str(m_pool.get(), latest->name) << " == " << ;
+            std::set<Solvable*> visited { latest };
+            walk_graph(root, latest, visited);
+            root.print("", false);
         }
-
-        out << std::endl;
 
         queue_free(&job);
         queue_free(&solvables);

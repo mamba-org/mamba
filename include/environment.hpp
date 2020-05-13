@@ -87,12 +87,13 @@ namespace env
         std::map<std::string, std::string> m;
         #ifndef _WIN32
         int i = 1;
-        std::string_view s = *environ;
-        for (; s.size(); i++)
+        const char* c = *environ;
+        for (; c; i++)
         {
+            std::string_view s(c);
             auto pos = s.find("=");
             m[std::string(s.substr(0, pos))] = (pos != s.npos) ? std::string(s.substr(pos + 1)) : "";
-            s = *(environ + i);
+            c = *(environ + i);
         }
         #else
 

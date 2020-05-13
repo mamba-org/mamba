@@ -3,8 +3,7 @@
 
 #include <unordered_map>
 
-#include "nlohmann/json.hpp"
-
+#include "package_info.hpp"
 #include "history.hpp"
 #include "util.hpp"
 

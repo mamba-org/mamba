@@ -11,6 +11,7 @@
 #include "repo.hpp"
 #include "fetch.hpp"
 #include "package_handling.hpp"
+#include "package_cache.hpp"
 #include "output.hpp"
 #include "prefix_data.hpp"
 #include "transaction_context.hpp"
@@ -40,7 +41,7 @@ namespace mamba
         bool finalize_callback();
         bool finished();
         bool validate_extract();
-        DownloadTarget* target(const fs::path& cache_path);
+        DownloadTarget* target(const fs::path& cache_path, MultiPackageCache& cache);
 
     private:
 
@@ -62,7 +63,7 @@ namespace mamba
     {
     public:
 
-        MTransaction(MSolver& solver);
+        MTransaction(MSolver& solver, MultiPackageCache& cache);
         ~MTransaction();
 
         MTransaction(const MTransaction&) = delete;
@@ -88,6 +89,7 @@ namespace mamba
     private:
 
         TransactionContext m_transaction_context;
+        MultiPackageCache m_multi_cache;
         std::vector<Solvable*> m_to_install, m_to_remove;
         History::UserRequest m_history_entry;
         Transaction* m_transaction;

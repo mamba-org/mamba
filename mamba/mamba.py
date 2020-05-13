@@ -298,7 +298,8 @@ def remove(args, parser):
             exit_code = 1
             return exit_code
 
-        transaction = api.Transaction(solver)
+        package_cache = api.MultiPackageCache(context.pkgs_dirs)
+        transaction = api.Transaction(solver, package_cache)
         to_link, to_unlink = transaction.to_conda()
         transaction.log_json()
 
@@ -518,7 +519,8 @@ def install(args, parser, command='install'):
         exit_code = 1
         return exit_code
 
-    transaction = api.Transaction(solver)
+    package_cache = api.MultiPackageCache(context.pkgs_dirs)
+    transaction = api.Transaction(solver, package_cache)
     to_link, to_unlink = transaction.to_conda()
     transaction.log_json()
 

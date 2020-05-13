@@ -128,52 +128,18 @@ namespace mamba
         return m_target == nullptr ? true : m_finished;
     }
 
-    DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path)
+    // todo remove cache from this interface
+    DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path, MultiPackageCache& cache)
     {
         m_cache_path = cache_path;
         m_tarball_path = cache_path / m_filename;
         bool tarball_exists = fs::exists(m_tarball_path);
         fs::path dest_dir = strip_package_extension(m_tarball_path);
         bool dest_dir_exists = fs::exists(dest_dir);
-        bool valid = false;
 
-        Id unused;
-        if (tarball_exists)
-        {
-            // validate that this tarball has the right size and MD5 sum
-            std::uintmax_t file_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
-            valid = validate::file_size(m_tarball_path, file_size);
-            valid = valid && validate::md5(m_tarball_path, solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused));
-            LOG_INFO << m_tarball_path << " is " << valid;
-        }
+        bool valid = cache.query(m_solv);
 
-        if (dest_dir_exists)
-        {
-            auto repodata_record_path = dest_dir / "info" / "repodata_record.json";
-            if (fs::exists(repodata_record_path))
-            {
-                try
-                {
-                    std::ifstream repodata_record_f(repodata_record_path);
-                    nlohmann::json repodata_record;
-                    repodata_record_f >> repodata_record;
-                    valid = (repodata_record["size"].get<std::size_t>() == solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
-                    valid = valid && repodata_record["sha256"].get<std::string>() == solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
-                    valid = valid && repodata_record["channel"].get<std::string>() == m_channel;
-                    valid = valid && repodata_record["url"].get<std::string>() == m_url;
-                    if (!valid)
-                    {
-                        LOG_WARNING << "Found directory with same name, but different size, channel, url or checksum " << repodata_record_path;
-                    }
-                }
-                catch (...)
-                {
-                    LOG_WARNING << "Found corrupted repodata_record file " << repodata_record_path;
-                }
-            }
-        }
-
-        if (tarball_exists && !dest_dir_exists)
+        if (valid && !dest_dir_exists)
         {
             // TODO add extract job here
         }
@@ -201,7 +167,8 @@ namespace mamba
      * MTransaction implementation *
      *******************************/
 
-    MTransaction::MTransaction(MSolver& solver)
+    MTransaction::MTransaction(MSolver& solver, MultiPackageCache& cache)
+        : m_multi_cache(cache)
     {
         if (!solver.is_solved())
         {
@@ -476,7 +443,7 @@ namespace mamba
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(*mamba_repo, s));
-            multi_dl.add(targets[targets.size() - 1]->target(cache_path));
+            multi_dl.add(targets[targets.size() - 1]->target(cache_path, m_multi_cache));
         }
         bool downloaded = multi_dl.download(true);
 
@@ -551,8 +518,7 @@ namespace mamba
         queue_init(&classes);
         queue_init(&pkgs);
 
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
-                    SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
 
         transaction_classify(m_transaction, mode, &classes);
 
@@ -562,17 +528,25 @@ namespace mamba
 
         auto* pool = m_transaction->pool;
         std::size_t total_size = 0;
-        auto format_row = [pool, &total_size](rows& r, Solvable* s, std::size_t flag)
+        auto format_row = [this, pool, &total_size](rows& r, Solvable* s, std::size_t flag)
         {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)
             {
-                std::stringstream s;
-                to_human_readable_filesize(s, dlsize);
-                dlsize_s.s = s.str();
-                // Hacky hacky
-                if (flag & printers::GREEN) total_size += dlsize;
+                if (this->m_multi_cache.query(s))
+                {
+                    dlsize_s.s = "Cached";
+                    dlsize_s.flag = printers::GREEN;
+                }
+                else
+                {
+                    std::stringstream s;
+                    to_human_readable_filesize(s, dlsize);
+                    dlsize_s.s = s.str();
+                    // Hacky hacky
+                    if (flag & printers::GREEN) total_size += dlsize;
+                }
             }
             printers::FormattedString name;
             name.s = pool_id2str(pool, s->name);

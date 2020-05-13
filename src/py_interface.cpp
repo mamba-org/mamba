@@ -32,6 +32,11 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("create_whatprovides", &MPool::create_whatprovides)
     ;
 
+    py::class_<MultiPackageCache>(m, "MultiPackageCache")
+        .def(py::init<std::vector<fs::path>>())
+        .def("query", &MultiPackageCache::query)
+    ;
+
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
         .def(py::init<MPool&, const PrefixData&>())
@@ -43,7 +48,7 @@ PYBIND11_MODULE(mamba_api, m) {
     ;
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&>())
+        .def(py::init<MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)

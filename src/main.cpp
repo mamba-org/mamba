@@ -143,7 +143,8 @@ void install_specs(const std::vector<std::string>& specs)
     // solver.add_jobs({"xtensor"}, SOLVER_UPDATE);
     solver.solve();
 
-    mamba::MTransaction trans(solver);
+    mamba::MultiPackageCache package_caches({ctx.root_prefix / "pkgs"});
+    mamba::MTransaction trans(solver, package_caches);
     bool yes = trans.prompt(ctx.root_prefix / "pkgs", repos);
     if (!yes) exit(0);
 

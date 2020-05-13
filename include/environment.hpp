@@ -1,5 +1,5 @@
-#ifndef MAMBA_ENVIRONMENT
-#define MAMBA_ENVIRONMENT
+#ifndef MAMBA_ENVIRONMENT_HPP
+#define MAMBA_ENVIRONMENT_HPP
 
 #include <map>
 #include <cstdlib>

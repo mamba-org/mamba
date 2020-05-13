@@ -7,6 +7,7 @@
 #include "output.hpp"
 #include "util.hpp"
 #include "activation.hpp"
+#include "environment.hpp"
 
 #include "thirdparty/filesystem.hpp"
 namespace fs = ghc::filesystem;

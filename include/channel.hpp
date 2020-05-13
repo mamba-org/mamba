@@ -24,7 +24,8 @@ namespace mamba
         const std::string& location() const;
         const std::string& token() const;
         const std::string& name() const;
-        const std::string& subdir() const;
+        const std::string& platform() const;
+        const std::string& package_filename() const;
 
         static Channel make_simple_channel(const Channel& channel_alias,
                                            const std::string& channel_url,
@@ -65,12 +66,16 @@ namespace mamba
         ChannelContext(ChannelContext&&) = delete;
         ChannelContext& operator=(ChannelContext&&) = delete;
 
+        const Channel& get_channel_alias() const;
+        const channel_map& get_custom_channels() const;
+
     private:
 
         ChannelContext();
         ~ChannelContext() = default;
 
-        Channel init_channel_alias();
+        Channel build_channel_alias();
+        channel_map build_custom_channels();
 
         Channel m_channel_alias;
         channel_map m_custom_channels;

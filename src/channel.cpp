@@ -13,6 +13,19 @@ namespace mamba
     {
         const std::string DEFAULT_CHANNEL_ALIAS = "https://conda.anaconda.org";
         const std::map<std::string, std::string> DEFAULT_CUSTOM_CHANNELS = {{"pkgs/pro", "https://repo.anaconda.com"}};
+
+        const std::vector<std::string> DEFAULT_CHANNELS = 
+        {
+#ifdef _WIN32
+            "https://repo.anaconda.com/pkgs/main",
+            "https://repo.anaconda.com/pkgs/r",
+            "https://repo.anaconda.com/pkgs/msys2"
+#else
+            "https://repo.anaconda.com/pkgs/main",
+            "https://repo.anaconda.com/pkgs/r"
+#endif
+        };
+
         const std::vector<std::string> KNOWN_SUBDIRS =
         {
             "noarch",
@@ -29,40 +42,6 @@ namespace mamba
             "zos-z"
         };
     }
-
-    // Stuff initially in url.py but only used in channel.py
-    // Might be worth rewriting it based on regex as in original
-    // source code
-    /*std::pair<std::string, std::string>
-    split_platform(const platform_list& known_subdirs, const std::string& url)
-    {
-        std::string subdir = "";
-        size_t pos = std::string::npos;
-        for(auto it = known_subdirs.begin(); it != known_subdirs.end(); ++it)
-        {
-            pos = url.find(*it);
-            if (s != std::string::npos)
-            {
-                subdir = *it;
-                break;
-            }
-        }
-
-        std::string cleaned_url = url;
-        if (pos != std::string::npos)
-        {
-            cleaned_url.replace(pos, subdir.size(), ""); 
-        }
-        return std::make_pair(cleaned_url.rstrip("/"), subdir);
-    }
-
-    Channel get_channel_for_name(const std::string& name)
-    {
-        std::string stripped, platform;
-        std::tie(stripped, platform) = split_platform(Context::instance().known_subdirs, name);
-        
-        std::string channel = "";
-    }*/
 
     /**************************
      * Channel implementation *
@@ -110,7 +89,7 @@ namespace mamba
         return m_name;
     }
 
-    const std::string& Channel::subdir() const
+    const std::string& Channel::platform() const
     {
         return m_platform;
     }
@@ -126,7 +105,7 @@ namespace mamba
                                 scheme,
                                 auth,
                                 token);
-        if(scheme == "")
+        if (scheme == "")
         {
             location = channel_alias.location();
             scheme = channel_alias.scheme();
@@ -181,8 +160,47 @@ namespace mamba
     
     Channel Channel::from_name(const std::string& name)
     {
-        // TODO
-        return Channel();
+        std::string stripped, platform;
+        split_platform(KNOWN_SUBDIRS, name, stripped, platform);
+
+        std::string tmp_stripped = stripped;
+        const auto& custom_channels = ChannelContext::instance().get_custom_channels();
+        auto it_end = custom_channels.end();
+        auto it = custom_channels.find(tmp_stripped);
+        while (it == it_end)
+        {
+            size_t pos = tmp_stripped.rfind("/");
+            if (pos == std::string::npos)
+            {
+                break;
+            }
+            else
+            {
+                tmp_stripped = tmp_stripped.substr(0, pos);
+                it = custom_channels.find(tmp_stripped);
+            }
+        }
+
+        if (it != it_end)
+        {
+            return Channel(it->second.scheme(),
+                           it->second.auth(),
+                           it->second.location(),
+                           it->second.token(),
+                           stripped,
+                           platform != "" ? platform : it->second.platform(),
+                           it->second.package_filename());
+        }
+        else
+        {
+            const Channel& alias = ChannelContext::instance().get_channel_alias();
+            return Channel(alias.scheme(),
+                           alias.auth(),
+                           alias.location(),
+                           alias.token(),
+                           stripped,
+                           platform);
+        }
     }
     
     Channel Channel::from_value(const std::string& value)
@@ -191,17 +209,27 @@ namespace mamba
         return Channel();
     }
 
-
     /*********************************
      * ChannelContext implementation *
      *********************************/
 
+    const Channel& ChannelContext::get_channel_alias() const
+    {
+        return m_channel_alias;
+    }
+
+    auto ChannelContext::get_custom_channels() const -> const channel_map&
+    {
+        return m_custom_channels;
+    }
+
     ChannelContext::ChannelContext()
-        : m_channel_alias(init_channel_alias())
+        : m_channel_alias(build_channel_alias())
+        , m_custom_channels(build_custom_channels())
     {
     }
 
-    Channel ChannelContext::init_channel_alias()
+    Channel ChannelContext::build_channel_alias()
     {
         std::string location, scheme, auth, token;
         split_scheme_auth_token(DEFAULT_CHANNEL_ALIAS,
@@ -210,6 +238,25 @@ namespace mamba
                                 auth,
                                 token);
         return Channel(scheme, auth, location, token);
+    }
+
+    ChannelContext::channel_map ChannelContext::build_custom_channels()
+    {
+        channel_map m;
+
+        for(auto& url: DEFAULT_CHANNELS)
+        {
+            auto channel = Channel::make_simple_channel(m_channel_alias, url);
+            m.emplace(channel.name(), std::move(channel));
+        }
+
+        // TODO: add channels based on local build folders
+
+        for(auto& ch: DEFAULT_CUSTOM_CHANNELS)
+        {
+            m.emplace(ch.first, Channel::make_simple_channel(m_channel_alias, ch.first, ch.second));
+        }
+        return m;
     }
 }
 

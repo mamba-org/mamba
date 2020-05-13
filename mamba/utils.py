@@ -58,6 +58,24 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
 def init_api_context():
     api_ctx = api.Context()
+    print("Context _channel_alias")
+    print(context._channel_alias)
+    print("Context channel_alias")
+    print(context.channel_alias)
+
+    print("Context _custom_channels")
+    print(context._custom_channels)
+    print("Context custom_channels")
+    print(context.custom_channels)
+
+    print("Context _custom_multichannels")
+    print(context._custom_multichannels)
+    print("Context custom_multichannels")
+    print(context.custom_multichannels)
+
+    print("Channel cache")
+    print(Channel._cache_)
+
     api_ctx.json = context.json
     api_ctx.dry_run = context.dry_run
     if context.json:

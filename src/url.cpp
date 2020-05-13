@@ -56,6 +56,31 @@ namespace mamba
         remaining_url = handler.url();
     }
 
+    void split_platform(const std::vector<std::string>& known_platforms,
+                        const std::string& url,
+                        std::string& cleaned_url,
+                        std::string& platform)
+    {
+        platform = "";
+        size_t pos = std::string::npos;
+        for(auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
+        {
+            pos = url.find(*it);
+            if (pos != std::string::npos)
+            {
+                platform = *it;
+                break;
+            }
+        }
+
+        cleaned_url = url;
+        if (pos != std::string::npos)
+        {
+            cleaned_url.replace(pos - 1, platform.size() + 1, ""); 
+        }
+        cleaned_url = rstrip(cleaned_url, "/");
+    }
+
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
         , m_scheme_set(url != "")
@@ -178,58 +203,68 @@ namespace mamba
         return get_part(CURLUPART_ZONEID);
     }
 
-    void URLHandler::set_scheme(const std::string& scheme)
+    URLHandler& URLHandler::set_scheme(const std::string& scheme)
     {
         m_scheme_set = (scheme != "");
         if (m_scheme_set)
         {
             set_part(CURLUPART_SCHEME, scheme);
         }
+        return *this;
     }
 
-    void URLHandler::set_host(const std::string& host)
+    URLHandler& URLHandler::set_host(const std::string& host)
     {
         set_part(CURLUPART_HOST, host);
+        return *this;
     }
 
-    void URLHandler::set_path(const std::string& path)
+    URLHandler& URLHandler::set_path(const std::string& path)
     {
         set_part(CURLUPART_PATH, path);
+        return *this;
     }
 
-    void URLHandler::set_port(const std::string& port)
+    URLHandler& URLHandler::set_port(const std::string& port)
     {
         set_part(CURLUPART_PORT, port);
+        return *this;
     }
     
-    void URLHandler::set_query(const std::string& query)
+    URLHandler& URLHandler::set_query(const std::string& query)
     {
         set_part(CURLUPART_QUERY, query);
+        return *this;
     }
 
-    void URLHandler::set_fragment(const std::string& fragment)
+    URLHandler& URLHandler::set_fragment(const std::string& fragment)
     {
         set_part(CURLUPART_FRAGMENT, fragment);
+        return *this;
     }
 
-    void URLHandler::set_options(const std::string& options)
+    URLHandler& URLHandler::set_options(const std::string& options)
     {
         set_part(CURLUPART_OPTIONS, options);
+        return *this;
     }
 
-    void URLHandler::set_user(const std::string& user)
+    URLHandler& URLHandler::set_user(const std::string& user)
     {
         set_part(CURLUPART_USER, user);
+        return *this;
     }
 
-    void URLHandler::set_password(const std::string& password)
+    URLHandler& URLHandler::set_password(const std::string& password)
     {
         set_part(CURLUPART_PASSWORD, password);
+        return *this;
     }
 
-    void URLHandler::set_zoneid(const std::string& zoneid)
+    URLHandler& URLHandler::set_zoneid(const std::string& zoneid)
     {
         set_part(CURLUPART_ZONEID, zoneid);
+        return *this;
     }
     
     std::string URLHandler::get_part(CURLUPart part)

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 extern "C"
 {
@@ -45,6 +46,10 @@ namespace mamba
                                  std::string& auth,
                                  std::string& token);
 
+    void split_platform(const std::vector<std::string>& known_platforms,
+                        const std::string& url,
+                        std::string& cleaned_url,
+                        std::string& platform);
 
     class URLHandler
     {
@@ -75,18 +80,18 @@ namespace mamba
         std::string password();
         std::string zoneid();
 
-        void set_scheme(const std::string& scheme);
-        void set_host(const std::string& host);
-        void set_path(const std::string& path);
-        void set_port(const std::string& port);
+        URLHandler& set_scheme(const std::string& scheme);
+        URLHandler& set_host(const std::string& host);
+        URLHandler& set_path(const std::string& path);
+        URLHandler& set_port(const std::string& port);
 
-        void set_query(const std::string& query);
-        void set_fragment(const std::string& fragment);
-        void set_options(const std::string& options);
+        URLHandler& set_query(const std::string& query);
+        URLHandler& set_fragment(const std::string& fragment);
+        URLHandler& set_options(const std::string& options);
 
-        void set_user(const std::string& user);
-        void set_password(const std::string& password);
-        void set_zoneid(const std::string& zoneid);
+        URLHandler& set_user(const std::string& user);
+        URLHandler& set_password(const std::string& password);
+        URLHandler& set_zoneid(const std::string& zoneid);
 
     private:
 

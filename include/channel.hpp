@@ -79,7 +79,6 @@ namespace mamba
 
         Channel m_channel_alias;
         channel_map m_custom_channels;
-
     };
 
 }

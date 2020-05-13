@@ -3,6 +3,7 @@
 
 #include "channel.hpp"
 #include "context.hpp"
+#include "package_handling.hpp"
 #include "url.hpp"
 #include "util.hpp"
 
@@ -26,7 +27,7 @@ namespace mamba
 #endif
         };
 
-        const std::vector<std::string> KNOWN_SUBDIRS =
+        const std::vector<std::string> KNOWN_PLATFORMS =
         {
             "noarch",
             "linux-32",
@@ -94,6 +95,11 @@ namespace mamba
         return m_platform;
     }
 
+    const std::string& Channel::package_filename() const
+    {
+        return m_package_filename;
+    }
+
     Channel Channel::make_simple_channel(const Channel& channel_alias,
                                          const std::string& channel_url,
                                          const std::string& channel_name)
@@ -122,7 +128,7 @@ namespace mamba
             }
             else
             {
-                URLParser parser(location);
+                URLHandler parser(location);
                 location = parser.url();
                 name = parser.path();
             }
@@ -152,16 +158,158 @@ namespace mamba
         return cache;
     }
 
+    void split_conda_url(const std::string& url,
+                         std::string& scheme,
+                         std::string& host,
+                         std::string& port,
+                         std::string& path,
+                         std::string& auth,
+                         std::string& token,
+                         std::string& platform,
+                         std::string& package_name)
+    {
+        std::string cleaned_url, extension;
+        split_anaconda_token(cleaned_url, cleaned_url, token);
+        split_platform(KNOWN_PLATFORMS, cleaned_url, cleaned_url, platform);
+        split_package_extension(cleaned_url, cleaned_url, extension);
+        
+        if (extension != "")
+        {
+            auto sp = rsplit(cleaned_url, "/", 1);
+            cleaned_url = sp[0];
+            package_name = sp[1];
+        }
+        else
+        {
+            package_name = "";
+        }
+
+        URLHandler handler(cleaned_url);
+        scheme = handler.scheme();
+        host = handler.host();
+        port = handler.port();
+        path = handler.path();
+        auth = handler.auth();
+    }
+
+    struct channel_configuration
+    {
+        channel_configuration(const std::string& location,
+                              const std::string& name,
+                              const std::string& scheme,
+                              const std::string& auth,
+                              const std::string& token)
+            : m_location(location)
+            , m_name(name)
+            , m_scheme(scheme)
+            , m_auth(auth)
+            , m_token(token)
+        {
+        }
+
+        std::string m_location;
+        std::string m_name;
+        std::string m_scheme;
+        std::string m_auth;
+        std::string m_token;
+    };
+
+    channel_configuration read_channel_configuration(const std::string& scheme,
+                                                     const std::string& host,
+                                                     const std::string& port,
+                                                     const std::string& path)
+    {
+        std::string spath = std::string(rstrip(path, "/"));
+        std::string url = URLHandler().set_host(host).set_port(port).set_path(spath).url();
+
+        // Case 1: No path given, channel name is ""
+        if (spath == "")
+        {
+            URLHandler handler;
+            handler.set_host(host).set_port(port);
+            return channel_configuration(std::string(rstrip(handler.url(), "/")), "", scheme, "", "");
+        }
+
+        // Case 2: migrated_custom_channels not implemented yet
+        // Case 3: migrated_channel_aliases not implemented yet
+
+        // Case 4: custom_channels matches
+        const auto& custom_channels = ChannelContext::instance().get_custom_channels();
+        for (const auto& ca: custom_channels)
+        {
+            const Channel& channel = ca.second;
+            std::string test_url = channel.location() + '/' + channel.name();
+            if (starts_with(url, test_url)) // original code splits with '/' and compares tokens
+            {
+                auto subname = std::string(strip(url.replace(0u, test_url.size(), ""), "/"));
+                return channel_configuration(channel.location(),
+                                             channel.name() + '/' + subname,
+                                             scheme,
+                                             channel.auth(),
+                                             channel.token());
+            }
+        }
+
+        // Case 5: channel_alias match
+        const Channel& ca = ChannelContext::instance().get_channel_alias();
+        if (ca.location() != "" && starts_with(url, ca.location()))
+        {
+            auto name = std::string(strip(url.replace(0u, ca.location().size(), ""), "/"));
+            return channel_configuration(ca.location(), name, scheme, ca.auth(), ca.token());
+        }
+
+        // Case 6: not-otherwise-specified file://-type urls
+        if (host == "")
+        {
+            auto sp = rsplit(url, "/", 1);
+            return channel_configuration(sp[0].size() ? sp[0] : "/",
+                                         sp[1],
+                                         "file",
+                                         "",
+                                         "");
+        }
+
+        // Case 7: fallback, channel_location = host:port and channel_name = path,
+        //         bumps the first token of paths starting with /conda for compatibiliy
+        //         with Anaconda Enterprise Repository software
+        spath = lstrip(spath, "/");
+        std::string bump = "";
+        if (starts_with(spath, "conda"))
+        {
+            bump = "conda";
+            spath = spath.replace(0, 6, "");
+        }
+        std::string location = URLHandler().set_host(host).set_port(port).set_path(bump).url();
+        return channel_configuration(std::string(strip(location, "/")),
+                                     spath,
+                                     scheme,
+                                     "",
+                                     "");
+    }
+
     Channel Channel::from_url(const std::string& url)
     {
-        // TODO
-        return Channel();
+        std::string scheme, host, port, path, auth, token, platform, package_name;
+        split_conda_url(url, scheme, host, port, path, auth, token, platform, package_name);
+
+        auto config = read_channel_configuration(scheme,
+                                                 host,
+                                                 port,
+                                                 path);
+
+        return Channel(config.m_scheme.size() ? config.m_scheme : "https",
+                       auth.size() ? auth : config.m_auth,
+                       config.m_location,
+                       token.size() ? token : config.m_token,
+                       config.m_name,
+                       platform,
+                       package_name);
     }
     
     Channel Channel::from_name(const std::string& name)
     {
         std::string stripped, platform;
-        split_platform(KNOWN_SUBDIRS, name, stripped, platform);
+        split_platform(KNOWN_PLATFORMS, name, stripped, platform);
 
         std::string tmp_stripped = stripped;
         const auto& custom_channels = ChannelContext::instance().get_custom_channels();
@@ -209,9 +357,16 @@ namespace mamba
         return Channel();
     }
 
+
     /*********************************
      * ChannelContext implementation *
      *********************************/
+
+    ChannelContext& ChannelContext::instance()
+    {
+        static ChannelContext context;
+        return context;
+    }
 
     const Channel& ChannelContext::get_channel_alias() const
     {

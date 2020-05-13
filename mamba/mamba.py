@@ -21,11 +21,10 @@ from conda.misc import clone_env, explicit, touch_nonadmin
 from conda.common.serialize import json_dump
 from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
 from conda.core.subdir_data import SubdirData
-from conda.history import History
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier
-from conda.core.solve import diff_for_unlink_link_precs, get_pinned_specs
+from conda.core.solve import diff_for_unlink_link_precs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
 
@@ -449,20 +448,9 @@ def install(args, parser, command='install'):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
-        history_dict = History(prefix).get_requested_specs_map()
-        pins = get_pinned_specs(prefix)
-        pin_names = [p.name for p in pins]
-
-        for key, match_spec in history_dict.items():
-            if key == 'python':
-                version = str(match_spec.version)
-                py_ver = ".".join(version.split(".")[:2]) + '.*'
-                specs.append(MatchSpec(name="python", version=py_ver))
-            else:
-                if key in pin_names:
-                    specs.append(pins[key])
-                else:
-                    specs.append(MatchSpec(key))
+        # Note: History(prefix).get_requested_specs_map()
+        print("Currently, mamba can only update explicit packages! (e.g. mamba update numpy python ...)")
+        exit()
 
     if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         prefix_data = PrefixData(prefix)
@@ -484,28 +472,23 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
+    spec_names = [s.name for s in specs]
 
     if not (context.quiet or context.json):
-        print("\nLooking for: {}\n".format([str(s) for s in specs]))
-
-    spec_names = [s.name for s in specs]
+        print("\nLooking for: {}\n".format(spec_names))
 
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
-    installed_names = [i_rec.name for i_rec in installed_pkg_recs]
-    additional_specs = []
+    python_added = False
     if 'python' not in spec_names:
+        installed_names = [i_rec.name for i_rec in installed_pkg_recs]
         if 'python' in installed_names:
             i = installed_names.index('python')
             version = installed_pkg_recs[i].version
-            additional_specs.append(MatchSpec('python==' + version))
+            specs.append(MatchSpec('python==' + version))
+            python_added = True
 
-    # as a security feature this will _always_ attempt to upgrade certain packages
-    for a_pkg in [_.name for _ in context.aggressive_update_packages]:
-        if a_pkg in installed_names:
-            additional_specs.append(MatchSpec(a_pkg))
-
-    mamba_solve_specs = [s.conda_build_form() for s in specs] + [s.conda_build_form() for s in additional_specs]
+    mamba_solve_specs = [s.conda_build_form() for s in specs]
 
     pool = api.Pool()
 

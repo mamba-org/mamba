@@ -1,3 +1,6 @@
+#ifndef MAMBA_FS_UTIL
+#define MAMBA_FS_UTIL
+
 #include "util.hpp"
 #include "environment.hpp"
 #include "thirdparty/filesystem.hpp"
@@ -8,14 +11,14 @@ namespace mamba
 {
 	namespace path
 	{
-	    bool starts_with_home(const fs::path& p)
+	    inline bool starts_with_home(const fs::path& p)
 	    {
 	        std::string path = p;
 	        return path[0] == '~' || starts_with(env::expand_user(path).string(), env::expand_user("~").string());
 	    }
 
 	    // TODO more error handling
-	    void create_directories_sudo_safe(const fs::path& path)
+	    inline void create_directories_sudo_safe(const fs::path& path)
 	    {
 	        if (fs::is_directory(path)) return;
 
@@ -35,7 +38,7 @@ namespace mamba
 	        #endif
 	    }
 
-	    bool touch(fs::path path, bool mkdir=false, bool sudo_safe=false)
+	    inline bool touch(fs::path path, bool mkdir=false, bool sudo_safe=false)
 	    {
 	        // TODO error handling!
 	        path = env::expand_user(path);
@@ -64,7 +67,7 @@ namespace mamba
 	        }
 	    }
 
-	    bool is_writable(const fs::path& path)
+	    inline bool is_writable(const fs::path& path)
 	    {
 	        if (fs::is_directory(path.parent_path()))
 	        {
@@ -86,3 +89,5 @@ namespace mamba
 	    }
 	}
 }
+
+#endif

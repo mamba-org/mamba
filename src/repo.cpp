@@ -157,8 +157,8 @@ namespace mamba
                 }
                 else if (repo_tool_version == nullptr || std::strcmp(mamba_tool_version(), repo_tool_version) != 0)
                 {
-                    LOG_ERROR << "solv file was written with a previous version of libsolv or mamba " <<
-                                 (repo_tool_version != nullptr ? repo_tool_version : "<NULL>") << ", updating it now!";
+                    LOG_INFO << "solv file was written with a previous version of libsolv or mamba " <<
+                                (repo_tool_version != nullptr ? repo_tool_version : "<NULL>") << ", updating it now!";
                 }
                 else
                 {

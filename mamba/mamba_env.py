@@ -74,7 +74,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     if not success:
         print(solver.problems_to_str())
 
-    transaction = api.Transaction(solver)
+    package_cache = api.MultiPackageCache(context.pkgs_dirs)
+    transaction = api.Transaction(solver, package_cache)
     to_link, to_unlink = transaction.to_conda()
 
     to_link_records, to_unlink_records = [], []

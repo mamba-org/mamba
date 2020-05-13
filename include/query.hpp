@@ -4,11 +4,8 @@
 #include <functional>
 #include <string_view>
 
+#include "output.hpp"
 #include "pool.hpp"
-
-namespace tabulate {
-    class Table;
-}
 
 extern "C"
 {
@@ -21,8 +18,6 @@ extern "C"
 namespace mamba
 {
     std::string cut_repo_name(std::ostream& out, const std::string_view& reponame);
-    void solvable_to_stream(std::ostream& out, Solvable* s, int row_count,
-        tabulate::Table& query_result);
     void print_dep_graph(std::ostream& out, Solvable* s, const std::string& solv_str, int level, int max_level, bool last, const std::string& prefix);
 
     class Query
@@ -32,7 +27,7 @@ namespace mamba
         Query(MPool& pool);
 
         std::string find(const std::string& query);
-        std::string whatrequires(const std::string& query);
+        std::string whatrequires(const std::string& query, bool tree);
         std::string dependencytree(const std::string& query);
 
     private:

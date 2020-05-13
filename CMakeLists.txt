@@ -9,19 +9,17 @@ find_package(Threads REQUIRED)
 find_library(LIBSOLV_LIBRARIES NAMES solv)
 find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
 find_package(CURL REQUIRED)
-find_library(ARCHIVE_LIBRARIES NAMES archive)
+find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(tabulate REQUIRED)
 
 set(MAMBA_REQUIRED_LIBS
     ${LIBSOLV_LIBRARIES}
     ${LIBSOLVEXT_LIBRARIES}
-    ${ARCHIVE_LIBRARIES}
+    ${LibArchive_LIBRARIES}
     ${CURL_LIBRARIES}
-    ${OPENSSL_CRYPTO_LIBRARY}
+    ${OPENSSL_LIBRARIES}
     nlohmann_json::nlohmann_json
-    tabulate::tabulate
 )
 
 message("Found libraries: ${MAMBA_REQUIRED_LIBS}")

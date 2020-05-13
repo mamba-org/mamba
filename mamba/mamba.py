@@ -598,7 +598,11 @@ def repoquery(args, parser):
     repo.set_installed()
     repos.append(repo)
 
-    if not args.installed:
+    only_installed = True
+    if args.subcmd == "search" and args.installed == False:
+        only_installed = False
+
+    if not only_installed:
         index = get_index(channel_urls=index_args['channel_urls'],
                       prepend=index_args['prepend'], platform=None,
                       use_local=index_args['use_local'], use_cache=index_args['use_cache'],
@@ -614,15 +618,15 @@ def repoquery(args, parser):
             repos.append(repo)
 
 
-    print("\nExecuting the query %s\n" % args.query)
+    print("\nExecuting the query %s\n" % args.package_query)
 
     query = api.Query(pool)
-    if args.whatrequires:
-        print(query.whatrequires(args.query))
-    elif args.tree:
-        print(query.dependencytree(args.query))
-    else:
-        print(query.find(args.query))
+    if args.subcmd == "whoneeds":
+        print(query.whatrequires(args.package_query, args.tree))
+    if args.subcmd == "depends":
+        print(query.dependencytree(args.package_query))
+    if args.subcmd == "search":
+        print(query.find(args.package_query))
 
 
 def do_call(args, parser):
@@ -656,42 +660,49 @@ def configure_parser_repoquery(sub_parsers):
     example = ("""
 Examples:
 
-    conda repoquery xtensor>=0.18
+    mamba repoquery search xtensor>=0.18
+    mamba repoquery depends xtensor
+    mamba repoquery whoneeds xtl
 
     """)
 
+    import argparse
     from argparse import SUPPRESS
 
     p = sub_parsers.add_parser(
         'repoquery',
         description=descr,
         help=help,
-        epilog=example,
+        epilog=example
     )
-
-    p.add_argument(
-        'query',
-        action="store",
-        nargs='?',
-        help="Package query.",
-    )
-
-    p.add_argument(
-        "--whatrequires",
+    subsub_parser = p.add_subparsers(dest='subcmd')
+    package_cmds = argparse.ArgumentParser(add_help=False)
+    package_cmds.add_argument('package_query', help='the target package')
+    package_cmds.add_argument(
+        "-i", "--installed",
         action="store_true",
-        help=SUPPRESS,
+        help=SUPPRESS
     )
 
-    p.add_argument(
-        "--installed",
-        action="store_true",
-        help=SUPPRESS,
+    view_cmds = argparse.ArgumentParser(add_help=False)
+    view_cmds.add_argument(
+        "-t", "--tree",
+        action="store_true"
     )
 
-    p.add_argument(
-        "--tree",
-        action="store_true",
-        help=SUPPRESS,
+    subsub_parser.add_parser('whoneeds',
+        help='shows packages that depends on this package',
+        parents=[package_cmds, view_cmds]
+    )
+
+    subsub_parser.add_parser('depends',
+        help='shows packages that depends on this package',
+        parents=[package_cmds, view_cmds]
+    )
+
+    subsub_parser.add_parser('search',
+        help='shows packages that depends on this package',
+        parents=[package_cmds]
     )
 
     from conda.cli import conda_argparse
@@ -701,7 +712,6 @@ Examples:
 
     p.set_defaults(func='.main_repoquery.execute')
     return p
-
 
 def _wrapped_main(*args, **kwargs):
     if len(args) == 1:

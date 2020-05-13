@@ -101,6 +101,69 @@ namespace cursor
 
 namespace mamba
 {
+
+    std::string cut_repo_name(const std::string_view& reponame);
+
+    namespace printers
+    {
+
+        enum format : std::size_t {
+            NONE   = 0,
+            RED    = 1 << 1,
+            GREEN  = 1 << 2,
+            YELLOW = 1 << 3
+        };
+
+        struct FormattedString
+        {
+            std::string s;
+            std::size_t flag = 0;
+
+            FormattedString() = default;
+
+            inline FormattedString(const std::string& i)
+                : s(i)
+            {
+            };
+
+            inline FormattedString(const char* i)
+                : s(i)
+            {
+            };
+
+            inline std::size_t size() const
+            {
+                return s.size();
+            }
+        };
+
+        enum alignment : int
+        {
+            left  = 1 << 1,
+            right = 1 << 2,
+            fill =  1 << 3
+        };
+
+        class Table
+        {
+        public:
+
+            Table(const std::vector<FormattedString>& header);
+
+            void set_alignment(const std::vector<int>& a);
+            void set_padding(const std::vector<int>& p);
+            void add_row(const std::vector<FormattedString>& r);
+            void add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs);
+
+            void print();
+
+        private:
+            std::vector<FormattedString> m_header;
+            std::vector<int> m_align, m_padding;
+            std::vector<std::vector<FormattedString>> m_table;
+        };
+    }
+
     // The next two functions / classes were ported from the awesome indicators library 
     // by p-ranav (MIT License)
     // https://github.com/p-ranav/indicators

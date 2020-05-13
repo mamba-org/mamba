@@ -542,6 +542,125 @@ namespace mamba
 
     void MTransaction::print()
     {
-        transaction_print(m_transaction);
+        printers::Table t({"Package", "Version", "Channel", "Size"});
+        t.set_alignment({printers::alignment::left, printers::alignment::right,
+                         printers::alignment::left, printers::alignment::right});
+        t.set_padding({2, 2, 2, 5});
+        Queue classes, pkgs;
+
+        queue_init(&classes);
+        queue_init(&pkgs);
+
+        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
+                    SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+
+        transaction_classify(m_transaction, mode, &classes);
+
+        using rows = std::vector<std::vector<printers::FormattedString>>;
+
+        rows downgraded, upgraded, changed, erased, installed;
+
+        auto* pool = m_transaction->pool;
+        std::size_t total_size = 0;
+        auto format_row = [pool, &total_size](rows& r, Solvable* s, std::size_t flag)
+        {
+            std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
+            printers::FormattedString dlsize_s;
+            if (dlsize != -1)
+            {
+                std::stringstream s;
+                to_human_readable_filesize(s, dlsize);
+                dlsize_s.s = s.str();
+                // Hacky hacky
+                if (flag & printers::GREEN) total_size += dlsize;
+            }
+            printers::FormattedString name;
+            name.s = pool_id2str(pool, s->name);
+            name.flag = flag;
+
+            r.push_back({name, printers::FormattedString(pool_id2str(pool, s->evr)),
+                         printers::FormattedString(cut_repo_name(s->repo->name)), dlsize_s});
+        };
+
+        Id cls;
+        for (int i = 0; i < classes.count; i += 4)
+        {
+            cls = classes.elements[i];
+            transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2],
+                                      classes.elements[i + 3], &pkgs);
+
+            for (int j = 0; j < pkgs.count; j++)
+            {
+                Id p = pkgs.elements[j];
+                Solvable *s = m_transaction->pool->solvables + p;
+
+                switch (cls)
+                {
+                    case SOLVER_TRANSACTION_UPGRADED:
+                        format_row(upgraded, s, printers::RED);
+                        format_row(upgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::GREEN);
+                        break;
+                    case SOLVER_TRANSACTION_CHANGED:
+                        format_row(changed, s, printers::RED);
+                        format_row(changed, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::GREEN);
+                        break;
+                    case SOLVER_TRANSACTION_DOWNGRADED:
+                        format_row(downgraded, s, printers::RED);
+                        format_row(downgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::GREEN);
+                        break;
+                    case SOLVER_TRANSACTION_ERASE:
+                        format_row(erased, s, printers::RED);
+                        break;
+                    case SOLVER_TRANSACTION_INSTALL:
+                        format_row(installed, s, printers::GREEN);
+                        // m_to_install.push_back(s);
+                        break;
+                    case SOLVER_TRANSACTION_IGNORE:
+                        break;
+                    case SOLVER_TRANSACTION_VENDORCHANGE:
+                    case SOLVER_TRANSACTION_ARCHCHANGE:
+                    default:
+                        LOG_WARNING << "Print case not handled: " << cls;
+                        break;
+                }
+            }
+        }
+
+        queue_free(&classes);
+        queue_free(&pkgs);
+
+        std::stringstream summary;
+        summary << "Summary:\n\n";
+        if (installed.size())
+        {
+            t.add_rows("Install:", installed);
+            summary << "  Install: " << installed.size() << " packages\n";
+        }
+        if (erased.size())
+        {
+            t.add_rows("Remove:", erased);
+            summary << "  Remove: " << erased.size() << " packages\n";
+        }
+        if (changed.size())
+        {
+            t.add_rows("Change:", changed);
+            summary << "  Change: " << changed.size() << " packages\n";
+        }
+        if (upgraded.size())
+        {
+            t.add_rows("Upgrade:", upgraded);
+            summary << "  Upgrade: " << upgraded.size() << " packages\n";
+        }
+        if (downgraded.size())
+        {
+            t.add_rows("Downgrade:", downgraded);
+            summary << "  Downgrade: " << downgraded.size() << " packages\n";
+        }
+
+        summary << "\n  Total download: ";
+        to_human_readable_filesize(summary, total_size);
+        summary << "\n";
+        t.add_row({ summary.str() });
+        t.print();
     }
 }

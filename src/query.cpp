@@ -4,6 +4,7 @@
 #include <set>
 
 #include "query.hpp"
+#include "output.hpp"
 #include "util.hpp"
 
 extern "C" {
@@ -16,66 +17,6 @@ namespace mamba
 {
     namespace printers
     {
-        enum alignment : int
-        {
-            left  = 0b0001,
-            right = 0b0010,
-            fill =  0b0100
-        };
-
-        class Table
-        {
-        public:
-
-            Table(const std::vector<std::string>& header)
-                : m_header(header)
-            {
-            }
-
-            void set_alignment(const std::vector<int>& a)
-            {
-                m_align = a;
-            }
-
-            void add_row(const std::vector<std::string>& r)
-            {
-                m_table.push_back(r);
-            }
-
-            void print()
-            {
-                if (m_table.size() == 0) return;
-                if (m_align.size() == 0) m_align = std::vector<int>(m_table[0].size(), alignment::left);
-                std::vector<std::size_t> cell_sizes(m_table[0].size());
-                for (auto i = 0; i < m_header.size(); ++i)
-                    cell_sizes[i] = m_header[i].size();
-                for (auto i = 0; i < m_table.size(); ++i)
-                    for (auto j = 0; j < m_table[i].size(); ++j)
-                        cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
-
-                for (auto& c : cell_sizes) c += 1;
-
-                std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
-                for (int i = 0; i < m_header.size(); ++i)
-                    std::cout << (m_align[i] & alignment::left ? std::left : std::right) << std::setw(cell_sizes[i]) << m_header[i];
-
-                std::cout << "\n";
-                for (int i = 0; i < total_length; ++i) std::cout << "─";
-                std::cout << "\n";
-
-                for (auto i = 0; i < m_table.size(); ++i)
-                {
-                    for (auto j = 0; j < m_table[i].size(); ++j)
-                        std::cout << (m_align[j] & alignment::left ? std::left : std::right) << std::setw(cell_sizes[j]) << m_table[i][j];
-                    std::cout << "\n";
-                }
-            }
-
-            std::vector<std::string> m_header;
-            std::vector<int> m_align;
-            std::vector<std::vector<std::string>> m_table;
-        };
-
         template <class V>
         class Node
         {
@@ -122,25 +63,11 @@ namespace mamba
         };
     }
 
-    std::string cut_repo_name(std::ostream& out, const std::string_view& reponame)
-    {
-        if (starts_with(reponame, "https://conda.anaconda.org/"))
-        {
-            return reponame.substr(27, std::string::npos).data();
-        }
-        if (starts_with(reponame, "https://repo.anaconda.com/"))
-        {
-            return reponame.substr(26, std::string::npos).data();
-        }
-        return reponame.data();
-    }
-
-    void solvable_to_stream(std::ostream& out, Solvable* s, int row_count,
-        printers::Table& query_result)
+    void solvable_to_stream(std::ostream& out, Solvable* s, int row_count, printers::Table& query_result)
     {
         Pool* pool = s->repo->pool;
 
-        std::string channel = cut_repo_name(out, s->repo->name);
+        std::string channel = cut_repo_name(s->repo->name);
         std::string name = pool_id2str(pool, s->name);
         std::string evr = pool_id2str(pool, s->evr); 
         std::string build_flavor = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);

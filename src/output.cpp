@@ -6,7 +6,11 @@
 
 #include <algorithm>
 #include <cstdlib>
+
+#include "thirdparty/termcolor.hpp"
+
 #include "output.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
@@ -223,6 +227,145 @@ namespace mamba
         // then discard
         p_bar->mark_as_completed();
         Console::instance().deactivate_progress_bar(m_idx, final_message);
+    }
+
+    std::string cut_repo_name(const std::string_view& reponame)
+    {
+        if (starts_with(reponame, "https://conda.anaconda.org/"))
+        {
+            return reponame.substr(27, std::string::npos).data();
+        }
+        if (starts_with(reponame, "https://repo.anaconda.com/"))
+        {
+            return reponame.substr(26, std::string::npos).data();
+        }
+        return reponame.data();
+    }
+
+    /***********
+     * Table   *
+     ***********/
+
+    namespace printers
+    {
+        constexpr const char* green = "\033[32m";
+        constexpr const char* red   = "\033[31m";
+        constexpr const char* reset = "\033[00m";
+
+        Table::Table(const std::vector<FormattedString>& header)
+            : m_header(header)
+        {
+        }
+
+        void Table::set_alignment(const std::vector<int>& a)
+        {
+            m_align = a;
+        }
+
+        void Table::set_padding(const std::vector<int>& p)
+        {
+            m_padding = p;
+        }
+
+        void Table::add_row(const std::vector<FormattedString>& r)
+        {
+            m_table.push_back(r);
+        }
+
+        void Table::add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs)
+        {
+            m_table.push_back({ header });
+
+            for (auto& r : rs)
+                m_table.push_back(r);
+        }
+
+        void Table::print()
+        {
+            if (m_table.size() == 0) return;
+            std::size_t n_col = m_header.size();
+
+            if (m_align.size() == 0) m_align = std::vector<int>(n_col, alignment::left);
+
+            std::vector<std::size_t> cell_sizes(n_col);
+            for (auto i = 0; i < n_col; ++i)
+                cell_sizes[i] = m_header[i].size();
+
+            for (auto i = 0; i < m_table.size(); ++i)
+            {
+                if (m_table[i].size() == 1) continue;
+                for (auto j = 0; j < m_table[i].size(); ++j)
+                    cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
+            }
+
+            if (m_padding.size())
+            {
+                for (std::size_t i = 0; i < n_col; ++i) cell_sizes[i];
+            }
+            else
+            {
+                m_padding = std::vector<int>(n_col, 1);
+            }
+
+            std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
+            total_length = std::accumulate(m_padding.begin(), m_padding.end(), total_length);
+
+            auto print_row = [this, &cell_sizes](const std::vector<FormattedString>& row)
+            {
+                for (auto j = 0; j < row.size(); ++j)
+                {
+                    if (row[j].flag != 0)
+                    {
+                        if (row[j].flag & RED) std::cout << termcolor::red;
+                        if (row[j].flag & GREEN) std::cout << termcolor::green;
+                        if (row[j].flag & YELLOW) std::cout << termcolor::yellow;
+
+                    }
+                    if (this->m_align[j] & alignment::left)
+                    {
+                        std::cout << std::left;
+                        for (std::size_t x = 0; x < this->m_padding[j]; ++x)
+                            std::cout << ' ';
+                        std::cout << std::setw(cell_sizes[j]) << row[j].s;
+                    }
+                    else
+                    {
+                        std::cout << std::right << std::setw(cell_sizes[j] + m_padding[j]) << row[j].s;
+                    }
+                    if (row[j].flag != 0)
+                    {
+                        std::cout << termcolor::reset;
+                    }
+                }
+            };
+
+            print_row(m_header);
+
+            std::cout << "\n";
+            for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << "─";
+            std::cout << "\n";
+
+            for (auto i = 0; i < m_table.size(); ++i)
+            {
+                if (m_table[i].size() == 1)
+                {
+                    // print header
+                    if (i != 0) std::cout << "\n";
+
+                    for (std::size_t x = 0; x < m_padding[0]; ++x) std::cout  << ' ';
+                    std::cout << m_table[i][0].s;
+
+                    std::cout << "\n";
+                    for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << "─";
+                    std::cout << "\n";
+                }
+                else
+                {
+                    print_row(m_table[i]);
+                }
+                std::cout << "\n";
+            }
+        }
     }
 
     /*****************

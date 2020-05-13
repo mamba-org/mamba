@@ -81,6 +81,36 @@ namespace mamba
         curl_url_cleanup(m_handle);
     }
 
+    URLHandler::URLHandler(const URLHandler& rhs)
+        : m_url(rhs.m_url)
+        , m_handle(curl_url_dup(rhs.m_handle))
+        , m_scheme_set(rhs.m_scheme_set)
+    {
+    }
+
+    URLHandler& URLHandler::operator=(const URLHandler& rhs)
+    {
+        URLHandler tmp(rhs);
+        std::swap(tmp, *this);
+        return *this;
+    }
+
+    URLHandler::URLHandler(URLHandler&& rhs)
+        : m_url(std::move(rhs.m_url))
+        , m_handle(rhs.m_handle)
+        , m_scheme_set(std::move(rhs.m_scheme_set))
+    {
+        rhs.m_handle = nullptr;
+    }
+
+    URLHandler& URLHandler::operator=(URLHandler&& rhs)
+    {
+        std::swap(m_url, rhs.m_url);
+        std::swap(m_handle, rhs.m_handle);
+        std::swap(m_scheme_set, rhs.m_scheme_set);
+        return *this;
+    }
+
     std::string URLHandler::url()
     {
         std::string res = get_part(CURLUPART_URL);

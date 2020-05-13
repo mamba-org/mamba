@@ -29,6 +29,53 @@ namespace mamba
         }
     }
 
+    TEST(url, value_semantic)
+    {
+
+        
+        {
+            URLHandler in("s3://userx123:üúßsajd@mamba.org");
+            URLHandler m(in);
+            EXPECT_EQ(m.scheme(), "s3");
+            EXPECT_EQ(m.path(), "/");
+            EXPECT_EQ(m.host(), "mamba.org");
+            EXPECT_EQ(m.user(), "userx123");
+            EXPECT_EQ(m.password(), "üúßsajd");
+        }
+
+        {
+            URLHandler m("http://mamba.org");
+            URLHandler in("s3://userx123:üúßsajd@mamba.org");
+            m = in;
+            EXPECT_EQ(m.scheme(), "s3");
+            EXPECT_EQ(m.path(), "/");
+            EXPECT_EQ(m.host(), "mamba.org");
+            EXPECT_EQ(m.user(), "userx123");
+            EXPECT_EQ(m.password(), "üúßsajd");
+        }
+
+        {
+            URLHandler in("s3://userx123:üúßsajd@mamba.org");
+            URLHandler m(std::move(in));
+            EXPECT_EQ(m.scheme(), "s3");
+            EXPECT_EQ(m.path(), "/");
+            EXPECT_EQ(m.host(), "mamba.org");
+            EXPECT_EQ(m.user(), "userx123");
+            EXPECT_EQ(m.password(), "üúßsajd");
+        }
+
+        {
+            URLHandler m("http://mamba.org");
+            URLHandler in("s3://userx123:üúßsajd@mamba.org");
+            m = std::move(in);
+            EXPECT_EQ(m.scheme(), "s3");
+            EXPECT_EQ(m.path(), "/");
+            EXPECT_EQ(m.host(), "mamba.org");
+            EXPECT_EQ(m.user(), "userx123");
+            EXPECT_EQ(m.password(), "üúßsajd");
+        }
+    }
+
     TEST(url, split_ananconda_token)
     {
 

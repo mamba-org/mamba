@@ -53,6 +53,12 @@ namespace mamba
         URLHandler(const std::string& url = "");
         ~URLHandler();
 
+        URLHandler(const URLHandler&);
+        URLHandler& operator=(const URLHandler&);
+
+        URLHandler(URLHandler&&);
+        URLHandler& operator=(URLHandler&&);
+
         std::string url();
 
         std::string scheme();

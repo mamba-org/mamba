@@ -3,7 +3,7 @@
     "subdir": "linux-64"
   },
   "packages": {
-    "A_0.1.0.tar.gz": {
+    "A_0.1.0.tar.bz2": {
       "build": "abc",
       "build_number": 0,
       "depends": [

@@ -3,7 +3,7 @@
     "subdir": "linux-64"
   },
   "packages": {
-    "A_0.1.0.tar.gz": {
+    "A_0.1.0.tar.bz2": {
       "build": "abc",
       "build_number": 0,
       "depends": [
@@ -18,7 +18,7 @@
       "timestamp": 1578950023135,
       "version": "0.1.0"
     },
-    "A_0.2.0.tar.gz": {
+    "A_0.2.0.tar.bz2": {
       "build": "abc",
       "build_number": 0,
       "depends": [
@@ -33,7 +33,7 @@
       "timestamp": 1578950023135,
       "version": "0.2.0"
     },
-    "B_0.1.0.tar.gz": {
+    "B_0.1.0.tar.bz2": {
       "build": "abc",
       "build_number": 0,
       "depends": [

@@ -188,7 +188,8 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if context.dry_run:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
-        cli_common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
+        if context.json:
+            cli_common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
         raise DryRunExit()
 
     try:
@@ -314,7 +315,7 @@ def install(args, parser, command='install'):
     context.validate_configuration()
     check_non_admin()
 
-    init_api_context()
+    init_api_context(use_mamba_experimental)
 
     newenv = bool(command == 'create')
     isinstall = bool(command == 'install')

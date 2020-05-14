@@ -56,7 +56,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     return index
 
-def init_api_context():
+def init_api_context(use_mamba_experimental):
     api_ctx = api.Context()
 
     api_ctx.json = context.json
@@ -64,8 +64,9 @@ def init_api_context():
     if context.json:
         context.always_yes = True
         context.quiet = True
-        context.json = False
-        context.dry_run = False
+        if use_mamba_experimental:
+            context.json = False
+            context.dry_run = False
     api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline

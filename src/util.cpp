@@ -306,9 +306,9 @@ namespace mamba
         return string_transform(input, std::tolower);
     }
 
-    std::string get_file_contents(const fs::path& path, std::ios::openmode mode)
+    std::string read_contents(const fs::path& file_path, std::ios::openmode mode)
     {
-        std::ifstream in(path, std::ios::in | mode);
+        std::ifstream in(file_path, std::ios::in | mode);
         if (in)
         {
             std::string contents;
@@ -321,8 +321,30 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Could not open file (" + path.string() + ") ERRNO: " + std::to_string(errno));
+            throw std::system_error(errno, std::system_category(), "failed to open " + file_path.string());
         }
+    }
+
+    std::vector<std::string> read_lines(const fs::path& file_path)
+    {
+        std::fstream file_stream(file_path, std::ios_base::in | std::ios_base::binary);
+        if (file_stream.fail())
+        {
+            throw std::system_error(errno, std::system_category(), "failed to open " + file_path.string());
+        }
+
+        std::vector<std::string> output;
+        std::string line;
+        while (std::getline(file_stream, line))
+        {
+            // Remove the trailing \r to accomodate Windows line endings.
+            if ((!line.empty()) && (line.back() == '\r')) line.pop_back();
+
+            output.push_back(line);
+        }
+        file_stream.close();
+
+        return output;
     }
 
 }

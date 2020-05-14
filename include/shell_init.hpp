@@ -125,7 +125,8 @@ namespace mamba
                           << "\nGenerating config for root prefix " << conda_prefix
                           << "\nSetting mamba executable to: " << mamba_exe;
 
-        std::string rc_content = get_file_contents(file_path);
+        // TODO do we need binary or not?
+        std::string rc_content = read_contents(file_path, std::ios::in);
         std::string original_content = rc_content;
         std::string conda_init_content = rcfile_content(conda_prefix, shell, mamba_exe);
 

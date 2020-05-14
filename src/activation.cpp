@@ -637,7 +637,7 @@ namespace mamba
         builder << hook_preamble() << "\n";
         if (!hook_source_path().empty())
         {
-            builder << get_file_contents(hook_source_path()) << "\n";
+            builder << read_contents(hook_source_path()) << "\n";
         }
         if (Context::instance().auto_activate_base)
         {

@@ -35,7 +35,49 @@ in the conda environment.
 
 Now you are ready to install packages with `mamba install xtensor-r -c conda-forge` for example.
 
-### Testing
+### Additional features
+
+Mamba comes with features on top of stock conda.
+To efficiently query repositories and query package dependencies you can use `mamba repoquery`.
+
+Here are some examples:
+
+`mamba repoquery search xtensor` will show you all available xtensor packages. You can also specify more constraints on this search query, for example `mamba repoquery search "xtensor>=0.18"`
+
+`mamba repoquery depends xtensor` will show you a tree view of the dependencies of xtensor.
+
+```
+$ mamba repoquery depends xtensor
+
+xtensor == 0.21.5
+  ├─ libgcc-ng [>=7.3.0]
+  │ ├─ _libgcc_mutex [0.1 conda_forge]
+  │ └─ _openmp_mutex [>=4.5]
+  │   ├─ _libgcc_mutex already visited
+  │   └─ libgomp [>=7.3.0]
+  │     └─ _libgcc_mutex already visited
+  ├─ libstdcxx-ng [>=7.3.0]
+  └─ xtl [>=0.6.9,<0.7]
+    ├─ libgcc-ng already visited
+    └─ libstdcxx-ng already visited
+```
+
+And you can ask for the inverse, which packages depend on some other package (e.g. `ipython`) using `whoneeds`.
+
+```
+$ mamba repoquery whoneeds ipython
+
+ Name            Version Build          Channel
+──────────────────────────────────────────────────
+ ipykernel       5.2.1   py37h43977f1_0 installed
+ ipywidgets      7.5.1   py_0           installed
+ jupyter_console 6.1.0   py_1           installed
+
+```
+
+With the `--tree` (or `-t`) flag, you can get the same information in a tree.
+
+### Development installation
 
 For the C++ tests, one needs Google Tests installed (e.g. `conda install gtest`).
 To build the program using CMake, the following line needs to be used:

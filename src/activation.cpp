@@ -635,7 +635,10 @@ namespace mamba
     {
         std::stringstream builder;
         builder << hook_preamble() << "\n";
-        builder << get_file_contents(hook_source_path()) << "\n";
+        if (!hook_source_path().empty())
+        {
+            builder << get_file_contents(hook_source_path()) << "\n";
+        }
         if (Context::instance().auto_activate_base)
         {
             builder << "mamba activate base\n";
@@ -740,5 +743,136 @@ namespace mamba
     {
         return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.sh";
     }
+
+
+    std::string CmdExeActivator::shell_extension()
+    {
+        return ".bat";
+    }
+
+
+    std::string CmdExeActivator::hook_preamble()
+    {
+        return "";
+    }
+
+    std::string CmdExeActivator::hook_postamble()
+    {
+        return "";
+    }
+
+    fs::path CmdExeActivator::hook_source_path() 
+    {
+        return "";
+    }
+
+    std::pair<std::string, std::string> CmdExeActivator::update_prompt(const std::string& conda_prompt_modifier)
+    {
+        return {"", ""};
+    }
+
+    std::string CmdExeActivator::script(const EnvironmentTransform& env_transform)
+    {
+        std::stringstream out;
+
+        if (!env_transform.export_path.empty())
+        {
+            out << "export PATH='" << env_transform.export_path << "'\n";
+        }
+        
+        for (const fs::path& ds : env_transform.deactivate_scripts)
+        {
+            out << "@CALL " << ds << "\n";
+        }
+
+        for (const std::string& uvar : env_transform.unset_vars)
+        {
+            out << "@SET " << uvar << "=\n";
+        }
+
+        for (const auto& [skey, svar] : env_transform.set_vars)
+        {
+            out << "@SET \"" << skey << "=" << svar << "\"\n";
+        }
+
+        for (const auto& [ekey, evar] : env_transform.export_vars)
+        {
+            out << "@SET \"" << ekey << "=" << evar << "\"\n";
+        }
+
+        for (const fs::path& p : env_transform.activate_scripts)
+        {
+            out << "@CALL " << p << "\n";
+        }
+
+        return out.str();
+    }
+
+    std::string PowerShellActivator::shell_extension()
+    {
+        return ".ps1";
+    }
+
+    std::string PowerShellActivator::hook_preamble()
+    {
+        return "";
+    }
+
+    std::string PowerShellActivator::hook_postamble()
+    {
+        if (Context::instance().change_ps1)
+        {
+            return "Add-CondaEnvironmentToPrompt";
+        }
+        return "";
+    }
+
+    fs::path PowerShellActivator::hook_source_path() 
+    {
+        return Context::instance().root_prefix / "shell" / "condabin" / "mamba-hook.ps1";
+    }
+
+    std::pair<std::string, std::string> PowerShellActivator::update_prompt(const std::string& conda_prompt_modifier)
+    {
+        return {"", ""};
+    }
+
+    std::string PowerShellActivator::script(const EnvironmentTransform& env_transform)
+    {
+        std::stringstream out;
+
+        if (!env_transform.export_path.empty())
+        {
+            out << "$Env:PATH =\"" << env_transform.export_path << "\"\n";
+        }
+        
+        for (const fs::path& ds : env_transform.deactivate_scripts)
+        {
+            out << ". " << ds << "\n";
+        }
+
+        for (const std::string& uvar : env_transform.unset_vars)
+        {
+            out << "Remove-Item Env:/" << uvar << "=\n";
+        }
+
+        for (const auto& [skey, svar] : env_transform.set_vars)
+        {
+            out << "$Env:" << skey << " = \"" << svar << "\"\n";
+        }
+
+        for (const auto& [ekey, evar] : env_transform.export_vars)
+        {
+            out << "$Env:" << ekey << " = \"" << evar << "\"\n";
+        }
+
+        for (const fs::path& p : env_transform.activate_scripts)
+        {
+            out << ". " << p << "\n";
+        }
+
+        return out.str();
+    }
+
 }
 

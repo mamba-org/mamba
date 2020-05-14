@@ -1,6 +1,11 @@
 from distutils.version import StrictVersion
 from utils import Environment, add_glibc_virtual_package, copy_channels_osx, run_mamba_conda
 
+import json
+import pytest
+import subprocess
+import uuid
+
 
 def test_install():
     add_glibc_virtual_package()
@@ -48,3 +53,29 @@ def test_track_features():
         out = env.execute('python -c "import sys; print(sys.version)"')
         assert out[-2].startswith(version)
         assert out[-1].startswith('[PyPy')
+
+
+@pytest.mark.parametrize('experimental', [True, False])
+@pytest.mark.parametrize('use_json', [True, False])
+def test_create_dry_run(experimental, use_json, tmpdir):
+    env_dir = tmpdir / str(uuid.uuid1())
+
+    mamba_cmd = "mamba create --dry-run -y"
+    if experimental:
+        mamba_cmd += " --mamba-experimental"
+    if use_json:
+        mamba_cmd += " --json"
+    mamba_cmd += f" -p {env_dir} python=3.8"
+
+    output = subprocess.check_output(mamba_cmd, shell=True).decode()
+
+    if use_json:
+        # assert that the output is parseable parseable json
+        json.loads(output)
+    elif not experimental:
+        # Assert the non-JSON output is in the terminal.
+        assert "Total download" in output
+
+    if not experimental:
+        # dry-run, shouldn't create an environment
+        assert not env_dir.check()

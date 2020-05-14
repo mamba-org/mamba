@@ -759,6 +759,10 @@ def main(*args, **kwargs):
     if not args:
         args = sys.argv
 
+    if "--version" in args:
+        from mamba._version import __version__
+        print("mamba {}".format(__version__))
+
     args = tuple(ensure_text_type(s) for s in args)
 
     if len(args) > 2 and args[1] == 'env' and args[2] == 'create':

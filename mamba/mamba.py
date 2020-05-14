@@ -49,6 +49,7 @@ import json
 import tempfile
 import logging
 
+import mamba
 import mamba.mamba_api as api
 
 from mamba.post_solve_handling import post_solve_handling
@@ -57,7 +58,7 @@ from mamba.utils import get_index, to_package_record_from_subjson, init_api_cont
 log = getLogger(__name__)
 stderrlog = getLogger('mamba.stderr')
 
-banner = """
+banner = f"""
                   __    __    __    __
                  /  \\  /  \\  /  \\  /  \\
                 /    \\/    \\/    \\/    \\
@@ -73,7 +74,7 @@ banner = """
         ██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██████╔╝██║  ██║
         ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚═╝  ╚═╝
 
-        Supported by @QuantStack
+        mamba ({mamba.__version__}) supported by @QuantStack
 
         GitHub:  https://github.com/QuantStack/mamba
         Twitter: https://twitter.com/QuantStack

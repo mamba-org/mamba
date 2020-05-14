@@ -62,9 +62,10 @@ ext_modules = [
         'mamba.mamba_api',
         [
             'src/py_interface.cpp',
+            'src/activation.cpp',
             'src/context.cpp',
-            'src/history.cpp',
             'src/fetch.cpp',
+            'src/history.cpp',
             'src/match_spec.cpp',
             'src/output.cpp',
             'src/package_handling.cpp',

@@ -29,6 +29,16 @@ namespace mamba
         }
     }
 
+    TEST(url, has_scheme)
+    {
+        std::string url = "http://mamba.org";
+        std::string not_url = "mamba.org";
+
+        EXPECT_TRUE(has_scheme(url));
+        EXPECT_FALSE(has_scheme(not_url));
+        EXPECT_FALSE(has_scheme(""));
+    }
+
     TEST(url, value_semantic)
     {
 

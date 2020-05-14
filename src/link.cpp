@@ -621,14 +621,14 @@ namespace mamba
 
             if (text_mode)
             {
-                buffer = get_file_contents(src, std::ios::in);
+                buffer = read_contents(src, std::ios::in);
                 replace_all(buffer, prefix_placeholder, new_prefix);
             }
             else
             {
                 assert(path_data["file_mode"].get<std::string>() == "binary");
                 // TODO use get_file_contents
-                buffer = get_file_contents(src, std::ios::in | std::ios::binary);
+                buffer = read_contents(src, std::ios::in | std::ios::binary);
                 std::size_t old_size = buffer.size();
 
                 std::string padding(prefix_placeholder.size() - new_prefix.size(), '\0');

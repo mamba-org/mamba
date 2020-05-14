@@ -66,28 +66,30 @@ namespace mamba
     {
         Id unused;
 
-        curl_off_t avg_speed;
-        auto cres = curl_easy_getinfo(m_target->handle(), CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
-        if (cres != CURLE_OK)
-        {
-            avg_speed = 0;
-        }
-
         // Validation
         auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
-        std::string sha256_check = solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
-
         if (m_target->downloaded_size != expected_size)
         {
+            LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
-        if (!validate::sha256(m_tarball_path, sha256_check))
+        const char* sha256_check = solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
+        if (sha256_check != nullptr && !validate::sha256(m_tarball_path, sha256_check))
         {
+            LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+        }
+        else
+        {
+            const char* md5_check = solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused);
+            if (md5_check != nullptr && !validate::md5(m_tarball_path, md5_check))
+            {
+                LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path;
+                throw std::runtime_error("File not valid: MD5 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            }
         }
 
         m_progress_proxy.set_postfix("Waiting...");
-
         // Extract path is __not__ yet thread safe it seems...
         {
             std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
@@ -103,7 +105,7 @@ namespace mamba
         final_msg << " " << std::setw(12 + 2);
         to_human_readable_filesize(final_msg, expected_size);
         final_msg << " " << std::setw(6);
-        to_human_readable_filesize(final_msg, avg_speed);
+        to_human_readable_filesize(final_msg, m_target->avg_speed);
         final_msg << "/s";
         m_progress_proxy.mark_as_completed(final_msg.str());
 

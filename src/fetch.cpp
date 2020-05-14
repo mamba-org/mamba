@@ -87,6 +87,12 @@ namespace mamba
         auto now = std::chrono::steady_clock::now();
         if (now >= m_next_retry)
         {
+            if (fs::exists(m_filename))
+            {
+                m_file.close();
+                fs::remove(m_filename);
+                m_file.open(m_filename);
+            }
             init_curl_target(m_url);
             if (m_has_progress_bar)
             {
@@ -281,6 +287,13 @@ namespace mamba
     bool DownloadTarget::finalize()
     {
         char* effective_url = nullptr;
+
+        auto cres = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
+        if (cres != CURLE_OK)
+        {
+            avg_speed = 0;
+        }
+
         curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);

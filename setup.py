@@ -63,6 +63,7 @@ ext_modules = [
         [
             'src/py_interface.cpp',
             'src/activation.cpp',
+            'src/channel.cpp',
             'src/context.cpp',
             'src/fetch.cpp',
             'src/history.cpp',

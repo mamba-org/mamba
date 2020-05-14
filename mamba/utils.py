@@ -58,6 +58,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
 def init_api_context():
     api_ctx = api.Context()
+
     api_ctx.json = context.json
     api_ctx.dry_run = context.dry_run
     if context.json:

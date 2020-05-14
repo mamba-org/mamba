@@ -1,8 +1,9 @@
 #ifndef MAMBA_CONTEXT_HPP
 #define MAMBA_CONTEXT_HPP
 
-#include <vector>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "thirdparty/filesystem.hpp"
 

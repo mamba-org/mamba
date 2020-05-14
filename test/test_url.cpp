@@ -133,4 +133,14 @@ namespace mamba
         EXPECT_EQ(auth, "u:p");
         EXPECT_EQ(token, "x1029384756");
     }
+
+    TEST(url, split_platform)
+    {
+        std::string input = "https://1.2.3.4/t/tk-123/linux-64/path";
+        std::vector<std::string> known_platforms = {"noarch", "linux-32", "linux-64", "linux-aarch64"};
+        std::string cleaned_url, platform;
+        split_platform(known_platforms, input, cleaned_url, platform);
+        EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
+        EXPECT_EQ(platform, "linux-64");
+    }
 }

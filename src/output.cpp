@@ -341,8 +341,14 @@ namespace mamba
 
             print_row(m_header);
 
+            #ifdef _WIN32
+            char linechar = '_';
+            #else
+            char32_t linechar = u'─';
+            #endif
+
             std::cout << "\n";
-            for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << "─";
+            for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << linechar;
             std::cout << "\n";
 
             for (auto i = 0; i < m_table.size(); ++i)
@@ -356,7 +362,7 @@ namespace mamba
                     std::cout << m_table[i][0].s;
 
                     std::cout << "\n";
-                    for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << "─";
+                    for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << linechar;
                     std::cout << "\n";
                 }
                 else

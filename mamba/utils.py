@@ -56,7 +56,7 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     return index
 
-def init_api_context(use_mamba_experimental):
+def init_api_context(use_mamba_experimental=False):
     api_ctx = api.Context()
 
     api_ctx.json = context.json

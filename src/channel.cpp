@@ -66,7 +66,8 @@ namespace mamba
                      const std::string& token,
                      const std::string& name,
                      const std::string& platform,
-                     const std::string& package_filename)
+                     const std::string& package_filename,
+                     const std::string& multi_name)
         : m_scheme(scheme)
         , m_auth(auth)
         , m_location(location)
@@ -74,7 +75,24 @@ namespace mamba
         , m_name(name)
         , m_platform(name)
         , m_package_filename(package_filename)
+        , m_canonical_name(multi_name)
     {
+        if (m_canonical_name == "")
+        {
+            auto it = ChannelContext::instance().get_custom_channels().find(name);
+            if (it != ChannelContext::instance().get_custom_channels().end())
+            {
+                m_canonical_name = it->first;
+            }
+            else if (m_scheme != "")
+            {
+                m_canonical_name = m_scheme + "://" + m_location + '/' + m_name;
+            }
+            else
+            {
+                m_canonical_name = lstrip(m_location + '/' + m_name, "/");
+            }
+        }
     }
 
     const std::string& Channel::scheme() const
@@ -112,6 +130,11 @@ namespace mamba
         return m_package_filename;
     }
 
+    const std::string& Channel::canonical_name() const
+    {
+        return m_canonical_name;
+    }
+
     std::string Channel::url(bool with_credential) const
     {
         std::string base = location();
@@ -146,7 +169,8 @@ namespace mamba
 
     Channel Channel::make_simple_channel(const Channel& channel_alias,
                                          const std::string& channel_url,
-                                         const std::string& channel_name)
+                                         const std::string& channel_name,
+                                         const std::string& multi_name)
     {
         std::string name(channel_name);
         std::string location, scheme, auth, token;
@@ -178,7 +202,7 @@ namespace mamba
             }
         }
         name = name != "" ? strip(name, "/") : strip(channel_url, "/");
-        return Channel(scheme, auth, location, token, name);
+        return Channel(scheme, auth, location, token, name, "", "", multi_name);
     }
 
     const Channel& Channel::make_cached_channel(const std::string& value)
@@ -487,7 +511,7 @@ namespace mamba
 
         for(auto& url: DEFAULT_CHANNELS)
         {
-            auto channel = Channel::make_simple_channel(m_channel_alias, url);
+            auto channel = Channel::make_simple_channel(m_channel_alias, url, "defaults");
             m.emplace(channel.name(), std::move(channel));
         }
 

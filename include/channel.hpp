@@ -17,7 +17,8 @@ namespace mamba
                 const std::string& token = "",
                 const std::string& name = "",
                 const std::string& platform = "",
-                const std::string& package_filename = "");
+                const std::string& package_filename = "",
+                const std::string& multi_name = "");
 
         const std::string& scheme() const;
         const std::string& auth() const;
@@ -26,12 +27,15 @@ namespace mamba
         const std::string& name() const;
         const std::string& platform() const;
         const std::string& package_filename() const;
+        const std::string& canonical_name() const;
 
         std::string url(bool with_credential = true) const;
         
         static Channel make_simple_channel(const Channel& channel_alias,
                                            const std::string& channel_url,
-                                           const std::string& channel_name = "");
+                                           const std::string& channel_name = "",
+                                           const std::string& multi_name = "");
+        
         static const Channel& make_cached_channel(const std::string& value);
         static void clear_cache();
 
@@ -51,6 +55,7 @@ namespace mamba
         std::string m_name;
         std::string m_platform;
         std::string m_package_filename;
+        std::string m_canonical_name;
     };
 
     const Channel& make_channel(const std::string& value);

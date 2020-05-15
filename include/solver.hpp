@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "pool.hpp"
+#include "match_spec.hpp"
 #include "output.hpp"
 
 extern "C"
@@ -16,6 +17,9 @@ extern "C"
     #include "solv/solver.h"
     #include "solv/solverdebug.h"
 }
+
+#define MAMBA_NO_DEPS   0b0001
+#define MAMBA_ONLY_DEPS 0b0010
 
 namespace mamba
 {
@@ -33,20 +37,24 @@ namespace mamba
 
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
+        void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
         bool is_solved();
         bool solve();
         std::string problems_to_str();
 
-        const std::vector<std::string>& install_specs() const;
-        const std::vector<std::string>& remove_specs() const;
+        const std::vector<MatchSpec>& install_specs() const;
+        const std::vector<MatchSpec>& remove_specs() const;
 
         operator Solver*();
 
+        bool only_deps = false;
+        bool no_deps = false;
+
     private:
 
-        std::vector<std::string> m_install_specs;
-        std::vector<std::string> m_remove_specs;
-        std::vector<std::string> m_neuter_specs; // unused for now
+        std::vector<MatchSpec> m_install_specs;
+        std::vector<MatchSpec> m_remove_specs;
+        std::vector<MatchSpec> m_neuter_specs; // unused for now
         bool m_is_solved;
         Solver* m_solver;
         Queue m_jobs;

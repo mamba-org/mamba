@@ -52,7 +52,7 @@ namespace mamba
         static std::regex com_pat("#\\s*cmd:\\s*(.+)");
         static std::regex conda_v_pat("#\\s*conda version:\\s*(.+)");
         static std::regex spec_pat("#\\s*(\\w+)\\s*specs:\\s*(.+)?");
-        static std::regex elems_pat("'([^',]+)'");
+
         std::smatch rmatch;
 
         if (std::regex_match(line, rmatch, com_pat))
@@ -71,11 +71,37 @@ namespace mamba
 
             std::cmatch ematch;
             std::vector<std::string> pkg_specs;
-            const char* text_iter = elems.c_str();
-            while (std::regex_search(text_iter, ematch, elems_pat))
+
+            // small parser for pythonic lists
+            std::size_t idx_start = elems.find_first_of("\'\"");
+            std::size_t idx_end, idx_search;
+            idx_search = idx_start + 1;
+            std::string needle = "X";
+
+            while (true)
             {
-                pkg_specs.push_back(ematch[1].str());
-                text_iter += ematch.position() + ematch.length();
+                needle[0] = elems[idx_start];
+                idx_end = elems.find_first_of(needle.c_str(), idx_search);
+                if (idx_end != std::string::npos && elems[idx_end - 1] != '\\')
+                {
+                    pkg_specs.push_back(elems.substr(idx_start + 1, idx_end - 1 - idx_start));
+                    idx_start = elems.find_first_of("\'\"", idx_end + 1);
+                    idx_search = idx_start + 1;
+                }
+                else
+                {
+                    idx_search = idx_end;
+                }
+                if (idx_start >= elems.size() || idx_start == std::string::npos)
+                {
+                    break;
+                }
+                if (idx_search >= elems.size() || idx_search == std::string::npos)
+                {
+                    throw std::runtime_error("Parsing of history file failed");
+                }
+                // pkg_specs.push_back(ematch[1].str());
+                // text_iter += ematch.position() + ematch.length();
             }
             if (action == "update" || action == "install" || action == "create")
             {
@@ -199,10 +225,10 @@ namespace mamba
             auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
                 if (specs.empty()) return "";
                 std::string spec_string;
-                spec_string ="# " + action + " specs: [";
+                spec_string = "# " + action + " specs: [";
                 for (auto spec : specs)
                 {
-                    spec_string += "'" + spec + "', ";
+                    spec_string += "\"" + spec + "\", ";
                 }
                 spec_string[spec_string.size() - 2] = ']';
                 spec_string.back() = '\n';

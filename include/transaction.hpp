@@ -2,6 +2,7 @@
 #define MAMBA_TRANSACTION_HPP
 
 #include <iomanip>
+#include <set>
 #include <future>
 
 #include "nlohmann/json.hpp"
@@ -83,10 +84,14 @@ namespace mamba
         bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos);
         void print();
         bool execute(PrefixData& prefix, const fs::path& cache_dir);
+        bool filter(Solvable* s);
 
         std::string find_python_version();
 
     private:
+
+        bool m_filter_only_or_ignore;
+        std::set<Id> m_filter_name_ids;
 
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;

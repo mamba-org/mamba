@@ -342,13 +342,13 @@ namespace mamba
             print_row(m_header);
 
             #ifdef _WIN32
-            char linechar = '_';
+            #define MAMBA_TABLE_DELIM "-"
             #else
-            char32_t linechar = u'─';
+            #define MAMBA_TABLE_DELIM "─"
             #endif
 
             std::cout << "\n";
-            for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << linechar;
+            for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << MAMBA_TABLE_DELIM;
             std::cout << "\n";
 
             for (auto i = 0; i < m_table.size(); ++i)
@@ -362,7 +362,7 @@ namespace mamba
                     std::cout << m_table[i][0].s;
 
                     std::cout << "\n";
-                    for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << linechar;
+                    for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << MAMBA_TABLE_DELIM;
                     std::cout << "\n";
                 }
                 else

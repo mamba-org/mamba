@@ -286,6 +286,24 @@ namespace mamba
         return *this;
     }
     
+    namespace
+    {
+        const std::vector<std::string> CURLUPART_NAMES = 
+        {
+            "url",
+            "scheme",
+            "user",
+            "password",
+            "options",
+            "host",
+            "port",
+            "path",
+            "query",
+            "fragment",
+            "zoneid"
+        };
+    }
+
     std::string URLHandler::get_part(CURLUPart part)
     {
         char* scheme;
@@ -298,7 +316,7 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Could not find SCHEME of url " + m_url);
+            throw std::runtime_error("Could not find " + CURLUPART_NAMES[part] + " of url " + m_url);
         }
     }
 

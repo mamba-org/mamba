@@ -10,6 +10,7 @@
 #include "query.hpp"
 #include "subdirdata.hpp"
 #include "context.hpp"
+#include "channel.hpp"
 
 namespace py = pybind11;
 
@@ -117,6 +118,13 @@ PYBIND11_MODULE(mamba_api, m) {
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())
         .def("load", &PrefixData::load)
+    ;
+
+    py::class_<Channel>(m, "Channel")
+        .def(py::init([](const std::string& value) { return &(make_channel(value)); }))
+        .def_property_readonly("platform", &Channel::platform)
+        .def_property_readonly("canonical_name", &Channel::canonical_name)
+        .def("url", &Channel::url)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

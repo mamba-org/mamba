@@ -36,7 +36,7 @@ namespace mamba
                                            const std::string& channel_name = "",
                                            const std::string& multi_name = "");
         
-        static const Channel& make_cached_channel(const std::string& value);
+        static Channel& make_cached_channel(const std::string& value);
         static void clear_cache();
 
     private:
@@ -58,7 +58,7 @@ namespace mamba
         std::string m_canonical_name;
     };
 
-    const Channel& make_channel(const std::string& value);
+    Channel& make_channel(const std::string& value);
 
     class ChannelContext
     {

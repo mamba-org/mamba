@@ -205,7 +205,7 @@ namespace mamba
         return Channel(scheme, auth, location, token, name, "", "", multi_name);
     }
 
-    const Channel& Channel::make_cached_channel(const std::string& value)
+    Channel& Channel::make_cached_channel(const std::string& value)
     {
         auto res = get_cache().find(value);
         if (res == get_cache().end())
@@ -463,7 +463,7 @@ namespace mamba
         return Channel::from_name(value);
     }
 
-    const Channel& make_channel(const std::string& value)
+    Channel& make_channel(const std::string& value)
     {
         return Channel::make_cached_channel(value);
     }

@@ -153,4 +153,15 @@ namespace mamba
         EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
         EXPECT_EQ(platform, "linux-64");
     }
+
+    TEST(path, is_path)
+    {
+        EXPECT_TRUE(is_path("./"));
+        EXPECT_TRUE(is_path(".."));
+        EXPECT_TRUE(is_path("~"));
+        EXPECT_TRUE(is_path("/"));
+        EXPECT_FALSE(is_path("file://makefile"));
+    }
+
+
 }

@@ -50,6 +50,9 @@ namespace mamba
                         std::string& cleaned_url,
                         std::string& platform);
 
+    bool is_path(const std::string& input);
+    std::string path_to_url(const std::string& path);
+
     class URLHandler
     {
     public:

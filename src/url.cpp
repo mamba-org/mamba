@@ -73,6 +73,33 @@ namespace mamba
         cleaned_url = rstrip(cleaned_url, "/");
     }
 
+    bool is_path(const std::string& input)
+    {
+        static const std::regex re(R"(\./|\.\.|~|/|[a-zA-Z]:[/\\]|\\\\|//)"); 
+        std::smatch sm;
+        std::regex_search(input, sm, re);
+        return !sm.empty() && sm.position(0) == 0 && input.find("://") == std::string::npos;
+    }
+
+    std::string path_to_url(const std::string& path)
+    {
+        static const std::string file_scheme = "file://";
+        if (starts_with(path, file_scheme))
+        {
+            return path;
+        }
+        // TODO: handle percent encoding
+        // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
+        if (path.size() > 1u && path[1u] == ':')
+        {
+            return file_scheme + '/' + path;
+        }
+        else
+        {
+            return file_scheme + path;
+        }
+    }
+
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
         , m_has_scheme(has_scheme(url))

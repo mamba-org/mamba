@@ -27,6 +27,8 @@ namespace mamba
         const std::string& platform() const;
         const std::string& package_filename() const;
 
+        std::string url(bool with_credential = true) const;
+        
         static Channel make_simple_channel(const Channel& channel_alias,
                                            const std::string& channel_url,
                                            const std::string& channel_name = "");

@@ -60,7 +60,7 @@ namespace mamba
 
         if (is_package_file(spec_str))
         {
-            if (!is_url(spec_str))
+            if (!has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
                 // spec_str = unquote(path_to_url(expand(spec_str)))

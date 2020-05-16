@@ -33,8 +33,7 @@ extern "C"
 
 namespace mamba
 {
-
-    bool is_url(const std::string& url);
+    bool has_scheme(const std::string& url);
 
     void split_anaconda_token(const std::string& url,
                               std::string& cleaned_url,
@@ -50,6 +49,9 @@ namespace mamba
                         const std::string& url,
                         std::string& cleaned_url,
                         std::string& platform);
+
+    bool is_path(const std::string& input);
+    std::string path_to_url(const std::string& path);
 
     class URLHandler
     {
@@ -100,7 +102,7 @@ namespace mamba
 
         std::string m_url;
         CURLU* m_handle;
-        bool m_scheme_set;
+        bool m_has_scheme;
     };
 }
 

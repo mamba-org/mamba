@@ -6,18 +6,10 @@
 
 namespace mamba
 {
-    bool is_url(const std::string& url)
+    bool has_scheme(const std::string& url)
     {
-        if (url.size() == 0) return false;
-        try
-        {
-            URLHandler p(url); 
-            return p.scheme().size() != 0;
-        }
-        catch(...)
-        {
-            return false;
-        }
+        std::regex re("[a-z][a-z0-9]{0,11}://");
+        return std::regex_search(url, re);
     }
 
     void split_anaconda_token(const std::string& url,
@@ -81,16 +73,43 @@ namespace mamba
         cleaned_url = rstrip(cleaned_url, "/");
     }
 
+    bool is_path(const std::string& input)
+    {
+        static const std::regex re(R"(\./|\.\.|~|/|[a-zA-Z]:[/\\]|\\\\|//)"); 
+        std::smatch sm;
+        std::regex_search(input, sm, re);
+        return !sm.empty() && sm.position(0) == 0 && input.find("://") == std::string::npos;
+    }
+
+    std::string path_to_url(const std::string& path)
+    {
+        static const std::string file_scheme = "file://";
+        if (starts_with(path, file_scheme))
+        {
+            return path;
+        }
+        // TODO: handle percent encoding
+        // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
+        if (path.size() > 1u && path[1u] == ':')
+        {
+            return file_scheme + '/' + path;
+        }
+        else
+        {
+            return file_scheme + path;
+        }
+    }
+
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
-        , m_scheme_set(url != "")
+        , m_has_scheme(has_scheme(url))
     {
         m_handle = curl_url(); /* get a handle to work with */ 
         if (!m_handle)
         {
             throw std::runtime_error("Could not initiate URL parser.");
         }
-        if (m_scheme_set)
+        if (m_has_scheme)
         {
             CURLUcode uc;
             uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), CURLU_NON_SUPPORT_SCHEME);
@@ -109,7 +128,7 @@ namespace mamba
     URLHandler::URLHandler(const URLHandler& rhs)
         : m_url(rhs.m_url)
         , m_handle(curl_url_dup(rhs.m_handle))
-        , m_scheme_set(rhs.m_scheme_set)
+        , m_has_scheme(rhs.m_has_scheme)
     {
     }
 
@@ -123,7 +142,7 @@ namespace mamba
     URLHandler::URLHandler(URLHandler&& rhs)
         : m_url(std::move(rhs.m_url))
         , m_handle(rhs.m_handle)
-        , m_scheme_set(std::move(rhs.m_scheme_set))
+        , m_has_scheme(std::move(rhs.m_has_scheme))
     {
         rhs.m_handle = nullptr;
     }
@@ -132,14 +151,14 @@ namespace mamba
     {
         std::swap(m_url, rhs.m_url);
         std::swap(m_handle, rhs.m_handle);
-        std::swap(m_scheme_set, rhs.m_scheme_set);
+        std::swap(m_has_scheme, rhs.m_has_scheme);
         return *this;
     }
 
     std::string URLHandler::url()
     {
         std::string res = get_part(CURLUPART_URL);
-        if (!m_scheme_set)
+        if (!m_has_scheme)
         {
             res = res.substr(8);
         }
@@ -148,7 +167,7 @@ namespace mamba
 
     std::string URLHandler::scheme()
     {
-        return get_part(CURLUPART_SCHEME);
+        return m_has_scheme ? get_part(CURLUPART_SCHEME) : "";
     }
 
     std::string URLHandler::host()
@@ -205,8 +224,8 @@ namespace mamba
 
     URLHandler& URLHandler::set_scheme(const std::string& scheme)
     {
-        m_scheme_set = (scheme != "");
-        if (m_scheme_set)
+        m_has_scheme = (scheme != "");
+        if (m_has_scheme)
         {
             set_part(CURLUPART_SCHEME, scheme);
         }
@@ -267,10 +286,28 @@ namespace mamba
         return *this;
     }
     
+    namespace
+    {
+        const std::vector<std::string> CURLUPART_NAMES = 
+        {
+            "url",
+            "scheme",
+            "user",
+            "password",
+            "options",
+            "host",
+            "port",
+            "path",
+            "query",
+            "fragment",
+            "zoneid"
+        };
+    }
+
     std::string URLHandler::get_part(CURLUPart part)
     {
         char* scheme;
-        auto rc = curl_url_get(m_handle, part, &scheme, m_scheme_set ? 0 : CURLU_DEFAULT_SCHEME);
+        auto rc = curl_url_get(m_handle, part, &scheme, m_has_scheme ? 0 : CURLU_DEFAULT_SCHEME);
         if (!rc)
         {
             std::string res(scheme);
@@ -279,7 +316,7 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Could not find SCHEME of url " + m_url);
+            throw std::runtime_error("Could not find " + CURLUPART_NAMES[part] + " of url " + m_url);
         }
     }
 

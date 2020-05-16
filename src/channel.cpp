@@ -1,3 +1,5 @@
+#include <regex>
+#include <set>
 #include <tuple>
 #include <utility>
 
@@ -14,6 +16,16 @@ namespace mamba
     {
         const std::string DEFAULT_CHANNEL_ALIAS = "https://conda.anaconda.org";
         const std::map<std::string, std::string> DEFAULT_CUSTOM_CHANNELS = {{"pkgs/pro", "https://repo.anaconda.com"}};
+        const std::string UNKNOWN_CHANNEL = "<unknown>";
+        
+        const std::set<std::string> INVALID_CHANNELS =
+        {
+            "<unknown>",
+            "None:///<unknown>",
+            "None",
+            "",
+            ":///<unknown>"
+        };
 
         const std::vector<std::string> DEFAULT_CHANNELS = 
         {
@@ -54,7 +66,8 @@ namespace mamba
                      const std::string& token,
                      const std::string& name,
                      const std::string& platform,
-                     const std::string& package_filename)
+                     const std::string& package_filename,
+                     const std::string& multi_name)
         : m_scheme(scheme)
         , m_auth(auth)
         , m_location(location)
@@ -62,7 +75,24 @@ namespace mamba
         , m_name(name)
         , m_platform(name)
         , m_package_filename(package_filename)
+        , m_canonical_name(multi_name)
     {
+        if (m_canonical_name == "")
+        {
+            auto it = ChannelContext::instance().get_custom_channels().find(name);
+            if (it != ChannelContext::instance().get_custom_channels().end())
+            {
+                m_canonical_name = it->first;
+            }
+            else if (m_scheme != "")
+            {
+                m_canonical_name = m_scheme + "://" + m_location + '/' + m_name;
+            }
+            else
+            {
+                m_canonical_name = lstrip(m_location + '/' + m_name, "/");
+            }
+        }
     }
 
     const std::string& Channel::scheme() const
@@ -100,9 +130,47 @@ namespace mamba
         return m_package_filename;
     }
 
+    const std::string& Channel::canonical_name() const
+    {
+        return m_canonical_name;
+    }
+
+    std::string Channel::url(bool with_credential) const
+    {
+        std::string base = location();
+        if (with_credential && token() != "")
+        {
+            base += "/t/" + token();
+        }
+        base += "/" + name();
+        if (platform() != "")
+        {
+            base += "/" + platform();
+            if (package_filename() != "")
+            {
+                base += "/" + package_filename();
+            }
+        }
+        else
+        {
+            // TODO: handle unknwon archs that are not "noarch"
+            base += "/noarch";
+        }
+
+        if (with_credential && auth() != "")
+        {
+            return scheme() + "://" + auth() + "@" + base;
+        }
+        else
+        {
+            return scheme() + "://" + base;
+        }
+    }
+
     Channel Channel::make_simple_channel(const Channel& channel_alias,
                                          const std::string& channel_url,
-                                         const std::string& channel_name)
+                                         const std::string& channel_name,
+                                         const std::string& multi_name)
     {
         std::string name(channel_name);
         std::string location, scheme, auth, token;
@@ -134,10 +202,10 @@ namespace mamba
             }
         }
         name = name != "" ? strip(name, "/") : strip(channel_url, "/");
-        return Channel(scheme, auth, location, token, name);
+        return Channel(scheme, auth, location, token, name, "", "", multi_name);
     }
 
-    const Channel& Channel::make_cached_channel(const std::string& value)
+    Channel& Channel::make_cached_channel(const std::string& value)
     {
         auto res = get_cache().find(value);
         if (res == get_cache().end())
@@ -351,12 +419,54 @@ namespace mamba
         }
     }
     
-    Channel Channel::from_value(const std::string& value)
+    std::string fix_win_path(const std::string& path)
     {
-        // TODO
-        return Channel();
+#ifdef _WIN32
+        if (starts_with(path, "file:"))
+        {
+            std::regex re(R"(\\(?! )");
+            std::string res = std::regex_replace(path, re, R"(/)");
+            replace_all(res, ":////", "://");
+            return res;
+        }
+        else
+        {
+            return path;
+        }
+#else
+        return path;
+#endif
     }
 
+    Channel Channel::from_value(const std::string& value)
+    {
+        if (INVALID_CHANNELS.find(value) != INVALID_CHANNELS.end())
+        {
+            return Channel("", "", "", "", UNKNOWN_CHANNEL);
+        }
+
+        if (has_scheme(value))
+        {
+            return Channel::from_url(fix_win_path(value));
+        }
+
+        if (is_path(value))
+        {
+            return Channel::from_url(path_to_url(value));
+        }
+
+        if (is_package_file(value))
+        {
+            return Channel::from_url(fix_win_path(value));
+        }
+
+        return Channel::from_name(value);
+    }
+
+    Channel& make_channel(const std::string& value)
+    {
+        return Channel::make_cached_channel(value);
+    }
 
     /*********************************
      * ChannelContext implementation *
@@ -401,7 +511,7 @@ namespace mamba
 
         for(auto& url: DEFAULT_CHANNELS)
         {
-            auto channel = Channel::make_simple_channel(m_channel_alias, url);
+            auto channel = Channel::make_simple_channel(m_channel_alias, url, "defaults");
             m.emplace(channel.name(), std::move(channel));
         }
 

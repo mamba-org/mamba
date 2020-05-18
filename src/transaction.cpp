@@ -613,10 +613,10 @@ namespace mamba
             Console::print("  No specs added or removed.\n");
         }
 
-        printers::Table t({"Package", "Version", "Channel", "Size"});
-        t.set_alignment({printers::alignment::left, printers::alignment::right,
+        printers::Table t({"Package", "Version", "Build", "Channel", "Size"});
+        t.set_alignment({printers::alignment::left, printers::alignment::right, printers::alignment::left,
                          printers::alignment::left, printers::alignment::right});
-        t.set_padding({2, 2, 2, 5});
+        t.set_padding({2, 2, 2, 2, 5});
         Queue classes, pkgs;
 
         queue_init(&classes);
@@ -655,8 +655,10 @@ namespace mamba
             printers::FormattedString name;
             name.s = pool_id2str(pool, s->name);
             name.flag = flag;
-
-            r.push_back({name, printers::FormattedString(pool_id2str(pool, s->evr)),
+            const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+            r.push_back({name,
+                         printers::FormattedString(pool_id2str(pool, s->evr)),
+                         printers::FormattedString(build_string ? build_string : ""),
                          printers::FormattedString(cut_repo_name(s->repo->name)), dlsize_s});
         };
 

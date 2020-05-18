@@ -1,3 +1,4 @@
+#include <iostream>
 #include <regex>
 #include <set>
 #include <tuple>
@@ -73,26 +74,10 @@ namespace mamba
         , m_location(location)
         , m_token(token)
         , m_name(name)
-        , m_platform(name)
+        , m_platform(platform)
         , m_package_filename(package_filename)
         , m_canonical_name(multi_name)
     {
-        if (m_canonical_name == "")
-        {
-            auto it = ChannelContext::instance().get_custom_channels().find(name);
-            if (it != ChannelContext::instance().get_custom_channels().end())
-            {
-                m_canonical_name = it->first;
-            }
-            else if (m_scheme != "")
-            {
-                m_canonical_name = m_scheme + "://" + m_location + '/' + m_name;
-            }
-            else
-            {
-                m_canonical_name = lstrip(m_location + '/' + m_name, "/");
-            }
-        }
     }
 
     const std::string& Channel::scheme() const
@@ -132,6 +117,26 @@ namespace mamba
 
     const std::string& Channel::canonical_name() const
     {
+        if (m_canonical_name == "")
+        {
+            auto it = ChannelContext::instance().get_custom_channels().find(m_name);
+            if (it != ChannelContext::instance().get_custom_channels().end())
+            {
+                m_canonical_name = it->first;
+            }
+            else if (m_location == ChannelContext::instance().get_channel_alias().location())
+            {
+                m_canonical_name = m_name;
+            }
+            else if (m_scheme != "")
+            {
+                m_canonical_name = m_scheme + "://" + m_location + '/' + m_name;
+            }
+            else
+            {
+                m_canonical_name = lstrip(m_location + '/' + m_name, "/");
+            }
+        }
         return m_canonical_name;
     }
 
@@ -197,8 +202,8 @@ namespace mamba
             else
             {
                 URLHandler parser(location);
-                location = parser.url();
-                name = parser.path();
+                location = rstrip(URLHandler().set_host(parser.host()).set_port(parser.port()).url(), "/");
+                name = lstrip(parser.path(), "/");
             }
         }
         name = name != "" ? strip(name, "/") : strip(channel_url, "/");
@@ -237,7 +242,7 @@ namespace mamba
                          std::string& package_name)
     {
         std::string cleaned_url, extension;
-        split_anaconda_token(cleaned_url, cleaned_url, token);
+        split_anaconda_token(url, cleaned_url, token);
         split_platform(KNOWN_PLATFORMS, cleaned_url, cleaned_url, platform);
         split_package_extension(cleaned_url, cleaned_url, extension);
         
@@ -256,7 +261,7 @@ namespace mamba
         scheme = handler.scheme();
         host = handler.host();
         port = handler.port();
-        path = handler.path();
+        path = lstrip(handler.path(), "/");
         auth = handler.auth();
     }
 
@@ -511,15 +516,16 @@ namespace mamba
 
         for(auto& url: DEFAULT_CHANNELS)
         {
-            auto channel = Channel::make_simple_channel(m_channel_alias, url, "defaults");
-            m.emplace(channel.name(), std::move(channel));
+            auto channel = Channel::make_simple_channel(m_channel_alias, url, "", "defaults");
+            std::string name = channel.name();
+            m.emplace(std::move(name), std::move(channel));
         }
 
         // TODO: add channels based on local build folders
 
         for(auto& ch: DEFAULT_CUSTOM_CHANNELS)
         {
-            m.emplace(ch.first, Channel::make_simple_channel(m_channel_alias, ch.first, ch.second));
+            m.emplace(ch.first, Channel::make_simple_channel(m_channel_alias, ch.second, ch.first));
         }
         return m;
     }

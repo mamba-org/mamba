@@ -123,9 +123,12 @@ PYBIND11_MODULE(mamba_api, m) {
 
     py::class_<Channel>(m, "Channel")
         .def(py::init([](const std::string& value) { return &(make_channel(value)); }))
-        .def_property_readonly("platform", &Channel::platform)
+        .def_property_readonly("scheme", &Channel::scheme)
+        .def_property_readonly("location", &Channel::location)
+        .def_property_readonly("name", &Channel::name)
+        .def_property_readonly("subdir", &Channel::platform)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
-        .def("url", &Channel::url)
+        .def("url", &Channel::url, py::arg("with_credentials") = true)
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

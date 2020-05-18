@@ -45,7 +45,7 @@ namespace mamba
         handler.set_scheme("");
         handler.set_user("");
         handler.set_password("");
-        remaining_url = handler.url();
+        remaining_url = rstrip(handler.url(), "/");
     }
 
     void split_platform(const std::vector<std::string>& known_platforms,
@@ -109,10 +109,12 @@ namespace mamba
         {
             throw std::runtime_error("Could not initiate URL parser.");
         }
-        if (m_has_scheme)
+
+        if (!url.empty())
         {
             CURLUcode uc;
-            uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), CURLU_NON_SUPPORT_SCHEME);
+            auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
+            uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), curl_flags);
             if (uc)
             {
                 throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) + ")");
@@ -158,8 +160,9 @@ namespace mamba
     std::string URLHandler::url()
     {
         std::string res = get_part(CURLUPART_URL);
-        if (!m_has_scheme)
+        if (!m_has_scheme && !res.empty())
         {
+            // Default scheme is https://
             res = res.substr(8);
         }
         return res;
@@ -316,7 +319,8 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Could not find " + CURLUPART_NAMES[part] + " of url " + m_url);
+            return "";
+            //throw std::runtime_error("Could not find " + CURLUPART_NAMES[part] + " of url " + m_url);
         }
     }
 

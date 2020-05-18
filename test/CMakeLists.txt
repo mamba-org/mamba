@@ -4,14 +4,15 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
 set(TEST_SRCS
-	test_cpp.cpp
-	test_url.cpp
+    test_channel.cpp
+    test_cpp.cpp
+    test_url.cpp
     history_test/test_history.cpp
-	test_shell_init.cpp
-	test_activation.cpp
-	test_string_methods.cpp
-	test_environments_manager.cpp
-	test_transfer.cpp
+    test_shell_init.cpp
+    test_activation.cpp
+    test_string_methods.cpp
+    test_environments_manager.cpp
+    test_transfer.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

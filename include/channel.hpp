@@ -55,7 +55,7 @@ namespace mamba
         std::string m_name;
         std::string m_platform;
         std::string m_package_filename;
-        std::string m_canonical_name;
+        mutable std::string m_canonical_name;
     };
 
     Channel& make_channel(const std::string& value);

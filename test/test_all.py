@@ -79,3 +79,30 @@ def test_create_dry_run(experimental, use_json, tmpdir):
     if not experimental:
         # dry-run, shouldn't create an environment
         assert not env_dir.check()
+
+
+def test_create_files(tmpdir):
+    """Check that multiple --file arguments are respected."""
+    (tmpdir / "1.txt").write(b"a")
+    (tmpdir / "2.txt").write(b"b")
+    output = subprocess.check_output([
+        'mamba',
+        'create',
+        '-p',
+        str(tmpdir / 'env'),
+        '--json',
+        '--override-channels',
+        '--strict-channel-priority',
+        '--dry-run',
+        '-c',
+        './test/channel_b',
+        '-c',
+        './test/channel_a',
+        '--file',
+        str(tmpdir / "1.txt"),
+        '--file',
+        str(tmpdir / "2.txt")
+    ])
+    output = json.loads(output)
+    names = {x['name'] for x in output['actions']['FETCH']}
+    assert names == {'a', 'b'}

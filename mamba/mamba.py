@@ -52,7 +52,6 @@ import logging
 import mamba
 import mamba.mamba_api as api
 
-from mamba.post_solve_handling import post_solve_handling
 from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
 
 log = getLogger(__name__)
@@ -156,7 +155,6 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
         final_precs.add(rec)
         to_link_records.append(rec)
 
-    final_precs, specs_to_add, specs_to_remove = post_solve_handling(context, prefix_data, final_precs, specs_to_add, specs_to_remove)
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
                                                           final_precs=IndexedSet(PrefixGraph(final_precs).graph),
                                                           specs_to_add=specs_to_add,
@@ -302,10 +300,17 @@ def remove(args, parser):
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
         transaction = api.Transaction(solver, package_cache)
-        to_link, to_unlink = transaction.to_conda()
+        downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
+        if not downloaded:
+            exit(0)
+
+        mmb_specs, to_link, to_unlink = transaction.to_conda()
         transaction.log_json()
 
-        conda_transaction = to_txn((), specs, prefix, to_link, to_unlink)
+        specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
+        specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
+
+        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink)
         handle_txn(conda_transaction, prefix, args, False, True)
 
 def install(args, parser, command='install'):
@@ -527,7 +532,11 @@ def install(args, parser, command='install'):
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
     transaction = api.Transaction(solver, package_cache)
-    to_link, to_unlink = transaction.to_conda()
+    mmb_specs, to_link, to_unlink = transaction.to_conda()
+
+    specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
+    specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
+
     transaction.log_json()
 
     downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
@@ -536,14 +545,14 @@ def install(args, parser, command='install'):
     PackageCacheData.first_writable().reload()
 
     if python_added:
-        specs = [s for s in specs if s.name != 'python']
+        specs_to_add = [s for s in specs_to_add if s.name != 'python']
 
     if use_mamba_experimental and not os.name == 'nt':
         if command == 'create' and not isdir(context.target_prefix):
             mkdir_p(prefix)
         transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
     else:
-        conda_transaction = to_txn(specs, (), prefix, to_link, to_unlink, index)
+        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index)
         handle_txn(conda_transaction, prefix, args, newenv)
 
     try:

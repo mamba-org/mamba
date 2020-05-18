@@ -486,7 +486,11 @@ namespace mamba
             to_install_structured.emplace_back(s->repo->name, mediafile, s_json);
         }
 
-        return std::make_tuple(to_install_structured, to_remove_structured);
+        to_specs_type specs;
+        std::get<0>(specs) = m_history_entry.update;
+        std::get<1>(specs) = m_history_entry.remove;
+
+        return std::make_tuple(specs, to_install_structured, to_remove_structured);
     }
 
     void MTransaction::log_json()
@@ -564,12 +568,12 @@ namespace mamba
         {
             return true;
         }
-        // we print, even if quiet
         print();
-        if (Context::instance().dry_run)
+        if (Context::instance().dry_run || empty())
         {
             return true;
         }
+
         bool res = Console::prompt("Confirm changes", 'y');
         if (res)
         {
@@ -586,7 +590,14 @@ namespace mamba
         // check size of transaction
         if (empty())
         {
-            Console::print("\n  All requested packages already installed\n");
+            if (m_history_entry.update.size())
+            {
+                Console::print("  All requested packages already installed\n");
+            }
+            else
+            {
+                Console::print("  Nothing to remove\n");
+            }
             return;
         }
 

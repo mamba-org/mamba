@@ -76,7 +76,9 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
     transaction = api.Transaction(solver, package_cache)
-    to_link, to_unlink = transaction.to_conda()
+    mmb_specs, to_link, to_unlink = transaction.to_conda()
+
+    specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
 
     to_link_records, to_unlink_records = [], []
 
@@ -95,15 +97,15 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
                                                           final_precs=IndexedSet(PrefixGraph(final_precs).graph),
-                                                          specs_to_add=specs,
+                                                          specs_to_add=specs_to_add,
                                                           force_reinstall=context.force_reinstall)
 
     pref_setup = PrefixSetup(
         target_prefix = prefix,
         unlink_precs  = unlink_precs,
         link_precs    = link_precs,
-        remove_specs  = [],
-        update_specs  = specs,
+        remove_specs  = (),
+        update_specs  = specs_to_add,
         neutered_specs = ()
     )
 

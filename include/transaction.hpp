@@ -81,7 +81,8 @@ namespace mamba
 
         using to_install_type = std::vector<std::tuple<std::string, std::string, std::string>>;
         using to_remove_type = std::vector<std::tuple<std::string, std::string>>;
-        using to_conda_type = std::tuple<to_install_type, to_remove_type>;
+        using to_specs_type = std::tuple<std::vector<std::string>, std::vector<std::string>>;
+        using to_conda_type = std::tuple<to_specs_type, to_install_type, to_remove_type>;
 
         void init();
         to_conda_type to_conda();

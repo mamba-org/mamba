@@ -627,7 +627,7 @@ namespace mamba
             else
             {
                 assert(path_data["file_mode"].get<std::string>() == "binary");
-                // TODO use get_file_contents
+
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
                 std::size_t old_size = buffer.size();
 
@@ -720,6 +720,14 @@ namespace mamba
         return pyc_files;
     }
 
+    enum NoarchType
+    {
+        NOT_A_NOARCH,
+        GENERIC_V1,
+        GENERIC_V2,
+        PYTHON
+    };
+
     bool LinkPackage::execute()
     {
         LOG_INFO << "Executing install for " << m_source;
@@ -734,15 +742,26 @@ namespace mamba
 
         repodata_f >> index_json;
 
-        bool noarch_python = false;
-
         // handle noarch packages
+        NoarchType noarch_type = NoarchType::NOT_A_NOARCH;
         if (index_json.find("noarch") != index_json.end())
         {
-            if (index_json["noarch"].get<std::string>() == "python")
+            if (index_json["noarch"].type() == nlohmann::json::value_t::boolean)
             {
-                noarch_python = true;
-                LOG_INFO << "Installing Python noarch package";
+                noarch_type = GENERIC_V1;
+            }
+            else
+            {
+                std::string na_t(index_json["noarch"].get<std::string>());
+                if (na_t == "python")
+                {
+                    noarch_type = NoarchType::PYTHON;
+                    LOG_INFO << "Installing Python noarch package";
+                }
+                else if (na_t == "generic")
+                {
+                    noarch_type = NoarchType::GENERIC_V2;
+                }
             }
         }
 
@@ -750,7 +769,7 @@ namespace mamba
 
         for (auto& path : paths_json["paths"])
         {
-            auto [sha256_in_prefix, final_path] = link_path(path, noarch_python);
+            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == PYTHON);
             files_record.push_back(final_path);
             path["_path"] = final_path;
             path["sha256_in_prefix"] = sha256_in_prefix;
@@ -773,7 +792,7 @@ namespace mamba
             {"type", 1}
         };
 
-        if (noarch_python)
+        if (noarch_type == PYTHON)
         {
             fs::path link_json_path = m_source / "info" / "link.json";
             nlohmann::json link_json;

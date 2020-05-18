@@ -548,7 +548,7 @@ def install(args, parser, command='install'):
         specs_to_add = [s for s in specs_to_add if s.name != 'python']
 
     if use_mamba_experimental and not os.name == 'nt':
-        if command == 'create' and not isdir(context.target_prefix):
+        if command == 'create' and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
         transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
     else:

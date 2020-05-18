@@ -164,8 +164,10 @@ namespace mamba
 
     bool MTransaction::filter(Solvable* s)
     {
+        if (m_filter_type == TransactionFilterType::NONE) return false;
         bool spec_in_filter = m_filter_name_ids.count(s->name);
-        if (m_filter_only_or_ignore)
+
+        if (m_filter_type == TransactionFilterType::KEEP_ONLY)
         {
             return spec_in_filter;
         }
@@ -193,7 +195,7 @@ namespace mamba
 
         if (solver.no_deps || solver.only_deps)
         {
-            m_filter_only_or_ignore = solver.only_deps;
+            m_filter_type = solver.only_deps ? TransactionFilterType::KEEP_ONLY : TransactionFilterType::IGNORE;
             for (auto& s : solver.install_specs())
             {
                 m_filter_name_ids.insert(pool_str2id(pool, s.name.c_str(), 0));

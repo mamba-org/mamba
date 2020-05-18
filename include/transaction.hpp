@@ -60,6 +60,13 @@ namespace mamba
         static std::mutex extract_mutex;
     };
 
+    enum TransactionFilterType {
+        NONE,
+        KEEP_ONLY,
+        IGNORE
+    };
+
+
     class MTransaction
     {
     public:
@@ -90,7 +97,7 @@ namespace mamba
 
     private:
 
-        bool m_filter_only_or_ignore;
+        TransactionFilterType m_filter_type = NONE;
         std::set<Id> m_filter_name_ids;
 
         TransactionContext m_transaction_context;

@@ -108,6 +108,7 @@ namespace mamba
 
     std::string PackageInfo::long_str() const
     {
-        return concat(channel, "/", subdir, "::", name, "-", version, "-", build_string);
+        // TODO channel contains subdir right now?!
+        return concat(channel, "::", name, "-", version, "-", build_string);
     }
 }

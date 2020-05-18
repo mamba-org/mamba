@@ -412,15 +412,19 @@ namespace mamba
         if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
             // print above the progress bars
-            if (Console::instance().m_progress_started)
+            if (Console::instance().m_progress_started && Console::instance().m_active_progress_bars.size())
             {
                 {
                     const std::lock_guard<std::mutex> lock(instance().m_mutex);
                     const auto& ps = instance().m_active_progress_bars.size();
                     std::cout << cursor::prev_line(ps) << cursor::erase_line()
                               << str << std::endl;
+
+                    if (!Console::instance().skip_progress_bars())
+                    {
+                        Console::instance().print_progress_unlocked();
+                    }
                 }
-                Console::instance().print_progress();
             }
             else
             {

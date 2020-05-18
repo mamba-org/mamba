@@ -381,6 +381,12 @@ namespace mamba
             Id p = m_transaction->steps.elements[i];
             Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable *s = pool_id2solvable(pool, p);
+
+            if (filter(s))
+            {
+                continue;
+            }
+
             switch (ttype)
             {
                 case SOLVER_TRANSACTION_DOWNGRADED:
@@ -593,7 +599,7 @@ namespace mamba
 
         if (m_history_entry.remove.size())
         {
-            Console::print("  Removing specs:");
+            Console::print("  Removing specs:\n");
             for (auto& s : m_history_entry.remove)
             {
                 Console::stream() << "   - " << s;
@@ -602,7 +608,7 @@ namespace mamba
         Console::stream() << "\n";
         if (m_history_entry.update.empty() && m_history_entry.remove.empty())
         {
-            Console::print("No specs added or removed.");
+            Console::print("  No specs added or removed.\n");
         }
 
         printers::Table t({"Package", "Version", "Channel", "Size"});
@@ -614,16 +620,12 @@ namespace mamba
         queue_init(&classes);
         queue_init(&pkgs);
 
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-
-        transaction_classify(m_transaction, mode, &classes);
-
         using rows = std::vector<std::vector<printers::FormattedString>>;
 
         rows downgraded, upgraded, changed, erased, installed, ignored;
-
-        auto* pool = m_transaction->pool;
         std::size_t total_size = 0;
+        auto* pool = m_transaction->pool;
+
         auto format_row = [this, pool, &total_size](rows& r, Solvable* s, std::size_t flag)
         {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
@@ -655,6 +657,9 @@ namespace mamba
             r.push_back({name, printers::FormattedString(pool_id2str(pool, s->evr)),
                          printers::FormattedString(cut_repo_name(s->repo->name)), dlsize_s});
         };
+
+        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+        transaction_classify(m_transaction, mode, &classes);
 
         Id cls;
         for (int i = 0; i < classes.count; i += 4)

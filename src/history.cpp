@@ -224,12 +224,13 @@ namespace mamba
 
             auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
                 if (specs.empty()) return "";
-                std::string spec_string;
-                spec_string = "# " + action + " specs: [";
+                std::stringstream spec_ss;
+                spec_ss << "# " << action << " specs: [";
                 for (auto spec : specs)
                 {
-                    spec_string += "\"" + spec + "\", ";
+                    spec_ss << std::quoted(spec) << ", ";
                 }
+                std::string spec_string(spec_ss.str());
                 spec_string[spec_string.size() - 2] = ']';
                 spec_string.back() = '\n';
                 return spec_string;

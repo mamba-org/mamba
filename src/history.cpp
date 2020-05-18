@@ -1,5 +1,7 @@
-#include "history.hpp"
 #include <fstream>
+
+#include "history.hpp"
+#include "fsutil.hpp"
 
 namespace mamba
 {
@@ -201,6 +203,10 @@ namespace mamba
     void History::add_entry(const History::UserRequest& entry)
     {
         LOG_INFO << "Opening history file: " << m_history_file_path;
+        if (!fs::exists(m_history_file_path))
+        {
+            path::touch(m_history_file_path);
+        }
         std::ofstream out(m_history_file_path, std::ios::app);
 
         if (out.fail())

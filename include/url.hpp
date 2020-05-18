@@ -53,6 +53,9 @@ namespace mamba
     bool is_path(const std::string& input);
     std::string path_to_url(const std::string& path);
 
+    template <class S, class... Args>
+    std::string join_url(const S& s, const Args&... args);
+
     class URLHandler
     {
     public:
@@ -104,6 +107,36 @@ namespace mamba
         CURLU* m_handle;
         bool m_has_scheme;
     };
+
+    namespace detail
+    {
+        inline std::string join_url_impl(std::string& s)
+        {
+            return s;
+        }
+
+        template <class S, class... Args>
+        inline std::string join_url_impl(std::string& s1, const S& s2, const Args&... args)
+        {
+            if (!s2.empty())
+            {
+                s1 += '/' + s2;
+            }
+            return join_url_impl(s1, args...);
+        }
+    }
+
+    inline std::string join_url()
+    {
+        return "";
+    }
+
+    template <class S, class... Args>
+    inline std::string join_url(const S& s, const Args&... args)
+    {
+        std::string res = s;
+        return detail::join_url_impl(res, args...);
+    }
 }
 
 #endif

@@ -11,6 +11,7 @@
 #include "subdirdata.hpp"
 #include "context.hpp"
 #include "channel.hpp"
+#include "url.hpp"
 
 namespace py = pybind11;
 
@@ -126,9 +127,11 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
+        .def_property_readonly("platform", &Channel::platform)
         .def_property_readonly("subdir", &Channel::platform)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("url", &Channel::url, py::arg("with_credentials") = true)
+        .def("__repr__", [](const Channel& c) { return join_url(c.name(), c.platform()); })
     ;
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;

@@ -169,10 +169,10 @@ namespace mamba
 
     bool MTransaction::filter(Solvable* s)
     {
-        if (m_filter_type == TransactionFilterType::NONE) return false;
+        if (m_filter_type == FilterType::none) return false;
         bool spec_in_filter = m_filter_name_ids.count(s->name);
 
-        if (m_filter_type == TransactionFilterType::KEEP_ONLY)
+        if (m_filter_type == FilterType::keep_only)
         {
             return spec_in_filter;
         }
@@ -200,7 +200,7 @@ namespace mamba
 
         if (solver.no_deps || solver.only_deps)
         {
-            m_filter_type = solver.only_deps ? TransactionFilterType::KEEP_ONLY : TransactionFilterType::IGNORE;
+            m_filter_type = solver.only_deps ? FilterType::keep_only : FilterType::ignore;
             for (auto& s : solver.install_specs())
             {
                 m_filter_name_ids.insert(pool_str2id(pool, s.name.c_str(), 0));
@@ -670,20 +670,20 @@ namespace mamba
         std::size_t total_size = 0;
         auto* pool = m_transaction->pool;
 
-        auto format_row = [this, pool, &total_size](rows& r, Solvable* s, std::size_t flag)
+        auto format_row = [this, pool, &total_size](rows& r, Solvable* s, printers::format flag)
         {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)
             {
-                if (flag & printers::YELLOW)
+                if (static_cast<std::size_t>(flag) & static_cast<std::size_t>(printers::format::yellow))
                 {
                     dlsize_s.s = "Ignored";
                 }
                 else if (this->m_multi_cache.query(s))
                 {
                     dlsize_s.s = "Cached";
-                    dlsize_s.flag = printers::GREEN;
+                    dlsize_s.flag = printers::format::green;
                 }
                 else
                 {
@@ -691,7 +691,10 @@ namespace mamba
                     to_human_readable_filesize(s, dlsize);
                     dlsize_s.s = s.str();
                     // Hacky hacky
-                    if (flag & printers::GREEN) total_size += dlsize;
+                    if (static_cast<std::size_t>(flag) & static_cast<std::size_t>(printers::format::green))
+                    {
+                        total_size += dlsize;
+                    }
                 }
             }
             printers::FormattedString name;
@@ -721,29 +724,29 @@ namespace mamba
 
                 if (filter(s))
                 {
-                    format_row(ignored, s, printers::YELLOW);
+                    format_row(ignored, s, printers::format::yellow);
                     continue;
                 }
 
                 switch (cls)
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
-                        format_row(upgraded, s, printers::RED);
-                        format_row(upgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::GREEN);
+                        format_row(upgraded, s, printers::format::red);
+                        format_row(upgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
-                        format_row(changed, s, printers::RED);
-                        format_row(changed, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::GREEN);
+                        format_row(changed, s, printers::format::red);
+                        format_row(changed, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_DOWNGRADED:
-                        format_row(downgraded, s, printers::RED);
-                        format_row(downgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::GREEN);
+                        format_row(downgraded, s, printers::format::red);
+                        format_row(downgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_ERASE:
-                        format_row(erased, s, printers::RED);
+                        format_row(erased, s, printers::format::red);
                         break;
                     case SOLVER_TRANSACTION_INSTALL:
-                        format_row(installed, s, printers::GREEN);
+                        format_row(installed, s, printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_IGNORE:
                         break;

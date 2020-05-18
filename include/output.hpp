@@ -12,6 +12,15 @@
 #include "context.hpp"
 #include "nlohmann/json.hpp"
 
+#define ENUM_FLAG_OPERATOR(T,X) inline T operator X (T lhs, T rhs) { return (T) (static_cast<std::underlying_type_t <T>>(lhs) X static_cast<std::underlying_type_t <T>>(rhs)); } 
+#define ENUM_FLAGS(T) \
+enum class T; \
+inline T operator ~ (T t) { return (T) (~static_cast<std::underlying_type_t <T>>(t)); } \
+ENUM_FLAG_OPERATOR(T,|) \
+ENUM_FLAG_OPERATOR(T,^) \
+ENUM_FLAG_OPERATOR(T,&) \
+enum class T
+
 #define PREFIX_LENGTH 25
 
 namespace cursor
@@ -107,17 +116,17 @@ namespace mamba
     namespace printers
     {
 
-        enum format : std::size_t {
-            NONE   = 0,
-            RED    = 1 << 1,
-            GREEN  = 1 << 2,
-            YELLOW = 1 << 3
+        enum class format : std::size_t {
+            none   = 0,
+            red    = 1 << 1,
+            green  = 1 << 2,
+            yellow = 1 << 3
         };
 
         struct FormattedString
         {
             std::string s;
-            std::size_t flag = 0;
+            format flag = format::none;
 
             FormattedString() = default;
 
@@ -137,11 +146,11 @@ namespace mamba
             }
         };
 
-        enum alignment : int
+        enum class alignment : std::size_t
         {
             left  = 1 << 1,
             right = 1 << 2,
-            fill =  1 << 3
+            fill  =  1 << 3
         };
 
         class Table
@@ -150,7 +159,7 @@ namespace mamba
 
             Table(const std::vector<FormattedString>& header);
 
-            void set_alignment(const std::vector<int>& a);
+            void set_alignment(const std::vector<alignment>& a);
             void set_padding(const std::vector<int>& p);
             void add_row(const std::vector<FormattedString>& r);
             void add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs);
@@ -159,7 +168,8 @@ namespace mamba
 
         private:
             std::vector<FormattedString> m_header;
-            std::vector<int> m_align, m_padding;
+            std::vector<alignment> m_align;
+            std::vector<int> m_padding;
             std::vector<std::vector<FormattedString>> m_table;
         };
     }
@@ -306,11 +316,11 @@ namespace mamba
 
     enum class LogSeverity
     {
-        DEBUG,
-        INFO,
-        WARNING,
-        ERROR,
-        FATAL
+        debug,
+        info,
+        warning,
+        error,
+        fatal
     };
 
     class MessageLogger
@@ -367,10 +377,10 @@ namespace mamba
 #undef FATAL
 
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
-#define LOG_DEBUG LOG(mamba::LogSeverity::DEBUG)
-#define LOG_INFO LOG(mamba::LogSeverity::INFO)
-#define LOG_WARNING LOG(mamba::LogSeverity::WARNING)
-#define LOG_ERROR LOG(mamba::LogSeverity::ERROR)
-#define LOG_FATAL LOG(mamba::LogSeverity::FATAL)
+#define LOG_DEBUG LOG(mamba::LogSeverity::debug)
+#define LOG_INFO LOG(mamba::LogSeverity::info)
+#define LOG_WARNING LOG(mamba::LogSeverity::warning)
+#define LOG_ERROR LOG(mamba::LogSeverity::error)
+#define LOG_FATAL LOG(mamba::LogSeverity::fatal)
 
 #endif // MAMBA_OUTPUT_HPP

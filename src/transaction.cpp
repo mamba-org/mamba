@@ -372,6 +372,12 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
+        if (Context::instance().dry_run)
+        {
+            Console::stream() << "Dry run. Not executing transaction.";
+            return true;
+        }
+
         Console::stream() << "\n\nTransaction starting";
         m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();

@@ -372,6 +372,17 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
+        // JSON output
+        // back to the top level if any action was required
+        if (!empty())
+            JsonLogger::instance().json_up();
+        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
+        if (empty())
+            JsonLogger::instance().json_write({{"message", "All requested packages already installed"}});
+        // finally, print the JSON
+        if (Context::instance().json)
+            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
+
         if (Context::instance().dry_run)
         {
             Console::stream() << "Dry run. Not executing transaction.";
@@ -432,20 +443,6 @@ namespace mamba
                     LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
                     m_history_entry.link_dists.push_back(p.long_str());
-
-                    JsonLogger::instance().json_down("LINK");
-                    JsonLogger::instance().json_append(nlohmann::json(
-                        {
-                            {"build_number", p.build_number},
-                            {"build_string", p.build_string},
-                            {"dist_name", p.str()},
-                            {"channel", p.channel},
-                            {"name", p.name},
-                            {"version", p.version}
-                        }
-                    ));
-                    JsonLogger::instance().json_up();
-
                     break;
                 }
                 case SOLVER_TRANSACTION_IGNORE:
@@ -459,17 +456,6 @@ namespace mamba
         Console::stream() << "Transaction finished";
         prefix.history().add_entry(m_history_entry);
 
-        // back to the top level if any action was required
-        if (!empty())
-            JsonLogger::instance().json_up();
-        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
-        if (empty())
-            JsonLogger::instance().json_write({{"message", "All requested packages already installed"}});
-        // finally, print the JSON
-        if (Context::instance().json) {
-            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
-        }
-
         return true;
     }
 
@@ -477,7 +463,6 @@ namespace mamba
     {
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
-        JsonLogger::instance().json_down("FETCH");
 
         for (Solvable* s : m_to_remove)
         {
@@ -501,9 +486,44 @@ namespace mamba
 
     void MTransaction::log_json()
     {
+        std::vector<nlohmann::json> to_fetch;
+        std::vector<nlohmann::json> to_link;
+
         for (Solvable* s : m_to_install)
-            JsonLogger::instance().json_append(solvable_to_json(s));
-        JsonLogger::instance().json_up();
+        {
+            if (this->m_multi_cache.query(s))
+            {
+                PackageInfo p(s);
+                nlohmann::json j =
+                    {
+                        {"build_number", p.build_number},
+                        {"build_string", p.build_string},
+                        {"dist_name", p.str()},
+                        {"channel", p.channel},
+                        {"name", p.name},
+                        {"version", p.version}
+                    };
+                to_link.push_back(j);
+            }
+            else
+                to_fetch.push_back(solvable_to_json(s));
+        }
+
+        if (!to_fetch.empty())
+        {
+            JsonLogger::instance().json_down("FETCH");
+            for (nlohmann::json j : to_fetch)
+                JsonLogger::instance().json_append(j);
+            JsonLogger::instance().json_up();
+        }
+
+        if (!to_link.empty())
+        {
+            JsonLogger::instance().json_down("LINK");
+            for (nlohmann::json j : to_link)
+                JsonLogger::instance().json_append(j);
+            JsonLogger::instance().json_up();
+        }
     }
 
     bool MTransaction::fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)

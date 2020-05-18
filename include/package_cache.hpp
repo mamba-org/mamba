@@ -15,18 +15,18 @@
 
 namespace mamba
 {
+    enum class Writable
+    {
+        UNKNOWN,
+        WRITABLE,
+        NOT_WRITABLE,
+        DIR_DOES_NOT_EXIST
+    };
+
     // TODO layered package caches
     class PackageCacheData
     {
     public:
-
-        enum Writable
-        {
-            UNKNOWN,
-            WRITABLE,
-            NOT_WRITABLE,
-            DIR_DOES_NOT_EXIST
-        };
 
         PackageCacheData(const fs::path& pkgs_dir);
 
@@ -43,7 +43,7 @@ namespace mamba
         void check_writable();
 
         std::map<std::string, bool> m_valid_cache;
-        Writable m_writable = UNKNOWN;
+        Writable m_writable = Writable::UNKNOWN;
         fs::path m_pkgs_dir;
     };
 

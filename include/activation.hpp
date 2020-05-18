@@ -9,7 +9,7 @@
 
 namespace mamba
 {
-    enum ActivationType
+    enum class ActivationType
     {
         ACTIVATE,
         DEACTIVATE,

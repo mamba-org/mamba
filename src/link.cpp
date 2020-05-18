@@ -720,7 +720,7 @@ namespace mamba
         return pyc_files;
     }
 
-    enum NoarchType
+    enum class NoarchType
     {
         NOT_A_NOARCH,
         GENERIC_V1,
@@ -748,7 +748,7 @@ namespace mamba
         {
             if (index_json["noarch"].type() == nlohmann::json::value_t::boolean)
             {
-                noarch_type = GENERIC_V1;
+                noarch_type = NoarchType::GENERIC_V1;
             }
             else
             {
@@ -769,7 +769,7 @@ namespace mamba
 
         for (auto& path : paths_json["paths"])
         {
-            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == PYTHON);
+            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
             files_record.push_back(final_path);
             path["_path"] = final_path;
             path["sha256_in_prefix"] = sha256_in_prefix;
@@ -792,7 +792,7 @@ namespace mamba
             {"type", 1}
         };
 
-        if (noarch_type == PYTHON)
+        if (noarch_type == NoarchType::PYTHON)
         {
             fs::path link_json_path = m_source / "info" / "link.json";
             nlohmann::json link_json;

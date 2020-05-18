@@ -257,7 +257,7 @@ namespace mamba
         {
         }
 
-        void Table::set_alignment(const std::vector<int>& a)
+        void Table::set_alignment(const std::vector<alignment>& a)
         {
             m_align = a;
         }
@@ -285,7 +285,7 @@ namespace mamba
             if (m_table.size() == 0) return;
             std::size_t n_col = m_header.size();
 
-            if (m_align.size() == 0) m_align = std::vector<int>(n_col, alignment::left);
+            if (m_align.size() == 0) m_align = std::vector<alignment>(n_col, alignment::left);
 
             std::vector<std::size_t> cell_sizes(n_col);
             for (auto i = 0; i < n_col; ++i)
@@ -314,14 +314,14 @@ namespace mamba
             {
                 for (auto j = 0; j < row.size(); ++j)
                 {
-                    if (row[j].flag != 0)
+                    if (row[j].flag != format::none)
                     {
-                        if (row[j].flag & RED) std::cout << termcolor::red;
-                        if (row[j].flag & GREEN) std::cout << termcolor::green;
-                        if (row[j].flag & YELLOW) std::cout << termcolor::yellow;
+                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::red)) std::cout << termcolor::red;
+                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::green)) std::cout << termcolor::green;
+                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::yellow)) std::cout << termcolor::yellow;
 
                     }
-                    if (this->m_align[j] & alignment::left)
+                    if (this->m_align[j] == alignment::left)
                     {
                         std::cout << std::left;
                         for (std::size_t x = 0; x < this->m_padding[j]; ++x)
@@ -332,7 +332,7 @@ namespace mamba
                     {
                         std::cout << std::right << std::setw(cell_sizes[j] + m_padding[j]) << row[j].s;
                     }
-                    if (row[j].flag != 0)
+                    if (row[j].flag != format::none)
                     {
                         std::cout << termcolor::reset;
                     }
@@ -612,19 +612,19 @@ namespace mamba
 
         switch(m_severity)
         {
-        case LogSeverity::FATAL:
+        case LogSeverity::fatal:
             Console::stream() << "\033[1;35m" << "FATAL   " << m_stream.str() << "\033[0m";
             break;
-        case LogSeverity::ERROR:
+        case LogSeverity::error:
             Console::stream() << "\033[1;31m" << "ERROR   " << m_stream.str() << "\033[0m";
             break;
-        case LogSeverity::WARNING:
+        case LogSeverity::warning:
             Console::stream() << "\033[1;33m" << "WARNING " << m_stream.str() << "\033[0m";
             break;
-        case LogSeverity::INFO:
+        case LogSeverity::info:
             Console::stream()                 << "INFO    " << m_stream.str();
             break;
-        case LogSeverity::DEBUG:
+        case LogSeverity::debug:
             Console::stream()                 << "DEBUG   " << m_stream.str();
             break;
         default:
@@ -632,7 +632,7 @@ namespace mamba
             break;
         }
 
-        if (m_severity == LogSeverity::FATAL)
+        if (m_severity == LogSeverity::fatal)
         {
             std::abort();
         }
@@ -645,7 +645,7 @@ namespace mamba
 
     LogSeverity& MessageLogger::global_log_severity()
     {
-        static LogSeverity sev = LogSeverity::WARNING;
+        static LogSeverity sev = LogSeverity::warning;
         return sev;
     }
 

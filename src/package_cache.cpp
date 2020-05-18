@@ -37,7 +37,7 @@ namespace mamba
 
     auto PackageCacheData::is_writable() -> Writable
     {
-        if (m_writable == UNKNOWN)
+        if (m_writable == Writable::UNKNOWN)
         {
             check_writable();
         }
@@ -54,16 +54,16 @@ namespace mamba
             PackageCacheData pkgs_cache(dir);
             auto is_wri = pkgs_cache.is_writable();
 
-            if (is_wri == WRITABLE)
+            if (is_wri == Writable::WRITABLE)
             {
                 return pkgs_cache;
             }
-            else if (is_wri == DIR_DOES_NOT_EXIST)
+            else if (is_wri == Writable::DIR_DOES_NOT_EXIST)
             {
                 bool created = pkgs_cache.create_directory();
                 if (created)
                 {
-                    pkgs_cache.set_writable(WRITABLE);
+                    pkgs_cache.set_writable(Writable::WRITABLE);
                     return pkgs_cache;
                 }
             }
@@ -81,18 +81,18 @@ namespace mamba
             if (path::is_writable(magic_file))
             {
                 LOG_INFO << magic_file << " writable";
-                m_writable = WRITABLE;
+                m_writable = Writable::WRITABLE;
             }
             else
             {
-                m_writable = NOT_WRITABLE;
+                m_writable = Writable::NOT_WRITABLE;
                 LOG_INFO << magic_file << " not writable";
             }
         }
         else
         {
             LOG_INFO << magic_file << " does not exists";
-            m_writable = DIR_DOES_NOT_EXIST;
+            m_writable = Writable::DIR_DOES_NOT_EXIST;
         }
     }
 
@@ -160,16 +160,16 @@ namespace mamba
         for (auto& pc : m_caches)
         {
             auto status = pc.is_writable();
-            if (status == PackageCacheData::WRITABLE)
+            if (status == Writable::WRITABLE)
             {
                 return pc;
             }
-            else if (status == PackageCacheData::DIR_DOES_NOT_EXIST)
+            else if (status == Writable::DIR_DOES_NOT_EXIST)
             {
                 bool created = pc.create_directory();
                 if (created)
                 {
-                    pc.set_writable(PackageCacheData::WRITABLE);
+                    pc.set_writable(Writable::WRITABLE);
                     return pc;
                 }
             }

@@ -114,7 +114,7 @@ namespace mamba
             }
 
             // Modify prompt stack according to pending operation
-            if (m_action == DEACTIVATE)
+            if (m_action == ActivationType::DEACTIVATE)
             {
                 if (prompt_stack.size())
                     prompt_stack.pop_back();
@@ -126,7 +126,7 @@ namespace mamba
                     prompt_stack.push_back(env_stack.back());
                 }
             }
-            else if (m_action == REACTIVATE)
+            else if (m_action == ActivationType::REACTIVATE)
             {
                 // DO NOTHING
             }
@@ -615,19 +615,19 @@ namespace mamba
     std::string Activator::activate(const fs::path& prefix, bool stack)
     {
         m_stack = stack;
-        m_action = ACTIVATE;
+        m_action = ActivationType::ACTIVATE;
         return script(build_activate(prefix));
     }
 
     std::string Activator::reactivate()
     {
-        m_action = REACTIVATE;
+        m_action = ActivationType::REACTIVATE;
         return script(build_reactivate());
     }
 
     std::string Activator::deactivate()
     {
-        m_action = DEACTIVATE;
+        m_action = ActivationType::DEACTIVATE;
         return script(build_deactivate());
     }
 

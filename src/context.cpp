@@ -29,14 +29,14 @@ namespace mamba
 
     void Context::set_verbosity(int lvl)
     {
-        MessageLogger::global_log_severity() = mamba::LogSeverity::ERROR;
+        MessageLogger::global_log_severity() = mamba::LogSeverity::error;
         if (lvl == 1)
         {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::INFO;
+            MessageLogger::global_log_severity() = mamba::LogSeverity::info;
         }
         else if (lvl > 1)
         {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::DEBUG;
+            MessageLogger::global_log_severity() = mamba::LogSeverity::debug;
         }
         this->verbosity = lvl;
     }

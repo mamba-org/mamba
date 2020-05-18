@@ -67,10 +67,10 @@ namespace mamba
         assign_or(j, "size", size, size_t(0));
         assign_or(j, "timestamp", timestamp, size_t(0));
         std::string bs;
-        assign_or(j, "build_string", bs, "<UNKNOWN>"s);
-        if (bs.size() && bs[0] == '<')
+        assign_or(j, "build", bs, "<UNKNOWN>"s);
+        if (bs == "<UNKNOWN>")
         {
-            assign_or(j, "build", bs, "<UNKNOWN>"s);
+            assign_or(j, "build_string", bs, ""s);
         }
         build_string = bs;
         assign_or(j, "build_number", build_number, size_t(0));

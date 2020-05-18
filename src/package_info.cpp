@@ -57,19 +57,26 @@ namespace mamba
 
     PackageInfo::PackageInfo(nlohmann::json&& j)
     {
-        assign_or(j, "name", name, (std::string)"");
-        assign_or(j, "version", version, (std::string)"");
-        assign_or(j, "channel", channel, (std::string)"");
-        assign_or(j, "url", url, (std::string)"");
-        assign_or(j, "subdir", subdir, (std::string)"");
-        assign_or(j, "fn", fn, (std::string)"");
-        assign_or(j, "size", size, (size_t)0);
-        assign_or(j, "timestamp", timestamp, (size_t)0);
-        assign_or(j, "build_string", build_string, (std::string)"0");
-        assign_or(j, "build_number", build_number, (size_t)0);
-        assign_or(j, "license", license, (std::string)"");
-        assign_or(j, "md5", md5, (std::string)"");
-        assign_or(j, "sha256", sha256, (std::string)"");
+        using namespace std::string_literals;
+        assign_or(j, "name", name, ""s);
+        assign_or(j, "version", version, ""s);
+        assign_or(j, "channel", channel, ""s);
+        assign_or(j, "url", url, ""s);
+        assign_or(j, "subdir", subdir, ""s);
+        assign_or(j, "fn", fn, ""s);
+        assign_or(j, "size", size, size_t(0));
+        assign_or(j, "timestamp", timestamp, size_t(0));
+        std::string bs;
+        assign_or(j, "build_string", bs, "<UNKNOWN>"s);
+        if (bs.size() && bs[0] == '<')
+        {
+            assign_or(j, "build", bs, "<UNKNOWN>"s);
+        }
+        build_string = bs;
+        assign_or(j, "build_number", build_number, size_t(0));
+        assign_or(j, "license", license, ""s);
+        assign_or(j, "md5", md5, ""s);
+        assign_or(j, "sha256", sha256, ""s);
     }
 
     PackageInfo::PackageInfo(const std::string& n, const std::string& v,
@@ -89,6 +96,7 @@ namespace mamba
         j["fn"] = fn;
         j["size"] = size;
         j["timestamp"] = timestamp;
+        j["build"] = build_string;
         j["build_string"] = build_string;
         j["build_number"] = build_number;
         j["license"] = license;

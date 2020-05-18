@@ -70,9 +70,19 @@ namespace mamba
     TEST(match_spec, parse)
     {
         {
-            MatchSpec ms("xtensor==0.12.3");   
+            MatchSpec ms("xtensor==0.12.3");
             EXPECT_EQ(ms.version, "0.12.3");
             EXPECT_EQ(ms.name, "xtensor");
+        }
+        {
+            MatchSpec ms("ipykernel");
+            EXPECT_EQ(ms.version, "");
+            EXPECT_EQ(ms.name, "ipykernel");
+        }
+        {
+            MatchSpec ms("ipykernel ");
+            EXPECT_EQ(ms.version, "");
+            EXPECT_EQ(ms.name, "ipykernel");
         }
         {
             MatchSpec ms("numpy 1.7*");   

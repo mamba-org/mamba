@@ -2,6 +2,7 @@
 #define MAMBA_TRANSACTION_HPP
 
 #include <iomanip>
+#include <set>
 #include <future>
 
 #include "nlohmann/json.hpp"
@@ -59,6 +60,13 @@ namespace mamba
         static std::mutex extract_mutex;
     };
 
+    enum TransactionFilterType {
+        NONE,
+        KEEP_ONLY,
+        IGNORE
+    };
+
+
     class MTransaction
     {
     public:
@@ -83,10 +91,14 @@ namespace mamba
         bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos);
         void print();
         bool execute(PrefixData& prefix, const fs::path& cache_dir);
+        bool filter(Solvable* s);
 
         std::string find_python_version();
 
     private:
+
+        TransactionFilterType m_filter_type = NONE;
+        std::set<Id> m_filter_name_ids;
 
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;

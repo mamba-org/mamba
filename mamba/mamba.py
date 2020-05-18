@@ -23,7 +23,7 @@ from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure
 from conda.core.subdir_data import SubdirData
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import check_prefix, clone, print_activate
-from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier
+from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier, DepsModifier
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
@@ -515,6 +515,10 @@ def install(args, parser, command='install'):
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(mamba_solve_specs, solver_task)
+    solver.set_postsolve_flags(
+        [(api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS), 
+         (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS)]
+    )
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())

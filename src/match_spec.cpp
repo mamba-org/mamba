@@ -55,8 +55,8 @@ namespace mamba
         if (idx != std::string::npos)
         {
             spec_str = spec_str.substr(0, idx);
-            spec_str = strip(spec_str);
         }
+        spec_str = strip(spec_str);
 
         if (is_package_file(spec_str))
         {

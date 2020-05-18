@@ -43,13 +43,13 @@ def test_track_features():
     with Environment() as env:
         # should install CPython since PyPy has track features
         version = '3.6.9'
-        env.execute(f'$MAMBA install -q -y python={version}')
+        env.execute(f'$MAMBA install -q -y "python={version}" --strict-channel-priority')
         out = env.execute('python -c "import sys; print(sys.version)"')
         assert out[-2].startswith(version)
         assert out[-1].startswith('[GCC')
 
         # now force PyPy install
-        env.execute(f'$MAMBA install -q -y python={version}=*pypy')
+        env.execute(f'$MAMBA install -q -y "python={version}=*pypy" --strict-channel-priority')
         out = env.execute('python -c "import sys; print(sys.version)"')
         assert out[-2].startswith(version)
         assert out[-1].startswith('[PyPy')

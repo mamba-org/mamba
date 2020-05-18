@@ -22,7 +22,7 @@ namespace mamba
         history_file.close();
 
         std::ifstream src_beg("history_test/conda-meta/history", std::ios::binary);
-        std::ofstream dst_beg("history_test/conda-meta/aux_file",   std::ios::binary);
+        std::ofstream dst_beg("history_test/conda-meta/aux_file", std::ios::binary);
         dst_beg << src_beg.rdbuf();
         src_beg.close();
         dst_beg.close();
@@ -30,6 +30,7 @@ namespace mamba
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
+        std::cout << check_buffer.str() << std::endl;
         for (const auto& req : user_reqs)
         {
             history_instance.add_entry(req);

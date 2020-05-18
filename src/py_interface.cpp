@@ -64,6 +64,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("set_flags", &MSolver::set_flags)
+        .def("set_postsolve_flags", &MSolver::set_postsolve_flags)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("solve", &MSolver::solve)
@@ -193,4 +194,7 @@ PYBIND11_MODULE(mamba_api, m) {
     m.attr("SOLVER_FLAG_STRONG_RECOMMENDS") = SOLVER_FLAG_STRONG_RECOMMENDS;
     m.attr("SOLVER_FLAG_INSTALL_ALSO_UPDATES") = SOLVER_FLAG_INSTALL_ALSO_UPDATES;
     m.attr("SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED") = SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED;
+
+    m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;
+    m.attr("MAMBA_ONLY_DEPS") = MAMBA_ONLY_DEPS;
 }

@@ -32,14 +32,28 @@ namespace mamba
             {
                 if (job_flag & SOLVER_INSTALL)
                 {
-                    m_install_specs.insert(m_install_specs.end(), jobs.begin(), jobs.end());
+                    m_install_specs.push_back(job);
                 }
                 if (job_flag & SOLVER_ERASE)
                 {
-                    m_remove_specs.insert(m_remove_specs.end(), jobs.begin(), jobs.end());
+                    m_remove_specs.push_back(job);
                 }
 
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+            }
+        }
+    }
+
+    void MSolver::set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)
+    {
+        for (const auto& option : flags)
+        {
+            switch (option.first)
+            {
+                case MAMBA_NO_DEPS:
+                    no_deps = option.second; break;
+                case MAMBA_ONLY_DEPS:
+                    only_deps = option.second; break;
             }
         }
     }
@@ -57,12 +71,12 @@ namespace mamba
         return m_is_solved;
     }
 
-    const std::vector<std::string>& MSolver::install_specs() const
+    const std::vector<MatchSpec>& MSolver::install_specs() const
     {
         return m_install_specs;
     }
 
-    const std::vector<std::string>& MSolver::remove_specs() const
+    const std::vector<MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
     }

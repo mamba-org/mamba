@@ -6,13 +6,6 @@
 
 namespace mamba
 {
-    void try_add(nlohmann::json& j, const char* key, const char* val)
-    {
-        if (!val)
-            return;
-        j[key] = val;
-    }
-
     nlohmann::json solvable_to_json(Solvable* s)
     {
         return PackageInfo(s).json();
@@ -169,6 +162,22 @@ namespace mamba
      * MTransaction implementation *
      *******************************/
 
+    bool MTransaction::filter(Solvable* s)
+    {
+        if (m_filter_type == TransactionFilterType::NONE) return false;
+        bool spec_in_filter = m_filter_name_ids.count(s->name);
+
+        if (m_filter_type == TransactionFilterType::KEEP_ONLY)
+        {
+            return spec_in_filter;
+        }
+        else
+        {
+            return !spec_in_filter;
+        }
+    }
+
+
     MTransaction::MTransaction(MSolver& solver, MultiPackageCache& cache)
         : m_multi_cache(cache)
     {
@@ -176,11 +185,71 @@ namespace mamba
         {
             throw std::runtime_error("Cannot create transaction without calling solver.solve() first.");
         }
+
         m_transaction = solver_create_transaction(solver);
+        transaction_order(m_transaction, 0);
+
+        auto* pool = static_cast<Solver*>(solver)->pool;
 
         m_history_entry = History::UserRequest::prefilled();
-        m_history_entry.update = solver.install_specs();
-        m_history_entry.remove = solver.remove_specs();
+
+        if (solver.no_deps || solver.only_deps)
+        {
+            m_filter_type = solver.only_deps ? TransactionFilterType::KEEP_ONLY : TransactionFilterType::IGNORE;
+            for (auto& s : solver.install_specs())
+            {
+                m_filter_name_ids.insert(pool_str2id(pool, s.name.c_str(), 0));
+            }
+            for (auto& s : solver.remove_specs())
+            {
+                m_filter_name_ids.insert(pool_str2id(pool, s.name.c_str(), 0));
+            }
+
+            if (solver.only_deps)
+            {
+                Queue q;
+                queue_init(&q);
+                transaction_installedresult(m_transaction, &q);
+                for (int i = 0; i < q.count; ++i)
+                {
+                    Solvable* s = pool_id2solvable(pool, q.elements[i]);
+                    if (m_filter_name_ids.count(s->name))
+                    {
+                        // add the dependencies of this selected package to the added specs
+                        Id* reqp;
+                        for (reqp = s->repo->idarraydata + s->requires; *reqp; reqp++)
+                        {
+                            const char* depname = pool_id2str(pool, *reqp);
+                            const char* depevr = pool_id2evr(pool, *reqp);
+                            std::string add_spec;
+                            if (depname)
+                            {
+                                add_spec += depname;
+                                if (depevr && strlen(depevr))
+                                {
+                                    add_spec += " ";
+                                    add_spec += depevr;
+                                }
+                            }
+                            m_history_entry.update.push_back(MatchSpec(add_spec).str());
+                        }
+                    }
+                }
+                queue_free(&q);
+            }
+        }
+
+        if (solver.only_deps == false)
+        {
+            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
+            {
+                std::vector<std::string> res;
+                for (const auto& el : vec) res.push_back(el.str());
+                return res;
+            };
+            m_history_entry.update = to_string_vec(solver.install_specs());
+            m_history_entry.remove = to_string_vec(solver.remove_specs());
+        }
 
         init();
         // if no action required, don't even start logging them
@@ -216,11 +285,16 @@ namespace mamba
             // cnt = classes.elements[i + 1];
 
             transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2],
-                                          classes.elements[i + 3], &pkgs);
+                                      classes.elements[i + 3], &pkgs);
             for (int j = 0; j < pkgs.count; j++)
             {
                 Id p = pkgs.elements[j];
                 Solvable *s = m_transaction->pool->solvables + p;
+
+                if (filter(s))
+                {
+                    continue;
+                }
 
                 switch (cls)
                 {
@@ -302,16 +376,19 @@ namespace mamba
         m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
-        transaction_order(m_transaction, 0);
-
         auto* pool = m_transaction->pool;
-        transaction_order(m_transaction, 0);
 
         for (int i = 0; i < m_transaction->steps.count; i++)
         {
             Id p = m_transaction->steps.elements[i];
             Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable *s = pool_id2solvable(pool, p);
+
+            if (filter(s))
+            {
+                continue;
+            }
+
             switch (ttype)
             {
                 case SOLVER_TRANSACTION_DOWNGRADED:
@@ -487,14 +564,6 @@ namespace mamba
         {
             return true;
         }
-        // check size of transaction
-        Console::print("\n");
-        if (empty())
-        {
-            Console::print("# All requested packages already installed\n");
-            return true;
-        }
-
         // we print, even if quiet
         print();
         if (Context::instance().dry_run)
@@ -511,6 +580,39 @@ namespace mamba
 
     void MTransaction::print()
     {
+        Console::print("Transaction\n");
+        Console::stream() << "  Prefix: " << Context::instance().target_prefix.string() << "\n";
+
+        // check size of transaction
+        if (empty())
+        {
+            Console::print("\n  All requested packages already installed\n");
+            return;
+        }
+
+        if (m_history_entry.update.size())
+        {
+            Console::print("  Updating specs:\n");
+            for (auto& s : m_history_entry.update)
+            {
+                Console::stream() << "   - " << s;
+            }
+        }
+
+        if (m_history_entry.remove.size())
+        {
+            Console::print("  Removing specs:\n");
+            for (auto& s : m_history_entry.remove)
+            {
+                Console::stream() << "   - " << s;
+            }
+        }
+        Console::stream() << "\n";
+        if (m_history_entry.update.empty() && m_history_entry.remove.empty())
+        {
+            Console::print("  No specs added or removed.\n");
+        }
+
         printers::Table t({"Package", "Version", "Channel", "Size"});
         t.set_alignment({printers::alignment::left, printers::alignment::right,
                          printers::alignment::left, printers::alignment::right});
@@ -520,23 +622,23 @@ namespace mamba
         queue_init(&classes);
         queue_init(&pkgs);
 
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-
-        transaction_classify(m_transaction, mode, &classes);
-
         using rows = std::vector<std::vector<printers::FormattedString>>;
 
-        rows downgraded, upgraded, changed, erased, installed;
-
-        auto* pool = m_transaction->pool;
+        rows downgraded, upgraded, changed, erased, installed, ignored;
         std::size_t total_size = 0;
+        auto* pool = m_transaction->pool;
+
         auto format_row = [this, pool, &total_size](rows& r, Solvable* s, std::size_t flag)
         {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)
             {
-                if (this->m_multi_cache.query(s))
+                if (flag & printers::YELLOW)
+                {
+                    dlsize_s.s = "Ignored";
+                }
+                else if (this->m_multi_cache.query(s))
                 {
                     dlsize_s.s = "Cached";
                     dlsize_s.flag = printers::GREEN;
@@ -558,6 +660,9 @@ namespace mamba
                          printers::FormattedString(cut_repo_name(s->repo->name)), dlsize_s});
         };
 
+        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+        transaction_classify(m_transaction, mode, &classes);
+
         Id cls;
         for (int i = 0; i < classes.count; i += 4)
         {
@@ -569,6 +674,12 @@ namespace mamba
             {
                 Id p = pkgs.elements[j];
                 Solvable *s = m_transaction->pool->solvables + p;
+
+                if (filter(s))
+                {
+                    format_row(ignored, s, printers::YELLOW);
+                    continue;
+                }
 
                 switch (cls)
                 {
@@ -589,7 +700,6 @@ namespace mamba
                         break;
                     case SOLVER_TRANSACTION_INSTALL:
                         format_row(installed, s, printers::GREEN);
-                        // m_to_install.push_back(s);
                         break;
                     case SOLVER_TRANSACTION_IGNORE:
                         break;
@@ -631,6 +741,11 @@ namespace mamba
         {
             t.add_rows("Downgrade:", downgraded);
             summary << "  Downgrade: " << downgraded.size() << " packages\n";
+        }
+        if (ignored.size())
+        {
+            t.add_rows("Ignored:", ignored);
+            summary << "  Ignored: " << ignored.size() << " packages\n";
         }
 
         summary << "\n  Total download: ";

@@ -434,9 +434,10 @@ def install(args, parser, command='install'):
     specs = []
 
     if args.file:
+        file_specs = []
         for fpath in args.file:
             try:
-                file_specs = specs_from_url(fpath, json=context.json)
+                file_specs += specs_from_url(fpath, json=context.json)
             except Unicode:
                 raise CondaValueError("Error reading file, file should be a text file containing"
                                  " packages \nconda create --help for details")

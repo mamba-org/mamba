@@ -82,12 +82,15 @@ namespace mamba
             }
         }
 
+        LOG_INFO << "Waiting for decompression " << m_tarball_path;
         m_progress_proxy.set_postfix("Waiting...");
         // Extract path is __not__ yet thread safe it seems...
         {
             std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
             m_progress_proxy.set_postfix("Decompressing...");
+            LOG_INFO << "Decompressing " << m_tarball_path;
             auto extract_path = extract(m_tarball_path);
+            LOG_INFO << "Extracted to " << extract_path;
             write_repodata_record(extract_path);
             add_url();
         }
@@ -110,6 +113,8 @@ namespace mamba
     {
         m_progress_proxy.set_progress(100);
         m_progress_proxy.set_postfix("Validating...");
+
+        LOG_INFO << "Download finished, validating " << m_tarball_path;
 
         m_extract_future = std::async(std::launch::async,
                                       &PackageDownloadExtractTarget::validate_extract,

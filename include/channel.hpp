@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 namespace mamba
 {
@@ -30,6 +31,11 @@ namespace mamba
         const std::string& canonical_name() const;
 
         std::string url(bool with_credential = true) const;
+
+        // TODO: implement subdirs in CHannelContext to handle empty
+        // platform list
+        std::vector<std::string> urls(const std::vector<std::string>& platforms,
+                                      bool with_credential = true) const;
         
         static Channel make_simple_channel(const Channel& channel_alias,
                                            const std::string& channel_url,
@@ -47,6 +53,9 @@ namespace mamba
         static Channel from_url(const std::string& url);
         static Channel from_name(const std::string& name);
         static Channel from_value(const std::string& value);
+
+        std::string build_url(const std::string& base,
+                              bool with_credential) const;
 
         std::string m_scheme;
         std::string m_auth;

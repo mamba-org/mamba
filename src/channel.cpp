@@ -28,6 +28,7 @@ namespace mamba
             ":///<unknown>"
         };
 
+        const std::string LOCAL_CHANNELS_NAME = "local";
         const std::string DEFAULT_CHANNELS_NAME = "defaults";
 
         const std::vector<std::string> DEFAULT_CHANNELS = 
@@ -558,6 +559,11 @@ namespace mamba
     {
         channel_map m;
 
+        /******************
+         * MULTI CHANNELS *
+         ******************/
+
+        // Default channels
         for(auto& url: DEFAULT_CHANNELS)
         {
             auto channel = Channel::make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
@@ -565,8 +571,30 @@ namespace mamba
             m.emplace(std::move(name), std::move(channel));
         }
 
-        // TODO: add channels based on local build folders
+        // Local channels
+        std::vector<std::string> local_channels =
+        {
+            Context::instance().target_prefix.string() + "/conda-bld",
+            Context::instance().root_prefix.string() + "/conda-bld",
+            "~/conda-bld"
+        };
 
+        for(const auto& p: local_channels)
+        {
+            if (std::ofstream(p))
+            {
+                std::string url = path_to_url(p);
+                auto channel = Channel::make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
+                std::string name = channel.name();
+                m.emplace(std::move(name), std::move(channel));
+            }
+        }
+
+        /*******************
+         * SIMPLE CHANNELS *
+         *******************/
+
+        // Default local channel
         for(auto& ch: DEFAULT_CUSTOM_CHANNELS)
         {
             m.emplace(ch.first, Channel::make_simple_channel(m_channel_alias, ch.second, ch.first));

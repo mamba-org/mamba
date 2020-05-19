@@ -32,8 +32,7 @@ namespace mamba
 
         std::string url(bool with_credential = true) const;
 
-        // TODO: implement subdirs in CHannelContext to handle empty
-        // platform list
+        std::vector<std::string> urls(bool with_credential = true) const;
         std::vector<std::string> urls(const std::vector<std::string>& platforms,
                                       bool with_credential = true) const;
         

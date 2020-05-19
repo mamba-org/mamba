@@ -7,6 +7,46 @@
 
 namespace mamba
 {
+    namespace
+    {
+// armv6l and armv7l
+#if defined(__arm__) || defined(__thumb__)
+    #ifdef ___ARM_ARCH_6__
+        const std::string MAMBA_PLATFORM = "armv6l";
+    #elif __ARM_ARCH_7__
+        const std::string MAMBA_PLATFORM = "armv7l";
+    #else
+        #error "Unknown platform"
+    #endif
+#elif _M_ARM==6
+        const std::string MAMBA_PLATFORM = "armv6l";
+#elif _M_ARM==7
+        const std::string MAMBA_PLATFORM = "armv7l";
+// aarch64
+#elif defined(__aarch64__)
+        const std::string MAMBA_PLATFORM = "aarch64";
+#elif defined(__ppc64__) || defined(__powerpc64__)
+        const std::string MAMBA_PLATFORM = "ppc64";
+// TODO: detect ppc64le
+// Linux
+#elif defined(__linux__)
+    #if __x86_64__
+        const std::string MAMBA_PLATFORM = "linux-64";
+    #else
+        const std::string MAMBA_PLATFORM = "linux-32";
+    #endif
+// OSX
+#elif defined(__APPLE__) || defined(__MACH__)
+        const std::string MAMBA_PLATFORM = "osx-64";
+// Windows
+#elif defined(_WIN64)
+        const std::string MAMBA_PLATFORM = "win-64";
+#elif defined (_WIN32)
+        const std::string MAMBA_PLATFORM = "win-32";
+#else
+    #error "Unknown platform"
+#endif
+    }
     Context::Context()
     {
         set_verbosity(0);
@@ -39,6 +79,16 @@ namespace mamba
             MessageLogger::global_log_severity() = mamba::LogSeverity::debug;
         }
         this->verbosity = lvl;
+    }
+
+    std::string Context::platform() const
+    {
+        return MAMBA_PLATFORM;
+    }
+
+    std::vector<std::string> Context::platforms() const
+    {
+        return { platform(), "noarch" };
     }
 
     std::string env_name(const fs::path& prefix)

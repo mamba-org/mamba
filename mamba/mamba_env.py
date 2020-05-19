@@ -39,7 +39,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
-    index = get_index(tuple(_channel_priority_map.keys()))
+    index = get_index(tuple(_channel_priority_map.keys()), prepend=False)
 
     channel_json = []
 

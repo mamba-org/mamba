@@ -124,6 +124,14 @@ namespace mamba
             }
             return join_url_impl(s1, args...);
         }
+
+        template <class... Args>
+        inline std::string join_url_impl(std::string& s1, const char* s2, const Args&... args)
+        {
+            s1 += '/';
+            s1 += s2;
+            return join_url_impl(s1, args...);
+        }
     }
 
     inline std::string join_url()

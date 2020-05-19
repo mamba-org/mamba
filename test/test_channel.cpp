@@ -52,5 +52,21 @@ namespace mamba
         EXPECT_EQ(c2.name(), "pkgs/main");
         EXPECT_EQ(c2.platform(), "linux-64");
     }
+
+    TEST(Channel, urls)
+    {
+        std::string value = "https://conda.anaconda.org/conda-forge/linux-64";
+        std::vector<std::string> platforms = { "win-64", "noarch" };
+
+        Channel& c = make_channel(value);
+        std::vector<std::string> urls = c.urls(platforms);
+        EXPECT_EQ(urls[0], value);
+        EXPECT_EQ(urls[1], "https://conda.anaconda.org/conda-forge/noarch");
+
+        Channel& c1 = make_channel("https://conda.anaconda.org/conda-forge");
+        std::vector<std::string> urls2 = c1.urls(platforms);
+        EXPECT_EQ(urls2[0], "https://conda.anaconda.org/conda-forge/win-64");
+        EXPECT_EQ(urls2[1], "https://conda.anaconda.org/conda-forge/noarch");
+    }
 }
 

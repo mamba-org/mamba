@@ -28,6 +28,8 @@ namespace mamba
             ":///<unknown>"
         };
 
+        const std::string DEFAULT_CHANNELS_NAME = "defaults";
+
         const std::vector<std::string> DEFAULT_CHANNELS = 
         {
 #ifdef _WIN32
@@ -140,6 +142,20 @@ namespace mamba
         return m_canonical_name;
     }
 
+    std::string Channel::build_url(const std::string& base,
+                                   bool with_credential) const
+
+    {
+        if (with_credential && auth() != "")
+        {
+            return scheme() + "://" + auth() + "@" + base;
+        }
+        else
+        {
+            return scheme() + "://" + base;
+        }
+    }
+
     std::string Channel::url(bool with_credential) const
     {
         std::string base = location();
@@ -162,14 +178,42 @@ namespace mamba
             base += "/noarch";
         }
 
-        if (with_credential && auth() != "")
+        return build_url(base, with_credential);
+    }
+
+    std::vector<std::string> Channel::urls(const std::vector<std::string>& platforms,
+                                           bool with_credential) const
+    {
+
+        if (canonical_name() == UNKNOWN_CHANNEL)
+            return make_channel(DEFAULT_CHANNELS_NAME).urls(platforms, with_credential);
+
+        std::string base = with_credential && token() != ""
+                         ? join_url(location(), "t", token(), name())
+                         : join_url(location(), name());
+
+        size_t size = platform() != "" ? (platform() != "noarch" ? 2u : 1u) : platforms.size();
+        std::vector<std::string> res(size);
+        if (platform() != "")
         {
-            return scheme() + "://" + auth() + "@" + base;
+            res[0] = build_url(join_url(base, platform()), with_credential);
+            if (size > 1u)
+            {
+                res[1] = build_url(join_url(base, "noarch"), with_credential);
+            }
         }
         else
         {
-            return scheme() + "://" + base;
+            std::transform(platforms.cbegin(), platforms.cend(), res.begin(),
+                    [this, &base, with_credential](const std::string& p)
+                    {
+                        return this->build_url(join_url(base, p), with_credential);
+                    }
+            );
         }
+
+
+        return res;
     }
 
     Channel Channel::make_simple_channel(const Channel& channel_alias,
@@ -516,7 +560,7 @@ namespace mamba
 
         for(auto& url: DEFAULT_CHANNELS)
         {
-            auto channel = Channel::make_simple_channel(m_channel_alias, url, "", "defaults");
+            auto channel = Channel::make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
             std::string name = channel.name();
             m.emplace(std::move(name), std::move(channel));
         }

@@ -311,12 +311,12 @@ namespace mamba
         for (const auto& ca: custom_channels)
         {
             const Channel& channel = ca.second;
-            std::string test_url = channel.location() + '/' + channel.name();
+            std::string test_url = join_url(channel.location(), channel.name());
             if (starts_with(url, test_url)) // original code splits with '/' and compares tokens
             {
                 auto subname = std::string(strip(url.replace(0u, test_url.size(), ""), "/"));
                 return channel_configuration(channel.location(),
-                                             channel.name() + '/' + subname,
+                                             join_url(channel.name(), subname),
                                              scheme,
                                              channel.auth(),
                                              channel.token());

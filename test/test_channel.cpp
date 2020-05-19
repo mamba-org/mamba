@@ -44,6 +44,13 @@ namespace mamba
         EXPECT_EQ(c.location(), "conda.anaconda.org");
         EXPECT_EQ(c.name(), "conda-forge");
         EXPECT_EQ(c.platform(), "linux-64");
+
+        std::string value2 = "https://repo.anaconda.com/pkgs/main/linux-64";
+        Channel& c2 = make_channel(value2);
+        EXPECT_EQ(c2.scheme(), "https");
+        EXPECT_EQ(c2.location(), "repo.anaconda.com");
+        EXPECT_EQ(c2.name(), "pkgs/main");
+        EXPECT_EQ(c2.platform(), "linux-64");
     }
 }
 

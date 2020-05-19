@@ -63,6 +63,10 @@ namespace mamba
         EXPECT_EQ(urls[0], value);
         EXPECT_EQ(urls[1], "https://conda.anaconda.org/conda-forge/noarch");
 
+        std::vector<std::string> urls10 = c.urls();
+        EXPECT_EQ(urls[0], urls10[0]);
+        EXPECT_EQ(urls[1], urls10[1]);
+
         Channel& c1 = make_channel("https://conda.anaconda.org/conda-forge");
         std::vector<std::string> urls2 = c1.urls(platforms);
         EXPECT_EQ(urls2[0], "https://conda.anaconda.org/conda-forge/win-64");

@@ -182,6 +182,11 @@ namespace mamba
         return build_url(base, with_credential);
     }
 
+    std::vector<std::string> Channel::urls(bool with_credential) const
+    {
+        return urls(Context::instance().platforms(), with_credential);
+    }
+
     std::vector<std::string> Channel::urls(const std::vector<std::string>& platforms,
                                            bool with_credential) const
     {

@@ -72,6 +72,9 @@ namespace mamba
 
         void set_verbosity(int lvl);
     
+        std::string platform() const;
+        std::vector<std::string> platforms() const;
+
         static Context& instance();
 
         Context(const Context&) = delete;

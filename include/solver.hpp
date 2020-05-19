@@ -53,11 +53,15 @@ namespace mamba
 
     private:
 
+        void preprocess_solve();
+
+        std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;
         std::vector<MatchSpec> m_remove_specs;
         std::vector<MatchSpec> m_neuter_specs; // unused for now
         bool m_is_solved;
         Solver* m_solver;
+        Pool* m_pool;
         Queue m_jobs;
     };
 }

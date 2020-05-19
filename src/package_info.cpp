@@ -1,5 +1,6 @@
 #include "package_info.hpp"
 #include "util.hpp"
+#include "output.hpp"
 
 namespace mamba
 {
@@ -27,8 +28,17 @@ namespace mamba
             return ptr ? ptr : "";
         };
 
-        channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
-        url = channel + "/" + solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+        Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        if (solvable_lookup_str(s, real_repo_key))
+        {
+            channel = solvable_lookup_str(s, real_repo_key);
+        }
+        else
+        {
+            channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+        }
+
+        url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
         subdir = check_char(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
         fn = check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
         str = check_char(solvable_lookup_str(s, SOLVABLE_LICENSE));

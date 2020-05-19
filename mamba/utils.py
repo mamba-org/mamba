@@ -26,6 +26,7 @@ def load_channel(subdir_data, result_container):
 def get_index(channel_urls=(), prepend=True, platform=None,
               use_local=False, use_cache=False, unknown=None, prefix=None,
               repodata_fn="repodata.json"):
+
     real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
     check_whitelist(real_urls)
 

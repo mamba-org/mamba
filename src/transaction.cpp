@@ -497,19 +497,7 @@ namespace mamba
         for (Solvable* s : m_to_install)
         {
             if (this->m_multi_cache.query(s))
-            {
-                PackageInfo p(s);
-                nlohmann::json j =
-                    {
-                        {"build_number", p.build_number},
-                        {"build_string", p.build_string},
-                        {"dist_name", p.str()},
-                        {"channel", p.channel},
-                        {"name", p.name},
-                        {"version", p.version}
-                    };
-                to_link.push_back(j);
-            }
+                to_link.push_back(solvable_to_json(s));
             else
                 to_fetch.push_back(solvable_to_json(s));
         }

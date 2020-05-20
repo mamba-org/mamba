@@ -23,6 +23,14 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
       - name: Conda info
         shell: bash -l {0}
         run: conda info

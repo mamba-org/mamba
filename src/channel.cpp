@@ -518,9 +518,83 @@ namespace mamba
         return Channel::from_name(value);
     }
 
+    /************************************
+     * utility functions implementation *
+     ************************************/
+
     Channel& make_channel(const std::string& value)
     {
         return Channel::make_cached_channel(value);
+    }
+
+    void append_channel_urls(const std::string name,
+                             const std::vector<std::string>& platforms,
+                             bool with_credential,
+                             std::vector<std::string>& result,
+                             std::set<std::string>& control)
+    {
+        bool ret = !control.insert(name).second;
+        if (ret)
+            return;
+
+        std::vector<std::string> urls = make_channel(name).urls(platforms, with_credential);
+        std::copy(urls.begin(), urls.end(), std::back_inserter(result));
+    }
+
+    std::vector<std::string> get_channel_urls(const std::vector<std::string>& channel_names,
+                                              const std::vector<std::string>& platforms,
+                                              bool with_credential)
+    {
+        std::set<std::string> control;
+        std::vector<std::string> result;
+        result.reserve(channel_names.size() * platforms.size());
+        for (const auto& name: channel_names)
+        {
+            auto multi_iter = ChannelContext::instance().get_custom_multichannels().find(name);
+            if (multi_iter != ChannelContext::instance().get_custom_multichannels().end())
+            {
+                for (const auto& n: multi_iter->second)
+                {
+                    append_channel_urls(n, platforms, with_credential, result, control);
+                }
+            }
+            else
+            {
+                append_channel_urls(name, platforms, with_credential, result, control);
+            }
+        }
+        return result;
+    }
+
+    std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
+                                                    bool prepend,
+                                                    const std::string& platform,
+                                                    bool use_local)
+    {
+        std::vector<std::string> platforms = platform.size()
+                                           ? std::vector<std::string>({ platform, "noarch" })
+                                           : Context::instance().platforms();
+
+        if (prepend || use_local)
+        {
+            const auto& ctx_channels = Context::instance().channels;
+            std::vector<std::string> names;
+            names.reserve(channel_names.size() + 1 + ctx_channels.size());
+            if (use_local)
+            {
+                names.push_back(LOCAL_CHANNELS_NAME);
+            }
+            std::copy(channel_names.begin(), channel_names.end(), std::back_inserter(names));
+            if (prepend)
+            {
+                std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(names));
+            }
+            return get_channel_urls(names, platforms);
+        }
+        else
+        {
+            return get_channel_urls(channel_names, platforms);
+        }
     }
 
     /*********************************
@@ -543,10 +617,17 @@ namespace mamba
         return m_custom_channels;
     }
 
+    auto ChannelContext::get_custom_multichannels() const -> const multichannel_map&
+    {
+        return m_custom_multichannels;
+    }
+
     ChannelContext::ChannelContext()
         : m_channel_alias(build_channel_alias())
-        , m_custom_channels(build_custom_channels())
+        , m_custom_channels()
+        , m_custom_multichannels()
     {
+        init_custom_channels();
     }
 
     Channel ChannelContext::build_channel_alias()
@@ -560,21 +641,23 @@ namespace mamba
         return Channel(scheme, auth, location, token);
     }
 
-    ChannelContext::channel_map ChannelContext::build_custom_channels()
+    void ChannelContext::init_custom_channels()
     {
-        channel_map m;
-
         /******************
          * MULTI CHANNELS *
          ******************/
 
         // Default channels
+        std::vector<std::string> default_names(DEFAULT_CHANNELS.size());
+        auto name_iter = default_names.begin();
         for(auto& url: DEFAULT_CHANNELS)
         {
             auto channel = Channel::make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
             std::string name = channel.name();
-            m.emplace(std::move(name), std::move(channel));
+            auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
+            *name_iter++ = res.first->first;
         }
+        m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, std::move(default_names));
 
         // Local channels
         std::vector<std::string> local_channels =
@@ -584,6 +667,8 @@ namespace mamba
             "~/conda-bld"
         };
 
+        std::vector<std::string> local_names;
+        local_names.reserve(local_channels.size());
         for(const auto& p: local_channels)
         {
             if (std::ofstream(p))
@@ -591,9 +676,11 @@ namespace mamba
                 std::string url = path_to_url(p);
                 auto channel = Channel::make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
                 std::string name = channel.name();
-                m.emplace(std::move(name), std::move(channel));
+                auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
+                local_names.push_back(res.first->first);
             }
         }
+        m_custom_multichannels.emplace(LOCAL_CHANNELS_NAME, std::move(local_names));
 
         /*******************
          * SIMPLE CHANNELS *
@@ -602,9 +689,8 @@ namespace mamba
         // Default local channel
         for(auto& ch: DEFAULT_CUSTOM_CHANNELS)
         {
-            m.emplace(ch.first, Channel::make_simple_channel(m_channel_alias, ch.second, ch.first));
+            m_custom_channels.emplace(ch.first, Channel::make_simple_channel(m_channel_alias, ch.second, ch.first));
         }
-        return m;
     }
 }
 

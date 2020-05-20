@@ -116,6 +116,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("target_prefix", &Context::target_prefix)
         .def_readonly("sig_interrupt", &Context::sig_interrupt)
         .def("set_verbosity", &Context::set_verbosity)
+        .def_readwrite("channels", &Context::channels)
     ;
 
     py::class_<PrefixData>(m, "PrefixData")
@@ -134,6 +135,9 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("url", &Channel::url, py::arg("with_credentials") = true)
         .def("__repr__", [](const Channel& c) { return join_url(c.name(), c.platform()); })
     ;
+
+    m.def("get_channel_urls", &get_channel_urls);
+    m.def("calculate_channel_urls", &calculate_channel_urls);
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

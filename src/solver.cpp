@@ -22,26 +22,22 @@ namespace mamba
         for (const auto& job : jobs)
         {
             Id inst_id = pool_conda_matchspec(m_solver->pool, job.c_str());
-            if (job.rfind("python ", 0) == 0)
+            if (job_flag & SOLVER_INSTALL)
             {
-                // python specified with a version: stick to currently installed python
-                // override possible update flag with install flag
-                queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                m_install_specs.push_back(job);
             }
-            else
+            if (job_flag & SOLVER_ERASE)
             {
-                if (job_flag & SOLVER_INSTALL)
-                {
-                    m_install_specs.push_back(job);
-                }
-                if (job_flag & SOLVER_ERASE)
-                {
-                    m_remove_specs.push_back(job);
-                }
-
-                queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                m_remove_specs.push_back(job);
             }
+            queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
         }
+    }
+
+    void MSolver::add_constraint(const std::string& job)
+    {
+        Id inst_id = pool_conda_matchspec(m_solver->pool, job.c_str());
+        queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     void MSolver::set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)

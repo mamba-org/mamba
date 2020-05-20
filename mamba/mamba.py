@@ -488,14 +488,13 @@ def install(args, parser, command='install'):
 
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
-    python_added = False
+    python_constraint = None
     if 'python' not in spec_names:
         installed_names = [i_rec.name for i_rec in installed_pkg_recs]
         if 'python' in installed_names:
             i = installed_names.index('python')
             version = installed_pkg_recs[i].version
-            specs.append(MatchSpec('python==' + version))
-            python_added = True
+            python_constraint = MatchSpec('python==' + version).conda_build_form()
 
     mamba_solve_specs = [s.conda_build_form() for s in specs]
 
@@ -521,6 +520,10 @@ def install(args, parser, command='install'):
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(mamba_solve_specs, solver_task)
+
+    if python_constraint:
+        solver.add_constraint(python_constraint)
+
     solver.set_postsolve_flags(
         [(api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS), 
          (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS)]
@@ -544,9 +547,6 @@ def install(args, parser, command='install'):
     if not downloaded:
         exit(0)
     PackageCacheData.first_writable().reload()
-
-    if python_added:
-        specs_to_add = [s for s in specs_to_add if s.name != 'python']
 
     if use_mamba_experimental and not os.name == 'nt':
         if newenv and not isdir(context.target_prefix) and not context.dry_run:

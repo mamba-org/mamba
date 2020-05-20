@@ -38,12 +38,12 @@ namespace mamba
 
     TEST(Channel, make_channel)
     {
-        std::string value = "https://conda.anaconda.org/conda-forge/linux-64";
+        std::string value = "conda-forge";
         Channel& c = make_channel(value);
         EXPECT_EQ(c.scheme(), "https");
         EXPECT_EQ(c.location(), "conda.anaconda.org");
         EXPECT_EQ(c.name(), "conda-forge");
-        EXPECT_EQ(c.platform(), "linux-64");
+        EXPECT_EQ(c.platform(), "");
 
         std::string value2 = "https://repo.anaconda.com/pkgs/main/linux-64";
         Channel& c2 = make_channel(value2);
@@ -51,6 +51,13 @@ namespace mamba
         EXPECT_EQ(c2.location(), "repo.anaconda.com");
         EXPECT_EQ(c2.name(), "pkgs/main");
         EXPECT_EQ(c2.platform(), "linux-64");
+
+        std::string value3 = "https://conda.anaconda.org/conda-forge/linux-64";
+        Channel& c3 = make_channel(value3);
+        EXPECT_EQ(c3.scheme(), c.scheme());
+        EXPECT_EQ(c3.location(), c.location());
+        EXPECT_EQ(c3.name(), c.name());
+        EXPECT_EQ(c3.platform(), "linux-64");
     }
 
     TEST(Channel, urls)
@@ -71,6 +78,28 @@ namespace mamba
         std::vector<std::string> urls2 = c1.urls(platforms);
         EXPECT_EQ(urls2[0], "https://conda.anaconda.org/conda-forge/win-64");
         EXPECT_EQ(urls2[1], "https://conda.anaconda.org/conda-forge/noarch");
+    }
+
+    TEST(Channel, calculate_channel_urls)
+    {
+        std::vector<std::string> urls = { "conda-forge", "defaults" };
+        std::vector<std::string> res = calculate_channel_urls(urls, true);
+        EXPECT_EQ(res.size(), 6);
+        EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/linux-64");
+        EXPECT_EQ(res[1], "https://conda.anaconda.org/conda-forge/noarch");
+        EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/linux-64");
+        EXPECT_EQ(res[3], "https://repo.anaconda.com/pkgs/main/noarch");
+        EXPECT_EQ(res[4], "https://repo.anaconda.com/pkgs/r/linux-64");
+        EXPECT_EQ(res[5], "https://repo.anaconda.com/pkgs/r/noarch");
+
+        std::vector<std::string> res2 = calculate_channel_urls(urls, false);
+        EXPECT_EQ(res2.size(), 6);
+        EXPECT_EQ(res2[0], res[0]);
+        EXPECT_EQ(res2[1], res[1]);
+        EXPECT_EQ(res2[2], res[2]);
+        EXPECT_EQ(res2[3], res[3]);
+        EXPECT_EQ(res2[4], res[4]);
+        EXPECT_EQ(res2[5], res[5]);
     }
 }
 

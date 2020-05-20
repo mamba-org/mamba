@@ -74,6 +74,8 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.local_repodata_ttl = context.local_repodata_ttl
     api_ctx.use_index_cache = context.use_index_cache
     api_ctx.always_yes = context.always_yes
+    api_ctx.channels = context.channels
+
     if context.ssl_verify == False:
         api_ctx.ssl_verify = "<false>"
     elif context.ssl_verify is not True:

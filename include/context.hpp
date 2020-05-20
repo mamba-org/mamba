@@ -75,6 +75,8 @@ namespace mamba
         std::string platform() const;
         std::vector<std::string> platforms() const;
 
+        std::vector<std::string> channels = {};
+
         static Context& instance();
 
         Context(const Context&) = delete;

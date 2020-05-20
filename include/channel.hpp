@@ -68,11 +68,21 @@ namespace mamba
 
     Channel& make_channel(const std::string& value);
 
+    std::vector<std::string> get_channel_urls(const std::vector<std::string>& channel_names,
+                                              const std::vector<std::string>& platforms = {},
+                                              bool with_credential = true);
+
+    std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
+                                                    bool prepend = true,
+                                                    const std::string& platform = "",
+                                                    bool use_local = false);
+
     class ChannelContext
     {
     public:
 
         using channel_map = std::map<std::string, Channel>;
+        using multichannel_map = std::map<std::string, std::vector<std::string>>;
 
         static ChannelContext& instance();
 
@@ -83,6 +93,7 @@ namespace mamba
 
         const Channel& get_channel_alias() const;
         const channel_map& get_custom_channels() const;
+        const multichannel_map& get_custom_multichannels() const;
 
     private:
 
@@ -90,10 +101,11 @@ namespace mamba
         ~ChannelContext() = default;
 
         Channel build_channel_alias();
-        channel_map build_custom_channels();
+        void init_custom_channels();
 
         Channel m_channel_alias;
         channel_map m_custom_channels;
+        multichannel_map m_custom_multichannels;
     };
 
 }

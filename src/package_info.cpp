@@ -22,11 +22,16 @@ namespace mamba
             n = std::stoi(str);
             build_number = n;
         }
+
+        auto check_char = [](const char* ptr) -> const char* {
+            return ptr ? ptr : "";
+        };
+
         channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
         url = channel + "/" + solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-        subdir = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
-        fn = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
-        str = solvable_lookup_str(s, SOLVABLE_LICENSE);
+        subdir = check_char(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
+        fn = check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
+        str = check_char(solvable_lookup_str(s, SOLVABLE_LICENSE));
         if (str)
             license = str;
         size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);

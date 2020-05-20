@@ -67,7 +67,7 @@ def init_api_context(use_mamba_experimental=False):
         context.quiet = True
         if use_mamba_experimental:
             context.json = False
-            context.dry_run = False
+            # context.dry_run = False
     api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline

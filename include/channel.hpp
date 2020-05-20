@@ -30,6 +30,7 @@ namespace mamba
         const std::string& package_filename() const;
         const std::string& canonical_name() const;
 
+        std::string base_url() const;
         std::string url(bool with_credential = true) const;
 
         std::vector<std::string> urls(bool with_credential = true) const;
@@ -73,14 +74,17 @@ namespace mamba
                                               bool with_credential = true);
 
     std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
-                                                    bool prepend = true,
+                                                    bool append_context_channels = true,
                                                     const std::string& platform = "",
                                                     bool use_local = false);
+
+    void check_whitelist(const std::vector<std::string>& urls);
 
     class ChannelContext
     {
     public:
 
+        using channel_list = std::vector<std::string>;
         using channel_map = std::map<std::string, Channel>;
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
 
@@ -95,6 +99,8 @@ namespace mamba
         const channel_map& get_custom_channels() const;
         const multichannel_map& get_custom_multichannels() const;
 
+        const channel_list& get_whitelist_channels() const;
+
     private:
 
         ChannelContext();
@@ -106,6 +112,7 @@ namespace mamba
         Channel m_channel_alias;
         channel_map m_custom_channels;
         multichannel_map m_custom_multichannels;
+        channel_list m_whitelist_channels;
     };
 
 }

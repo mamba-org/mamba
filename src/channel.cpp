@@ -1,6 +1,7 @@
 #include <iostream>
 #include <regex>
 #include <set>
+#include <sstream>
 #include <tuple>
 #include <utility>
 
@@ -141,6 +142,18 @@ namespace mamba
             }
         }
         return m_canonical_name;
+    }
+
+    std::string Channel::base_url() const
+    {
+        if (canonical_name() == UNKNOWN_CHANNEL)
+        {
+            return "";
+        }
+        else
+        {
+            return scheme() + "://" + join_url(location(), name());
+        }
     }
 
     std::string Channel::build_url(const std::string& base,
@@ -567,7 +580,7 @@ namespace mamba
     }
 
     std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
-                                                    bool prepend,
+                                                    bool append_context_channels,
                                                     const std::string& platform,
                                                     bool use_local)
     {
@@ -575,7 +588,7 @@ namespace mamba
                                            ? std::vector<std::string>({ platform, "noarch" })
                                            : Context::instance().platforms();
 
-        if (prepend || use_local)
+        if (append_context_channels || use_local)
         {
             const auto& ctx_channels = Context::instance().channels;
             std::vector<std::string> names;
@@ -585,7 +598,7 @@ namespace mamba
                 names.push_back(LOCAL_CHANNELS_NAME);
             }
             std::copy(channel_names.begin(), channel_names.end(), std::back_inserter(names));
-            if (prepend)
+            if (append_context_channels)
             {
                 std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(names));
             }
@@ -594,6 +607,30 @@ namespace mamba
         else
         {
             return get_channel_urls(channel_names, platforms);
+        }
+    }
+
+    void check_whitelist(const std::vector<std::string>& urls)
+    {
+        const auto& whitelist = ChannelContext::instance().get_whitelist_channels();
+        if (whitelist.size())
+        {
+            std::vector<std::string> accepted_urls(whitelist.size());
+            std::transform(whitelist.begin(), whitelist.end(), accepted_urls.begin(),
+                    [](const std::string& url) { return make_channel(url).base_url(); });
+            std::for_each(urls.begin(), urls.end(), [&accepted_urls](const std::string& s)
+                {
+                    auto it = std::find(accepted_urls.begin(),
+                                        accepted_urls.end(),
+                                        make_channel(s).base_url());
+                    if (it == accepted_urls.end())
+                    {
+                        std::ostringstream str;
+                        str << "Channel " << s << " not allowed";
+                        throw std::runtime_error(str.str().c_str());
+                    }
+                }
+            );
         }
     }
 
@@ -622,10 +659,16 @@ namespace mamba
         return m_custom_multichannels;
     }
 
+    auto ChannelContext::get_whitelist_channels() const -> const channel_list&
+    {
+        return m_whitelist_channels;
+    }
+
     ChannelContext::ChannelContext()
         : m_channel_alias(build_channel_alias())
         , m_custom_channels()
         , m_custom_multichannels()
+        , m_whitelist_channels()
     {
         init_custom_channels();
     }

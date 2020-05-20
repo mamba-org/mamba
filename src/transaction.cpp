@@ -770,17 +770,17 @@ namespace mamba
         if (changed.size())
         {
             t.add_rows("Change:", changed);
-            summary << "  Change: " << changed.size() << " packages\n";
+            summary << "  Change: " << changed.size() / 2 << " packages\n";
         }
         if (upgraded.size())
         {
             t.add_rows("Upgrade:", upgraded);
-            summary << "  Upgrade: " << upgraded.size() << " packages\n";
+            summary << "  Upgrade: " << upgraded.size() / 2 << " packages\n";
         }
         if (downgraded.size())
         {
             t.add_rows("Downgrade:", downgraded);
-            summary << "  Downgrade: " << downgraded.size() << " packages\n";
+            summary << "  Downgrade: " << downgraded.size() / 2 << " packages\n";
         }
         if (ignored.size())
         {

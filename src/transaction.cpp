@@ -497,9 +497,14 @@ namespace mamba
         for (Solvable* s : m_to_install)
         {
             if (this->m_multi_cache.query(s))
+            {
                 to_link.push_back(solvable_to_json(s));
+            }
             else
+            {
                 to_fetch.push_back(solvable_to_json(s));
+                to_link.push_back(solvable_to_json(s));
+            }
         }
 
         if (!to_fetch.empty())

@@ -27,8 +27,8 @@ namespace mamba
         Query(MPool& pool);
 
         std::string find(const std::string& query);
-        std::string whatrequires(const std::string& query, bool tree);
-        std::string dependencytree(const std::string& query);
+        std::string whoneeds(const std::string& query, bool tree);
+        std::string depends(const std::string& query);
 
     private:
 

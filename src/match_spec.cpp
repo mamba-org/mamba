@@ -246,11 +246,16 @@ namespace mamba
     std::string MatchSpec::conda_build_form() const
     {
         assert(!name.empty());
-        assert(!version.empty());
         std::stringstream res;
-        res << name << " " << version;
-        if (!build.empty())
-            res << " " << build;
+        res << name;
+        if (!version.empty())
+        {
+            res << " " << version;
+            if (!build.empty())
+            {
+                res << " " << build;
+            }
+        }
         return res.str();
     }
 

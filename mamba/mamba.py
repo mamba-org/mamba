@@ -549,8 +549,9 @@ def install(args, parser, command='install'):
         specs_to_add = [s for s in specs_to_add if s.name != 'python']
 
     if use_mamba_experimental and not os.name == 'nt':
-        if command == 'create' and not isdir(context.target_prefix) and not context.dry_run:
+        if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
+
         transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
     else:
         conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index)
@@ -633,16 +634,16 @@ def repoquery(args, parser):
             repo.set_priority(0, 0)
             repos.append(repo)
 
-
-    print("\nExecuting the query %s\n" % args.package_query)
+    if not context.json:
+        print("\nExecuting the query %s\n" % args.package_query)
 
     query = api.Query(pool)
     if args.subcmd == "whoneeds":
-        print(query.whatrequires(args.package_query, args.tree))
+        query.whoneeds(args.package_query, args.tree)
     if args.subcmd == "depends":
-        print(query.dependencytree(args.package_query))
+        query.depends(args.package_query)
     if args.subcmd == "search":
-        print(query.find(args.package_query))
+        query.find(args.package_query)
 
 
 def do_call(args, parser):
@@ -725,6 +726,7 @@ Examples:
     conda_argparse.add_parser_channels(p)
     conda_argparse.add_parser_networking(p)
     conda_argparse.add_parser_known(p)
+    conda_argparse.add_parser_json(p)
 
     p.set_defaults(func='.main_repoquery.execute')
     return p

@@ -4,6 +4,8 @@
 #include <set>
 
 #include "query.hpp"
+#include "match_spec.hpp"
+#include "package_info.hpp"
 #include "output.hpp"
 #include "util.hpp"
 
@@ -121,8 +123,6 @@ namespace mamba
                 else
                 {
                     parent.add_child(concat(pool_id2str(pool, req), " >>> NOT FOUND <<<"));
-                    // print_dep_graph(out, nullptr, ">>> NOT FOUND <<< " + solv_str.str(), level + 1, max_level,
-                    //                 next_is_last, next_prefix);
                 }
                 queue_free(&rec_solvables);
                 ++reqp;
@@ -197,30 +197,71 @@ namespace mamba
         }
 
         selection_solvables(m_pool.get(), &job, &solvables);
-
         std::stringstream out;
-        if (solvables.count == 0)
-        {
-            out << "No entries matching \"" << query << "\" found";
-            return out.str();
-        }
 
-        printers::Table find_table_results({"Name", "Version", "Build", "Channel"});
-        for (int i = 0; i < solvables.count; i++)
-        {
-            Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-            solvable_to_stream(out, s, i + 1, find_table_results);
-        }
+        nlohmann::json j;
+        j["query"] = {
+            {"query", MatchSpec(query).conda_build_form()},
+            {"type", "search"}
+        };
+        j["result"] = {
+            {"msg", ""},
+            {"status", "OK"}
+        };
 
-        find_table_results.print();
+        j["result"]["pkgs"] = nlohmann::json::array();
+
+        if (Context::instance().json)
+        {
+            j["result"] = {
+                {"msg", ""},
+                {"status", "OK"}
+            };
+
+            if (solvables.count == 0)
+            {
+                j["result"]["msg"] = std::string("No entries matching \"") + query + "\" found";
+            }
+
+            for (int i = 0; i < solvables.count; i++)
+            {
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                j["result"]["pkgs"].push_back(PackageInfo(s).json());
+            }
+            std::cout << j.dump(4);
+        }
+        else
+        {
+            if (solvables.count == 0)
+            {
+                out << "No entries matching \"" << query << "\" found";
+                std::cout << out.str() << std::endl;
+            }
+
+            Pool* pool = m_pool.get();
+            std::sort(solvables.elements, solvables.elements + solvables.count, [pool](Id a, Id b) {
+                Solvable* sa; Solvable* sb;
+                sa = pool_id2solvable(pool, a);
+                sb = pool_id2solvable(pool, b);
+                return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0); 
+            });
+            // solv_sort(solvables.elements, solvables.count, sizeof(Id), prune_to_best_version_sortcmp, pool);
+
+            printers::Table find_table_results({"Name", "Version", "Build", "Channel"});
+            for (int i = 0; i < solvables.count; i++)
+            {
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                solvable_to_stream(out, s, i + 1, find_table_results);
+            }
+            find_table_results.print();
+        }
 
         queue_free(&job);
         queue_free(&solvables);
-
-        return out.str();
+        return "";
     }
 
-    std::string Query::whatrequires(const std::string& query, bool tree)
+    std::string Query::whoneeds(const std::string& query, bool tree)
     {
         Queue job, solvables;
         queue_init(&job);
@@ -236,23 +277,58 @@ namespace mamba
             throw std::runtime_error("Could not generate query for " + query);
         }
 
-        if (tree)
+        if (tree || Context::instance().json)
         {
+            std::stringstream msg;
             selection_solvables(m_pool.get(), &job, &solvables);
+
+            nlohmann::json j;
+            j["query"] = {
+                {"query", MatchSpec(query).conda_build_form()},
+                {"type", "whoneeds"}
+            };
+
+            j["result"]["pkgs"] = nlohmann::json::array();
 
             if (solvables.count)
             {
+                msg << "Found " << solvables.count << " reverse dependencies";
                 Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
                 printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
                 root.set_root(true);
                 std::set<Solvable*> visited { latest };
 
                 reverse_walk_graph(root, latest, visited);
-                root.print("", false);
+                if (Context::instance().json)
+                {
+                    j["result"] = {
+                        {"msg", msg.str()},
+                        {"status", "OK"}
+                    };
+                    auto j_pkgs = nlohmann::json::array();
+                    for (auto* s : visited)
+                    {
+                        j_pkgs.push_back(PackageInfo(s).json());
+                    }
+                    j["result"]["pkgs"] = j_pkgs;
+                    j["result"]["graph_roots"] = nlohmann::json::array();
+                    j["result"]["graph_roots"].push_back(std::string(pool_id2str(m_pool.get(), latest->name)));
+
+                    std::cout << j.dump(4) << std::endl;
+                }
+                else
+                {
+                    std::cout << msg.str() << std::endl;
+                    root.print("", false);
+                }
             }
             else
             {
-                std::cout << "No matching package found" << std::endl;
+                msg << "No matching package found";
+
+                j["result"]["msg"] = msg.str();
+                j["result"]["status"] = "OK";
+                std::cout << j.dump(4) << std::endl;
             }
         }
         else
@@ -281,7 +357,7 @@ namespace mamba
         // return out.str();
     }
 
-   std::string Query::dependencytree(const std::string& query)
+   std::string Query::depends(const std::string& query)
    {
         Queue job, solvables;
         queue_init(&job);
@@ -299,19 +375,33 @@ namespace mamba
 
         selection_solvables(m_pool.get(), &job, &solvables);
 
-        // Print conda-tree like dependency graph for upto a recursion limit
-        std::stringstream out;
+        nlohmann::json j;
+        j["query"] = {
+            {"query", MatchSpec(query).conda_build_form()},
+            {"type", "depends"}
+        };
+        j["result"] = {
+            {"msg", ""}
+        };
+
+        std::stringstream out, msg;
         if (solvables.count == 0)
         {
-            out << "No entries matching \"" << query << "\" found";
+            msg << "No entries matching \"" << query << "\" found";
+            j["result"]["msg"] = msg.str();
+            j["result"]["status"] = "OK";
         }
         else
         {
-
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
+            if (solvables.count == 1)
+            {
+                msg << "Found " << solvables.count << " package for " << query;
+            }
             if (solvables.count > 1)
             {
-                out << "Found " << solvables.count << " packages for " << query << ", showing only the latest.\n\n";
+                msg << "Found " << solvables.count << " packages for " << query << ", showing only the latest.";
+
                 for (std::size_t i = 1; i < solvables.count; ++i)
                 {
                     Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
@@ -323,17 +413,43 @@ namespace mamba
                     }
                 }
             }
+
+            j["result"]["msg"] = msg.str();
+            j["result"]["status"] = "OK";
+
             printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
             root.set_root(true);
             std::set<Solvable*> visited { latest };
             walk_graph(root, latest, visited);
-            root.print("", false);
+            auto j_pkgs = nlohmann::json::array();
+            for (auto* s : visited)
+            {
+                j_pkgs.push_back(PackageInfo(s).json());
+            }
+            j["result"]["pkgs"] = j_pkgs;
+            j["result"]["graph_roots"] = nlohmann::json::array();
+            j["result"]["graph_roots"].push_back(std::string(pool_id2str(m_pool.get(), latest->name)));
+
+            if (!Context::instance().json)
+            {
+                std::cout << msg.str() << "\n\n";
+                root.print("", false);
+            }
+        }
+
+        if (Context::instance().json)
+        {
+            std::cout << j.dump(4) << std::endl;
+        }
+        else
+        {
+            std::cout << msg.str() << std::endl;
         }
 
         queue_free(&job);
         queue_free(&solvables);
 
-        return out.str();
+        return "";
     }
 
 }

@@ -33,6 +33,7 @@ namespace mamba
         bool create_directory();
         void set_writable(Writable writable);
         Writable is_writable();
+        fs::path get_pkgs_dir() const;
 
         bool query(const PackageInfo& s);
 

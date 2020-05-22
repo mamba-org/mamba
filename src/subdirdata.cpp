@@ -1,5 +1,11 @@
+#include "openssl/md5.h"
+#include "thirdparty/filesystem.hpp"
+
 #include "subdirdata.hpp"
 #include "output.hpp"
+#include "package_cache.hpp"
+
+namespace fs = ghc::filesystem;
 
 namespace decompress
 {
@@ -366,6 +372,28 @@ namespace mamba
             LOG_WARNING << "Could not parse mod / etag header!";
             return nlohmann::json();
         }
+    }
+
+    std::string cache_fn_url(const std::string& url)
+    {
+        std::vector<unsigned char> hash(MD5_DIGEST_LENGTH);
+        MD5_CTX md5;
+        MD5_Init(&md5);
+        MD5_Update(&md5, url.c_str(), url.size());
+        MD5_Final(hash.data(), &md5);
+
+        std::string hex_digest = hex_string(hash);
+        return hex_digest.substr(0u, 8u) + ".json";
+    }
+
+    std::string create_cache_dir()
+    {
+        std::string cache_dir = PackageCacheData::first_writable().get_pkgs_dir().string() + "/cache";
+        bool created = fs::create_directories(cache_dir);
+#ifndef _WIN32
+        ::chmod(cache_dir.c_str(), 02775);
+#endif
+        return cache_dir;
     }
 }
 

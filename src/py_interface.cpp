@@ -85,6 +85,9 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("loaded", &MSubdirData::loaded)
         .def("cache_path", &MSubdirData::cache_path)
     ;
+    
+    m.def("cache_fn_url", &cache_fn_url);
+    m.def("create_cache_dir", &create_cache_dir);
 
     py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
         .def(py::init<>())

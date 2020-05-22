@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-version_info = (0, 2, 11)
+version_info = (0, 2, 12)
 __version__ = '.'.join(map(str, version_info))

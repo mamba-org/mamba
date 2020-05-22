@@ -1,8 +1,9 @@
 #include <iostream>
 #include "openssl/sha.h"
 #include "openssl/md5.h"
-#include "output.hpp"
 
+#include "output.hpp"
+#include "util.hpp"
 #include "validate.hpp"
 
 namespace validate
@@ -42,7 +43,7 @@ namespace validate
 
     std::string md5sum(const std::string& path)
     {
-        unsigned char hash[MD5_DIGEST_LENGTH];
+        std::array<unsigned char, MD5_DIGEST_LENGTH> hash;
 
         MD5_CTX md5;
         MD5_Init(&md5);
@@ -61,16 +62,9 @@ namespace validate
             MD5_Update(&md5, buffer.data(), count);
         }
 
-        MD5_Final(hash, &md5);
+        MD5_Final(hash.data(), &md5);
 
-        std::stringstream out;
-        out.fill('0');
-        out << std::hex;
-        for(int i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            out << std::setw(2) << (int) hash[i];
-        }
-
-        return out.str();
+        return ::mamba::hex_string(hash);
     }
 
     bool sha256(const std::string& path, const std::string& validation)

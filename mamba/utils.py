@@ -34,13 +34,14 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     sddata = []
     index = []
+
     for idx, url in enumerate(real_urls):
         channel = Channel(url)
 
         full_url = channel.url(with_credentials=True) + '/' + repodata_fn
         full_path_cache = os.path.join(
-            create_cache_dir(),
-            cache_fn_url(full_url, repodata_fn))
+            api.create_cache_dir(),
+            api.cache_fn_url(full_url))
 
         sd = api.SubdirData(channel.name + '/' + channel.subdir,
                             full_url,

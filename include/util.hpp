@@ -1,11 +1,13 @@
 #ifndef MAMBA_UTIL_HPP
 #define MAMBA_UTIL_HPP
 
+#include <array>
+#include <iomanip>
+#include <random>
+#include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <string>
-#include <random>
-#include <array>
 
 #include "nlohmann/json.hpp"
 #include "thirdparty/filesystem.hpp"
@@ -206,6 +208,18 @@ namespace mamba
         result.reserve(len);
         concat_impl::concat_foreach(result, args...);
         return result;
+    }
+
+    template <class B>
+    inline std::string hex_string(const B& buffer)
+    {
+        std::ostringstream oss;
+        oss << std::hex;
+        for (std::size_t i = 0; i < buffer.size(); ++i)
+        {
+            oss << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i]);
+        }
+        return oss.str();
     }
 
     // get the value corresponding to a key in a JSON object and assign it to target

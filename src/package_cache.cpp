@@ -44,6 +44,11 @@ namespace mamba
         return m_writable;
     }
 
+    fs::path PackageCacheData::get_pkgs_dir() const
+    {
+        return m_pkgs_dir;
+    }
+
     PackageCacheData
     PackageCacheData::first_writable(const std::vector<fs::path>* pkgs_dirs)
     {

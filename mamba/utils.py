@@ -87,6 +87,7 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))
     api_ctx.max_retries = context.remote_max_retries
     api_ctx.retry_backoff = context.remote_backoff_factor
+    api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
 
 def to_package_record_from_subjson(channel, pkg, jsn_string):
     channel = channel

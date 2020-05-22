@@ -116,6 +116,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("retry_backoff", &Context::retry_backoff)
         .def_readwrite("read_timeout_secs", &Context::read_timeout_secs)
         .def_readwrite("connect_timeout_secs", &Context::connect_timeout_secs)
+        .def_readwrite("add_pip_as_python_dependency", &Context::add_pip_as_python_dependency)
         .def_readwrite("target_prefix", &Context::target_prefix)
         .def_readonly("sig_interrupt", &Context::sig_interrupt)
         .def("set_verbosity", &Context::set_verbosity)

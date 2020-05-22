@@ -1,4 +1,5 @@
 #include "repo.hpp"
+#include "package_info.hpp"
 #include "output.hpp"
 
 extern "C"
@@ -186,6 +187,28 @@ namespace mamba
         {
             throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") " + std::string(pool_errstr(m_repo->pool)));
         }
+
+        // TODO move this to a more structured approach for repodata patching?
+        if (Context::instance().add_pip_as_python_dependency)
+        {
+            Id pkg_id;
+            Solvable* pkg_s;
+            Id python = pool_str2id(m_repo->pool, "python", 0);
+            Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
+
+            FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
+            {
+                if (pkg_s->name == python)
+                {
+                    const char* version = pool_id2str(m_repo->pool, pkg_s->evr);
+                    if (version && version[0] >= '2')
+                    {
+                        pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
+                    }
+                }
+            }
+        }
+
         repo_internalize(m_repo);
 
         // disabling solv caching for now on Windows

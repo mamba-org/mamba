@@ -89,6 +89,7 @@ def init_api_context(use_mamba_experimental=False):
 
 def to_package_record_from_subjson(channel, pkg, jsn_string):
     channel = channel
+    # print(channel, pkg, jsn_string)
     channel_url = channel.url(with_credentials=True)
     info = json.loads(jsn_string)
     info['fn'] = pkg

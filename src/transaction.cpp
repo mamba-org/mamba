@@ -466,6 +466,8 @@ namespace mamba
 
     auto MTransaction::to_conda() -> to_conda_type
     {
+        Id real_repo_key = pool_str2id(m_transaction->pool, "solvable:real_repo_url", 1);
+
         to_install_type to_install_structured;
         to_remove_type to_remove_structured;
 
@@ -479,7 +481,18 @@ namespace mamba
         {
             const char* mediafile = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
             std::string s_json = solvable_to_json(s).dump(4);
-            to_install_structured.emplace_back(s->repo->name, mediafile, s_json);
+
+            std::string channel;
+            if (solvable_lookup_str(s, real_repo_key))
+            {
+                channel = solvable_lookup_str(s, real_repo_key);
+            }
+            else
+            {
+                channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+            }
+
+            to_install_structured.emplace_back(channel, mediafile, s_json);
         }
 
         to_specs_type specs;
@@ -694,10 +707,22 @@ namespace mamba
             name.s = pool_id2str(pool, s->name);
             name.flag = flag;
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+
+            std::string channel;
+            Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+            if (solvable_lookup_str(s, real_repo_key))
+            {
+                channel = solvable_lookup_str(s, real_repo_key);
+            }
+            else
+            {
+                channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+            }
+
             r.push_back({name,
                          printers::FormattedString(pool_id2str(pool, s->evr)),
                          printers::FormattedString(build_string ? build_string : ""),
-                         printers::FormattedString(cut_repo_name(s->repo->name)), dlsize_s});
+                         printers::FormattedString(cut_repo_name(channel)), dlsize_s});
         };
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;

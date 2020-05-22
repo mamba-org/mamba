@@ -368,13 +368,9 @@ def install(args, parser, command='install'):
 
     prefix = context.target_prefix
 
-    index_args = {
-        'use_cache': args.use_index_cache,
-        'channel_urls': context.channels,
-        'unknown': args.unknown,
-        'prepend': not args.override_channels,
-        'use_local': args.use_local
-    }
+    #############################
+    # Get SPECS                 #
+    #############################
 
     args_packages = [s.strip('"\'') for s in args.packages]
     if newenv and not args.no_default_packages:
@@ -394,6 +390,38 @@ def install(args, parser, command='install'):
         else:
             raise CondaValueError("cannot mix specifications with conda package"
                                   " filenames")
+
+    specs = []
+
+    if args.file:
+        file_specs = []
+        for fpath in args.file:
+            try:
+                file_specs += specs_from_url(fpath, json=context.json)
+            except Unicode:
+                raise CondaValueError("Error reading file, file should be a text file containing"
+                                 " packages \nconda create --help for details")
+        if '@EXPLICIT' in file_specs:
+            explicit(file_specs, prefix, verbose=not (context.quiet or context.json), index_args=index_args)
+            return
+        specs.extend([MatchSpec(s) for s in file_specs])
+
+    specs.extend(specs_from_args(args_packages, json=context.json))
+
+    channels = [c for c in context.channels]
+    for spec in specs:
+        # CONDA TODO: correct handling for subdir isn't yet done
+        spec_channel = spec.get_exact_value('channel')
+        if spec_channel and spec_channel not in channels:
+            channels.append(spec_channel)
+
+    index_args = {
+        'use_cache': args.use_index_cache,
+        'channel_urls': channels,
+        'unknown': args.unknown,
+        'prepend': not args.override_channels,
+        'use_local': args.use_local
+    }
 
     index = get_index(channel_urls=index_args['channel_urls'],
                       prepend=index_args['prepend'], platform=None,
@@ -429,24 +457,10 @@ def install(args, parser, command='install'):
             print("Cache path: ", subdir.cache_path())
         channel_json.append((chan, subdir.cache_path(), priority, subpriority))
 
+    # for c in channel_json:
+    #     print(c[0], c[2], c[3])
+
     installed_json_f = get_installed_jsonfile(prefix)
-
-    specs = []
-
-    if args.file:
-        file_specs = []
-        for fpath in args.file:
-            try:
-                file_specs += specs_from_url(fpath, json=context.json)
-            except Unicode:
-                raise CondaValueError("Error reading file, file should be a text file containing"
-                                 " packages \nconda create --help for details")
-        if '@EXPLICIT' in file_specs:
-            explicit(file_specs, prefix, verbose=not (context.quiet or context.json), index_args=index_args)
-            return
-        specs.extend([MatchSpec(s) for s in file_specs])
-
-    specs.extend(specs_from_args(args_packages, json=context.json))
 
     if isinstall and args.revision:
         get_revision(args.revision, json=context.json)
@@ -496,7 +510,7 @@ def install(args, parser, command='install'):
             version = installed_pkg_recs[i].version
             python_constraint = MatchSpec('python==' + version).conda_build_form()
 
-    mamba_solve_specs = [s.conda_build_form() for s in specs]
+    mamba_solve_specs = [s.__str__() for s in specs]
 
     pool = api.Pool()
 

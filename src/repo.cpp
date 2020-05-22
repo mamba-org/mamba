@@ -192,7 +192,7 @@ namespace mamba
         LOG_INFO << "creating solv: " << m_solv_file;
 
         auto sfile = fopen(m_solv_file.c_str(), "wb");
-        if (sfile)
+        if (sfile && name() != "installed")
         {
             // TODO add error handling to tool_write
             tool_write(m_repo, sfile);

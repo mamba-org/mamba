@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 
 #include "util.hpp"
 #include "solver.hpp"
@@ -12,8 +13,11 @@
 #include "context.hpp"
 #include "channel.hpp"
 #include "url.hpp"
+#include "index.hpp"
 
 namespace py = pybind11;
+
+PYBIND11_MAKE_OPAQUE(mamba::index_type);
 
 PYBIND11_MODULE(mamba_api, m) {
     using namespace mamba;
@@ -141,6 +145,9 @@ PYBIND11_MODULE(mamba_api, m) {
 
     m.def("get_channel_urls", &get_channel_urls);
     m.def("calculate_channel_urls", &calculate_channel_urls);
+
+    py::bind_vector<index_type>(m, "IndexType");
+    m.def("get_index", &get_index);
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

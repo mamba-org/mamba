@@ -430,7 +430,7 @@ def install(args, parser, command='install'):
 
     channel_json = []
     strict_priority = (context.channel_priority == ChannelPriority.STRICT)
-
+    subprio_index = len(index)
     if strict_priority:
         # first, count unique channels
         n_channels = len(set([channel.canonical_name for _, channel in index]))
@@ -446,17 +446,20 @@ def install(args, parser, command='install'):
             priority = channel_prio
         else:
             priority = 0
-
-        subpriority = 0 if chan.platform == 'noarch' else 1
+        if strict_priority:
+            subpriority = 0 if chan.platform == 'noarch' else 1
+        else:
+            subpriority = subprio_index
+            subprio_index -= 1
 
         if subdir.loaded() == False and chan.platform != 'noarch':
             # ignore non-loaded subdir if channel is != noarch
             continue
 
         if context.verbosity != 0:
+            print("Channel: {}, prio: {} : {}".format(chan, priority, subpriority))
             print("Cache path: ", subdir.cache_path())
         channel_json.append((chan, subdir.cache_path(), priority, subpriority))
-
     # for c in channel_json:
     #     print(c[0], c[2], c[3])
 

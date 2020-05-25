@@ -1,8 +1,12 @@
 #include <iostream>
 #include <regex>
 
+#include "thirdparty/filesystem.hpp"
+
 #include "url.hpp"
 #include "util.hpp"
+
+namespace fs = ghc::filesystem;
 
 namespace mamba
 {
@@ -88,15 +92,19 @@ namespace mamba
         {
             return path;
         }
+
+        fs::path tmp_path = fs::path(path);
+        std::string abs_path = fs::absolute(tmp_path).string();
+
         // TODO: handle percent encoding
         // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
         if (path.size() > 1u && path[1u] == ':')
         {
-            return file_scheme + '/' + path;
+            return file_scheme + '/' + abs_path;
         }
         else
         {
-            return file_scheme + path;
+            return file_scheme + abs_path;
         }
     }
 
@@ -117,7 +125,8 @@ namespace mamba
             uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), curl_flags);
             if (uc)
             {
-                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) + ")");
+                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) + 
+                                         " - url = " + url + ")");
             }
         }
     }

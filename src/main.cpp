@@ -110,10 +110,10 @@ void install_specs(const std::vector<std::string>& specs)
     fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
     fs::create_directories(cache_dir);
 
-    MSubdirData cfl("conda-forge",
+    MSubdirData cfl("conda-forge/linux-64",
                     "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
                     cache_dir / "cf_linux64.json");
-    MSubdirData cfn("conda-forge",
+    MSubdirData cfn("conda-forge/noarch",
                     "https://conda.anaconda.org/conda-forge/noarch/repodata.json",
                     cache_dir / "cf_noarch.json");
     cfl.load();
@@ -130,11 +130,11 @@ void install_specs(const std::vector<std::string>& specs)
     auto repo = MRepo(pool, prefix_data);
     repos.push_back(&repo);
 
-    MRepo cfl_r(pool, "conda-forge/linux-64", cfl.cache_path(), "https://conda.anaconda.org/conda-forge/linux-64/");
+    MRepo cfl_r = cfl.create_repo(pool);
     cfl_r.set_priority(0, 1);
     repos.push_back(&cfl_r);
 
-    MRepo cfl_n(pool, "conda-forge/noarch", cfn.cache_path(), "https://conda.anaconda.org/conda-forge/noarch/");
+    MRepo cfl_n = cfn.create_repo(pool);
     cfl_n.set_priority(0, 0);
     repos.push_back(&cfl_n);
 

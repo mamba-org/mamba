@@ -81,6 +81,7 @@ PYBIND11_MODULE(mamba_api, m) {
 
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init<const std::string&, const std::string&, const std::string&>())
+        .def("create_repo", &MSubdirData::create_repo)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
         .def("cache_path", &MSubdirData::cache_path)

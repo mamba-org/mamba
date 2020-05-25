@@ -324,7 +324,7 @@ namespace mamba
         scheme = handler.scheme();
         host = handler.host();
         port = handler.port();
-        path = lstrip(handler.path(), "/");
+        path = handler.path();
         auth = handler.auth();
     }
 
@@ -356,7 +356,7 @@ namespace mamba
                                                      const std::string& path)
     {
         std::string spath = std::string(rstrip(path, "/"));
-        std::string url = URLHandler().set_host(host).set_port(port).set_path(spath).url();
+        std::string url = URLHandler().set_scheme(scheme).set_host(host).set_port(port).set_path(spath).url(true);
 
         // Case 1: No path given, channel name is ""
         if (spath == "")

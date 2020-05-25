@@ -69,7 +69,7 @@ namespace mamba
         URLHandler(URLHandler&&);
         URLHandler& operator=(URLHandler&&);
 
-        std::string url();
+        std::string url(bool strip_scheme = false);
 
         std::string scheme();
         std::string host();

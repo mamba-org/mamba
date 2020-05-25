@@ -58,6 +58,20 @@ namespace mamba
         EXPECT_EQ(c3.location(), c.location());
         EXPECT_EQ(c3.name(), c.name());
         EXPECT_EQ(c3.platform(), "linux-64");
+
+        std::string value4 = "/home/mamba/test/channel_b";
+        Channel& c4 = make_channel(value4);
+        EXPECT_EQ(c4.scheme(), "file");
+        EXPECT_EQ(c4.location(), "/home/mamba/test");
+        EXPECT_EQ(c4.name(), "channel_b");
+        EXPECT_EQ(c4.platform(), "");
+
+        std::string value5 = "/home/mamba/test/channel_b/linux-64";
+        Channel& c5 = make_channel(value5);
+        EXPECT_EQ(c5.scheme(), "file");
+        EXPECT_EQ(c5.location(), "/home/mamba/test");
+        EXPECT_EQ(c5.name(), "channel_b");
+        EXPECT_EQ(c5.platform(), "linux-64");
     }
 
     TEST(Channel, urls)

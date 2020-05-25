@@ -157,13 +157,21 @@ namespace mamba
         return *this;
     }
 
-    std::string URLHandler::url()
+    std::string URLHandler::url(bool strip_scheme)
     {
         std::string res = get_part(CURLUPART_URL);
-        if (!m_has_scheme && !res.empty())
+        if (!res.empty())
         {
-            // Default scheme is https://
-            res = res.substr(8);
+            if (!m_has_scheme)
+            {
+                // Default scheme is https://
+                res = res.substr(8);
+            }
+            else if (strip_scheme)
+            {
+                auto pos = res.find("://");
+                res = res.substr(pos + 3u);
+            }
         }
         return res;
     }

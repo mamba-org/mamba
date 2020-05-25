@@ -70,6 +70,9 @@ namespace mamba
         // a directory with cert files, or a cert file.
         std::string ssl_verify = "";
 
+        // Conda compat
+        bool add_pip_as_python_dependency = true;
+
         void set_verbosity(int lvl);
     
         std::string platform() const;

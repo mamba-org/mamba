@@ -8,6 +8,7 @@
 #include "nlohmann/json.hpp"
 
 #include "context.hpp"
+#include "repo.hpp"
 #include "util.hpp"
 #include "fetch.hpp"
 #include "output.hpp"
@@ -37,6 +38,8 @@ namespace mamba
         const std::string& name() const;
         bool finalize_transfer();
 
+        MRepo create_repo(MPool& pool);
+
     private:
 
         bool decompress();
@@ -58,6 +61,7 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
+        nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;
     };
 

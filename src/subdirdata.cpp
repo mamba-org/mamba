@@ -96,12 +96,11 @@ namespace mamba
     {
         auto now = fs::file_time_type::clock::now();
         auto cache_age = check_cache(m_json_fn, now);
-        nlohmann::json mod_etag_headers;
         if (cache_age != fs::file_time_type::duration::max())
         {
             LOG_INFO << "Found valid cache file.";
-            mod_etag_headers = read_mod_and_etag();
-            if (mod_etag_headers.size() != 0)
+            m_mod_etag = read_mod_and_etag();
+            if (m_mod_etag.size() != 0)
             {
                 int max_age = 0;
                 if (Context::instance().local_repodata_ttl > 1)
@@ -111,7 +110,7 @@ namespace mamba
                 else if (Context::instance().local_repodata_ttl == 1)
                 {
                     // TODO error handling if _cache_control key does not exist!
-                    auto el = mod_etag_headers.value("_cache_control", std::string(""));
+                    auto el = m_mod_etag.value("_cache_control", std::string(""));
                     max_age = get_cache_control_max_age(el);
                 }
 
@@ -142,14 +141,14 @@ namespace mamba
             {
                 LOG_WARNING << "Could not determine mod / etag headers.";
             }
-            create_target(mod_etag_headers);
+            create_target(m_mod_etag);
         }
         else
         {
             LOG_INFO << "No cache found " << m_url;
             if (!Context::instance().offline)
             {
-                create_target(mod_etag_headers);
+                create_target(m_mod_etag);
             }
         }
         return true;
@@ -231,12 +230,11 @@ namespace mamba
 
         LOG_INFO << "Finalized transfer: " << m_url;
 
-        nlohmann::json prepend_header;
-
-        prepend_header["_url"] = m_url;
-        prepend_header["_etag"] = m_target->etag;
-        prepend_header["_mod"] = m_target->mod;
-        prepend_header["_cache_control"] = m_target->cache_control;
+        m_mod_etag.clear();
+        m_mod_etag["_url"] = m_url;
+        m_mod_etag["_etag"] = m_target->etag;
+        m_mod_etag["_mod"] = m_target->mod;
+        m_mod_etag["_cache_control"] = m_target->cache_control;
 
         LOG_WARNING << "Opening: " << m_json_fn;
         std::ofstream final_file(m_json_fn);
@@ -256,7 +254,7 @@ namespace mamba
 
         std::ifstream temp_file(m_temp_file->path());
         std::stringstream temp_json;
-        temp_json << prepend_header.dump();
+        temp_json << m_mod_etag.dump();
 
         // replace `}` with `,`
         temp_json.seekp(-1, temp_json.cur); temp_json << ',';
@@ -394,6 +392,18 @@ namespace mamba
         ::chmod(cache_dir.c_str(), 02775);
 #endif
         return cache_dir;
+    }
+
+    MRepo MSubdirData::create_repo(MPool& pool)
+    {
+        RepoMetadata meta {
+            m_url,
+            Context::instance().add_pip_as_python_dependency,
+            m_mod_etag["_etag"],
+            m_mod_etag["_mod"]
+        };
+
+        return MRepo(pool, m_name, cache_path(), meta);
     }
 }
 

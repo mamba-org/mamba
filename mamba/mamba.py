@@ -135,10 +135,9 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
     prefix_data = PrefixData(prefix)
     final_precs = IndexedSet(prefix_data.iter_records())
 
-    def get_channel(c):
-        for _, chan in index:
-            if str(chan) == c:
-                return chan
+    lookup_dict = {}
+    for _, c in index:
+        lookup_dict[str(c)] = c
 
     for c, pkg in to_unlink:
         for i_rec in installed_pkg_recs:
@@ -150,7 +149,7 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None
             print("No package record found!")
 
     for c, pkg, jsn_s in to_link:
-        sdir = get_channel(c)
+        sdir = lookup_dict[c]
         rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
         final_precs.add(rec)
         to_link_records.append(rec)
@@ -459,7 +458,9 @@ def install(args, parser, command='install'):
         if context.verbosity != 0:
             print("Channel: {}, prio: {} : {}".format(chan, priority, subpriority))
             print("Cache path: ", subdir.cache_path())
-        channel_json.append((chan, subdir.cache_path(), priority, subpriority))
+
+        channel_json.append((chan, subdir, priority, subpriority))
+
     # for c in channel_json:
     #     print(c[0], c[2], c[3])
 
@@ -530,8 +531,8 @@ def install(args, parser, command='install'):
         repo.set_installed()
         repos.append(repo)
 
-    for channel, cache_file, priority, subpriority in channel_json:
-        repo = api.Repo(pool, str(channel), cache_file, channel.url(with_credentials=True))
+    for channel, subdir, priority, subpriority in channel_json:
+        repo = subdir.create_repo(pool)
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 

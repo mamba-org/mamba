@@ -1,19 +1,46 @@
 #include "repo.hpp"
+#include "package_info.hpp"
 #include "output.hpp"
 
 extern "C"
 {
-    #include "common_write.c"
+    #include "solv/repo_write.h"
 }
+
+#define MAMBA_TOOL_VERSION "1.1"
+
+#define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
 
 namespace mamba
 {
-    MRepo::MRepo(MPool& pool, const std::string& name,
-                 const std::string& filename, const std::string& url)
+    const char* mamba_tool_version()
+    {
+        static char MTV[30];
+        MTV[0] = '\0';
+        strcat(MTV, MAMBA_TOOL_VERSION);
+        strcat(MTV, "_");
+        strcat(MTV, solv_version);
+        return MTV;
+    }
+
+    MRepo::MRepo(MPool& pool,
+                 const std::string& name,
+                 const fs::path& filename,
+                 const RepoMetadata& metadata)
+        : m_metadata(metadata)
+    {
+        m_url = rsplit(metadata.url, "/", 1)[0];
+        m_repo = repo_create(pool, m_url.c_str());
+        read_file(filename);
+    }
+
+    MRepo::MRepo(MPool& pool,
+                 const std::string& name,
+                 const std::string& filename,
+                 const std::string& url)
         : m_url(url)
     {
         m_repo = repo_create(pool, name.c_str());
-        // pool.add_repo(this);
         read_file(filename);
     }
 
@@ -90,9 +117,9 @@ namespace mamba
         m_repo->subpriority = subpriority;
     }
 
-    const char* MRepo::name() const
+    std::string MRepo::name() const
     {
-        return m_repo->name;
+        return m_repo->name ? m_repo->name : "";
     }
 
     const std::string& MRepo::url() const
@@ -143,29 +170,53 @@ namespace mamba
             LOG_INFO << "Attempt load from solv " << m_solv_file;
 
             int ret = repo_add_solv(m_repo, fp, 0);
-            auto* repodata = repo_last_repodata(m_repo);
-            if (!repodata)
+            if (ret != 0)
             {
-                LOG_ERROR << "Could not find valid repodata attached to solv file";
+                LOG_ERROR << "Could not load .solv file, falling back to JSON" << pool_errstr(m_repo->pool);
             }
             else
             {
-                const char* repo_tool_version = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
-                if (ret != 0)
+                auto* repodata = repo_last_repodata(m_repo);
+                if (!repodata)
                 {
-                    LOG_ERROR << "Could not load .solv file, falling back to JSON" << pool_errstr(m_repo->pool);
-                }
-                else if (repo_tool_version == nullptr || std::strcmp(mamba_tool_version(), repo_tool_version) != 0)
-                {
-                    LOG_INFO << "solv file was written with a previous version of libsolv or mamba " <<
-                                (repo_tool_version != nullptr ? repo_tool_version : "<NULL>") << ", updating it now!";
+                    LOG_ERROR << "Could not find valid repodata attached to solv file";
                 }
                 else
                 {
-                    LOG_INFO << "Loaded from solv " << m_solv_file;
-                    repo_internalize(m_repo);
-                    fclose(fp);
-                    return true;
+                    Id url_id = pool_str2id(m_repo->pool, "mamba:url", 1);
+                    Id etag_id = pool_str2id(m_repo->pool, "mamba:etag", 1);
+                    Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
+                    Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
+
+                    const char* url = repodata_lookup_str(repodata, SOLVID_META, url_id);
+                    int pip_added = repodata_lookup_num(repodata, SOLVID_META, pip_added_id, -1);
+                    const char* etag = repodata_lookup_str(repodata, SOLVID_META, etag_id);
+                    const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
+                    const char* tool_version = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
+                    bool metadata_valid = !(!url || !etag || !mod || !tool_version || pip_added == -1);
+
+                    if (metadata_valid)
+                    {
+                        RepoMetadata read_metadata {
+                            url, pip_added == 1, etag, mod
+                        };
+                        metadata_valid = (read_metadata == m_metadata) && (std::strcmp(tool_version, mamba_tool_version()) == 0);
+                    }
+
+                    LOG_INFO << "Metadata from .solv is " << (metadata_valid ? "valid" : "NOT valid");
+
+                    if (!metadata_valid)
+                    {
+                        LOG_INFO << "solv file was written with a previous version of libsolv or mamba " <<
+                                    (tool_version != nullptr ? tool_version : "<NULL>") << ", updating it now!";
+                    }
+                    else
+                    {
+                        LOG_INFO << "Loaded from solv " << m_solv_file;
+                        repo_internalize(m_repo);
+                        fclose(fp);
+                        return true;
+                    }
                 }
             }
 
@@ -186,25 +237,77 @@ namespace mamba
         {
             throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") " + std::string(pool_errstr(m_repo->pool)));
         }
+
+        // TODO move this to a more structured approach for repodata patching?
+        if (Context::instance().add_pip_as_python_dependency)
+        {
+            Id pkg_id;
+            Solvable* pkg_s;
+            Id python = pool_str2id(m_repo->pool, "python", 0);
+            Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
+
+            FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
+            {
+                if (pkg_s->name == python)
+                {
+                    const char* version = pool_id2str(m_repo->pool, pkg_s->evr);
+                    if (version && version[0] >= '2')
+                    {
+                        pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
+                    }
+                }
+            }
+        }
+
         repo_internalize(m_repo);
 
-        // disabling solv caching for now on Windows
-        LOG_INFO << "creating solv: " << m_solv_file;
-
-        auto sfile = fopen(m_solv_file.c_str(), "wb");
-        if (sfile && name() != "installed")
+        if (name() != "installed")
         {
-            // TODO add error handling to tool_write
-            tool_write(m_repo, sfile);
-            fclose(sfile);
-        }
-        else
-        {
-            LOG_INFO << "could not create solv";
+            write();
         }
 
-        fclose(fp);
+        return true;
+    }
+
+    bool MRepo::write() const
+    {
+        Repodata* info;
+        Queue addedfileprovides;
+        Repowriter* writer;
+
+        LOG_INFO << "writing solv file: " << m_solv_file;
+
+        info = repo_add_repodata(m_repo, 0);  // add new repodata for our meta info
+        repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, mamba_tool_version());
+
+        Id url_id = pool_str2id(m_repo->pool, "mamba:url", 1);
+        Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
+        Id etag_id = pool_str2id(m_repo->pool, "mamba:etag", 1);
+        Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
+
+        repodata_set_str(info, SOLVID_META, url_id, m_metadata.url.c_str());
+        repodata_set_num(info, SOLVID_META, pip_added_id, m_metadata.pip_added);
+        repodata_set_str(info, SOLVID_META, etag_id, m_metadata.etag.c_str());
+        repodata_set_str(info, SOLVID_META, mod_id, m_metadata.mod.c_str());
+
+        auto solv_f = fopen(m_solv_file.c_str(), "wb");
+        repodata_internalize(info);
+
+        if (repo_write(m_repo, solv_f) != 0)
+        {
+            LOG_ERROR << "Failed to write .solv:" << pool_errstr(m_repo->pool);
+            return false;
+        }
+
+        if (fflush(solv_f))
+        {
+            LOG_ERROR << "Failed to flush .solv file.";
+            fclose(solv_f);
+            return false;
+        }
+
+        fclose(solv_f);
+        repodata_free(info); // delete meta info repodata again
         return true;
     }
 }
-

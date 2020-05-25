@@ -162,6 +162,4 @@ namespace mamba
         EXPECT_TRUE(is_path("/"));
         EXPECT_FALSE(is_path("file://makefile"));
     }
-
-
 }

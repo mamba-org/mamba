@@ -1,6 +1,10 @@
 #include <gtest/gtest.h>
 
+#include "thirdparty/filesystem.hpp"
+
 #include "channel.hpp"
+
+namespace fs = ghc::filesystem;
 
 namespace mamba
 {
@@ -98,7 +102,7 @@ namespace mamba
     {
         std::vector<std::string> urls = { "conda-forge", "defaults" };
         std::vector<std::string> res = calculate_channel_urls(urls, true);
-        EXPECT_EQ(res.size(), 6);
+        EXPECT_EQ(res.size(), 6u);
         EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/linux-64");
         EXPECT_EQ(res[1], "https://conda.anaconda.org/conda-forge/noarch");
         EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/linux-64");
@@ -107,13 +111,23 @@ namespace mamba
         EXPECT_EQ(res[5], "https://repo.anaconda.com/pkgs/r/noarch");
 
         std::vector<std::string> res2 = calculate_channel_urls(urls, false);
-        EXPECT_EQ(res2.size(), 6);
+        EXPECT_EQ(res2.size(), 6u);
         EXPECT_EQ(res2[0], res[0]);
         EXPECT_EQ(res2[1], res[1]);
         EXPECT_EQ(res2[2], res[2]);
         EXPECT_EQ(res2[3], res[3]);
         EXPECT_EQ(res2[4], res[4]);
         EXPECT_EQ(res2[5], res[5]);
+
+        std::vector<std::string> local_urls = { "./channel_b", "./channel_a" };
+        std::vector<std::string> local_res = calculate_channel_urls(local_urls, false);
+        std::string current_dir = "file://" + fs::current_path().string() + '/';
+        EXPECT_EQ(local_res.size(), 4u);
+        EXPECT_EQ(local_res[0], current_dir + "channel_b/linux-64");
+        EXPECT_EQ(local_res[1], current_dir + "channel_b/noarch");
+        EXPECT_EQ(local_res[2], current_dir + "channel_a/linux-64");
+        EXPECT_EQ(local_res[3], current_dir + "channel_a/noarch");
+
     }
 }
 

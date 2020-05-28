@@ -310,4 +310,11 @@ namespace mamba
         repodata_free(info); // delete meta info repodata again
         return true;
     }
+
+    bool MRepo::clear(bool reuse_ids = 1)
+    {
+        repo_free(m_repo, (int)reuse_ids);
+        m_repo = nullptr;
+        return true;
+    }
 }

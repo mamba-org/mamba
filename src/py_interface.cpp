@@ -47,6 +47,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("name", &MRepo::name)
         .def("priority", &MRepo::priority)
         .def("size", &MRepo::size)
+        .def("clear", &MRepo::clear)
     ;
 
     py::class_<MTransaction>(m, "Transaction")

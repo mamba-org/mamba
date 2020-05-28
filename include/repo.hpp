@@ -52,6 +52,8 @@ namespace mamba
         std::tuple<int, int> priority() const;
         std::size_t size() const;
 
+        bool clear(bool reuse_ids);
+
     private:
 
         bool read_file(const std::string& filename);

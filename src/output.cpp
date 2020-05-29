@@ -280,9 +280,9 @@ namespace mamba
                 m_table.push_back(r);
         }
 
-        void Table::print()
+        std::ostream& Table::print(std::ostream& out)
         {
-            if (m_table.size() == 0) return;
+            if (m_table.size() == 0) return out;
             std::size_t n_col = m_header.size();
 
             if (m_align.size() == 0) m_align = std::vector<alignment>(n_col, alignment::left);
@@ -310,31 +310,31 @@ namespace mamba
             std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
             total_length = std::accumulate(m_padding.begin(), m_padding.end(), total_length);
 
-            auto print_row = [this, &cell_sizes](const std::vector<FormattedString>& row)
+            auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row)
             {
                 for (auto j = 0; j < row.size(); ++j)
                 {
                     if (row[j].flag != format::none)
                     {
-                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::red)) std::cout << termcolor::red;
-                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::green)) std::cout << termcolor::green;
-                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::yellow)) std::cout << termcolor::yellow;
+                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::red)) out << termcolor::red;
+                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::green)) out << termcolor::green;
+                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::yellow)) out << termcolor::yellow;
 
                     }
                     if (this->m_align[j] == alignment::left)
                     {
-                        std::cout << std::left;
+                        out << std::left;
                         for (std::size_t x = 0; x < this->m_padding[j]; ++x)
-                            std::cout << ' ';
-                        std::cout << std::setw(cell_sizes[j]) << row[j].s;
+                            out << ' ';
+                        out << std::setw(cell_sizes[j]) << row[j].s;
                     }
                     else
                     {
-                        std::cout << std::right << std::setw(cell_sizes[j] + m_padding[j]) << row[j].s;
+                        out << std::right << std::setw(cell_sizes[j] + m_padding[j]) << row[j].s;
                     }
                     if (row[j].flag != format::none)
                     {
-                        std::cout << termcolor::reset;
+                        out << termcolor::reset;
                     }
                 }
             };
@@ -347,9 +347,12 @@ namespace mamba
             #define MAMBA_TABLE_DELIM "─"
             #endif
 
-            std::cout << "\n";
-            for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << MAMBA_TABLE_DELIM;
-            std::cout << "\n";
+            out << "\n";
+            for (int i = 0; i < total_length + m_padding[0]; ++i)
+            {
+                out << MAMBA_TABLE_DELIM;
+            }
+            out << "\n";
 
             for (auto i = 0; i < m_table.size(); ++i)
             {
@@ -358,19 +361,26 @@ namespace mamba
                     // print header
                     if (i != 0) std::cout << "\n";
 
-                    for (std::size_t x = 0; x < m_padding[0]; ++x) std::cout  << ' ';
-                    std::cout << m_table[i][0].s;
+                    for (std::size_t x = 0; x < m_padding[0]; ++x)
+                    {
+                        out  << ' ';
+                    }
+                    out << m_table[i][0].s;
 
-                    std::cout << "\n";
-                    for (int i = 0; i < total_length + m_padding[0]; ++i) std::cout << MAMBA_TABLE_DELIM;
-                    std::cout << "\n";
+                    out << "\n";
+                    for (int i = 0; i < total_length + m_padding[0]; ++i)
+                    {
+                        out << MAMBA_TABLE_DELIM;
+                    }
+                    out << "\n";
                 }
                 else
                 {
                     print_row(m_table[i]);
                 }
-                std::cout << "\n";
+                out << "\n";
             }
+            return out;
         }
     }
 

@@ -164,7 +164,7 @@ namespace mamba
             void add_row(const std::vector<FormattedString>& r);
             void add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs);
 
-            void print();
+            std::ostream& print(std::ostream& out);
 
         private:
             std::vector<FormattedString> m_header;

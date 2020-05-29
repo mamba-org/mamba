@@ -253,7 +253,7 @@ namespace mamba
                 Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
                 solvable_to_stream(out, s, i + 1, find_table_results);
             }
-            find_table_results.print();
+            find_table_results.print(std::cout);
         }
 
         queue_free(&job);
@@ -347,7 +347,7 @@ namespace mamba
                 Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
                 solvable_to_stream(out, s, i + 1, whatrequires_table_results);
             }
-            whatrequires_table_results.print();
+            whatrequires_table_results.print(std::cout);
 
         }
         queue_free(&job);
@@ -452,4 +452,231 @@ namespace mamba
         return "";
     }
 
+    /******************************
+     * QueryResult implementation *
+     ******************************/
+
+    QueryResult::QueryResult(QueryType type,
+                             const std::string& query,
+                             package_list&& pkg_list)
+        : QueryResult(type, query, std::move(pkg_list), nullptr)
+    {
+    }
+
+    QueryResult::QueryResult(QueryType type,
+                             const std::string& query,
+                             package_list&& pkg_list,
+                             package_tree_ptr pkg_tree)
+        : m_type(type)
+        , m_query(query)
+        , m_pkg_list(std::move(pkg_list))
+        , m_pkg_view_list(m_pkg_list.size())
+        , p_pkg_tree(std::move(pkg_tree))
+        , m_ordered_pkg_list()
+    {
+        reset_pkg_view_list();
+    }
+
+    QueryResult::QueryResult(const QueryResult& rhs)
+        : m_type(rhs.m_type)
+        , m_query(rhs.m_query)
+        , m_pkg_list(rhs.m_pkg_list)
+        , m_pkg_view_list()
+        , p_pkg_tree(nullptr)
+        , m_ordered_pkg_list()
+    {
+        using std::swap;
+        auto offset_lbd = [&rhs, this](auto ptr)
+        {
+            return m_pkg_list.data() + (ptr - rhs.m_pkg_list.data());
+        };
+
+        package_view_list tmp(rhs.m_pkg_view_list.size());
+        std::transform
+        (
+            rhs.m_pkg_view_list.begin(),
+            rhs.m_pkg_view_list.end(),
+            tmp.begin(),
+            offset_lbd
+        );
+        swap(tmp, m_pkg_view_list);
+
+        if (rhs.p_pkg_tree)
+        {
+            package_tree_ptr tmp(new tree_node(*rhs.p_pkg_tree));
+            update_pkg_node(*tmp, rhs.m_pkg_list);
+            p_pkg_tree = std::move(tmp);
+        }
+
+        if (!rhs.m_ordered_pkg_list.empty())
+        {
+            auto tmp(rhs.m_ordered_pkg_list);
+            std::for_each
+            (
+                tmp.begin(),
+                tmp.end(),
+                [offset_lbd](auto& entry)
+                {
+                    std::transform
+                    (
+                        entry.second.begin(),
+                        entry.second.end(),
+                        entry.second.begin(),
+                        offset_lbd
+                    );
+                }
+            );
+            swap(m_ordered_pkg_list, tmp);
+        }
+    }
+
+    QueryResult& QueryResult::operator=(const QueryResult& rhs)
+    {
+        if (this != &rhs)
+        {
+            using std::swap;
+            QueryResult tmp(rhs);
+            swap(*this, tmp);
+        }
+        return *this;
+    }
+
+    QueryType QueryResult::query_type() const
+    {
+        return m_type;
+    }
+
+    const std::string& QueryResult::query() const
+    {
+        return m_query;
+    }
+
+    QueryResult& QueryResult::sort(std::string field)
+    {
+        // TODO
+        return *this;
+    }
+
+    QueryResult& QueryResult::groupby(std::string field)
+    {
+        // TODO
+        return *this;
+    }
+
+    QueryResult& QueryResult::reset()
+    {
+        reset_pkg_view_list();
+        m_ordered_pkg_list.clear();
+        return *this;
+    }
+    
+    std::ostream& QueryResult::table(std::ostream& out) const
+    {
+        printers::Table printer({"Name", "Version", "Build", "Channel"});
+
+        for (const auto& pkg: m_pkg_view_list)
+        {
+            printer.add_row({pkg->name, pkg->version, pkg->build_string, pkg->channel});
+        }
+        return printer.print(out);
+    }
+
+    std::ostream& QueryResult::tree(std::ostream& out) const
+    {
+        if (p_pkg_tree)
+        {
+            print_tree_node(out, *p_pkg_tree, "", false, true);
+        }
+        else if (!m_pkg_view_list.empty())
+        {
+            out << m_query << '\n';
+            for (size_t i = 0; i < m_pkg_view_list.size() - 1; ++i)
+            {
+                out << "  ├─ " << get_package_repr(*m_pkg_view_list[i]) << '\n';
+            }
+            out << "  └─ " << get_package_repr(*m_pkg_view_list.back()) << '\n';
+        }
+        return out;
+    }
+
+    nl::json QueryResult::json() const
+    {
+        nl::json j;
+        std::string query_type = m_type == QueryType::Search 
+                               ? "search"
+                               : (m_type == QueryType::Depends
+                               ? "depends"
+                               : "whoneeds");
+        j["query"] = {
+            {"query", MatchSpec(m_query).conda_build_form()},
+            {"type", query_type}
+        };
+
+        std::string msg = m_pkg_view_list.empty() ? "No entries matching \"" + m_query + "\" found" : "";
+        j["result"] = {
+            {"msg", msg},
+            {"status", "OK"}
+        };
+
+        j["result"]["pkgs"] = nlohmann::json::array();
+        for (size_t i = 0; i < m_pkg_view_list.size(); ++i)
+        {
+            j["result"]["pkgs"].push_back(m_pkg_view_list[i]->json());
+        }
+
+        if (m_type != QueryType::Search)
+        {
+            j["result"]["graph_roots"] = nlohmann::json::array();
+            j["result"]["graph_roots"].push_back(p_pkg_tree ? p_pkg_tree->m_value->json() : nl::json(m_query));
+        }
+        return j;
+    }
+
+    void QueryResult::update_pkg_node(package_tree& node, const package_list& src)
+    {
+         node.m_value = m_pkg_list.data() + (node.m_value - src.data());
+         for (auto& child: node.m_children)
+         {
+             update_pkg_node(child, src);
+         }
+    }
+    
+    void QueryResult::reset_pkg_view_list()
+    {
+        std::transform
+        (
+            m_pkg_list.begin(),
+            m_pkg_list.end(),
+            m_pkg_view_list.begin(),
+            [](const auto& pkg)
+            {
+                return &pkg;
+            }
+        );
+    }
+
+    std::string QueryResult::get_package_repr(const PackageInfo& pkg) const
+    {
+        return pkg.name + '[' + pkg.version + '[';
+    }
+
+    void QueryResult::print_tree_node(std::ostream& out,
+                                      const package_tree& node,
+                                      const std::string& prefix,
+                                      bool is_last,
+                                      bool is_root) const
+    {
+        out << prefix;
+        if (!is_root)
+        {
+            out << (is_last ? "└─ " : "├─ " );
+        }
+        out << get_package_repr(*(node.m_value)) << '\n';
+        std::size_t size = node.m_children.size();
+        for (std::size_t i = 0; i < size; ++i)
+        {
+            std::string next_prefix = prefix + (is_last || is_root ? "  " : "| ");
+            print_tree_node(out, node.m_children[i], next_prefix, i == size - 1, false);
+        }
+    }
 }

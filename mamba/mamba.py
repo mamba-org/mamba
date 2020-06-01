@@ -129,7 +129,7 @@ def specs_from_args(args, json=False):
     return [arg2spec(arg, json=json) for arg in args]
 
 
-def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=None):
+def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=[]):
     to_link_records, to_unlink_records = [], []
 
     prefix_data = PrefixData(prefix)

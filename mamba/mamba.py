@@ -636,6 +636,8 @@ def repoquery(args, parser):
     only_installed = True
     if args.subcmd == "search" and args.installed == False:
         only_installed = False
+    elif args.all_channels:
+        only_installed = False
 
     if not only_installed:
         index = get_index(channel_urls=index_args['channel_urls'],
@@ -717,6 +719,12 @@ Examples:
         "-i", "--installed",
         action="store_true",
         help=SUPPRESS
+    )
+
+    package_cmds.add_argument(
+        "-a", "--all-channels",
+        action="store_true",
+        help="Look at all channels (for depends / whoneeds)"
     )
 
     view_cmds = argparse.ArgumentParser(add_help=False)

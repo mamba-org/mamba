@@ -536,6 +536,10 @@ def install(args, parser, command='install'):
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
+    if context.force_reinstall:
+        solver_task = api.SOLVER_INSTALL | api.SOLVER_ERASE
+        solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
+
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(mamba_solve_specs, solver_task)
 

@@ -279,7 +279,7 @@ namespace mamba
         queue_init(&pkgs);
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
-                    SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+                   SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
 
         transaction_classify(m_transaction, mode, &classes);
 
@@ -767,6 +767,7 @@ namespace mamba
                         format_row(installed, s, printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_IGNORE:
+                        LOG_WARNING << "Something is being ignored.";
                         break;
                     case SOLVER_TRANSACTION_VENDORCHANGE:
                     case SOLVER_TRANSACTION_ARCHCHANGE:

@@ -18,8 +18,9 @@ extern "C"
     #include "solv/solverdebug.h"
 }
 
-#define MAMBA_NO_DEPS   0b0001
-#define MAMBA_ONLY_DEPS 0b0010
+#define MAMBA_NO_DEPS         0b0001
+#define MAMBA_ONLY_DEPS       0b0010
+#define MAMBA_FORCE_REINSTALL 0b0100
 
 namespace mamba
 {
@@ -50,6 +51,7 @@ namespace mamba
 
         bool only_deps = false;
         bool no_deps = false;
+        bool force_reinstall = false;
 
     private:
 

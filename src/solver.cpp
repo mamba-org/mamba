@@ -59,6 +59,9 @@ namespace mamba
                 case MAMBA_ONLY_DEPS:
                     only_deps = option.second;
                     break;
+                case MAMBA_FORCE_REINSTALL:
+                    force_reinstall = option.second;
+                    break;
             }
         }
     }

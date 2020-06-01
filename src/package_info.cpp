@@ -1,9 +1,89 @@
+#include <functional>
+#include <map>
+
 #include "package_info.hpp"
 #include "util.hpp"
 #include "output.hpp"
 
 namespace mamba
 {
+    namespace
+    {
+        template <class T>
+        std::string get_package_info_field(const PackageInfo&,
+                                           T PackageInfo::*field);
+
+        template <>
+        std::string get_package_info_field<std::string>(const PackageInfo& pkg,
+                                                        std::string PackageInfo::*field)
+        {
+            return pkg.*field;
+        }
+
+        template <>
+        std::string get_package_info_field<size_t>(const PackageInfo& pkg,
+                                                   size_t PackageInfo::*field)
+        {
+            return std::to_string(pkg.*field);
+        }
+
+        template <class T>
+        PackageInfo::field_getter build_field_getter(T PackageInfo::*field)
+        {
+            using namespace std::placeholders;
+            return std::bind(get_package_info_field<T>, _1, field);
+        }
+
+        using field_getter_map = std::map<std::string, PackageInfo::field_getter>;
+
+        field_getter_map build_field_getter_map()
+        {
+            field_getter_map res;
+            res["name"] = build_field_getter(&PackageInfo::name);
+            res["version"] = build_field_getter(&PackageInfo::version);
+            res["build_string"] = build_field_getter(&PackageInfo::build_string);
+            res["build_number"] = build_field_getter(&PackageInfo::build_number);
+            res["channel"] = build_field_getter(&PackageInfo::channel);
+            res["url"] = build_field_getter(&PackageInfo::url);
+            res["subdir"] = build_field_getter(&PackageInfo::subdir);
+            res["fn"] = build_field_getter(&PackageInfo::fn);
+            res["license"] = build_field_getter(&PackageInfo::license);
+            res["size"] = build_field_getter(&PackageInfo::size);
+            res["timestamp"] = build_field_getter(&PackageInfo::timestamp);
+            return res;
+        }
+
+        field_getter_map& get_field_getter_map()
+        {
+            static field_getter_map m = build_field_getter_map();
+            return m;
+        }
+    }
+
+    PackageInfo::field_getter PackageInfo::get_field_getter(const std::string& name)
+    {
+        auto it = get_field_getter_map().find(name);
+        if (it == get_field_getter_map().end())
+        {
+            throw std::runtime_error("field_getter function not found");
+        }
+        return it->second;
+    }
+
+    PackageInfo::compare_fun PackageInfo::less(const std::string& member)
+    {
+        auto getter = get_field_getter(member);
+        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
+            { return getter(lhs) < getter(rhs); };
+    }
+
+    PackageInfo::compare_fun PackageInfo::equal(const std::string& member)
+    {
+        auto getter = get_field_getter(member);
+        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
+            { return getter(lhs) == getter(rhs); };
+    }
+
     PackageInfo::PackageInfo(Solvable* s)
     {
         Pool* pool = s->repo->pool;

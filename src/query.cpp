@@ -553,13 +553,51 @@ namespace mamba
 
     QueryResult& QueryResult::sort(std::string field)
     {
-        // TODO
+        auto fun = PackageInfo::less(field);
+
+        if (!m_ordered_pkg_list.empty())
+        {
+            for (auto& entry: m_ordered_pkg_list)
+            {
+                std::sort(entry.second.begin(), entry.second.end(),
+                    [fun](const auto* lhs, const auto* rhs) { return fun(*lhs, *rhs); });
+            }
+        }
+        else
+        {
+            std::sort(m_pkg_view_list.begin(), m_pkg_view_list.end(),
+                [fun](const auto* lhs, const auto* rhs) { return fun(*lhs, *rhs); });
+        }
+        if (p_pkg_tree)
+        {
+            sort_tree_node(*p_pkg_tree, fun);
+        }
         return *this;
     }
 
     QueryResult& QueryResult::groupby(std::string field)
     {
-        // TODO
+        auto fun = PackageInfo::get_field_getter(field);
+        if (m_ordered_pkg_list.empty())
+        {
+            for (auto& pkg: m_pkg_view_list)
+            {
+                m_ordered_pkg_list[fun(*pkg)].push_back(pkg);
+            }
+        }
+        else
+        {
+            ordered_package_list tmp;
+            for (auto& entry: m_ordered_pkg_list)
+            {
+                for (auto& pkg: entry.second)
+                {
+                    std::string key = entry.first + '/' + fun(*pkg);
+                    tmp[key].push_back(pkg);
+                }
+            }
+            m_ordered_pkg_list = std::move(tmp);
+        }
         return *this;
     }
 
@@ -574,9 +612,22 @@ namespace mamba
     {
         printers::Table printer({"Name", "Version", "Build", "Channel"});
 
-        for (const auto& pkg: m_pkg_view_list)
+        if (!m_ordered_pkg_list.empty())
         {
-            printer.add_row({pkg->name, pkg->version, pkg->build_string, pkg->channel});
+            for (auto& entry: m_ordered_pkg_list)
+            {
+                for (auto& pkg: entry.second)
+                {
+                    printer.add_row({pkg->name, pkg->version, pkg->build_string, pkg->channel});
+                }
+            }
+        }
+        else
+        {
+            for (const auto& pkg: m_pkg_view_list)
+            {
+                printer.add_row({pkg->name, pkg->version, pkg->build_string, pkg->channel});
+            }
         }
         return printer.print(out);
     }
@@ -677,6 +728,17 @@ namespace mamba
         {
             std::string next_prefix = prefix + (is_last || is_root ? "  " : "| ");
             print_tree_node(out, node.m_children[i], next_prefix, i == size - 1, false);
+        }
+    }
+
+    void QueryResult::sort_tree_node(package_tree& node,
+                                     const PackageInfo::compare_fun& fun)
+    {
+        std::sort(node.m_children.begin(), node.m_children.end(),
+            [&fun](const package_tree& lhs, const package_tree& rhs) { return fun(*(lhs.m_value), *(rhs.m_value)); });
+        for (auto& ch: node.m_children)
+        {
+            sort_tree_node(ch, fun);
         }
     }
 }

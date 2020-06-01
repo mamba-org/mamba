@@ -96,12 +96,16 @@ namespace mamba
                              bool is_last,
                              bool root) const;
 
+        void sort_tree_node(package_tree& node,
+                            const PackageInfo::compare_fun& fun);
+
         QueryType m_type;
         std::string m_query;
         package_list m_pkg_list;
         package_view_list m_pkg_view_list;
         package_tree_ptr p_pkg_tree;
-        std::map<std::string, package_view_list> m_ordered_pkg_list;
+        using ordered_package_list = std::map<std::string, package_view_list>;
+        ordered_package_list m_ordered_pkg_list;
     };
 }
 

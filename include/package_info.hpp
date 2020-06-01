@@ -18,6 +18,13 @@ namespace mamba
     {
     public:
 
+        using field_getter = std::function<std::string (const PackageInfo&)>;
+        using compare_fun = std::function<bool (const PackageInfo&, const PackageInfo&)>;
+
+        static field_getter get_field_getter(const std::string& name);
+        static compare_fun less(const std::string& member);
+        static compare_fun equal(const std::string& member);
+
         PackageInfo(Solvable* s);
         PackageInfo(nlohmann::json&& j);
         PackageInfo(const std::string& name, const std::string& version,

@@ -174,6 +174,11 @@ namespace mamba
         assign_or(j, "sha256", sha256, ""s);
     }
 
+    PackageInfo::PackageInfo(const std::string& n)
+        : name(n)
+    {
+    }
+
     PackageInfo::PackageInfo(const std::string& n, const std::string& v,
                              const std::string b, std::size_t bn)
         : name(n), version(v), build_string(b), build_number(bn)

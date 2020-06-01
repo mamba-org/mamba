@@ -27,15 +27,17 @@ namespace mamba
     std::string cut_repo_name(std::ostream& out, const std::string_view& reponame);
     void print_dep_graph(std::ostream& out, Solvable* s, const std::string& solv_str, int level, int max_level, bool last, const std::string& prefix);
 
+    class QueryResult;
+
     class Query
     {
     public:
 
         Query(MPool& pool);
 
-        std::string find(const std::string& query);
-        std::string whoneeds(const std::string& query, bool tree);
-        std::string depends(const std::string& query);
+        QueryResult find(const std::string& query) const;
+        QueryResult whoneeds(const std::string& query, bool tree) const;
+        QueryResult depends(const std::string& query) const;
 
     private:
 

@@ -15,67 +15,8 @@ extern "C" {
 
 namespace mamba
 {
-    namespace printers
-    {
-        template <class V>
-        class Node
-        {
-        public:
-            Node(const V& s)
-                : m_self(s)
-            {
-            }
-
-            void set_root(bool r)
-            {
-                m_root = r;
-            }
-
-            V m_self;
-            std::vector<Node<V>> m_children;
-            bool m_root = false;
-
-            void add_child(const V& n) 
-            {
-                m_children.push_back(Node<V>(n));
-            }
-
-            void add_child(const Node<V>& n) 
-            {
-                m_children.push_back(n);
-            }
-
-            void print(const std::string& prefix, bool is_last)
-            {
-                std::cout << prefix;
-                if (!m_root)
-                {
-                    std::cout << (is_last ? "└─ " : "├─ ");
-                }
-                std::cout << m_self << "\n";
-                for (std::size_t i = 0; i < m_children.size(); ++i)
-                {
-                    std::string next_prefix = prefix;
-                    next_prefix += (is_last || m_root) ? "  " : "│ ";
-                    m_children[i].print(next_prefix, i == m_children.size() - 1);
-                }
-            }
-        };
-    }
-
-    void solvable_to_stream(std::ostream& out, Solvable* s, int row_count, printers::Table& query_result)
-    {
-        Pool* pool = s->repo->pool;
-
-        std::string channel = cut_repo_name(s->repo->name);
-        std::string name = pool_id2str(pool, s->name);
-        std::string evr = pool_id2str(pool, s->evr); 
-        std::string build_flavor = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
-
-        query_result.add_row({name, evr, build_flavor, channel});
-    }
-
-    void walk_graph(printers::Node<std::string>& parent, 
+    void walk_graph(QueryResult::package_list& pkg_list,
+                    QueryResult::package_tree& parent,
                     Solvable* s,
                     std::set<Solvable*>& visited_solvs)
     {
@@ -85,6 +26,9 @@ namespace mamba
 
             Id* reqp = s->repo->idarraydata + s->requires;
             Id req = *reqp;
+            PackageInfo* already_visited = nullptr;
+            PackageInfo* not_found = nullptr;
+
             while (req != 0) /* go through all requires */
             {
                 Queue job, rec_solvables;
@@ -110,19 +54,30 @@ namespace mamba
                     }
                     if (visited_solvs.count(rs) == 0)
                     {
-                        printers::Node<std::string> next_node(concat(pool_id2str(pool, req), " [", pool_id2evr(pool, req), "]"));
+                        pkg_list.push_back(PackageInfo(rs));
+                        QueryResult::package_tree next_node(&pkg_list.back());
                         visited_solvs.insert(rs);
-                        walk_graph(next_node, rs, visited_solvs);
-                        parent.add_child(next_node);
+                        walk_graph(pkg_list, next_node, rs, visited_solvs);
+                        parent.add_child(std::move(next_node));
                     }
                     else
                     {
-                        parent.add_child(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m"));
+                        if (!already_visited)
+                        {
+                            pkg_list.push_back(PackageInfo(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m")));
+                            already_visited = &pkg_list.back();
+                        }
+                        parent.add_child(already_visited);
                     }
                 }
                 else
                 {
-                    parent.add_child(concat(pool_id2str(pool, req), " >>> NOT FOUND <<<"));
+                    if (!not_found)
+                    {
+                        pkg_list.push_back(PackageInfo(concat(pool_id2str(pool, req), " >>> NOT FOUND <<<")));
+                        not_found = &pkg_list.back();
+                    }
+                    parent.add_child(not_found);
                 }
                 queue_free(&rec_solvables);
                 ++reqp;
@@ -131,11 +86,11 @@ namespace mamba
         }
     }
 
-    void reverse_walk_graph(printers::Node<std::string>& parent, 
+    void reverse_walk_graph(QueryResult::package_list& pkg_list,
+                            QueryResult::package_tree& parent,
                             Solvable* s,
                             std::set<Solvable*>& visited_solvs)
     {
-
         if (s)
         {
             auto* pool = s->repo->pool;
@@ -144,6 +99,7 @@ namespace mamba
             queue_init(&solvables);
 
             pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, &solvables, -1);
+            PackageInfo* already_visited = nullptr;
 
             if (solvables.count != 0)
             {
@@ -153,22 +109,26 @@ namespace mamba
                     rs = pool_id2solvable(pool, solvables.elements[i]);
                     if (visited_solvs.count(rs) == 0)
                     {
-                        printers::Node<std::string> next_node(concat(pool_id2str(pool, rs->name), " [", pool_id2str(pool, rs->evr), "]"));
+                        pkg_list.push_back(PackageInfo(rs));
+                        QueryResult::package_tree next_node(&pkg_list.back());
                         visited_solvs.insert(rs);
-                        reverse_walk_graph(next_node, rs, visited_solvs);
-                        parent.add_child(next_node);
+                        reverse_walk_graph(pkg_list, next_node, rs, visited_solvs);
+                        parent.add_child(std::move(next_node));
                     }
                     else
                     {
-                        parent.add_child(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m"));
+                        if (!already_visited)
+                        {
+                            pkg_list.push_back(PackageInfo(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m")));
+                            already_visited = &pkg_list.back();
+                        }
+                        parent.add_child(already_visited);
                     }
                 }
                 queue_free(&solvables);
             }
-            return;
         }
     }
-
 
     /************************
      * Query implementation *
@@ -180,7 +140,7 @@ namespace mamba
         m_pool.get().create_whatprovides();
     }
 
-    std::string Query::find(const std::string& query)
+    QueryResult Query::find(const std::string& query) const
     {
         Queue job, solvables;
         queue_init(&job);
@@ -197,71 +157,30 @@ namespace mamba
         }
 
         selection_solvables(m_pool.get(), &job, &solvables);
-        std::stringstream out;
+        QueryResult::package_list pkg_list;
+        pkg_list.reserve(solvables.count);
 
-        nlohmann::json j;
-        j["query"] = {
-            {"query", MatchSpec(query).conda_build_form()},
-            {"type", "search"}
-        };
-        j["result"] = {
-            {"msg", ""},
-            {"status", "OK"}
-        };
-
-        j["result"]["pkgs"] = nlohmann::json::array();
-
-        if (Context::instance().json)
+        Pool* pool = m_pool.get();
+        std::sort(solvables.elements, solvables.elements + solvables.count, [pool](Id a, Id b) {
+            Solvable* sa; Solvable* sb;
+            sa = pool_id2solvable(pool, a);
+            sb = pool_id2solvable(pool, b);
+            return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0); 
+        });
+        
+        for (int i = 0; i < solvables.count; i++)
         {
-            j["result"] = {
-                {"msg", ""},
-                {"status", "OK"}
-            };
-
-            if (solvables.count == 0)
-            {
-                j["result"]["msg"] = std::string("No entries matching \"") + query + "\" found";
-            }
-
-            for (int i = 0; i < solvables.count; i++)
-            {
-                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-                j["result"]["pkgs"].push_back(PackageInfo(s).json());
-            }
-            std::cout << j.dump(4);
-        }
-        else
-        {
-            if (solvables.count == 0)
-            {
-                out << "No entries matching \"" << query << "\" found";
-                std::cout << out.str() << std::endl;
-            }
-
-            Pool* pool = m_pool.get();
-            std::sort(solvables.elements, solvables.elements + solvables.count, [pool](Id a, Id b) {
-                Solvable* sa; Solvable* sb;
-                sa = pool_id2solvable(pool, a);
-                sb = pool_id2solvable(pool, b);
-                return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0); 
-            });
-            // solv_sort(solvables.elements, solvables.count, sizeof(Id), prune_to_best_version_sortcmp, pool);
-
-            printers::Table find_table_results({"Name", "Version", "Build", "Channel"});
-            for (int i = 0; i < solvables.count; i++)
-            {
-                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-                solvable_to_stream(out, s, i + 1, find_table_results);
-            }
-            find_table_results.print(std::cout);
+            Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+            pkg_list.push_back(PackageInfo(s));
         }
 
         queue_free(&job);
         queue_free(&solvables);
-        return "";
+
+        return QueryResult(QueryType::Search, query, std::move(pkg_list));
     }
 
-    std::string Query::whoneeds(const std::string& query, bool tree)
+    QueryResult Query::whoneeds(const std::string& query, bool tree) const
     {
         Queue job, solvables;
         queue_init(&job);
@@ -277,88 +196,39 @@ namespace mamba
             throw std::runtime_error("Could not generate query for " + query);
         }
 
-        if (tree || Context::instance().json)
+        QueryResult::package_list pkg_list;
+        QueryResult::package_tree_ptr root = nullptr;
+
+        if (tree)
         {
-            std::stringstream msg;
             selection_solvables(m_pool.get(), &job, &solvables);
-
-            nlohmann::json j;
-            j["query"] = {
-                {"query", MatchSpec(query).conda_build_form()},
-                {"type", "whoneeds"}
-            };
-
-            j["result"]["pkgs"] = nlohmann::json::array();
-
-            if (solvables.count)
+            if (solvables.count > 0)
             {
-                msg << "Found " << solvables.count << " reverse dependencies";
                 Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-                printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
-                root.set_root(true);
+                pkg_list.reserve(solvables.count);
+                pkg_list.push_back(PackageInfo(latest));
+                root.reset(new QueryResult::package_tree(&pkg_list.back()));
                 std::set<Solvable*> visited { latest };
-
-                reverse_walk_graph(root, latest, visited);
-                if (Context::instance().json)
-                {
-                    j["result"] = {
-                        {"msg", msg.str()},
-                        {"status", "OK"}
-                    };
-                    auto j_pkgs = nlohmann::json::array();
-                    for (auto* s : visited)
-                    {
-                        j_pkgs.push_back(PackageInfo(s).json());
-                    }
-                    j["result"]["pkgs"] = j_pkgs;
-                    j["result"]["graph_roots"] = nlohmann::json::array();
-                    j["result"]["graph_roots"].push_back(std::string(pool_id2str(m_pool.get(), latest->name)));
-
-                    std::cout << j.dump(4) << std::endl;
-                }
-                else
-                {
-                    std::cout << msg.str() << std::endl;
-                    root.print("", false);
-                }
-            }
-            else
-            {
-                msg << "No matching package found";
-
-                j["result"]["msg"] = msg.str();
-                j["result"]["status"] = "OK";
-                std::cout << j.dump(4) << std::endl;
+                reverse_walk_graph(pkg_list, *root, latest, visited);
             }
         }
         else
         {
             pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, &solvables, -1);
-
-            std::stringstream out;
-            if (solvables.count == 0)
-            {
-                out << "No entries matching \"" << query << "\" found";
-            }
-
-            printers::Table whatrequires_table_results({"Name", "Version", "Build", "Channel"});
             for (int i = 0; i < solvables.count; i++)
             {
                 Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-                solvable_to_stream(out, s, i + 1, whatrequires_table_results);
+                pkg_list.push_back(PackageInfo(s));
             }
-            whatrequires_table_results.print(std::cout);
-
         }
-        queue_free(&job);
-        queue_free(&solvables);
-
-        return "";
-        // return out.str();
+        return QueryResult(QueryType::Whoneeds,
+                           query,
+                           std::move(pkg_list),
+                           std::move(root));
     }
 
-   std::string Query::depends(const std::string& query)
-   {
+    QueryResult Query::depends(const std::string& query) const
+    {
         Queue job, solvables;
         queue_init(&job);
         queue_init(&solvables);
@@ -373,84 +243,40 @@ namespace mamba
             throw std::runtime_error("Could not generate query for " + query);
         }
 
+        QueryResult::package_list pkg_list;
+        QueryResult::package_tree_ptr root = nullptr;
         selection_solvables(m_pool.get(), &job, &solvables);
 
-        nlohmann::json j;
-        j["query"] = {
-            {"query", MatchSpec(query).conda_build_form()},
-            {"type", "depends"}
-        };
-        j["result"] = {
-            {"msg", ""}
-        };
-
-        std::stringstream out, msg;
-        if (solvables.count == 0)
-        {
-            msg << "No entries matching \"" << query << "\" found";
-            j["result"]["msg"] = msg.str();
-            j["result"]["status"] = "OK";
-        }
-        else
+        if (solvables.count > 0)
         {
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-            if (solvables.count == 1)
+            for (std::size_t i = 1; i < solvables.count; ++i)
             {
-                msg << "Found " << solvables.count << " package for " << query;
-            }
-            if (solvables.count > 1)
-            {
-                msg << "Found " << solvables.count << " packages for " << query << ", showing only the latest.";
-
-                for (std::size_t i = 1; i < solvables.count; ++i)
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                if (pool_evrcmp_str(m_pool.get(),
+                                    pool_id2evr(m_pool.get(), s->evr),
+                                    pool_id2evr(m_pool.get(), latest->evr), 0) > 0)
                 {
-                    Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-                    if (pool_evrcmp_str(m_pool.get(),
-                                        pool_id2evr(m_pool.get(), s->evr),
-                                        pool_id2evr(m_pool.get(), latest->evr), 0) > 0)
-                    {
-                        latest = s;
-                    }
+                    latest = s;
                 }
             }
 
-            j["result"]["msg"] = msg.str();
-            j["result"]["status"] = "OK";
-
-            printers::Node<std::string> root(concat(pool_id2str(m_pool.get(), latest->name), " == ", pool_id2str(m_pool.get(), latest->evr)));
-            root.set_root(true);
+            pkg_list.reserve(solvables.count);
+            pkg_list.push_back(PackageInfo(latest));
+            root.reset(new QueryResult::package_tree(&pkg_list.back()));
             std::set<Solvable*> visited { latest };
-            walk_graph(root, latest, visited);
-            auto j_pkgs = nlohmann::json::array();
-            for (auto* s : visited)
-            {
-                j_pkgs.push_back(PackageInfo(s).json());
-            }
-            j["result"]["pkgs"] = j_pkgs;
-            j["result"]["graph_roots"] = nlohmann::json::array();
-            j["result"]["graph_roots"].push_back(std::string(pool_id2str(m_pool.get(), latest->name)));
-
-            if (!Context::instance().json)
-            {
-                std::cout << msg.str() << "\n\n";
-                root.print("", false);
-            }
-        }
-
-        if (Context::instance().json)
-        {
-            std::cout << j.dump(4) << std::endl;
-        }
-        else
-        {
-            std::cout << msg.str() << std::endl;
+            walk_graph(pkg_list, *root, latest, visited);
         }
 
         queue_free(&job);
         queue_free(&solvables);
 
-        return "";
+        return QueryResult(QueryType::Depends,
+                           query,
+                           std::move(pkg_list),
+                           std::move(root));
     }
+
 
     /******************************
      * QueryResult implementation *
@@ -610,6 +436,11 @@ namespace mamba
     
     std::ostream& QueryResult::table(std::ostream& out) const
     {
+        if (m_pkg_view_list.empty())
+        {
+            out << "No entries matching \"" << m_query << "\" found";
+        }
+
         printers::Table printer({"Name", "Version", "Build", "Channel"});
 
         if (!m_ordered_pkg_list.empty())
@@ -618,7 +449,7 @@ namespace mamba
             {
                 for (auto& pkg: entry.second)
                 {
-                    printer.add_row({pkg->name, pkg->version, pkg->build_string, pkg->channel});
+                    printer.add_row({pkg->name, pkg->version, pkg->build_string, cut_repo_name(pkg->channel)});
                 }
             }
         }

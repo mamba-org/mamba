@@ -51,7 +51,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
             # ignore non-loaded subdir if channel is != noarch
             continue
 
-        channel_json.append((chan, subdir.cache_path(), priority, subpriority))
+        channel_json.append((chan, subdir, priority, subpriority))
 
     specs = [MatchSpec(s) for s in specs]
     mamba_solve_specs = [s.conda_build_form() for s in specs]
@@ -63,8 +63,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     pool = api.Pool()
     repos = []
 
-    for channel, cache_file, priority, subpriority in channel_json:
-        repo = api.Repo(pool, str(channel), cache_file, channel.url(with_credentials=True))
+    for channel, subdir, priority, subpriority in channel_json:
+        repo = subdir.create_repo(pool)
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
@@ -84,13 +84,12 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     final_precs = IndexedSet(PrefixData(prefix).iter_records())
 
-    def get_channel(c):
-        for _, chan in index:
-            if str(chan) == c:
-                return chan
+    lookup_dict = {}
+    for _, c in index:
+        lookup_dict[str(c)] = c
 
     for c, pkg, jsn_s in to_link:
-        sdir = get_channel(c)
+        sdir = lookup_dict[c]
         rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
         final_precs.add(rec)
         to_link_records.append(rec)

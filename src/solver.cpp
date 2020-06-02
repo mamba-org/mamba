@@ -4,11 +4,11 @@
 
 namespace mamba
 {
-    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags) :
-        m_is_solved(false),
-        m_pool(pool),
-        m_flags(flags),
-        m_solver(nullptr)
+    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
+        : m_flags(flags)
+        , m_is_solved(false)
+        , m_solver(nullptr)
+        , m_pool(pool)
     {
         queue_init(&m_jobs);
     }

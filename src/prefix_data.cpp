@@ -4,8 +4,8 @@
 namespace mamba
 {
     PrefixData::PrefixData(const std::string& prefix_path)
-        : m_prefix_path(fs::path(prefix_path)),
-          m_history(prefix_path)
+        : m_history(prefix_path)
+        , m_prefix_path(fs::path(prefix_path))
     {
     }
 

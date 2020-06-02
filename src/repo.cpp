@@ -272,8 +272,6 @@ namespace mamba
     bool MRepo::write() const
     {
         Repodata* info;
-        Queue addedfileprovides;
-        Repowriter* writer;
 
         LOG_INFO << "writing solv file: " << m_solv_file;
 

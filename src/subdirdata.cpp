@@ -57,12 +57,12 @@ namespace decompress
 namespace mamba
 {
     MSubdirData::MSubdirData(const std::string& name, const std::string& url, const std::string& repodata_fn)
-        : m_name(name)
+        : m_loaded(false)
+        , m_download_complete(false)
         , m_url(url)
+        , m_name(name)
         , m_json_fn(repodata_fn)
         , m_solv_fn(repodata_fn.substr(0, repodata_fn.size() - 4) + "solv")
-        , m_loaded(false)
-        , m_download_complete(false)
     {
     }
 
@@ -387,7 +387,7 @@ namespace mamba
     std::string create_cache_dir()
     {
         std::string cache_dir = PackageCacheData::first_writable().get_pkgs_dir().string() + "/cache";
-        bool created = fs::create_directories(cache_dir);
+        fs::create_directories(cache_dir);
 #ifndef _WIN32
         ::chmod(cache_dir.c_str(), 02775);
 #endif

@@ -185,9 +185,9 @@ namespace mamba
     public:
 
         inline ProgressScaleWriter(int bar_width,
-                            const std::string& fill,
-                            const std::string& lead,
-                            const std::string& remainder);
+                                   const std::string& fill,
+                                   const std::string& lead,
+                                   const std::string& remainder);
 
         std::ostream& write(std::ostream& os, std::size_t progress) const;
 

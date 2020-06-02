@@ -56,7 +56,8 @@ namespace mamba
 
         ProgressProxy m_progress_bar;
 
-        bool m_loaded, m_download_complete;
+        bool m_loaded;
+        bool m_download_complete;
         std::string m_url;
         std::string m_name;
         std::string m_json_fn;

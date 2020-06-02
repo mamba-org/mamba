@@ -71,7 +71,11 @@ namespace mamba
                 if (fs::exists(meta_dir) && fs::is_directory(meta_dir))
                 {
                     std::size_t count = 0;
-                    for (auto& _ : fs::directory_iterator(meta_dir)) ++count;
+                    for (auto& _ : fs::directory_iterator(meta_dir))
+                    {
+                        (void)_;
+                        ++count;
+                    }
                     if (count > 1)
                     {
                         // if files left other than `conda-meta/history` do not unregister

@@ -77,7 +77,7 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        return m_retries < Context::instance().max_retries &&
+        return m_retries < size_t(Context::instance().max_retries) &&
                http_status >= 500 &&
                !starts_with(m_url, "file://");
     }

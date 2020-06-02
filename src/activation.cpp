@@ -62,14 +62,14 @@ namespace mamba
         // # First get env vars from packages
         auto env_var_files = filter_dir(pkg_env_var_dir, "");
         std::sort(env_var_files.begin(), env_var_files.end());
-        for (auto& f : env_var_files)
+        /*for (auto& f : env_var_files)
         {
             // TODO json load env vars and add to map
             // if exists(pkg_env_var_dir):
             //     for pkg_env_var_file in sorted(os.listdir(pkg_env_var_dir)):
             //         with open(join(pkg_env_var_dir, pkg_env_var_file), 'r') as f:
             //             env_vars.update(json.loads(f.read(), object_pairs_hook=OrderedDict))
-        }
+        }*/
 
         // Then get env vars from environment specification
         if (fs::exists(env_vars_file))

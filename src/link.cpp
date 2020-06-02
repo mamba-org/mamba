@@ -286,7 +286,6 @@ namespace mamba
     {
         // todo add abspath here
         fs::path tmp_prefix = prefix / ".tmp";
-        bool multiline = false;
         
         #ifdef _WIN32
         ensure_comspec_set();
@@ -407,7 +406,7 @@ namespace mamba
 
         out.close();
 
-        return std::move(tf);
+        return tf;
     }
 
     /*
@@ -629,7 +628,6 @@ namespace mamba
                 assert(path_data["file_mode"].get<std::string>() == "binary");
 
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
-                std::size_t old_size = buffer.size();
 
                 std::string padding(prefix_placeholder.size() - new_prefix.size(), '\0');
 

@@ -16,20 +16,20 @@ namespace mamba
     fs::path get_bin_directory_short_path();
     fs::path get_python_noarch_target_path(const std::string& source_short_path, const fs::path& target_site_packages_short_path);
 
-	class TransactionContext
-	{
-	public:
+    class TransactionContext
+    {
+    public:
 
-		TransactionContext() = default;
-		TransactionContext(const fs::path& prefix, const std::string& py_version);
+	TransactionContext() = default;
+	TransactionContext(const fs::path& prefix, const std::string& py_version);
 
-		bool has_python;
-		fs::path target_prefix;
-	    fs::path site_packages_path;
-	    fs::path python_path;
-	    std::string python_version;
-	    std::string short_python_version;
-	};
+	bool has_python;
+	fs::path target_prefix;
+	fs::path site_packages_path;
+	fs::path python_path;
+	std::string python_version;
+	std::string short_python_version;
+    };
 }
 
 #endif

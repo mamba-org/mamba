@@ -39,9 +39,6 @@ namespace mamba
                 // the following prints the requested version
                 queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, req);
                 selection_solvables(pool, &job, &rec_solvables);
-                int index = 0;
-
-                bool next_is_last = *(reqp + 1) == 0;
 
                 if (rec_solvables.count != 0)
                 {
@@ -254,7 +251,7 @@ namespace mamba
         if (solvables.count > 0)
         {
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-            for (std::size_t i = 1; i < solvables.count; ++i)
+            for (int i = 1; i < solvables.count; ++i)
             {
                 Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
                 if (pool_evrcmp_str(m_pool.get(),

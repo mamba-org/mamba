@@ -75,7 +75,7 @@ namespace mamba
     std::ostream& ProgressScaleWriter::write(std::ostream& os, std::size_t progress) const
     {
         auto pos = static_cast<size_t>(progress * m_bar_width / 100.0);
-        for (size_t i = 0; i < m_bar_width; ++i)
+        for (size_t i = 0; i < static_cast<size_t>(m_bar_width); ++i)
         {
             if (i < pos)
             {
@@ -173,23 +173,24 @@ namespace mamba
         else
         {
             auto pos = static_cast<std::size_t>(m_progress * width / 100.0);
-            for (size_t i = 0; i < width; ++i) {
-              if (i == pos - 1)
-              {
-                std::cout << '<';
-              }
-              else if (i == pos)
-              {
-                std::cout << '=';
-              }
-              else if (i == pos + 1)
-              {
-                std::cout << '>';
-              }
-              else
-              {
-                std::cout << ' ';
-              }
+            for (size_t i = 0; i < static_cast<size_t>(width); ++i)
+            {
+                if (i == pos - 1)
+                {
+                    std::cout << '<';
+                }
+                else if (i == pos)
+                {
+                    std::cout << '=';
+                }
+                else if (i == pos + 1)
+                {
+                    std::cout << '>';
+                }
+                else
+                {
+                    std::cout << ' ';
+                }
             }
         }
         std::cout << "] " << fpf;
@@ -288,13 +289,13 @@ namespace mamba
             if (m_align.size() == 0) m_align = std::vector<alignment>(n_col, alignment::left);
 
             std::vector<std::size_t> cell_sizes(n_col);
-            for (auto i = 0; i < n_col; ++i)
+            for (size_t i = 0; i < n_col; ++i)
                 cell_sizes[i] = m_header[i].size();
 
-            for (auto i = 0; i < m_table.size(); ++i)
+            for (size_t i = 0; i < m_table.size(); ++i)
             {
                 if (m_table[i].size() == 1) continue;
-                for (auto j = 0; j < m_table[i].size(); ++j)
+                for (size_t j = 0; j < m_table[i].size(); ++j)
                     cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
             }
 
@@ -312,7 +313,7 @@ namespace mamba
 
             auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row)
             {
-                for (auto j = 0; j < row.size(); ++j)
+                for (size_t j = 0; j < row.size(); ++j)
                 {
                     if (row[j].flag != format::none)
                     {
@@ -324,7 +325,7 @@ namespace mamba
                     if (this->m_align[j] == alignment::left)
                     {
                         out << std::left;
-                        for (std::size_t x = 0; x < this->m_padding[j]; ++x)
+                        for (int x = 0; x < this->m_padding[j]; ++x)
                             out << ' ';
                         out << std::setw(cell_sizes[j]) << row[j].s;
                     }
@@ -348,27 +349,27 @@ namespace mamba
             #endif
 
             out << "\n";
-            for (int i = 0; i < total_length + m_padding[0]; ++i)
+            for (size_t i = 0; i < total_length + m_padding[0]; ++i)
             {
                 out << MAMBA_TABLE_DELIM;
             }
             out << "\n";
 
-            for (auto i = 0; i < m_table.size(); ++i)
+            for (size_t i = 0; i < m_table.size(); ++i)
             {
                 if (m_table[i].size() == 1)
                 {
                     // print header
                     if (i != 0) std::cout << "\n";
 
-                    for (std::size_t x = 0; x < m_padding[0]; ++x)
+                    for (int x = 0; x < m_padding[0]; ++x)
                     {
                         out  << ' ';
                     }
                     out << m_table[i][0].s;
 
                     out << "\n";
-                    for (int i = 0; i < total_length + m_padding[0]; ++i)
+                    for (size_t i = 0; i < total_length + m_padding[0]; ++i)
                     {
                         out << MAMBA_TABLE_DELIM;
                     }

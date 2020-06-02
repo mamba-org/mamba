@@ -62,7 +62,7 @@ namespace mamba
 
         // Validation
         auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
-        if (m_target->downloaded_size != expected_size)
+        if (size_t(m_target->downloaded_size) != expected_size)
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
@@ -134,7 +134,6 @@ namespace mamba
     {
         m_cache_path = cache_path;
         m_tarball_path = cache_path / m_filename;
-        bool tarball_exists = fs::exists(m_tarball_path);
         fs::path dest_dir = strip_package_extension(m_tarball_path);
         bool dest_dir_exists = fs::exists(dest_dir);
 

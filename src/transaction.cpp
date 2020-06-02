@@ -1,4 +1,3 @@
-#include <iostream>
 #include <thread>
 
 #include "transaction.hpp"
@@ -818,6 +817,6 @@ namespace mamba
         to_human_readable_filesize(summary, total_size);
         summary << "\n";
         t.add_row({ summary.str() });
-        t.print(std::cout);
+        t.print();
     }
 }

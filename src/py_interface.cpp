@@ -73,37 +73,12 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("solve", &MSolver::solve)
     ;
 
-    /*py::class_<Query>(m, "Query")
+    py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
         .def("find", &Query::find)
         .def("whoneeds", &Query::whoneeds)
         .def("depends", &Query::depends)
-    ;*/
-
-    py::class_<Query>(m, "Query")
-        .def(py::init<MPool&>())
-        .def("find", [](const Query& q, const std::string& query)
-            {
-                if (Context::instance().json)
-                    std::cout << q.find(query).groupby("name").json().dump(4);
-                else
-                    q.find(query).groupby("name").table(std::cout);
-            })
-        .def("whoneeds", [](const Query& q, const std::string& query, bool tree)
-            {
-                QueryResult res = q.whoneeds(query, tree);
-                if (tree | Context::instance().json)
-                    std::cout << res.json().dump(4);
-                else
-                    res.table(std::cout);
-            })
-        .def("depends", [](const Query& q, const std::string& query)
-            {
-                if (Context::instance().json)
-                    std::cout << q.depends(query).json().dump(4);
-                else
-                    q.depends(query).table(std::cout);
-            });
+    ;
 
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init<const std::string&, const std::string&, const std::string&>())

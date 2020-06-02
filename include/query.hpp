@@ -1,6 +1,7 @@
 #ifndef MAMBA_QUERY_HPP
 #define MAMBA_QUERY_HPP
 
+#include <deque>
 #include <functional>
 #include <map>
 #include <ostream>
@@ -55,9 +56,9 @@ namespace mamba
     {
     public:
 
-        using package_list = std::vector<PackageInfo>;
-        using package_view_list = std::vector<const PackageInfo*>;
-        using package_tree = tree_node<const PackageInfo*>;
+        using package_list = std::deque<PackageInfo>;
+        using package_view_list = std::vector<package_list::const_iterator>;
+        using package_tree = tree_node<package_list::const_iterator>;
         using package_tree_ptr = std::unique_ptr<package_tree>;
 
         QueryResult(QueryType type,

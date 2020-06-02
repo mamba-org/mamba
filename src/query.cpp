@@ -26,8 +26,10 @@ namespace mamba
 
             Id* reqp = s->repo->idarraydata + s->requires;
             Id req = *reqp;
-            PackageInfo* already_visited = nullptr;
-            PackageInfo* not_found = nullptr;
+            bool already_visited = false;
+            auto already_visited_iter = pkg_list.end();
+            bool not_found = false;
+            auto not_found_iter = pkg_list.end();
 
             while (req != 0) /* go through all requires */
             {
@@ -55,7 +57,7 @@ namespace mamba
                     if (visited_solvs.count(rs) == 0)
                     {
                         pkg_list.push_back(PackageInfo(rs));
-                        QueryResult::package_tree next_node(&pkg_list.back());
+                        QueryResult::package_tree next_node(--pkg_list.end());
                         visited_solvs.insert(rs);
                         walk_graph(pkg_list, next_node, rs, visited_solvs);
                         parent.add_child(std::move(next_node));
@@ -65,9 +67,10 @@ namespace mamba
                         if (!already_visited)
                         {
                             pkg_list.push_back(PackageInfo(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m")));
-                            already_visited = &pkg_list.back();
+                            already_visited_iter = --pkg_list.end();
+                            already_visited = true;
                         }
-                        parent.add_child(already_visited);
+                        parent.add_child(already_visited_iter);
                     }
                 }
                 else
@@ -75,9 +78,10 @@ namespace mamba
                     if (!not_found)
                     {
                         pkg_list.push_back(PackageInfo(concat(pool_id2str(pool, req), " >>> NOT FOUND <<<")));
-                        not_found = &pkg_list.back();
+                        not_found_iter = --pkg_list.end();
+                        not_found = true;
                     }
-                    parent.add_child(not_found);
+                    parent.add_child(not_found_iter);
                 }
                 queue_free(&rec_solvables);
                 ++reqp;
@@ -99,7 +103,8 @@ namespace mamba
             queue_init(&solvables);
 
             pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, &solvables, -1);
-            PackageInfo* already_visited = nullptr;
+            bool already_visited = false;
+            auto already_visited_iter = pkg_list.end();
 
             if (solvables.count != 0)
             {
@@ -110,7 +115,7 @@ namespace mamba
                     if (visited_solvs.count(rs) == 0)
                     {
                         pkg_list.push_back(PackageInfo(rs));
-                        QueryResult::package_tree next_node(&pkg_list.back());
+                        QueryResult::package_tree next_node(--pkg_list.end());
                         visited_solvs.insert(rs);
                         reverse_walk_graph(pkg_list, next_node, rs, visited_solvs);
                         parent.add_child(std::move(next_node));
@@ -120,9 +125,10 @@ namespace mamba
                         if (!already_visited)
                         {
                             pkg_list.push_back(PackageInfo(concat("\033[2m", pool_id2str(pool, rs->name), " already visited", "\033[00m")));
-                            already_visited = &pkg_list.back();
+                            already_visited_iter = --pkg_list.end();
+                            already_visited = true;
                         }
-                        parent.add_child(already_visited);
+                        parent.add_child(already_visited_iter);
                     }
                 }
                 queue_free(&solvables);
@@ -158,7 +164,6 @@ namespace mamba
 
         selection_solvables(m_pool.get(), &job, &solvables);
         QueryResult::package_list pkg_list;
-        pkg_list.reserve(solvables.count);
 
         Pool* pool = m_pool.get();
         std::sort(solvables.elements, solvables.elements + solvables.count, [pool](Id a, Id b) {
@@ -205,9 +210,8 @@ namespace mamba
             if (solvables.count > 0)
             {
                 Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-                pkg_list.reserve(solvables.count);
                 pkg_list.push_back(PackageInfo(latest));
-                root.reset(new QueryResult::package_tree(&pkg_list.back()));
+                root.reset(new QueryResult::package_tree(--pkg_list.end()));
                 std::set<Solvable*> visited { latest };
                 reverse_walk_graph(pkg_list, *root, latest, visited);
             }
@@ -261,9 +265,8 @@ namespace mamba
                 }
             }
 
-            pkg_list.reserve(solvables.count);
             pkg_list.push_back(PackageInfo(latest));
-            root.reset(new QueryResult::package_tree(&pkg_list.back()));
+            root.reset(new QueryResult::package_tree(--pkg_list.end()));
             std::set<Solvable*> visited { latest };
             walk_graph(pkg_list, *root, latest, visited);
         }
@@ -312,9 +315,9 @@ namespace mamba
         , m_ordered_pkg_list()
     {
         using std::swap;
-        auto offset_lbd = [&rhs, this](auto ptr)
+        auto offset_lbd = [&rhs, this](auto iter)
         {
-            return m_pkg_list.data() + (ptr - rhs.m_pkg_list.data());
+            return m_pkg_list.begin() + (iter - rhs.m_pkg_list.begin());
         };
 
         package_view_list tmp(rhs.m_pkg_view_list.size());
@@ -386,13 +389,13 @@ namespace mamba
             for (auto& entry: m_ordered_pkg_list)
             {
                 std::sort(entry.second.begin(), entry.second.end(),
-                    [fun](const auto* lhs, const auto* rhs) { return fun(*lhs, *rhs); });
+                    [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); });
             }
         }
         else
         {
             std::sort(m_pkg_view_list.begin(), m_pkg_view_list.end(),
-                [fun](const auto* lhs, const auto* rhs) { return fun(*lhs, *rhs); });
+                [fun](const auto& lhs, const auto& rhs) { return fun(*lhs, *rhs); });
         }
         if (p_pkg_tree)
         {
@@ -516,7 +519,7 @@ namespace mamba
 
     void QueryResult::update_pkg_node(package_tree& node, const package_list& src)
     {
-         node.m_value = m_pkg_list.data() + (node.m_value - src.data());
+         node.m_value = m_pkg_list.begin() + (node.m_value - src.begin());
          for (auto& child: node.m_children)
          {
              update_pkg_node(child, src);
@@ -525,16 +528,11 @@ namespace mamba
     
     void QueryResult::reset_pkg_view_list()
     {
-        std::transform
-        (
-            m_pkg_list.begin(),
-            m_pkg_list.end(),
-            m_pkg_view_list.begin(),
-            [](const auto& pkg)
-            {
-                return &pkg;
-            }
-        );
+        auto it = m_pkg_list.begin();
+        std::generate(m_pkg_view_list.begin(),
+                      m_pkg_view_list.end(),
+                      [&it]() { return it++; });
+
     }
 
     std::string QueryResult::get_package_repr(const PackageInfo& pkg) const
@@ -557,7 +555,7 @@ namespace mamba
         std::size_t size = node.m_children.size();
         for (std::size_t i = 0; i < size; ++i)
         {
-            std::string next_prefix = prefix + (is_last || is_root ? "  " : "| ");
+            std::string next_prefix = prefix + (is_last || is_root ? "  " : "│ ");
             print_tree_node(out, node.m_children[i], next_prefix, i == size - 1, false);
         }
     }

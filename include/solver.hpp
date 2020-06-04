@@ -55,6 +55,7 @@ namespace mamba
 
     private:
 
+        void add_channel_specific_job(const MatchSpec& ms);
         void preprocess_solve();
 
         std::vector<std::pair<int, int>> m_flags;

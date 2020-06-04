@@ -15,6 +15,17 @@ namespace mamba
         pool_createwhatprovides(pool);
     }
 
+    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags, const PrefixData& prefix_data) :
+        m_is_solved(false),
+        m_pool(pool),
+        m_flags(flags),
+        m_solver(nullptr),
+        m_prefix_data(&prefix_data)
+    {
+        queue_init(&m_jobs);
+        pool_createwhatprovides(pool);
+    }
+
     MSolver::~MSolver()
     {
         LOG_INFO << "Freeing solver.";
@@ -24,7 +35,7 @@ namespace mamba
         }
     }
 
-    void MSolver::add_channel_specific_job(const MatchSpec& ms)
+    void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
     {
         Pool* pool = m_pool;
         Queue selected_pkgs;
@@ -46,8 +57,93 @@ namespace mamba
         }
 
         Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
-        queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_ONE_OF, d);
+        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
         queue_free(&selected_pkgs);
+    }
+
+    void MSolver::add_reinstall_job(const MatchSpec& ms, int job_flag)
+    {
+        if (!m_prefix_data)
+        {
+            throw std::runtime_error("Solver needs PrefixData for reinstall jobs.");
+        }
+
+        Pool* pool = m_pool;
+        Id pkg_id;
+        Solvable* s;
+        bool found = false;
+
+        // 1. check if spec is already installed
+        Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
+        if (needle && m_pool->installed)
+        {
+            FOR_REPO_SOLVABLES(m_pool->installed, pkg_id, s)
+            {
+                if (s->name == needle)
+                {
+                    found = true;
+                    const auto& records = m_prefix_data->records();
+                    auto record = records.find(ms.name);
+                    std::string selected_channel;
+                    if (record != records.end())
+                    {
+                        selected_channel = record->second.channel;
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Could not retrieve the original channel.");
+                    }
+
+                    LOG_INFO << "Reinstall from channel " << selected_channel;
+
+                    Id repo_id;
+                    Repo* selected_repo;
+                    Repo* found_repo = nullptr;
+
+                    FOR_REPOS(repo_id, selected_repo)
+                    {
+                        std::cout << selected_repo->name << std::endl;
+                        if (ends_with(selected_repo->name, selected_channel))
+                        {
+                            found_repo = selected_repo;
+                        }
+                    }
+
+                    Queue q;
+                    queue_init(&q);
+                    if (found_repo)
+                    {
+                        Id other_pkg_id;
+                        Solvable* other_solvable;
+                        FOR_REPO_SOLVABLES(found_repo, other_pkg_id, other_solvable)
+                        {
+                            if (other_solvable->name == needle && other_solvable->evr == s->evr
+                                && strcmp(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR), 
+                                          solvable_lookup_str(other_solvable, SOLVABLE_BUILDFLAVOR)) == 0)
+                            {
+                                queue_push(&q, other_pkg_id);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Reinstalling, but original channel not activated? Looking for: " + selected_channel);
+                    }
+                    if (q.count == 0)
+                    {
+                        throw std::runtime_error("Trying to reinstall " + ms.conda_build_form() + " from " + selected_channel + " but package not available anymore?");
+                    }
+                    Id d = pool_queuetowhatprovides(pool, &q);
+                    queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
+                    queue_free(&q);
+                }
+            }
+        }
+        if (found == false)
+        {
+            Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
+            queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+        }
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -69,7 +165,11 @@ namespace mamba
                 {
                     throw std::runtime_error("Cannot erase a channel-specific package. (" + job + ")");
                 }
-                add_channel_specific_job(ms);
+                add_channel_specific_job(ms, job_flag);
+            }
+            else if (job_flag & SOLVER_INSTALL && force_reinstall)
+            {
+                add_reinstall_job(ms, job_flag);
             }
             else
             {
@@ -128,91 +228,9 @@ namespace mamba
         return m_remove_specs;
     }
 
-    void MSolver::preprocess_solve()
-    {
-        Pool* pool = m_pool;
-        if (force_reinstall)
-        {
-            std::cout << "Forcing reinstall!" << std::endl;
-            Id pkg_id;
-            Solvable* s;
-
-            for (auto& install_spec : m_install_specs)
-            {
-                // 1. check if spec is already installed
-                std::cout << "Checking " << install_spec.name << std::endl;
-                Id needle = pool_str2id(m_pool, install_spec.name.c_str(), 0);
-                if (needle && m_pool->installed)
-                {
-                    FOR_REPO_SOLVABLES(m_pool->installed, pkg_id, s)
-                    {
-                        if (s->name == needle)
-                        {
-                            std::cout << "Found installed package, now we need to fix the solvable" << std::endl;
-                            std::cout << "PKG ID: " << pkg_id << std::endl;
-                            const char* version = pool_id2str(pool, s->evr);
-                            const char* build_str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
-
-                            const char* selected_repo_name = "conda-forge/linux-64";
-
-                            Queue* q1 = new Queue();
-                            queue_init(q1);
-                            queue_push(q1, pkg_id);
-                            Id d2 = pool_queuetowhatprovides(pool, q1);
-                            queue_push2(&m_jobs, SOLVER_ERASE | SOLVER_SOLVABLE_ONE_OF, d2);
-                            // repo_free_solvable(m_pool->installed, pkg_id,);
-
-                            Id repo_id;
-                            Repo* selected_repo;
-                            Repo* found_repo = nullptr;
-                            // Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-
-                            FOR_REPOS(repo_id, selected_repo)
-                            {
-                                std::cout << selected_repo->name << std::endl;
-                                if (ends_with(selected_repo->name, "conda-forge/linux-64"))
-                                {
-                                    found_repo = selected_repo;
-                                }
-                            }
-                            std::cout << "Found repo" << selected_repo << std::endl;
-                            Queue* q = new Queue();
-                            queue_init(q);
-                            if (found_repo)
-                            {
-                                Id other_pkg_id;
-                                Solvable* other_solvable;
-                                FOR_REPO_SOLVABLES(found_repo, other_pkg_id, other_solvable)
-                                {
-                                    if (other_solvable->name == needle && other_solvable->evr == s->evr
-                                        && strcmp(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR), 
-                                                  solvable_lookup_str(other_solvable, SOLVABLE_BUILDFLAVOR)) == 0)
-                                    {
-                                        std::cout << "Pushing " << other_pkg_id << " to queue" << std::endl;
-                                        queue_push(q, other_pkg_id);
-                                    }
-                                }
-                            }
-
-                            Id d = pool_queuetowhatprovides(pool, q);
-                            queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_ONE_OF, d);
-                            // queue_free(&q);
-
-                            std::cout << install_spec.name << " " << version << ", " << build_str << std::endl;
-                            std::cout << "Channel : " << s->repo->name;
-
-                        }
-                    }
-                }
-            }
-        }
-        return;
-    }
-
     bool MSolver::solve()
     {
         bool success;
-        preprocess_solve();
         m_solver = solver_create(m_pool);
         set_flags(m_flags);
 

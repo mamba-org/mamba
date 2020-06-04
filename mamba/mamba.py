@@ -520,10 +520,12 @@ def install(args, parser, command='install'):
 
     repos = []
 
-    # add installed
-    if use_mamba_experimental:
+    if use_mamba_experimental or context.force_reinstall:
         prefix_data = api.PrefixData(context.target_prefix)
         prefix_data.load()
+
+    # add installed
+    if use_mamba_experimental:
         repo = api.Repo(pool, prefix_data)
         repos.append(repo)
     else:
@@ -536,21 +538,21 @@ def install(args, parser, command='install'):
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
-    # if context.force_reinstall:
-    #     solver_task = api.SOLVER_INSTALL | api.SOLVER_ERASE
-    #     solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
-
-    solver = api.Solver(pool, solver_options)
-    solver.add_jobs(mamba_solve_specs, solver_task)
-
-    if python_constraint:
-        solver.add_constraint(python_constraint)
+    if context.force_reinstall:
+        solver = api.Solver(pool, solver_options, prefix_data)
+    else:
+        solver = api.Solver(pool, solver_options)
 
     solver.set_postsolve_flags(
         [(api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS), 
          (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
          (api.MAMBA_FORCE_REINSTALL, context.force_reinstall)]
     )
+    solver.add_jobs(mamba_solve_specs, solver_task)
+
+    if python_constraint:
+        solver.add_constraint(python_constraint)
+
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())

@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "pool.hpp"
+#include "prefix_data.hpp"
 #include "match_spec.hpp"
 #include "output.hpp"
 
@@ -29,6 +30,7 @@ namespace mamba
     public:
 
         MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
+        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags, const PrefixData& prefix_data);
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
@@ -55,8 +57,8 @@ namespace mamba
 
     private:
 
-        void add_channel_specific_job(const MatchSpec& ms);
-        void preprocess_solve();
+        void add_channel_specific_job(const MatchSpec& ms, int job_flag);
+        void add_reinstall_job(const MatchSpec& ms, int job_flag);
 
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;
@@ -66,6 +68,7 @@ namespace mamba
         Solver* m_solver;
         Pool* m_pool;
         Queue m_jobs;
+        const PrefixData* m_prefix_data = nullptr;
     };
 }
 

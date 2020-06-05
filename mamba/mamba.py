@@ -137,7 +137,7 @@ def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=[]):
 
     lookup_dict = {}
     for _, c in index:
-        lookup_dict[str(c)] = c
+        lookup_dict[c.url(with_credentials=True)] = c
 
     for c, pkg in to_unlink:
         for i_rec in installed_pkg_recs:

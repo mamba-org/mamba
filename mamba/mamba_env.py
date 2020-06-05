@@ -83,7 +83,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     lookup_dict = {}
     for _, c in index:
-        lookup_dict[str(c)] = c
+        lookup_dict[c.url(with_credentials=True)] = c
 
     for c, pkg, jsn_s in to_link:
         sdir = lookup_dict[c]

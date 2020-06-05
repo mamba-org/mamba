@@ -330,6 +330,7 @@ def install(args, parser, command='install'):
     isupdate = bool(command == 'update')
     if isupdate:
         solver_task = api.SOLVER_UPDATE
+        solver_options.clear()
 
     if newenv:
         ensure_name_or_prefix(args, command)
@@ -480,7 +481,6 @@ def install(args, parser, command='install'):
                               "must supply command line package specs or --file")
 
     installed_names = [i_rec.name for i_rec in installed_pkg_recs]
-
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
@@ -502,7 +502,6 @@ def install(args, parser, command='install'):
                 else:
                     specs.append(MatchSpec(key))
 
-    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
         prefix_data = PrefixData(prefix)
         for s in args_packages:
             s = MatchSpec(s)
@@ -511,6 +510,18 @@ def install(args, parser, command='install'):
                                  "Use 'conda install' instead." % s)
             if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, s.name)
+
+    elif context.update_modifier == UpdateModifier.UPDATE_DEPS:
+        # find the deps for each package and add to the update job
+        # solver_task |= api.SOLVER_FORCEBEST
+        final_specs = specs
+        for spec in specs:
+            prec = installed_pkg_recs[installed_names.index(spec.name)]
+            for dep in prec.depends:
+                ms = MatchSpec(dep)
+                if ms.name != 'python':
+                    final_specs.append(MatchSpec(ms.name))
+        specs = set(final_specs)
 
     if newenv and args.clone:
         if args.packages:

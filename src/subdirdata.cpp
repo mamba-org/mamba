@@ -208,13 +208,12 @@ namespace mamba
             auto cache_age = check_cache(m_json_fn, now);
             auto solv_age = check_cache(m_solv_fn, now);
 
-            using fs_time_t = decltype(fs::last_write_time(fs::path()));
-            fs::last_write_time(m_json_fn, fs_time_t::clock::now());
+            fs::last_write_time(m_json_fn, now);
             LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
                      << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
             if(solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
             {
-                fs::last_write_time(m_solv_fn, fs_time_t::clock::now());
+                fs::last_write_time(m_solv_fn, now);
                 m_solv_cache_valid = true;
             }
 
@@ -275,6 +274,9 @@ namespace mamba
 
         temp_file.close();
         m_temp_file.reset(nullptr);
+        final_file.close();
+
+        fs::last_write_time(m_json_fn, fs::file_time_type::clock::now());
 
         return true;
     }

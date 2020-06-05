@@ -4,3 +4,4 @@ channels:
 dependencies:
     - python
     - beautifulsoup4
+    - libblas=*=*openblas

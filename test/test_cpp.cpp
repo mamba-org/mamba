@@ -138,6 +138,11 @@ namespace mamba
             EXPECT_EQ(ms.conda_build_form(), "foo 1.0 2");
             EXPECT_EQ(ms.str(), "foo==1.0=2");
         }
+        {
+            MatchSpec ms("libblas=*=*mkl");
+            EXPECT_EQ(ms.conda_build_form(), "libblas * *mkl");
+            // EXPECT_EQ(ms.str(), "foo==1.0=2");
+        }
     }
 
     TEST(history, user_request)

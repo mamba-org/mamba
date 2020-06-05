@@ -147,6 +147,11 @@ namespace mamba
         // if 'subdir' in brackets:
         //     subdir = brackets.pop('subdir')
 
+        // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is the repr of `libblas=*=*mkl`
+        if (spec_str.back() == '=')
+        {
+            spec_str.push_back('*');
+        }
         // TODO This is #6 of the spec parsing -- we still need to port the others!
         static std::regex version_build_re("([^ =<>!~]+)?([><!=~ ].+)?");
         std::smatch vb_match;
@@ -323,9 +328,16 @@ namespace mamba
             {
                 res << "=" + version.substr(0, version.size() - 2);
             }
-            else if (ends_with(version, "*"))
+            else if (version.back() == '*')
             {
-                res << "=" + version.substr(0, version.size() - 1);
+                if (version.size() == 1)
+                {
+                    res << "=*";
+                }
+                else
+                {
+                    res << "=" + version.substr(0, version.size() - 1);
+                }
             }
             else if (starts_with(version, "=="))
             {

@@ -279,7 +279,7 @@ namespace mamba
         queue_init(&pkgs);
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
-                    SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+                   SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
 
         transaction_classify(m_transaction, mode, &classes);
 
@@ -306,6 +306,7 @@ namespace mamba
                     case SOLVER_TRANSACTION_DOWNGRADED:
                     case SOLVER_TRANSACTION_UPGRADED:
                     case SOLVER_TRANSACTION_CHANGED:
+                    case SOLVER_TRANSACTION_REINSTALLED:
                         m_to_remove.push_back(s);
                         m_to_install.push_back(m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p));
                         break;
@@ -416,6 +417,7 @@ namespace mamba
                 case SOLVER_TRANSACTION_DOWNGRADED:
                 case SOLVER_TRANSACTION_UPGRADED:
                 case SOLVER_TRANSACTION_CHANGED:
+                case SOLVER_TRANSACTION_REINSTALLED:
                 {
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
                     Console::stream() << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
@@ -727,7 +729,6 @@ namespace mamba
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
         transaction_classify(m_transaction, mode, &classes);
-
         Id cls;
         for (int i = 0; i < classes.count; i += 4)
         {
@@ -745,7 +746,6 @@ namespace mamba
                     format_row(ignored, s, printers::format::yellow);
                     continue;
                 }
-
                 switch (cls)
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
@@ -753,6 +753,7 @@ namespace mamba
                         format_row(upgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
+                    case SOLVER_TRANSACTION_REINSTALLED:
                         format_row(changed, s, printers::format::red);
                         format_row(changed, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
                         break;
@@ -771,7 +772,7 @@ namespace mamba
                     case SOLVER_TRANSACTION_VENDORCHANGE:
                     case SOLVER_TRANSACTION_ARCHCHANGE:
                     default:
-                        LOG_WARNING << "Print case not handled: " << cls;
+                        LOG_ERROR << "Print case not handled: " << cls;
                         break;
                 }
             }

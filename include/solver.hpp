@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "pool.hpp"
+#include "prefix_data.hpp"
 #include "match_spec.hpp"
 #include "output.hpp"
 
@@ -18,8 +19,9 @@ extern "C"
     #include "solv/solverdebug.h"
 }
 
-#define MAMBA_NO_DEPS   0b0001
-#define MAMBA_ONLY_DEPS 0b0010
+#define MAMBA_NO_DEPS         0b0001
+#define MAMBA_ONLY_DEPS       0b0010
+#define MAMBA_FORCE_REINSTALL 0b0100
 
 namespace mamba
 {
@@ -27,7 +29,7 @@ namespace mamba
     {
     public:
 
-        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
+        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {}, const PrefixData* = nullptr);
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
@@ -50,10 +52,12 @@ namespace mamba
 
         bool only_deps = false;
         bool no_deps = false;
+        bool force_reinstall = false;
 
     private:
 
-        void preprocess_solve();
+        void add_channel_specific_job(const MatchSpec& ms, int job_flag);
+        void add_reinstall_job(MatchSpec& ms, int job_flag);
 
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;
@@ -63,6 +67,7 @@ namespace mamba
         Solver* m_solver;
         Pool* m_pool;
         Queue m_jobs;
+        const PrefixData* m_prefix_data = nullptr;
     };
 }
 

@@ -27,6 +27,7 @@ from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier,
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
+from conda.common.compat import on_win
 
 # create support
 from conda.common.path import paths_equal
@@ -346,7 +347,9 @@ def install(args, parser, command='install'):
 
     if not newenv:
         if isdir(prefix):
-            delete_trash(prefix)
+            if on_win:
+                delete_trash(prefix)
+
             if not isfile(join(prefix, 'conda-meta', 'history')):
                 if paths_equal(prefix, context.conda_prefix):
                     raise NoBaseEnvironmentError()
@@ -520,10 +523,12 @@ def install(args, parser, command='install'):
 
     repos = []
 
-    # add installed
-    if use_mamba_experimental:
+    if use_mamba_experimental or context.force_reinstall:
         prefix_data = api.PrefixData(context.target_prefix)
         prefix_data.load()
+
+    # add installed
+    if use_mamba_experimental:
         repo = api.Repo(pool, prefix_data)
         repos.append(repo)
     else:
@@ -536,16 +541,21 @@ def install(args, parser, command='install'):
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
-    solver = api.Solver(pool, solver_options)
+    if context.force_reinstall:
+        solver = api.Solver(pool, solver_options, prefix_data)
+    else:
+        solver = api.Solver(pool, solver_options)
+
+    solver.set_postsolve_flags(
+        [(api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS), 
+         (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
+         (api.MAMBA_FORCE_REINSTALL, context.force_reinstall)]
+    )
     solver.add_jobs(mamba_solve_specs, solver_task)
 
     if python_constraint:
         solver.add_constraint(python_constraint)
 
-    solver.set_postsolve_flags(
-        [(api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS), 
-         (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS)]
-    )
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())

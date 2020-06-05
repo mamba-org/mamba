@@ -104,10 +104,6 @@ namespace mamba
             build_number = n;
         }
 
-        auto check_char = [](const char* ptr) -> const char* {
-            return ptr ? ptr : "";
-        };
-
         Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
         if (solvable_lookup_str(s, real_repo_key))
         {

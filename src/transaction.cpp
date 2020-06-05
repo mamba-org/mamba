@@ -256,6 +256,8 @@ namespace mamba
             m_history_entry.remove = to_string_vec(solver.remove_specs());
         }
 
+        m_force_reinstall = solver.force_reinstall;
+
         init();
         // if no action required, don't even start logging them
         if (!empty())
@@ -307,6 +309,7 @@ namespace mamba
                     case SOLVER_TRANSACTION_UPGRADED:
                     case SOLVER_TRANSACTION_CHANGED:
                     case SOLVER_TRANSACTION_REINSTALLED:
+                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false) break;
                         m_to_remove.push_back(s);
                         m_to_install.push_back(m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p));
                         break;
@@ -419,6 +422,8 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
+                    if (ttype == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false) break;
+
                     Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
                     Console::stream() << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
@@ -754,6 +759,8 @@ namespace mamba
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
                     case SOLVER_TRANSACTION_REINSTALLED:
+                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false) break;
+
                         format_row(changed, s, printers::format::red);
                         format_row(changed, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
                         break;

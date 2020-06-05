@@ -111,11 +111,15 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
-            if (job_flag & SOLVER_INSTALL)
+            if (job_flag & SOLVER_UPDATE)
+            {
+                // ignore
+            }
+            else if (job_flag & SOLVER_INSTALL)
             {
                 m_install_specs.emplace_back(job);
             }
-            if (job_flag & SOLVER_ERASE)
+            else if (job_flag & SOLVER_ERASE)
             {
                 m_remove_specs.emplace_back(job);
             }

@@ -105,6 +105,8 @@ namespace mamba
         std::vector<Solvable*> m_to_install, m_to_remove;
         History::UserRequest m_history_entry;
         Transaction* m_transaction;
+
+        bool m_force_reinstall = false;
     };  
 }
 

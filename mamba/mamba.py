@@ -479,6 +479,8 @@ def install(args, parser, command='install'):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
 
+    installed_names = [i_rec.name for i_rec in installed_pkg_recs]
+
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
@@ -486,11 +488,14 @@ def install(args, parser, command='install'):
         pins = get_pinned_specs(prefix)
         pin_names = [p.name for p in pins]
 
-        for key, match_spec in history_dict.items():
+        # for key, match_spec in history_dict.items():
+        for key in installed_names:
+
             if key == 'python':
-                version = str(match_spec.version)
+                i = installed_names.index('python')
+                version = installed_pkg_recs[i].version
                 py_ver = ".".join(version.split(".")[:2]) + '.*'
-                specs.append(MatchSpec(name="python", version=py_ver))
+                # specs.append(MatchSpec(name="python", version=py_ver))
             else:
                 if key in pin_names:
                     specs.append(pins[key])
@@ -527,7 +532,6 @@ def install(args, parser, command='install'):
     # If yes, add the installed python to the specs to prevent updating it.
     python_constraint = None
     additional_specs = []
-    installed_names = [i_rec.name for i_rec in installed_pkg_recs]
 
     if 'python' not in spec_names:
         if 'python' in installed_names:
@@ -535,13 +539,7 @@ def install(args, parser, command='install'):
             version = installed_pkg_recs[i].version
             python_constraint = MatchSpec('python==' + version).conda_build_form()
 
-
-    # as a security feature this will _always_ attempt to upgrade certain packages
-    for a_pkg in [_.name for _ in context.aggressive_update_packages]:
-        if a_pkg in installed_names:
-            additional_specs.append(MatchSpec(a_pkg))
-
-    mamba_solve_specs = [s.__str__() for s in specs] + [s.conda_build_form() for s in additional_specs]
+    mamba_solve_specs = [s.__str__() for s in specs]
 
     pool = api.Pool()
 
@@ -576,6 +574,11 @@ def install(args, parser, command='install'):
          (api.MAMBA_FORCE_REINSTALL, context.force_reinstall)]
     )
     solver.add_jobs(mamba_solve_specs, solver_task)
+
+    # as a security feature this will _always_ attempt to upgrade certain packages
+    for a_pkg in [_.name for _ in context.aggressive_update_packages]:
+        if a_pkg in installed_names:
+            solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
 
     if python_constraint:
         solver.add_constraint(python_constraint)

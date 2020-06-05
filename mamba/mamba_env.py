@@ -53,10 +53,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
         channel_json.append((chan, subdir, priority, subpriority))
 
-    specs = [MatchSpec(s) for s in specs]
-    mamba_solve_specs = [s.conda_build_form() for s in specs]
-
-    print("\n\nLooking for: {}\n\n".format(mamba_solve_specs))
+    print("\n\nLooking for: {}\n\n".format(specs))
 
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
@@ -69,7 +66,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         repos.append(repo)
 
     solver = api.Solver(pool, solver_options)
-    solver.add_jobs(mamba_solve_specs, api.SOLVER_INSTALL)
+    solver.add_jobs(specs, api.SOLVER_INSTALL)
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())

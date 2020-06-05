@@ -45,7 +45,10 @@ namespace mamba
                 queue_push(&selected_pkgs, *wp);
             }
         }
-
+        if (selected_pkgs.count == 0)
+        {
+            LOG_ERROR << "Selected channel specific (or force-reinstall) job, but package is not available from channel. Solve job will fail.";
+        }
         Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
         queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
         queue_free(&selected_pkgs);

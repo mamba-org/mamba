@@ -392,6 +392,14 @@ def install(args, parser, command='install'):
 
     specs = []
 
+    index_args = {
+        'use_cache': args.use_index_cache,
+        'channel_urls': context.channels,
+        'unknown': args.unknown,
+        'prepend': not args.override_channels,
+        'use_local': args.use_local
+    }
+
     if args.file:
         file_specs = []
         for fpath in args.file:
@@ -407,6 +415,7 @@ def install(args, parser, command='install'):
 
     specs.extend(specs_from_args(args_packages, json=context.json))
 
+    # update channels from package specs (e.g. mychannel::mypackage adds mychannel)
     channels = [c for c in context.channels]
     for spec in specs:
         # CONDA TODO: correct handling for subdir isn't yet done
@@ -414,13 +423,7 @@ def install(args, parser, command='install'):
         if spec_channel and spec_channel not in channels:
             channels.append(spec_channel)
 
-    index_args = {
-        'use_cache': args.use_index_cache,
-        'channel_urls': channels,
-        'unknown': args.unknown,
-        'prepend': not args.override_channels,
-        'use_local': args.use_local
-    }
+    index_args['channel_urls'] = channels
 
     index = get_index(channel_urls=index_args['channel_urls'],
                       prepend=index_args['prepend'], platform=None,

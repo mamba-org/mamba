@@ -27,6 +27,7 @@ from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier,
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
+from conda.common.compat import on_win
 
 # create support
 from conda.common.path import paths_equal
@@ -346,7 +347,9 @@ def install(args, parser, command='install'):
 
     if not newenv:
         if isdir(prefix):
-            delete_trash(prefix)
+            if on_win:
+                delete_trash(prefix)
+
             if not isfile(join(prefix, 'conda-meta', 'history')):
                 if paths_equal(prefix, context.conda_prefix):
                     raise NoBaseEnvironmentError()

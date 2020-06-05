@@ -5,22 +5,12 @@
 
 namespace mamba
 {
-    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
+    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags, const PrefixData* prefix_data)
         : m_flags(flags)
         , m_is_solved(false)
         , m_solver(nullptr)
         , m_pool(pool)
-    {
-        queue_init(&m_jobs);
-        pool_createwhatprovides(pool);
-    }
-
-    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags, const PrefixData& prefix_data) :
-        m_is_solved(false),
-        m_pool(pool),
-        m_flags(flags),
-        m_solver(nullptr),
-        m_prefix_data(&prefix_data)
+        , m_prefix_data(prefix_data)
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
@@ -61,7 +51,7 @@ namespace mamba
         queue_free(&selected_pkgs);
     }
 
-    void MSolver::add_reinstall_job(const MatchSpec& ms, int job_flag)
+    void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
     {
         if (!m_prefix_data)
         {
@@ -69,19 +59,18 @@ namespace mamba
         }
 
         Pool* pool = m_pool;
-        Id pkg_id;
-        Solvable* s;
-        bool found = false;
 
         // 1. check if spec is already installed
         Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
         if (needle && m_pool->installed)
         {
+            Id pkg_id;
+            Solvable* s;
             FOR_REPO_SOLVABLES(m_pool->installed, pkg_id, s)
             {
                 if (s->name == needle)
                 {
-                    found = true;
+                    // the data about the channel is only in the prefix_data unfortunately
                     const auto& records = m_prefix_data->records();
                     auto record = records.find(ms.name);
                     std::string selected_channel;
@@ -94,56 +83,25 @@ namespace mamba
                         throw std::runtime_error("Could not retrieve the original channel.");
                     }
 
-                    LOG_INFO << "Reinstall from channel " << selected_channel;
-
-                    Id repo_id;
-                    Repo* selected_repo;
-                    Repo* found_repo = nullptr;
-
-                    FOR_REPOS(repo_id, selected_repo)
+                    MatchSpec modified_spec(ms);
+                    if (!ms.channel.empty() || !ms.version.empty() || !ms.build.empty())
                     {
-                        std::cout << selected_repo->name << std::endl;
-                        if (ends_with(selected_repo->name, selected_channel))
-                        {
-                            found_repo = selected_repo;
-                        }
+                        Console::stream() << ms.conda_build_form() << ": overriding channel, version and build from installed packages due to --force-reinstall.";
+                        ms.channel = "";
+                        ms.version = "";
+                        ms.build = "";
                     }
 
-                    Queue q;
-                    queue_init(&q);
-                    if (found_repo)
-                    {
-                        Id other_pkg_id;
-                        Solvable* other_solvable;
-                        FOR_REPO_SOLVABLES(found_repo, other_pkg_id, other_solvable)
-                        {
-                            if (other_solvable->name == needle && other_solvable->evr == s->evr
-                                && strcmp(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR), 
-                                          solvable_lookup_str(other_solvable, SOLVABLE_BUILDFLAVOR)) == 0)
-                            {
-                                queue_push(&q, other_pkg_id);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Reinstalling, but original channel not activated? Looking for: " + selected_channel);
-                    }
-                    if (q.count == 0)
-                    {
-                        throw std::runtime_error("Trying to reinstall " + ms.conda_build_form() + " from " + selected_channel + " but package not available anymore?");
-                    }
-                    Id d = pool_queuetowhatprovides(pool, &q);
-                    queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
-                    queue_free(&q);
+                    modified_spec.channel = selected_channel;
+                    modified_spec.version = check_char(pool_id2str(pool, s->evr));
+                    modified_spec.build = check_char(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR));
+                    LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel " << selected_channel;
+                    return add_channel_specific_job(modified_spec, job_flag);
                 }
             }
         }
-        if (found == false)
-        {
-            Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
-            queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
-        }
+        Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
+        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -152,11 +110,11 @@ namespace mamba
         {
             if (job_flag & SOLVER_INSTALL)
             {
-                m_install_specs.push_back(job);
+                m_install_specs.emplace_back(job);
             }
             if (job_flag & SOLVER_ERASE)
             {
-                m_remove_specs.push_back(job);
+                m_remove_specs.emplace_back(job);
             }
             MatchSpec ms(job);
             if (!ms.channel.empty())
@@ -169,10 +127,11 @@ namespace mamba
             }
             else if (job_flag & SOLVER_INSTALL && force_reinstall)
             {
-                add_reinstall_job(ms, job_flag);
+                add_reinstall_job(m_install_specs.back(), job_flag);
             }
             else
             {
+                // Todo remove double parsing?
                 Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
             }

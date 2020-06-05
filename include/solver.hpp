@@ -29,8 +29,7 @@ namespace mamba
     {
     public:
 
-        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
-        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags, const PrefixData& prefix_data);
+        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {}, const PrefixData* = nullptr);
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
@@ -58,7 +57,7 @@ namespace mamba
     private:
 
         void add_channel_specific_job(const MatchSpec& ms, int job_flag);
-        void add_reinstall_job(const MatchSpec& ms, int job_flag);
+        void add_reinstall_job(MatchSpec& ms, int job_flag);
 
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;

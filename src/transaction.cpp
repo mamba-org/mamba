@@ -727,10 +727,8 @@ namespace mamba
                          printers::FormattedString(cut_repo_name(channel)), dlsize_s});
         };
 
-        std::cout << "Going to print the transaction" << std::endl;
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
         transaction_classify(m_transaction, mode, &classes);
-        std::cout << "Classes count: " << classes.count << std::endl;
         Id cls;
         for (int i = 0; i < classes.count; i += 4)
         {
@@ -738,7 +736,6 @@ namespace mamba
             transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2],
                                       classes.elements[i + 3], &pkgs);
 
-            std::cout << "PKGS COUNT " << pkgs.count << std::endl;
             for (int j = 0; j < pkgs.count; j++)
             {
                 Id p = pkgs.elements[j];
@@ -749,7 +746,6 @@ namespace mamba
                     format_row(ignored, s, printers::format::yellow);
                     continue;
                 }
-                std::cout << "Got some packages, trying to figure out what is going on?! " << cls << std::endl;
                 switch (cls)
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
@@ -772,7 +768,6 @@ namespace mamba
                         format_row(installed, s, printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_IGNORE:
-                        LOG_ERROR << "Something is being ignored.";
                         break;
                     case SOLVER_TRANSACTION_VENDORCHANGE:
                     case SOLVER_TRANSACTION_ARCHCHANGE:

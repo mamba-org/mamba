@@ -855,7 +855,7 @@ def main(*args, **kwargs):
 
     args = tuple(ensure_text_type(s) for s in args)
 
-    if len(args) > 2 and args[1] == 'env' and args[2] == 'create':
+    if len(args) > 2 and args[1] == 'env' and args[2] in ('create', 'update'):
         # special handling for conda env create!
         from mamba import mamba_env
         return mamba_env.main()

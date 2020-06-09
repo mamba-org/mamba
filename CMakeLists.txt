@@ -41,7 +41,6 @@ include_directories(
 set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/activation.cpp
     ${CMAKE_SOURCE_DIR}/src/channel.cpp
-    ${CMAKE_SOURCE_DIR}/src/common_write.c
     ${CMAKE_SOURCE_DIR}/src/context.cpp
     ${CMAKE_SOURCE_DIR}/src/environments_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/fetch.cpp

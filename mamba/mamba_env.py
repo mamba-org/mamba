@@ -70,6 +70,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())
+        exit(1)
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
     transaction = api.Transaction(solver, package_cache)
@@ -116,4 +117,4 @@ conda.install = mamba_install
 def main():
     from conda_env.cli.main import main
     sys.argv = sys.argv[0:1] + sys.argv[2:]
-    main()
+    return main()

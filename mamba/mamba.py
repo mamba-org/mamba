@@ -57,7 +57,7 @@ import mamba.mamba_api as api
 from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
 
 log = getLogger(__name__)
-stderrlog = getLogger('mamba.stderr')
+stderrlog = getLogger('conda.stderr')
 
 banner = f"""
                   __    __    __    __

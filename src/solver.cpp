@@ -134,7 +134,7 @@ namespace mamba
             }
             else if (job_flag & SOLVER_INSTALL && force_reinstall)
             {
-                add_reinstall_job(m_install_specs.back(), job_flag);
+                add_reinstall_job(ms, job_flag);
             }
             else
             {

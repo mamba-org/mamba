@@ -21,10 +21,11 @@ from conda.misc import clone_env, explicit, touch_nonadmin
 from conda.common.serialize import json_dump
 from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
 from conda.core.subdir_data import SubdirData
+from conda.history import History
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier, DepsModifier
-from conda.core.solve import diff_for_unlink_link_precs
+from conda.core.solve import diff_for_unlink_link_precs, get_pinned_specs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
 from conda.common.compat import on_win
@@ -329,6 +330,7 @@ def install(args, parser, command='install'):
     isupdate = bool(command == 'update')
     if isupdate:
         solver_task = api.SOLVER_UPDATE
+        solver_options.clear()
 
     if newenv:
         ensure_name_or_prefix(args, command)
@@ -478,14 +480,28 @@ def install(args, parser, command='install'):
         raise CondaValueError("too few arguments, "
                               "must supply command line package specs or --file")
 
+    installed_names = [i_rec.name for i_rec in installed_pkg_recs]
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
-        # Note: History(prefix).get_requested_specs_map()
-        print("Currently, mamba can only update explicit packages! (e.g. mamba update numpy python ...)")
-        exit()
+        history_dict = History(prefix).get_requested_specs_map()
+        pins = get_pinned_specs(prefix)
+        pin_names = [p.name for p in pins]
 
-    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
+        # for key, match_spec in history_dict.items():
+        for key in installed_names:
+
+            if key == 'python':
+                i = installed_names.index('python')
+                version = installed_pkg_recs[i].version
+                py_ver = ".".join(version.split(".")[:2]) + '.*'
+                # specs.append(MatchSpec(name="python", version=py_ver))
+            else:
+                if key in pin_names:
+                    specs.append(pins[key])
+                else:
+                    specs.append(MatchSpec(key))
+
         prefix_data = PrefixData(prefix)
         for s in args_packages:
             s = MatchSpec(s)
@@ -494,6 +510,18 @@ def install(args, parser, command='install'):
                                  "Use 'conda install' instead." % s)
             if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, s.name)
+
+    elif context.update_modifier == UpdateModifier.UPDATE_DEPS:
+        # find the deps for each package and add to the update job
+        # solver_task |= api.SOLVER_FORCEBEST
+        final_specs = specs
+        for spec in specs:
+            prec = installed_pkg_recs[installed_names.index(spec.name)]
+            for dep in prec.depends:
+                ms = MatchSpec(dep)
+                if ms.name != 'python':
+                    final_specs.append(MatchSpec(ms.name))
+        specs = set(final_specs)
 
     if newenv and args.clone:
         if args.packages:
@@ -505,16 +533,18 @@ def install(args, parser, command='install'):
         print_activate(args.name if args.name else prefix)
         return
 
-    spec_names = [s.name for s in specs]
 
     if not (context.quiet or context.json):
-        print("\nLooking for: {}\n".format(spec_names))
+        print("\nLooking for: {}\n".format([str(s) for s in specs]))
+
+    spec_names = [s.name for s in specs]
 
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
     python_constraint = None
+    additional_specs = []
+
     if 'python' not in spec_names:
-        installed_names = [i_rec.name for i_rec in installed_pkg_recs]
         if 'python' in installed_names:
             i = installed_names.index('python')
             version = installed_pkg_recs[i].version
@@ -555,6 +585,11 @@ def install(args, parser, command='install'):
          (api.MAMBA_FORCE_REINSTALL, context.force_reinstall)]
     )
     solver.add_jobs(mamba_solve_specs, solver_task)
+
+    # as a security feature this will _always_ attempt to upgrade certain packages
+    for a_pkg in [_.name for _ in context.aggressive_update_packages]:
+        if a_pkg in installed_names:
+            solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
 
     if python_constraint:
         solver.add_constraint(python_constraint)

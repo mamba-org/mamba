@@ -31,7 +31,7 @@ import sys
 def mamba_install(prefix, specs, args, env, *_, **kwargs):
     # TODO: support all various ways this happens
     init_api_context()
-
+    api.Context().target_prefix = prefix
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = [chan for chan in env.channels if chan != 'nodefaults']
 
@@ -53,7 +53,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
         channel_json.append((chan, subdir, priority, subpriority))
 
-    print("\n\nLooking for: {}\n\n".format(specs))
+    if not (context.quiet or context.json):
+        print("\n\nLooking for: {}\n\n".format(specs))
 
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
@@ -74,13 +75,13 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
     transaction = api.Transaction(solver, package_cache)
+    if not (context.quiet or context.json):
+        transaction.print()
     mmb_specs, to_link, to_unlink = transaction.to_conda()
 
     specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
 
-    to_link_records, to_unlink_records = [], []
-
-    final_precs = IndexedSet(PrefixData(prefix).iter_records())
+    final_precs = IndexedSet()
 
     lookup_dict = {}
     for _, c in index:
@@ -90,7 +91,6 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         sdir = lookup_dict[c]
         rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
         final_precs.add(rec)
-        to_link_records.append(rec)
 
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
                                                           final_precs=IndexedSet(PrefixGraph(final_precs).graph),
@@ -113,6 +113,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     conda_transaction.execute()
 
 conda.install = mamba_install
+
+
 
 def main():
     from conda_env.cli.main import main

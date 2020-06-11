@@ -10,7 +10,7 @@ namespace validate
 {
     std::string sha256sum(const std::string& path)
     {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
+        std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
 
         SHA256_CTX sha256;
         SHA256_Init(&sha256);
@@ -29,16 +29,9 @@ namespace validate
             SHA256_Update(&sha256, buffer.data(), count);
         }
 
-        SHA256_Final(hash, &sha256);
+        SHA256_Final(hash.data(), &sha256);
 
-        std::stringstream out;
-        out.fill('0');
-        out << std::hex;
-        for(int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-            out << std::setw(2) << (int) hash[i];
-        }
-
-        return out.str();
+        return ::mamba::hex_string(hash);
     }
 
     std::string md5sum(const std::string& path)

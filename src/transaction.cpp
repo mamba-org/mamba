@@ -56,10 +56,17 @@ namespace mamba
         urls_txt << m_url << std::endl;
     }
 
-    bool PackageDownloadExtractTarget::validate_extract()
+    static std::mutex lookup_checksum_mutex;
+    std::string lookup_checksum(Solvable* s, Id checksum_type)
     {
         Id unused;
+        std::lock_guard<std::mutex> lock(lookup_checksum_mutex);
+        std::string chksum = check_char(solvable_lookup_checksum(s, checksum_type, &unused));
+        return chksum;
+    }
 
+    bool PackageDownloadExtractTarget::validate_extract()
+    {
         // Validation
         auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
         if (size_t(m_target->downloaded_size) != expected_size)
@@ -67,16 +74,16 @@ namespace mamba
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
-        const char* sha256_check = solvable_lookup_checksum(m_solv, SOLVABLE_CHECKSUM, &unused);
-        if (sha256_check != nullptr && !validate::sha256(m_tarball_path, sha256_check))
+        std::string sha256_check = lookup_checksum(m_solv, SOLVABLE_CHECKSUM);
+        if (!sha256_check.empty() && !validate::sha256(m_tarball_path, sha256_check))
         {
             LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
         else
         {
-            const char* md5_check = solvable_lookup_checksum(m_solv, SOLVABLE_PKGID, &unused);
-            if (md5_check != nullptr && !validate::md5(m_tarball_path, md5_check))
+            std::string md5_check = lookup_checksum(m_solv, SOLVABLE_PKGID);
+            if (!md5_check.empty() && !validate::md5(m_tarball_path, md5_check))
             {
                 LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path;
                 throw std::runtime_error("File not valid: MD5 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");

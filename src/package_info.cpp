@@ -86,6 +86,7 @@ namespace mamba
 
     PackageInfo::PackageInfo(Solvable* s)
     {
+        // Note: this function (especially the checksum part) is NOT YET threadsafe!
         Pool* pool = s->repo->pool;
         const char* str;
         int n;

@@ -62,9 +62,7 @@ namespace validate
 
     bool sha256(const std::string& path, const std::string& validation)
     {
-        auto sum = sha256sum(path);
-        LOG_INFO << path <<  ": SHA256 sum " << sum << " == " << validation;
-        return sum == validation;
+        return sha256sum(path) == validation;
     }
 
     bool md5(const std::string& path, const std::string& validation)

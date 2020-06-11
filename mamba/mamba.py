@@ -485,19 +485,19 @@ def install(args, parser, command='install'):
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
         history_dict = History(prefix).get_requested_specs_map()
-        pins = get_pinned_specs(prefix)
-        pin_names = [p.name for p in pins]
-
+        pins = {
+            pin.name: pin
+            for pin in get_pinned_specs(prefix)
+        }
         # for key, match_spec in history_dict.items():
         for key in installed_names:
-
             if key == 'python':
                 i = installed_names.index('python')
                 version = installed_pkg_recs[i].version
                 py_ver = ".".join(version.split(".")[:2]) + '.*'
                 # specs.append(MatchSpec(name="python", version=py_ver))
             else:
-                if key in pin_names:
+                if key in pins:
                     specs.append(pins[key])
                 else:
                     specs.append(MatchSpec(key))

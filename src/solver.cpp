@@ -111,9 +111,11 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
-            if (job_flag & SOLVER_UPDATE)
+            // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
+            // which are the flags for SOLVER_UPDATE
+            if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
             {
-                // ignore
+                // ignoring update specs here for now
             }
             else if (job_flag & SOLVER_INSTALL)
             {

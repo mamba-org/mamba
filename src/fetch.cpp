@@ -44,7 +44,13 @@ namespace mamba
 
         curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-        curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, Context::instance().read_timeout_secs);
+        // DO NOT SET TIMEOUT as it will also take into account multi-start time and it's just wrong
+        // curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, Context::instance().read_timeout_secs);
+
+        // if the request is slower than 30b/s for 60 seconds, cancel.
+        curl_easy_setopt(m_handle, CURLOPT_LOW_SPEED_TIME, 60L);
+        curl_easy_setopt(m_handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
+
         curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
 
         std::string& ssl_verify = Context::instance().ssl_verify;

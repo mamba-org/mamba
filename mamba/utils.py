@@ -82,6 +82,10 @@ def init_api_context(use_mamba_experimental=False):
     elif context.ssl_verify is not True:
         api_ctx.ssl_verify = context.ssl_verify
     api_ctx.target_prefix = context.target_prefix
+    api_ctx.root_prefix = context.root_prefix
+    api_ctx.conda_prefix = context.conda_prefix
+    api_ctx.pkgs_dirs = context.pkgs_dirs
+    api_ctx.envs_dirs = context.envs_dirs
 
     api_ctx.read_timeout_secs = int(round(context.remote_read_timeout_secs))
     api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))

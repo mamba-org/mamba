@@ -87,7 +87,7 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.pkgs_dirs = context.pkgs_dirs
     api_ctx.envs_dirs = context.envs_dirs
 
-    api_ctx.read_timeout_secs = int(round(context.remote_read_timeout_secs))
+    # api_ctx.read_timeout_secs = int(round(context.remote_read_timeout_secs))
     api_ctx.connect_timeout_secs = int(round(context.remote_connect_timeout_secs))
     api_ctx.max_retries = context.remote_max_retries
     api_ctx.retry_backoff = context.remote_backoff_factor

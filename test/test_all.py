@@ -1,4 +1,7 @@
 from distutils.version import StrictVersion
+from pathlib import Path
+from subprocess import STDOUT
+
 from utils import Environment, add_glibc_virtual_package, copy_channels_osx, run_mamba_conda
 
 import json
@@ -10,8 +13,9 @@ import uuid
 def test_install():
     add_glibc_virtual_package()
     copy_channels_osx()
+    test_folder = Path(__file__).parent
 
-    channels = ['./test/channel_b', './test/channel_a']
+    channels = [str(test_folder / 'channel_a'), str(test_folder / 'channel_b')]
     package = 'a'
     run_mamba_conda(channels, package)
 

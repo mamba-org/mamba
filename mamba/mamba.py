@@ -52,10 +52,12 @@ import mamba.mamba_api as api
 from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
 
 
-if sys.version_info < (3, 7):
+if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup('utf-8')[-1](sys.stdout)
-else:
+elif sys.version_info < (3, 7):
     sys.stdout.reconfigure(encoding='utf-8')
+else:
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderr')

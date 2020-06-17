@@ -52,7 +52,7 @@ import mamba.mamba_api as api
 from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
 
 
-if sys.version_info < (3, 0):
+if sys.version_info < (3, 7):
     sys.stdout = codecs.lookup('utf-8')[-1](sys.stdout)
 else:
     sys.stdout.reconfigure(encoding='utf-8')

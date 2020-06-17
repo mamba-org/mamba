@@ -4,27 +4,24 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 import sys, os
 
-from os.path import abspath, basename, exists, isdir, isfile, join
+from os.path import isdir, isfile, join
 
 from conda.cli import common as cli_common
 from conda.cli.main import generate_parser, init_loggers
 from conda.base.context import context
-from conda.core.index import calculate_channel_urls, check_whitelist, _supplement_index_with_system #, get_index
-from conda.models.channel import Channel, prioritize_channels
-from conda.models.records import PackageRecord
+from conda.core.index import _supplement_index_with_system
 from conda.models.match_spec import MatchSpec
-from conda.cli.main_list import list_packages
 from conda.core.prefix_data import PrefixData
-from conda.misc import clone_env, explicit, touch_nonadmin
+from conda.misc import explicit, touch_nonadmin
 from conda.common.serialize import json_dump
 from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
-from conda.core.subdir_data import SubdirData
 from conda.history import History
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import check_prefix, clone, print_activate
-from conda.base.constants import ChannelPriority, ROOT_ENV_NAME, UpdateModifier, DepsModifier
+from conda.base.constants import ChannelPriority, UpdateModifier, DepsModifier
 from conda.core.solve import diff_for_unlink_link_precs, get_pinned_specs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
@@ -32,11 +29,11 @@ from conda.common.compat import on_win
 
 # create support
 from conda.common.path import paths_equal
-from conda.exceptions import (CondaExitZero, CondaImportError, CondaOSError, CondaSystemExit,
+from conda.exceptions import (CondaExitZero, CondaOSError, CondaSystemExit,
                               CondaValueError, DirectoryNotACondaEnvironmentError, CondaEnvironmentError,
-                              DirectoryNotFoundError, DryRunExit, EnvironmentLocationNotFound,
+                              DryRunExit, EnvironmentLocationNotFound,
                               NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
-                              TooManyArgumentsError, UnsatisfiableError)
+                              TooManyArgumentsError)
 
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf, delete_trash, path_is_clean
@@ -47,14 +44,21 @@ from conda.models.prefix_graph import PrefixGraph
 
 from logging import getLogger
 
-import json
 import tempfile
-import logging
 
 import mamba
 import mamba.mamba_api as api
 
 from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
+
+
+if sys.version_info < (3, 2):
+    sys.stdout = codecs.lookup('utf-8')[-1](sys.stdout)
+elif sys.version_info < (3, 7):
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+else:
+    sys.stdout.reconfigure(encoding='utf-8')
+
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderr')

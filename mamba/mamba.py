@@ -4,6 +4,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import codecs
 import sys, os
 
 from os.path import abspath, basename, exists, isdir, isfile, join
@@ -55,6 +56,12 @@ import mamba
 import mamba.mamba_api as api
 
 from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
+
+
+if sys.version_info < (3, 0):
+    sys.stdout = codecs.lookup('utf-8')[-1](sys.stdout)
+else:
+    sys.stdout.reconfigure(encoding='utf-8')
 
 log = getLogger(__name__)
 stderrlog = getLogger('conda.stderr')

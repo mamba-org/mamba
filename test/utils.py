@@ -2,7 +2,6 @@ import subprocess
 import shutil
 import os
 import uuid
-from pathlib import Path
 
 
 def get_lines(std_pipe):
@@ -89,10 +88,9 @@ def run_mamba_conda(channels, package):
 
 def add_glibc_virtual_package():
     version = get_glibc_version()
-    test_folder = Path(__file__).parent
-    with open(test_folder / "channel_a" / "linux-64" / "repodata.tpl") as f:
+    with open('test/channel_a/linux-64/repodata.tpl') as f:
         repodata = f.read()
-    with open(test_folder / "channel_a" / "linux-64" / "repodata.json", 'w') as f:
+    with open('test/channel_a/linux-64/repodata.json', 'w') as f:
         if version is not None:
             glibc_placeholder = ', "__glibc=' + version + '"'
         else:
@@ -102,15 +100,11 @@ def add_glibc_virtual_package():
 
 
 def copy_channels_osx():
-    test_folder = Path(__file__).parent
     for channel in ['a', 'b']:
-        if not (test_folder / f'channel_{channel}' / 'osx-64').exists():
-            shutil.copytree(
-                test_folder / f'channel_{channel}' / 'linux-64',
-                test_folder / f'channel_{channel}' / 'osx-64'
-            )
-            with open(test_folder / f'channel_{channel}' / 'osx-64' / 'repodata.json') as f:
+        if not os.path.exists(f'test/channel_{channel}/osx-64'):
+            shutil.copytree(f'test/channel_{channel}/linux-64', f'test/channel_{channel}/osx-64')
+            with open(f'test/channel_{channel}/osx-64/repodata.json') as f:
                 repodata = f.read()
-            with open(test_folder / f'channel_{channel}' / 'osx-64' / 'repodata.json', 'w') as f:
+            with open(f'test/channel_{channel}/osx-64/repodata.json', 'w') as f:
                 repodata = repodata.replace('linux', 'osx')
                 f.write(repodata)

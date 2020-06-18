@@ -79,15 +79,21 @@ With the `--tree` (or `-t`) flag, you can get the same information in a tree.
 
 ### Development installation
 
-For the C++ tests, one needs Google Tests installed (e.g. `conda install gtest`).
+You first need to install the mamba dependencies:
+
+```bash
+conda install -c conda-forge python=3.7 pybind11 nlohmann_json cmake
+```
+
+For the C++ tests, you need Google Tests installed (e.g. `conda install gtest`).
 To build the program using CMake, the following line needs to be used:
 
-```
+```bash
 cmake .. \
-	-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-	-DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
-	-DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
-	-DENABLE_TESTS=ON
+  -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+  -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
+  -DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
+  -DENABLE_TESTS=ON
 ```
 
 ### Support us

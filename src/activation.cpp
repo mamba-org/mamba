@@ -173,7 +173,7 @@ namespace mamba
             return { prefix / "bin" };
         }
     }
-    
+
     std::vector<fs::path> Activator::get_clean_dirs()
     {
         // For isolation, running the conda test suite *without* env. var. inheritance
@@ -211,7 +211,7 @@ namespace mamba
             {
                 path = {
                     "C:\\Windows\\system32",
-                    "C:\\Windows", 
+                    "C:\\Windows",
                     "C:\\Windows\\System32\\Wbem",
                     "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
                 };
@@ -473,13 +473,13 @@ namespace mamba
             }
         }
 
-        for (auto& [k, v] : old_conda_environment_env_vars)
+        for (auto& env_var : old_conda_environment_env_vars)
         {
-            envt.unset_vars.push_back(k);
-            std::string save_var = std::string("__CONDA_SHLVL_") + std::to_string(new_conda_shlvl) + "_" + k; // % (new_conda_shlvl, env_var)
+            envt.unset_vars.push_back(env_var.first);
+            std::string save_var = std::string("__CONDA_SHLVL_") + std::to_string(new_conda_shlvl) + "_" + env_var.first; // % (new_conda_shlvl, env_var)
             if (m_env.find(save_var) != m_env.end())
             {
-                envt.export_vars.push_back({k, m_env[save_var]});
+                envt.export_vars.push_back({env_var.first, m_env[save_var]});
             }
         }
         return envt;
@@ -541,9 +541,9 @@ namespace mamba
         // [conda_environment_env_vars.pop(_) for _ in unset_env_vars]
 
         std::vector<std::string> clobbering_env_vars;
-        for (auto& [k, v] : conda_environment_env_vars)
+        for (auto& env_var : conda_environment_env_vars)
         {
-            if (m_env.find(k) != m_env.end()) clobbering_env_vars.push_back(k);
+            if (m_env.find(env_var.first) != m_env.end()) clobbering_env_vars.push_back(env_var.first);
         }
 
         for (const auto& v : clobbering_env_vars)
@@ -659,7 +659,7 @@ namespace mamba
         {
             out << "export PATH='" << env_transform.export_path << "'\n";
         }
-        
+
         for (const fs::path& ds : env_transform.deactivate_scripts)
         {
             out << ". " << ds << "\n";
@@ -761,7 +761,7 @@ namespace mamba
         return "";
     }
 
-    fs::path CmdExeActivator::hook_source_path() 
+    fs::path CmdExeActivator::hook_source_path()
     {
         return "";
     }
@@ -779,7 +779,7 @@ namespace mamba
         {
             out << "export PATH='" << env_transform.export_path << "'\n";
         }
-        
+
         for (const fs::path& ds : env_transform.deactivate_scripts)
         {
             out << "@CALL " << ds << "\n";
@@ -827,7 +827,7 @@ namespace mamba
         return "";
     }
 
-    fs::path PowerShellActivator::hook_source_path() 
+    fs::path PowerShellActivator::hook_source_path()
     {
         return Context::instance().root_prefix / "shell" / "condabin" / "mamba-hook.ps1";
     }
@@ -845,7 +845,7 @@ namespace mamba
         {
             out << "$Env:PATH =\"" << env_transform.export_path << "\"\n";
         }
-        
+
         for (const fs::path& ds : env_transform.deactivate_scripts)
         {
             out << ". " << ds << "\n";

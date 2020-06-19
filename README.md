@@ -1,8 +1,7 @@
 # mamba, an experiment to make conda faster
 
-[![Build Status](https://github.com/QuantStack/mamba/workflows/CI/badge.svg)](https://github.com/QuantStack/mamba/actions)
-
-**Still in BETA! Don't use mamba to install something in valuable environments!**
+[![Build Status](https://github.com/TheSnakePit/mamba/workflows/CI/badge.svg)](https://github.com/TheSnakePit/mamba/actions)
+[![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/QuantStack/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Mamba is a reimplementation of the bits which are somewhat slow in conda. Mamba uses:
 
@@ -98,6 +97,5 @@ cmake .. \
 
 ### Support us
 
-If you want to stay up to date with Mamba development, follow [@wuoulf](https://twitter.com/wuoulf) on Twitter.
 For questions, you can also join us on [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 

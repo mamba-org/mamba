@@ -534,7 +534,7 @@ namespace mamba
 
     std::string QueryResult::get_package_repr(const PackageInfo& pkg) const
     {
-        return pkg.name + '[' + pkg.version + '[';
+        return pkg.version.empty() ? pkg.name : pkg.name + '[' + pkg.version + ']';
     }
 
     void QueryResult::print_tree_node(std::ostream& out,

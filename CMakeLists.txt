@@ -27,6 +27,39 @@ set(MAMBA_REQUIRED_LIBS
     nlohmann_json::nlohmann_json
 )
 
+set(MAMBA_STATIC_LIBS
+
+    "libcurl.a"
+    "libssh2.a"
+
+    "libssl.a"
+    "libcrypto.a"
+
+    "libgssapi_krb5.a"
+    "libkrb5.a"
+    "libk5crypto.a"
+    "libkrb5support.a"
+    "libcom_err.a"
+
+    "libarchive.a"
+
+    "libiconv.a"
+    "libbz2.a"
+    "liblz4.a"
+    "libzstd.a"
+    "libz.a"
+    "liblzma.a"
+    "liblzo2.a"
+
+    "libsolv.a"
+    "libsolvext.a"
+
+    "c"
+    "rt"
+    "dl"
+    "resolv"
+)
+
 message("Found libraries: ${MAMBA_REQUIRED_LIBS}")
 
 option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
@@ -64,8 +97,10 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/validate.cpp
 )
 
-add_library(mamba_lib ${MAMBA_SOURCES})
-target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+add_library(mamba_lib STATIC ${MAMBA_SOURCES})
+# target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+target_link_libraries(mamba_lib PUBLIC ${MAMBA_STATIC_LIBS} Threads::Threads)
+
 set_property(TARGET mamba_lib PROPERTY CXX_STANDARD 17)
 
 pybind11_add_module(mamba_api

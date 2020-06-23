@@ -12,6 +12,12 @@ endif()
 
 option(BUILD_EXE OFF)
 option(BUILD_BINDINGS ON)
+option(LINK_STATIC OFF)
+
+if (LINK_STATIC)
+    set(LibSolv_USE_STATIC_LIBS ON)
+
+endif()
 
 
 find_package(Threads REQUIRED)
@@ -31,38 +37,46 @@ set(MAMBA_REQUIRED_LIBS
     nlohmann_json::nlohmann_json
 )
 
-set(MAMBA_STATIC_LIBS
+if (LINK_STATIC)
 
-    "libcurl.a"
-    "libssh2.a"
+    set(MAMBA_STATIC_LIBS
 
-    "libgssapi_krb5.a"
-    "libkrb5.a"
-    "libk5crypto.a"
-    "libkrb5support.a"
-    "libcom_err.a"
+        libcurl.a
+        libssh2.a
 
-    "libssl.a"
-    "libcrypto.a"
+        libgssapi_krb5.a
+        libkrb5.a
+        libk5crypto.a
+        libkrb5support.a
+        libcom_err.a
 
-    "libarchive.a"
+        libssl.a
+        libcrypto.a
 
-    "libiconv.a"
-    "libbz2.a"
-    "liblz4.a"
-    "libzstd.a"
-    "libz.a"
-    "liblzma.a"
-    "liblzo2.a"
+        libarchive.a
 
-    "libsolv.a"
-    "libsolvext.a"
+        libiconv.a
+        libbz2.a
+        liblz4.a
+        libzstd.a
+        libz.a
+        liblzma.a
+        liblzo2.a
 
-    "c"
-    "rt"
-    "dl"
-    "resolv"
-)
+        libsolv.a
+        libsolvext.a
+    )
+
+    set (MAMBA_FORCE_DYNAMIC_LIBS
+        rt
+        dl
+        c
+        resolv
+    )
+
+    message("Found static libs: ${MAMBA_STATIC_LIBS}")
+endif()
+
 
 message("Found libraries: ${MAMBA_REQUIRED_LIBS}")
 
@@ -100,8 +114,11 @@ set(MAMBA_SOURCES
 )
 
 add_library(mamba_lib STATIC ${MAMBA_SOURCES})
-# target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
-target_link_libraries(mamba_lib PUBLIC ${MAMBA_STATIC_LIBS} Threads::Threads)
+if (LINK_STATIC)
+    target_link_libraries(mamba_lib PUBLIC ${MAMBA_STATIC_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS} Threads::Threads)
+else()
+    target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+endif()
 
 set_property(TARGET mamba_lib PROPERTY CXX_STANDARD 17)
 

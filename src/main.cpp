@@ -149,7 +149,8 @@ void init_shell_parser(CLI::App* subcom)
         }
         else
         {
-            throw std::runtime_error("Need an action (activate, deactivate or hook)");
+            std::cout << "Need an action (activate, deactivate or hook)";
+            exit(1);
         }
     });
 }
@@ -163,11 +164,13 @@ void install_specs(const std::vector<std::string>& specs)
 
     if (ctx.target_prefix.empty())
     {
-        throw std::runtime_error("No active prefix (run `mamba activate`).");
+        std::cout << "No active prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n";
+        exit(1);
     }
     if (!fs::exists(ctx.target_prefix))
     {
-        throw std::runtime_error("Prefix does not exist exists");
+        std::cout << "Prefix does not exist\n";
+        exit(1);
     }
 
     fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
@@ -258,7 +261,8 @@ void init_create_parser(CLI::App* subcom)
 
         if (fs::exists(ctx.target_prefix))
         {
-            throw std::runtime_error("Prefix already exists");
+            std::cout << "Prefix already exists";
+            exit(1);
         }
         else
         {
@@ -292,6 +296,11 @@ int main(int argc, char** argv)
     app.add_subcommand("deactivate", "Deactivate environment");
 
     CLI11_PARSE(app, argc, argv);
+
+    if (app.get_subcommands().size() == 0)
+    {
+        std::cout << app.help() << std::endl;
+    }
 
     return 0;
 }

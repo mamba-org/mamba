@@ -36,14 +36,14 @@ set(MAMBA_STATIC_LIBS
     "libcurl.a"
     "libssh2.a"
 
-    "libssl.a"
-    "libcrypto.a"
-
     "libgssapi_krb5.a"
     "libkrb5.a"
     "libk5crypto.a"
     "libkrb5support.a"
     "libcom_err.a"
+
+    "libssl.a"
+    "libcrypto.a"
 
     "libarchive.a"
 

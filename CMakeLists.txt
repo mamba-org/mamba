@@ -40,7 +40,6 @@ set(MAMBA_REQUIRED_LIBS
 if (LINK_STATIC)
 
     set(MAMBA_STATIC_LIBS
-
         libcurl.a
         libssh2.a
 
@@ -67,7 +66,7 @@ if (LINK_STATIC)
         libsolvext.a
     )
 
-    set (MAMBA_FORCE_DYNAMIC_LIBS
+    set(MAMBA_FORCE_DYNAMIC_LIBS
         rt
         dl
         c

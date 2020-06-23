@@ -2,6 +2,7 @@
 #include <CLI/CLI.hpp>
 
 #include "activation.hpp"
+#include "channel.hpp"
 #include "context.hpp"
 #include "repo.hpp"
 #include "transaction.hpp"
@@ -11,15 +12,13 @@
 #include "shell_init.hpp"
 
 const char banner[] = R"MAMBARAW(
-            _                                          _            
-           (_)                                        | |           
-  _ __ ___  _  ___ _ __ ___  _ __ ___   __ _ _ __ ___ | |__   __ _  
- | '_ ` _ \| |/ __| '__/ _ \| '_ ` _ \ / _` | '_ ` _ \| '_ \ / _` | 
- | | | | | | | (__| | | (_) | | | | | | (_| | | | | | | |_) | (_| | 
- |_| |_| |_|_|\___|_|  \___/|_| |_| |_|\__,_|_| |_| |_|_.__/ \__,_| 
+                                     __         
+    __  ______ ___  ____ _____ ___  / /_  ____ _
+   / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
+  / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ / 
+ / ____/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/  
+/_/                                         
 )MAMBARAW";
-
-
 
 using namespace mamba;
 
@@ -35,11 +34,75 @@ static struct {
     std::vector<std::string> specs;
     std::string prefix;
     std::string name;
+    std::vector<std::string> channels;
 } create_options;
+
+static struct {
+    bool ssl_verify = true;
+    std::string cacert_path;
+} network_options;
 
 static struct {
     int verbosity = 0;
 } global_options;
+
+
+void init_network_parser(CLI::App* subcom)
+{
+    subcom->add_option("--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
+    subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
+}
+
+void set_network_options(Context& ctx)
+{
+    std::array<std::string, 6> cert_locations {
+        "/etc/ssl/certs/ca-certificates.crt",                // Debian/Ubuntu/Gentoo etc.
+        "/etc/pki/tls/certs/ca-bundle.crt",                  // Fedora/RHEL 6
+        "/etc/ssl/ca-bundle.pem",                            // OpenSUSE
+        "/etc/pki/tls/cacert.pem",                           // OpenELEC
+        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
+        "/etc/ssl/cert.pem",                                 // Alpine Linux
+    };
+
+    // ssl verify can be either an empty string (regular SSL verification),
+    // the string "<false>" to indicate no SSL verification, or a path to
+    // a directory with cert files, or a cert file.
+    if (network_options.ssl_verify == false)
+    {
+        ctx.ssl_verify = "<false>";
+    }
+    else if (!network_options.cacert_path.empty())
+    {
+        ctx.ssl_verify = network_options.cacert_path;
+    }
+    else
+    {
+        for (const auto& loc : cert_locations)
+        {
+            if (fs::exists(loc))
+            {
+                ctx.ssl_verify = loc;
+            }
+        }
+        if (ctx.ssl_verify.empty())
+        {
+            LOG_WARNING << "No ca certificates found, disabling SSL verification";
+            ctx.ssl_verify = "<false>";
+        }
+    }
+}
+
+void init_channel_parser(CLI::App* subcom)
+{
+    subcom->add_option("-c,--channel", create_options.channels) \
+          ->type_size(1, 1) \
+          ->allow_extra_args(false);
+}
+
+void set_channels(Context& ctx)
+{
+    ctx.channels = create_options.channels;
+}
 
 void init_shell_parser(CLI::App* subcom)
 {
@@ -86,7 +149,8 @@ void init_shell_parser(CLI::App* subcom)
         }
         else
         {
-            throw std::runtime_error("Need an action (activate, deactivate or hook)");
+            std::cout << "Need an action (activate, deactivate or hook)";
+            exit(1);
         }
     });
 }
@@ -100,52 +164,67 @@ void install_specs(const std::vector<std::string>& specs)
 
     if (ctx.target_prefix.empty())
     {
-        throw std::runtime_error("No active prefix (run `mamba activate`).");
+        std::cout << "No active prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n";
+        exit(1);
     }
     if (!fs::exists(ctx.target_prefix))
     {
-        throw std::runtime_error("Prefix does not exist exists");
+        std::cout << "Prefix does not exist\n";
+        exit(1);
     }
 
     fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
     fs::create_directories(cache_dir);
 
-    MSubdirData cfl("conda-forge/linux-64",
-                    "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
-                    cache_dir / "cf_linux64.json");
-    MSubdirData cfn("conda-forge/noarch",
-                    "https://conda.anaconda.org/conda-forge/noarch/repodata.json",
-                    cache_dir / "cf_noarch.json");
-    cfl.load();
-    cfn.load();
+    std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
+    std::vector<std::shared_ptr<MSubdirData>> subdirs;
     MultiDownloadTarget multi_dl;
-    multi_dl.add(cfl.target());
-    multi_dl.add(cfn.target());
+
+    for (auto& url : channel_urls)
+    {
+        auto& channel = make_channel(url);
+        std::string full_url = concat(channel.url(true), "/repodata.json");
+
+        auto sdir = std::make_shared<MSubdirData>(
+            concat(channel.name(), "/", channel.platform()),
+            full_url,
+            cache_dir / cache_fn_url(full_url)
+        );
+
+        sdir->load();
+        multi_dl.add(sdir->target());
+        subdirs.push_back(sdir);
+    }
     multi_dl.download(true);
 
-    std::vector<MRepo*> repos;
+    std::vector<MRepo> repos;
     MPool pool;
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
     auto repo = MRepo(pool, prefix_data);
-    repos.push_back(&repo);
+    repos.push_back(repo);
 
-    MRepo cfl_r = cfl.create_repo(pool);
-    cfl_r.set_priority(0, 1);
-    repos.push_back(&cfl_r);
-
-    MRepo cfl_n = cfn.create_repo(pool);
-    cfl_n.set_priority(0, 0);
-    repos.push_back(&cfl_n);
+    int prio_counter = subdirs.size();
+    for (auto& subdir : subdirs)
+    {
+        MRepo repo = subdir->create_repo(pool);
+        repo.set_priority(prio_counter--, 0);
+        repos.push_back(repo);
+    }
 
     MSolver solver(pool, {{SOLVER_FLAG_ALLOW_DOWNGRADE, 1}});
     solver.add_jobs(create_options.specs, SOLVER_INSTALL);
-    // solver.add_jobs({"xtensor"}, SOLVER_UPDATE);
     solver.solve();
 
     mamba::MultiPackageCache package_caches({ctx.root_prefix / "pkgs"});
     mamba::MTransaction trans(solver, package_caches);
-    bool yes = trans.prompt(ctx.root_prefix / "pkgs", repos);
+
+    // TODO this is not so great
+    std::vector<MRepo*> repo_ptrs;
+    for (auto& r : repos) { repo_ptrs.push_back(&r); }
+
+    std::cout << std::endl;
+    bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
     if (!yes) exit(0);
 
     trans.execute(prefix_data, ctx.root_prefix / "pkgs");
@@ -154,16 +233,22 @@ void install_specs(const std::vector<std::string>& specs)
 void init_install_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
+    init_network_parser(subcom);
+    init_channel_parser(subcom);
+
     subcom->callback([&]() {
+        set_network_options(Context::instance());
+        set_channels(Context::instance());
         install_specs(create_options.specs);
     });
 }
-
 
 void init_create_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
+    init_network_parser(subcom);
+    init_channel_parser(subcom);
     // subcom->add_option("-n,--name" create_options.name, "Prefix name");
 
     subcom->callback([&]() {
@@ -171,9 +256,13 @@ void init_create_parser(CLI::App* subcom)
         ctx.set_verbosity(global_options.verbosity);
         ctx.target_prefix = create_options.prefix;
 
+        set_network_options(ctx);
+        set_channels(ctx);
+
         if (fs::exists(ctx.target_prefix))
         {
-            throw std::runtime_error("Prefix already exists");
+            std::cout << "Prefix already exists";
+            exit(1);
         }
         else
         {
@@ -202,7 +291,16 @@ int main(int argc, char** argv)
     CLI::App* install_subcom = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
 
+    // just for the help text
+    app.add_subcommand("activate", "Activate environment");
+    app.add_subcommand("deactivate", "Deactivate environment");
+
     CLI11_PARSE(app, argc, argv);
+
+    if (app.get_subcommands().size() == 0)
+    {
+        std::cout << app.help() << std::endl;
+    }
 
     return 0;
 }

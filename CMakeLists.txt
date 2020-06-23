@@ -10,6 +10,16 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 endif()
 
+option(BUILD_EXE OFF)
+option(BUILD_BINDINGS ON)
+option(LINK_STATIC OFF)
+
+if (LINK_STATIC)
+    set(LibSolv_USE_STATIC_LIBS ON)
+
+endif()
+
+
 find_package(Threads REQUIRED)
 find_library(LIBSOLV_LIBRARIES NAMES solv)
 find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
@@ -27,11 +37,49 @@ set(MAMBA_REQUIRED_LIBS
     nlohmann_json::nlohmann_json
 )
 
+if (LINK_STATIC)
+
+    set(MAMBA_STATIC_LIBS
+        libcurl.a
+        libssh2.a
+
+        libgssapi_krb5.a
+        libkrb5.a
+        libk5crypto.a
+        libkrb5support.a
+        libcom_err.a
+
+        libssl.a
+        libcrypto.a
+
+        libarchive.a
+
+        libiconv.a
+        libbz2.a
+        liblz4.a
+        libzstd.a
+        libz.a
+        liblzma.a
+        liblzo2.a
+
+        libsolv.a
+        libsolvext.a
+    )
+
+    set(MAMBA_FORCE_DYNAMIC_LIBS
+        rt
+        dl
+        c
+        resolv
+    )
+
+    message("Found static libs: ${MAMBA_STATIC_LIBS}")
+endif()
+
+
 message("Found libraries: ${MAMBA_REQUIRED_LIBS}")
 
 option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
-
-find_package(pybind11 REQUIRED)
 
 include_directories(
     include
@@ -64,17 +112,27 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/validate.cpp
 )
 
-add_library(mamba_lib ${MAMBA_SOURCES})
-target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+add_library(mamba_lib STATIC ${MAMBA_SOURCES})
+if (LINK_STATIC)
+    target_link_libraries(mamba_lib PUBLIC ${MAMBA_STATIC_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS} Threads::Threads)
+else()
+    target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+endif()
+
 set_property(TARGET mamba_lib PROPERTY CXX_STANDARD 17)
 
-pybind11_add_module(mamba_api
-    src/py_interface.cpp
-)
-target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba_lib)
-set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
+if (BUILD_BINDINGS)
+    find_package(pybind11 REQUIRED)
 
-option(BUILD_EXE OFF)
+    pybind11_add_module(mamba_api
+        src/py_interface.cpp
+    )
+    target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba_lib)
+    set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
+
+    install(TARGETS mamba_api
+            LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/mamba/)
+endif()
 
 if (BUILD_EXE)
     set(MAMBA_EXE
@@ -83,10 +141,10 @@ if (BUILD_EXE)
 
     add_executable(micromamba ${MAMBA_EXE})
     target_link_libraries(micromamba PUBLIC mamba_lib)
+
+    install(TARGETS micromamba)
 endif()
 
-install(TARGETS mamba_api
-        LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/mamba/)
 
 if (ENABLE_TESTS)
     add_subdirectory(test)

@@ -106,6 +106,7 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/pool.cpp
     ${CMAKE_SOURCE_DIR}/src/prefix_data.cpp
     ${CMAKE_SOURCE_DIR}/src/package_info.cpp
+    ${CMAKE_SOURCE_DIR}/src/package_paths.cpp
     ${CMAKE_SOURCE_DIR}/src/query.cpp
     ${CMAKE_SOURCE_DIR}/src/repo.cpp
     ${CMAKE_SOURCE_DIR}/src/solver.cpp

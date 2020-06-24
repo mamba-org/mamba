@@ -10,15 +10,11 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 option(BUILD_EXE OFF)
 option(BUILD_BINDINGS ON)
 option(LINK_STATIC OFF)
-
-if (LINK_STATIC)
-    set(LibSolv_USE_STATIC_LIBS ON)
-
-endif()
-
 
 find_package(Threads REQUIRED)
 find_library(LIBSOLV_LIBRARIES NAMES solv)
@@ -66,18 +62,25 @@ if (LINK_STATIC)
         libsolvext.a
     )
 
-    set(MAMBA_FORCE_DYNAMIC_LIBS
-        rt
-        dl
-        c
-        resolv
-    )
-
-    message("Found static libs: ${MAMBA_STATIC_LIBS}")
+    if (APPLE)
+        set (MAMBA_FORCE_DYNAMIC_LIBS resolv)
+        set(FINAL_LIBS "")
+        foreach(LIB ${MAMBA_STATIC_LIBS})
+            set(TMP_LIB "TMP_LIB-NOTFOUND")
+            find_library(TMP_LIB "${LIB}")
+            list(APPEND FINAL_LIBS "${TMP_LIB}")
+        endforeach(LIB)
+        set (MAMBA_STATIC_LIBS "${FINAL_LIBS}")
+    elseif (UNIX)
+        set(MAMBA_FORCE_DYNAMIC_LIBS rt dl c resolv)
+    endif()
 endif()
 
-
-message("Found libraries: ${MAMBA_REQUIRED_LIBS}")
+if (LINK_STATIC)
+    message("Found libraries: ${MAMBA_STATIC_LIBS}")
+else ()
+    message("Found libraries: ${MAMBA_REQUIRED_LIBS}")
+endif ()
 
 option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
 
@@ -114,12 +117,10 @@ set(MAMBA_SOURCES
 
 add_library(mamba_lib STATIC ${MAMBA_SOURCES})
 if (LINK_STATIC)
-    target_link_libraries(mamba_lib PUBLIC ${MAMBA_STATIC_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS} Threads::Threads)
+    target_link_libraries(mamba_lib PUBLIC "${MAMBA_STATIC_LIBS}" ${MAMBA_FORCE_DYNAMIC_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
 else()
     target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
 endif()
-
-set_property(TARGET mamba_lib PROPERTY CXX_STANDARD 17)
 
 if (BUILD_BINDINGS)
     find_package(pybind11 REQUIRED)

@@ -117,7 +117,7 @@ void init_shell_parser(CLI::App* subcom)
     subcom->add_option("action", shell_options.action, "activate, deactivate or hook");
     // TODO add custom validator here!
     subcom->add_option("-p,--prefix", shell_options.prefix, 
-                       "The root prefix to configure (for init and hook), and the prefix"
+                       "The root prefix to configure (for init and hook), and the prefix "
                        "to activate for activate, either by name or by path");
 
     subcom->callback([&]() {
@@ -292,8 +292,11 @@ int main(int argc, char** argv)
     init_install_parser(install_subcom);
 
     // just for the help text
-    app.add_subcommand("activate", "Activate environment");
-    app.add_subcommand("deactivate", "Deactivate environment");
+    app.footer(R"MRAW(To activate environments, use
+    $ micromamba activate -p PATH/TO/PREFIX
+to deactivate, use micromamba deactivate.
+For this functionality to work, you need to initialize your shell with $ ./micromamba shell init
+)MRAW");
 
     CLI11_PARSE(app, argc, argv);
 

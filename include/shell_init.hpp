@@ -42,7 +42,7 @@ namespace mamba
     {
         #ifdef _WIN32
         DWORD size;
-        std::wstring buffer(MAX_PATH);
+        std::wstring buffer(MAX_PATH, '\0');
         size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
         if (size == 0)
         {
@@ -53,23 +53,23 @@ namespace mamba
             DWORD new_size = size;
             do {
                 new_size *= 2;
-                buffer.reserver(new_size);
+                buffer.reserve(new_size);
                 size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
             } while (new_size == size);
         }
         return fs::absolute(buffer);
         #elif defined(__APPLE__)
         uint32_t size = PATH_MAX;
-        std::string buffer(size);
-        if (_NSGetExecutablePath((char*)buffer.c_str(), &size) == -1)
+        std::vector<char> buffer(size);
+        if (_NSGetExecutablePath(buffer.data(), &size) == -1)
         {
             buffer.reserve(size);
-            if (!_NSGetExecutablePath((char*)buffer.c_str(), &size))
+            if (!_NSGetExecutablePath(buffer.data(), &size))
             {
                 throw std::runtime_error("Couldn't find location the mamba executable!");
             }
         }
-        return fs::absolute(buffer);
+        return fs::absolute(buffer.data());
         #else
             #if defined(__sun)
                 return fs::read_symlink("/proc/self/path/a.out");
@@ -180,6 +180,11 @@ namespace mamba
         {
             fs::path bashrc_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
             modify_rc_file(bashrc_path, conda_prefix, shell, mamba_exe);
+        }
+        else if (shell == "zsh")
+        {
+            fs::path zshrc_path = home / ".zshrc";
+            modify_rc_file(zshrc_path, conda_prefix, shell, mamba_exe);
         }
         else
         {

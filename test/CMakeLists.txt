@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.1)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
+message(STATUS "GTEST_BOTH_LIBRARIES = ${GTEST_BOTH_LIBRARIES}")
+
 set(TEST_SRCS
     test_channel.cpp
     test_cpp.cpp
@@ -13,6 +15,7 @@ set(TEST_SRCS
     test_string_methods.cpp
     test_environments_manager.cpp
     test_transfer.cpp
+    test_graph.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

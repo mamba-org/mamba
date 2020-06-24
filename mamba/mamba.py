@@ -366,7 +366,7 @@ def install(args, parser, command='install'):
                 # fall-through expected under normal operation
                 pass
         else:
-            if args.mkdir:
+            if hasattr(args, "mkdir") and args.mkdir:
                 try:
                     mkdir_p(prefix)
                 except EnvironmentError as e:

@@ -9,6 +9,7 @@
 #include "transaction.hpp"
 #include "match_spec.hpp"
 #include "transaction_context.hpp"
+#include "package_paths.hpp"
 
 namespace fs = ghc::filesystem;
 
@@ -46,7 +47,7 @@ public:
 
 private:
 
-    std::tuple<std::string, std::string> link_path(const nlohmann::json& path_data, bool noarch_python);
+    std::tuple<std::string, std::string> link_path(const PathData& path_data, bool noarch_python);
     std::vector<fs::path> compile_pyc_files(const std::vector<fs::path>& py_files);
     auto create_python_entry_point(const fs::path& path, const python_entry_point_parsed& entry_point);
 

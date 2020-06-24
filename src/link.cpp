@@ -575,9 +575,9 @@ namespace mamba
     {
     }
 
-    std::tuple<std::string, std::string> LinkPackage::link_path(const nlohmann::json& path_data, bool noarch_python)
+    std::tuple<std::string, std::string> LinkPackage::link_path(const PathData& path_data, bool noarch_python)
     {
-        std::string subtarget = path_data["_path"].get<std::string>();
+        std::string subtarget = path_data.path;
         LOG_INFO << "linking path " << subtarget;
         fs::path dst, rel_dst;
         if (noarch_python)
@@ -604,42 +604,40 @@ namespace mamba
             fs::remove(dst);
         }
 
-        std::string path_type = path_data["path_type"].get<std::string>();
+        // std::string path_type = path_data["path_type"].get<std::string>();
 
-        if (path_data.find("prefix_placeholder") != path_data.end())
+        if (!path_data.prefix_placeholder.empty())
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            std::string prefix_placeholder = path_data["prefix_placeholder"].get<std::string>();
             std::string new_prefix = m_context->target_prefix;
-            bool text_mode = path_data["file_mode"].get<std::string>() == "text";
 
             LOG_INFO << "copied file & replace prefix " << src << " -> " << dst;
             // TODO windows does something else here
             std::string buffer;
 
-            if (text_mode)
+            if (path_data.file_mode == FileMode::TEXT)
             {
                 buffer = read_contents(src, std::ios::in);
-                replace_all(buffer, prefix_placeholder, new_prefix);
+                replace_all(buffer, path_data.prefix_placeholder, new_prefix);
             }
             else
             {
-                assert(path_data["file_mode"].get<std::string>() == "binary");
+                assert(path_data.file_mode == FileMode::BINARY);
 
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
 
-                std::string padding(prefix_placeholder.size() - new_prefix.size(), '\0');
+                std::string padding(path_data.prefix_placeholder.size() - new_prefix.size(), '\0');
 
                 auto binary_replace = [&](std::size_t pos, std::size_t end, const std::string& suffix) {
                     std::string replacement = concat(new_prefix, suffix, padding);
                     buffer.replace(pos, end - pos, replacement);
                 };
 
-                std::size_t pos = buffer.find(prefix_placeholder);
+                std::size_t pos = buffer.find(path_data.prefix_placeholder);
                 while (pos != std::string::npos)
                 {
-                    std::size_t end = pos + prefix_placeholder.size();
+                    std::size_t end = pos + path_data.prefix_placeholder.size();
                     std::string suffix;
 
                     while (end < buffer.size() && buffer[end] != '\0')
@@ -649,11 +647,11 @@ namespace mamba
                     }
 
                     binary_replace(pos, end, suffix);
-                    pos = buffer.find(prefix_placeholder, end);
+                    pos = buffer.find(path_data.prefix_placeholder, end);
                 }
             }
 
-            std::ofstream fo(dst, text_mode ? std::ios::out : std::ios::out | std::ios::binary);
+            std::ofstream fo(dst, (path_data.file_mode == FileMode::TEXT) ? std::ios::out : std::ios::out | std::ios::binary);
             fo << buffer;
             fo.close();
 
@@ -662,19 +660,19 @@ namespace mamba
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 
-        if (path_type == "hardlink")
+        if (path_data.path_type == PathType::HARDLINK)
         {
             LOG_INFO << "hard linked " << src << " --> " << dst;
             fs::create_hard_link(src, dst);
         }
-        else if (path_type == "softlink")
+        else if (path_data.path_type == PathType::SOFTLINK)
         {
             LOG_INFO << "soft linked " << src << " -> " << dst;
             fs::copy_symlink(src, dst);
         }
         else
         {
-            throw std::runtime_error("Path type not implemented: " + path_type);
+            throw std::runtime_error(std::string("Path type not implemented: ") + std::to_string((int)path_data.path_type));
         }
         // TODO we could also use the SHA256 sum of the paths json
         return std::make_tuple(validate::sha256sum(dst), rel_dst);
@@ -729,11 +727,10 @@ namespace mamba
     bool LinkPackage::execute()
     {
         LOG_INFO << "Executing install for " << m_source;
-        nlohmann::json paths_json, index_json, out_json;
+        nlohmann::json index_json, out_json;
         LOG_WARNING << "Opening: " << m_source / "info" / "paths.json";
 
-        std::ifstream paths_file(m_source / "info" / "paths.json");
-        paths_file >> paths_json;
+        auto paths_data = read_paths(m_source);
 
         LOG_WARNING << "Opening: " << m_source / "info" / "repodata_record.json";
         std::ifstream repodata_f(m_source / "info" / "repodata_record.json");
@@ -765,12 +762,49 @@ namespace mamba
 
         std::vector<std::string> files_record;
 
-        for (auto& path : paths_json["paths"])
+        // for (auto& path : paths_json["paths"])
+        nlohmann::json paths_json = nlohmann::json::object();
+        paths_json["paths"] = nlohmann::json::array();
+        paths_json["paths_version"] = 1;
+        for (auto& path : paths_data)
         {
             auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
             files_record.push_back(final_path);
-            path["_path"] = final_path;
-            path["sha256_in_prefix"] = sha256_in_prefix;
+
+            nlohmann::json json_record = {
+                {"_path", final_path},
+                {"sha256_in_prefix", sha256_in_prefix}
+            };
+
+            if (!path.sha256.empty())
+            {
+                json_record["sha256"] = path.sha256;
+            }
+            if (path.path_type == PathType::SOFTLINK)
+            {
+                json_record["path_type"] = "softlink";
+            }
+            else if (path.path_type == PathType::HARDLINK)
+            {
+                json_record["path_type"] = "hardlink";
+            }
+            else if (path.path_type == PathType::DIRECTORY)
+            {
+                json_record["path_type"] = "directory";
+            }
+
+            if (path.no_link)
+            {
+                json_record["no_link"] = true;
+            }
+
+            if (path.size_in_bytes != 0)
+            {
+                // note: in conda this is the size in bytes _before_ prefix replacement
+                json_record["size_in_bytes"] = path.size_in_bytes;
+            }
+
+            paths_json["paths"].push_back(json_record);
         }
  
         std::string f_name = index_json["name"].get<std::string>() + "-" + 

@@ -122,8 +122,6 @@ else()
     target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
 endif()
 
-set_property(TARGET mamba_lib PROPERTY CXX_STANDARD 17)
-
 if (BUILD_BINDINGS)
     find_package(pybind11 REQUIRED)
 

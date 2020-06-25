@@ -744,12 +744,10 @@ namespace mamba
         return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.sh";
     }
 
-
     std::string CmdExeActivator::shell_extension()
     {
         return ".bat";
     }
-
 
     std::string CmdExeActivator::hook_preamble()
     {
@@ -773,6 +771,7 @@ namespace mamba
 
     std::string CmdExeActivator::script(const EnvironmentTransform& env_transform)
     {
+        TemporaryFile* tempfile_ptr = new TemporaryFile("mamba_act", ".bat");
         std::stringstream out;
 
         if (!env_transform.export_path.empty())
@@ -805,7 +804,10 @@ namespace mamba
             out << "@CALL " << p << "\n";
         }
 
-        return out.str();
+        std::ofstream out_file(tempfile_ptr->path());
+        out_file << out.str();
+        // note: we do not delete the tempfile ptr intentionally, so that the temp file stays
+        return tempfile_ptr->path().string();
     }
 
     std::string PowerShellActivator::shell_extension()

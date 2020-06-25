@@ -213,7 +213,7 @@ namespace util
   }
 
 #ifdef _MSC_VER
-  std::string get_last_error()
+  inline std::string get_last_error()
   {
     DWORD errorMessageID = ::GetLastError();
     if (errorMessageID == 0)
@@ -233,7 +233,7 @@ namespace util
     return message;
   }
 
-  FILE *file_from_handle(HANDLE h, const char *mode)
+  inline FILE *file_from_handle(HANDLE h, const char *mode)
   {
     int md;
     if (strcmp(mode, "w") == 0) {
@@ -261,7 +261,7 @@ namespace util
     return fp;
   }
 
-  void configure_pipe(HANDLE* read_handle, HANDLE* write_handle, HANDLE* child_handle)
+  inline void configure_pipe(HANDLE* read_handle, HANDLE* write_handle, HANDLE* child_handle)
   {
     SECURITY_ATTRIBUTES saAttr;
 

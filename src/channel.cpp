@@ -584,6 +584,7 @@ namespace mamba
                                                     const std::string& platform,
                                                     bool use_local)
     {
+        // TODO that doesn't seem very logical
         std::vector<std::string> platforms = platform.size()
                                            ? std::vector<std::string>({ platform, "noarch" })
                                            : Context::instance().platforms();

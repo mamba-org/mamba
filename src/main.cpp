@@ -12,12 +12,12 @@
 #include "shell_init.hpp"
 
 const char banner[] = R"MAMBARAW(
-                                     __         
-    __  ______ ___  ____ _____ ___  / /_  ____ _
-   / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-  / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ / 
- / ____/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/  
-/_/                                         
+                                           __
+          __  ______ ___  ____ _____ ___  / /_  ____ _
+         / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
+        / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
+       / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
+      /_/
 )MAMBARAW";
 
 using namespace mamba;
@@ -129,7 +129,7 @@ void set_channels(Context& ctx)
 void init_shell_parser(CLI::App* subcom)
 {
     subcom->add_option("-s,--shell", shell_options.shell_type, "A shell type (bash, fish, posix, powershell)");
-    subcom->add_option("--stack", shell_options.stack, 
+    subcom->add_option("--stack", shell_options.stack,
         "Stack the environment being activated on top of the previous active environment, "
         "rather replacing the current active environment with a new one. Currently, "
         "only the PATH environment variable is stacked. "
@@ -138,12 +138,20 @@ void init_shell_parser(CLI::App* subcom)
 
     subcom->add_option("action", shell_options.action, "activate, deactivate or hook");
     // TODO add custom validator here!
-    subcom->add_option("-p,--prefix", shell_options.prefix, 
+    subcom->add_option("-p,--prefix", shell_options.prefix,
                        "The root prefix to configure (for init and hook), and the prefix "
                        "to activate for activate, either by name or by path");
 
     subcom->callback([&]() {
-        auto activator = mamba::PosixActivator();
+        std::unique_ptr<Activator> activator;
+        if (shell_options.shell_type == "bash" || shell_options.shell_type == "zsh")
+        {
+            activator = std::make_unique<mamba::PosixActivator>();
+        }
+        else if (shell_options.shell_type == "cmd.exe")
+        {
+            activator = std::make_unique<mamba::CmdExeActivator>();
+        }
         if (shell_options.action == "init")
         {
             init_shell(shell_options.shell_type, shell_options.prefix);
@@ -151,7 +159,7 @@ void init_shell_parser(CLI::App* subcom)
         else if (shell_options.action == "hook")
         {
             Context::instance().root_prefix = shell_options.prefix;
-            std::cout << activator.hook();
+            std::cout << activator->hook();
         }
         else if (shell_options.action == "activate")
         {
@@ -159,15 +167,15 @@ void init_shell_parser(CLI::App* subcom)
             {
                 shell_options.prefix = Context::instance().root_prefix;
             }
-            std::cout << activator.activate(shell_options.prefix, shell_options.stack);
+            std::cout << activator->activate(shell_options.prefix, shell_options.stack);
         }
         else if (shell_options.action == "reactivate")
         {
-            std::cout << activator.reactivate();
+            std::cout << activator->reactivate();
         }
         else if (shell_options.action == "deactivate")
         {
-            std::cout << activator.deactivate();
+            std::cout << activator->deactivate();
         }
         else
         {
@@ -196,9 +204,18 @@ void install_specs(const std::vector<std::string>& specs)
     }
 
     fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
-    fs::create_directories(cache_dir);
+    try
+    {
+        fs::create_directories(cache_dir);
+    }
+    catch (...)
+    {
+        std::cout << "Could not create `pkgs/cache/` dirs" << std::endl;
+        exit(1);
+    }
 
     std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
+
     std::vector<std::shared_ptr<MSubdirData>> subdirs;
     MultiDownloadTarget multi_dl;
 

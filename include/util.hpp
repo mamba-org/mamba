@@ -165,6 +165,10 @@ namespace mamba
                      const std::string& search,
                      const std::string& replace);
 
+    void replace_all(std::wstring& data,
+                     const std::wstring& search,
+                     const std::wstring& replace);
+
     // Note: this function only works for non-unicode!
     std::string to_upper(const std::string_view& input);
     std::string to_lower(const std::string_view& input);

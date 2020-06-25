@@ -525,7 +525,7 @@ namespace mamba
             throw std::runtime_error("failed to execute pre/post link script for " + pkg_info.name);
         }
         return true;
-    } 
+    }
 
     UnlinkPackage::UnlinkPackage(const PackageInfo& pkg_info, TransactionContext* context)
         : m_pkg_info(pkg_info), m_specifier(m_pkg_info.str()), m_context(context)

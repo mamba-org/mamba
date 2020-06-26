@@ -43,14 +43,13 @@ namespace mamba
 
     struct PathData
     {
-
         std::string path;
         PathType path_type = PathType::UNDEFINED;
         std::string sha256;
         std::size_t size_in_bytes = 0;
 
         std::string prefix_placeholder;
-        FileMode file_mode = FileMode::UNDEFINED;
+        FileMode file_mode = FileMode::TEXT;
         bool no_link = false;
     };
 

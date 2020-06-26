@@ -74,7 +74,14 @@ namespace mamba
             if (j.find("file_mode") != j.end())
             {
                 // check if "text" or "binary"
-                return j["file_mode"].get<std::string>()[0] == 't' ? FileMode::TEXT : FileMode::BINARY;
+                if (j["file_mode"].get<std::string>()[0] == 't')
+                {
+                    return FileMode::TEXT;
+                }
+                else if (j["file_mode"].get<std::string>()[0] == 'b')
+                {
+                    return FileMode::BINARY;
+                }
             }
             return FileMode::UNDEFINED;
         };
@@ -83,9 +90,16 @@ namespace mamba
         {
             if (j.find("path_type") != j.end())
             {
+                // TODO find a DIRECTORY path type
                 // check if "text" or "binary"
-                return j["path_type"].get<std::string>()[0] == 's' ? PathType::SOFTLINK : PathType::HARDLINK;
-
+                if (j["path_type"].get<std::string>()[0] == 's')
+                {
+                    return PathType::SOFTLINK;
+                }
+                else if (j["path_type"].get<std::string>()[0] == 'h')
+                {
+                    return PathType::HARDLINK;
+                }
             }
             return PathType::UNDEFINED;
         };

@@ -32,7 +32,13 @@ that environment:
 For a local (dev) build, run `pip install -e .`. This will build and install mamba
 in the conda environment.
 
-Now you are ready to install packages with `mamba install xtensor-r -c conda-forge` for example.
+### Installing conda packages with `mamba`
+
+Now you are ready to install packages with
+```bash
+mamba install xtensor-r -c conda-forge
+```
+for example.
 
 ### Additional features
 

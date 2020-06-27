@@ -162,8 +162,11 @@ namespace mamba
     template <class V>
     inline void graph<T>::depth_first_search(V& visitor, node_id node) const
     {
-        color_list colors(m_node_list.size(), color::white);
-        depth_first_search_impl(visitor, node, colors);
+        if (!m_node_list.empty())
+        {
+            color_list colors(m_node_list.size(), color::white);
+            depth_first_search_impl(visitor, node, colors);
+        }
     }
 
     template <class T>

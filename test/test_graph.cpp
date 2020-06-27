@@ -115,5 +115,14 @@ namespace mamba
         EXPECT_EQ(vis.get_back_edge_map().find(2u)->second, 0u);
         EXPECT_TRUE(vis.get_cross_edge_map().empty());
     }
+
+    TEST(graph, dfs_empty)
+    {
+        graph<int> g;
+        test_visitor<graph<int>> vis;
+        g.depth_first_search(vis);
+        EXPECT_TRUE(vis.get_back_edge_map().empty());
+        EXPECT_TRUE(vis.get_cross_edge_map().empty());
+    }
 }
 

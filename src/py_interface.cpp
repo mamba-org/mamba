@@ -92,7 +92,8 @@ PYBIND11_MODULE(mamba_api, m) {
             })
         .def("whoneeds", [](const Query& q, const std::string& query, bool tree)
             {
-                QueryResult res = q.whoneeds(query, tree);
+                //QueryResult res = q.whoneeds(query, tree);
+                query_result res = q.whoneeds(query, tree);
                 if (tree)
                     res.tree(std::cout);
                 else if (Context::instance().json)

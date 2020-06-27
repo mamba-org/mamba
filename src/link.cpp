@@ -616,7 +616,7 @@ namespace mamba
             // TODO windows does something else here
             std::string buffer;
 
-            if (path_data.file_mode == FileMode::TEXT)
+            if (path_data.file_mode != FileMode::BINARY)
             {
                 buffer = read_contents(src, std::ios::in);
                 replace_all(buffer, path_data.prefix_placeholder, new_prefix);
@@ -651,7 +651,8 @@ namespace mamba
                 }
             }
 
-            std::ofstream fo(dst, (path_data.file_mode == FileMode::TEXT) ? std::ios::out : std::ios::out | std::ios::binary);
+            auto open_mode = (path_data.file_mode == FileMode::BINARY) ? std::ios::out | std::ios::binary : std::ios::out;
+            std::ofstream fo(dst, open_mode);
             fo << buffer;
             fo.close();
 

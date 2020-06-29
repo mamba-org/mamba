@@ -135,7 +135,12 @@ namespace mamba
                     {
                         p.no_link = true;
                     }
-                }                
+                }
+
+                if (jpath.find("prefix_placeholder") != jpath.end())
+                {
+                    p.prefix_placeholder = jpath["prefix_placeholder"];
+                }
 
                 res.push_back(std::move(p));
             }

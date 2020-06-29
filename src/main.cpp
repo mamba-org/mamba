@@ -44,6 +44,10 @@ static struct {
 
 static struct {
     int verbosity = 0;
+    bool always_yes = false;
+    bool quiet = false;
+    bool json = false;
+    bool offline = false;
 } global_options;
 
 
@@ -51,6 +55,15 @@ void init_network_parser(CLI::App* subcom)
 {
     subcom->add_option("--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
     subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
+}
+
+void init_global_parser(CLI::App* subcom)
+{
+    subcom->add_flag("-v,--verbose", global_options.verbosity, "Enbable verbose mode (higher verbosity with multiple -v, e.g. -vvv)");
+    subcom->add_flag("-q,--quiet", global_options.quiet, "Quiet mode (print less output)");
+    subcom->add_flag("-y,--yes", global_options.always_yes, "Automatically answer yes on all questions");
+    subcom->add_flag("--json", global_options.json, "Report all output as json");
+    subcom->add_flag("--offline", global_options.offline, "Force use cached repodata");
 }
 
 void set_network_options(Context& ctx)
@@ -90,6 +103,15 @@ void set_network_options(Context& ctx)
             ctx.ssl_verify = "<false>";
         }
     }
+}
+
+void set_global_options(Context& ctx)
+{
+    ctx.set_verbosity(global_options.verbosity);
+    ctx.quiet = global_options.quiet;
+    ctx.json = global_options.json;
+    ctx.always_yes = global_options.always_yes;
+    ctx.offline = global_options.offline;
 }
 
 void init_channel_parser(CLI::App* subcom)
@@ -157,10 +179,10 @@ void init_shell_parser(CLI::App* subcom)
 
 void install_specs(const std::vector<std::string>& specs)
 {
-    Console::print(banner);
-
     auto& ctx = Context::instance();
-    ctx.set_verbosity(global_options.verbosity);
+    set_global_options(ctx);
+
+    Console::print(banner);
 
     if (ctx.target_prefix.empty())
     {
@@ -219,6 +241,10 @@ void install_specs(const std::vector<std::string>& specs)
     mamba::MultiPackageCache package_caches({ctx.root_prefix / "pkgs"});
     mamba::MTransaction trans(solver, package_caches);
 
+    if (ctx.json)
+    {
+        trans.log_json();
+    }
     // TODO this is not so great
     std::vector<MRepo*> repo_ptrs;
     for (auto& r : repos) { repo_ptrs.push_back(&r); }
@@ -235,6 +261,7 @@ void init_install_parser(CLI::App* subcom)
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     init_network_parser(subcom);
     init_channel_parser(subcom);
+    init_global_parser(subcom);
 
     subcom->callback([&]() {
         set_network_options(Context::instance());
@@ -249,11 +276,11 @@ void init_create_parser(CLI::App* subcom)
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
     init_network_parser(subcom);
     init_channel_parser(subcom);
+    init_global_parser(subcom);
     // subcom->add_option("-n,--name" create_options.name, "Prefix name");
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
-        ctx.set_verbosity(global_options.verbosity);
         ctx.target_prefix = create_options.prefix;
 
         set_network_options(ctx);
@@ -279,8 +306,6 @@ void init_create_parser(CLI::App* subcom)
 int main(int argc, char** argv)
 {
     CLI::App app{banner};
-
-    app.add_flag("-v", global_options.verbosity, "Enbable verbose mode (higher verbosity with multiple -v, e.g. -vvv)");
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);

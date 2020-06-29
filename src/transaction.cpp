@@ -615,10 +615,6 @@ namespace mamba
 
     bool MTransaction::prompt(const std::string& cache_dir, std::vector<MRepo*>& repos)
     {
-        if (Context::instance().quiet && Context::instance().always_yes)
-        {
-            return true;
-        }
         print();
         if (Context::instance().dry_run || empty())
         {
@@ -635,6 +631,9 @@ namespace mamba
 
     void MTransaction::print()
     {
+        if (Context::instance().json)
+            return;
+
         Console::print("Transaction\n");
         Console::stream() << "  Prefix: " << Context::instance().target_prefix.string() << "\n";
 

@@ -43,10 +43,10 @@ namespace mamba
 
         std::vector<fs::path> get_activate_scripts(const fs::path& prefix);
         std::vector<fs::path> get_deactivate_scripts(const fs::path& prefix);
-        
+
         std::string get_default_env(const fs::path& prefix);
         std::vector<std::pair<std::string, std::string>> get_environment_vars(const fs::path& prefix);
-        
+
         std::string get_prompt_modifier(const fs::path& prefix,
                                         const std::string& conda_default_env,
                                         int old_conda_shlvl);
@@ -104,6 +104,8 @@ namespace mamba
     class CmdExeActivator
         : public Activator
     {
+    public:
+
         CmdExeActivator() = default;
         virtual ~CmdExeActivator() = default;
 
@@ -119,6 +121,7 @@ namespace mamba
     class PowerShellActivator
         : public Activator
     {
+    public:
         PowerShellActivator() = default;
         virtual ~PowerShellActivator() = default;
 

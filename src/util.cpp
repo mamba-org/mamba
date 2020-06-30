@@ -277,7 +277,8 @@ namespace mamba
         return result;
     }
 
-    void replace_all(std::string& data, const std::string& search, const std::string& replace)
+    template <class S>
+    void replace_all_impl(S& data, const S& search, const S& replace)
     {
         std::size_t pos = data.find(search);
         while (pos != std::string::npos)
@@ -285,6 +286,16 @@ namespace mamba
             data.replace(pos, search.size(), replace);
             pos = data.find(search, pos + replace.size());
         }
+    }
+
+    void replace_all(std::string& data, const std::string& search, const std::string& replace)
+    {
+        replace_all_impl<std::string>(data, search, replace);
+    }
+
+    void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace)
+    {
+        replace_all_impl<std::wstring>(data, search, replace);
     }
 
     std::string string_transform(const std::string_view& input, int (*functor)(int))

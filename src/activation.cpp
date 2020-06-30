@@ -263,6 +263,7 @@ namespace mamba
         // path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
         std::vector<fs::path> final_path = get_path_dirs(prefix);
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
+        final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
 
         std::string result = join(env::pathsep(), final_path);
         return result;
@@ -292,11 +293,14 @@ namespace mamba
         {
             final_path = get_path_dirs(new_prefix);
             final_path.insert(final_path.end(), current_path.begin(), current_path.end());
+            // remove duplicates
+            final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
             std::string result = join(env::pathsep(), final_path);
             return result;
         }
         else
         {
+            current_path.erase(std::unique(current_path.begin(), current_path.end()), current_path.end());
             std::string result = join(env::pathsep(), current_path);
             return result;
         }
@@ -744,12 +748,10 @@ namespace mamba
         return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.sh";
     }
 
-
     std::string CmdExeActivator::shell_extension()
     {
         return ".bat";
     }
-
 
     std::string CmdExeActivator::hook_preamble()
     {
@@ -773,6 +775,7 @@ namespace mamba
 
     std::string CmdExeActivator::script(const EnvironmentTransform& env_transform)
     {
+        TemporaryFile* tempfile_ptr = new TemporaryFile("mamba_act", ".bat");
         std::stringstream out;
 
         if (!env_transform.export_path.empty())
@@ -805,7 +808,10 @@ namespace mamba
             out << "@CALL " << p << "\n";
         }
 
-        return out.str();
+        std::ofstream out_file(tempfile_ptr->path());
+        out_file << out.str();
+        // note: we do not delete the tempfile ptr intentionally, so that the temp file stays
+        return tempfile_ptr->path().string();
     }
 
     std::string PowerShellActivator::shell_extension()
@@ -829,7 +835,7 @@ namespace mamba
 
     fs::path PowerShellActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "shell" / "condabin" / "mamba-hook.ps1";
+        return Context::instance().root_prefix / "condabin" / "mamba_hook.ps1";
     }
 
     std::pair<std::string, std::string> PowerShellActivator::update_prompt(const std::string& conda_prompt_modifier)
@@ -853,7 +859,7 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "Remove-Item Env:/" << uvar << "=\n";
+            out << "Remove-Item Env:/" << uvar << "\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)

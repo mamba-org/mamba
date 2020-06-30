@@ -42,8 +42,11 @@ def get_index(channel_urls=(), prepend=True, platform=None,
         full_path_cache = os.path.join(
             api.create_cache_dir(),
             api.cache_fn_url(full_url))
-
-        sd = api.SubdirData(channel.name + '/' + channel.subdir,
+        if channel.name:
+            channel_name = channel.name + '/' + channel.subdir
+        else:
+            channel_name = channel.url(with_credentials=False)
+        sd = api.SubdirData(channel_name,
                             full_url,
                             full_path_cache)
 

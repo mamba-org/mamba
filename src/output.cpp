@@ -11,6 +11,7 @@
 
 #include "output.hpp"
 #include "util.hpp"
+#include "url.hpp"
 
 namespace mamba
 {
@@ -230,17 +231,21 @@ namespace mamba
         Console::instance().deactivate_progress_bar(m_idx, final_message);
     }
 
-    std::string cut_repo_name(const std::string_view& reponame)
+    std::string cut_repo_name(const std::string& full_url)
     {
-        if (starts_with(reponame, "https://conda.anaconda.org/"))
+        std::string remaining_url, scheme, auth, token;
+        // TODO maybe add some caching...
+        split_scheme_auth_token(full_url, remaining_url, scheme, auth, token);
+
+        if (starts_with(remaining_url, "conda.anaconda.org/"))
         {
-            return reponame.substr(27, std::string::npos).data();
+            return remaining_url.substr(19, std::string::npos).data();
         }
-        if (starts_with(reponame, "https://repo.anaconda.com/"))
+        if (starts_with(remaining_url, "repo.anaconda.com/"))
         {
-            return reponame.substr(26, std::string::npos).data();
+            return remaining_url.substr(18, std::string::npos).data();
         }
-        return reponame.data();
+        return remaining_url;
     }
 
     /***********

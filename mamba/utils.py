@@ -12,6 +12,8 @@ from conda.common.url import join_url
 from conda.base.context import context
 from conda.core.subdir_data import cache_fn_url, create_cache_dir
 
+from conda.gateways.connection.session import CondaHttpAuth
+
 import threading
 import json
 import os
@@ -37,8 +39,8 @@ def get_index(channel_urls=(), prepend=True, platform=None,
 
     for idx, url in enumerate(real_urls):
         channel = Channel(url)
+        full_url = CondaHttpAuth.add_binstar_token(channel.url(with_credentials=True) + '/' + repodata_fn)
 
-        full_url = channel.url(with_credentials=True) + '/' + repodata_fn
         full_path_cache = os.path.join(
             api.create_cache_dir(),
             api.cache_fn_url(full_url))

@@ -25,7 +25,6 @@ namespace nl = nlohmann;
 
 namespace mamba
 {
-    std::string cut_repo_name(std::ostream& out, const std::string_view& reponame);
     void print_dep_graph(std::ostream& out, Solvable* s, const std::string& solv_str, int level, int max_level, bool last, const std::string& prefix);
 
     class QueryResult;

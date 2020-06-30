@@ -111,7 +111,7 @@ namespace cursor
 namespace mamba
 {
 
-    std::string cut_repo_name(const std::string_view& reponame);
+    std::string cut_repo_name(const std::string& reponame);
 
     namespace printers
     {

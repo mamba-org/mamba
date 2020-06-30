@@ -44,6 +44,13 @@ constexpr const char _mamba_activate_bat[] =
 constexpr const char mamba_hook_bat[] =
     #include "../data/mamba_hook.bat"
 ;
+constexpr const char mamba_hook_ps1[] =
+    #include "../data/mamba_hook.ps1"
+;
+constexpr const char mamba_psm1[] =
+    #include "../data/Mamba.psm1"
+;
+
 
 namespace mamba
 {
@@ -145,7 +152,7 @@ namespace mamba
                                                 "([\\s\\S]*?)"
                                                 "# <<< mamba initialize <<<(?:\n|\r\n)?");
 
-    static std::regex CONDA_INITIALIZE_PS_RE_BLOCK("^#region mamba initialize(?:\n|\r\n)"
+    static std::regex CONDA_INITIALIZE_PS_RE_BLOCK("#region mamba initialize(?:\n|\r\n)?"
                                                    "([\\s\\S]*?)"
                                                    "#endregion(?:\n|\r\n)?");
 
@@ -220,7 +227,7 @@ namespace mamba
         std::string original_content = rc_content;
         std::string conda_init_content = rcfile_content(conda_prefix, shell, mamba_exe);
 
-        Console::stream() << "Adding (or replacing) the following in your " <<file_path << " file\n"
+        Console::stream() << "Adding (or replacing) the following in your " << file_path << " file\n"
                           << termcolor::colorize << termcolor::green << conda_init_content << termcolor::reset;
 
         std::string result = std::regex_replace(
@@ -289,6 +296,86 @@ namespace mamba
             std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");
             mamba_hook_bat_f << hook_content;
         }
+        else if (shell == "powershell")
+        {
+            fs::create_directories(root_prefix / "condabin");
+            std::ofstream mamba_hook_f(root_prefix / "condabin" / "mamba_hook.ps1");
+            mamba_hook_f << mamba_hook_ps1;
+            std::ofstream mamba_psm1_f(root_prefix / "condabin" / "Mamba.psm1");
+            mamba_psm1_f << mamba_psm1;
+        }
+    }
+
+    std::string powershell_contents(const fs::path& conda_prefix)
+    {
+        fs::path self_exe = get_self_exe_path();
+
+        std::stringstream out;
+
+        out << "#region mamba initialize\n";
+        out << "# !! Contents within this block are managed by 'mamba shell init' !!\n";
+        out << "$Env:MAMBA_ROOT_PREFIX = " << conda_prefix << "\n";
+        out << "$Env:MAMBA_EXE = " << self_exe << "\n";
+        out << "(& " << self_exe << " 'shell' 'hook' -s 'powershell' -p " << conda_prefix << ") | Out-String | Invoke-Expression\n";
+        out << "#endregion\n";
+        return out.str();
+    }
+
+    bool init_powershell(const fs::path& profile_path, const fs::path& conda_prefix, bool reverse=false)
+    {
+        // NB: the user may not have created a profile. We need to check
+        //     if the file exists first.
+        std::string profile_content, profile_original_content;
+        if (fs::exists(profile_path))
+        {
+            profile_content = read_contents(profile_path);
+            profile_original_content = profile_content;
+        }
+
+        if (reverse)
+        {
+            profile_content = std::regex_replace(
+                profile_content,
+                CONDA_INITIALIZE_PS_RE_BLOCK,
+                ""
+            );
+        }
+        else
+        {
+            // # Find what content we need to add.
+            std::string conda_init_content = powershell_contents(conda_prefix);
+            std::cout << "Adding: \n" << conda_init_content << std::endl;
+
+            Console::stream() << "Adding (or replacing) the following in your " << profile_path << " file\n"
+                              << termcolor::colorize << termcolor::green << conda_init_content << termcolor::reset;
+
+            if (profile_content.find("#region mamba initialize") == profile_content.npos)
+            {
+                profile_content += "\n" + conda_init_content + "\n";
+            }
+            else
+            {
+                profile_content = std::regex_replace(
+                    profile_content,
+                    CONDA_INITIALIZE_PS_RE_BLOCK,
+                    conda_init_content
+                );
+            }
+        }
+        if (profile_content != profile_original_content)
+        {
+            if (!Context::instance().dry_run)
+            {
+                if (!fs::exists(profile_path.parent_path()))
+                {
+                    fs::create_directories(profile_path.parent_path());
+                }
+                std::ofstream out(profile_path);
+                out << profile_content;
+                return true;
+            }
+        }
+        return false;
     }
 
     void init_shell(const std::string& shell, const fs::path& conda_prefix)
@@ -313,6 +400,46 @@ namespace mamba
             #else
             init_cmd_exe_registry(L"Software\\Microsoft\\Command Processor", conda_prefix, false);
             #endif
+        }
+        else if (shell == "powershell")
+        {
+            std::string profile_var("$PROFILE.CurrentUserAllHosts");
+            // if (for_system)
+            //     profile = "$PROFILE.AllUsersAllHosts"
+
+            // There's several places PowerShell can store its path, depending
+            // on if it's Windows PowerShell, PowerShell Core on Windows, or
+            // PowerShell Core on macOS/Linux. The easiest way to resolve it is to
+            // just ask different possible installations of PowerShell where their
+            // profiles are.
+
+            auto find_powershell_paths = [&profile_var](const std::string& exe) -> std::string
+            {
+                try
+                {
+                    auto obuf = subprocess::check_output({exe, "-NoProfile", "-Command", profile_var});
+                    std::string res(obuf.buf.data());
+                    return std::string(strip(res));
+                }
+                catch (...)
+                {
+                    return "";
+                }
+            };
+
+            std::string profile_path, exe;
+            for (auto& iter_exe : std::vector<std::string>{"powershell", "pwsh", "pwsh-preview"})
+            {
+                auto res = find_powershell_paths(iter_exe);
+                if (!res.empty())
+                {
+                    profile_path = res;
+                    exe = iter_exe;
+                }
+            }
+            std::cout << "Found powershell at " << exe << " and user profile at " << profile_path << std::endl;
+
+            init_powershell(profile_path, conda_prefix, false);
         }
         else
         {

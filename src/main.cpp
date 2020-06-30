@@ -152,6 +152,15 @@ void init_shell_parser(CLI::App* subcom)
         {
             activator = std::make_unique<mamba::CmdExeActivator>();
         }
+        else if (shell_options.shell_type == "powershell")
+        {
+            activator = std::make_unique<mamba::PowerShellActivator>();
+        }
+        else
+        {
+            std::cout << "Currently allowed values are: bash, zsh, cmd.exe & powershell" << std::endl;
+            exit(1);
+        }
         if (shell_options.action == "init")
         {
             init_shell(shell_options.shell_type, shell_options.prefix);

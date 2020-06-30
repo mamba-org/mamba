@@ -121,6 +121,7 @@ namespace mamba
     class PowerShellActivator
         : public Activator
     {
+    public:
         PowerShellActivator() = default;
         virtual ~PowerShellActivator() = default;
 

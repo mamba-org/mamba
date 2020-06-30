@@ -663,6 +663,12 @@ def update(args, parser):
     install(args, parser, 'update')
 
 def repoquery(args, parser):
+
+    if not args.subcmd:
+        print("repoquery needs a subcommand (search, depends or whoneeds)")
+        print("eg:")
+        print("    $ mamba repoquery search xtensor\n")
+        exit(1)
     prefix = context.target_prefix
 
     init_api_context()

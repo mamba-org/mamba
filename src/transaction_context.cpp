@@ -61,8 +61,8 @@ namespace mamba
     }
 
     TransactionContext::TransactionContext(const fs::path& prefix, const std::string& py_version)
-        : has_python(python_version.size() != 0)
-	, target_prefix(prefix)
+        : has_python(py_version.size() != 0)
+        , target_prefix(prefix)
         , python_version(py_version)
     {
         if (python_version.size() == 0)

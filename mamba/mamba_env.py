@@ -20,8 +20,9 @@ from conda_env.installers import conda
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.models.prefix_graph import PrefixGraph
+from conda.common.url import split_anaconda_token
 
-from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
+from mamba.utils import get_index, to_package_record_from_subjson, init_api_context, get_installed_jsonfile, to_txn
 import mamba.mamba_api as api
 
 import tempfile
@@ -61,6 +62,14 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     pool = api.Pool()
     repos = []
 
+    # if using update
+    installed_pkg_recs = []
+    if 'update' in args.func:
+        installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
+        repo = api.Repo(pool, "installed", installed_json_f.name, "")
+        repo.set_installed()
+        repos.append(repo)
+
     for channel, subdir, priority, subpriority in channel_json:
         repo = subdir.create_repo(pool)
         repo.set_priority(priority, subpriority)
@@ -83,38 +92,13 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     final_precs = IndexedSet()
 
-    lookup_dict = {}
-    for _, c in index:
-        lookup_dict[c.url(with_credentials=True)] = c
-
-    for c, pkg, jsn_s in to_link:
-        sdir = lookup_dict[c]
-        rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
-        final_precs.add(rec)
-
-    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
-                                                          final_precs=IndexedSet(PrefixGraph(final_precs).graph),
-                                                          specs_to_add=specs_to_add,
-                                                          force_reinstall=context.force_reinstall)
-
-    pref_setup = PrefixSetup(
-        target_prefix = prefix,
-        unlink_precs  = unlink_precs,
-        link_precs    = link_precs,
-        remove_specs  = (),
-        update_specs  = specs_to_add,
-        neutered_specs = ()
-    )
-
-    conda_transaction = UnlinkLinkTransaction(pref_setup)
+    conda_transaction = to_txn(specs_to_add, [], prefix, to_link, to_unlink, installed_pkg_recs, index)
 
     pfe = conda_transaction._get_pfe()
     pfe.execute()
     conda_transaction.execute()
 
 conda.install = mamba_install
-
-
 
 def main():
     from conda_env.cli.main import main

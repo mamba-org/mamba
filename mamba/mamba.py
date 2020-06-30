@@ -12,17 +12,15 @@ from os.path import isdir, isfile, join
 from conda.cli import common as cli_common
 from conda.cli.main import generate_parser, init_loggers
 from conda.base.context import context
-from conda.core.index import _supplement_index_with_system
 from conda.models.match_spec import MatchSpec
 from conda.core.prefix_data import PrefixData
 from conda.misc import explicit, touch_nonadmin
-from conda.common.serialize import json_dump
 from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
 from conda.history import History
 from conda.core.link import UnlinkLinkTransaction, PrefixSetup
 from conda.cli.install import check_prefix, clone, print_activate
 from conda.base.constants import ChannelPriority, UpdateModifier, DepsModifier
-from conda.core.solve import diff_for_unlink_link_precs, get_pinned_specs
+from conda.core.solve import get_pinned_specs
 from conda.core.envs_manager import unregister_env
 from conda.core.package_cache_data import PackageCacheData
 from conda.common.compat import on_win
@@ -39,18 +37,12 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf, delete_trash, path_is_clean
 from conda.gateways.disk.test import is_conda_environment
 
-from conda._vendor.boltons.setutils import IndexedSet
-from conda.models.prefix_graph import PrefixGraph
-
 from logging import getLogger
-
-import tempfile
 
 import mamba
 import mamba.mamba_api as api
 
-from mamba.utils import get_index, to_package_record_from_subjson, init_api_context
-
+from mamba.utils import get_index, to_package_record_from_subjson, init_api_context, get_installed_jsonfile, to_txn
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup('utf-8')[-1](sys.stdout)
@@ -92,28 +84,6 @@ class MambaException(Exception):
 
 solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
-def get_installed_packages(prefix, show_channel_urls=None):
-    result = {'packages': {}}
-
-    # Currently, we need to have pip interop disabled :/
-    installed = {rec: rec for rec in PrefixData(prefix, pip_interop_enabled=False).iter_records()}
-
-    # add virtual packages as installed packages
-    # they are packages installed on the system that conda can do nothing about (e.g. glibc)
-    # if another version is needed, installation just fails
-    # they don't exist anywhere (they start with __)
-    _supplement_index_with_system(installed)
-    installed = list(installed)
-
-    for prec in installed:
-        json_rec = prec.dist_fields_dump()
-        json_rec['depends'] = prec.depends
-        json_rec['build'] = prec.build
-        result['packages'][prec.fn] = json_rec
-
-    return installed, result
-
-
 def specs_from_args(args, json=False):
 
     def arg2spec(arg, json=False, update=False):
@@ -133,49 +103,6 @@ def specs_from_args(args, json=False):
         return spec
 
     return [arg2spec(arg, json=json) for arg in args]
-
-
-def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index=[]):
-    to_link_records, to_unlink_records = [], []
-
-    prefix_data = PrefixData(prefix)
-    final_precs = IndexedSet(prefix_data.iter_records())
-
-    lookup_dict = {}
-    for _, c in index:
-        lookup_dict[c.url(with_credentials=True)] = c
-
-    for c, pkg in to_unlink:
-        for i_rec in installed_pkg_recs:
-            if i_rec.fn == pkg:
-                final_precs.remove(i_rec)
-                to_unlink_records.append(i_rec)
-                break
-        else:
-            print("No package record found!")
-
-    for c, pkg, jsn_s in to_link:
-        sdir = lookup_dict[c]
-        rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
-        final_precs.add(rec)
-        to_link_records.append(rec)
-
-    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
-                                                          final_precs=IndexedSet(PrefixGraph(final_precs).graph),
-                                                          specs_to_add=specs_to_add,
-                                                          force_reinstall=context.force_reinstall)
-
-    pref_setup = PrefixSetup(
-        target_prefix  = prefix,
-        unlink_precs   = unlink_precs,
-        link_precs     = link_precs,
-        remove_specs   = specs_to_remove,
-        update_specs   = specs_to_add,
-        neutered_specs = ()
-    )
-
-    conda_transaction = UnlinkLinkTransaction(pref_setup)
-    return conda_transaction
 
 use_mamba_experimental = False
 
@@ -212,17 +139,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
         cli_common.stdout_json_success(prefix=prefix, actions=actions)
-
-installed_pkg_recs = None
-
-def get_installed_jsonfile(prefix):
-    global installed_pkg_recs
-    installed_pkg_recs, output = get_installed_packages(prefix, show_channel_urls=True)
-    installed_json_f = tempfile.NamedTemporaryFile('w', delete=False)
-    installed_json_f.write(json_dump(output))
-    installed_json_f.flush()
-    return installed_json_f
-
 
 def remove(args, parser):
     if not (args.all or args.package_names):
@@ -275,7 +191,7 @@ def remove(args, parser):
         if not context.quiet:
             print("Removing specs: {}".format([s.conda_build_form() for s in specs]))
 
-        installed_json_f = get_installed_jsonfile(prefix)
+        installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
 
         mamba_solve_specs = [s.conda_build_form() for s in specs]
 
@@ -315,7 +231,7 @@ def remove(args, parser):
         specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
         specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
-        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink)
+        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, installed_pkg_recs)
         handle_txn(conda_transaction, prefix, args, False, True)
 
 def install(args, parser, command='install'):
@@ -473,10 +389,7 @@ def install(args, parser, command='install'):
 
         channel_json.append((chan, subdir, priority, subpriority))
 
-    # for c in channel_json:
-    #     print(c[0], c[2], c[3])
-
-    installed_json_f = get_installed_jsonfile(prefix)
+    installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
 
     if isinstall and args.revision:
         get_revision(args.revision, json=context.json)
@@ -511,7 +424,7 @@ def install(args, parser, command='install'):
             s = MatchSpec(s)
             if not s.is_name_only_spec:
                 raise CondaValueError("Invalid spec for 'conda update': %s\n"
-                                 "Use 'conda install' instead." % s)
+                                      "Use 'conda install' instead." % s)
             if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, s.name)
 
@@ -624,7 +537,7 @@ def install(args, parser, command='install'):
 
         transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
     else:
-        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, index)
+        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, installed_pkg_recs, index)
         handle_txn(conda_transaction, prefix, args, newenv)
 
     try:
@@ -681,7 +594,7 @@ def repoquery(args, parser):
         'use_local': args.use_local
     }
 
-    installed_json_f = get_installed_jsonfile(prefix)
+    installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
 
     pool = api.Pool()
     repos = []

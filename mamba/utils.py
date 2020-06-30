@@ -11,8 +11,18 @@ from conda.models.enums import PackageType
 from conda.common.url import join_url
 from conda.base.context import context
 from conda.core.subdir_data import cache_fn_url, create_cache_dir
+from conda.core.prefix_data import PrefixData
+from conda.core.index import _supplement_index_with_system
+from conda.common.serialize import json_dump
+import tempfile
+from conda._vendor.boltons.setutils import IndexedSet
 
+from conda.common.url import split_anaconda_token
 from conda.gateways.connection.session import CondaHttpAuth
+from conda.core.solve import diff_for_unlink_link_precs
+from conda.models.prefix_graph import PrefixGraph
+from conda.core.link import UnlinkLinkTransaction, PrefixSetup
+
 
 import threading
 import json
@@ -108,3 +118,77 @@ def to_package_record_from_subjson(channel, pkg, jsn_string):
     info['url'] = join_url(channel_url, pkg)
     package_record = PackageRecord(**info)
     return package_record
+
+def get_installed_packages(prefix, show_channel_urls=None):
+    result = {'packages': {}}
+
+    # Currently, we need to have pip interop disabled :/
+    installed = {rec: rec for rec in PrefixData(prefix, pip_interop_enabled=False).iter_records()}
+
+    # add virtual packages as installed packages
+    # they are packages installed on the system that conda can do nothing about (e.g. glibc)
+    # if another version is needed, installation just fails
+    # they don't exist anywhere (they start with __)
+    _supplement_index_with_system(installed)
+    installed = list(installed)
+
+    for prec in installed:
+        json_rec = prec.dist_fields_dump()
+        json_rec['depends'] = prec.depends
+        json_rec['build'] = prec.build
+        result['packages'][prec.fn] = json_rec
+
+    return installed, result
+
+installed_pkg_recs = None
+
+def get_installed_jsonfile(prefix):
+    global installed_pkg_recs
+    installed_pkg_recs, output = get_installed_packages(prefix, show_channel_urls=True)
+    installed_json_f = tempfile.NamedTemporaryFile('w', delete=False)
+    installed_json_f.write(json_dump(output))
+    installed_json_f.flush()
+    return installed_json_f, installed_pkg_recs
+
+def to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, installed_pkg_recs, index=[]):
+    to_link_records, to_unlink_records = [], []
+
+    prefix_data = PrefixData(prefix)
+    final_precs = IndexedSet(prefix_data.iter_records())
+
+    lookup_dict = {}
+    for _, c in index:
+        lookup_dict[c.url(with_credentials=True)] = c
+
+    for c, pkg in to_unlink:
+        for i_rec in installed_pkg_recs:
+            if i_rec.fn == pkg:
+                final_precs.remove(i_rec)
+                to_unlink_records.append(i_rec)
+                break
+        else:
+            print("No package record found!")
+
+    for c, pkg, jsn_s in to_link:
+        sdir = lookup_dict[split_anaconda_token(c)[0]]
+        rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
+        final_precs.add(rec)
+        to_link_records.append(rec)
+
+    unlink_precs, link_precs = diff_for_unlink_link_precs(prefix,
+                                                          final_precs=IndexedSet(PrefixGraph(final_precs).graph),
+                                                          specs_to_add=specs_to_add,
+                                                          force_reinstall=context.force_reinstall)
+
+    pref_setup = PrefixSetup(
+        target_prefix  = prefix,
+        unlink_precs   = unlink_precs,
+        link_precs     = link_precs,
+        remove_specs   = specs_to_remove,
+        update_specs   = specs_to_add,
+        neutered_specs = ()
+    )
+
+    conda_transaction = UnlinkLinkTransaction(pref_setup)
+    return conda_transaction
+

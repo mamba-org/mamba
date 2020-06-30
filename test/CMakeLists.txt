@@ -13,6 +13,7 @@ set(TEST_SRCS
     test_string_methods.cpp
     test_environments_manager.cpp
     test_transfer.cpp
+    test_graph.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

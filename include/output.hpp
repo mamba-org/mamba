@@ -59,7 +59,7 @@ namespace cursor
 
     inline auto up(int n)
     {
-        return CursorMovementTriple("up[", n, "A");
+        return CursorMovementTriple("\x1b[", n, "A");
     }
 
     inline auto down(int n)
@@ -198,8 +198,6 @@ namespace mamba
         std::string m_lead;
         std::string m_remainder;
     };
-
-    int get_console_width();
 
     class ProgressBar
     {

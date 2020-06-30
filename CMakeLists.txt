@@ -16,6 +16,13 @@ set(CMAKE_CXX_STANDARD 17)
 option(BUILD_EXE OFF)
 option(BUILD_BINDINGS ON)
 option(LINK_STATIC OFF)
+option(USE_CONDA_PYTHON ON)
+
+if (USE_CONDA_PYTHON)
+    message("Using conda prefix: $ENV{CONDA_PREFIX}")
+    set(PYTHON_EXECUTABLE "$ENV{CONDA_PREFIX}/bin/python")
+    set(PYTHON_LIBRARIES "$ENV{CONDA_PREFIX}/lib/")
+endif ()
 
 find_package(Threads REQUIRED)
 find_library(LIBSOLV_LIBRARIES NAMES solv)

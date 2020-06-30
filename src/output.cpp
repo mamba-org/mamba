@@ -74,8 +74,8 @@ namespace mamba
 
     std::ostream& ProgressScaleWriter::write(std::ostream& os, std::size_t progress) const
     {
-        auto pos = static_cast<size_t>(progress * m_bar_width / 100.0);
-        for (size_t i = 0; i < static_cast<size_t>(m_bar_width); ++i)
+        int pos = int(progress * m_bar_width / 100.0);
+        for (int i = 0; i < m_bar_width; ++i)
         {
             if (i < pos)
             {
@@ -172,8 +172,8 @@ namespace mamba
         }
         else
         {
-            auto pos = static_cast<std::size_t>(m_progress * width / 100.0);
-            for (size_t i = 0; i < static_cast<size_t>(width); ++i)
+            auto pos = int(m_progress * width / 100.0);
+            for (int i = 0; i < width; ++i)
             {
                 if (i == pos - 1)
                 {
@@ -428,7 +428,7 @@ namespace mamba
                 {
                     const std::lock_guard<std::mutex> lock(instance().m_mutex);
                     const auto& ps = instance().m_active_progress_bars.size();
-                    std::cout << cursor::prev_line(ps) << cursor::erase_line()
+                    std::cout << cursor::up(ps) << cursor::erase_line()
                               << str << std::endl;
 
                     if (!Console::instance().skip_progress_bars())
@@ -522,7 +522,7 @@ namespace mamba
 
         m_active_progress_bars.erase(it);
         int ps = m_active_progress_bars.size();
-        std::cout << cursor::prev_line(ps + 1) << cursor::erase_line();
+        std::cout << cursor::up(ps + 1) << cursor::erase_line();
         if (msg.empty())
         {
             m_progress_bars[idx]->print();
@@ -547,7 +547,7 @@ namespace mamba
         std::size_t cursor_up = m_active_progress_bars.size();
         if (m_progress_started && cursor_up > 0)
         {
-            std::cout << cursor::prev_line(cursor_up);
+            std::cout << cursor::up(cursor_up);
         }
 
         auto it = std::find(m_active_progress_bars.begin(), m_active_progress_bars.end(), m_progress_bars[idx].get());

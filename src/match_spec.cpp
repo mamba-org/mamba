@@ -181,6 +181,7 @@ namespace mamba
             version = std::string(strip(version));
             auto [pv, pb] = parse_version_and_build(std::string(strip(version)));
 
+            version = pv;
             build = pb;
 
             // translate version '=1.2.3' to '1.2.3*'

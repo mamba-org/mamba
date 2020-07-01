@@ -9,13 +9,61 @@ on:
     - master
 
 jobs:
+  test_cpp_micromamba:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+      - name: install micromamba
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
+          else
+            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
+            mv bin/micromamba ./micromamba
+          fi
+          ./micromamba shell init -s bash -p ~/micromamba
+      - name: install deps
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest "cpp-tabulate>=1.2" -c conda-forge
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: build tests
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba activate ~/build_env
+          mkdir -p ~/.conda
+          touch ~/.conda/environments.txt
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON
+          make test -j2
+
   build_unix:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [ '3.6', '3.8' ]
+        python-version: [ '3.8' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -57,18 +105,6 @@ jobs:
           py.test test
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test.yml
-      - name: Run C++ tests OS X and Linux
-        shell: bash -l {0}
-        run: |
-          if [ "$(uname)" == "Darwin" ]; then
-            exit 0;
-          fi
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mamba-tests
-          mkdir cmake_build
-          cd cmake_build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON
-          make test -j2
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:

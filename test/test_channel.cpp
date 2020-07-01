@@ -8,6 +8,14 @@ namespace fs = ghc::filesystem;
 
 namespace mamba
 {
+    #ifdef __linux__
+    std::string platform("linux-64");
+    #elif __APPLE__
+    std::string platform("osx-64");
+    #elif _WIN32
+    std::string platform("win-64");
+    #endif
+
     TEST(ChannelContext, init)
     {
         // ChannelContext builds its custom channels with
@@ -49,19 +57,19 @@ namespace mamba
         EXPECT_EQ(c.name(), "conda-forge");
         EXPECT_EQ(c.platform(), "");
 
-        std::string value2 = "https://repo.anaconda.com/pkgs/main/linux-64";
+        std::string value2 = "https://repo.anaconda.com/pkgs/main/" + platform;
         Channel& c2 = make_channel(value2);
         EXPECT_EQ(c2.scheme(), "https");
         EXPECT_EQ(c2.location(), "repo.anaconda.com");
         EXPECT_EQ(c2.name(), "pkgs/main");
-        EXPECT_EQ(c2.platform(), "linux-64");
+        EXPECT_EQ(c2.platform(), platform);
 
-        std::string value3 = "https://conda.anaconda.org/conda-forge/linux-64";
+        std::string value3 = "https://conda.anaconda.org/conda-forge/" + platform;
         Channel& c3 = make_channel(value3);
         EXPECT_EQ(c3.scheme(), c.scheme());
         EXPECT_EQ(c3.location(), c.location());
         EXPECT_EQ(c3.name(), c.name());
-        EXPECT_EQ(c3.platform(), "linux-64");
+        EXPECT_EQ(c3.platform(), platform);
 
         std::string value4 = "/home/mamba/test/channel_b";
         Channel& c4 = make_channel(value4);
@@ -70,12 +78,12 @@ namespace mamba
         EXPECT_EQ(c4.name(), "channel_b");
         EXPECT_EQ(c4.platform(), "");
 
-        std::string value5 = "/home/mamba/test/channel_b/linux-64";
+        std::string value5 = "/home/mamba/test/channel_b/" + platform;
         Channel& c5 = make_channel(value5);
         EXPECT_EQ(c5.scheme(), "file");
         EXPECT_EQ(c5.location(), "/home/mamba/test");
         EXPECT_EQ(c5.name(), "channel_b");
-        EXPECT_EQ(c5.platform(), "linux-64");
+        EXPECT_EQ(c5.platform(), platform);
     }
 
     TEST(Channel, urls)
@@ -103,11 +111,11 @@ namespace mamba
         std::vector<std::string> urls = { "conda-forge", "defaults" };
         std::vector<std::string> res = calculate_channel_urls(urls, true);
         EXPECT_EQ(res.size(), 6u);
-        EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/linux-64");
+        EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/" + platform);
         EXPECT_EQ(res[1], "https://conda.anaconda.org/conda-forge/noarch");
-        EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/linux-64");
+        EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/"  + platform);
         EXPECT_EQ(res[3], "https://repo.anaconda.com/pkgs/main/noarch");
-        EXPECT_EQ(res[4], "https://repo.anaconda.com/pkgs/r/linux-64");
+        EXPECT_EQ(res[4], "https://repo.anaconda.com/pkgs/r/" + platform);
         EXPECT_EQ(res[5], "https://repo.anaconda.com/pkgs/r/noarch");
 
         std::vector<std::string> res2 = calculate_channel_urls(urls, false);
@@ -123,9 +131,9 @@ namespace mamba
         std::vector<std::string> local_res = calculate_channel_urls(local_urls, false);
         std::string current_dir = "file://" + fs::current_path().string() + '/';
         EXPECT_EQ(local_res.size(), 4u);
-        EXPECT_EQ(local_res[0], current_dir + "channel_b/linux-64");
+        EXPECT_EQ(local_res[0], current_dir + "channel_b/" + platform);
         EXPECT_EQ(local_res[1], current_dir + "channel_b/noarch");
-        EXPECT_EQ(local_res[2], current_dir + "channel_a/linux-64");
+        EXPECT_EQ(local_res[2], current_dir + "channel_a/" + platform);
         EXPECT_EQ(local_res[3], current_dir + "channel_a/noarch");
 
     }

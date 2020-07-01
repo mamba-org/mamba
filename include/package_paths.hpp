@@ -6,10 +6,10 @@
 #include <map>
 #include <set>
 
-const std::string PREFIX_PLACEHOLDER("/opt/anaconda1anaconda2"
+const std::string PREFIX_PLACEHOLDER_1("/opt/anaconda1anaconda2");
                                      // this is intentionally split into parts, such that running
                                      // this program on itself will leave it unchanged
-                                     "anaconda3");
+const std::string PREFIX_PLACEHOLDER_2("anaconda3");
 
 namespace mamba
 {

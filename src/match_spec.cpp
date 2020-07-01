@@ -152,7 +152,7 @@ namespace mamba
         {
             spec_str.push_back('*');
         }
-        // TODO This is #6 of the spec parsing -- we still need to port the others!
+        // This is #6 of the spec parsing
         static std::regex version_build_re("([^ =<>!~]+)?([><!=~ ].+)?");
         std::smatch vb_match;
         if (std::regex_match(spec_str, vb_match, version_build_re))
@@ -189,13 +189,13 @@ namespace mamba
             if (version.size() >= 2 && version[0] == '=')
             {
                 auto rest = version.substr(1);
-                if (version[1] == '=' and build.empty())
+                if (version[1] == '=' && build.empty())
                 {
                     version = version.substr(2);
                 }
                 else if (rest.find_first_of("=,|") == rest.npos)
                 {
-                    if (build.empty() && version[version.size() - 1] != '*')
+                    if (build.empty() && version.back() != '*')
                     {
                         version = concat(version, "*");
                     }
@@ -256,6 +256,7 @@ namespace mamba
         if (!version.empty())
         {
             res << " " << version;
+            // if (!build.empty() && (build != "*"))
             if (!build.empty())
             {
                 res << " " << build;

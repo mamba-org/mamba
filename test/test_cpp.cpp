@@ -143,6 +143,15 @@ namespace mamba
             EXPECT_EQ(ms.conda_build_form(), "libblas * *mkl");
             // EXPECT_EQ(ms.str(), "foo==1.0=2");
         }
+        {
+            MatchSpec ms("libblas=0.15*");
+            EXPECT_EQ(ms.conda_build_form(), "libblas 0.15*");
+        }
+        {
+            MatchSpec ms("xtensor =0.15*");
+            EXPECT_EQ(ms.conda_build_form(), "xtensor 0.15*");
+            EXPECT_EQ(ms.str(), "xtensor=0.15");
+        }
     }
 
     TEST(history, user_request)

@@ -82,6 +82,8 @@ if (LINK_STATIC)
     elseif (UNIX)
         set(MAMBA_FORCE_DYNAMIC_LIBS rt dl c resolv)
     endif()
+
+    add_link_options(-static-libstdc++ -static-libgcc)
 endif()
 
 if (LINK_STATIC)

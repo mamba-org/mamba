@@ -576,12 +576,15 @@ def update(args, parser):
     install(args, parser, 'update')
 
 def repoquery(args, parser):
-
     if not args.subcmd:
         print("repoquery needs a subcommand (search, depends or whoneeds)")
         print("eg:")
         print("    $ mamba repoquery search xtensor\n")
         exit(1)
+
+    if args.platform:
+        context._subdirs = (args.platform, 'noarch')
+
     prefix = context.target_prefix
 
     init_api_context()
@@ -599,16 +602,23 @@ def repoquery(args, parser):
     pool = api.Pool()
     repos = []
 
-    # add installed
-    repo = api.Repo(pool, "installed", installed_json_f.name, "")
-    repo.set_installed()
-    repos.append(repo)
-
     only_installed = True
     if args.subcmd == "search" and args.installed == False:
         only_installed = False
-    elif args.all_channels:
+    elif args.all_channels or len(args.channel):
         only_installed = False
+
+    if only_installed and args.no_installed:
+        print("No channels selected.")
+        print("Activate -a to search all channels.")
+        exit(1)
+
+    if not args.no_installed:
+        # add installed
+        repo = api.Repo(pool, "installed", installed_json_f.name, "")
+        repo.set_installed()
+        repos.append(repo)
+
 
     if not only_installed:
         index = get_index(channel_urls=index_args['channel_urls'],
@@ -692,6 +702,9 @@ Examples:
         help=SUPPRESS
     )
 
+    package_cmds.add_argument('-p', '--platform')
+    package_cmds.add_argument('--no-installed', action='store_true')
+
     package_cmds.add_argument(
         "-a", "--all-channels",
         action="store_true",
@@ -704,26 +717,27 @@ Examples:
         action="store_true"
     )
 
-    subsub_parser.add_parser('whoneeds',
+    c1 = subsub_parser.add_parser('whoneeds',
         help='shows packages that depends on this package',
         parents=[package_cmds, view_cmds]
     )
 
-    subsub_parser.add_parser('depends',
+    c2 = subsub_parser.add_parser('depends',
         help='shows packages that depends on this package',
         parents=[package_cmds, view_cmds]
     )
 
-    subsub_parser.add_parser('search',
+    c3 = subsub_parser.add_parser('search',
         help='shows packages that depends on this package',
         parents=[package_cmds]
     )
 
     from conda.cli import conda_argparse
-    conda_argparse.add_parser_channels(p)
-    conda_argparse.add_parser_networking(p)
-    conda_argparse.add_parser_known(p)
-    conda_argparse.add_parser_json(p)
+    for cmd in (c1, c2, c3):
+        conda_argparse.add_parser_channels(cmd)
+        conda_argparse.add_parser_networking(cmd)
+        conda_argparse.add_parser_known(cmd)
+        conda_argparse.add_parser_json(cmd)
 
     p.set_defaults(func='.main_repoquery.execute')
     return p

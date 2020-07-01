@@ -31,7 +31,7 @@ namespace mamba
             auto s = split(l, " ");
             if (s.size() == 1)
             {
-                res[s[0]] = PrefixFileParse{PREFIX_PLACEHOLDER, "text", s[0]};
+                res[s[0]] = PrefixFileParse{concat(PREFIX_PLACEHOLDER_1, PREFIX_PLACEHOLDER_2), "text", s[0]};
             }
             else if (s.size() == 3)
             {

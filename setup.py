@@ -84,6 +84,7 @@ ext_modules = [
             'src/url.cpp',
             'src/util.cpp',
             'src/validate.cpp',
+            'src/version.cpp',
             'src/link.cpp'
         ],
         include_dirs=[

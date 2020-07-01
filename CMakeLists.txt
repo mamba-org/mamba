@@ -41,6 +41,21 @@ set(MAMBA_REQUIRED_LIBS
     nlohmann_json::nlohmann_json
 )
 
+# Getting the mamba version from python
+file (READ mamba/_version.py VERSION_FILE)
+
+STRING(REGEX REPLACE "\r?\n" ";" TMP_VERSION_FILE_LIST "${VERSION_FILE}")
+LIST(GET TMP_VERSION_FILE_LIST 1 VERSION_LINE)
+string(REGEX MATCHALL "version_info = \\(([0-9]*), ([0-9]*), ([0-9]*)\\)" MATCHES ${VERSION_LINE})
+
+set(MAMBA_VERSION_MAJOR "${CMAKE_MATCH_1}")
+set(MAMBA_VERSION_MINOR "${CMAKE_MATCH_2}")
+set(MAMBA_VERSION_PATCH "${CMAKE_MATCH_3}")
+
+message("--> mamba version: ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}")
+
+configure_file(include/version.hpp.in ${CMAKE_SOURCE_DIR}/include/version.hpp @ONLY)
+
 if (LINK_STATIC)
 
     set(MAMBA_STATIC_LIBS
@@ -122,6 +137,7 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/transaction.cpp
     ${CMAKE_SOURCE_DIR}/src/util.cpp
     ${CMAKE_SOURCE_DIR}/src/validate.cpp
+    ${CMAKE_SOURCE_DIR}/src/version.cpp
 )
 
 add_library(mamba_lib STATIC ${MAMBA_SOURCES})

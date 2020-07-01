@@ -1,0 +1,11 @@
+#define MAMBA_VERSION_MAJOR @MAMBA_VERSION_MAJOR@
+#define MAMBA_VERSION_MINOR @MAMBA_VERSION_MINOR@
+#define MAMBA_VERSION_PATCH @MAMBA_VERSION_PATCH@
+
+#define MAMBA_VERSION (MAMBA_VERSION_MAJOR * 10000 + MAMBA_VERSION_MINOR * 100 + MAMBA_VERSION_PATCH)
+#define MAMBA_VERSION_STRING "@MAMBA_VERSION_MAJOR@.@MAMBA_VERSION_MINOR@.@MAMBA_VERSION_PATCH@"
+
+extern const char mamba_version[];
+extern int mamba_version_major;
+extern int mamba_version_minor;
+extern int mamba_version_patch;

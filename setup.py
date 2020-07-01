@@ -13,6 +13,17 @@ with open(os.path.join(here, 'mamba', '_version.py')) as f:
 
 __version__ = version_ns['__version__']
 
+with open("include/version.hpp.in", "r") as fi:
+    cpp_version_template = fi.read()
+
+v = version_ns['version_info']
+cpp_version_template = cpp_version_template.replace('@MAMBA_VERSION_MAJOR@', str(v[0])) \
+                                           .replace('@MAMBA_VERSION_MINOR@', str(v[1])) \
+                                           .replace('@MAMBA_VERSION_PATCH@', str(v[2]))
+
+with open("include/version.hpp", "w") as fo:
+    fo.write(cpp_version_template)
+
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
     The purpose of this class is to postpone importing pybind11
@@ -84,6 +95,7 @@ ext_modules = [
             'src/url.cpp',
             'src/util.cpp',
             'src/validate.cpp',
+            'src/version.cpp',
             'src/link.cpp'
         ],
         include_dirs=[

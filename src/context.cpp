@@ -26,8 +26,11 @@ namespace mamba
 #elif defined(__aarch64__)
         const std::string MAMBA_PLATFORM = "aarch64";
 #elif defined(__ppc64__) || defined(__powerpc64__)
+    #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
         const std::string MAMBA_PLATFORM = "ppc64";
-// TODO: detect ppc64le
+    #else
+        const std::string MAMBA_PLATFORM = "ppc64le";
+    #endif
 // Linux
 #elif defined(__linux__)
     #if __x86_64__

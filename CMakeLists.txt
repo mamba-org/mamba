@@ -98,7 +98,11 @@ if (LINK_STATIC)
         set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
     endif()
 
-    add_link_options(-static-libstdc++ -static-libgcc)
+    if (APPLE)
+        add_link_options(-static-libstdc++)
+    elseif (UNIX)
+        add_link_options(-static-libstdc++ -static-libgcc)
+    endif ()
 endif()
 
 if (LINK_STATIC)

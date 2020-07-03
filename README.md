@@ -1,5 +1,20 @@
 ![mamba header image](docs/assets/mamba_header.png)
 
+<table>
+<thead align="center" cellspacing="10">
+  <tr>
+    <th colspan="3" align="center" border="">part of snakepit</th>
+  </tr>
+</thead>
+<tbody>
+  <tr background="#FFF">
+    <td align="center">Package Manager <a href="https://github.com/thesnakepit/mamba">mamba</a></td>
+    <td align="center">Package Server <a href="https://github.com/thesnakepit/quetz">quetz</a></td>
+    <td align="center">Package Builder <a href="https://github.com/thesnakepit/boa">boa</a></td>
+  </tr>
+</tbody>
+</table>
+
 # mamba
 
 [![Build Status](https://github.com/TheSnakePit/mamba/workflows/CI/badge.svg)](https://github.com/TheSnakePit/mamba/actions)

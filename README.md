@@ -1,40 +1,36 @@
-# mamba, an experiment to make conda faster
+![mamba header image](docs/assets/mamba_header.png)
+
+# mamba
 
 [![Build Status](https://github.com/TheSnakePit/mamba/workflows/CI/badge.svg)](https://github.com/TheSnakePit/mamba/actions)
 [![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/QuantStack/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Mamba is a reimplementation of the bits which are somewhat slow in conda. Mamba uses:
+Mamba is a reimplementation of the conda package manager in C++.
 
-- parallel downloading of JSON files using multiprocessing, and reusing conda's caches
-- libsolv for speedy dependency solving, a state of the art library used in the package manager of Fedora and others
+- parallel downloading of repository data and package files using multi-threading
+- libsolv for much faster dependency solving, a state of the art library used in the RPM package manager of Red Hat, Fedora and OpenSUSE
+- core parts of mamba are implemented in C++ for maximum efficiency
 
-At the same time, mamba re-uses a lot of conda's codebase to parse the command line and execute the transaction (installation & deinstallation of packages).
+At the same time, mamba utilize the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
+
+Mamba is part of a bigger ecosystem to make scientific packaging more sustainable. You can read our [announcment blog post](https://medium.com/@QuantStack/open-software-packaging-for-science-61cecee7fc23).
+The ecosystem also consists of `quetz`, an open source conda package server and `boa`, a fast conda package builder.
 
 ### Installation
 
-***From `conda-forge`:***
+It's advised to install mamba from conda-forge. If you already have conda:
 
 ```
 conda install mamba -c conda-forge
 ```
 
-***From Source:***
-
-Make sure to have the following requirements in your conda environment:
-
-- `conda install cmake compilers pybind11 libsolv libarchive libcurl nlohmann_json pip -c conda-forge`
-
-If you build mamba in a different environment than base, you must also install conda in
-that environment:
-
-- `conda install conda -c conda-forge`
-
-For a local (dev) build, run `pip install -e .`. This will build and install mamba
-in the conda environment.
+otherwise it's best to start with [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+If you want to experiment with the latest software, you can also try micromamba (more below).
 
 ### Installing conda packages with `mamba`
 
 Now you are ready to install packages with
+
 ```bash
 mamba install xtensor-r -c conda-forge
 ```
@@ -82,23 +78,77 @@ $ mamba repoquery whoneeds ipython
 
 With the `--tree` (or `-t`) flag, you can get the same information in a tree.
 
-### Development installation
 
-You first need to install the mamba dependencies:
+## micromamba
 
-```bash
-conda install -c conda-forge python=3.7 pybind11 nlohmann_json cmake
+`micromamba` is a tiny version of the `mamba` package manager. 
+It is a pure C++ package with a separate command line interface.
+It can be used to bootstrap environments (as an alternative to miniconda), but it's currently experimental.
+The benefit is that it's very tiny and does not come with a default version of Python.
+
+`micromamba` works in the bash & zsh shell on Linux & OS X. 
+It's completely statically linked, which allows you to drop it in some place and just execute it. 
+
+Note: it's advised to use micromamba in containers & CI only.
+
+Download and unzip the executable (from the official conda-forge package):
+
+```sh
+wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 ```
 
-For the C++ tests, you need Google Tests installed (e.g. `conda install gtest`).
+We can use `./micromamba shell init ... ` to initialize a shell (`.bashrc`) and a new root environment in `~/micromamba`: 
+
+```sh
+./bin/micromamba shell init -s bash -p ~/micromamba
+source ~/.bashrc
+```
+
+Now you can activate the base environment and install new packages, or create other environments.
+
+Note: currently the `-c` arguments have to come at the end of the command line.
+
+```sh
+micromamba activate
+micromamba install python=3.6 jupyter -c conda-forge
+# or
+micromamba create -p /some/new/prefix xtensor -c conda-forge
+micromamba activate /some/new/prefix
+```
+
+For more instructions (including OS X) check out https://gist.github.com/wolfv/fe1ea521979973ab1d016d95a589dcde
+
+### Development installation
+
+Make sure to have the following requirements in your conda environment:
+
+`mamba install cmake compilers pybind11 libsolv libarchive libcurl nlohmann_json pip -c conda-forge`
+
+If you build mamba in a different environment than base, you must also install conda in
+that environment:
+
+`mamba install conda -c conda-forge`
+
+For a local (dev) build, run `pip install -e .`. This will build and install mamba
+in the conda environment.
+
+#### cmake based build
+
+You will additionally need to install cmake and cli11 for micromamba:
+
+```bash
+mamba install -c conda-forge cli11 cmake
+```
+
+For the C++ tests, you need Google Tests installed (e.g. `mamba install gtest`).
 To build the program using CMake, the following line needs to be used:
 
 ```bash
 cmake .. \
-  -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-  -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
-  -DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
-  -DENABLE_TESTS=ON
+    -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+    -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
+    -DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
+    -DENABLE_TESTS=ON
 ```
 
 ### Support us

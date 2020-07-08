@@ -28,7 +28,7 @@ Mamba is a reimplementation of the conda package manager in C++.
 
 At the same time, mamba utilize the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
 
-Mamba is part of a bigger ecosystem to make scientific packaging more sustainable. You can read our [announcment blog post](https://medium.com/@QuantStack/open-software-packaging-for-science-61cecee7fc23).
+Mamba is part of a bigger ecosystem to make scientific packaging more sustainable. You can read our [announcement blog post](https://medium.com/@QuantStack/open-software-packaging-for-science-61cecee7fc23).
 The ecosystem also consists of `quetz`, an open source conda package server and `boa`, a fast conda package builder.
 
 ### Installation

@@ -880,5 +880,65 @@ namespace mamba
         return out.str();
     }
 
-}
+    std::string XonshActivator::shell_extension()
+    {
+        return ".sh";
+    }
 
+    std::string XonshActivator::hook_preamble()
+    {
+        return "";
+    }
+
+    std::string XonshActivator::hook_postamble()
+    {
+        return "";
+    }
+
+    fs::path XonshActivator::hook_source_path()
+    {
+        return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.xsh";
+    }
+
+    std::pair<std::string, std::string> XonshActivator::update_prompt(const std::string& conda_prompt_modifier)
+    {
+        return {"", ""};
+    }
+
+    std::string XonshActivator::script(const EnvironmentTransform& env_transform)
+    {
+        std::stringstream out;
+
+        if (!env_transform.export_path.empty())
+        {
+            out << "$PATH=\"" << env_transform.export_path << "\"\n";
+        }
+
+        for (const fs::path& ds : env_transform.deactivate_scripts)
+        {
+            out << "source-bash " << ds << "\n";
+        }
+
+        for (const std::string& uvar : env_transform.unset_vars)
+        {
+            out << "del $" << uvar << "\n";
+        }
+
+        for (const auto& [skey, svar] : env_transform.set_vars)
+        {
+            out << "$" << skey << " = \"" << svar << "\"\n";
+        }
+
+        for (const auto& [ekey, evar] : env_transform.export_vars)
+        {
+            out << "$" << ekey << " = \"" << evar << "\"\n";
+        }
+
+        for (const fs::path& p : env_transform.activate_scripts)
+        {
+            out << "source-bash " << p << "\n";
+        }
+
+        return out.str();
+    }
+}

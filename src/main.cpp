@@ -128,7 +128,7 @@ void set_channels(Context& ctx)
 
 void init_shell_parser(CLI::App* subcom)
 {
-    subcom->add_option("-s,--shell", shell_options.shell_type, "A shell type (bash, fish, posix, powershell)");
+    subcom->add_option("-s,--shell", shell_options.shell_type, "A shell type (bash, fish, posix, powershell, xonsh)");
     subcom->add_option("--stack", shell_options.stack,
         "Stack the environment being activated on top of the previous active environment, "
         "rather replacing the current active environment with a new one. Currently, "
@@ -155,6 +155,10 @@ void init_shell_parser(CLI::App* subcom)
         else if (shell_options.shell_type == "powershell")
         {
             activator = std::make_unique<mamba::PowerShellActivator>();
+        }
+        else if (shell_options.shell_type == "xonsh")
+        {
+            activator = std::make_unique<mamba::XonshActivator>();
         }
         else
         {

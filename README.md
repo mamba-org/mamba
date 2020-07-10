@@ -168,5 +168,10 @@ cmake .. \
 
 ### Support us
 
-For questions, you can also join us on [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
+For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
+### License
+
+We use a shared copyright model that enables all contributors to maintain the copyright on their contributions.
+
+This software is licensed under the BSD-3-Clause license. See the [LICENSE](LICENSE) file for details.

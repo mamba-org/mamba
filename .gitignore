@@ -9,6 +9,7 @@ installed.json
 *.so
 __pycache__
 .vscode
+.idea
 .ipynb_checkpoints
 build/
 tmp/

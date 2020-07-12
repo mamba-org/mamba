@@ -766,7 +766,8 @@ def _wrapped_main(*args, **kwargs):
 
     init_loggers(context)
 
-    exit_code = do_call(args, p)
+    result = do_call(args, p)
+    exit_code = getattr(result, 'rc', result) # may be Result objects with code in rc field
     if isinstance(exit_code, int):
         return exit_code
 

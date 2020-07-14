@@ -16,6 +16,7 @@
 #include "subdirdata.hpp"
 #include "solver.hpp"
 #include "shell_init.hpp"
+#include "version.hpp"
 
 const char banner[] = R"MAMBARAW(
                                            __
@@ -335,9 +336,20 @@ void init_create_parser(CLI::App* subcom)
     });
 }
 
+std::string version()
+{
+    return mamba_version;
+}
+
 int main(int argc, char** argv)
 {
-    CLI::App app{banner};
+    CLI::App app{std::string(banner) + "\nVersion: " + version() + "\n"};
+
+    auto print_version = [](int count) {
+        std::cout << version() << std::endl;
+        exit(0);
+    };
+    app.add_flag_function("--version", print_version);
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);

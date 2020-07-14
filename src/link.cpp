@@ -837,15 +837,14 @@ namespace mamba
 
             std::vector<fs::path> for_compilation;
             static std::regex py_file_re("^site-packages[/\\\\][^\\t\\n\\r\\f\\v]+\\.py$");
-            for (auto& sub_path_json : paths_json["paths"])
+            for (auto& sub_path_json : paths_data)
             {
-                std::string path = sub_path_json["_path"];
-                if (std::regex_match(path, py_file_re))
+                if (std::regex_match(sub_path_json.path, py_file_re))
                 {
-                    for_compilation.push_back(get_python_noarch_target_path(path, m_context->site_packages_path));
-                    LOG_WARNING << get_python_noarch_target_path(path, m_context->site_packages_path);
+                    for_compilation.push_back(get_python_noarch_target_path(sub_path_json.path, m_context->site_packages_path));
                 }
             }
+
             std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
 
             for (const fs::path& pyc_path : pyc_files)

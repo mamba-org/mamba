@@ -55,6 +55,7 @@ static struct {
     bool quiet = false;
     bool json = false;
     bool offline = false;
+    bool dry_run = false;
 } global_options;
 
 
@@ -71,6 +72,7 @@ void init_global_parser(CLI::App* subcom)
     subcom->add_flag("-y,--yes", global_options.always_yes, "Automatically answer yes on all questions");
     subcom->add_flag("--json", global_options.json, "Report all output as json");
     subcom->add_flag("--offline", global_options.offline, "Force use cached repodata");
+    subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done")
 }
 
 void set_network_options(Context& ctx)
@@ -119,6 +121,7 @@ void set_global_options(Context& ctx)
     ctx.json = global_options.json;
     ctx.always_yes = global_options.always_yes;
     ctx.offline = global_options.offline;
+    ctx.dry_run = global_options.dry_run;
 }
 
 void init_channel_parser(CLI::App* subcom)

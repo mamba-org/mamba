@@ -8,6 +8,7 @@
 #include "output.hpp"
 #include "util.hpp"
 #include "package_info.hpp"
+#include "channel.hpp"
 
 namespace mamba
 {
@@ -46,7 +47,8 @@ namespace mamba
             // TODO this might match too much (e.g. bioconda would also match bioconda-experimental etc)
             // Note: s->repo->name is the URL of the repo
             // TODO maybe better to check all repos, select pointers, and compare the pointer (s->repo == ptr?)
-            if (std::string_view(s->repo->name).find(ms.channel) != std::string_view::npos)
+            Channel& chan = make_channel(s->repo->name);
+            if (chan.url(false).find(ms.channel) != std::string::npos)
             {
                 queue_push(&selected_pkgs, *wp);
             }

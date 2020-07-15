@@ -503,10 +503,11 @@ def install(args, parser, command='install'):
     )
     solver.add_jobs(mamba_solve_specs, solver_task)
 
-    # as a security feature this will _always_ attempt to upgrade certain packages
-    for a_pkg in [_.name for _ in context.aggressive_update_packages]:
-        if a_pkg in installed_names:
-            solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
+    if not context.force_reinstall:
+        # as a security feature this will _always_ attempt to upgrade certain packages
+        for a_pkg in [_.name for _ in context.aggressive_update_packages]:
+            if a_pkg in installed_names:
+                solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
 
     if python_constraint:
         solver.add_constraint(python_constraint)

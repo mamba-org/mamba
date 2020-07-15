@@ -72,7 +72,7 @@ void init_global_parser(CLI::App* subcom)
     subcom->add_flag("-y,--yes", global_options.always_yes, "Automatically answer yes on all questions");
     subcom->add_flag("--json", global_options.json, "Report all output as json");
     subcom->add_flag("--offline", global_options.offline, "Force use cached repodata");
-    subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done")
+    subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done");
 }
 
 void set_network_options(Context& ctx)
@@ -204,19 +204,27 @@ void init_shell_parser(CLI::App* subcom)
     });
 }
 
-void install_specs(const std::vector<std::string>& specs)
+void install_specs(const std::vector<std::string>& specs, bool create_env = false)
 {
     auto& ctx = Context::instance();
+
+
     set_global_options(ctx);
 
     Console::print(banner);
 
-    if (ctx.target_prefix.empty())
+    if (ctx.root_prefix.empty())
     {
-        std::cout << "No active prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n";
+        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba shell init ... \nto initialize your shell, then restart or source the contents of the shell init script.\n";
         exit(1);
     }
-    if (!fs::exists(ctx.target_prefix))
+
+    if (ctx.target_prefix.empty())
+    {
+        std::cout << "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n";
+        exit(1);
+    }
+    if (!fs::exists(ctx.target_prefix) && create_env == false)
     {
         std::cout << "Prefix does not exist\n";
         exit(1);
@@ -289,6 +297,13 @@ void install_specs(const std::vector<std::string>& specs)
     bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
     if (!yes) exit(0);
 
+    if (create_env && !Context::instance().dry_run)
+    {
+        fs::create_directories(ctx.target_prefix);
+        fs::create_directories(ctx.target_prefix / "conda-meta");
+        fs::create_directories(ctx.target_prefix / "pkgs");
+    }
+
     trans.execute(prefix_data, ctx.root_prefix / "pkgs");
 }
 
@@ -327,13 +342,7 @@ void init_create_parser(CLI::App* subcom)
             std::cout << "Prefix already exists";
             exit(1);
         }
-        else
-        {
-            fs::create_directories(ctx.target_prefix);
-            fs::create_directories(ctx.target_prefix / "conda-meta");
-            fs::create_directories(ctx.target_prefix / "pkgs");
-        }
-        install_specs(create_options.specs);
+        install_specs(create_options.specs, true);
 
         return 0;
     });

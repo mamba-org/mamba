@@ -73,6 +73,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def(py::init<MPool&, std::vector<std::pair<int, int>>, const PrefixData*>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_constraint", &MSolver::add_constraint)
+        .def("add_pin", &MSolver::add_pin)
         .def("set_flags", &MSolver::set_flags)
         .def("set_postsolve_flags", &MSolver::set_postsolve_flags)
         .def("is_solved", &MSolver::is_solved)

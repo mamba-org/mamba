@@ -32,6 +32,16 @@ namespace mamba
         }
     }
 
+    inline bool channel_match(Solvable* s, const std::string& channel)
+    {
+        // TODO this could should be a lot better.
+        // TODO this might match too much (e.g. bioconda would also match bioconda-experimental etc)
+        // Note: s->repo->name is the URL of the repo
+        // TODO maybe better to check all repos, select pointers, and compare the pointer (s->repo == ptr?)
+        Channel& chan = make_channel(s->repo->name);
+        return chan.url(false).find(channel) != std::string::npos;
+    }
+
     void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
     {
         Pool* pool = m_pool;
@@ -43,12 +53,7 @@ namespace mamba
 
         for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
         {
-            Solvable* s = pool_id2solvable(pool, *wp);
-            // TODO this might match too much (e.g. bioconda would also match bioconda-experimental etc)
-            // Note: s->repo->name is the URL of the repo
-            // TODO maybe better to check all repos, select pointers, and compare the pointer (s->repo == ptr?)
-            Channel& chan = make_channel(s->repo->name);
-            if (chan.url(false).find(ms.channel) != std::string::npos)
+            if (channel_match(pool_id2solvable(pool, *wp), ms.channel))
             {
                 queue_push(&selected_pkgs, *wp);
             }
@@ -161,6 +166,77 @@ namespace mamba
         MatchSpec ms(job);
         Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
         queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+    }
+
+    void MSolver::add_pin(const std::string& job)
+    {
+        // if we pin a package, we need to remove all packages that don't match the pin from being
+        // available for installation!
+        // This is done by adding SOLVER_LOCK to the packages, so that they are prevented from being installed
+        // A lock basically says: keep the state of the package. I.e. uninstalled packages stay uninstalled, installed packages stay installed.
+        // A lock is a hard requirement, we could also use SOLVER_FAVOR for soft requirements
+
+        // First we need to check if the pin is OK given the currently installed packages
+        Pool* pool = m_pool;
+        MatchSpec ms(job);
+
+        // TODO
+        // if (m_prefix_data)
+        // {
+        //     for (auto& [name, record] : m_prefix_data->records())
+        //     {
+        //         LOG_ERROR << "NAME " << name;
+        //         if (name == ms.name)
+        //         {
+        //             LOG_ERROR << "Found pinned package in installed packages, need to check pin now.";
+        //             LOG_ERROR << record.version << " vs " << ms.version;
+        //         }
+        //     }
+        // }
+
+        Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
+
+        std::set<Id> matching_solvables;
+        for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
+        {
+            if (!ms.channel.empty())
+            {
+                if (!channel_match(pool_id2solvable(pool, *wp), ms.channel))
+                {
+                    continue;
+                }
+            }
+            matching_solvables.insert(*wp);
+        }
+
+        std::set<Id> all_solvables;
+        Id name_id = pool_str2id(pool, ms.name.c_str(), 1);
+        for (Id* wp = pool_whatprovides_ptr(pool, name_id); *wp; wp++)
+        {
+            all_solvables.insert(*wp);
+        }
+
+        if (all_solvables.size() != 0 && matching_solvables.size() == 0)
+        {
+            LOG_ERROR << "No package can be installed for pin: " << job;
+            exit(1);
+        }
+
+        Queue selected_pkgs;
+        queue_init(&selected_pkgs);
+
+        for (auto& id: all_solvables)
+        {
+            if (matching_solvables.find(id) == matching_solvables.end())
+            {
+                // the solvable is _NOT_ matched by our pinning expression! So we have to lock it to make it un-installable
+                queue_push(&selected_pkgs, id);
+            }
+        }
+
+        Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
+        queue_push2(&m_jobs, SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
+        queue_free(&selected_pkgs);
     }
 
     void MSolver::set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)

@@ -43,7 +43,7 @@ namespace mamba
 
         query_result find(const std::string& query) const;
         query_result whoneeds(const std::string& query, bool tree) const;
-        query_result depends(const std::string& query) const;
+        query_result depends(const std::string& query, bool tree) const;
 
     private:
 

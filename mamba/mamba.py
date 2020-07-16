@@ -606,9 +606,10 @@ def repoquery(args, parser):
     repos = []
 
     only_installed = True
+    channels = args.channel or []
     if args.subcmd == "search" and args.installed == False:
         only_installed = False
-    elif args.all_channels or len(args.channel):
+    elif args.all_channels or len(channels):
         only_installed = False
 
     if only_installed and args.no_installed:
@@ -645,7 +646,7 @@ def repoquery(args, parser):
     if args.subcmd == "whoneeds":
         query.whoneeds(args.package_query, args.tree)
     if args.subcmd == "depends":
-        query.depends(args.package_query)
+        query.depends(args.package_query, args.tree)
     if args.subcmd == "search":
         query.find(args.package_query)
 

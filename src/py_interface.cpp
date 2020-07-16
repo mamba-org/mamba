@@ -108,12 +108,15 @@ PYBIND11_MODULE(mamba_api, m) {
                 else
                     res.table(std::cout);
             })
-        .def("depends", [](const Query& q, const std::string& query)
+        .def("depends", [](const Query& q, const std::string& query, bool tree)
             {
+                query_result res = q.depends(query, tree);
                 if (Context::instance().json)
-                    std::cout << q.depends(query).json().dump(4);
+                    std::cout << res.json().dump(4);
+                else if (tree)
+                    res.tree(std::cout);
                 else
-                    q.depends(query).tree(std::cout);
+                    res.table(std::cout);
             });
 
     py::class_<MSubdirData>(m, "SubdirData")

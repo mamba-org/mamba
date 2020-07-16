@@ -26,8 +26,15 @@ namespace mamba
                     query_result::dependency_graph::node_id parent,
                     Solvable* s,
                     std::map<Solvable*, size_t>& visited,
-                    std::map<std::string, size_t>& not_found)
+                    std::map<std::string, size_t>& not_found,
+                    int depth = -1)
     {
+        if (depth == 0)
+        {
+            return;
+        }
+        depth -= 1;
+
         if (s && s->requires)
         {
             auto* pool = s->repo->pool;
@@ -61,7 +68,7 @@ namespace mamba
                         auto dep_id = dep_graph.add_node(PackageInfo(rs));
                         dep_graph.add_edge(parent, dep_id);
                         visited.insert(std::make_pair(rs, dep_id));
-                        walk_graph(dep_graph, dep_id, rs, visited, not_found);
+                        walk_graph(dep_graph, dep_id, rs, visited, not_found, depth);
                     }
                     else
                     {
@@ -131,7 +138,7 @@ namespace mamba
     /************************
      * Query implementation *
      ************************/
-    
+
     Query::Query(MPool& pool)
         : m_pool(pool)
     {
@@ -162,9 +169,9 @@ namespace mamba
             Solvable* sa; Solvable* sb;
             sa = pool_id2solvable(pool, a);
             sb = pool_id2solvable(pool, b);
-            return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0); 
+            return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
         });
-        
+
         for (int i = 0; i < solvables.count; i++)
         {
             Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
@@ -218,7 +225,7 @@ namespace mamba
         return query_result(QueryType::Whoneeds, query, std::move(g));
     }
 
-    query_result Query::depends(const std::string& query) const
+    query_result Query::depends(const std::string& query, bool tree) const
     {
         Queue job, solvables;
         queue_init(&job);
@@ -237,6 +244,7 @@ namespace mamba
         query_result::dependency_graph g;
         selection_solvables(m_pool.get(), &job, &solvables);
 
+        int depth = tree ? -1 : 1;
         if (solvables.count > 0)
         {
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
@@ -253,7 +261,7 @@ namespace mamba
             auto id = g.add_node(PackageInfo(latest));
             std::map<Solvable*, size_t> visited = {{latest, id}};
             std::map<std::string, size_t> not_found;
-            walk_graph(g, id, latest, visited, not_found);
+            walk_graph(g, id, latest, visited, not_found, depth);
         }
 
         queue_free(&job);
@@ -390,7 +398,7 @@ namespace mamba
         }
         return *this;
     }
-    
+
     query_result& query_result::reset()
     {
         reset_pkg_view_list();
@@ -457,7 +465,7 @@ namespace mamba
                 m_prefix_stack.push_back("│  ");
             }
         }
-        
+
         void finish_node(node_id node, const graph_type&)
         {
             m_prefix_stack.pop_back();
@@ -471,7 +479,7 @@ namespace mamba
                 m_last_stack.push(to);
             }
         }
-        
+
         void tree_edge(node_id, node_id, const graph_type&) {}
         void back_edge(node_id, node_id, const graph_type&) {}
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
@@ -487,7 +495,7 @@ namespace mamba
                 m_last_stack.pop();
             }
         }
-    
+
     private:
 
         bool is_on_last_stack(node_id node) const
@@ -542,7 +550,7 @@ namespace mamba
     nl::json query_result::json() const
     {
         nl::json j;
-        std::string query_type = m_type == QueryType::Search 
+        std::string query_type = m_type == QueryType::Search
                                ? "search"
                                : (m_type == QueryType::Depends
                                ? "depends"

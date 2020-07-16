@@ -401,27 +401,15 @@ def install(args, parser, command='install'):
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
-        history_dict = History(prefix).get_requested_specs_map()
-        pins = {
-            pin.name: pin
-            for pin in get_pinned_specs(prefix)
-        }
-        # for key, match_spec in history_dict.items():
-        for key in installed_names:
-            if key == 'python':
-                i = installed_names.index('python')
-                version = installed_pkg_recs[i].version
-                py_ver = ".".join(version.split(".")[:2]) + '.*'
-                # specs.append(MatchSpec(name="python", version=py_ver))
-            else:
-                if key in pins:
-                    specs.append(pins[key])
-                else:
-                    specs.append(MatchSpec(key))
+        for i in installed_names:
+            if i != 'python':
+                specs.append(MatchSpec(i))
 
         prefix_data = PrefixData(prefix)
         for s in args_packages:
             s = MatchSpec(s)
+            if s.name == 'python':
+                specs.append(s)
             if not s.is_name_only_spec:
                 raise CondaValueError("Invalid spec for 'conda update': %s\n"
                                       "Use 'conda install' instead." % s)
@@ -503,13 +491,28 @@ def install(args, parser, command='install'):
     )
     solver.add_jobs(mamba_solve_specs, solver_task)
 
-    # as a security feature this will _always_ attempt to upgrade certain packages
-    for a_pkg in [_.name for _ in context.aggressive_update_packages]:
-        if a_pkg in installed_names:
-            solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
+    if not context.force_reinstall:
+        # as a security feature this will _always_ attempt to upgrade certain packages
+        for a_pkg in [_.name for _ in context.aggressive_update_packages]:
+            if a_pkg in installed_names:
+                solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
 
     if python_constraint:
-        solver.add_constraint(python_constraint)
+        solver.add_pin(python_constraint)
+
+    pinned_specs = get_pinned_specs(context.target_prefix)
+    if pinned_specs:
+        conda_prefix_data = PrefixData(context.target_prefix)
+    for s in pinned_specs:
+        x = conda_prefix_data.query(s.name)
+        if x:
+            for el in x:
+                if not s.match(el):
+                    print("Your pinning does not match what's currently installed. Please remove the pin and fix your installation")
+                    print("  Pin: {}".format(s))
+                    print("  Currently installed: {}".format(el))
+                    exit(1)
+        solver.add_pin(str(s))
 
     success = solver.solve()
     if not success:

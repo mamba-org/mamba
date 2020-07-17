@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <stack>
 #include <thread>
 
 #include "transaction.hpp"
@@ -392,6 +393,41 @@ namespace mamba
         return py_ver;
     }
 
+    class TransactionRollback
+    {
+    public:
+
+        void record(const UnlinkPackage& unlink)
+        {
+            m_unlink_stack.push(unlink);
+        }
+
+        void record(const LinkPackage& link)
+        {
+            m_link_stack.push(link);
+        }
+
+        void rollback()
+        {
+            while(!m_link_stack.empty())
+            {
+                m_link_stack.top().undo();
+                m_link_stack.pop();
+            }
+
+            while(!m_unlink_stack.empty())
+            {
+                m_unlink_stack.top().undo();
+                m_unlink_stack.pop();
+            }
+        }
+
+    private:
+
+        std::stack<UnlinkPackage> m_unlink_stack;
+        std::stack<LinkPackage> m_link_stack;
+    };
+
     bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
         // JSON output
@@ -415,9 +451,11 @@ namespace mamba
         m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
+        TransactionRollback rollback;
+
         auto* pool = m_transaction->pool;
 
-        for (int i = 0; i < m_transaction->steps.count; i++)
+        for (int i = 0; i < m_transaction->steps.count && !Context::instance().sig_interrupt; i++)
         {
             Id p = m_transaction->steps.elements[i];
             Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
@@ -441,11 +479,15 @@ namespace mamba
                     Console::stream() << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
                     PackageInfo p_link(s2);
-                    UnlinkPackage up(PackageInfo(s), &m_transaction_context);
+                    
+                    UnlinkPackage up(p_unlink, fs::path(cache_dir), &m_transaction_context);
                     up.execute();
+                    rollback.record(up);
+                    
 
-                    LinkPackage lp(PackageInfo(s2), fs::path(cache_dir), &m_transaction_context);
+                    LinkPackage lp(p_link, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
+                    rollback.record(lp);
 
                     m_history_entry.unlink_dists.push_back(p_unlink.long_str());
                     m_history_entry.link_dists.push_back(p_link.long_str());
@@ -456,8 +498,9 @@ namespace mamba
                 {
                     PackageInfo p(s);
                     Console::stream() << "Unlinking " << PackageInfo(s).str();
-                    UnlinkPackage up(p, &m_transaction_context);
+                    UnlinkPackage up(p, fs::path(cache_dir), &m_transaction_context);
                     up.execute();
+                    rollback.record(up);
                     m_history_entry.unlink_dists.push_back(p.long_str());
                     break;
                 }
@@ -467,6 +510,7 @@ namespace mamba
                     Console::stream() << "Linking " << p.str();
                     LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
+                    rollback.record(lp);
                     m_history_entry.link_dists.push_back(p.long_str());
                     break;
                 }
@@ -478,10 +522,18 @@ namespace mamba
             }
         }
 
-        Console::stream() << "Transaction finished";
-        prefix.history().add_entry(m_history_entry);
-
-        return true;
+        bool interrupted = Context::instance().sig_interrupt;
+        if (interrupted)
+        {
+            Console::stream() << "Transaction interrupted, rollbacking";
+            rollback.rollback();
+        }
+        else
+        {
+            Console::stream() << "Transaction finished";
+            prefix.history().add_entry(m_history_entry);
+        }
+        return !interrupted;
     }
 
     auto MTransaction::to_conda() -> to_conda_type

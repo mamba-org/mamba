@@ -8,6 +8,7 @@
 #define MAMBA_LINK
 
 #include <iostream>
+#include <stack>
 
 #include "nlohmann/json.hpp"
 #include "thirdparty/filesystem.hpp"
@@ -30,15 +31,17 @@ struct python_entry_point_parsed
 class UnlinkPackage
 {
 public:
-    UnlinkPackage(const PackageInfo& pkg_info, TransactionContext* context);
+    UnlinkPackage(const PackageInfo& pkg_info, const fs::path& cache_path, TransactionContext* context);
 
     bool execute();
+    bool undo();
 
 private:
 
     bool unlink_path(const nlohmann::json& path_data);
 
     PackageInfo m_pkg_info;
+    fs::path m_cache_path;
     std::string m_specifier;
     TransactionContext* m_context;
 };
@@ -50,6 +53,7 @@ public:
     LinkPackage(const PackageInfo& pkg_info, const fs::path& cache_path, TransactionContext* context);
 
     bool execute();
+    bool undo();
 
 private:
 
@@ -58,9 +62,9 @@ private:
     auto create_python_entry_point(const fs::path& path, const python_entry_point_parsed& entry_point);
 
     PackageInfo m_pkg_info;
+    fs::path m_cache_path;
     fs::path m_source;
     TransactionContext* m_context;
-    nlohmann::json m_files;
 };
 
 }

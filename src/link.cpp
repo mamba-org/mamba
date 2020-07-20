@@ -533,8 +533,11 @@ namespace mamba
         return true;
     }
 
-    UnlinkPackage::UnlinkPackage(const PackageInfo& pkg_info, TransactionContext* context)
-        : m_pkg_info(pkg_info), m_specifier(m_pkg_info.str()), m_context(context)
+    UnlinkPackage::UnlinkPackage(const PackageInfo& pkg_info, const fs::path& cache_path, TransactionContext* context)
+        : m_pkg_info(pkg_info)
+        , m_cache_path(cache_path)
+        , m_specifier(m_pkg_info.str())
+        , m_context(context)
     {
     }
 
@@ -576,8 +579,17 @@ namespace mamba
         return true;
     }
 
-    LinkPackage::LinkPackage(const PackageInfo& pkg_info, const fs::path& cache_dir, TransactionContext* context)
-        : m_pkg_info(pkg_info), m_source(cache_dir / m_pkg_info.str()), m_context(context)
+    bool UnlinkPackage::undo()
+    {
+        LinkPackage lp(m_pkg_info, m_cache_path, m_context);
+        return lp.execute();
+    }
+
+    LinkPackage::LinkPackage(const PackageInfo& pkg_info, const fs::path& cache_path, TransactionContext* context)
+        : m_pkg_info(pkg_info)
+        , m_cache_path(cache_path)
+        , m_source(cache_path / m_pkg_info.str())
+        , m_context(context)
     {
     }
 
@@ -913,5 +925,11 @@ namespace mamba
         out_file << out_json.dump(4);
 
         return true;
+    }
+
+    bool LinkPackage::undo()
+    {
+        UnlinkPackage ulp(m_pkg_info, m_cache_path, m_context);
+        return ulp.execute();
     }
 }

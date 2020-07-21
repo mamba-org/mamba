@@ -220,17 +220,29 @@ namespace mamba
 
     void ProgressProxy::set_progress(char p)
     {
+        if (Context::instance().sig_interrupt)
+        {
+            return;
+        }
         p_bar->set_progress(p);
         Console::instance().print_progress(m_idx);
     }
 
     void ProgressProxy::elapsed_time_to_stream(std::stringstream& s)
     {
+        if (Context::instance().sig_interrupt)
+        {
+            return;
+        }
         p_bar->elapsed_time_to_stream(s);
     }
 
     void ProgressProxy::mark_as_completed(const std::string_view& final_message)
     {
+        if (Context::instance().sig_interrupt)
+        {
+            return;
+        }
         // mark as completed should print bar or message at FIRST position!
         // then discard
         p_bar->mark_as_completed();

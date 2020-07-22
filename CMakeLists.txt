@@ -146,6 +146,7 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/repo.cpp
     ${CMAKE_SOURCE_DIR}/src/solver.cpp
     ${CMAKE_SOURCE_DIR}/src/subdirdata.cpp
+    ${CMAKE_SOURCE_DIR}/src/thread_utils.cpp
     ${CMAKE_SOURCE_DIR}/src/transaction.cpp
     ${CMAKE_SOURCE_DIR}/src/util.cpp
     ${CMAKE_SOURCE_DIR}/src/validate.cpp

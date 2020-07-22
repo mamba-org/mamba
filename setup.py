@@ -96,6 +96,7 @@ ext_modules = [
             'src/repo.cpp',
             'src/solver.cpp',
             'src/subdirdata.cpp',
+            'src/thread_utils.cpp',
             'src/transaction.cpp',
             'src/transaction_context.cpp',
             'src/url.cpp',

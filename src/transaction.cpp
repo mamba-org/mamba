@@ -11,6 +11,7 @@
 #include "transaction.hpp"
 #include "match_spec.hpp"
 #include "link.hpp"
+#include "thread_utils.hpp"
 
 namespace mamba
 {
@@ -131,9 +132,11 @@ namespace mamba
 
         LOG_INFO << "Download finished, validating " << m_tarball_path;
 
-        m_extract_future = std::async(std::launch::async,
+        thread v(&PackageDownloadExtractTarget::validate_extract, this);
+        v.detach();
+        /*m_extract_future = std::async(std::launch::async,
                                       &PackageDownloadExtractTarget::validate_extract,
-                                      this);
+                                      this);*/
 
         return true;
     }

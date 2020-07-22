@@ -14,6 +14,7 @@
 
 #include "package_handling.hpp"
 #include "output.hpp"
+#include "thread_utils.hpp"
 
 namespace mamba
 {
@@ -26,6 +27,7 @@ namespace mamba
 
         while (true)
         {
+            interruption_point();
             r = archive_read_data_block(ar, &buff, &size, &offset);
             if (r == ARCHIVE_EOF)
             {
@@ -86,6 +88,7 @@ namespace mamba
         
         for (;;)
         {
+            interruption_point();
             r = archive_read_next_header(a, &entry);
             if (r == ARCHIVE_EOF)
             {

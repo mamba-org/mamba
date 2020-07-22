@@ -163,7 +163,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("root_prefix", &Context::root_prefix)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
-        .def_readonly("sig_interrupt", &Context::sig_interrupt)
+        //.def_readonly("sig_interrupt", &Context::sig_interrupt)
         .def("set_verbosity", &Context::set_verbosity)
         .def_readwrite("channels", &Context::channels)
     ;

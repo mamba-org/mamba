@@ -10,6 +10,7 @@
 #include "context.hpp"
 #include "fetch.hpp"
 #include "util.hpp"
+#include "thread_utils.hpp"
 
 namespace mamba
 {
@@ -500,11 +501,10 @@ namespace mamba
                 repeats = 0;
             }
         }
-        while ((still_running || !m_retry_targets.empty()) && !Context::instance().sig_interrupt);
+        while ((still_running || !m_retry_targets.empty()) && !is_sig_interrupted());
 
-        if (Context::instance().sig_interrupt)
+        if (is_sig_interrupted())
         {
-            Console::instance().init_multi_progress();
             Console::print("Download interrupted");
             curl_multi_cleanup(m_handle);
             return false;

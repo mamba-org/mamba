@@ -1,5 +1,9 @@
 #include "thread_utils.hpp"
 
+#ifndef _WIN32
+#include <signal.h>
+#endif
+
 namespace mamba
 {
     /***********************
@@ -11,19 +15,19 @@ namespace mamba
         std::atomic<bool> sig_interrupted;
     }
 
-    bool is_interrupted() noexcept
+    bool is_sig_interrupted() noexcept
     {
         return sig_interrupted.load();
     }
 
-    void set_interrupted() noexcept
+    void set_sig_interrupted() noexcept
     {
         sig_interrupted.store(true);
     }
 
     void interruption_point()
     {
-        if (is_interrupted())
+        if (is_sig_interrupted())
         {
             throw thread_interrupted();
         }
@@ -87,5 +91,41 @@ namespace mamba
     {
         m_thread.detach();
     }
+
+    /**********************
+     * interruption_guard *
+     **********************/
+
+#ifdef _WIN32
+    std::function<void ()> interruption_guard::m_cleanup_function;
+#else 
+    namespace
+    {
+        sigset_t sigset;
+    }
+
+    void interruption_guard::block_signals() const
+    {
+        sigemptyset(&sigset);
+        sigaddset(&sigset, SIGINT);
+        pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
+    }
+
+    void interruption_guard::reset_signal_handler() const
+    {
+        pthread_sigmask(SIG_UNBLOCK, &sigset, nullptr);
+        std::signal(SIGINT, [](int signum) {
+            set_sig_interrupted();
+        });
+    }
+
+    void interruption_guard::wait_for_signal() const
+    {
+        int signum = 0;
+        sigwait(&sigset, &signum);
+    }
+
+#endif
+
 }
 

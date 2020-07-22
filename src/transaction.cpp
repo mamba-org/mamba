@@ -82,6 +82,7 @@ namespace mamba
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
         }
+        interruption_point();
         std::string sha256_check = lookup_checksum(m_solv, SOLVABLE_CHECKSUM);
         if (!sha256_check.empty() && !validate::sha256(m_tarball_path, sha256_check))
         {
@@ -98,11 +99,13 @@ namespace mamba
             }
         }
 
+        interruption_point();
         LOG_INFO << "Waiting for decompression " << m_tarball_path;
         m_progress_proxy.set_postfix("Waiting...");
         // Extract path is __not__ yet thread safe it seems...
         {
             std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
+            interruption_point();
             m_progress_proxy.set_postfix("Decompressing...");
             LOG_INFO << "Decompressing " << m_tarball_path;
             auto extract_path = extract(m_tarball_path);
@@ -111,6 +114,7 @@ namespace mamba
             add_url();
         }
 
+        interruption_point();
         std::stringstream final_msg;
         final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
         m_progress_proxy.elapsed_time_to_stream(final_msg);
@@ -134,9 +138,6 @@ namespace mamba
 
         thread v(&PackageDownloadExtractTarget::validate_extract, this);
         v.detach();
-        /*m_extract_future = std::async(std::launch::async,
-                                      &PackageDownloadExtractTarget::validate_extract,
-                                      this);*/
 
         return true;
     }
@@ -458,7 +459,7 @@ namespace mamba
 
         auto* pool = m_transaction->pool;
 
-        for (int i = 0; i < m_transaction->steps.count && !Context::instance().sig_interrupt; i++)
+        for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
         {
             Id p = m_transaction->steps.elements[i];
             Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
@@ -525,7 +526,7 @@ namespace mamba
             }
         }
 
-        bool interrupted = Context::instance().sig_interrupt;
+        bool interrupted = is_sig_interrupted();
         if (interrupted)
         {
             Console::stream() << "Transaction interrupted, rollbacking";
@@ -640,6 +641,12 @@ namespace mamba
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(*mamba_repo, s));
             multi_dl.add(targets[targets.size() - 1]->target(cache_path, m_multi_cache));
         }
+
+        interruption_guard g([]()
+        {
+            Console::instance().init_multi_progress();
+        });
+
         bool downloaded = multi_dl.download(true);
 
         if (!downloaded)
@@ -648,7 +655,7 @@ namespace mamba
             return false;
         }
         // make sure that all targets have finished extracting
-        while (!Context::instance().sig_interrupt)
+        while (!is_sig_interrupted())
         {
             bool all_finished = true;
             for (const auto& t : targets)
@@ -666,7 +673,7 @@ namespace mamba
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        return !Context::instance().sig_interrupt && downloaded;
+        return !is_sig_interrupted() && downloaded;
     }
 
     bool MTransaction::empty()

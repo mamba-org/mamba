@@ -721,7 +721,7 @@ namespace mamba
         local_names.reserve(local_channels.size());
         for(const auto& p: local_channels)
         {
-            if (std::ofstream(p))
+            if (fs::exists(p))
             {
                 std::string url = path_to_url(p);
                 auto channel = Channel::make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);

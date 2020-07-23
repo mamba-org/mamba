@@ -330,7 +330,7 @@ def install(args, parser, command='install'):
         for fpath in args.file:
             try:
                 file_specs += specs_from_url(fpath, json=context.json)
-            except Unicode:
+            except UnicodeError:
                 raise CondaValueError("Error reading file, file should be a text file containing"
                                  " packages \nconda create --help for details")
         if '@EXPLICIT' in file_specs:

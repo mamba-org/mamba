@@ -21,6 +21,8 @@ namespace mamba
      * thread interruption *
      ***********************/
 
+    void set_default_signal_handler();
+
     bool is_sig_interrupted() noexcept;
     void set_sig_interrupted() noexcept;
 
@@ -42,10 +44,17 @@ namespace mamba
     int get_thread_count();
 
     // Waits until all other threads have finished
-    // Ensures the cleaning thread won't free ressources
-    // that could be required by threads still active.
+    // Must be called by the cleaning thread to ensure
+    // it won't free ressources that could be required
+    // by threads still active.
     void wait_before_cleaning();
+    void notify_cleanup();
  
+    // Should be called by the main thread to ensure
+    // it does not exit before the cleaning thread has
+    // terminated.
+    void wait_for_cleanup();
+
     /**********
      * thread *
      **********/
@@ -122,15 +131,15 @@ namespace mamba
         static std::function<void ()> m_cleanup_function;
 #else
         void block_signals() const;
-        void reset_signal_handler() const;
         void wait_for_signal() const;
         std::atomic<bool> m_interrupt;
 #endif
     };
 
+#ifdef _WIN32
+
     template <class Function, class... Args>
     inline interruption_guard::interruption_guard(Function&& func, Args&&... args)
-#ifdef _WIN32
     {
         m_cleanup_function = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
         std::signal(SIGINT, [](int) {
@@ -139,7 +148,11 @@ namespace mamba
             m_cleanup_function();
         });
     }
+
 #else
+
+    template <class Function, class... Args>
+    inline interruption_guard::interruption_guard(Function&& func, Args&&... args)
         : m_interrupt(true)
     {
         block_signals();
@@ -152,23 +165,13 @@ namespace mamba
                 set_sig_interrupted();
                 wait_before_cleaning();
                 f();
+                notify_cleanup();
             }
         });
         victor_the_cleaner.detach();
     };
-#endif
 
-    inline interruption_guard::~interruption_guard()
-    {
-#ifdef _WIN32
-        std::signal(SIGINT, [](int signum) {
-            set_sig_interrupted();
-        });
-#else
-        m_interrupt.store(false);
-        reset_signal_handler();
 #endif
-    }
 
 }
 

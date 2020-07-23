@@ -15,6 +15,14 @@ namespace mamba
         std::atomic<bool> sig_interrupted;
     }
 
+    void set_default_signal_handler()
+    {
+        std::signal(SIGINT, [](int signum)
+        {
+            set_sig_interrupted();
+        });
+    }
+
     bool is_sig_interrupted() noexcept
     {
         return sig_interrupted.load();
@@ -42,6 +50,10 @@ namespace mamba
         int thread_count = 0;
         std::mutex clean_mutex;
         std::condition_variable clean_var;
+
+        std::atomic<bool> is_clean = false;
+        std::mutex main_mutex;
+        std::condition_variable main_var;
     }
 
     void increase_thread_count()
@@ -66,6 +78,18 @@ namespace mamba
     {
         std::unique_lock<std::mutex> lk(clean_mutex);
         clean_var.wait(lk, []() { return thread_count == 0; });
+    }
+
+    void notify_cleanup()
+    {
+        is_clean.store(true);
+        main_var.notify_one();
+    }
+
+    void wait_for_cleanup()
+    {
+        std::unique_lock<std::mutex> lk(main_mutex);
+        main_var.wait(lk, []() { return is_clean.load(); });
     }
 
     /*************************
@@ -97,11 +121,30 @@ namespace mamba
      **********************/
 
 #ifdef _WIN32
+
     std::function<void ()> interruption_guard::m_cleanup_function;
-#else 
+
+    interruption_guard::~interruption_guard()
+    {
+        set_default_signal_handler();
+    }
+
+#else
+
     namespace
     {
         sigset_t sigset;
+    }
+    
+    interruption_guard::~interruption_guard()
+    {
+        if (is_sig_interrupted())
+        {
+            wait_for_cleanup();
+        }
+        m_interrupt.store(false);
+        pthread_sigmask(SIG_UNBLOCK, &sigset, nullptr);
+        set_default_signal_handler();
     }
 
     void interruption_guard::block_signals() const
@@ -111,14 +154,6 @@ namespace mamba
         pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
     }
 
-    void interruption_guard::reset_signal_handler() const
-    {
-        pthread_sigmask(SIG_UNBLOCK, &sigset, nullptr);
-        std::signal(SIGINT, [](int signum) {
-            set_sig_interrupted();
-        });
-    }
-
     void interruption_guard::wait_for_signal() const
     {
         int signum = 0;
@@ -126,6 +161,8 @@ namespace mamba
     }
 
 #endif
+
+
 
 }
 

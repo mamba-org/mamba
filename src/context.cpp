@@ -66,10 +66,7 @@ namespace mamba
             no_progress_bars = true;
         }
 
-        std::signal(SIGINT, [](int)
-        {
-            set_sig_interrupted();
-        });
+        set_default_signal_handler();
     }
 
     Context& Context::instance()

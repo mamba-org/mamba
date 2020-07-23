@@ -59,8 +59,6 @@ namespace mamba
         bool keep_temp_files = false;
         bool keep_temp_directories = false;
 
-        //bool sig_interrupt = false;
-
         bool change_ps1 = true;
 
         int connect_timeout_secs = 10;

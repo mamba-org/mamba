@@ -18,6 +18,34 @@
 
 namespace mamba
 {
+    class extraction_guard
+    {
+    public:
+
+        explicit extraction_guard(const fs::path& file)
+            : m_file(file)
+        {
+        }
+
+        ~extraction_guard()
+        {
+            if (is_sig_interrupted())
+            {
+                LOG_INFO << "Extraction interrupted, erasing " << m_file.string();
+                fs::remove_all(m_file);
+            }
+        }
+
+        extraction_guard(const extraction_guard&) = delete;
+        extraction_guard& operator=(const extraction_guard&) = delete;
+        extraction_guard(extraction_guard&&) = delete;
+        extraction_guard& operator=(extraction_guard&&) = delete;
+
+    private:
+
+        const fs::path& m_file;
+    };
+
     static int copy_data(archive *ar, archive *aw)
     {
         int r;
@@ -49,6 +77,7 @@ namespace mamba
     void extract_archive(const fs::path& file, const fs::path& destination)
     {
         LOG_INFO << "Extracting " << file << " to " << destination;
+        extraction_guard g(destination);
 
         auto prev_path = fs::current_path();
         if (!fs::exists(destination))

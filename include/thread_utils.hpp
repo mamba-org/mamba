@@ -17,6 +17,10 @@
 
 namespace mamba
 {
+
+#ifdef MAMBA_TEST_SUITE
+#endif
+
     /***********************
      * thread interruption *
      ***********************/
@@ -49,11 +53,14 @@ namespace mamba
     // by threads still active.
     void wait_before_cleaning();
     void notify_cleanup();
- 
+
     // Should be called by the main thread to ensure
     // it does not exit before the cleaning thread has
     // terminated.
     void wait_for_cleanup();
+
+    void register_cleaning_thread_id(std::thread::native_handle_type);
+    std::thread::native_handle_type get_cleaning_thread_id();
 
     /**********
      * thread *
@@ -168,6 +175,7 @@ namespace mamba
                 notify_cleanup();
             }
         });
+        register_cleaning_thread_id(victor_the_cleaner.native_handle());
         victor_the_cleaner.detach();
     };
 

@@ -4,8 +4,11 @@
 #include <signal.h>
 #endif
 
+#include <iostream>
+
 namespace mamba
 {
+
     /***********************
      * thread interruption *
      ***********************/
@@ -92,6 +95,21 @@ namespace mamba
         main_var.wait(lk, []() { return is_clean.load(); });
     }
 
+    namespace
+    {
+        std::thread::native_handle_type cleanup_id;
+    }
+
+    void register_cleaning_thread_id(std::thread::native_handle_type id)
+    {
+        cleanup_id = id;
+    }
+
+    std::thread::native_handle_type get_cleaning_thread_id()
+    {
+        return cleanup_id;
+    }
+
     /*************************
      * thread implementation *
      *************************/
@@ -161,8 +179,6 @@ namespace mamba
     }
 
 #endif
-
-
 
 }
 

@@ -13,6 +13,7 @@ set(TEST_SRCS
     test_string_methods.cpp
     test_environments_manager.cpp
     test_transfer.cpp
+    test_thread_utils.cpp
     test_graph.cpp
 )
 

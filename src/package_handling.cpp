@@ -14,9 +14,38 @@
 
 #include "package_handling.hpp"
 #include "output.hpp"
+#include "thread_utils.hpp"
 
 namespace mamba
 {
+    class extraction_guard
+    {
+    public:
+
+        explicit extraction_guard(const fs::path& file)
+            : m_file(file)
+        {
+        }
+
+        ~extraction_guard()
+        {
+            if (is_sig_interrupted())
+            {
+                LOG_INFO << "Extraction interrupted, erasing " << m_file.string();
+                fs::remove_all(m_file);
+            }
+        }
+
+        extraction_guard(const extraction_guard&) = delete;
+        extraction_guard& operator=(const extraction_guard&) = delete;
+        extraction_guard(extraction_guard&&) = delete;
+        extraction_guard& operator=(extraction_guard&&) = delete;
+
+    private:
+
+        const fs::path& m_file;
+    };
+
     static int copy_data(archive *ar, archive *aw)
     {
         int r;
@@ -26,6 +55,7 @@ namespace mamba
 
         while (true)
         {
+            interruption_point();
             r = archive_read_data_block(ar, &buff, &size, &offset);
             if (r == ARCHIVE_EOF)
             {
@@ -47,6 +77,7 @@ namespace mamba
     void extract_archive(const fs::path& file, const fs::path& destination)
     {
         LOG_INFO << "Extracting " << file << " to " << destination;
+        extraction_guard g(destination);
 
         auto prev_path = fs::current_path();
         if (!fs::exists(destination))
@@ -86,6 +117,7 @@ namespace mamba
         
         for (;;)
         {
+            interruption_point();
             r = archive_read_next_header(a, &entry);
             if (r == ARCHIVE_EOF)
             {

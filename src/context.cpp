@@ -10,6 +10,7 @@
 #include "util.hpp"
 #include "context.hpp"
 #include "thirdparty/termcolor.hpp"
+#include "thread_utils.hpp"
 
 namespace mamba
 {
@@ -65,9 +66,7 @@ namespace mamba
             no_progress_bars = true;
         }
 
-        std::signal(SIGINT, [](int signum) {
-            instance().sig_interrupt = true;
-        });
+        set_default_signal_handler();
     }
 
     Context& Context::instance()

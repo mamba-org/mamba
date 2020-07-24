@@ -18,6 +18,7 @@
 #include "output.hpp"
 #include "util.hpp"
 #include "url.hpp"
+#include "thread_utils.hpp"
 
 namespace mamba
 {
@@ -220,7 +221,7 @@ namespace mamba
 
     void ProgressProxy::set_progress(char p)
     {
-        if (Context::instance().sig_interrupt)
+        if (is_sig_interrupted())
         {
             return;
         }
@@ -230,7 +231,7 @@ namespace mamba
 
     void ProgressProxy::elapsed_time_to_stream(std::stringstream& s)
     {
-        if (Context::instance().sig_interrupt)
+        if (is_sig_interrupted())
         {
             return;
         }
@@ -239,7 +240,7 @@ namespace mamba
 
     void ProgressProxy::mark_as_completed(const std::string_view& final_message)
     {
-        if (Context::instance().sig_interrupt)
+        if (is_sig_interrupted())
         {
             return;
         }
@@ -475,7 +476,7 @@ namespace mamba
             return true;
         }
         char in;
-        while (!Context::instance().sig_interrupt)
+        while (!is_sig_interrupted())
         {
             std::cout << message << ": ";
             if (fallback == 'n')
@@ -498,7 +499,7 @@ namespace mamba
             }
             if (in == 'y' || in == 'Y')
             {
-                return true && !Context::instance().sig_interrupt;
+                return true && !is_sig_interrupted();
             }
             if (in == 'n' || in == 'N')
             {

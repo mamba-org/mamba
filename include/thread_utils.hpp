@@ -18,9 +18,6 @@
 namespace mamba
 {
 
-#ifdef MAMBA_TEST_SUITE
-#endif
-
     /***********************
      * thread interruption *
      ***********************/

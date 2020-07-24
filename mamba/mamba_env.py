@@ -75,8 +75,15 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 
+    
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(specs, api.SOLVER_INSTALL)
+
+    python_version = [irec.version for irec in installed_pkg_recs if irec.name == 'python']
+    if python_version:
+        python_constraint = MatchSpec('python==' + version).conda_build_form()
+        solver.add_pin(python_constraint)
+
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())

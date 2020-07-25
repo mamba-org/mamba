@@ -112,7 +112,7 @@ namespace mamba
         win_script += "-script.py";
         std::ofstream out_file(m_context->target_prefix / win_script);
         #else
-        std::ofstream out_file(target);        
+        std::ofstream out_file(target);
         #endif
 
         fs::path python_path;
@@ -138,8 +138,11 @@ namespace mamba
         out_file.close();
 
         #ifdef _WIN32
-        fs::path conda_exe = path;
-        conda_exe.replace_filename("conda.exe");
+        fs::path conda_exe = Context::instance().conda_prefix / "Scripts" / "conda.exe";
+        if (!fs::exists(conda_exe))
+        {
+            throw std::runtime_error("Cannot link noarch package entrypoint conda.exe because conda.exe is not installed.");
+        }
         fs::path script_exe = path;
         script_exe.replace_extension("exe");
 
@@ -149,7 +152,7 @@ namespace mamba
             fs::remove(m_context->target_prefix / script_exe);
         }
         LOG_INFO << "Linking exe " << conda_exe << " --> " << script_exe;
-        fs::create_hard_link(m_context->target_prefix / conda_exe, m_context->target_prefix / script_exe);
+        fs::create_hard_link(conda_exe, m_context->target_prefix / script_exe);
         make_executable(m_context->target_prefix / script_exe);
         return std::array<std::string, 2>{win_script, script_exe};
         #else

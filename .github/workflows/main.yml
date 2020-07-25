@@ -104,7 +104,8 @@ jobs:
           conda activate mamba-tests
           py.test test
           mamba create -n test_env xtensor -c conda-forge -y
-          mamba env create -f test.yml
+          mamba env create -f test/test_env.yml
+          mamba env update -f test/update_env.yml
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -138,7 +139,8 @@ jobs:
           conda activate mamba-tests
           py.test test
           mamba create -n test_env xtensor -c conda-forge -y
-          mamba env create -f test.yml
+          mamba env create -f test/test_env.yml
+          mamba env update -f test/update_env.yml
       # - name: Run C++ tests Windows
       #   shell: bash -l {0}
       #   run: |

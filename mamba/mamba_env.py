@@ -74,9 +74,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         # Also pin the Python version if it's installed
         # If python was not specified, check if it is installed.
         # If yes, add the installed python to the specs to prevent updating it.
-        additional_specs = []
-
-        if 'python' not in [s.name for s in specs]:
+        if 'python' not in [MatchSpec(s).name for s in specs]:
             installed_names = [i_rec.name for i_rec in installed_pkg_recs]
             if 'python' in installed_names:
                 i = installed_names.index('python')

@@ -64,11 +64,24 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     # if using update
     installed_pkg_recs = []
+    python_constraint = None
     if 'update' in args.func:
         installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
         repo = api.Repo(pool, "installed", installed_json_f.name, "")
         repo.set_installed()
         repos.append(repo)
+
+        # Also pin the Python version if it's installed
+        # If python was not specified, check if it is installed.
+        # If yes, add the installed python to the specs to prevent updating it.
+        additional_specs = []
+
+        if 'python' not in [s.name for s in specs]:
+            installed_names = [i_rec.name for i_rec in installed_pkg_recs]
+            if 'python' in installed_names:
+                i = installed_names.index('python')
+                version = installed_pkg_recs[i].version
+                python_constraint = MatchSpec('python==' + version).conda_build_form()
 
     for channel, subdir, priority, subpriority in channel_json:
         repo = subdir.create_repo(pool)
@@ -77,6 +90,10 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(specs, api.SOLVER_INSTALL)
+
+    if python_constraint:
+        solver.add_pin(python_constraint)
+
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())

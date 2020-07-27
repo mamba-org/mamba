@@ -44,7 +44,7 @@ namespace mamba
     void split_anaconda_token(const std::string& url,
                               std::string& cleaned_url,
                               std::string& token);
-    
+
     void split_scheme_auth_token(const std::string& url,
                                  std::string& remaining_url,
                                  std::string& scheme,

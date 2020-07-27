@@ -142,10 +142,10 @@ jobs:
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
       # - name: Run C++ tests Windows
-      #   shell: bash -l {0}
       #   run: |
       #     conda activate mamba-tests
+      #     mamba install ninja
       #     mkdir cmake_build
       #     cd cmake_build
-      #     cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON
-      #     make test -j2
+      #     cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
+      #     ninja test

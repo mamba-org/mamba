@@ -27,6 +27,29 @@ namespace mamba
             EXPECT_EQ(m.host(), "mamba🆒🔬.org");
             EXPECT_EQ(m.query(), "query=123&xyz=3333");
         }
+        {
+            #ifdef _WIN32
+            URLHandler m("file://C:/Users/wolfv/test/document.json");
+            EXPECT_EQ(m.scheme(), "file");
+            EXPECT_EQ(m.path(), "C:/Users/wolfv/test/document.json");
+            #else
+            URLHandler m("file:///home/wolfv/test/document.json");
+            EXPECT_EQ(m.scheme(), "file");
+            EXPECT_EQ(m.path(), "/home/wolfv/test/document.json");
+            #endif
+        }
+    }
+
+    TEST(url, path_to_url)
+    {
+        auto url = path_to_url("/users/test/miniconda3");
+        #ifndef _WIN32
+            EXPECT_EQ(url, "file:///users/test/miniconda3");
+        #else
+            EXPECT_EQ(url, "file://C:/users/test/miniconda3");
+            auto url2 = path_to_url("D:\\users\\test\\miniconda3");
+            EXPECT_EQ(url2, "file://D:/users/test/miniconda3");
+        #endif
     }
 
     TEST(url, has_scheme)
@@ -41,8 +64,6 @@ namespace mamba
 
     TEST(url, value_semantic)
     {
-
-        
         {
             URLHandler in("s3://userx123:üúßsajd@mamba.org");
             URLHandler m(in);
@@ -142,6 +163,20 @@ namespace mamba
         EXPECT_EQ(scheme, "https");
         EXPECT_EQ(auth, "u:p");
         EXPECT_EQ(token, "x1029384756");
+
+        #ifdef _WIN32
+        split_scheme_auth_token("file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
+        EXPECT_EQ(remaining_url, "C:/Users/wolfv/test.json");
+        EXPECT_EQ(scheme, "file");
+        EXPECT_EQ(auth, "");
+        EXPECT_EQ(token, "");
+        #else
+        split_scheme_auth_token("file:///home/wolfv/test.json", remaining_url, scheme, auth, token);
+        EXPECT_EQ(remaining_url, "/home/wolfv/test.json");
+        EXPECT_EQ(scheme, "file");
+        EXPECT_EQ(auth, "");
+        EXPECT_EQ(token, "");
+        #endif
     }
 
     TEST(url, split_platform)

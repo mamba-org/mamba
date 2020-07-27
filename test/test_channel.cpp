@@ -3,6 +3,8 @@
 #include "thirdparty/filesystem.hpp"
 
 #include "channel.hpp"
+#include "url.hpp"
+#include "util.hpp"
 
 namespace fs = ghc::filesystem;
 
@@ -20,7 +22,7 @@ namespace mamba
     {
         // ChannelContext builds its custom channels with
         // make_simple_channel
-        
+
         const auto& ch = ChannelContext::instance().get_channel_alias();
         EXPECT_EQ(ch.scheme(), "https");
         EXPECT_EQ(ch.location(), "conda.anaconda.org");
@@ -28,7 +30,7 @@ namespace mamba
         EXPECT_EQ(ch.canonical_name(), "");
 
         const auto& custom = ChannelContext::instance().get_custom_channels();
-        
+
         auto it = custom.find("pkgs/main");
         EXPECT_NE(it, custom.end());
         EXPECT_EQ(it->second.name(), "pkgs/main");
@@ -40,7 +42,7 @@ namespace mamba
         EXPECT_EQ(it->second.name(), "pkgs/pro");
         EXPECT_EQ(it->second.location(), "repo.anaconda.com");
         EXPECT_EQ(it->second.canonical_name(), "pkgs/pro");
-        
+
         it = custom.find("pkgs/r");
         EXPECT_NE(it, custom.end());
         EXPECT_EQ(it->second.name(), "pkgs/r");
@@ -74,14 +76,22 @@ namespace mamba
         std::string value4 = "/home/mamba/test/channel_b";
         Channel& c4 = make_channel(value4);
         EXPECT_EQ(c4.scheme(), "file");
+        #ifdef _WIN32
+        EXPECT_EQ(c4.location(), "C:/home/mamba/test");
+        #else
         EXPECT_EQ(c4.location(), "/home/mamba/test");
+        #endif
         EXPECT_EQ(c4.name(), "channel_b");
         EXPECT_EQ(c4.platform(), "");
 
         std::string value5 = "/home/mamba/test/channel_b/" + platform;
         Channel& c5 = make_channel(value5);
         EXPECT_EQ(c5.scheme(), "file");
+        #ifdef _WIN32
+        EXPECT_EQ(c5.location(), "C:/home/mamba/test");
+        #else
         EXPECT_EQ(c5.location(), "/home/mamba/test");
+        #endif
         EXPECT_EQ(c5.name(), "channel_b");
         EXPECT_EQ(c5.platform(), platform);
     }
@@ -110,7 +120,7 @@ namespace mamba
     {
         std::vector<std::string> urls = { "conda-forge", "defaults" };
         std::vector<std::string> res = calculate_channel_urls(urls, true);
-        EXPECT_EQ(res.size(), 6u);
+        EXPECT_EQ(res.size(), on_win ? 8u : 6u);
         EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/" + platform);
         EXPECT_EQ(res[1], "https://conda.anaconda.org/conda-forge/noarch");
         EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/"  + platform);
@@ -119,7 +129,7 @@ namespace mamba
         EXPECT_EQ(res[5], "https://repo.anaconda.com/pkgs/r/noarch");
 
         std::vector<std::string> res2 = calculate_channel_urls(urls, false);
-        EXPECT_EQ(res2.size(), 6u);
+        EXPECT_EQ(res2.size(), on_win ? 8u : 6u);
         EXPECT_EQ(res2[0], res[0]);
         EXPECT_EQ(res2[1], res[1]);
         EXPECT_EQ(res2[2], res[2]);
@@ -127,15 +137,20 @@ namespace mamba
         EXPECT_EQ(res2[4], res[4]);
         EXPECT_EQ(res2[5], res[5]);
 
+        #ifdef _WIN32
+        EXPECT_EQ(res[6], "https://repo.anaconda.com/pkgs/msys2/" + platform);
+        EXPECT_EQ(res[7], "https://repo.anaconda.com/pkgs/msys2/noarch");
+        EXPECT_EQ(res2[6], res[6]);
+        EXPECT_EQ(res2[7], res[7]);
+        #endif
+
         std::vector<std::string> local_urls = { "./channel_b", "./channel_a" };
         std::vector<std::string> local_res = calculate_channel_urls(local_urls, false);
-        std::string current_dir = "file://" + fs::current_path().string() + '/';
+        std::string current_dir = path_to_url(fs::current_path().string()) + '/';
         EXPECT_EQ(local_res.size(), 4u);
         EXPECT_EQ(local_res[0], current_dir + "channel_b/" + platform);
         EXPECT_EQ(local_res[1], current_dir + "channel_b/noarch");
         EXPECT_EQ(local_res[2], current_dir + "channel_a/" + platform);
         EXPECT_EQ(local_res[3], current_dir + "channel_a/noarch");
-
     }
 }
-

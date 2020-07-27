@@ -25,7 +25,7 @@ namespace mamba
         const std::string DEFAULT_CHANNEL_ALIAS = "https://conda.anaconda.org";
         const std::map<std::string, std::string> DEFAULT_CUSTOM_CHANNELS = {{"pkgs/pro", "https://repo.anaconda.com"}};
         const std::string UNKNOWN_CHANNEL = "<unknown>";
-        
+
         const std::set<std::string> INVALID_CHANNELS =
         {
             "<unknown>",
@@ -270,7 +270,8 @@ namespace mamba
             }
             else
             {
-                URLHandler parser(location);
+                std::string full_url = scheme + "://" + location;
+                URLHandler parser(full_url);
                 location = rstrip(URLHandler().set_host(parser.host()).set_port(parser.port()).url(), "/");
                 name = lstrip(parser.path(), "/");
             }
@@ -314,7 +315,7 @@ namespace mamba
         split_anaconda_token(url, cleaned_url, token);
         split_platform(KNOWN_PLATFORMS, cleaned_url, cleaned_url, platform);
         split_package_extension(cleaned_url, cleaned_url, extension);
-        
+
         if (extension != "")
         {
             auto sp = rsplit(cleaned_url, "/", 1);
@@ -447,7 +448,7 @@ namespace mamba
                        platform,
                        package_name);
     }
-    
+
     Channel Channel::from_name(const std::string& name)
     {
         std::string stripped, platform;
@@ -492,7 +493,7 @@ namespace mamba
                            platform);
         }
     }
-    
+
     std::string fix_win_path(const std::string& path)
     {
 #ifdef _WIN32
@@ -721,7 +722,7 @@ namespace mamba
         local_names.reserve(local_channels.size());
         for(const auto& p: local_channels)
         {
-            if (fs::exists(p))
+            if (fs::is_directory(p))
             {
                 std::string url = path_to_url(p);
                 auto channel = Channel::make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);

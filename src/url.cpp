@@ -78,14 +78,14 @@ namespace mamba
         cleaned_url = url;
         if (pos != std::string::npos)
         {
-            cleaned_url.replace(pos - 1, platform.size() + 1, ""); 
+            cleaned_url.replace(pos - 1, platform.size() + 1, "");
         }
         cleaned_url = rstrip(cleaned_url, "/");
     }
 
     bool is_path(const std::string& input)
     {
-        static const std::regex re(R"(\./|\.\.|~|/|[a-zA-Z]:[/\\]|\\\\|//)"); 
+        static const std::regex re(R"(\./|\.\.|~|/|[a-zA-Z]:[/\\]|\\\\|//)");
         std::smatch sm;
         std::regex_search(input, sm, re);
         return !sm.empty() && sm.position(0) == 0 && input.find("://") == std::string::npos;
@@ -104,21 +104,18 @@ namespace mamba
 
         // TODO: handle percent encoding
         // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-        if (path.size() > 1u && path[1u] == ':')
+        if (on_win)
         {
-            return file_scheme + '/' + abs_path;
+            replace_all(abs_path, "\\", "/");
         }
-        else
-        {
-            return file_scheme + abs_path;
-        }
+        return file_scheme + abs_path;
     }
 
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
         , m_has_scheme(has_scheme(url))
     {
-        m_handle = curl_url(); /* get a handle to work with */ 
+        m_handle = curl_url(); /* get a handle to work with */
         if (!m_handle)
         {
             throw std::runtime_error("Could not initiate URL parser.");
@@ -131,7 +128,7 @@ namespace mamba
             uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), curl_flags);
             if (uc)
             {
-                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) + 
+                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) +
                                          " - url = " + url + ")");
             }
         }
@@ -177,15 +174,14 @@ namespace mamba
         std::string res = get_part(CURLUPART_URL);
         if (!res.empty())
         {
-            if (!m_has_scheme)
+            if (!m_has_scheme || strip_scheme)
             {
-                // Default scheme is https://
-                res = res.substr(8);
-            }
-            else if (strip_scheme)
-            {
+                // Default scheme is https:// OR file://
                 auto pos = res.find("://");
-                res = res.substr(pos + 3u);
+                if (pos != std::string::npos)
+                {
+                    res = res.substr(pos + 3u);
+                }
             }
         }
         return res;
@@ -232,7 +228,7 @@ namespace mamba
         std::string p = password();
         return p != "" ? u + ':' + p : u;
     }
- 
+
     std::string URLHandler::user()
     {
         return get_part(CURLUPART_USER);
@@ -275,7 +271,7 @@ namespace mamba
         set_part(CURLUPART_PORT, port);
         return *this;
     }
-    
+
     URLHandler& URLHandler::set_query(const std::string& query)
     {
         set_part(CURLUPART_QUERY, query);
@@ -311,10 +307,10 @@ namespace mamba
         set_part(CURLUPART_ZONEID, zoneid);
         return *this;
     }
-    
+
     namespace
     {
-        const std::vector<std::string> CURLUPART_NAMES = 
+        const std::vector<std::string> CURLUPART_NAMES =
         {
             "url",
             "scheme",
@@ -356,4 +352,4 @@ namespace mamba
             throw std::runtime_error("Could not set " + s + " in url " + m_url);
         }
     }
-} 
+}

@@ -12,6 +12,7 @@ project (mamba)
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
+    set(CMAKE_BUILD_TYPE Release)
     # add_definitions("-DUNICODE -D_UNICODE")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")

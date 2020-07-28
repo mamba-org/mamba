@@ -106,6 +106,7 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
+
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -126,7 +127,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cmake gtest ninja
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -141,11 +142,11 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
-      # - name: Run C++ tests Windows
-      #   run: |
-      #     conda activate mamba-tests
-      #     mamba install ninja
-      #     mkdir cmake_build
-      #     cd cmake_build
-      #     cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
-      #     ninja test
+      - name: Run C++ tests Windows
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          mkdir cmake_build
+          cd cmake_build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
+          ninja test

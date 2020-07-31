@@ -54,6 +54,12 @@ namespace mamba
         // DO NOT SET TIMEOUT as it will also take into account multi-start time and it's just wrong
         // curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, Context::instance().read_timeout_secs);
 
+        // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to work properly with it
+        // this includes:
+        // - setting the cache stuff correctly
+        // - fixing how the progress bar works
+        curl_easy_setopt(m_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
         // if the request is slower than 30b/s for 60 seconds, cancel.
         curl_easy_setopt(m_handle, CURLOPT_LOW_SPEED_TIME, 60L);
         curl_easy_setopt(m_handle, CURLOPT_LOW_SPEED_LIMIT, 30L);

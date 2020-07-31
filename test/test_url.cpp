@@ -2,6 +2,9 @@
 
 #include "url.hpp"
 
+#include "thirdparty/filesystem.hpp"
+namespace fs = ghc::filesystem;
+
 namespace mamba
 {
     TEST(url, parse)
@@ -46,7 +49,8 @@ namespace mamba
         #ifndef _WIN32
             EXPECT_EQ(url, "file:///users/test/miniconda3");
         #else
-            EXPECT_EQ(url, "file://C:/users/test/miniconda3");
+            std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
+            EXPECT_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
             auto url2 = path_to_url("D:\\users\\test\\miniconda3");
             EXPECT_EQ(url2, "file://D:/users/test/miniconda3");
         #endif

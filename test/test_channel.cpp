@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "thirdparty/filesystem.hpp"
-
 #include "channel.hpp"
 #include "url.hpp"
 #include "util.hpp"
 
+#include "thirdparty/filesystem.hpp"
 namespace fs = ghc::filesystem;
 
 namespace mamba
@@ -77,7 +76,8 @@ namespace mamba
         Channel& c4 = make_channel(value4);
         EXPECT_EQ(c4.scheme(), "file");
         #ifdef _WIN32
-        EXPECT_EQ(c4.location(), "C:/home/mamba/test");
+        std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
+        EXPECT_EQ(c4.location(), driveletter + ":/home/mamba/test");
         #else
         EXPECT_EQ(c4.location(), "/home/mamba/test");
         #endif
@@ -88,7 +88,7 @@ namespace mamba
         Channel& c5 = make_channel(value5);
         EXPECT_EQ(c5.scheme(), "file");
         #ifdef _WIN32
-        EXPECT_EQ(c5.location(), "C:/home/mamba/test");
+        EXPECT_EQ(c5.location(), driveletter + ":/home/mamba/test");
         #else
         EXPECT_EQ(c5.location(), "/home/mamba/test");
         #endif

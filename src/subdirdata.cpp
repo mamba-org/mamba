@@ -327,8 +327,8 @@ namespace mamba
     nlohmann::json MSubdirData::read_mod_and_etag()
     {
         // parse json at the beginning of the stream such as
-        // {"_url": "https://conda.anaconda.org/conda-forge/linux-64", 
-        // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"", 
+        // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
+        // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
         // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
         // "_cache_control": "public, max-age=1200"
 
@@ -355,7 +355,7 @@ namespace mamba
                     {
                         return result + "\"}";
                     }
-                } 
+                }
                 else if (next == '\\')
                 {
                     escaped = true;
@@ -414,4 +414,3 @@ namespace mamba
         return MRepo(pool, m_name, cache_path(), meta);
     }
 }
-

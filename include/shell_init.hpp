@@ -371,7 +371,7 @@ namespace mamba
 
             std::string hook_content = mamba_hook_bat;
             std::cout << "Self exe path: " << self_path << std::endl;
-            replace_all(hook_content, std::string("__MAMBA_INSERT_MAMBA_EXE__"), 
+            replace_all(hook_content, std::string("__MAMBA_INSERT_MAMBA_EXE__"),
                         std::string("@SET \"MAMBA_EXE=" + self_path.string() + "\""));
 
             std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");

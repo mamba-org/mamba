@@ -159,7 +159,7 @@ namespace mamba
                 ++colon_idx;
             }
             // remove \r\n header ending
-                
+
             value = header.substr(colon_idx, header.size() - colon_idx - 2);
             if (key == "ETag")
             {
@@ -232,16 +232,16 @@ namespace mamba
             return std::string(key + ": " + value);
         };
 
-        if (mod_etag.find("_etag") != mod_etag.end()) 
+        if (mod_etag.find("_etag") != mod_etag.end())
         {
             m_headers = curl_slist_append(m_headers, to_header("If-None-Match", mod_etag["_etag"]).c_str());
         }
-        if (mod_etag.find("_mod") != mod_etag.end()) 
+        if (mod_etag.find("_mod") != mod_etag.end())
         {
             m_headers = curl_slist_append(m_headers, to_header("If-Modified-Since", mod_etag["_mod"]).c_str());
         }
     }
-    
+
     void DownloadTarget::set_progress_bar(ProgressProxy progress_proxy)
     {
         m_has_progress_bar = true;
@@ -302,7 +302,7 @@ namespace mamba
             }
         }
     }
-        
+
     bool DownloadTarget::finalize()
     {
         char* effective_url = nullptr;
@@ -447,7 +447,7 @@ namespace mamba
         const long max_wait_msecs = 1000;
         do
         {
-            CURLMcode code = curl_multi_perform(m_handle, &still_running);                
+            CURLMcode code = curl_multi_perform(m_handle, &still_running);
 
             if(code != CURLM_OK)
             {
@@ -518,4 +518,3 @@ namespace mamba
         return true;
     }
 }
-

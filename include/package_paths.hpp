@@ -25,7 +25,7 @@ namespace mamba
         std::string file_path;
     };
 
-    enum class PathType 
+    enum class PathType
     {
         UNDEFINED,
         HARDLINK,

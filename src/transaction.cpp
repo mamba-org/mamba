@@ -352,7 +352,7 @@ namespace mamba
         queue_free(&pkgs);
     }
 
-    std::string MTransaction::find_python_version() 
+    std::string MTransaction::find_python_version()
     {
         // We need to find the python version that will be there after this Transaction is finished
         // in order to compile the noarch packages correctly, for example
@@ -483,11 +483,11 @@ namespace mamba
                     Console::stream() << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
                     PackageInfo p_link(s2);
-                    
+
                     UnlinkPackage up(p_unlink, fs::path(cache_dir), &m_transaction_context);
                     up.execute();
                     rollback.record(up);
-                    
+
 
                     LinkPackage lp(p_link, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();

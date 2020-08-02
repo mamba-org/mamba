@@ -39,7 +39,7 @@ namespace mamba
 	        #ifndef _WIN32
 	        // set permissions to 0o2775
 	        fs::permissions(path, fs::perms::set_gid |
-	                              fs::perms::owner_all | 
+	                              fs::perms::owner_all |
 	                              fs::perms::group_all |
 	                              fs::perms::others_read | fs::perms::others_exec);
 	        #endif

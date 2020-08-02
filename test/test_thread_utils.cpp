@@ -15,7 +15,7 @@ namespace mamba
         EXPECT_EQ(current_command, "mamba");
 
         Console::instance().init_multi_progress();
-        { 
+        {
         interruption_guard g([&res]()
         {
             // Test for double free (segfault if that happends)
@@ -37,7 +37,6 @@ namespace mamba
         std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         EXPECT_EQ(res, -1);
-#endif 
+#endif
     }
 }
-

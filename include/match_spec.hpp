@@ -45,4 +45,4 @@ namespace mamba
     };
 }
 
-#endif 
+#endif

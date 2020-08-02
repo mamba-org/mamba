@@ -30,7 +30,7 @@ namespace validate
         {
             infile.read(buffer.data(), BUFSIZE);
             size_t count = infile.gcount();
-            if (!count) 
+            if (!count)
                 break;
             SHA256_Update(&sha256, buffer.data(), count);
         }
@@ -56,7 +56,7 @@ namespace validate
         {
             infile.read(buffer.data(), BUFSIZE);
             size_t count = infile.gcount();
-            if (!count) 
+            if (!count)
                 break;
             MD5_Update(&md5, buffer.data(), count);
         }
@@ -81,4 +81,3 @@ namespace validate
         return fs::file_size(path) == validation;
     }
 }
-

@@ -65,7 +65,7 @@ namespace mamba
     class URLHandler
     {
     public:
-    
+
         URLHandler(const std::string& url = "");
         ~URLHandler();
 

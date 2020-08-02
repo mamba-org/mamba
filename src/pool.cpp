@@ -40,4 +40,3 @@ namespace mamba
         return m_pool;
     }
 }
-

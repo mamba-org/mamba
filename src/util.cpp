@@ -307,7 +307,7 @@ namespace mamba
     std::string string_transform(const std::string_view& input, int (*functor)(int))
     {
         std::string res(input);
-        std::transform(res.begin(), res.end(), res.begin(), 
+        std::transform(res.begin(), res.end(), res.begin(),
                        [&](unsigned char c) { return functor(c); }
         );
         return res;

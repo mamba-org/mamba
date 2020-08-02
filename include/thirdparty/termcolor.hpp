@@ -201,8 +201,8 @@ namespace termcolor
         }
         return stream;
     }
-    
-    
+
+
     #if defined(TERMCOLOR_OS_MACOS) || defined(TERMCOLOR_OS_LINUX)
 
     template <uint8_t code>
@@ -215,7 +215,7 @@ namespace termcolor
             std::snprintf(command, 14, "\033[38;5;%dm", code);
             stream << command;
         }
-        
+
         return stream;
     }
 

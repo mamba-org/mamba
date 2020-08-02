@@ -42,12 +42,12 @@ namespace mamba
         std::vector<std::string> urls(bool with_credential = true) const;
         std::vector<std::string> urls(const std::vector<std::string>& platforms,
                                       bool with_credential = true) const;
-        
+
         static Channel make_simple_channel(const Channel& channel_alias,
                                            const std::string& channel_url,
                                            const std::string& channel_name = "",
                                            const std::string& multi_name = "");
-        
+
         static Channel& make_cached_channel(const std::string& value);
         static void clear_cache();
 

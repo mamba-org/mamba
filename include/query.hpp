@@ -88,7 +88,7 @@ namespace mamba
         nl::json json() const;
 
     private:
-        
+
         void reset_pkg_view_list();
         std::string get_package_repr(const PackageInfo& pkg) const;
 

@@ -288,14 +288,14 @@ namespace mamba
     }
 
     std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
-                            const fs::path& prefix, 
+                            const fs::path& prefix,
                             bool dev_mode,
                             bool debug_wrapper_scripts,
                             const std::vector<std::string>& arguments)
     {
         // todo add abspath here
         fs::path tmp_prefix = prefix / ".tmp";
-        
+
         #ifdef _WIN32
         ensure_comspec_set();
         std::string comspec = env::get("COMSPEC");
@@ -720,7 +720,7 @@ namespace mamba
         all_py_files_f.close();
         // TODO use the real python file here?!
         std::vector<std::string> command = {
-            m_context->target_prefix / m_context->python_path, 
+            m_context->target_prefix / m_context->python_path,
             "-Wi", "-m", "compileall", "-q", "-l", "-i",
             all_py_files.path()
         };
@@ -828,9 +828,9 @@ namespace mamba
 
             paths_json["paths"].push_back(json_record);
         }
- 
-        std::string f_name = index_json["name"].get<std::string>() + "-" + 
-                             index_json["version"].get<std::string>() + "-" + 
+
+        std::string f_name = index_json["name"].get<std::string>() + "-" +
+                             index_json["version"].get<std::string>() + "-" +
                              index_json["build"].get<std::string>();
 
         out_json = index_json;
@@ -879,7 +879,7 @@ namespace mamba
                 out_json["files"].push_back(pyc_path);
             }
 
-            if (link_json.find("noarch") != link_json.end() && 
+            if (link_json.find("noarch") != link_json.end() &&
                 link_json["noarch"].find("entry_points") != link_json["noarch"].end())
             {
                 for (auto& ep : link_json["noarch"]["entry_points"])
@@ -889,7 +889,7 @@ namespace mamba
                     auto entry_point_path = get_bin_directory_short_path() / entry_point_parsed.command;
                     LOG_INFO << "entry point path: " << entry_point_path << std::endl;
                     auto files = create_python_entry_point(entry_point_path, entry_point_parsed);
-                    
+
                     #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(
                     {

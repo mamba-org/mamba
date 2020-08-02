@@ -1,0 +1,4 @@
+[flake8]
+max-line-length=88
+extend-ignore=E203,D104,D100,I004
+exclude=test/*

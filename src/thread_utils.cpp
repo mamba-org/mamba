@@ -153,7 +153,7 @@ namespace mamba
     {
         sigset_t sigset;
     }
-    
+
     interruption_guard::~interruption_guard()
     {
         if (is_sig_interrupted())
@@ -181,4 +181,3 @@ namespace mamba
 #endif
 
 }
-

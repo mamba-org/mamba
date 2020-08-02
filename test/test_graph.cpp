@@ -125,4 +125,3 @@ namespace mamba
         EXPECT_TRUE(vis.get_cross_edge_map().empty());
     }
 }
-

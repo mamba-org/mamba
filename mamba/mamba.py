@@ -1,59 +1,67 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2019, QuantStack
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import codecs
-import sys, os
-
+import os
+import sys
+from logging import getLogger
 from os.path import isdir, isfile, join
 
-from conda.cli import common as cli_common
-from conda.cli.main import generate_parser, init_loggers
-from conda.base.context import context
-from conda.models.match_spec import MatchSpec
-from conda.core.prefix_data import PrefixData
-from conda.misc import explicit, touch_nonadmin
-from conda.cli.common import specs_from_url, confirm_yn, check_non_admin, ensure_name_or_prefix
-from conda.history import History
-from conda.core.link import UnlinkLinkTransaction, PrefixSetup
-from conda.cli.install import check_prefix, clone, print_activate
-from conda.base.constants import ChannelPriority, UpdateModifier, DepsModifier
-from conda.core.solve import get_pinned_specs
-from conda.core.envs_manager import unregister_env
-from conda.core.package_cache_data import PackageCacheData
-from conda.common.compat import on_win
-
 # create support
+from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
+from conda.base.context import context
+from conda.cli import common as cli_common
+from conda.cli.common import (
+    check_non_admin,
+    confirm_yn,
+    ensure_name_or_prefix,
+    specs_from_url,
+)
+from conda.cli.install import check_prefix, clone, get_revision, print_activate
+from conda.cli.main import generate_parser, init_loggers
+from conda.common.compat import on_win
 from conda.common.path import paths_equal
-from conda.exceptions import (CondaExitZero, CondaOSError, CondaSystemExit,
-                              CondaValueError, DirectoryNotACondaEnvironmentError, CondaEnvironmentError,
-                              DryRunExit, EnvironmentLocationNotFound,
-                              NoBaseEnvironmentError, PackageNotInstalledError, PackagesNotFoundError,
-                              TooManyArgumentsError)
-
+from conda.core.envs_manager import unregister_env
+from conda.core.link import PrefixSetup, UnlinkLinkTransaction
+from conda.core.package_cache_data import PackageCacheData
+from conda.core.prefix_data import PrefixData
+from conda.core.solve import get_pinned_specs
+from conda.exceptions import (
+    CondaEnvironmentError,
+    CondaExitZero,
+    CondaOSError,
+    CondaSystemExit,
+    CondaValueError,
+    DirectoryNotACondaEnvironmentError,
+    DryRunExit,
+    EnvironmentLocationNotFound,
+    NoBaseEnvironmentError,
+    PackageNotInstalledError,
+    PackagesNotFoundError,
+    TooManyArgumentsError,
+)
 from conda.gateways.disk.create import mkdir_p
-from conda.gateways.disk.delete import rm_rf, delete_trash, path_is_clean
+from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
-
-from logging import getLogger
+from conda.misc import explicit, touch_nonadmin
+from conda.models.match_spec import MatchSpec
 
 import mamba
 import mamba.mamba_api as api
-
-from mamba.utils import get_index, to_package_record_from_subjson, init_api_context, get_installed_jsonfile, to_txn
+from mamba.utils import get_index, get_installed_jsonfile, init_api_context, to_txn
 
 if sys.version_info < (3, 2):
-    sys.stdout = codecs.lookup('utf-8')[-1](sys.stdout)
+    sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
 elif sys.version_info < (3, 7):
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 else:
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding="utf-8")
 
 
 log = getLogger(__name__)
-stderrlog = getLogger('conda.stderr')
+stderrlog = getLogger("conda.stderr")
 
 banner = f"""
                   __    __    __    __
@@ -79,32 +87,41 @@ banner = f"""
 █████████████████████████████████████████████████████████████
 """
 
+
 class MambaException(Exception):
     pass
 
+
 solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
-def specs_from_args(args, json=False):
 
+def specs_from_args(args, json=False):
     def arg2spec(arg, json=False, update=False):
         try:
             spec = MatchSpec(arg)
-        except:
+        except Exception:
             from ..exceptions import CondaValueError
-            raise CondaValueError('invalid package specification: %s' % arg)
+
+            raise CondaValueError("invalid package specification: %s" % arg)
 
         name = spec.name
         if not spec._is_simple() and update:
             from ..exceptions import CondaValueError
-            raise CondaValueError("""version specifications not allowed with 'update'; use
+
+            raise CondaValueError(
+                """version specifications not allowed with 'update'; use
         conda update  %s%s  or
-        conda install %s""" % (name, ' ' * (len(arg) - len(name)), arg))
+        conda install %s"""
+                % (name, " " * (len(arg) - len(name)), arg)
+            )
 
         return spec
 
     return [arg2spec(arg, json=json) for arg in args]
 
+
 use_mamba_experimental = False
+
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
@@ -113,7 +130,9 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
             raise PackagesNotFoundError(args.package_names)
         elif not newenv:
             if context.json:
-                cli_common.stdout_json_success(message='All requested packages already installed.')
+                cli_common.stdout_json_success(
+                    message="All requested packages already installed."
+                )
             return
 
     if context.dry_run:
@@ -125,12 +144,14 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     try:
         unlink_link_transaction.download_and_extract()
         if context.download_only:
-            raise CondaExitZero('Package caches prepared. UnlinkLinkTransaction cancelled with '
-                                '--download-only option.')
+            raise CondaExitZero(
+                "Package caches prepared. UnlinkLinkTransaction cancelled with "
+                "--download-only option."
+            )
         unlink_link_transaction.execute()
 
     except SystemExit as e:
-        raise CondaSystemExit('Exiting', e)
+        raise CondaSystemExit("Exiting", e)
 
     if newenv:
         touch_nonadmin(prefix)
@@ -140,18 +161,23 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
         cli_common.stdout_json_success(prefix=prefix, actions=actions)
 
+
 def remove(args, parser):
     if not (args.all or args.package_names):
-        raise CondaValueError('no package names supplied,\n'
-                              '       try "mamba remove -h" for more details')
+        raise CondaValueError(
+            "no package names supplied,\n"
+            '       try "mamba remove -h" for more details'
+        )
 
     prefix = context.target_prefix
     check_non_admin()
     init_api_context()
 
     if args.all and prefix == context.default_prefix:
-        raise CondaEnvironmentError("cannot remove current environment. \
-                                     deactivate and run mamba remove again")
+        raise CondaEnvironmentError(
+            "cannot remove current environment. \
+                                     deactivate and run mamba remove again"
+        )
 
     if args.all and path_is_clean(prefix):
         # full environment removal was requested, but environment doesn't exist anyway
@@ -159,11 +185,13 @@ def remove(args, parser):
 
     if args.all:
         if prefix == context.root_prefix:
-            raise CondaEnvironmentError('cannot remove root environment,\n'
-                                        '       add -n NAME or -p PREFIX option')
+            raise CondaEnvironmentError(
+                "cannot remove root environment,\n"
+                "       add -n NAME or -p PREFIX option"
+            )
         print("\nRemove all packages in environment %s:\n" % prefix, file=sys.stderr)
 
-        if 'package_names' in args:
+        if "package_names" in args:
             stp = PrefixSetup(
                 target_prefix=prefix,
                 unlink_precs=tuple(PrefixData(prefix).iter_records()),
@@ -176,7 +204,9 @@ def remove(args, parser):
             try:
                 handle_txn(txn, prefix, args, False, True)
             except PackagesNotFoundError:
-                print("No packages found in %s. Continuing environment removal" % prefix)
+                print(
+                    "No packages found in %s. Continuing environment removal" % prefix
+                )
 
         rm_rf(prefix, clean_empty_parents=True)
         unregister_env(prefix)
@@ -221,7 +251,9 @@ def remove(args, parser):
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
         transaction = api.Transaction(solver, package_cache)
-        downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
+        downloaded = transaction.prompt(
+            PackageCacheData.first_writable().pkgs_dir, repos
+        )
         if not downloaded:
             exit(0)
 
@@ -231,10 +263,18 @@ def remove(args, parser):
         specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
         specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
-        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, installed_pkg_recs)
+        conda_transaction = to_txn(
+            specs_to_add,
+            specs_to_remove,
+            prefix,
+            to_link,
+            to_unlink,
+            installed_pkg_recs,
+        )
         handle_txn(conda_transaction, prefix, args, False, True)
 
-def install(args, parser, command='install'):
+
+def install(args, parser, command="install"):
     """
     mamba install, mamba update, and mamba create
     """
@@ -243,11 +283,11 @@ def install(args, parser, command='install'):
 
     init_api_context(use_mamba_experimental)
 
-    newenv = bool(command == 'create')
-    isinstall = bool(command == 'install')
+    newenv = bool(command == "create")
+    isinstall = bool(command == "install")
     solver_task = api.SOLVER_INSTALL
 
-    isupdate = bool(command == 'update')
+    isupdate = bool(command == "update")
     if isupdate:
         solver_task = api.SOLVER_UPDATE
         solver_options.clear()
@@ -259,20 +299,26 @@ def install(args, parser, command='install'):
         check_prefix(prefix, json=context.json)
     if context.force_32bit and prefix == context.root_prefix:
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
-    if isupdate and not (args.file or args.packages
-                         or context.update_modifier == UpdateModifier.UPDATE_ALL):
-        raise CondaValueError("""no package names supplied
+    if isupdate and not (
+        args.file
+        or args.packages
+        or context.update_modifier == UpdateModifier.UPDATE_ALL
+    ):
+        raise CondaValueError(
+            """no package names supplied
 # If you want to update to a newer version of Anaconda, type:
 #
 # $ conda update --prefix %s anaconda
-""" % prefix)
+"""
+            % prefix
+        )
 
     if not newenv:
         if isdir(prefix):
             if on_win:
                 delete_trash(prefix)
 
-            if not isfile(join(prefix, 'conda-meta', 'history')):
+            if not isfile(join(prefix, "conda-meta", "history")):
                 if paths_equal(prefix, context.conda_prefix):
                     raise NoBaseEnvironmentError()
                 else:
@@ -286,7 +332,9 @@ def install(args, parser, command='install'):
                 try:
                     mkdir_p(prefix)
                 except EnvironmentError as e:
-                    raise CondaOSError("Could not create directory: %s" % prefix, caused_by=e)
+                    raise CondaOSError(
+                        "Could not create directory: %s" % prefix, caused_by=e
+                    )
             else:
                 raise EnvironmentLocationNotFound(prefix)
 
@@ -296,33 +344,36 @@ def install(args, parser, command='install'):
     # Get SPECS                 #
     #############################
 
-    args_packages = [s.strip('"\'') for s in args.packages]
+    args_packages = [s.strip("\"'") for s in args.packages]
     if newenv and not args.no_default_packages:
         # Override defaults if they are specified at the command line
         # TODO: rework in 4.4 branch using MatchSpec
-        args_packages_names = [pkg.replace(' ', '=').split('=', 1)[0] for pkg in args_packages]
+        args_packages_names = [
+            pkg.replace(" ", "=").split("=", 1)[0] for pkg in args_packages
+        ]
         for default_pkg in context.create_default_packages:
-            default_pkg_name = default_pkg.replace(' ', '=').split('=', 1)[0]
+            default_pkg_name = default_pkg.replace(" ", "=").split("=", 1)[0]
             if default_pkg_name not in args_packages_names:
                 args_packages.append(default_pkg)
 
-    num_cp = sum(s.endswith('.tar.bz2') for s in args_packages)
+    num_cp = sum(s.endswith(".tar.bz2") for s in args_packages)
     if num_cp:
         if num_cp == len(args_packages):
             explicit(args_packages, prefix, verbose=not (context.quiet or context.json))
             return
         else:
-            raise CondaValueError("cannot mix specifications with conda package"
-                                  " filenames")
+            raise CondaValueError(
+                "cannot mix specifications with conda package" " filenames"
+            )
 
     specs = []
 
     index_args = {
-        'use_cache': args.use_index_cache,
-        'channel_urls': context.channels,
-        'unknown': args.unknown,
-        'prepend': not args.override_channels,
-        'use_local': args.use_local
+        "use_cache": args.use_index_cache,
+        "channel_urls": context.channels,
+        "unknown": args.unknown,
+        "prepend": not args.override_channels,
+        "use_local": args.use_local,
     }
 
     if args.file:
@@ -331,10 +382,17 @@ def install(args, parser, command='install'):
             try:
                 file_specs += specs_from_url(fpath, json=context.json)
             except UnicodeError:
-                raise CondaValueError("Error reading file, file should be a text file containing"
-                                 " packages \nconda create --help for details")
-        if '@EXPLICIT' in file_specs:
-            explicit(file_specs, prefix, verbose=not (context.quiet or context.json), index_args=index_args)
+                raise CondaValueError(
+                    "Error reading file, file should be a text file containing"
+                    " packages \nconda create --help for details"
+                )
+        if "@EXPLICIT" in file_specs:
+            explicit(
+                file_specs,
+                prefix,
+                verbose=not (context.quiet or context.json),
+                index_args=index_args,
+            )
             return
         specs.extend([MatchSpec(s) for s in file_specs])
 
@@ -344,19 +402,24 @@ def install(args, parser, command='install'):
     channels = [c for c in context.channels]
     for spec in specs:
         # CONDA TODO: correct handling for subdir isn't yet done
-        spec_channel = spec.get_exact_value('channel')
+        spec_channel = spec.get_exact_value("channel")
         if spec_channel and spec_channel not in channels:
             channels.append(spec_channel)
 
-    index_args['channel_urls'] = channels
+    index_args["channel_urls"] = channels
 
-    index = get_index(channel_urls=index_args['channel_urls'],
-                      prepend=index_args['prepend'], platform=None,
-                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                      unknown=index_args['unknown'], prefix=prefix)
+    index = get_index(
+        channel_urls=index_args["channel_urls"],
+        prepend=index_args["prepend"],
+        platform=None,
+        use_local=index_args["use_local"],
+        use_cache=index_args["use_cache"],
+        unknown=index_args["unknown"],
+        prefix=prefix,
+    )
 
     channel_json = []
-    strict_priority = (context.channel_priority == ChannelPriority.STRICT)
+    strict_priority = context.channel_priority == ChannelPriority.STRICT
     subprio_index = len(index)
     if strict_priority:
         # first, count unique channels
@@ -374,12 +437,12 @@ def install(args, parser, command='install'):
         else:
             priority = 0
         if strict_priority:
-            subpriority = 0 if chan.platform == 'noarch' else 1
+            subpriority = 0 if chan.platform == "noarch" else 1
         else:
             subpriority = subprio_index
             subprio_index -= 1
 
-        if subdir.loaded() == False and chan.platform != 'noarch':
+        if not subdir.loaded() and chan.platform != "noarch":
             # ignore non-loaded subdir if channel is != noarch
             continue
 
@@ -394,25 +457,28 @@ def install(args, parser, command='install'):
     if isinstall and args.revision:
         get_revision(args.revision, json=context.json)
     elif isinstall and not (args.file or args_packages):
-        raise CondaValueError("too few arguments, "
-                              "must supply command line package specs or --file")
+        raise CondaValueError(
+            "too few arguments, " "must supply command line package specs or --file"
+        )
 
     installed_names = [i_rec.name for i_rec in installed_pkg_recs]
     # for 'conda update', make sure the requested specs actually exist in the prefix
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
         for i in installed_names:
-            if i != 'python':
+            if i != "python":
                 specs.append(MatchSpec(i))
 
         prefix_data = PrefixData(prefix)
         for s in args_packages:
             s = MatchSpec(s)
-            if s.name == 'python':
+            if s.name == "python":
                 specs.append(s)
             if not s.is_name_only_spec:
-                raise CondaValueError("Invalid spec for 'conda update': %s\n"
-                                      "Use 'conda install' instead." % s)
+                raise CondaValueError(
+                    "Invalid spec for 'conda update': %s\n"
+                    "Use 'conda install' instead." % s
+                )
             if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, s.name)
 
@@ -424,20 +490,29 @@ def install(args, parser, command='install'):
             prec = installed_pkg_recs[installed_names.index(spec.name)]
             for dep in prec.depends:
                 ms = MatchSpec(dep)
-                if ms.name != 'python':
+                if ms.name != "python":
                     final_specs.append(MatchSpec(ms.name))
         specs = set(final_specs)
 
     if newenv and args.clone:
         if args.packages:
-            raise TooManyArgumentsError(0, len(args.packages), list(args.packages),
-                                        'did not expect any arguments for --clone')
+            raise TooManyArgumentsError(
+                0,
+                len(args.packages),
+                list(args.packages),
+                "did not expect any arguments for --clone",
+            )
 
-        clone(args.clone, prefix, json=context.json, quiet=(context.quiet or context.json), index_args=index_args)
+        clone(
+            args.clone,
+            prefix,
+            json=context.json,
+            quiet=(context.quiet or context.json),
+            index_args=index_args,
+        )
         touch_nonadmin(prefix)
         print_activate(args.name if args.name else prefix)
         return
-
 
     if not (context.quiet or context.json):
         print("\nLooking for: {}\n".format([str(s) for s in specs]))
@@ -447,13 +522,12 @@ def install(args, parser, command='install'):
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
     python_constraint = None
-    additional_specs = []
 
-    if 'python' not in spec_names:
-        if 'python' in installed_names:
-            i = installed_names.index('python')
+    if "python" not in spec_names:
+        if "python" in installed_names:
+            i = installed_names.index("python")
             version = installed_pkg_recs[i].version
-            python_constraint = MatchSpec('python==' + version).conda_build_form()
+            python_constraint = MatchSpec("python==" + version).conda_build_form()
 
     mamba_solve_specs = [s.__str__() for s in specs]
 
@@ -474,7 +548,7 @@ def install(args, parser, command='install'):
         repo.set_installed()
         repos.append(repo)
 
-    for channel, subdir, priority, subpriority in channel_json:
+    for _, subdir, priority, subpriority in channel_json:
         repo = subdir.create_repo(pool)
         repo.set_priority(priority, subpriority)
         repos.append(repo)
@@ -485,9 +559,11 @@ def install(args, parser, command='install'):
         solver = api.Solver(pool, solver_options)
 
     solver.set_postsolve_flags(
-        [(api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS), 
-         (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
-         (api.MAMBA_FORCE_REINSTALL, context.force_reinstall)]
+        [
+            (api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS),
+            (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
+            (api.MAMBA_FORCE_REINSTALL, context.force_reinstall),
+        ]
     )
     solver.add_jobs(mamba_solve_specs, solver_task)
 
@@ -508,7 +584,10 @@ def install(args, parser, command='install'):
         if x:
             for el in x:
                 if not s.match(el):
-                    print("Your pinning does not match what's currently installed. Please remove the pin and fix your installation")
+                    print(
+                        "Your pinning does not match what's currently installed."
+                        " Please remove the pin and fix your installation"
+                    )
                     print("  Pin: {}".format(s))
                     print("  Currently installed: {}".format(el))
                     exit(1)
@@ -534,49 +613,68 @@ def install(args, parser, command='install'):
         exit(0)
     PackageCacheData.first_writable().reload()
 
-    if use_mamba_experimental and not os.name == 'nt':
+    if use_mamba_experimental and not os.name == "nt":
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
 
         transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
     else:
-        conda_transaction = to_txn(specs_to_add, specs_to_remove, prefix, to_link, to_unlink, installed_pkg_recs, index)
+        conda_transaction = to_txn(
+            specs_to_add,
+            specs_to_remove,
+            prefix,
+            to_link,
+            to_unlink,
+            installed_pkg_recs,
+            index,
+        )
         handle_txn(conda_transaction, prefix, args, newenv)
 
     try:
         installed_json_f.close()
         os.unlink(installed_json_f.name)
-    except:
+    except Exception:
         pass
+
 
 def create(args, parser):
     if is_conda_environment(context.target_prefix):
         if paths_equal(context.target_prefix, context.root_prefix):
             raise CondaValueError("The target prefix is the base prefix. Aborting.")
-        confirm_yn("WARNING: A conda environment already exists at '%s'\n"
-                   "Remove existing environment" % context.target_prefix,
-                   default='no',
-                   dry_run=False)
+        confirm_yn(
+            "WARNING: A conda environment already exists at '%s'\n"
+            "Remove existing environment" % context.target_prefix,
+            default="no",
+            dry_run=False,
+        )
         log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif isdir(context.target_prefix):
-        confirm_yn("WARNING: A directory already exists at the target location '%s'\n"
-                   "but it is not a conda environment.\n"
-                   "Continue creating environment" % context.target_prefix,
-                   default='no',
-                   dry_run=False)
-    install(args, parser, 'create')
+        confirm_yn(
+            "WARNING: A directory already exists at the target location '%s'\n"
+            "but it is not a conda environment.\n"
+            "Continue creating environment" % context.target_prefix,
+            default="no",
+            dry_run=False,
+        )
+    install(args, parser, "create")
+
 
 def update(args, parser):
     if context.force:
-        print("\n\n"
-              "WARNING: The --force flag will be removed in a future conda release.\n"
-              "         See 'conda update --help' for details about the --force-reinstall\n"
-              "         and --clobber flags.\n"
-              "\n", file=sys.stderr)
+        print(
+            "\n\n"
+            "WARNING: The --force flag will be removed in a future conda release.\n"
+            "         See 'conda update --help'"
+            " for details about the --force-reinstall\n"
+            "         and --clobber flags.\n"
+            "\n",
+            file=sys.stderr,
+        )
 
     # need to implement some modifications on the update function
-    install(args, parser, 'update')
+    install(args, parser, "update")
+
 
 def repoquery(args, parser):
     if not args.subcmd:
@@ -586,18 +684,18 @@ def repoquery(args, parser):
         exit(1)
 
     if args.platform:
-        context._subdirs = (args.platform, 'noarch')
+        context._subdirs = (args.platform, "noarch")
 
     prefix = context.target_prefix
 
     init_api_context()
 
     index_args = {
-        'use_cache': args.use_index_cache,
-        'channel_urls': context.channels,
-        'unknown': args.unknown,
-        'prepend': not args.override_channels,
-        'use_local': args.use_local
+        "use_cache": args.use_index_cache,
+        "channel_urls": context.channels,
+        "unknown": args.unknown,
+        "prepend": not args.override_channels,
+        "use_local": args.use_local,
     }
 
     installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
@@ -607,7 +705,7 @@ def repoquery(args, parser):
 
     only_installed = True
     channels = args.channel or []
-    if args.subcmd == "search" and args.installed == False:
+    if args.subcmd == "search" and not args.installed:
         only_installed = False
     elif args.all_channels or len(channels):
         only_installed = False
@@ -623,19 +721,28 @@ def repoquery(args, parser):
         repo.set_installed()
         repos.append(repo)
 
-
     if not only_installed:
-        index = get_index(channel_urls=index_args['channel_urls'],
-                      prepend=index_args['prepend'], platform=None,
-                      use_local=index_args['use_local'], use_cache=index_args['use_cache'],
-                      unknown=index_args['unknown'], prefix=prefix)
+        index = get_index(
+            channel_urls=index_args["channel_urls"],
+            prepend=index_args["prepend"],
+            platform=None,
+            use_local=index_args["use_local"],
+            use_cache=index_args["use_cache"],
+            unknown=index_args["unknown"],
+            prefix=prefix,
+        )
 
         for subdir, channel in index:
-            if subdir.loaded() == False and channel.platform != 'noarch':
+            if not subdir.loaded() and channel.platform != "noarch":
                 # ignore non-loaded subdir if channel is != noarch
                 continue
 
-            repo = api.Repo(pool, str(channel), subdir.cache_path(), channel.url(with_credentials=True))
+            repo = api.Repo(
+                pool,
+                str(channel),
+                subdir.cache_path(),
+                channel.url(with_credentials=True),
+            )
             repo.set_priority(0, 0)
             repos.append(repo)
 
@@ -652,111 +759,117 @@ def repoquery(args, parser):
 
 
 def do_call(args, parser):
-    relative_mod, func_name = args.func.rsplit('.', 1)
+    relative_mod, func_name = args.func.rsplit(".", 1)
 
     # func_name should always be 'execute'
-    if relative_mod in ['.main_list', '.main_search', '.main_run', '.main_clean', '.main_info']:
+    if relative_mod in [
+        ".main_list",
+        ".main_search",
+        ".main_run",
+        ".main_clean",
+        ".main_info",
+    ]:
         from importlib import import_module
-        module = import_module('conda.cli' + relative_mod, __name__.rsplit('.', 1)[0])
+
+        module = import_module("conda.cli" + relative_mod, __name__.rsplit(".", 1)[0])
         exit_code = getattr(module, func_name)(args, parser)
-    elif relative_mod == '.main_install':
-        exit_code = install(args, parser, 'install')
-    elif relative_mod == '.main_remove':
+    elif relative_mod == ".main_install":
+        exit_code = install(args, parser, "install")
+    elif relative_mod == ".main_remove":
         exit_code = remove(args, parser)
-    elif relative_mod == '.main_create':
+    elif relative_mod == ".main_create":
         exit_code = create(args, parser)
-    elif relative_mod == '.main_update':
+    elif relative_mod == ".main_update":
         exit_code = update(args, parser)
-    elif relative_mod == '.main_repoquery':
+    elif relative_mod == ".main_repoquery":
         exit_code = repoquery(args, parser)
     else:
-        print("Currently, only install, create, list, search, run, info and clean are supported through mamba.")
+        print(
+            "Currently, only install, create, list, search, run,"
+            " info and clean are supported through mamba."
+        )
 
         return 0
     return exit_code
 
-def configure_parser_repoquery(sub_parsers):
-    help = "Query repositories using mamba. "
-    descr = (help)
 
-    example = ("""
+def configure_parser_repoquery(sub_parsers):
+    help_cli = "Query repositories using mamba. "
+    descr = help_cli
+
+    example = """
 Examples:
 
     mamba repoquery search xtensor>=0.18
     mamba repoquery depends xtensor
     mamba repoquery whoneeds xtl
 
-    """)
+    """
 
     import argparse
     from argparse import SUPPRESS
 
     p = sub_parsers.add_parser(
-        'repoquery',
-        description=descr,
-        help=help,
-        epilog=example
+        "repoquery", description=descr, help=help_cli, epilog=example
     )
-    subsub_parser = p.add_subparsers(dest='subcmd')
+    subsub_parser = p.add_subparsers(dest="subcmd")
     package_cmds = argparse.ArgumentParser(add_help=False)
-    package_cmds.add_argument('package_query', help='the target package')
-    package_cmds.add_argument(
-        "-i", "--installed",
-        action="store_true",
-        help=SUPPRESS
-    )
+    package_cmds.add_argument("package_query", help="the target package")
+    package_cmds.add_argument("-i", "--installed", action="store_true", help=SUPPRESS)
 
-    package_cmds.add_argument('-p', '--platform')
-    package_cmds.add_argument('--no-installed', action='store_true')
+    package_cmds.add_argument("-p", "--platform")
+    package_cmds.add_argument("--no-installed", action="store_true")
 
     package_cmds.add_argument(
-        "-a", "--all-channels",
+        "-a",
+        "--all-channels",
         action="store_true",
-        help="Look at all channels (for depends / whoneeds)"
+        help="Look at all channels (for depends / whoneeds)",
     )
 
     view_cmds = argparse.ArgumentParser(add_help=False)
-    view_cmds.add_argument(
-        "-t", "--tree",
-        action="store_true"
+    view_cmds.add_argument("-t", "--tree", action="store_true")
+
+    c1 = subsub_parser.add_parser(
+        "whoneeds",
+        help="shows packages that depends on this package",
+        parents=[package_cmds, view_cmds],
     )
 
-    c1 = subsub_parser.add_parser('whoneeds',
-        help='shows packages that depends on this package',
-        parents=[package_cmds, view_cmds]
+    c2 = subsub_parser.add_parser(
+        "depends",
+        help="shows packages that depends on this package",
+        parents=[package_cmds, view_cmds],
     )
 
-    c2 = subsub_parser.add_parser('depends',
-        help='shows packages that depends on this package',
-        parents=[package_cmds, view_cmds]
-    )
-
-    c3 = subsub_parser.add_parser('search',
-        help='shows packages that depends on this package',
-        parents=[package_cmds]
+    c3 = subsub_parser.add_parser(
+        "search",
+        help="shows packages that depends on this package",
+        parents=[package_cmds],
     )
 
     from conda.cli import conda_argparse
+
     for cmd in (c1, c2, c3):
         conda_argparse.add_parser_channels(cmd)
         conda_argparse.add_parser_networking(cmd)
         conda_argparse.add_parser_known(cmd)
         conda_argparse.add_parser_json(cmd)
 
-    p.set_defaults(func='.main_repoquery.execute')
+    p.set_defaults(func=".main_repoquery.execute")
     return p
+
 
 def _wrapped_main(*args, **kwargs):
     if len(args) == 1:
-        args = args + ('-h',)
+        args = args + ("-h",)
 
-    import copy
     argv = list(args)
 
     if "--mamba-experimental" in argv:
         global use_mamba_experimental
         use_mamba_experimental = True
-        argv.remove('--mamba-experimental')
+        argv.remove("--mamba-experimental")
 
     args = argv
 
@@ -771,9 +884,12 @@ def _wrapped_main(*args, **kwargs):
     init_loggers(context)
 
     result = do_call(args, p)
-    exit_code = getattr(result, 'rc', result) # may be Result objects with code in rc field
+    exit_code = getattr(
+        result, "rc", result
+    )  # may be Result objects with code in rc field
     if isinstance(exit_code, int):
         return exit_code
+
 
 # Main entry point!
 def main(*args, **kwargs):
@@ -781,11 +897,12 @@ def main(*args, **kwargs):
     context.report_errors = False
 
     from conda.common.compat import ensure_text_type, init_std_stream_encoding
+
     init_std_stream_encoding()
 
-    if 'activate' in sys.argv or 'deactivate' in sys.argv:
+    if "activate" in sys.argv or "deactivate" in sys.argv:
         print("Use conda to activate / deactivate the environment.")
-        print('\n    $ conda ' + ' '.join(sys.argv[1:]) + '\n')
+        print("\n    $ conda " + " ".join(sys.argv[1:]) + "\n")
         return sys.exit(-1)
 
     if not args:
@@ -793,13 +910,15 @@ def main(*args, **kwargs):
 
     if "--version" in args:
         from mamba._version import __version__
+
         print("mamba {}".format(__version__))
 
     args = tuple(ensure_text_type(s) for s in args)
 
-    if len(args) > 2 and args[1] == 'env' and args[2] in ('create', 'update'):
+    if len(args) > 2 and args[1] == "env" and args[2] in ("create", "update"):
         # special handling for conda env create!
         from mamba import mamba_env
+
         return mamba_env.main()
 
     def exception_converter(*args, **kwargs):
@@ -815,4 +934,5 @@ def main(*args, **kwargs):
         return exit_code
 
     from conda.exceptions import conda_exception_handler
+
     return conda_exception_handler(exception_converter, *args, **kwargs)

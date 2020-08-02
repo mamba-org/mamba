@@ -70,7 +70,7 @@ namespace mamba
         std::string env_prompt = "({default_env}) ";
 
         // ssl verify can be either an empty string (regular SSL verification),
-        // the string "<false>" to indicate no SSL verification, or a path to 
+        // the string "<false>" to indicate no SSL verification, or a path to
         // a directory with cert files, or a cert file.
         std::string ssl_verify = "";
 
@@ -78,7 +78,7 @@ namespace mamba
         bool add_pip_as_python_dependency = true;
 
         void set_verbosity(int lvl);
-    
+
         std::string platform() const;
         std::vector<std::string> platforms() const;
 

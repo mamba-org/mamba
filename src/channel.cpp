@@ -38,7 +38,7 @@ namespace mamba
         const std::string LOCAL_CHANNELS_NAME = "local";
         const std::string DEFAULT_CHANNELS_NAME = "defaults";
 
-        const std::vector<std::string> DEFAULT_CHANNELS = 
+        const std::vector<std::string> DEFAULT_CHANNELS =
         {
 #ifdef _WIN32
             "https://repo.anaconda.com/pkgs/main",
@@ -744,4 +744,3 @@ namespace mamba
         }
     }
 }
-

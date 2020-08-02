@@ -84,7 +84,7 @@ namespace mamba
             {
                 auto key = kv_match[1].str();
                 auto value = kv_match[3].str();
-                if (key.size() == 0 || value.size() == 0) 
+                if (key.size() == 0 || value.size() == 0)
                 {
                     throw std::runtime_error("key-value mismatch in brackets " + spec_str);
                 }

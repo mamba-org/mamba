@@ -96,13 +96,13 @@ With the `--tree` (or `-t`) flag, you can get the same information in a tree.
 
 ## micromamba
 
-`micromamba` is a tiny version of the `mamba` package manager. 
+`micromamba` is a tiny version of the `mamba` package manager.
 It is a pure C++ package with a separate command line interface.
 It can be used to bootstrap environments (as an alternative to miniconda), but it's currently experimental.
 The benefit is that it's very tiny and does not come with a default version of Python.
 
-`micromamba` works in the bash & zsh shell on Linux & OS X. 
-It's completely statically linked, which allows you to drop it in some place and just execute it. 
+`micromamba` works in the bash & zsh shell on Linux & OS X.
+It's completely statically linked, which allows you to drop it in some place and just execute it.
 
 Note: it's advised to use micromamba in containers & CI only.
 
@@ -112,7 +112,7 @@ Download and unzip the executable (from the official conda-forge package):
 wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 ```
 
-We can use `./micromamba shell init ... ` to initialize a shell (`.bashrc`) and a new root environment in `~/micromamba`: 
+We can use `./micromamba shell init ... ` to initialize a shell (`.bashrc`) and a new root environment in `~/micromamba`:
 
 ```sh
 ./bin/micromamba shell init -s bash -p ~/micromamba

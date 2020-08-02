@@ -184,4 +184,3 @@ namespace mamba
 }
 
 #endif
-

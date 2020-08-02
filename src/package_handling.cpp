@@ -114,7 +114,7 @@ namespace mamba
         {
             throw std::runtime_error(std::string(file) + ": Could not open archive for reading.");
         }
-        
+
         for (;;)
         {
             interruption_point();
@@ -253,4 +253,3 @@ namespace mamba
         }
     }
 }
-

@@ -18,7 +18,7 @@
 #include "context.hpp"
 #include "nlohmann/json.hpp"
 
-#define ENUM_FLAG_OPERATOR(T,X) inline T operator X (T lhs, T rhs) { return (T) (static_cast<std::underlying_type_t <T>>(lhs) X static_cast<std::underlying_type_t <T>>(rhs)); } 
+#define ENUM_FLAG_OPERATOR(T,X) inline T operator X (T lhs, T rhs) { return (T) (static_cast<std::underlying_type_t <T>>(lhs) X static_cast<std::underlying_type_t <T>>(rhs)); }
 #define ENUM_FLAGS(T) \
 enum class T; \
 inline T operator ~ (T t) { return (T) (~static_cast<std::underlying_type_t <T>>(t)); } \
@@ -180,7 +180,7 @@ namespace mamba
         };
     }
 
-    // The next two functions / classes were ported from the awesome indicators library 
+    // The next two functions / classes were ported from the awesome indicators library
     // by p-ranav (MIT License)
     // https://github.com/p-ranav/indicators
     std::ostream& write_duration(std::ostream &os, std::chrono::nanoseconds ns);
@@ -208,7 +208,7 @@ namespace mamba
     class ProgressBar
     {
     public:
-        
+
         ProgressBar(const std::string& prefix);
 
         void set_start();

@@ -113,7 +113,7 @@ namespace mamba
         Transaction* m_transaction;
 
         bool m_force_reinstall = false;
-    };  
+    };
 }
 
 #endif // MAMBA_TRANSACTION_HPP

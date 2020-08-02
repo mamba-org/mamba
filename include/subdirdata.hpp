@@ -75,7 +75,7 @@ namespace mamba
     // Contrary to conda original function, this one expects a full url
     // (that is channel url + / + repodata_fn). It is not the
     // responsibility of this function to decide whether it should
-    // concatenante base url and repodata depending on repodata value 
+    // concatenante base url and repodata depending on repodata value
     // and old behavior support.
     std::string cache_fn_url(const std::string& url);
     std::string create_cache_dir();

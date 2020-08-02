@@ -85,14 +85,14 @@ namespace mamba
             EXPECT_EQ(ms.name, "ipykernel");
         }
         {
-            MatchSpec ms("numpy 1.7*");   
+            MatchSpec ms("numpy 1.7*");
             EXPECT_EQ(ms.version, "1.7*");
             EXPECT_EQ(ms.name, "numpy");
             EXPECT_EQ(ms.conda_build_form(), "numpy 1.7*");
             EXPECT_EQ(ms.str(), "numpy=1.7");
         }
         {
-            MatchSpec ms("numpy[version='1.7|1.8']");   
+            MatchSpec ms("numpy[version='1.7|1.8']");
             // TODO!
             // EXPECT_EQ(ms.version, "1.7|1.8");
             EXPECT_EQ(ms.name, "numpy");
@@ -100,7 +100,7 @@ namespace mamba
             EXPECT_EQ(ms.str(), "numpy[version='1.7|1.8']");
         }
         {
-            MatchSpec ms("conda-forge/linux64::xtensor==0.12.3");   
+            MatchSpec ms("conda-forge/linux64::xtensor==0.12.3");
             EXPECT_EQ(ms.version, "0.12.3");
             EXPECT_EQ(ms.name, "xtensor");
             EXPECT_EQ(ms.channel, "conda-forge/linux64");

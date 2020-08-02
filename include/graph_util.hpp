@@ -229,7 +229,7 @@ namespace mamba
     }
 
     template <class G>
-    inline auto predecessor_recorder<G>::get_predecessors() const -> const predecessor_map& 
+    inline auto predecessor_recorder<G>::get_predecessors() const -> const predecessor_map&
     {
         return m_pred;
     }
@@ -295,4 +295,3 @@ namespace mamba
 }
 
 #endif
-

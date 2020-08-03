@@ -4,13 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "transaction.hpp"
+
 #include <iostream>
 #include <stack>
 #include <thread>
 
-#include "transaction.hpp"
-#include "match_spec.hpp"
 #include "link.hpp"
+#include "match_spec.hpp"
 #include "thread_utils.hpp"
 
 namespace mamba
@@ -26,7 +27,8 @@ namespace mamba
 
     std::mutex PackageDownloadExtractTarget::extract_mutex;
 
-    PackageDownloadExtractTarget::PackageDownloadExtractTarget(const MRepo& repo, Solvable* solvable)
+    PackageDownloadExtractTarget::PackageDownloadExtractTarget(const MRepo& repo,
+                                                               Solvable* solvable)
         : m_solv(solvable)
         , m_finished(false)
     {
@@ -80,14 +82,16 @@ namespace mamba
         if (size_t(m_target->downloaded_size) != expected_size)
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
-            throw std::runtime_error("File not valid: file size doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            throw std::runtime_error("File not valid: file size doesn't match expectation ("
+                                     + std::string(m_tarball_path) + ")");
         }
         interruption_point();
         std::string sha256_check = lookup_checksum(m_solv, SOLVABLE_CHECKSUM);
         if (!sha256_check.empty() && !validate::sha256(m_tarball_path, sha256_check))
         {
             LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path;
-            throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+            throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation ("
+                                     + std::string(m_tarball_path) + ")");
         }
         else
         {
@@ -95,7 +99,8 @@ namespace mamba
             if (!md5_check.empty() && !validate::md5(m_tarball_path, md5_check))
             {
                 LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path;
-                throw std::runtime_error("File not valid: MD5 sum doesn't match expectation (" + std::string(m_tarball_path) + ")");
+                throw std::runtime_error("File not valid: MD5 sum doesn't match expectation ("
+                                         + std::string(m_tarball_path) + ")");
             }
         }
 
@@ -116,7 +121,8 @@ namespace mamba
 
         interruption_point();
         std::stringstream final_msg;
-        final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right << std::setw(8);
+        final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right
+                  << std::setw(8);
         m_progress_proxy.elapsed_time_to_stream(final_msg);
         final_msg << " " << std::setw(12 + 2);
         to_human_readable_filesize(final_msg, expected_size);
@@ -148,7 +154,8 @@ namespace mamba
     }
 
     // todo remove cache from this interface
-    DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path, MultiPackageCache& cache)
+    DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path,
+                                                         MultiPackageCache& cache)
     {
         m_cache_path = cache_path;
         m_tarball_path = cache_path / m_filename;
@@ -187,7 +194,8 @@ namespace mamba
 
     bool MTransaction::filter(Solvable* s)
     {
-        if (m_filter_type == FilterType::none) return false;
+        if (m_filter_type == FilterType::none)
+            return false;
         bool spec_in_filter = m_filter_name_ids.count(s->name);
 
         if (m_filter_type == FilterType::keep_only)
@@ -200,13 +208,13 @@ namespace mamba
         }
     }
 
-
     MTransaction::MTransaction(MSolver& solver, MultiPackageCache& cache)
         : m_multi_cache(cache)
     {
         if (!solver.is_solved())
         {
-            throw std::runtime_error("Cannot create transaction without calling solver.solve() first.");
+            throw std::runtime_error(
+                "Cannot create transaction without calling solver.solve() first.");
         }
 
         m_transaction = solver_create_transaction(solver);
@@ -264,10 +272,10 @@ namespace mamba
 
         if (solver.only_deps == false)
         {
-            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
-            {
+            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string> {
                 std::vector<std::string> res;
-                for (const auto& el : vec) res.push_back(el.str());
+                for (const auto& el : vec)
+                    res.push_back(el.str());
                 return res;
             };
             m_history_entry.update = to_string_vec(solver.install_specs());
@@ -281,7 +289,7 @@ namespace mamba
         if (!empty())
         {
             JsonLogger::instance().json_down("actions");
-            JsonLogger::instance().json_write({{"PREFIX", Context::instance().target_prefix}});
+            JsonLogger::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
         }
     }
 
@@ -298,8 +306,7 @@ namespace mamba
         queue_init(&classes);
         queue_init(&pkgs);
 
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES |
-                   SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
+        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
 
         transaction_classify(m_transaction, mode, &classes);
 
@@ -309,12 +316,12 @@ namespace mamba
             cls = classes.elements[i];
             // cnt = classes.elements[i + 1];
 
-            transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2],
-                                      classes.elements[i + 3], &pkgs);
+            transaction_classify_pkgs(
+                m_transaction, mode, cls, classes.elements[i + 2], classes.elements[i + 3], &pkgs);
             for (int j = 0; j < pkgs.count; j++)
             {
                 Id p = pkgs.elements[j];
-                Solvable *s = m_transaction->pool->solvables + p;
+                Solvable* s = m_transaction->pool->solvables + p;
 
                 if (filter(s))
                 {
@@ -327,9 +334,11 @@ namespace mamba
                     case SOLVER_TRANSACTION_UPGRADED:
                     case SOLVER_TRANSACTION_CHANGED:
                     case SOLVER_TRANSACTION_REINSTALLED:
-                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false) break;
+                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
+                            break;
                         m_to_remove.push_back(s);
-                        m_to_install.push_back(m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p));
+                        m_to_install.push_back(m_transaction->pool->solvables
+                                               + transaction_obs_pkg(m_transaction, p));
                         break;
                     case SOLVER_TRANSACTION_ERASE:
                         m_to_remove.push_back(s);
@@ -354,10 +363,11 @@ namespace mamba
 
     std::string MTransaction::find_python_version()
     {
-        // We need to find the python version that will be there after this Transaction is finished
-        // in order to compile the noarch packages correctly, for example
+        // We need to find the python version that will be there after this
+        // Transaction is finished in order to compile the noarch packages correctly,
+        // for example
         Pool* pool = m_transaction->pool;
-        assert (pool != nullptr);
+        assert(pool != nullptr);
 
         std::string py_ver;
         Id python = pool_str2id(pool, "python", 0);
@@ -391,7 +401,8 @@ namespace mamba
             // we need to make sure that we're not about to remove python!
             for (Solvable* s : m_to_remove)
             {
-                if (s->name == python) return "";
+                if (s->name == python)
+                    return "";
             }
         }
         return py_ver;
@@ -400,7 +411,6 @@ namespace mamba
     class TransactionRollback
     {
     public:
-
         void record(const UnlinkPackage& unlink)
         {
             m_unlink_stack.push(unlink);
@@ -413,13 +423,13 @@ namespace mamba
 
         void rollback()
         {
-            while(!m_link_stack.empty())
+            while (!m_link_stack.empty())
             {
                 m_link_stack.top().undo();
                 m_link_stack.pop();
             }
 
-            while(!m_unlink_stack.empty())
+            while (!m_unlink_stack.empty())
             {
                 m_unlink_stack.top().undo();
                 m_unlink_stack.pop();
@@ -427,7 +437,6 @@ namespace mamba
         }
 
     private:
-
         std::stack<UnlinkPackage> m_unlink_stack;
         std::stack<LinkPackage> m_link_stack;
     };
@@ -438,9 +447,11 @@ namespace mamba
         // back to the top level if any action was required
         if (!empty())
             JsonLogger::instance().json_up();
-        JsonLogger::instance().json_write({{"dry_run", Context::instance().dry_run}, {"prefix", Context::instance().target_prefix}});
+        JsonLogger::instance().json_write({ { "dry_run", Context::instance().dry_run },
+                                            { "prefix", Context::instance().target_prefix } });
         if (empty())
-            JsonLogger::instance().json_write({{"message", "All requested packages already installed"}});
+            JsonLogger::instance().json_write(
+                { { "message", "All requested packages already installed" } });
         // finally, print the JSON
         if (Context::instance().json)
             Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
@@ -463,7 +474,7 @@ namespace mamba
         {
             Id p = m_transaction->steps.elements[i];
             Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
-            Solvable *s = pool_id2solvable(pool, p);
+            Solvable* s = pool_id2solvable(pool, p);
 
             if (filter(s))
             {
@@ -477,17 +488,19 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    if (ttype == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false) break;
+                    if (ttype == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
+                        break;
 
-                    Solvable* s2 = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
-                    Console::stream() << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
+                    Solvable* s2
+                        = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
+                    Console::stream()
+                        << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
                     PackageInfo p_link(s2);
 
                     UnlinkPackage up(p_unlink, fs::path(cache_dir), &m_transaction_context);
                     up.execute();
                     rollback.record(up);
-
 
                     LinkPackage lp(p_link, fs::path(cache_dir), &m_transaction_context);
                     lp.execute();
@@ -565,7 +578,8 @@ namespace mamba
             }
             else
             {
-                channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+                channel = s->repo->name;  // note this can and should be <unknown> when
+                                          // e.g. installing from a tarball
             }
 
             to_install_structured.emplace_back(channel, mediafile, s_json);
@@ -613,7 +627,8 @@ namespace mamba
         }
     }
 
-    bool MTransaction::fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos)
+    bool MTransaction::fetch_extract_packages(const std::string& cache_dir,
+                                              std::vector<MRepo*>& repos)
     {
         fs::path cache_path(cache_dir);
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
@@ -642,10 +657,7 @@ namespace mamba
             multi_dl.add(targets[targets.size() - 1]->target(cache_path, m_multi_cache));
         }
 
-        interruption_guard g([]()
-        {
-            Console::instance().init_multi_progress();
-        });
+        interruption_guard g([]() { Console::instance().init_multi_progress(); });
 
         bool downloaded = multi_dl.download(true);
 
@@ -742,10 +754,13 @@ namespace mamba
             Console::print("  No specs added or removed.\n");
         }
 
-        printers::Table t({"Package", "Version", "Build", "Channel", "Size"});
-        t.set_alignment({printers::alignment::left, printers::alignment::right, printers::alignment::left,
-                         printers::alignment::left, printers::alignment::right});
-        t.set_padding({2, 2, 2, 2, 5});
+        printers::Table t({ "Package", "Version", "Build", "Channel", "Size" });
+        t.set_alignment({ printers::alignment::left,
+                          printers::alignment::right,
+                          printers::alignment::left,
+                          printers::alignment::left,
+                          printers::alignment::right });
+        t.set_padding({ 2, 2, 2, 2, 5 });
         Queue classes, pkgs;
 
         queue_init(&classes);
@@ -757,13 +772,13 @@ namespace mamba
         std::size_t total_size = 0;
         auto* pool = m_transaction->pool;
 
-        auto format_row = [this, pool, &total_size](rows& r, Solvable* s, printers::format flag)
-        {
+        auto format_row = [this, pool, &total_size](rows& r, Solvable* s, printers::format flag) {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)
             {
-                if (static_cast<std::size_t>(flag) & static_cast<std::size_t>(printers::format::yellow))
+                if (static_cast<std::size_t>(flag)
+                    & static_cast<std::size_t>(printers::format::yellow))
                 {
                     dlsize_s.s = "Ignored";
                 }
@@ -778,7 +793,8 @@ namespace mamba
                     to_human_readable_filesize(s, dlsize);
                     dlsize_s.s = s.str();
                     // Hacky hacky
-                    if (static_cast<std::size_t>(flag) & static_cast<std::size_t>(printers::format::green))
+                    if (static_cast<std::size_t>(flag)
+                        & static_cast<std::size_t>(printers::format::green))
                     {
                         total_size += dlsize;
                     }
@@ -797,13 +813,15 @@ namespace mamba
             }
             else
             {
-                channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+                channel = s->repo->name;  // note this can and should be <unknown> when
+                                          // e.g. installing from a tarball
             }
 
-            r.push_back({name,
-                         printers::FormattedString(pool_id2str(pool, s->evr)),
-                         printers::FormattedString(build_string ? build_string : ""),
-                         printers::FormattedString(cut_repo_name(channel)), dlsize_s});
+            r.push_back({ name,
+                          printers::FormattedString(pool_id2str(pool, s->evr)),
+                          printers::FormattedString(build_string ? build_string : ""),
+                          printers::FormattedString(cut_repo_name(channel)),
+                          dlsize_s });
         };
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
@@ -812,13 +830,13 @@ namespace mamba
         for (int i = 0; i < classes.count; i += 4)
         {
             cls = classes.elements[i];
-            transaction_classify_pkgs(m_transaction, mode, cls, classes.elements[i + 2],
-                                      classes.elements[i + 3], &pkgs);
+            transaction_classify_pkgs(
+                m_transaction, mode, cls, classes.elements[i + 2], classes.elements[i + 3], &pkgs);
 
             for (int j = 0; j < pkgs.count; j++)
             {
                 Id p = pkgs.elements[j];
-                Solvable *s = m_transaction->pool->solvables + p;
+                Solvable* s = m_transaction->pool->solvables + p;
 
                 if (filter(s))
                 {
@@ -829,18 +847,28 @@ namespace mamba
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
                         format_row(upgraded, s, printers::format::red);
-                        format_row(upgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
+                        format_row(upgraded,
+                                   m_transaction->pool->solvables
+                                       + transaction_obs_pkg(m_transaction, p),
+                                   printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
                     case SOLVER_TRANSACTION_REINSTALLED:
-                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false) break;
+                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
+                            break;
 
                         format_row(changed, s, printers::format::red);
-                        format_row(changed, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
+                        format_row(changed,
+                                   m_transaction->pool->solvables
+                                       + transaction_obs_pkg(m_transaction, p),
+                                   printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_DOWNGRADED:
                         format_row(downgraded, s, printers::format::red);
-                        format_row(downgraded, m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p), printers::format::green);
+                        format_row(downgraded,
+                                   m_transaction->pool->solvables
+                                       + transaction_obs_pkg(m_transaction, p),
+                                   printers::format::green);
                         break;
                     case SOLVER_TRANSACTION_ERASE:
                         format_row(erased, s, printers::format::red);
@@ -901,4 +929,4 @@ namespace mamba
         t.add_row({ summary.str() });
         t.print(std::cout);
     }
-}
+}  // namespace mamba

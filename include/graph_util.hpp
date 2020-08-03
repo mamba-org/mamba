@@ -8,11 +8,11 @@
 #define MAMBA_GRAPH_UTIL_HPP
 
 #include <map>
+#include <utility>
 #include <vector>
 
 namespace mamba
 {
-
     // Simplified implementation of a directed graph
     // where a path exists between each node and the
     // first one (you can think of it as a tree with
@@ -22,7 +22,6 @@ namespace mamba
     class graph
     {
     public:
-
         using node = T;
         using node_id = size_t;
         using node_list = std::vector<node>;
@@ -41,7 +40,6 @@ namespace mamba
         void depth_first_search(V& visitor, node_id start = node_id(0)) const;
 
     private:
-
         enum class color
         {
             white,
@@ -65,35 +63,47 @@ namespace mamba
     class default_visitor
     {
     public:
-
         using graph_type = G;
         using node_id = typename graph_type::node_id;
 
-        void start_node(node_id, const G&) {}
-        void finish_node(node_id, const G&) {}
+        void start_node(node_id, const G&)
+        {
+        }
+        void finish_node(node_id, const G&)
+        {
+        }
 
-        void start_edge(node_id, node_id, const G&) {}
-        void tree_edge(node_id, node_id, const G&) {}
-        void back_edge(node_id, node_id, const G&) {}
-        void forward_or_cross_edge(node_id, node_id, const G&) {}
-        void finish_edge(node_id, node_id, const G&) {}
+        void start_edge(node_id, node_id, const G&)
+        {
+        }
+        void tree_edge(node_id, node_id, const G&)
+        {
+        }
+        void back_edge(node_id, node_id, const G&)
+        {
+        }
+        void forward_or_cross_edge(node_id, node_id, const G&)
+        {
+        }
+        void finish_edge(node_id, node_id, const G&)
+        {
+        }
     };
 
     template <class G>
     class predecessor_recorder : private default_visitor<G>
     {
     public:
-
         using base_type = default_visitor<G>;
         using graph_type = typename base_type::graph_type;
         using node_id = typename base_type::node_it;
         using predecessor_map = std::map<node_id, node_id>;
 
-        using base_type::start_node;
-        using base_type::finish_node;
-        using base_type::start_edge;
         using base_type::back_edge;
+        using base_type::finish_node;
         using base_type::forward_or_cross_edge;
+        using base_type::start_edge;
+        using base_type::start_node;
 
         void tree_edge(node_id from, node_id to, const G&);
         void finish_edge(node_id id, const G&);
@@ -101,7 +111,6 @@ namespace mamba
         const predecessor_map& get_predecessors() const;
 
     private:
-
         predecessor_map m_pred;
     };
 
@@ -109,7 +118,6 @@ namespace mamba
     class composite_visitor
     {
     public:
-
         using graph_type = G;
         using node_id = typename G::node_id;
 
@@ -125,7 +133,6 @@ namespace mamba
         void finish_edge(node_id, node_id, const G&);
 
     private:
-
         V1<G> m_v1;
         V2<G> m_v2;
     };
@@ -141,7 +148,7 @@ namespace mamba
     }
 
     template <class T>
-    inline auto graph<T>::get_edge_list(node_id id) const  -> const edge_list&
+    inline auto graph<T>::get_edge_list(node_id id) const -> const edge_list&
     {
         return m_adjacency_list[id];
     }
@@ -186,11 +193,13 @@ namespace mamba
 
     template <class T>
     template <class V>
-    inline void graph<T>::depth_first_search_impl(V& visitor, node_id node, color_list& colors) const
+    inline void graph<T>::depth_first_search_impl(V& visitor,
+                                                  node_id node,
+                                                  color_list& colors) const
     {
         colors[node] = color::gray;
         visitor.start_node(node, *this);
-        for (auto child: m_adjacency_list[node])
+        for (auto child : m_adjacency_list[node])
         {
             visitor.start_edge(node, child, *this);
             if (colors[child] == color::white)
@@ -240,7 +249,8 @@ namespace mamba
 
     template <class G, template <class> class V1, template <class> class V2>
     inline composite_visitor<G, V1, V2>::composite_visitor(V1<G> v1, V2<G> v2)
-        : m_v1(v1), m_v2(v2)
+        : m_v1(v1)
+        , m_v2(v2)
     {
     }
 
@@ -280,7 +290,9 @@ namespace mamba
     }
 
     template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::forward_or_cross_edge(node_id from, node_id to, const G& g)
+    inline void composite_visitor<G, V1, V2>::forward_or_cross_edge(node_id from,
+                                                                    node_id to,
+                                                                    const G& g)
     {
         m_v1.forward_or_cross_edge(from, to, g);
         m_v2.forward_or_cross_edge(from, to, g);
@@ -292,6 +304,6 @@ namespace mamba
         m_v1.finish_edge(from, to, g);
         m_v2.finish_edge(from, to, g);
     }
-}
+}  // namespace mamba
 
-#endif
+#endif  // INCLUDE_GRAPH_UTIL_HPP

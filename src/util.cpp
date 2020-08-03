@@ -4,19 +4,20 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
-#include <iomanip>
 #include <cerrno>
-#include <thread>
+#include <iomanip>
+#include <iostream>
 #include <mutex>
+#include <thread>
 
 #ifdef _WIN32
 #include <io.h>
+
 #include <cassert>
 #endif
 
-#include "util.hpp"
 #include "context.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
@@ -35,7 +36,7 @@ namespace mamba
     // False
     bool lexists(const fs::path& path)
     {
-        return fs::exists(path); // && fs::status_known(fs::symlink_status(path));
+        return fs::exists(path);  // && fs::status_known(fs::symlink_status(path));
     }
 
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
@@ -85,18 +86,18 @@ namespace mamba
     TemporaryDirectory::TemporaryDirectory()
     {
         bool success = false;
-        #ifndef _WIN32
-            std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
-            char* pth = mkdtemp((char*)template_path.c_str());
-            success = (pth != nullptr);
-            template_path = pth;
-        #else
-            std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
-            // include \0 terminator
-            auto err = _mktemp_s((char*)template_path.c_str(), template_path.size() + 1);
-            assert(err == 0);
-            success = fs::create_directory(template_path);
-        #endif
+#ifndef _WIN32
+        std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
+        char* pth = mkdtemp(const_cast<char*>(template_path.c_str()));
+        success = (pth != nullptr);
+        template_path = pth;
+#else
+        std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
+        // include \0 terminator
+        auto err = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
+        assert(err == 0);
+        success = fs::create_directory(template_path);
+#endif
         if (!success)
         {
             throw std::runtime_error("Could not create temporary directory!");
@@ -185,7 +186,8 @@ namespace mamba
 
     bool ends_with(const std::string_view& str, const std::string_view& suffix)
     {
-        return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+        return str.size() >= suffix.size()
+               && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
     }
 
     bool starts_with(const std::string_view& str, const std::string_view& prefix)
@@ -227,7 +229,6 @@ namespace mamba
         return end == std::string::npos ? "" : input.substr(0, end + 1);
     }
 
-
     std::vector<std::string> split(const std::string_view& input,
                                    const std::string_view& sep,
                                    std::size_t max_split)
@@ -239,7 +240,8 @@ namespace mamba
         {
             if (input[i] == sep[0] && input.substr(i, n) == sep)
             {
-                if (max_split-- <= 0) break;
+                if (max_split-- <= 0)
+                    break;
                 result.emplace_back(input.substr(j, i - j));
                 i = j = i + n;
             }
@@ -256,19 +258,23 @@ namespace mamba
                                     const std::string_view& sep,
                                     std::size_t max_split)
     {
-        if (max_split == SIZE_MAX) return split(input, sep, max_split);
+        if (max_split == SIZE_MAX)
+            return split(input, sep, max_split);
 
         std::vector<std::string> result;
 
         std::ptrdiff_t i, j, len = static_cast<std::ptrdiff_t>(input.size()),
-                             n   = static_cast<std::ptrdiff_t>(sep.size());
+                             n = static_cast<std::ptrdiff_t>(sep.size());
         i = j = len;
 
         while (i >= n)
         {
             if (input[i - 1] == sep[n - 1] && input.substr(i - n, n) == sep)
             {
-                if (max_split-- <= 0) { break; }
+                if (max_split-- <= 0)
+                {
+                    break;
+                }
                 result.emplace_back(input.substr(i, j - i));
                 i = j = i - n;
             }
@@ -307,9 +313,8 @@ namespace mamba
     std::string string_transform(const std::string_view& input, int (*functor)(int))
     {
         std::string res(input);
-        std::transform(res.begin(), res.end(), res.begin(),
-                       [&](unsigned char c) { return functor(c); }
-        );
+        std::transform(
+            res.begin(), res.end(), res.begin(), [&](unsigned char c) { return functor(c); });
         return res;
     }
 
@@ -334,11 +339,12 @@ namespace mamba
             in.seekg(0, std::ios::beg);
             in.read(&contents[0], contents.size());
             in.close();
-            return(contents);
+            return (contents);
         }
         else
         {
-            throw std::system_error(errno, std::system_category(), "failed to open " + file_path.string());
+            throw std::system_error(
+                errno, std::system_category(), "failed to open " + file_path.string());
         }
     }
 
@@ -347,7 +353,8 @@ namespace mamba
         std::fstream file_stream(file_path, std::ios_base::in | std::ios_base::binary);
         if (file_stream.fail())
         {
-            throw std::system_error(errno, std::system_category(), "failed to open " + file_path.string());
+            throw std::system_error(
+                errno, std::system_category(), "failed to open " + file_path.string());
         }
 
         std::vector<std::string> output;
@@ -355,7 +362,8 @@ namespace mamba
         while (std::getline(file_stream, line))
         {
             // Remove the trailing \r to accomodate Windows line endings.
-            if ((!line.empty()) && (line.back() == '\r')) line.pop_back();
+            if ((!line.empty()) && (line.back() == '\r'))
+                line.pop_back();
 
             output.push_back(line);
         }
@@ -364,4 +372,4 @@ namespace mamba
         return output;
     }
 
-}
+}  // namespace mamba

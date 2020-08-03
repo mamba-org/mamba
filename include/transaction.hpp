@@ -7,25 +7,27 @@
 #ifndef MAMBA_TRANSACTION_HPP
 #define MAMBA_TRANSACTION_HPP
 
-#include <iomanip>
-#include <set>
 #include <future>
+#include <iomanip>
+#include <memory>
+#include <set>
+#include <string>
+#include <tuple>
+#include <vector>
 
-#include "nlohmann/json.hpp"
-
-#include "thirdparty/filesystem.hpp"
-
-#include "repo.hpp"
 #include "fetch.hpp"
-#include "package_handling.hpp"
-#include "package_cache.hpp"
+#include "nlohmann/json.hpp"
 #include "output.hpp"
+#include "package_cache.hpp"
+#include "package_handling.hpp"
 #include "prefix_data.hpp"
+#include "repo.hpp"
+#include "thirdparty/filesystem.hpp"
 #include "transaction_context.hpp"
 
 extern "C"
 {
-    #include "solv/transaction.h"
+#include "solv/transaction.h"
 }
 
 #include "solver.hpp"
@@ -40,7 +42,6 @@ namespace mamba
     class PackageDownloadExtractTarget
     {
     public:
-
         PackageDownloadExtractTarget(const MRepo& repo, Solvable* solvable);
 
         void write_repodata_record(const fs::path& base_path);
@@ -51,7 +52,6 @@ namespace mamba
         DownloadTarget* target(const fs::path& cache_path, MultiPackageCache& cache);
 
     private:
-
         Solvable* m_solv;
 
         ProgressProxy m_progress_proxy;
@@ -69,8 +69,8 @@ namespace mamba
     class MTransaction
     {
     public:
-
-        enum class FilterType {
+        enum class FilterType
+        {
             none,
             keep_only,
             ignore
@@ -102,7 +102,6 @@ namespace mamba
         std::string find_python_version();
 
     private:
-
         FilterType m_filter_type = FilterType::none;
         std::set<Id> m_filter_name_ids;
 
@@ -114,6 +113,6 @@ namespace mamba
 
         bool m_force_reinstall = false;
     };
-}
+}  // namespace mamba
 
-#endif // MAMBA_TRANSACTION_HPP
+#endif  // MAMBA_TRANSACTION_HPP

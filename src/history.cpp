@@ -4,17 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "history.hpp"
+
 #include <fstream>
 
-#include "history.hpp"
 #include "fsutil.hpp"
 
 namespace mamba
 {
-
     History::History(const std::string& prefix)
-        : m_prefix(prefix),
-          m_history_file_path(fs::path(m_prefix) / "conda-meta" / "history")
+        : m_prefix(prefix)
+        , m_history_file_path(fs::path(m_prefix) / "conda-meta" / "history")
     {
     }
 
@@ -35,7 +35,8 @@ namespace mamba
         while (getline(in_file, line))
         {
             // line.strip()
-            if (line.size() == 0) continue;
+            if (line.size() == 0)
+                continue;
             std::smatch base_match;
             if (std::regex_match(line, base_match, head_re))
             {
@@ -67,7 +68,6 @@ namespace mamba
         {
             req.cmd = rmatch[1].str();
         }
-
         else if (std::regex_match(line, rmatch, conda_v_pat))
         {
             req.conda_version = rmatch[1].str();
@@ -234,8 +234,10 @@ namespace mamba
                 out << "+" << link_dist << std::endl;
             }
 
-            auto specs_output = [](const std::string& action, const std::vector<std::string>& specs) -> std::string {
-                if (specs.empty()) return "";
+            auto specs_output = [](const std::string& action,
+                                   const std::vector<std::string>& specs) -> std::string {
+                if (specs.empty())
+                    return "";
                 std::stringstream spec_ss;
                 spec_ss << "# " << action << " specs: [";
                 for (auto spec : specs)
@@ -253,4 +255,4 @@ namespace mamba
             out << specs_output("neutered", entry.neutered);
         }
     }
-}
+}  // namespace mamba

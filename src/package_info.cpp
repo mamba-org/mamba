@@ -4,20 +4,20 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "package_info.hpp"
+
 #include <functional>
 #include <map>
 
-#include "package_info.hpp"
-#include "util.hpp"
 #include "output.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
     namespace
     {
         template <class T>
-        std::string get_package_info_field(const PackageInfo&,
-                                           T PackageInfo::*field);
+        std::string get_package_info_field(const PackageInfo&, T PackageInfo::*field);
 
         template <>
         std::string get_package_info_field<std::string>(const PackageInfo& pkg,
@@ -36,8 +36,7 @@ namespace mamba
         template <class T>
         PackageInfo::field_getter build_field_getter(T PackageInfo::*field)
         {
-            using namespace std::placeholders;
-            return std::bind(get_package_info_field<T>, _1, field);
+            return std::bind(get_package_info_field<T>, std::placeholders::_1, field);
         }
 
         using field_getter_map = std::map<std::string, PackageInfo::field_getter>;
@@ -64,7 +63,7 @@ namespace mamba
             static field_getter_map m = build_field_getter_map();
             return m;
         }
-    }
+    }  // namespace
 
     PackageInfo::field_getter PackageInfo::get_field_getter(const std::string& name)
     {
@@ -79,15 +78,17 @@ namespace mamba
     PackageInfo::compare_fun PackageInfo::less(const std::string& member)
     {
         auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
-            { return getter(lhs) < getter(rhs); };
+        return [getter](const PackageInfo& lhs, const PackageInfo& rhs) {
+            return getter(lhs) < getter(rhs);
+        };
     }
 
     PackageInfo::compare_fun PackageInfo::equal(const std::string& member)
     {
         auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
-            { return getter(lhs) == getter(rhs); };
+        return [getter](const PackageInfo& lhs, const PackageInfo& rhs) {
+            return getter(lhs) == getter(rhs);
+        };
     }
 
     PackageInfo::PackageInfo(Solvable* s)
@@ -118,7 +119,8 @@ namespace mamba
         }
         else
         {
-            channel = s->repo->name;  // note this can and should be <unknown> when e.g. installing from a tarball
+            channel = s->repo->name;  // note this can and should be <unknown> when e.g.
+                                      // installing from a tarball
         }
 
         url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
@@ -155,7 +157,7 @@ namespace mamba
 
     PackageInfo::PackageInfo(nlohmann::json&& j)
     {
-        using namespace std::string_literals;
+        using namespace std::string_literals;  // NOLINT(build/namespaces)
         assign_or(j, "name", name, ""s);
         assign_or(j, "version", version, ""s);
         assign_or(j, "channel", channel, ""s);
@@ -182,9 +184,14 @@ namespace mamba
     {
     }
 
-    PackageInfo::PackageInfo(const std::string& n, const std::string& v,
-                             const std::string b, std::size_t bn)
-        : name(n), version(v), build_string(b), build_number(bn)
+    PackageInfo::PackageInfo(const std::string& n,
+                             const std::string& v,
+                             const std::string b,
+                             std::size_t bn)
+        : name(n)
+        , version(v)
+        , build_string(b)
+        , build_number(bn)
     {
     }
 
@@ -222,4 +229,4 @@ namespace mamba
         // TODO channel contains subdir right now?!
         return concat(channel, "::", name, "-", version, "-", build_string);
     }
-}
+}  // namespace mamba

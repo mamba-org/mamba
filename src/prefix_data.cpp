@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "prefix_data.hpp"
+
 #include "output.hpp"
 
 namespace mamba
@@ -20,7 +21,7 @@ namespace mamba
         auto conda_meta_dir = m_prefix_path / "conda-meta";
         if (lexists(conda_meta_dir))
         {
-            for(auto& p: fs::directory_iterator(conda_meta_dir))
+            for (auto& p : fs::directory_iterator(conda_meta_dir))
             {
                 if (ends_with(p.path().c_str(), ".json"))
                 {
@@ -52,6 +53,6 @@ namespace mamba
         nlohmann::json j;
         infile >> j;
         auto prec = PackageInfo(std::move(j));
-        m_package_records.insert({prec.name, std::move(prec)});
+        m_package_records.insert({ prec.name, std::move(prec) });
     }
-}
+}  // namespace mamba

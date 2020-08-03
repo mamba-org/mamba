@@ -1,21 +1,20 @@
 #include <gtest/gtest.h>
 
 #include "channel.hpp"
+#include "thirdparty/filesystem.hpp"
 #include "url.hpp"
 #include "util.hpp"
-
-#include "thirdparty/filesystem.hpp"
 namespace fs = ghc::filesystem;
 
 namespace mamba
 {
-    #ifdef __linux__
+#ifdef __linux__
     std::string platform("linux-64");
-    #elif __APPLE__
+#elif __APPLE__
     std::string platform("osx-64");
-    #elif _WIN32
+#elif _WIN32
     std::string platform("win-64");
-    #endif
+#endif
 
     TEST(ChannelContext, init)
     {
@@ -75,23 +74,23 @@ namespace mamba
         std::string value4 = "/home/mamba/test/channel_b";
         Channel& c4 = make_channel(value4);
         EXPECT_EQ(c4.scheme(), "file");
-        #ifdef _WIN32
+#ifdef _WIN32
         std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
         EXPECT_EQ(c4.location(), driveletter + ":/home/mamba/test");
-        #else
+#else
         EXPECT_EQ(c4.location(), "/home/mamba/test");
-        #endif
+#endif
         EXPECT_EQ(c4.name(), "channel_b");
         EXPECT_EQ(c4.platform(), "");
 
         std::string value5 = "/home/mamba/test/channel_b/" + platform;
         Channel& c5 = make_channel(value5);
         EXPECT_EQ(c5.scheme(), "file");
-        #ifdef _WIN32
+#ifdef _WIN32
         EXPECT_EQ(c5.location(), driveletter + ":/home/mamba/test");
-        #else
+#else
         EXPECT_EQ(c5.location(), "/home/mamba/test");
-        #endif
+#endif
         EXPECT_EQ(c5.name(), "channel_b");
         EXPECT_EQ(c5.platform(), platform);
     }
@@ -123,7 +122,7 @@ namespace mamba
         EXPECT_EQ(res.size(), on_win ? 8u : 6u);
         EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/" + platform);
         EXPECT_EQ(res[1], "https://conda.anaconda.org/conda-forge/noarch");
-        EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/"  + platform);
+        EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/" + platform);
         EXPECT_EQ(res[3], "https://repo.anaconda.com/pkgs/main/noarch");
         EXPECT_EQ(res[4], "https://repo.anaconda.com/pkgs/r/" + platform);
         EXPECT_EQ(res[5], "https://repo.anaconda.com/pkgs/r/noarch");
@@ -137,12 +136,12 @@ namespace mamba
         EXPECT_EQ(res2[4], res[4]);
         EXPECT_EQ(res2[5], res[5]);
 
-        #ifdef _WIN32
+#ifdef _WIN32
         EXPECT_EQ(res[6], "https://repo.anaconda.com/pkgs/msys2/" + platform);
         EXPECT_EQ(res[7], "https://repo.anaconda.com/pkgs/msys2/noarch");
         EXPECT_EQ(res2[6], res[6]);
         EXPECT_EQ(res2[7], res[7]);
-        #endif
+#endif
 
         std::vector<std::string> local_urls = { "./channel_b", "./channel_a" };
         std::vector<std::string> local_res = calculate_channel_urls(local_urls, false);
@@ -153,4 +152,4 @@ namespace mamba
         EXPECT_EQ(local_res[2], current_dir + "channel_a/" + platform);
         EXPECT_EQ(local_res[3], current_dir + "channel_a/noarch");
     }
-}
+}  // namespace mamba

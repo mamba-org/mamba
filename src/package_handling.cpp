@@ -4,24 +4,23 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <sstream>
+#include "package_handling.hpp"
 
 #include <archive.h>
 #include <archive_entry.h>
 
-#include "util.hpp"
-#include "nlohmann/json.hpp"
+#include <sstream>
 
-#include "package_handling.hpp"
+#include "nlohmann/json.hpp"
 #include "output.hpp"
 #include "thread_utils.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
     class extraction_guard
     {
     public:
-
         explicit extraction_guard(const fs::path& file)
             : m_file(file)
         {
@@ -42,14 +41,13 @@ namespace mamba
         extraction_guard& operator=(extraction_guard&&) = delete;
 
     private:
-
         const fs::path& m_file;
     };
 
-    static int copy_data(archive *ar, archive *aw)
+    static int copy_data(archive* ar, archive* aw)
     {
         int r;
-        const void *buff;
+        const void* buff;
         size_t size;
         la_int64_t offset;
 
@@ -86,9 +84,9 @@ namespace mamba
         }
         fs::current_path(destination);
 
-        struct archive *a;
-        struct archive *ext;
-        struct archive_entry *entry;
+        struct archive* a;
+        struct archive* ext;
+        struct archive_entry* entry;
         int flags;
         int r;
 
@@ -164,7 +162,9 @@ namespace mamba
         fs::current_path(prev_path);
     }
 
-    void extract_conda(const fs::path& file, const fs::path& dest_dir, const std::vector<std::string>& parts)
+    void extract_conda(const fs::path& file,
+                       const fs::path& dest_dir,
+                       const std::vector<std::string>& parts)
     {
         TemporaryDirectory tdir;
         extract_archive(file, tdir);
@@ -252,4 +252,4 @@ namespace mamba
             throw std::runtime_error("Unknown file format (" + std::string(file) + ")");
         }
     }
-}
+}  // namespace mamba

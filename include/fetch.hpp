@@ -7,32 +7,35 @@
 #ifndef MAMBA_FETCH_HPP
 #define MAMBA_FETCH_HPP
 
-#include "nlohmann/json.hpp"
+extern "C"
+{
+#include <archive.h>
+#include <curl/curl.h>
+}
 
+#include <string>
+#include <vector>
+
+#include "nlohmann/json.hpp"
 #include "output.hpp"
 #include "validate.hpp"
 
-extern "C"
-{
-    #include <curl/curl.h>
-    #include <archive.h>
-}
-
 namespace mamba
 {
-
     class DownloadTarget
     {
     public:
-
         DownloadTarget() = default;
-        DownloadTarget(const std::string& name, const std::string& url, const std::string& filename);
+        DownloadTarget(const std::string& name,
+                       const std::string& url,
+                       const std::string& filename);
         ~DownloadTarget();
 
-        static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *self);
-        static size_t header_callback(char *buffer, size_t size, size_t nitems, void *self);
+        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
+        static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
 
-        int progress_callback(void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
+        int progress_callback(
+            void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
         void set_mod_etag_headers(const nlohmann::json& mod_etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
@@ -77,7 +80,6 @@ namespace mamba
         std::string etag, mod, cache_control;
 
     private:
-
         std::function<bool()> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
@@ -106,7 +108,6 @@ namespace mamba
     class MultiDownloadTarget
     {
     public:
-
         MultiDownloadTarget();
         ~MultiDownloadTarget();
 
@@ -115,12 +116,11 @@ namespace mamba
         bool download(bool failfast);
 
     private:
-
         std::vector<DownloadTarget*> m_targets;
         std::vector<DownloadTarget*> m_retry_targets;
         CURLM* m_handle;
     };
 
-}
+}  // namespace mamba
 
-#endif // MAMBA_FETCH_HPP
+#endif  // MAMBA_FETCH_HPP

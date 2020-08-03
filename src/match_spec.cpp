@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "match_spec.hpp"
+
 #include "output.hpp"
 #include "url.hpp"
 #include "util.hpp"
@@ -33,24 +34,22 @@ namespace mamba
             {
                 std::size_t pm1 = pos - 1;
                 char d = s[pm1];
-                if (d == '=' || d == '!' || d == '|' ||
-                    d == ',' || d == '<' || d == '>' || d == '~')
+                if (d == '=' || d == '!' || d == '|' || d == ',' || d == '<' || d == '>'
+                    || d == '~')
                 {
                     std::string tmp = s;
                     replace_all(tmp, " ", "");
-                    return { tmp , "" };
+                    return { tmp, "" };
                 }
             }
             // c is either ' ' or pm1 is none of the forbidden chars
 
-            std::string v = s.substr(0, pos),
-                        b = s.substr(pos + 1);
+            std::string v = s.substr(0, pos), b = s.substr(pos + 1);
             replace_all(v, " ", "");
             replace_all(b, " ", "");
             return { v, b };
         }
-    };
-
+    }
 
     void MatchSpec::parse()
     {
@@ -74,8 +73,7 @@ namespace mamba
             LOG_INFO << "Got a package file: " << spec_str << std::endl;
         }
 
-        auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
-        {
+        auto extract_kv = [&spec_str](const std::string& kv_string, auto& map) {
             static std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
             std::cmatch kv_match;
             const char* text_iter = kv_string.c_str();
@@ -153,7 +151,8 @@ namespace mamba
         // if 'subdir' in brackets:
         //     subdir = brackets.pop('subdir')
 
-        // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is the repr of `libblas=*=*mkl`
+        // support faulty conda matchspecs such as `libblas=[build=*mkl]`, which is
+        // the repr of `libblas=*=*mkl`
         if (spec_str.back() == '=')
         {
             spec_str.push_back('*');
@@ -181,7 +180,8 @@ namespace mamba
         {
             if (version.find("[") != version.npos)
             {
-                throw std::runtime_error("Invalid match spec: multiple bracket sections not allowed " + spec);
+                throw std::runtime_error(
+                    "Invalid match spec: multiple bracket sections not allowed " + spec);
             }
 
             version = std::string(strip(version));
@@ -309,10 +309,8 @@ namespace mamba
         std::vector<std::string> brackets;
         bool version_exact = false;
 
-        auto is_complex_relation = [](const std::string& s)
-        {
-            return s.find_first_of("><$^|,") != s.npos;
-        };
+        auto is_complex_relation
+            = [](const std::string& s) { return s.find_first_of("><$^|,") != s.npos; };
 
         if (!version.empty())
         {
@@ -398,4 +396,4 @@ namespace mamba
         }
         return res.str();
     }
-}
+}  // namespace mamba

@@ -13,18 +13,21 @@
 #include <algorithm>
 #include <cstdlib>
 
-#include "thirdparty/termcolor.hpp"
-
 #include "output.hpp"
-#include "util.hpp"
-#include "url.hpp"
+#include "thirdparty/termcolor.hpp"
 #include "thread_utils.hpp"
+#include "url.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
-    std::ostream& write_duration(std::ostream &os, std::chrono::nanoseconds ns)
+    std::ostream& write_duration(std::ostream& os, std::chrono::nanoseconds ns)
     {
-        using namespace std::chrono;
+        using std::chrono::duration;
+        using std::chrono::duration_cast;
+        using std::chrono::hours;
+        using std::chrono::minutes;
+        using std::chrono::seconds;
 
         using days = duration<int, std::ratio<86400>>;
         char fill = os.fill();
@@ -51,16 +54,16 @@ namespace mamba
 
     int get_console_width()
     {
-        #ifndef _WIN32
+#ifndef _WIN32
         struct winsize w;
         ioctl(0, TIOCGWINSZ, &w);
         return w.ws_col;
-        #else
+#else
 
         CONSOLE_SCREEN_BUFFER_INFO coninfo;
         auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
         return coninfo.dwSize.X;
-        #endif
+#endif
 
         return -1;
     }
@@ -82,7 +85,7 @@ namespace mamba
 
     std::ostream& ProgressScaleWriter::write(std::ostream& os, std::size_t progress) const
     {
-        int pos = int(progress * m_bar_width / 100.0);
+        int pos = static_cast<int>(progress * m_bar_width / 100.0);
         for (int i = 0; i < m_bar_width; ++i)
         {
             if (i < pos)
@@ -106,7 +109,8 @@ namespace mamba
      ***************/
 
     ProgressBar::ProgressBar(const std::string& prefix)
-        : m_prefix(prefix), m_start_time_saved(false)
+        : m_prefix(prefix)
+        , m_start_time_saved(false)
     {
     }
 
@@ -171,16 +175,18 @@ namespace mamba
         pf << m_postfix;
         auto fpf = pf.str();
         int width = get_console_width();
-        width = (width == -1) ? 20 : (std::min)(int(width - (m_prefix.size() + 4) - fpf.size()), 20);
+        width = (width == -1)
+                    ? 20
+                    : (std::min)(static_cast<int>(width - (m_prefix.size() + 4) - fpf.size()), 20);
 
         if (!m_activate_bob)
         {
-            ProgressScaleWriter w{width, "=", ">", " "};
+            ProgressScaleWriter w{ width, "=", ">", " " };
             w.write(std::cout, m_progress);
         }
         else
         {
-            auto pos = int(m_progress * width / 100.0);
+            auto pos = static_cast<int>(m_progress * width / 100.0);
             for (int i = 0; i < width; ++i)
             {
                 if (i == pos - 1)
@@ -274,7 +280,7 @@ namespace mamba
     namespace printers
     {
         constexpr const char* green = "\033[32m";
-        constexpr const char* red   = "\033[31m";
+        constexpr const char* red = "\033[31m";
         constexpr const char* reset = "\033[00m";
 
         Table::Table(const std::vector<FormattedString>& header)
@@ -297,7 +303,8 @@ namespace mamba
             m_table.push_back(r);
         }
 
-        void Table::add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs)
+        void Table::add_rows(const std::string& header,
+                             const std::vector<std::vector<FormattedString>>& rs)
         {
             m_table.push_back({ header });
 
@@ -307,10 +314,12 @@ namespace mamba
 
         std::ostream& Table::print(std::ostream& out)
         {
-            if (m_table.size() == 0) return out;
+            if (m_table.size() == 0)
+                return out;
             std::size_t n_col = m_header.size();
 
-            if (m_align.size() == 0) m_align = std::vector<alignment>(n_col, alignment::left);
+            if (m_align.size() == 0)
+                m_align = std::vector<alignment>(n_col, alignment::left);
 
             std::vector<std::size_t> cell_sizes(n_col);
             for (size_t i = 0; i < n_col; ++i)
@@ -318,14 +327,16 @@ namespace mamba
 
             for (size_t i = 0; i < m_table.size(); ++i)
             {
-                if (m_table[i].size() == 1) continue;
+                if (m_table[i].size() == 1)
+                    continue;
                 for (size_t j = 0; j < m_table[i].size(); ++j)
                     cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
             }
 
             if (m_padding.size())
             {
-                for (std::size_t i = 0; i < n_col; ++i) cell_sizes[i];
+                for (std::size_t i = 0; i < n_col; ++i)
+                    cell_sizes[i];
             }
             else
             {
@@ -335,16 +346,20 @@ namespace mamba
             std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
             total_length = std::accumulate(m_padding.begin(), m_padding.end(), total_length);
 
-            auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row)
-            {
+            auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row) {
                 for (size_t j = 0; j < row.size(); ++j)
                 {
                     if (row[j].flag != format::none)
                     {
-                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::red)) out << termcolor::red;
-                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::green)) out << termcolor::green;
-                        if (static_cast<std::size_t>(row[j].flag) & static_cast<std::size_t>(format::yellow)) out << termcolor::yellow;
-
+                        if (static_cast<std::size_t>(row[j].flag)
+                            & static_cast<std::size_t>(format::red))
+                            out << termcolor::red;
+                        if (static_cast<std::size_t>(row[j].flag)
+                            & static_cast<std::size_t>(format::green))
+                            out << termcolor::green;
+                        if (static_cast<std::size_t>(row[j].flag)
+                            & static_cast<std::size_t>(format::yellow))
+                            out << termcolor::yellow;
                     }
                     if (this->m_align[j] == alignment::left)
                     {
@@ -366,11 +381,11 @@ namespace mamba
 
             print_row(m_header);
 
-            #ifdef _WIN32
-            #define MAMBA_TABLE_DELIM "-"
-            #else
-            #define MAMBA_TABLE_DELIM "─"
-            #endif
+#ifdef _WIN32
+#define MAMBA_TABLE_DELIM "-"
+#else
+#define MAMBA_TABLE_DELIM "─"
+#endif
 
             out << "\n";
             for (size_t i = 0; i < total_length + m_padding[0]; ++i)
@@ -384,11 +399,12 @@ namespace mamba
                 if (m_table[i].size() == 1)
                 {
                     // print header
-                    if (i != 0) std::cout << "\n";
+                    if (i != 0)
+                        std::cout << "\n";
 
                     for (int x = 0; x < m_padding[0]; ++x)
                     {
-                        out  << ' ';
+                        out << ' ';
                     }
                     out << m_table[i][0].s;
 
@@ -407,7 +423,7 @@ namespace mamba
             }
             return out;
         }
-    }
+    }  // namespace printers
 
     /*****************
      * ConsoleStream *
@@ -447,13 +463,13 @@ namespace mamba
         if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
             // print above the progress bars
-            if (Console::instance().m_progress_started && Console::instance().m_active_progress_bars.size())
+            if (Console::instance().m_progress_started
+                && Console::instance().m_active_progress_bars.size())
             {
                 {
                     const std::lock_guard<std::mutex> lock(instance().m_mutex);
                     const auto& ps = instance().m_active_progress_bars.size();
-                    std::cout << cursor::up(ps) << cursor::erase_line()
-                              << str << std::endl;
+                    std::cout << cursor::up(ps) << cursor::erase_line() << str << std::endl;
 
                     if (!Console::instance().skip_progress_bars())
                     {
@@ -532,15 +548,20 @@ namespace mamba
     {
         std::lock_guard<std::mutex> lock(instance().m_mutex);
 
-        if (Context::instance().no_progress_bars && !(Context::instance().quiet || Context::instance().json))
+        if (Context::instance().no_progress_bars
+            && !(Context::instance().quiet || Context::instance().json))
         {
             std::cout << m_progress_bars[idx]->prefix() << " " << msg << "\n";
         }
 
-        auto it = std::find(m_active_progress_bars.begin(), m_active_progress_bars.end(), m_progress_bars[idx].get());
-        if (it == m_active_progress_bars.end() || Context::instance().quiet || Context::instance().json)
+        auto it = std::find(m_active_progress_bars.begin(),
+                            m_active_progress_bars.end(),
+                            m_progress_bars[idx].get());
+        if (it == m_active_progress_bars.end() || Context::instance().quiet
+            || Context::instance().json)
         {
-            // if no_progress_bars is true, should return here as no progress bars are active
+            // if no_progress_bars is true, should return here as no progress bars are
+            // active
             return;
         }
 
@@ -574,7 +595,9 @@ namespace mamba
             std::cout << cursor::up(cursor_up);
         }
 
-        auto it = std::find(m_active_progress_bars.begin(), m_active_progress_bars.end(), m_progress_bars[idx].get());
+        auto it = std::find(m_active_progress_bars.begin(),
+                            m_active_progress_bars.end(),
+                            m_progress_bars[idx].get());
         if (it == m_active_progress_bars.end())
         {
             m_active_progress_bars.push_back(m_progress_bars[idx].get());
@@ -609,7 +632,8 @@ namespace mamba
 
     bool Console::skip_progress_bars() const
     {
-        return Context::instance().quiet || Context::instance().json || Context::instance().no_progress_bars;
+        return Context::instance().quiet || Context::instance().json
+               || Context::instance().no_progress_bars;
     }
 
     /*****************
@@ -624,9 +648,7 @@ namespace mamba
         char sep = '/';
 #endif
         size_t pos = file.rfind(sep);
-        return pos != std::string::npos ?
-                file.substr(pos + 1, std::string::npos) :
-                file;
+        return pos != std::string::npos ? file.substr(pos + 1, std::string::npos) : file;
     }
 
     MessageLogger::MessageLogger(const char* file, int line, LogSeverity severity)
@@ -645,26 +667,29 @@ namespace mamba
             return;
         }
 
-        switch(m_severity)
+        switch (m_severity)
         {
-        case LogSeverity::fatal:
-            Console::stream() << "\033[1;35m" << "FATAL   " << m_stream.str() << "\033[0m";
-            break;
-        case LogSeverity::error:
-            Console::stream() << "\033[1;31m" << "ERROR   " << m_stream.str() << "\033[0m";
-            break;
-        case LogSeverity::warning:
-            Console::stream() << "\033[1;33m" << "WARNING " << m_stream.str() << "\033[0m";
-            break;
-        case LogSeverity::info:
-            Console::stream()                 << "INFO    " << m_stream.str();
-            break;
-        case LogSeverity::debug:
-            Console::stream()                 << "DEBUG   " << m_stream.str();
-            break;
-        default:
-            Console::stream()                 << "UNKOWN  " << m_stream.str();
-            break;
+            case LogSeverity::fatal:
+                Console::stream() << "\033[1;35m"
+                                  << "FATAL   " << m_stream.str() << "\033[0m";
+                break;
+            case LogSeverity::error:
+                Console::stream() << "\033[1;31m"
+                                  << "ERROR   " << m_stream.str() << "\033[0m";
+                break;
+            case LogSeverity::warning:
+                Console::stream() << "\033[1;33m"
+                                  << "WARNING " << m_stream.str() << "\033[0m";
+                break;
+            case LogSeverity::info:
+                Console::stream() << "INFO    " << m_stream.str();
+                break;
+            case LogSeverity::debug:
+                Console::stream() << "DEBUG   " << m_stream.str();
+                break;
+            default:
+                Console::stream() << "UNKOWN  " << m_stream.str();
+                break;
         }
 
         if (m_severity == LogSeverity::fatal)
@@ -698,7 +723,8 @@ namespace mamba
         return j;
     }
 
-    // write all the key/value pairs of a JSON object into the current entry, which is then a JSON object
+    // write all the key/value pairs of a JSON object into the current entry, which
+    // is then a JSON object
     void JsonLogger::json_write(const nlohmann::json& j)
     {
         if (Context::instance().json)
@@ -747,4 +773,4 @@ namespace mamba
         if (Context::instance().json)
             json_hier.erase(json_hier.rfind('/'));
     }
-}
+}  // namespace mamba

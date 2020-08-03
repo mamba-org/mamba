@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <fstream>
 #include <string>
 
@@ -52,4 +53,4 @@ namespace mamba
         src_end.close();
         dst_end.close();
     }
-}
+}  // namespace mamba

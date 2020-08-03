@@ -11,7 +11,7 @@
 
 extern "C"
 {
-    #include "solv/pool.h"
+#include "solv/pool.h"
 }
 
 namespace mamba
@@ -19,7 +19,6 @@ namespace mamba
     class MPool
     {
     public:
-
         MPool();
         ~MPool();
 
@@ -34,9 +33,8 @@ namespace mamba
         operator Pool*();
 
     private:
-
         Pool* m_pool;
     };
-}
+}  // namespace mamba
 
-#endif // MAMBA_POOL_HPP
+#endif  // MAMBA_POOL_HPP

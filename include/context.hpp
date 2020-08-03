@@ -26,13 +26,13 @@ namespace mamba
     class Context
     {
     public:
-
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
 
-        fs::path target_prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";;
+        fs::path target_prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
         // Need to prevent circular imports here (otherwise using env::get())
-        fs::path root_prefix = std::getenv("MAMBA_ROOT_PREFIX") ? std::getenv("MAMBA_ROOT_PREFIX") : "";
+        fs::path root_prefix
+            = std::getenv("MAMBA_ROOT_PREFIX") ? std::getenv("MAMBA_ROOT_PREFIX") : "";
         fs::path conda_prefix = root_prefix;
 
         // TODO check writable and add other potential dirs
@@ -40,7 +40,7 @@ namespace mamba
         std::vector<fs::path> pkgs_dirs = { root_prefix / "pkgs" };
 
         bool use_index_cache = false;
-        std::size_t local_repodata_ttl = 1; // take from header
+        std::size_t local_repodata_ttl = 1;  // take from header
         bool offline = false;
         bool quiet = false;
         bool json = false;
@@ -63,9 +63,9 @@ namespace mamba
 
         int connect_timeout_secs = 10;
         // int read_timeout_secs = 60;
-        int retry_timeout = 2; // seconds
-        int retry_backoff = 3; // retry_timeout * retry_backoff
-        int max_retries = 3;  // max number of retries
+        int retry_timeout = 2;  // seconds
+        int retry_backoff = 3;  // retry_timeout * retry_backoff
+        int max_retries = 3;    // max number of retries
 
         std::string env_prompt = "({default_env}) ";
 
@@ -93,10 +93,9 @@ namespace mamba
         Context& operator=(Context&&) = delete;
 
     private:
-
         Context();
         ~Context() = default;
     };
-}
+}  // namespace mamba
 
-#endif // MAMBA_CONTEXT_HPP
+#endif  // MAMBA_CONTEXT_HPP

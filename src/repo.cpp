@@ -5,12 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "repo.hpp"
-#include "package_info.hpp"
+
 #include "output.hpp"
+#include "package_info.hpp"
 
 extern "C"
 {
-    #include "solv/repo_write.h"
+#include "solv/repo_write.h"
 }
 
 #define MAMBA_TOOL_VERSION "1.1"
@@ -21,11 +22,10 @@ namespace mamba
 {
     const char* mamba_tool_version()
     {
-        static char MTV[30];
+        const size_t bufferSize = 30;
+        static char MTV[bufferSize];
         MTV[0] = '\0';
-        strcat(MTV, MAMBA_TOOL_VERSION);
-        strcat(MTV, "_");
-        strcat(MTV, solv_version);
+        snprintf(MTV, bufferSize, MAMBA_TOOL_VERSION, "_", solv_version);
         return MTV;
     }
 
@@ -54,17 +54,19 @@ namespace mamba
     {
         m_repo = repo_create(pool, "installed");
         int flags = 0;
-        Repodata *data;
+        Repodata* data;
         data = repo_add_repodata(m_repo, flags);
 
         for (auto& [name, record] : prefix_data.records())
         {
             LOG_INFO << "Adding package record to repo " << name;
             Id handle = repo_add_solvable(m_repo);
-            Solvable *s;
+            Solvable* s;
             s = pool_id2solvable(pool, handle);
-            repodata_set_str(data, handle, SOLVABLE_BUILDVERSION, std::to_string(record.build_number).c_str());
-            repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, record.build_string.c_str());
+            repodata_set_str(
+                data, handle, SOLVABLE_BUILDVERSION, std::to_string(record.build_number).c_str());
+            repodata_add_poolstr_array(
+                data, handle, SOLVABLE_BUILDFLAVOR, record.build_string.c_str());
             s->name = pool_str2id(pool, record.name.c_str(), 1);
             s->evr = pool_str2id(pool, record.version.c_str(), 1);
 
@@ -95,7 +97,8 @@ namespace mamba
                 }
             }
 
-            s->provides = repo_addid_dep(m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
+            s->provides = repo_addid_dep(
+                m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
         }
         LOG_INFO << "Internalizing";
         repodata_internalize(data);
@@ -107,9 +110,9 @@ namespace mamba
         // not sure if reuse_ids is useful here
         // repo will be freed with pool as well though
         // maybe explicitly free pool for faster repo deletion as well
-        // TODO this is actually freed with the pool, and calling it here will cause segfaults.
-        // need to find a more clever way to do this.
-        // repo_free(m_repo, /*reuse_ids*/1);
+        // TODO this is actually freed with the pool, and calling it here will cause
+        // segfaults. need to find a more clever way to do this. repo_free(m_repo,
+        // /*reuse_ids*/1);
     }
 
     void MRepo::set_installed()
@@ -178,7 +181,8 @@ namespace mamba
             int ret = repo_add_solv(m_repo, fp, 0);
             if (ret != 0)
             {
-                LOG_ERROR << "Could not load .solv file, falling back to JSON" << pool_errstr(m_repo->pool);
+                LOG_ERROR << "Could not load .solv file, falling back to JSON"
+                          << pool_errstr(m_repo->pool);
             }
             else
             {
@@ -198,23 +202,27 @@ namespace mamba
                     int pip_added = repodata_lookup_num(repodata, SOLVID_META, pip_added_id, -1);
                     const char* etag = repodata_lookup_str(repodata, SOLVID_META, etag_id);
                     const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
-                    const char* tool_version = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
-                    bool metadata_valid = !(!url || !etag || !mod || !tool_version || pip_added == -1);
+                    const char* tool_version
+                        = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
+                    bool metadata_valid
+                        = !(!url || !etag || !mod || !tool_version || pip_added == -1);
 
                     if (metadata_valid)
                     {
-                        RepoMetadata read_metadata {
-                            url, pip_added == 1, etag, mod
-                        };
-                        metadata_valid = (read_metadata == m_metadata) && (std::strcmp(tool_version, mamba_tool_version()) == 0);
+                        RepoMetadata read_metadata{ url, pip_added == 1, etag, mod };
+                        metadata_valid = (read_metadata == m_metadata)
+                                         && (std::strcmp(tool_version, mamba_tool_version()) == 0);
                     }
 
-                    LOG_INFO << "Metadata from .solv is " << (metadata_valid ? "valid" : "NOT valid");
+                    LOG_INFO << "Metadata from .solv is "
+                             << (metadata_valid ? "valid" : "NOT valid");
 
                     if (!metadata_valid)
                     {
-                        LOG_INFO << "solv file was written with a previous version of libsolv or mamba " <<
-                                    (tool_version != nullptr ? tool_version : "<NULL>") << ", updating it now!";
+                        LOG_INFO << "solv file was written with a previous version of "
+                                    "libsolv or mamba "
+                                 << (tool_version != nullptr ? tool_version : "<NULL>")
+                                 << ", updating it now!";
                     }
                     else
                     {
@@ -241,7 +249,8 @@ namespace mamba
         int ret = repo_add_conda(m_repo, fp, 0);
         if (ret != 0)
         {
-            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") " + std::string(pool_errstr(m_repo->pool)));
+            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") "
+                                     + std::string(pool_errstr(m_repo->pool)));
         }
 
         // TODO move this to a more structured approach for repodata patching?
@@ -311,14 +320,14 @@ namespace mamba
         }
 
         fclose(solv_f);
-        repodata_free(info); // delete meta info repodata again
+        repodata_free(info);  // delete meta info repodata again
         return true;
     }
 
     bool MRepo::clear(bool reuse_ids = 1)
     {
-        repo_free(m_repo, (int)reuse_ids);
+        repo_free(m_repo, static_cast<int>(reuse_ids));
         m_repo = nullptr;
         return true;
     }
-}
+}  // namespace mamba

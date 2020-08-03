@@ -7,35 +7,50 @@
 #ifndef MAMBA_OUTPUT_HPP
 #define MAMBA_OUTPUT_HPP
 
-#include <string_view>
-#include <iostream>
-#include <iomanip>
 #include <chrono>
-#include <string>
-#include <sstream>
+#include <iomanip>
+#include <iostream>
+#include <memory>
 #include <mutex>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "context.hpp"
 #include "nlohmann/json.hpp"
 
-#define ENUM_FLAG_OPERATOR(T,X) inline T operator X (T lhs, T rhs) { return (T) (static_cast<std::underlying_type_t <T>>(lhs) X static_cast<std::underlying_type_t <T>>(rhs)); }
-#define ENUM_FLAGS(T) \
-enum class T; \
-inline T operator ~ (T t) { return (T) (~static_cast<std::underlying_type_t <T>>(t)); } \
-ENUM_FLAG_OPERATOR(T,|) \
-ENUM_FLAG_OPERATOR(T,^) \
-ENUM_FLAG_OPERATOR(T,&) \
-enum class T
+#define ENUM_FLAG_OPERATOR(T, X)                                                                   \
+    inline T operator X(T lhs, T rhs)                                                              \
+    {                                                                                              \
+        return (T)(static_cast<std::underlying_type_t<T>>(lhs)                                     \
+                       X static_cast<std::underlying_type_t<T>>(rhs));                             \
+    }
+#define ENUM_FLAGS(T)                                                                              \
+    enum class T;                                                                                  \
+    inline T operator~(T t)                                                                        \
+    {                                                                                              \
+        return (T)(~static_cast<std::underlying_type_t<T>>(t));                                    \
+    }                                                                                              \
+    ENUM_FLAG_OPERATOR(T, |)                                                                       \
+    ENUM_FLAG_OPERATOR(T, ^)                                                                       \
+    ENUM_FLAG_OPERATOR(T, &)                                                                       \
+    enum class T
 
 #define PREFIX_LENGTH 25
 
 namespace cursor
 {
-    class CursorMovementTriple {
+    class CursorMovementTriple
+    {
     public:
         CursorMovementTriple(const char* esc, int n, const char* mod)
-            : m_esc(esc), m_mod(mod), m_n(n)
-        {}
+            : m_esc(esc)
+            , m_mod(mod)
+            , m_n(n)
+        {
+        }
 
         const char* m_esc;
         const char* m_mod;
@@ -48,11 +63,13 @@ namespace cursor
         return o;
     }
 
-    class CursorMod {
+    class CursorMod
+    {
     public:
         CursorMod(const char* mod)
             : m_mod(mod)
-        {}
+        {
+        }
 
         std::ostream& operator<<(std::ostream& o)
         {
@@ -112,20 +129,19 @@ namespace cursor
     {
         return CursorMod("\x1b[?25l");
     }
-}
+}  // namespace cursor
 
 namespace mamba
 {
-
     std::string cut_repo_name(const std::string& reponame);
 
     namespace printers
     {
-
-        enum class format : std::size_t {
-            none   = 0,
-            red    = 1 << 1,
-            green  = 1 << 2,
+        enum class format : std::size_t
+        {
+            none = 0,
+            red = 1 << 1,
+            green = 1 << 2,
             yellow = 1 << 3
         };
 
@@ -139,12 +155,12 @@ namespace mamba
             inline FormattedString(const std::string& i)
                 : s(i)
             {
-            };
+            }
 
             inline FormattedString(const char* i)
                 : s(i)
             {
-            };
+            }
 
             inline std::size_t size() const
             {
@@ -154,21 +170,21 @@ namespace mamba
 
         enum class alignment : std::size_t
         {
-            left  = 1 << 1,
+            left = 1 << 1,
             right = 1 << 2,
-            fill  =  1 << 3
+            fill = 1 << 3
         };
 
         class Table
         {
         public:
-
             Table(const std::vector<FormattedString>& header);
 
             void set_alignment(const std::vector<alignment>& a);
             void set_padding(const std::vector<int>& p);
             void add_row(const std::vector<FormattedString>& r);
-            void add_rows(const std::string& header, const std::vector<std::vector<FormattedString>>& rs);
+            void add_rows(const std::string& header,
+                          const std::vector<std::vector<FormattedString>>& rs);
 
             std::ostream& print(std::ostream& out);
 
@@ -178,18 +194,16 @@ namespace mamba
             std::vector<int> m_padding;
             std::vector<std::vector<FormattedString>> m_table;
         };
-    }
+    }  // namespace printers
 
-    // The next two functions / classes were ported from the awesome indicators library
-    // by p-ranav (MIT License)
-    // https://github.com/p-ranav/indicators
-    std::ostream& write_duration(std::ostream &os, std::chrono::nanoseconds ns);
+    // The next two functions / classes were ported from the awesome indicators
+    // library by p-ranav (MIT License) https://github.com/p-ranav/indicators
+    std::ostream& write_duration(std::ostream& os, std::chrono::nanoseconds ns);
     int get_console_width();
 
     class ProgressScaleWriter
     {
     public:
-
         inline ProgressScaleWriter(int bar_width,
                                    const std::string& fill,
                                    const std::string& lead,
@@ -198,7 +212,6 @@ namespace mamba
         std::ostream& write(std::ostream& os, std::size_t progress) const;
 
     private:
-
         int m_bar_width;
         std::string m_fill;
         std::string m_lead;
@@ -208,7 +221,6 @@ namespace mamba
     class ProgressBar
     {
     public:
-
         ProgressBar(const std::string& prefix);
 
         void set_start();
@@ -220,7 +232,6 @@ namespace mamba
         const std::string& prefix() const;
 
     private:
-
         std::chrono::nanoseconds m_elapsed_ns;
         std::chrono::time_point<std::chrono::high_resolution_clock> m_start_time;
 
@@ -232,7 +243,6 @@ namespace mamba
     class ProgressProxy
     {
     public:
-
         ProgressProxy() = default;
         ~ProgressProxy() = default;
 
@@ -247,7 +257,6 @@ namespace mamba
         void mark_as_completed(const std::string_view& final_message = "");
 
     private:
-
         ProgressProxy(ProgressBar* ptr, std::size_t idx);
 
         ProgressBar* p_bar;
@@ -261,7 +270,6 @@ namespace mamba
     class ConsoleStream : public std::stringstream
     {
     public:
-
         ConsoleStream() = default;
         ~ConsoleStream();
     };
@@ -269,7 +277,6 @@ namespace mamba
     class Console
     {
     public:
-
         Console(const Console&) = delete;
         Console& operator=(const Console&) = delete;
 
@@ -279,14 +286,13 @@ namespace mamba
         static Console& instance();
 
         static ConsoleStream stream();
-        static void print(const std::string_view& str, bool force_print=false);
-        static bool prompt(const std::string_view& message, char fallback='_');
+        static void print(const std::string_view& str, bool force_print = false);
+        static bool prompt(const std::string_view& message, char fallback = '_');
 
         ProgressProxy add_progress_bar(const std::string& name);
         void init_multi_progress();
 
     private:
-
         using progress_bar_ptr = std::unique_ptr<ProgressBar>;
 
         Console();
@@ -330,7 +336,6 @@ namespace mamba
     class MessageLogger
     {
     public:
-
         MessageLogger(const char* file, int line, LogSeverity severity);
         ~MessageLogger();
 
@@ -339,18 +344,15 @@ namespace mamba
         static LogSeverity& global_log_severity();
 
     private:
-
         std::string m_file;
         int m_line;
         LogSeverity m_severity;
         std::stringstream m_stream;
-
     };
 
     class JsonLogger
     {
     public:
-
         JsonLogger(const JsonLogger&) = delete;
         JsonLogger& operator=(const JsonLogger&) = delete;
 
@@ -367,14 +369,13 @@ namespace mamba
         void json_up();
 
     private:
-
         JsonLogger();
         ~JsonLogger() = default;
 
         std::string json_hier;
         unsigned int json_index;
     };
-}
+}  // namespace mamba
 
 #undef ERROR
 #undef WARNING
@@ -387,4 +388,4 @@ namespace mamba
 #define LOG_ERROR LOG(mamba::LogSeverity::error)
 #define LOG_FATAL LOG(mamba::LogSeverity::fatal)
 
-#endif // MAMBA_OUTPUT_HPP
+#endif  // MAMBA_OUTPUT_HPP

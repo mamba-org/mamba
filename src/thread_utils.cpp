@@ -1,3 +1,8 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
 #include "thread_utils.hpp"
 
 #ifndef _WIN32
@@ -8,7 +13,6 @@
 
 namespace mamba
 {
-
     /***********************
      * thread interruption *
      ***********************/
@@ -20,10 +24,7 @@ namespace mamba
 
     void set_default_signal_handler()
     {
-        std::signal(SIGINT, [](int signum)
-        {
-            set_sig_interrupted();
-        });
+        std::signal(SIGINT, [](int signum) { set_sig_interrupted(); });
     }
 
     bool is_sig_interrupted() noexcept
@@ -57,7 +58,7 @@ namespace mamba
         std::atomic<bool> is_clean = false;
         std::mutex main_mutex;
         std::condition_variable main_var;
-    }
+    }  // namespace
 
     void increase_thread_count()
     {
@@ -140,7 +141,7 @@ namespace mamba
 
 #ifdef _WIN32
 
-    std::function<void ()> interruption_guard::m_cleanup_function;
+    std::function<void()> interruption_guard::m_cleanup_function;
 
     interruption_guard::~interruption_guard()
     {
@@ -180,4 +181,4 @@ namespace mamba
 
 #endif
 
-}
+}  // namespace mamba

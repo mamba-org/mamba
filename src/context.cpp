@@ -4,13 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "context.hpp"
+
 #include <csignal>
 
 #include "output.hpp"
-#include "util.hpp"
-#include "context.hpp"
 #include "thirdparty/termcolor.hpp"
 #include "thread_utils.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
@@ -18,45 +19,45 @@ namespace mamba
     {
 // armv6l and armv7l
 #if defined(__arm__) || defined(__thumb__)
-    #ifdef ___ARM_ARCH_6__
-        const std::string MAMBA_PLATFORM = "armv6l";
-    #elif __ARM_ARCH_7__
-        const std::string MAMBA_PLATFORM = "armv7l";
-    #else
-        #error "Unknown platform"
-    #endif
-#elif _M_ARM==6
-        const std::string MAMBA_PLATFORM = "armv6l";
-#elif _M_ARM==7
-        const std::string MAMBA_PLATFORM = "armv7l";
+#ifdef ___ARM_ARCH_6__
+        static const char MAMBA_PLATFORM[] = "armv6l";
+#elif __ARM_ARCH_7__
+        static const char MAMBA_PLATFORM[] = "armv7l";
+#else
+#error "Unknown platform"
+#endif
+#elif _M_ARM == 6
+        static const char MAMBA_PLATFORM[] = "armv6l";
+#elif _M_ARM == 7
+        static const char MAMBA_PLATFORM[] = "armv7l";
 // aarch64
 #elif defined(__aarch64__)
-        const std::string MAMBA_PLATFORM = "aarch64";
+        static const char MAMBA_PLATFORM[] = "aarch64";
 #elif defined(__ppc64__) || defined(__powerpc64__)
-    #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        const std::string MAMBA_PLATFORM = "ppc64";
-    #else
-        const std::string MAMBA_PLATFORM = "ppc64le";
-    #endif
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+        static const char MAMBA_PLATFORM[] = "ppc64";
+#else
+        static const char MAMBA_PLATFORM[] = "ppc64le";
+#endif
 // Linux
 #elif defined(__linux__)
-    #if __x86_64__
-        const std::string MAMBA_PLATFORM = "linux-64";
-    #else
-        const std::string MAMBA_PLATFORM = "linux-32";
-    #endif
+#if __x86_64__
+        static const char MAMBA_PLATFORM[] = "linux-64";
+#else
+        static const char MAMBA_PLATFORM[] = "linux-32";
+#endif
 // OSX
 #elif defined(__APPLE__) || defined(__MACH__)
-        const std::string MAMBA_PLATFORM = "osx-64";
+        static const char MAMBA_PLATFORM[] = "osx-64";
 // Windows
 #elif defined(_WIN64)
-        const std::string MAMBA_PLATFORM = "win-64";
-#elif defined (_WIN32)
-        const std::string MAMBA_PLATFORM = "win-32";
+        static const char MAMBA_PLATFORM[] = "win-64";
+#elif defined(_WIN32)
+        static const char MAMBA_PLATFORM[] = "win-32";
 #else
-    #error "Unknown platform"
+#error "Unknown platform"
 #endif
-    }
+    }  // namespace
     Context::Context()
     {
         set_verbosity(0);
@@ -144,4 +145,4 @@ namespace mamba
 
         throw std::runtime_error("Environment name not found " + name);
     }
-}
+}  // namespace mamba

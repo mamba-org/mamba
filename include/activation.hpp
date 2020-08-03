@@ -7,9 +7,14 @@
 #ifndef MAMBA_ACTIVATION_HPP
 #define MAMBA_ACTIVATION_HPP
 
-#include "util.hpp"
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "context.hpp"
 #include "output.hpp"
+#include "util.hpp"
 
 // TODO write a map that keeps insertion order
 
@@ -35,7 +40,6 @@ namespace mamba
     class Activator
     {
     public:
-
         virtual ~Activator() = default;
 
         Activator(const Activator&) = delete;
@@ -44,14 +48,17 @@ namespace mamba
         Activator& operator=(Activator&&) = delete;
 
         virtual std::string script(const EnvironmentTransform& env) = 0;
-        virtual std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) = 0;
+        virtual std::pair<std::string, std::string> update_prompt(
+            const std::string& conda_prompt_modifier)
+            = 0;
         virtual std::string shell_extension() = 0;
 
         std::vector<fs::path> get_activate_scripts(const fs::path& prefix);
         std::vector<fs::path> get_deactivate_scripts(const fs::path& prefix);
 
         std::string get_default_env(const fs::path& prefix);
-        std::vector<std::pair<std::string, std::string>> get_environment_vars(const fs::path& prefix);
+        std::vector<std::pair<std::string, std::string>> get_environment_vars(
+            const fs::path& prefix);
 
         std::string get_prompt_modifier(const fs::path& prefix,
                                         const std::string& conda_default_env,
@@ -64,8 +71,9 @@ namespace mamba
         std::string replace_prefix_in_path(const fs::path& old_prefix, const fs::path& new_prefix);
         std::string remove_prefix_from_path(const fs::path& prefix);
 
-        void get_export_unset_vars(EnvironmentTransform& envt,
-                                   const std::vector<std::pair<std::string, std::string>>& to_export);
+        void get_export_unset_vars(
+            EnvironmentTransform& envt,
+            const std::vector<std::pair<std::string, std::string>>& to_export);
 
         EnvironmentTransform build_reactivate();
         EnvironmentTransform build_deactivate();
@@ -82,7 +90,6 @@ namespace mamba
         std::string hook();
 
     protected:
-
         Activator();
 
         bool m_stack = false;
@@ -94,12 +101,12 @@ namespace mamba
     class PosixActivator : public Activator
     {
     public:
-
         PosixActivator() = default;
         virtual ~PosixActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string> update_prompt(
+            const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
 
         std::string hook_preamble() override;
@@ -107,16 +114,15 @@ namespace mamba
         fs::path hook_source_path() override;
     };
 
-    class CmdExeActivator
-        : public Activator
+    class CmdExeActivator : public Activator
     {
     public:
-
         CmdExeActivator() = default;
         virtual ~CmdExeActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string> update_prompt(
+            const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
 
         std::string hook_preamble() override;
@@ -124,15 +130,15 @@ namespace mamba
         fs::path hook_source_path() override;
     };
 
-    class PowerShellActivator
-        : public Activator
+    class PowerShellActivator : public Activator
     {
     public:
         PowerShellActivator() = default;
         virtual ~PowerShellActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string> update_prompt(
+            const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
 
         std::string hook_preamble() override;
@@ -140,21 +146,21 @@ namespace mamba
         fs::path hook_source_path() override;
     };
 
-    class XonshActivator
-        : public Activator
+    class XonshActivator : public Activator
     {
     public:
         XonshActivator() = default;
         virtual ~XonshActivator() = default;
 
         std::string script(const EnvironmentTransform& env_transform) override;
-        std::pair<std::string, std::string> update_prompt(const std::string& conda_prompt_modifier) override;
+        std::pair<std::string, std::string> update_prompt(
+            const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
         fs::path hook_source_path() override;
     };
-}
+}  // namespace mamba
 
 #endif

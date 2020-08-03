@@ -10,12 +10,12 @@
 #include "activation.hpp"
 #include "channel.hpp"
 #include "context.hpp"
-#include "repo.hpp"
-#include "transaction.hpp"
 #include "prefix_data.hpp"
-#include "subdirdata.hpp"
-#include "solver.hpp"
+#include "repo.hpp"
 #include "shell_init.hpp"
+#include "solver.hpp"
+#include "subdirdata.hpp"
+#include "transaction.hpp"
 #include "version.hpp"
 
 const char banner[] = R"MAMBARAW(
@@ -27,9 +27,10 @@ const char banner[] = R"MAMBARAW(
       /_/
 )MAMBARAW";
 
-using namespace mamba;
+using namespace mamba;  // NOLINT(build/namespaces)
 
-static struct {
+static struct
+{
     bool hook;
     std::string shell_type;
     std::string action;
@@ -37,19 +38,22 @@ static struct {
     bool stack;
 } shell_options;
 
-static struct {
+static struct
+{
     std::vector<std::string> specs;
     std::string prefix;
     std::string name;
     std::vector<std::string> channels;
 } create_options;
 
-static struct {
+static struct
+{
     bool ssl_verify = true;
     std::string cacert_path;
 } network_options;
 
-static struct {
+static struct
+{
     int verbosity = 0;
     bool always_yes = false;
     bool quiet = false;
@@ -58,32 +62,38 @@ static struct {
     bool dry_run = false;
 } global_options;
 
-
-void init_network_parser(CLI::App* subcom)
+void
+init_network_parser(CLI::App* subcom)
 {
-    subcom->add_option("--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
+    subcom->add_option(
+        "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
     subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
 }
 
-void init_global_parser(CLI::App* subcom)
+void
+init_global_parser(CLI::App* subcom)
 {
-    subcom->add_flag("-v,--verbose", global_options.verbosity, "Enbable verbose mode (higher verbosity with multiple -v, e.g. -vvv)");
+    subcom->add_flag("-v,--verbose",
+                     global_options.verbosity,
+                     "Enbable verbose mode (higher verbosity with multiple -v, e.g. -vvv)");
     subcom->add_flag("-q,--quiet", global_options.quiet, "Quiet mode (print less output)");
-    subcom->add_flag("-y,--yes", global_options.always_yes, "Automatically answer yes on all questions");
+    subcom->add_flag(
+        "-y,--yes", global_options.always_yes, "Automatically answer yes on all questions");
     subcom->add_flag("--json", global_options.json, "Report all output as json");
     subcom->add_flag("--offline", global_options.offline, "Force use cached repodata");
     subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done");
 }
 
-void set_network_options(Context& ctx)
+void
+set_network_options(Context& ctx)
 {
-    std::array<std::string, 6> cert_locations {
-        "/etc/ssl/certs/ca-certificates.crt",                // Debian/Ubuntu/Gentoo etc.
-        "/etc/pki/tls/certs/ca-bundle.crt",                  // Fedora/RHEL 6
-        "/etc/ssl/ca-bundle.pem",                            // OpenSUSE
-        "/etc/pki/tls/cacert.pem",                           // OpenELEC
-        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
-        "/etc/ssl/cert.pem",                                 // Alpine Linux
+    std::array<std::string, 6> cert_locations{
+        "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
+        "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
+        "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
+        "/etc/pki/tls/cacert.pem",                            // OpenELEC
+        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+        "/etc/ssl/cert.pem",                                  // Alpine Linux
     };
 
     // ssl verify can be either an empty string (regular SSL verification),
@@ -114,7 +124,8 @@ void set_network_options(Context& ctx)
     }
 }
 
-void set_global_options(Context& ctx)
+void
+set_global_options(Context& ctx)
 {
     ctx.set_verbosity(global_options.verbosity);
     ctx.quiet = global_options.quiet;
@@ -124,31 +135,40 @@ void set_global_options(Context& ctx)
     ctx.dry_run = global_options.dry_run;
 }
 
-void init_channel_parser(CLI::App* subcom)
+void
+init_channel_parser(CLI::App* subcom)
 {
-    subcom->add_option("-c,--channel", create_options.channels) \
-          ->type_size(1, 1) \
-          ->allow_extra_args(false);
+    subcom->add_option("-c,--channel", create_options.channels)
+        ->type_size(1, 1)
+        ->allow_extra_args(false);
 }
 
-void set_channels(Context& ctx)
+void
+set_channels(Context& ctx)
 {
     ctx.channels = create_options.channels;
 }
 
-void init_shell_parser(CLI::App* subcom)
+void
+init_shell_parser(CLI::App* subcom)
 {
-    subcom->add_option("-s,--shell", shell_options.shell_type, "A shell type (bash, fish, posix, powershell, xonsh)");
-    subcom->add_option("--stack", shell_options.stack,
-        "Stack the environment being activated on top of the previous active environment, "
-        "rather replacing the current active environment with a new one. Currently, "
-        "only the PATH environment variable is stacked. "
-        "This may be enabled implicitly by the 'auto_stack' configuration variable."
-    );
+    subcom->add_option("-s,--shell",
+                       shell_options.shell_type,
+                       "A shell type (bash, fish, posix, powershell, xonsh)");
+    subcom->add_option("--stack",
+                       shell_options.stack,
+                       "Stack the environment being activated on top of the "
+                       "previous active environment, "
+                       "rather replacing the current active environment with a "
+                       "new one. Currently, "
+                       "only the PATH environment variable is stacked. "
+                       "This may be enabled implicitly by the 'auto_stack' "
+                       "configuration variable.");
 
     subcom->add_option("action", shell_options.action, "activate, deactivate or hook");
     // TODO add custom validator here!
-    subcom->add_option("-p,--prefix", shell_options.prefix,
+    subcom->add_option("-p,--prefix",
+                       shell_options.prefix,
                        "The root prefix to configure (for init and hook), and the prefix "
                        "to activate for activate, either by name or by path");
 
@@ -172,7 +192,8 @@ void init_shell_parser(CLI::App* subcom)
         }
         else
         {
-            std::cout << "Currently allowed values are: bash, zsh, cmd.exe & powershell" << std::endl;
+            std::cout << "Currently allowed values are: bash, zsh, cmd.exe & powershell"
+                      << std::endl;
             exit(1);
         }
         if (shell_options.action == "init")
@@ -208,10 +229,10 @@ void init_shell_parser(CLI::App* subcom)
     });
 }
 
-void install_specs(const std::vector<std::string>& specs, bool create_env = false)
+void
+install_specs(const std::vector<std::string>& specs, bool create_env = false)
 {
     auto& ctx = Context::instance();
-
 
     set_global_options(ctx);
 
@@ -219,13 +240,17 @@ void install_specs(const std::vector<std::string>& specs, bool create_env = fals
 
     if (ctx.root_prefix.empty())
     {
-        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba shell init ... \nto initialize your shell, then restart or source the contents of the shell init script.\n";
+        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
+                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                     "shell init ... \nto initialize your shell, then restart or "
+                     "source the contents of the shell init script.\n";
         exit(1);
     }
 
     if (ctx.target_prefix.empty())
     {
-        std::cout << "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n";
+        std::cout << "No active target prefix.\n\nRun $ micromamba activate "
+                     "<PATH_TO_MY_ENV>\nto activate an environment.\n";
         exit(1);
     }
     if (!fs::exists(ctx.target_prefix) && create_env == false)
@@ -255,11 +280,9 @@ void install_specs(const std::vector<std::string>& specs, bool create_env = fals
         auto& channel = make_channel(url);
         std::string full_url = concat(channel.url(true), "/repodata.json");
 
-        auto sdir = std::make_shared<MSubdirData>(
-            concat(channel.name(), "/", channel.platform()),
-            full_url,
-            cache_dir / cache_fn_url(full_url)
-        );
+        auto sdir = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
+                                                  full_url,
+                                                  cache_dir / cache_fn_url(full_url));
 
         sdir->load();
         multi_dl.add(sdir->target());
@@ -282,11 +305,11 @@ void install_specs(const std::vector<std::string>& specs, bool create_env = fals
         repos.push_back(repo);
     }
 
-    MSolver solver(pool, {{SOLVER_FLAG_ALLOW_DOWNGRADE, 1}});
+    MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
     solver.add_jobs(create_options.specs, SOLVER_INSTALL);
     solver.solve();
 
-    mamba::MultiPackageCache package_caches({ctx.root_prefix / "pkgs"});
+    mamba::MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
     mamba::MTransaction trans(solver, package_caches);
 
     if (ctx.json)
@@ -295,11 +318,15 @@ void install_specs(const std::vector<std::string>& specs, bool create_env = fals
     }
     // TODO this is not so great
     std::vector<MRepo*> repo_ptrs;
-    for (auto& r : repos) { repo_ptrs.push_back(&r); }
+    for (auto& r : repos)
+    {
+        repo_ptrs.push_back(&r);
+    }
 
     std::cout << std::endl;
     bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
-    if (!yes) exit(0);
+    if (!yes)
+        exit(0);
 
     if (create_env && !Context::instance().dry_run)
     {
@@ -311,7 +338,8 @@ void install_specs(const std::vector<std::string>& specs, bool create_env = fals
     trans.execute(prefix_data, ctx.root_prefix / "pkgs");
 }
 
-void init_install_parser(CLI::App* subcom)
+void
+init_install_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     init_network_parser(subcom);
@@ -325,7 +353,8 @@ void init_install_parser(CLI::App* subcom)
     });
 }
 
-void init_create_parser(CLI::App* subcom)
+void
+init_create_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
@@ -352,14 +381,16 @@ void init_create_parser(CLI::App* subcom)
     });
 }
 
-std::string version()
+std::string
+version()
 {
     return mamba_version;
 }
 
-int main(int argc, char** argv)
+int
+main(int argc, char** argv)
 {
-    CLI::App app{std::string(banner) + "\nVersion: " + version() + "\n"};
+    CLI::App app{ std::string(banner) + "\nVersion: " + version() + "\n" };
 
     auto print_version = [](int count) {
         std::cout << version() << std::endl;
@@ -373,7 +404,8 @@ int main(int argc, char** argv)
     CLI::App* create_subcom = app.add_subcommand("create", "Create new environment");
     init_create_parser(create_subcom);
 
-    CLI::App* install_subcom = app.add_subcommand("install", "Install packages in active environment");
+    CLI::App* install_subcom
+        = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
 
     // just for the help text

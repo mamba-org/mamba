@@ -1,4 +1,4 @@
-name: linter
+name: Linters (Python, C++)
 
 on:
   push:
@@ -17,11 +17,28 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.8
+    - name: Setup Miniconda
+      uses: goanpeca/setup-miniconda@v1.0.2
+      with:
+        miniconda-version: 'latest'
+        activate-environment: linters
+        python-version: 3.8
+        auto-update-conda: true
+    - name: Config Channels
+      shell: pwsh
+      run: |
+        conda config --set always_yes yes
+        conda config --add channels conda-forge
     - name: Install dependencies
       shell: pwsh
       run: |
-        python -m pip install pre-commit
+        conda install clang clang-tools=10.0.1 pre-commit
+    - name: Conda info
+      shell: pwsh
+      run: |
+        conda info -a
+        conda list
     - name: Run all linters
       shell: pwsh
       run: |
-        pre-commit run --all-files
+        pre-commit run --all-files --verbose

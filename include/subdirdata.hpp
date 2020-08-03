@@ -7,17 +7,17 @@
 #ifndef MAMBA_SUBDIRDATA_HPP
 #define MAMBA_SUBDIRDATA_HPP
 
-#include <string>
-#include "thirdparty/filesystem.hpp"
+#include <memory>
 #include <regex>
-
-#include "nlohmann/json.hpp"
+#include <string>
 
 #include "context.hpp"
-#include "repo.hpp"
-#include "util.hpp"
 #include "fetch.hpp"
+#include "nlohmann/json.hpp"
 #include "output.hpp"
+#include "repo.hpp"
+#include "thirdparty/filesystem.hpp"
+#include "util.hpp"
 
 namespace fs = ghc::filesystem;
 
@@ -31,11 +31,13 @@ namespace mamba
     class MSubdirData
     {
     public:
-
-        MSubdirData(const std::string& name, const std::string& url, const std::string& repodata_fn);
+        MSubdirData(const std::string& name,
+                    const std::string& url,
+                    const std::string& repodata_fn);
 
         // TODO return seconds as double
-        fs::file_time_type::duration check_cache(const fs::path& cache_file, const fs::file_time_type::clock::time_point& ref);
+        fs::file_time_type::duration check_cache(const fs::path& cache_file,
+                                                 const fs::file_time_type::clock::time_point& ref);
         bool loaded();
         bool forbid_cache();
         bool load();
@@ -47,7 +49,6 @@ namespace mamba
         MRepo create_repo(MPool& pool);
 
     private:
-
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
@@ -80,6 +81,6 @@ namespace mamba
     std::string cache_fn_url(const std::string& url);
     std::string create_cache_dir();
 
-}
+}  // namespace mamba
 
-#endif // MAMBA_SUBDIRDATA_HPP
+#endif  // MAMBA_SUBDIRDATA_HPP

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "util.hpp"
 #include "shell_init.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
@@ -12,7 +12,8 @@ namespace mamba
 
     TEST(shell_init, bashrc_modifications)
     {
-        // modify_rc_file("/home/wolfv/Programs/mamba/test/.bashrc", "/home/wolfv/superconda/", "bash");
+        // modify_rc_file("/home/wolfv/Programs/mamba/test/.bashrc",
+        // "/home/wolfv/superconda/", "bash");
     }
 
     TEST(shell_init, expand_user)
@@ -23,4 +24,4 @@ namespace mamba
             EXPECT_TRUE(starts_with(expanded.string(), "/home/"));
         }
     }
-}
+}  // namespace mamba

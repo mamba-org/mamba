@@ -4,11 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "nlohmann/json.hpp"
-
-#include "validate.hpp"
 #include "package_cache.hpp"
+
+#include "nlohmann/json.hpp"
 #include "package_handling.hpp"
+#include "validate.hpp"
 
 namespace mamba
 {
@@ -23,12 +23,14 @@ namespace mamba
         {
             LOG_INFO << "Attempt to create package cache directory " << m_pkgs_dir;
             bool sudo_safe = path::starts_with_home(m_pkgs_dir);
-            path::touch(m_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE, sudo_safe, /*mkdir*/true);
+            path::touch(m_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
+                        sudo_safe,
+                        /*mkdir*/ true);
             // TODO why magic string "urls" here? is it necessary?
             path::touch(m_pkgs_dir / "urls", sudo_safe);
             return true;
         }
-        catch(...)
+        catch (...)
         {
             // TODO better error handling
             LOG_ERROR << "cannot create package cache directory " << m_pkgs_dir;
@@ -55,8 +57,7 @@ namespace mamba
         return m_pkgs_dir;
     }
 
-    PackageCacheData
-    PackageCacheData::first_writable(const std::vector<fs::path>* pkgs_dirs)
+    PackageCacheData PackageCacheData::first_writable(const std::vector<fs::path>* pkgs_dirs)
     {
         const std::vector<fs::path>* dirs = pkgs_dirs ? pkgs_dirs : &Context::instance().pkgs_dirs;
         for (const auto& dir : (*dirs))
@@ -115,7 +116,7 @@ namespace mamba
             return m_valid_cache[pkg];
         }
 
-        assert (!s.fn.empty());
+        assert(!s.fn.empty());
         // TODO move entire cache checking logic here (including md5 sum check)
         bool valid = false;
         if (fs::exists(m_pkgs_dir / s.fn))
@@ -129,7 +130,8 @@ namespace mamba
         }
         else if (fs::exists(m_pkgs_dir / strip_package_extension(s.fn)))
         {
-            auto repodata_record_path = m_pkgs_dir / strip_package_extension(s.fn) / "info" / "repodata_record.json";
+            auto repodata_record_path
+                = m_pkgs_dir / strip_package_extension(s.fn) / "info" / "repodata_record.json";
             if (fs::exists(repodata_record_path))
             {
                 try
@@ -143,7 +145,9 @@ namespace mamba
                     valid = valid && repodata_record["url"].get<std::string>() == s.url;
                     if (!valid)
                     {
-                        LOG_WARNING << "Found directory with same name, but different size, channel, url or checksum " << repodata_record_path;
+                        LOG_WARNING << "Found directory with same name, but different size, "
+                                       "channel, url or checksum "
+                                    << repodata_record_path;
                     }
                 }
                 catch (...)
@@ -193,8 +197,9 @@ namespace mamba
     {
         for (auto& c : m_caches)
         {
-            if (c.query(s)) return true;
+            if (c.query(s))
+                return true;
         }
         return false;
     }
-}
+}  // namespace mamba

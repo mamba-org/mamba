@@ -13,11 +13,9 @@
 
 namespace mamba
 {
-
     class Channel
     {
     public:
-
         Channel(const std::string& scheme = "",
                 const std::string& auth = "",
                 const std::string& location = "",
@@ -52,7 +50,6 @@ namespace mamba
         static void clear_cache();
 
     private:
-
         using cache_type = std::map<std::string, Channel>;
         static cache_type& get_cache();
 
@@ -60,8 +57,7 @@ namespace mamba
         static Channel from_name(const std::string& name);
         static Channel from_value(const std::string& value);
 
-        std::string build_url(const std::string& base,
-                              bool with_credential) const;
+        std::string build_url(const std::string& base, bool with_credential) const;
 
         std::string m_scheme;
         std::string m_auth;
@@ -89,7 +85,6 @@ namespace mamba
     class ChannelContext
     {
     public:
-
         using channel_list = std::vector<std::string>;
         using channel_map = std::map<std::string, Channel>;
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
@@ -108,7 +103,6 @@ namespace mamba
         const channel_list& get_whitelist_channels() const;
 
     private:
-
         ChannelContext();
         ~ChannelContext() = default;
 
@@ -121,6 +115,6 @@ namespace mamba
         channel_list m_whitelist_channels;
     };
 
-}
+}  // namespace mamba
 
 #endif

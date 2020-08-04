@@ -4,12 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "openssl/md5.h"
-#include "thirdparty/filesystem.hpp"
-
 #include "subdirdata.hpp"
+
+#include "openssl/md5.h"
 #include "output.hpp"
 #include "package_cache.hpp"
+#include "thirdparty/filesystem.hpp"
 
 namespace fs = ghc::filesystem;
 
@@ -22,22 +22,24 @@ namespace decompress
 
         LOG_INFO << "Decompressing from " << in << " to " << out;
 
-        struct archive *a = archive_read_new();
+        struct archive* a = archive_read_new();
         archive_read_support_filter_bzip2(a);
         archive_read_support_format_raw(a);
         // TODO figure out good value for this
         const std::size_t BLOCKSIZE = 16384;
         r = archive_read_open_filename(a, in.c_str(), BLOCKSIZE);
-        if (r != ARCHIVE_OK) {
+        if (r != ARCHIVE_OK)
+        {
             return false;
         }
 
-        struct archive_entry *entry;
+        struct archive_entry* entry;
         std::ofstream out_file(out);
         char buff[BLOCKSIZE];
         std::size_t buffsize = BLOCKSIZE;
         r = archive_read_next_header(a, &entry);
-        if (r != ARCHIVE_OK) {
+        if (r != ARCHIVE_OK)
+        {
             return false;
         }
 
@@ -46,7 +48,8 @@ namespace decompress
             size = archive_read_data(a, &buff, buffsize);
             if (size < ARCHIVE_OK)
             {
-                throw std::runtime_error(std::string("Could not read archive: ") + archive_error_string(a));
+                throw std::runtime_error(std::string("Could not read archive: ")
+                                         + archive_error_string(a));
             }
             if (size == 0)
             {
@@ -58,11 +61,13 @@ namespace decompress
         archive_read_free(a);
         return true;
     }
-}
+}  // namespace decompress
 
 namespace mamba
 {
-    MSubdirData::MSubdirData(const std::string& name, const std::string& url, const std::string& repodata_fn)
+    MSubdirData::MSubdirData(const std::string& name,
+                             const std::string& url,
+                             const std::string& repodata_fn)
         : m_loaded(false)
         , m_download_complete(false)
         , m_url(url)
@@ -72,16 +77,19 @@ namespace mamba
     {
     }
 
-    fs::file_time_type::duration MSubdirData::check_cache(const fs::path& cache_file, const fs::file_time_type::clock::time_point& ref)
+    fs::file_time_type::duration MSubdirData::check_cache(
+        const fs::path& cache_file, const fs::file_time_type::clock::time_point& ref)
     {
-        try {
+        try
+        {
             auto last_write = fs::last_write_time(cache_file);
             auto tdiff = ref - last_write;
             return tdiff;
-            // auto as_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(tdiff);
-            // return as_seconds.count();
+            // auto as_seconds =
+            // std::chrono::duration_cast<std::chrono::duration<double>>(tdiff); return
+            // as_seconds.count();
         }
-        catch(...)
+        catch (...)
         {
             // could not open the file...
             return fs::file_time_type::duration::max();
@@ -120,11 +128,13 @@ namespace mamba
                     max_age = get_cache_control_max_age(el);
                 }
 
-                auto cache_age_seconds = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+                auto cache_age_seconds
+                    = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
                 if ((max_age > cache_age_seconds || Context::instance().offline) && !forbid_cache())
                 {
                     // cache valid!
-                    LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age_seconds << " / " << max_age;
+                    LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age_seconds
+                             << " / " << max_age;
                     std::string prefix = m_name;
                     prefix.resize(PREFIX_LENGTH - 1, ' ');
                     Console::stream() << prefix << " Using cache";
@@ -134,8 +144,10 @@ namespace mamba
 
                     // check solv cache
                     auto solv_age = check_cache(m_solv_fn, now);
-                    LOG_INFO << "Solv cache age in seconds: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count();
-                    if (solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
+                    LOG_INFO << "Solv cache age in seconds: "
+                             << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count();
+                    if (solv_age != fs::file_time_type::duration::max()
+                        && solv_age.count() <= cache_age.count())
                     {
                         LOG_INFO << "Also using .solv cache file";
                         m_solv_cache_valid = true;
@@ -188,7 +200,8 @@ namespace mamba
     {
         if (m_target->result != 0 || m_target->http_status >= 400)
         {
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status << ") for " << m_url;
+            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
+                     << ") for " << m_url;
             m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
             m_progress_bar.set_progress(100);
             m_progress_bar.mark_as_completed();
@@ -198,13 +211,15 @@ namespace mamba
 
         LOG_WARNING << "HTTP response code: " << m_target->http_status;
         // Note HTTP status == 0 for files
-        if (m_target->http_status == 0 || m_target->http_status == 200 || m_target->http_status == 304)
+        if (m_target->http_status == 0 || m_target->http_status == 200
+            || m_target->http_status == 304)
         {
             m_download_complete = true;
         }
         else
         {
-            throw std::runtime_error("Unhandled HTTP code: " + std::to_string(m_target->http_status));
+            throw std::runtime_error("Unhandled HTTP code: "
+                                     + std::to_string(m_target->http_status));
         }
 
         if (m_target->http_status == 304)
@@ -215,9 +230,12 @@ namespace mamba
             auto solv_age = check_cache(m_solv_fn, now);
 
             fs::last_write_time(m_json_fn, now);
-            LOG_INFO << "Solv age: " << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
-                     << ", JSON age: " << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-            if(solv_age != fs::file_time_type::duration::max() && solv_age.count() <= cache_age.count())
+            LOG_INFO << "Solv age: "
+                     << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
+                     << ", JSON age: "
+                     << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+            if (solv_age != fs::file_time_type::duration::max()
+                && solv_age.count() <= cache_age.count())
             {
                 fs::last_write_time(m_solv_fn, now);
                 m_solv_cache_valid = true;
@@ -262,14 +280,13 @@ namespace mamba
         temp_json << m_mod_etag.dump();
 
         // replace `}` with `,`
-        temp_json.seekp(-1, temp_json.cur); temp_json << ',';
+        temp_json.seekp(-1, temp_json.cur);
+        temp_json << ',';
         final_file << temp_json.str();
         temp_file.seekg(1);
-        std::copy(
-            std::istreambuf_iterator<char>(temp_file),
-            std::istreambuf_iterator<char>(),
-            std::ostreambuf_iterator<char>(final_file)
-        );
+        std::copy(std::istreambuf_iterator<char>(temp_file),
+                  std::istreambuf_iterator<char>(),
+                  std::ostreambuf_iterator<char>(final_file));
 
         m_progress_bar.set_postfix("Done");
         m_progress_bar.set_progress(100);
@@ -306,7 +323,8 @@ namespace mamba
         m_progress_bar = Console::instance().add_progress_bar(m_name);
         m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
         m_target->set_progress_bar(m_progress_bar);
-        // if we get something _other_ than the noarch, we DO NOT throw if the file can't be retrieved
+        // if we get something _other_ than the noarch, we DO NOT throw if the file
+        // can't be retrieved
         if (!ends_with(m_name, "/noarch"))
         {
             m_target->set_ignore_failure(true);
@@ -320,7 +338,8 @@ namespace mamba
         static std::regex max_age_re("max-age=(\\d+)");
         std::smatch max_age_match;
         bool matches = std::regex_search(val, max_age_match, max_age_re);
-        if (!matches) return 0;
+        if (!matches)
+            return 0;
         return std::stoi(max_age_match[1]);
     }
 
@@ -332,8 +351,7 @@ namespace mamba
         // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
         // "_cache_control": "public, max-age=1200"
 
-        auto extract_subjson = [](std::ifstream& s)
-        {
+        auto extract_subjson = [](std::ifstream& s) {
             char next;
             std::string result;
             bool escaped = false;
@@ -373,7 +391,7 @@ namespace mamba
             result = nlohmann::json::parse(json);
             return result;
         }
-        catch(...)
+        catch (...)
         {
             LOG_WARNING << "Could not parse mod / etag header!";
             return nlohmann::json();
@@ -394,7 +412,8 @@ namespace mamba
 
     std::string create_cache_dir()
     {
-        std::string cache_dir = PackageCacheData::first_writable().get_pkgs_dir().string() + "/cache";
+        std::string cache_dir
+            = PackageCacheData::first_writable().get_pkgs_dir().string() + "/cache";
         fs::create_directories(cache_dir);
 #ifndef _WIN32
         ::chmod(cache_dir.c_str(), 02775);
@@ -404,13 +423,11 @@ namespace mamba
 
     MRepo MSubdirData::create_repo(MPool& pool)
     {
-        RepoMetadata meta {
-            m_url,
-            Context::instance().add_pip_as_python_dependency,
-            m_mod_etag["_etag"],
-            m_mod_etag["_mod"]
-        };
+        RepoMetadata meta{ m_url,
+                           Context::instance().add_pip_as_python_dependency,
+                           m_mod_etag["_etag"],
+                           m_mod_etag["_mod"] };
 
         return MRepo(pool, m_name, cache_path(), meta);
     }
-}
+}  // namespace mamba

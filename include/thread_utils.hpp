@@ -14,10 +14,10 @@
 #include <functional>
 #include <mutex>
 #include <thread>
+#include <utility>
 
 namespace mamba
 {
-
 #ifdef MAMBA_TEST_SUITE
 #endif
 
@@ -35,7 +35,6 @@ namespace mamba
     class thread_interrupted : public std::exception
     {
     public:
-
         thread_interrupted() = default;
     };
 
@@ -72,7 +71,6 @@ namespace mamba
     class thread
     {
     public:
-
         thread() = default;
         ~thread() = default;
 
@@ -92,7 +90,6 @@ namespace mamba
         void detach();
 
     private:
-
         std::thread m_thread;
     };
 
@@ -100,14 +97,13 @@ namespace mamba
     inline thread::thread(Function&& func, Args&&... args)
     {
         auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
-        m_thread = std::thread([f]()
-        {
+        m_thread = std::thread([f]() {
             increase_thread_count();
             try
             {
                 f();
             }
-            catch(thread_interrupted&)
+            catch (thread_interrupted&)
             {
             }
             decrease_thread_count();
@@ -121,7 +117,6 @@ namespace mamba
     class interruption_guard
     {
     public:
-
         template <class Function, class... Args>
         interruption_guard(Function&& func, Args&&... args);
         ~interruption_guard();
@@ -133,9 +128,8 @@ namespace mamba
         interruption_guard& operator=(interruption_guard&&) = delete;
 
     private:
-
 #ifdef _WIN32
-        static std::function<void ()> m_cleanup_function;
+        static std::function<void()> m_cleanup_function;
 #else
         void block_signals() const;
         void wait_for_signal() const;
@@ -164,8 +158,7 @@ namespace mamba
     {
         block_signals();
         auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
-        std::thread victor_the_cleaner([f, this]()
-        {
+        std::thread victor_the_cleaner([f, this]() {
             wait_for_signal();
             if (m_interrupt.load())
             {
@@ -177,10 +170,10 @@ namespace mamba
         });
         register_cleaning_thread_id(victor_the_cleaner.native_handle());
         victor_the_cleaner.detach();
-    };
+    }
 
 #endif
 
-}
+}  // namespace mamba
 
 #endif

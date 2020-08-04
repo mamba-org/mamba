@@ -7,19 +7,22 @@
 #ifndef MAMBA_READ_PATHS_HPP
 #define MAMBA_READ_PATHS_HPP
 
-#include "util.hpp"
-#include <string>
 #include <map>
 #include <set>
+#include <string>
+#include <vector>
 
-const std::string PREFIX_PLACEHOLDER_1("/opt/anaconda1anaconda2");
-                                     // this is intentionally split into parts, such that running
-                                     // this program on itself will leave it unchanged
-const std::string PREFIX_PLACEHOLDER_2("anaconda3");
+#include "util.hpp"
+
+const char PREFIX_PLACEHOLDER_1[] = "/opt/anaconda1anaconda2";
+// this is intentionally split into parts, such that running
+// this program on itself will leave it unchanged
+const char PREFIX_PLACEHOLDER_2[] = "anaconda3";
 
 namespace mamba
 {
-    struct PrefixFileParse {
+    struct PrefixFileParse
+    {
         std::string placeholder;
         std::string file_mode;
         std::string file_path;
@@ -62,6 +65,6 @@ namespace mamba
     std::map<std::string, PrefixFileParse> read_has_prefix(const fs::path& path);
     std::set<std::string> read_no_link(const fs::path& info_dir);
     std::vector<PathData> read_paths(const fs::path& directory);
-}
+}  // namespace mamba
 
 #endif

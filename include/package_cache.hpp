@@ -7,14 +7,15 @@
 #ifndef MAMBA_PACKAGE_CACHE
 #define MAMBA_PACKAGE_CACHE
 
-#include <vector>
-#include <string>
 #include <iostream>
+#include <map>
+#include <string>
+#include <vector>
 
-#include "output.hpp"
 #include "context.hpp"
-#include "fsutil.hpp"
 #include "environment.hpp"
+#include "fsutil.hpp"
+#include "output.hpp"
 #include "package_info.hpp"
 
 #define PACKAGE_CACHE_MAGIC_FILE "urls.txt"
@@ -33,7 +34,6 @@ namespace mamba
     class PackageCacheData
     {
     public:
-
         PackageCacheData(const fs::path& pkgs_dir);
 
         bool create_directory();
@@ -46,7 +46,6 @@ namespace mamba
         static PackageCacheData first_writable(const std::vector<fs::path>* pkgs_dirs = nullptr);
 
     private:
-
         void check_writable();
 
         std::map<std::string, bool> m_valid_cache;
@@ -65,6 +64,6 @@ namespace mamba
     private:
         std::vector<PackageCacheData> m_caches;
     };
-}
+}  // namespace mamba
 
 #endif

@@ -4,12 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "url.hpp"
+
 #include <iostream>
 #include <regex>
 
 #include "thirdparty/filesystem.hpp"
-
-#include "url.hpp"
 #include "util.hpp"
 
 namespace fs = ghc::filesystem;
@@ -22,16 +22,15 @@ namespace mamba
         return std::regex_search(url, re);
     }
 
-    void split_anaconda_token(const std::string& url,
-                              std::string& cleaned_url,
-                              std::string& token)
+    void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
         std::regex token_re("/t/([a-zA-Z0-9-]*)");
         auto token_begin = std::sregex_iterator(url.begin(), url.end(), token_re);
         if (token_begin != std::sregex_iterator())
         {
             token = token_begin->str().substr(3u);
-            cleaned_url = std::regex_replace(url, token_re, "", std::regex_constants::format_first_only);
+            cleaned_url
+                = std::regex_replace(url, token_re, "", std::regex_constants::format_first_only);
         }
         else
         {
@@ -65,7 +64,7 @@ namespace mamba
     {
         platform = "";
         size_t pos = std::string::npos;
-        for(auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
+        for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
         {
             pos = url.find(*it);
             if (pos != std::string::npos)
@@ -128,8 +127,8 @@ namespace mamba
             uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), curl_flags);
             if (uc)
             {
-                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc) +
-                                         " - url = " + url + ")");
+                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc)
+                                         + " - url = " + url + ")");
             }
         }
     }
@@ -310,20 +309,9 @@ namespace mamba
 
     namespace
     {
-        const std::vector<std::string> CURLUPART_NAMES =
-        {
-            "url",
-            "scheme",
-            "user",
-            "password",
-            "options",
-            "host",
-            "port",
-            "path",
-            "query",
-            "fragment",
-            "zoneid"
-        };
+        const std::vector<std::string> CURLUPART_NAMES
+            = { "url",  "scheme", "user",  "password", "options", "host",
+                "port", "path",   "query", "fragment", "zoneid" };
     }
 
     std::string URLHandler::get_part(CURLUPart part)
@@ -339,7 +327,6 @@ namespace mamba
         else
         {
             return "";
-            //throw std::runtime_error("Could not find " + CURLUPART_NAMES[part] + " of url " + m_url);
         }
     }
 
@@ -352,4 +339,4 @@ namespace mamba
             throw std::runtime_error("Could not set " + s + " in url " + m_url);
         }
     }
-}
+}  // namespace mamba

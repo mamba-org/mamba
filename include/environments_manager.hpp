@@ -7,15 +7,18 @@
 #ifndef MAMBA_ENVIRONMENT_MANAGER
 #define MAMBA_ENVIRONMENT_MANAGER
 
+#include <limits>
 #include <set>
+#include <string>
+#include <vector>
 
-#include "util.hpp"
 #include "environment.hpp"
 #include "output.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
-    const std::string PREFIX_MAGIC_FILE = "conda-meta/history";
+    const char PREFIX_MAGIC_FILE[] = "conda-meta/history";
 
     inline bool is_conda_environment(const fs::path& prefix)
     {
@@ -25,7 +28,6 @@ namespace mamba
     class EnvironmentsManager
     {
     public:
-
         void register_env(const fs::path& location)
         {
             fs::path env_txt_file = get_environments_txt_file(env::home_directory());
@@ -37,12 +39,15 @@ namespace mamba
                 try
                 {
                     fs::create_directories(env_txt_file.parent_path());
-                } catch (...) {}
+                }
+                catch (...)
+                {
+                }
             }
 
             std::string final_location_string = remove_trailing_slash(final_location);
-            if (final_location_string.find("placehold_pl") != std::string::npos ||
-                final_location_string.find("skeleton_") != std::string::npos)
+            if (final_location_string.find("placehold_pl") != std::string::npos
+                || final_location_string.find("skeleton_") != std::string::npos)
             {
                 return;
             }
@@ -51,7 +56,8 @@ namespace mamba
 
             for (auto& l : lines)
             {
-                if (l == final_location_string) return;
+                if (l == final_location_string)
+                    return;
             }
 
             std::ofstream out(env_txt_file, std::ios::app);
@@ -60,11 +66,13 @@ namespace mamba
             {
                 if (errno == EACCES || errno == EROFS || errno == ENOENT)
                 {
-                    LOG_ERROR << "Could not register environment. " << env_txt_file << " not writeable or missing?";
+                    LOG_ERROR << "Could not register environment. " << env_txt_file
+                              << " not writeable or missing?";
                 }
                 else
                 {
-                    throw std::system_error(errno, std::system_category(), "failed to open " + env_txt_file.string());
+                    throw std::system_error(
+                        errno, std::system_category(), "failed to open " + env_txt_file.string());
                 }
             }
         }
@@ -79,7 +87,7 @@ namespace mamba
                     std::size_t count = 0;
                     for (auto& _ : fs::directory_iterator(meta_dir))
                     {
-                        (void)_;
+                        (void) _;
                         ++count;
                     }
                     if (count > 1)
@@ -103,17 +111,19 @@ namespace mamba
             //     if (on_win)
             //     {
             //         fs::path home_dir_dir = env::home_directory().parent_path();
-            //         search_dirs = tuple(join(home_dir_dir, d) for d in listdir(home_dir_dir))
+            //         search_dirs = tuple(join(home_dir_dir, d) for d in
+            //         listdir(home_dir_dir))
             //     }
             //     else
             //     {
             //         from pwd import getpwall
-            //         search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or (expand('~'),)
+            //         search_dirs = tuple(pwentry.pw_dir for pwentry in getpwall()) or
+            //         (expand('~'),)
             //     }
             // }
             // else
             {
-                search_dirs = std::vector<fs::path> { env::home_directory() };
+                search_dirs = std::vector<fs::path>{ env::home_directory() };
             }
 
             std::set<fs::path> all_env_paths;
@@ -147,9 +157,8 @@ namespace mamba
         }
 
     private:
-
-        std::set<std::string>
-        clean_environments_txt(const fs::path& env_txt_file, const fs::path& location)
+        std::set<std::string> clean_environments_txt(const fs::path& env_txt_file,
+                                                     const fs::path& location)
         {
             if (!fs::exists(env_txt_file))
                 return {};
@@ -194,7 +203,6 @@ namespace mamba
             return home / ".conda" / "environments.txt";
         }
     };
-}
-
+}  // namespace mamba
 
 #endif

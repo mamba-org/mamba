@@ -19,11 +19,11 @@ namespace mamba
     // supply short python version, e.g. 2.7, 3.5...
     fs::path get_python_short_path(const std::string& python_version)
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         return "python.exe";
-        #else
+#else
         return fs::path("bin") / concat("python", python_version);
-        #endif
+#endif
     }
 
     fs::path get_python_site_packages_short_path(const std::string& python_version)
@@ -33,32 +33,35 @@ namespace mamba
             return fs::path();
         }
 
-        #ifdef _WIN32
+#ifdef _WIN32
         return fs::path("Lib") / "site-packages";
-        #else
+#else
         return fs::path("lib") / concat("python", python_version) / "site-packages";
-        #endif
+#endif
     }
 
     fs::path get_bin_directory_short_path()
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         return "Scripts";
-        #else
+#else
         return "bin";
-        #endif
+#endif
     }
 
-    fs::path get_python_noarch_target_path(const std::string& source_short_path, const fs::path& target_site_packages_short_path)
+    fs::path get_python_noarch_target_path(const std::string& source_short_path,
+                                           const fs::path& target_site_packages_short_path)
     {
         if (starts_with(source_short_path, "site-packages/"))
         {
             // replace `site_packages/` with prefix/site_packages
-            return target_site_packages_short_path / source_short_path.substr(14, source_short_path.size() - 14);
+            return target_site_packages_short_path
+                   / source_short_path.substr(14, source_short_path.size() - 14);
         }
         else if (starts_with(source_short_path, "python-scripts/"))
         {
-            return get_bin_directory_short_path() / source_short_path.substr(15, source_short_path.size() - 15);
+            return get_bin_directory_short_path()
+                   / source_short_path.substr(15, source_short_path.size() - 15);
         }
         else
         {

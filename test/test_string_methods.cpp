@@ -16,32 +16,32 @@ namespace mamba
     TEST(util, split)
     {
         std::string a = "hello.again.it's.me.mario";
-        std::vector<std::string> e1 = {"hello", "again", "it's", "me", "mario"};
+        std::vector<std::string> e1 = { "hello", "again", "it's", "me", "mario" };
         EXPECT_EQ(split(a, "."), e1);
 
-        std::vector<std::string> s2 = {"hello", "again", "it's.me.mario"};
+        std::vector<std::string> s2 = { "hello", "again", "it's.me.mario" };
         EXPECT_EQ(split(a, ".", 2), s2);
 
         EXPECT_EQ(rsplit(a, "."), e1);
-        std::vector<std::string> r2 = {"hello.again.it's", "me", "mario"};
+        std::vector<std::string> r2 = { "hello.again.it's", "me", "mario" };
         EXPECT_EQ(rsplit(a, ".", 2), r2);
 
         std::string b = "...";
-        auto es1 = std::vector<std::string>{"", "", "", ""};
-        auto es2 = std::vector<std::string>{"", ".."};
+        auto es1 = std::vector<std::string>{ "", "", "", "" };
+        auto es2 = std::vector<std::string>{ "", ".." };
         EXPECT_EQ(split(b, "."), es1);
         EXPECT_EQ(split(b, ".", 1), es2);
 
-        std::vector<std::string> v = {"xtensor==0.12.3"};
+        std::vector<std::string> v = { "xtensor==0.12.3" };
         EXPECT_EQ(split(v[0], ":"), v);
         EXPECT_EQ(rsplit(v[0], ":"), v);
         EXPECT_EQ(split(v[0], ":", 2), v);
         EXPECT_EQ(rsplit(v[0], ":", 2), v);
 
-        std::vector<std::string> v2 = {"conda-forge/linux64", "", "xtensor==0.12.3"};
+        std::vector<std::string> v2 = { "conda-forge/linux64", "", "xtensor==0.12.3" };
         EXPECT_EQ(split("conda-forge/linux64::xtensor==0.12.3", ":", 2), v2);
         EXPECT_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 2), v2);
-        std::vector<std::string> v21 = {"conda-forge/linux64:", "xtensor==0.12.3"};
+        std::vector<std::string> v21 = { "conda-forge/linux64:", "xtensor==0.12.3" };
 
         EXPECT_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1), v21);
     }
@@ -62,7 +62,8 @@ namespace mamba
         EXPECT_TRUE(starts_with(prefix, "/Yes/Thats/great/\n"));
 
         std::string prefix_unicode = "/I/am/Dörteæœ©æ©fðgb®/PREFIX\n\nabcdefg\nxyz";
-        replace_all(prefix_unicode, "/I/am/Dörteæœ©æ©fðgb®/PREFIX", "/home/åéäáßðæœ©ðfßfáðß/123123123");
+        replace_all(
+            prefix_unicode, "/I/am/Dörteæœ©æ©fðgb®/PREFIX", "/home/åéäáßðæœ©ðfßfáðß/123123123");
         EXPECT_EQ(prefix_unicode, "/home/åéäáßðæœ©ðfßfáðß/123123123\n\nabcdefg\nxyz");
     }
-}
+}  // namespace mamba

@@ -7,6 +7,8 @@
 #ifndef MAMBA_VALIDATE_HPP
 #define MAMBA_VALIDATE_HPP
 
+#include <string>
+
 #include "thirdparty/filesystem.hpp"
 
 namespace fs = ghc::filesystem;
@@ -18,6 +20,6 @@ namespace validate
     bool sha256(const std::string& path, const std::string& validation);
     bool md5(const std::string& path, const std::string& validation);
     bool file_size(const fs::path& path, std::uintmax_t validation);
-}
+}  // namespace validate
 
-#endif //MAMBA_VALIDATE_HPP
+#endif  // MAMBA_VALIDATE_HPP

@@ -5,14 +5,17 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "solver.hpp"
-#include "output.hpp"
-#include "util.hpp"
-#include "package_info.hpp"
+
 #include "channel.hpp"
+#include "output.hpp"
+#include "package_info.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
-    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags, const PrefixData* prefix_data)
+    MSolver::MSolver(MPool& pool,
+                     const std::vector<std::pair<int, int>>& flags,
+                     const PrefixData* prefix_data)
         : m_flags(flags)
         , m_is_solved(false)
         , m_solver(nullptr)
@@ -35,9 +38,10 @@ namespace mamba
     inline bool channel_match(Solvable* s, const std::string& channel)
     {
         // TODO this could should be a lot better.
-        // TODO this might match too much (e.g. bioconda would also match bioconda-experimental etc)
-        // Note: s->repo->name is the URL of the repo
-        // TODO maybe better to check all repos, select pointers, and compare the pointer (s->repo == ptr?)
+        // TODO this might match too much (e.g. bioconda would also match
+        // bioconda-experimental etc) Note: s->repo->name is the URL of the repo
+        // TODO maybe better to check all repos, select pointers, and compare the
+        // pointer (s->repo == ptr?)
         Channel& chan = make_channel(s->repo->name);
         return chan.url(false).find(channel) != std::string::npos;
     }
@@ -60,7 +64,8 @@ namespace mamba
         }
         if (selected_pkgs.count == 0)
         {
-            LOG_ERROR << "Selected channel specific (or force-reinstall) job, but package is not available from channel. Solve job will fail.";
+            LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
+                         "package is not available from channel. Solve job will fail.";
         }
         Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
         queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
@@ -102,7 +107,9 @@ namespace mamba
                     MatchSpec modified_spec(ms);
                     if (!ms.channel.empty() || !ms.version.empty() || !ms.build.empty())
                     {
-                        Console::stream() << ms.conda_build_form() << ": overriding channel, version and build from installed packages due to --force-reinstall.";
+                        Console::stream() << ms.conda_build_form()
+                                          << ": overriding channel, version and build from "
+                                             "installed packages due to --force-reinstall.";
                         ms.channel = "";
                         ms.version = "";
                         ms.build = "";
@@ -111,12 +118,14 @@ namespace mamba
                     modified_spec.channel = selected_channel;
                     modified_spec.version = check_char(pool_id2str(pool, s->evr));
                     modified_spec.build = check_char(solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR));
-                    LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel " << selected_channel;
+                    LOG_INFO << "Reinstall " << modified_spec.conda_build_form() << " from channel "
+                             << selected_channel;
                     return add_channel_specific_job(modified_spec, job_flag);
                 }
             }
         }
-        Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
+        Id inst_id
+            = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
         queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
@@ -143,7 +152,8 @@ namespace mamba
             {
                 if (job_flag & SOLVER_ERASE)
                 {
-                    throw std::runtime_error("Cannot erase a channel-specific package. (" + job + ")");
+                    throw std::runtime_error("Cannot erase a channel-specific package. (" + job
+                                             + ")");
                 }
                 add_channel_specific_job(ms, job_flag);
             }
@@ -155,7 +165,8 @@ namespace mamba
             {
                 // Todo remove double parsing?
                 LOG_INFO << "Adding job: " << ms.conda_build_form() << std::endl;
-                Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
+                Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
+                                                  ms.conda_build_form().c_str());
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
             }
         }
@@ -164,19 +175,23 @@ namespace mamba
     void MSolver::add_constraint(const std::string& job)
     {
         MatchSpec ms(job);
-        Id inst_id = pool_conda_matchspec((Pool*) m_pool, ms.conda_build_form().c_str());
+        Id inst_id
+            = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
         queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
     void MSolver::add_pin(const std::string& job)
     {
-        // if we pin a package, we need to remove all packages that don't match the pin from being
-        // available for installation!
-        // This is done by adding SOLVER_LOCK to the packages, so that they are prevented from being installed
-        // A lock basically says: keep the state of the package. I.e. uninstalled packages stay uninstalled, installed packages stay installed.
-        // A lock is a hard requirement, we could also use SOLVER_FAVOR for soft requirements
+        // if we pin a package, we need to remove all packages that don't match the
+        // pin from being available for installation! This is done by adding
+        // SOLVER_LOCK to the packages, so that they are prevented from being
+        // installed A lock basically says: keep the state of the package. I.e.
+        // uninstalled packages stay uninstalled, installed packages stay installed.
+        // A lock is a hard requirement, we could also use SOLVER_FAVOR for soft
+        // requirements
 
-        // First we need to check if the pin is OK given the currently installed packages
+        // First we need to check if the pin is OK given the currently installed
+        // packages
         Pool* pool = m_pool;
         MatchSpec ms(job);
 
@@ -188,8 +203,9 @@ namespace mamba
         //         LOG_ERROR << "NAME " << name;
         //         if (name == ms.name)
         //         {
-        //             LOG_ERROR << "Found pinned package in installed packages, need to check pin now.";
-        //             LOG_ERROR << record.version << " vs " << ms.version;
+        //             LOG_ERROR << "Found pinned package in installed packages, need
+        //             to check pin now."; LOG_ERROR << record.version << " vs " <<
+        //             ms.version;
         //         }
         //     }
         // }
@@ -225,11 +241,12 @@ namespace mamba
         Queue selected_pkgs;
         queue_init(&selected_pkgs);
 
-        for (auto& id: all_solvables)
+        for (auto& id : all_solvables)
         {
             if (matching_solvables.find(id) == matching_solvables.end())
             {
-                // the solvable is _NOT_ matched by our pinning expression! So we have to lock it to make it un-installable
+                // the solvable is _NOT_ matched by our pinning expression! So we have to
+                // lock it to make it un-installable
                 queue_push(&selected_pkgs, id);
             }
         }
@@ -291,7 +308,7 @@ namespace mamba
         m_is_solved = true;
         LOG_WARNING << "Problem count: " << solver_problem_count(m_solver) << std::endl;
         success = solver_problem_count(m_solver) == 0;
-        JsonLogger::instance().json_write({{"success", success}});
+        JsonLogger::instance().json_write({ { "success", success } });
         return success;
     }
 
@@ -314,4 +331,4 @@ namespace mamba
     {
         return m_solver;
     }
-}
+}  // namespace mamba

@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "url.hpp"
-
 #include "thirdparty/filesystem.hpp"
+#include "url.hpp"
 namespace fs = ghc::filesystem;
 
 namespace mamba
@@ -31,29 +30,29 @@ namespace mamba
             EXPECT_EQ(m.query(), "query=123&xyz=3333");
         }
         {
-            #ifdef _WIN32
+#ifdef _WIN32
             URLHandler m("file://C:/Users/wolfv/test/document.json");
             EXPECT_EQ(m.scheme(), "file");
             EXPECT_EQ(m.path(), "C:/Users/wolfv/test/document.json");
-            #else
+#else
             URLHandler m("file:///home/wolfv/test/document.json");
             EXPECT_EQ(m.scheme(), "file");
             EXPECT_EQ(m.path(), "/home/wolfv/test/document.json");
-            #endif
+#endif
         }
     }
 
     TEST(url, path_to_url)
     {
         auto url = path_to_url("/users/test/miniconda3");
-        #ifndef _WIN32
-            EXPECT_EQ(url, "file:///users/test/miniconda3");
-        #else
-            std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
-            EXPECT_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
-            auto url2 = path_to_url("D:\\users\\test\\miniconda3");
-            EXPECT_EQ(url2, "file://D:/users/test/miniconda3");
-        #endif
+#ifndef _WIN32
+        EXPECT_EQ(url, "file:///users/test/miniconda3");
+#else
+        std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
+        EXPECT_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
+        auto url2 = path_to_url("D:\\users\\test\\miniconda3");
+        EXPECT_EQ(url2, "file://D:/users/test/miniconda3");
+#endif
     }
 
     TEST(url, has_scheme)
@@ -113,7 +112,6 @@ namespace mamba
 
     TEST(url, split_ananconda_token)
     {
-
         std::string input, cleaned_url, token;
         {
             input = "https://1.2.3.4/t/tk-123-456/path";
@@ -168,25 +166,27 @@ namespace mamba
         EXPECT_EQ(auth, "u:p");
         EXPECT_EQ(token, "x1029384756");
 
-        #ifdef _WIN32
-        split_scheme_auth_token("file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
+#ifdef _WIN32
+        split_scheme_auth_token(
+            "file://C:/Users/wolfv/test.json", remaining_url, scheme, auth, token);
         EXPECT_EQ(remaining_url, "C:/Users/wolfv/test.json");
         EXPECT_EQ(scheme, "file");
         EXPECT_EQ(auth, "");
         EXPECT_EQ(token, "");
-        #else
+#else
         split_scheme_auth_token("file:///home/wolfv/test.json", remaining_url, scheme, auth, token);
         EXPECT_EQ(remaining_url, "/home/wolfv/test.json");
         EXPECT_EQ(scheme, "file");
         EXPECT_EQ(auth, "");
         EXPECT_EQ(token, "");
-        #endif
+#endif
     }
 
     TEST(url, split_platform)
     {
         std::string input = "https://1.2.3.4/t/tk-123/linux-64/path";
-        std::vector<std::string> known_platforms = {"noarch", "linux-32", "linux-64", "linux-aarch64"};
+        std::vector<std::string> known_platforms
+            = { "noarch", "linux-32", "linux-64", "linux-aarch64" };
         std::string cleaned_url, platform;
         split_platform(known_platforms, input, cleaned_url, platform);
         EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
@@ -201,4 +201,4 @@ namespace mamba
         EXPECT_TRUE(is_path("/"));
         EXPECT_FALSE(is_path("file://makefile"));
     }
-}
+}  // namespace mamba

@@ -48,17 +48,16 @@ namespace mamba
     class test_visitor : private default_visitor<G>
     {
     public:
-
         using base_type = default_visitor<G>;
         using node_id = typename base_type::node_id;
         using predecessor_map = std::map<node_id, node_id>;
         using edge_map = std::map<node_id, node_id>;
 
-        using base_type::start_node;
+        using base_type::finish_edge;
         using base_type::finish_node;
         using base_type::start_edge;
+        using base_type::start_node;
         using base_type::tree_edge;
-        using base_type::finish_edge;
 
         void back_edge(node_id from, node_id to, const G&)
         {
@@ -81,7 +80,6 @@ namespace mamba
         }
 
     private:
-
         edge_map m_back_edges;
         edge_map m_cross_edges;
     };
@@ -91,11 +89,11 @@ namespace mamba
         using node_list = graph<int>::node_list;
         using edge_list = graph<int>::edge_list;
         auto g = build_graph();
-        EXPECT_EQ(g.get_node_list(), node_list({0u, 1u, 2u, 3u, 4u, 5u, 6u}));
-        EXPECT_EQ(g.get_edge_list(0u), edge_list({1u, 2u}));
-        EXPECT_EQ(g.get_edge_list(1u), edge_list({3u, 4u}));
-        EXPECT_EQ(g.get_edge_list(2u), edge_list({3u, 5u}));
-        EXPECT_EQ(g.get_edge_list(3u), edge_list({6u}));
+        EXPECT_EQ(g.get_node_list(), node_list({ 0u, 1u, 2u, 3u, 4u, 5u, 6u }));
+        EXPECT_EQ(g.get_edge_list(0u), edge_list({ 1u, 2u }));
+        EXPECT_EQ(g.get_edge_list(1u), edge_list({ 3u, 4u }));
+        EXPECT_EQ(g.get_edge_list(2u), edge_list({ 3u, 5u }));
+        EXPECT_EQ(g.get_edge_list(3u), edge_list({ 6u }));
     }
 
     TEST(graph, depth_first_search)
@@ -124,4 +122,4 @@ namespace mamba
         EXPECT_TRUE(vis.get_back_edge_map().empty());
         EXPECT_TRUE(vis.get_cross_edge_map().empty());
     }
-}
+}  // namespace mamba

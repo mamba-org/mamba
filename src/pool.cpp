@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "pool.hpp"
+
 #include "output.hpp"
 
 namespace mamba
@@ -39,4 +40,4 @@ namespace mamba
     {
         return m_pool;
     }
-}
+}  // namespace mamba

@@ -9,6 +9,7 @@
 
 #include <regex>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 
 namespace mamba
@@ -16,7 +17,6 @@ namespace mamba
     class MatchSpec
     {
     public:
-
         MatchSpec() = default;
         MatchSpec(const std::string& i_spec);
 
@@ -43,6 +43,6 @@ namespace mamba
         std::unordered_map<std::string, std::string> brackets;
         std::unordered_map<std::string, std::string> parens;
     };
-}
+}  // namespace mamba
 
 #endif

@@ -7,29 +7,29 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "util.hpp"
-#include "solver.hpp"
+#include "channel.hpp"
+#include "context.hpp"
 #include "pool.hpp"
-#include "transaction.hpp"
-#include "repo.hpp"
 #include "prefix_data.hpp"
 #include "query.hpp"
+#include "repo.hpp"
+#include "solver.hpp"
 #include "subdirdata.hpp"
-#include "context.hpp"
-#include "channel.hpp"
+#include "transaction.hpp"
 #include "url.hpp"
+#include "util.hpp"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(mamba_api, m) {
+PYBIND11_MODULE(mamba_api, m)
+{
     using namespace mamba;
 
     py::class_<ghc::filesystem::path>(m, "Path")
         .def(py::init<std::string>())
         .def("__repr__", [](ghc::filesystem::path& self) -> std::string {
             return std::string("ghc::filesystem::path[") + std::string(self) + "]";
-        })
-    ;
+        });
     py::implicitly_convertible<std::string, ghc::filesystem::path>();
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
@@ -37,13 +37,11 @@ PYBIND11_MODULE(mamba_api, m) {
     py::class_<MPool>(m, "Pool")
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)
-        .def("create_whatprovides", &MPool::create_whatprovides)
-    ;
+        .def("create_whatprovides", &MPool::create_whatprovides);
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<std::vector<fs::path>>())
-        .def("query", &MultiPackageCache::query)
-    ;
+        .def("query", &MultiPackageCache::query);
 
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
@@ -53,8 +51,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("name", &MRepo::name)
         .def("priority", &MRepo::priority)
         .def("size", &MRepo::size)
-        .def("clear", &MRepo::clear)
-    ;
+        .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
         .def(py::init<MSolver&, MultiPackageCache&>())
@@ -63,10 +60,9 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
-        .def("execute", [](MTransaction& self, PrefixData& target_prefix, const std::string& cache_dir) -> bool {
-            return self.execute(target_prefix, cache_dir);
-        })
-    ;
+        .def("execute",
+             [](MTransaction& self, PrefixData& target_prefix, const std::string& cache_dir)
+                 -> bool { return self.execute(target_prefix, cache_dir); });
 
     py::class_<MSolver>(m, "Solver")
         .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
@@ -78,8 +74,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def("set_postsolve_flags", &MSolver::set_postsolve_flags)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
-        .def("solve", &MSolver::solve)
-    ;
+        .def("solve", &MSolver::solve);
 
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
@@ -90,58 +85,53 @@ PYBIND11_MODULE(mamba_api, m) {
 
     py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
-        .def("find", [](const Query& q, const std::string& query)
-            {
-                if (Context::instance().json)
-                    std::cout << q.find(query).groupby("name").json().dump(4);
-                else
-                    q.find(query).groupby("name").table(std::cout);
-            })
-        .def("whoneeds", [](const Query& q, const std::string& query, bool tree)
-            {
-                //QueryResult res = q.whoneeds(query, tree);
-                query_result res = q.whoneeds(query, tree);
-                if (tree)
-                    res.tree(std::cout);
-                else if (Context::instance().json)
-                    std::cout << res.json().dump(4);
-                else
-                    res.table(std::cout);
-            })
-        .def("depends", [](const Query& q, const std::string& query, bool tree)
-            {
-                query_result res = q.depends(query, tree);
-                if (Context::instance().json)
-                    std::cout << res.json().dump(4);
-                else if (tree)
-                    res.tree(std::cout);
-                else
-                    res.table(std::cout);
-            });
+        .def("find",
+             [](const Query& q, const std::string& query) {
+                 if (Context::instance().json)
+                     std::cout << q.find(query).groupby("name").json().dump(4);
+                 else
+                     q.find(query).groupby("name").table(std::cout);
+             })
+        .def("whoneeds",
+             [](const Query& q, const std::string& query, bool tree) {
+                 // QueryResult res = q.whoneeds(query, tree);
+                 query_result res = q.whoneeds(query, tree);
+                 if (tree)
+                     res.tree(std::cout);
+                 else if (Context::instance().json)
+                     std::cout << res.json().dump(4);
+                 else
+                     res.table(std::cout);
+             })
+        .def("depends", [](const Query& q, const std::string& query, bool tree) {
+            query_result res = q.depends(query, tree);
+            if (Context::instance().json)
+                std::cout << res.json().dump(4);
+            else if (tree)
+                res.tree(std::cout);
+            else
+                res.table(std::cout);
+        });
 
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init<const std::string&, const std::string&, const std::string&>())
         .def("create_repo", &MSubdirData::create_repo)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
-        .def("cache_path", &MSubdirData::cache_path)
-    ;
+        .def("cache_path", &MSubdirData::cache_path);
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
 
     py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
         .def(py::init<>())
-        .def("add", [](MultiDownloadTarget& self, MSubdirData& sub) -> void {
-            self.add(sub.target());
-        })
-        .def("download", &MultiDownloadTarget::download)
-    ;
+        .def("add",
+             [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); })
+        .def("download", &MultiDownloadTarget::download);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
-        .def(py::init([]() {
-            return std::unique_ptr<Context, py::nodelete>(&Context::instance());
-        }))
+        .def(
+            py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
         .def_readwrite("verbosity", &Context::verbosity)
         .def_readwrite("quiet", &Context::quiet)
         .def_readwrite("json", &Context::json)
@@ -164,13 +154,11 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def("set_verbosity", &Context::set_verbosity)
-        .def_readwrite("channels", &Context::channels)
-    ;
+        .def_readwrite("channels", &Context::channels);
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())
-        .def("load", &PrefixData::load)
-    ;
+        .def("load", &PrefixData::load);
 
     py::class_<Channel>(m, "Channel")
         .def(py::init([](const std::string& value) { return &(make_channel(value)); }))
@@ -181,8 +169,7 @@ PYBIND11_MODULE(mamba_api, m) {
         .def_property_readonly("subdir", &Channel::platform)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("url", &Channel::url, py::arg("with_credentials") = true)
-        .def("__repr__", [](const Channel& c) { return join_url(c.name(), c.platform()); })
-    ;
+        .def("__repr__", [](const Channel& c) { return join_url(c.name(), c.platform()); });
 
     m.def("get_channel_urls", &get_channel_urls);
     m.def("calculate_channel_urls", &calculate_channel_urls);

@@ -14,10 +14,10 @@
 
 extern "C"
 {
-    #include "solv/repo.h"
-    #include "solv/repo_solv.h"
-    #include "solv/conda.h"
-    #include "solv/repo_conda.h"
+#include "solv/conda.h"
+#include "solv/repo.h"
+#include "solv/repo_conda.h"
+#include "solv/repo_solv.h"
 }
 
 #include "pool.hpp"
@@ -34,17 +34,18 @@ namespace mamba
 
     inline bool operator==(const RepoMetadata& lhs, const RepoMetadata& rhs)
     {
-        return lhs.url == rhs.url && lhs.pip_added == rhs.pip_added &&
-               lhs.etag == rhs.etag && lhs.mod == rhs.mod;
+        return lhs.url == rhs.url && lhs.pip_added == rhs.pip_added && lhs.etag == rhs.etag
+               && lhs.mod == rhs.mod;
     }
 
     class MRepo
     {
     public:
-
         MRepo(MPool& pool, const PrefixData& prefix_data);
-        MRepo(MPool& pool, const std::string& name,
-              const std::string& filename, const std::string& url);
+        MRepo(MPool& pool,
+              const std::string& name,
+              const std::string& filename,
+              const std::string& url);
         MRepo(MPool& pool, const std::string& name, const fs::path& path, const RepoMetadata& meta);
         ~MRepo();
 
@@ -61,7 +62,6 @@ namespace mamba
         bool clear(bool reuse_ids);
 
     private:
-
         bool read_file(const std::string& filename);
 
         std::string m_json_file, m_solv_file;
@@ -71,6 +71,6 @@ namespace mamba
 
         Repo* m_repo;
     };
-}
+}  // namespace mamba
 
-#endif // MAMBA_REPO_HPP
+#endif  // MAMBA_REPO_HPP

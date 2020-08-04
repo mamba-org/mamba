@@ -7,10 +7,11 @@
 #ifndef MAMBA_PREFIX_DATA_HPP
 #define MAMBA_PREFIX_DATA_HPP
 
+#include <string>
 #include <unordered_map>
 
-#include "package_info.hpp"
 #include "history.hpp"
+#include "package_info.hpp"
 #include "util.hpp"
 
 namespace mamba
@@ -33,6 +34,6 @@ namespace mamba
         std::unordered_map<std::string, PackageInfo> m_package_records;
         fs::path m_prefix_path;
     };
-}
+}  // namespace mamba
 
 #endif

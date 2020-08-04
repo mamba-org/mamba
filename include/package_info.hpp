@@ -7,14 +7,16 @@
 #ifndef MAMBA_PACKAGE_INFO
 #define MAMBA_PACKAGE_INFO
 
-#include <string>
-
-extern "C" {
-    #include <solv/solvable.h>
-    #include <solv/pool.h>
-    #include <solv/repo.h>
-    #include <solv/poolid.h>
+extern "C"
+{
+#include <solv/pool.h>
+#include <solv/poolid.h>
+#include <solv/repo.h>
+#include <solv/solvable.h>
 }
+
+#include <string>
+#include <vector>
 
 #include "nlohmann/json.hpp"
 
@@ -23,9 +25,8 @@ namespace mamba
     class PackageInfo
     {
     public:
-
-        using field_getter = std::function<std::string (const PackageInfo&)>;
-        using compare_fun = std::function<bool (const PackageInfo&, const PackageInfo&)>;
+        using field_getter = std::function<std::string(const PackageInfo&)>;
+        using compare_fun = std::function<bool(const PackageInfo&, const PackageInfo&)>;
 
         static field_getter get_field_getter(const std::string& name);
         static compare_fun less(const std::string& member);
@@ -34,8 +35,10 @@ namespace mamba
         PackageInfo(Solvable* s);
         PackageInfo(nlohmann::json&& j);
         PackageInfo(const std::string& name);
-        PackageInfo(const std::string& name, const std::string& version,
-                    const std::string build_string, std::size_t build_number);
+        PackageInfo(const std::string& name,
+                    const std::string& version,
+                    const std::string build_string,
+                    std::size_t build_number);
 
         nlohmann::json json() const;
         std::string str() const;
@@ -57,6 +60,6 @@ namespace mamba
         std::vector<std::string> depends;
         std::vector<std::string> constrains;
     };
-}
+}  // namespace mamba
 
 #endif

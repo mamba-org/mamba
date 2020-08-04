@@ -34,10 +34,14 @@ repos:
     rev: 3.8.3
     hooks:
     -   id: flake8
-        exclude: tests/data
         language_version: python3
         additional_dependencies:
             - flake8-typing-imports==1.9.0
             - flake8-builtins==1.5.3
             - flake8-bugbear==20.1.4
             - flake8-isort==3.0.1
+-   repo: https://github.com/bmorcos/pre-commit-hooks-cpp
+    rev: master
+    hooks:
+    -   id: clang-format
+        args: [--style=file]

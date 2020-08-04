@@ -4,13 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
-#include "openssl/sha.h"
-#include "openssl/md5.h"
+#include "validate.hpp"
 
+#include <iostream>
+
+#include "openssl/md5.h"
+#include "openssl/sha.h"
 #include "output.hpp"
 #include "util.hpp"
-#include "validate.hpp"
 
 namespace validate
 {
@@ -80,4 +81,4 @@ namespace validate
     {
         return fs::file_size(path) == validation;
     }
-}
+}  // namespace validate

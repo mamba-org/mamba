@@ -7,14 +7,15 @@
 #ifndef MAMBA_URL_HPP
 #define MAMBA_URL_HPP
 
-#include <string>
-#include <stdexcept>
-#include <vector>
-
 extern "C"
 {
-    #include <curl/curl.h>
+#include <curl/curl.h>
 }
+
+#include <limits>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 // typedef enum {
 //   CURLUE_OK,
@@ -41,9 +42,7 @@ namespace mamba
 {
     bool has_scheme(const std::string& url);
 
-    void split_anaconda_token(const std::string& url,
-                              std::string& cleaned_url,
-                              std::string& token);
+    void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
     void split_scheme_auth_token(const std::string& url,
                                  std::string& remaining_url,
@@ -65,7 +64,6 @@ namespace mamba
     class URLHandler
     {
     public:
-
         URLHandler(const std::string& url = "");
         ~URLHandler();
 
@@ -105,7 +103,6 @@ namespace mamba
         URLHandler& set_zoneid(const std::string& zoneid);
 
     private:
-
         std::string get_part(CURLUPart part);
         void set_part(CURLUPart part, const std::string& s);
 
@@ -138,7 +135,7 @@ namespace mamba
             s1 += s2;
             return join_url_impl(s1, args...);
         }
-    }
+    }  // namespace detail
 
     inline std::string join_url()
     {
@@ -151,6 +148,6 @@ namespace mamba
         std::string res = s;
         return detail::join_url_impl(res, args...);
     }
-}
+}  // namespace mamba
 
 #endif

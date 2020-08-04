@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "match_spec.hpp"
 #include "context.hpp"
-#include "link.hpp"
-#include "history.hpp"
 #include "fsutil.hpp"
+#include "history.hpp"
+#include "link.hpp"
+#include "match_spec.hpp"
 
 namespace mamba
 {
@@ -128,9 +128,11 @@ namespace mamba
             EXPECT_EQ(ms.build_number, "<=3");
         }
         {
-            MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2]");
+            MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/"
+                         "xtensor-0.21.4-hc9558a2_0.tar.bz2]");
             EXPECT_EQ(ms.name, "xtensor");
-            EXPECT_EQ(ms.brackets["url"], "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            EXPECT_EQ(ms.brackets["url"],
+                      "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
             EXPECT_EQ(ms.fn, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
         {
@@ -204,7 +206,7 @@ namespace mamba
         if (on_linux)
         {
             auto home = env::expand_user("~");
-            EXPECT_EQ(path::starts_with_home(home / "test" / "file.txt" ), true);
+            EXPECT_EQ(path::starts_with_home(home / "test" / "file.txt"), true);
             EXPECT_EQ(path::starts_with_home("~"), true);
             EXPECT_EQ(path::starts_with_home("/opt/bin"), false);
         }
@@ -243,4 +245,4 @@ namespace mamba
             EXPECT_THROW(path::is_writable("/tmp/this/path/doesnt/exist"), std::runtime_error);
         }
     }
-}
+}  // namespace mamba

@@ -929,7 +929,7 @@ namespace mamba
 
 #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files[0] }, { "path_type", "win_python_entry_point" } });
+                        { { "_path", files[0] }, { "path_type", "windows_python_entry_point_script" } });
                     out_json["paths_data"]["paths"].push_back(
                         { { "_path", files[1] },
                           { "path_type", "windows_python_entry_point_exe" } });

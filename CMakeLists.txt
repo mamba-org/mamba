@@ -21,6 +21,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 option(BUILD_EXE OFF)
+option(BUILD_SHARED ON)
 option(BUILD_BINDINGS ON)
 option(LINK_STATIC OFF)
 option(USE_CONDA_PYTHON ON)
@@ -125,6 +126,45 @@ include_directories(
     include/thirdparty
 )
 
+set(MAMBA_HEADERS
+    ${CMAKE_SOURCE_DIR}/include/activation.hpp
+    ${CMAKE_SOURCE_DIR}/include/channel.hpp
+    ${CMAKE_SOURCE_DIR}/include/context.hpp
+    ${CMAKE_SOURCE_DIR}/include/environments_manager.hpp
+    ${CMAKE_SOURCE_DIR}/include/fetch.hpp
+    ${CMAKE_SOURCE_DIR}/include/graph_util.hpp
+    ${CMAKE_SOURCE_DIR}/include/transaction_context.hpp
+    ${CMAKE_SOURCE_DIR}/include/link.hpp
+    ${CMAKE_SOURCE_DIR}/include/history.hpp
+    ${CMAKE_SOURCE_DIR}/include/match_spec.hpp
+    ${CMAKE_SOURCE_DIR}/include/url.hpp
+    ${CMAKE_SOURCE_DIR}/include/output.hpp
+    ${CMAKE_SOURCE_DIR}/include/package_handling.hpp
+    ${CMAKE_SOURCE_DIR}/include/package_cache.hpp
+    ${CMAKE_SOURCE_DIR}/include/pool.hpp
+    ${CMAKE_SOURCE_DIR}/include/prefix_data.hpp
+    ${CMAKE_SOURCE_DIR}/include/package_info.hpp
+    ${CMAKE_SOURCE_DIR}/include/package_paths.hpp
+    ${CMAKE_SOURCE_DIR}/include/query.hpp
+    ${CMAKE_SOURCE_DIR}/include/repo.hpp
+    ${CMAKE_SOURCE_DIR}/include/shell_init.hpp
+    ${CMAKE_SOURCE_DIR}/include/solver.hpp
+    ${CMAKE_SOURCE_DIR}/include/subdirdata.hpp
+    ${CMAKE_SOURCE_DIR}/include/thread_utils.hpp
+    ${CMAKE_SOURCE_DIR}/include/transaction.hpp
+    ${CMAKE_SOURCE_DIR}/include/util.hpp
+    ${CMAKE_SOURCE_DIR}/include/fsutil.hpp
+    ${CMAKE_SOURCE_DIR}/include/validate.hpp
+    ${CMAKE_SOURCE_DIR}/include/version.hpp
+)
+
+set(MAMBA_THIRDPARTY_HEADERS
+    ${CMAKE_SOURCE_DIR}/include/thirdparty/filesystem.hpp
+    ${CMAKE_SOURCE_DIR}/include/thirdparty/subprocess.hpp
+    ${CMAKE_SOURCE_DIR}/include/thirdparty/termcolor.hpp
+    ${CMAKE_SOURCE_DIR}/include/thirdparty/WinReg.hpp
+)
+
 set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/activation.cpp
     ${CMAKE_SOURCE_DIR}/src/channel.cpp
@@ -154,11 +194,29 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/version.cpp
 )
 
-add_library(mamba_lib STATIC ${MAMBA_SOURCES})
+if (BUILD_SHARED AND LINK_STATIC)
+    message(FATAL_ERROR "Cannot enable BUILD_SHARED and LINK_STATIC at the same time.")
+endif()
+
+if (BUILD_SHARED)
+    add_library(libmamba SHARED ${MAMBA_SOURCES})
+else ()
+    add_library(libmamba SHARED ${MAMBA_SOURCES})
+endif()
+
+set_target_properties(libmamba PROPERTIES
+    PREFIX ""
+    PUBLIC_HEADER "${MAMBA_HEADERS}"
+)
+
 if (LINK_STATIC)
-    target_link_libraries(mamba_lib PUBLIC "${MAMBA_STATIC_LIBS}" ${MAMBA_FORCE_DYNAMIC_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
+    target_link_libraries(libmamba PUBLIC "${MAMBA_STATIC_LIBS}" ${MAMBA_FORCE_DYNAMIC_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
 else()
-    target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+    target_link_libraries(libmamba PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+    install(TARGETS libmamba
+            LIBRARY DESTINATION
+            PUBLIC_HEADER DESTINATION include/mamba/)
+    install(FILES ${CMAKE_SOURCE_DIR}/include/thirdparty/filesystem.hpp DESTINATION include/mamba/thirdparty/)
 endif()
 
 if (BUILD_BINDINGS)
@@ -167,7 +225,7 @@ if (BUILD_BINDINGS)
     pybind11_add_module(mamba_api
         src/py_interface.cpp
     )
-    target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba_lib)
+    target_link_libraries(mamba_api PUBLIC pybind11::pybind11 libmamba)
     set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
 
     install(TARGETS mamba_api
@@ -180,7 +238,7 @@ if (BUILD_EXE)
     )
 
     add_executable(micromamba ${MAMBA_EXE})
-    target_link_libraries(micromamba PUBLIC mamba_lib)
+    target_link_libraries(micromamba PUBLIC libmamba)
 
     install(TARGETS micromamba)
 endif()

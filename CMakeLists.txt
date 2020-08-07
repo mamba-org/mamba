@@ -204,8 +204,13 @@ else ()
     add_library(libmamba SHARED ${MAMBA_SOURCES})
 endif()
 
+if (NOT MSVC)
+    set_target_properties(libmamba PROPERTIES
+        PREFIX ""
+    )
+endif()
+
 set_target_properties(libmamba PROPERTIES
-    PREFIX ""
     PUBLIC_HEADER "${MAMBA_HEADERS}"
 )
 

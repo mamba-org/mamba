@@ -8,7 +8,9 @@ cmake_minimum_required (VERSION 2.8.11)
 if(POLICY CMP0025)
   cmake_policy(SET CMP0025 NEW)
 endif()
-project (mamba)
+project(mamba)
+
+set(MAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/mamba)
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
@@ -48,6 +50,14 @@ set(MAMBA_REQUIRED_LIBS
     nlohmann_json::nlohmann_json
 )
 
+include_directories(
+    include
+    include/thirdparty
+)
+
+# Versionning
+# ===========
+
 # Getting the mamba version from python
 file (READ mamba/_version.py VERSION_FILE)
 
@@ -61,7 +71,20 @@ set(MAMBA_VERSION_PATCH "${CMAKE_MATCH_3}")
 
 message("--> mamba version: ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}")
 
-configure_file(include/version.hpp.in ${CMAKE_SOURCE_DIR}/include/version.hpp @ONLY)
+# Binary version
+# See the following URL for explanations about the binary versionning
+# https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
+file(STRINGS "${MAMBA_INCLUDE_DIR}/version.hpp.in" mamba_version_defines
+    REGEX "#define MAMBA_BINARY_(CURRENT|REVISION|AGE)")
+foreach(ver ${mamba_version_defines})
+    if(ver MATCHES "#define MAMBA_BINARY_(CURRENT|REVISION|AGE) +([^ ]+)$")
+        set(MAMBA_BINARY_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}" CACHE INTERNAL "")
+    endif()
+endforeach()
+set(MAMBA_BINARY_VERSION
+    ${MAMBA_BINARY_CURRENT}.${MAMBA_BINARY_REVISION}.${MAMBA_BINARY_AGE})
+message(STATUS "mamba binary version: v${MAMBA_BINARY_VERSION}")
+configure_file(${MAMBA_INCLUDE_DIR}/version.hpp.in ${CMAKE_SOURCE_DIR}/include/version.hpp @ONLY)
 
 if (LINK_STATIC)
 
@@ -118,13 +141,6 @@ else ()
     message("Found libraries: ${MAMBA_REQUIRED_LIBS}")
 endif ()
 
-option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
-
-include_directories(
-    include
-    include/thirdparty
-)
-
 set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/activation.cpp
     ${CMAKE_SOURCE_DIR}/src/channel.cpp
@@ -154,12 +170,79 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/version.cpp
 )
 
-add_library(mamba_lib STATIC ${MAMBA_SOURCES})
+set(MAMBA_HEADERS
+    ${MAMBA_INCLUDE_DIR}/activation.hpp
+    ${MAMBA_INCLUDE_DIR}/channel.hpp
+    ${MAMBA_INCLUDE_DIR}/context.hpp
+    ${MAMBA_INCLUDE_DIR}/environments_manager.hpp
+    ${MAMBA_INCLUDE_DIR}/fetch.hpp
+    ${MAMBA_INCLUDE_DIR}/transaction_context.hpp
+    ${MAMBA_INCLUDE_DIR}/link.hpp
+    ${MAMBA_INCLUDE_DIR}/history.hpp
+    ${MAMBA_INCLUDE_DIR}/match_spec.hpp
+    ${MAMBA_INCLUDE_DIR}/url.hpp
+    ${MAMBA_INCLUDE_DIR}/output.hpp
+    ${MAMBA_INCLUDE_DIR}/package_handling.hpp
+    ${MAMBA_INCLUDE_DIR}/package_cache.hpp
+    ${MAMBA_INCLUDE_DIR}/pool.hpp
+    ${MAMBA_INCLUDE_DIR}/prefix_data.hpp
+    ${MAMBA_INCLUDE_DIR}/package_info.hpp
+    ${MAMBA_INCLUDE_DIR}/package_paths.hpp
+    ${MAMBA_INCLUDE_DIR}/query.hpp
+    ${MAMBA_INCLUDE_DIR}/repo.hpp
+    ${MAMBA_INCLUDE_DIR}/solver.hpp
+    ${MAMBA_INCLUDE_DIR}/subdirdata.hpp
+    ${MAMBA_INCLUDE_DIR}/thread_utils.hpp
+    ${MAMBA_INCLUDE_DIR}/transaction.hpp
+    ${MAMBA_INCLUDE_DIR}/util.hpp
+    ${MAMBA_INCLUDE_DIR}/validate.hpp
+    ${MAMBA_INCLUDE_DIR}/version.hpp
+    ${MAMBA_INCLUDE_DIR}/thirdparty/filesystem.hpp
+    ${MAMBA_INCLUDE_DIR}/thirdparty/subprocess.hpp
+    ${MAMBA_INCLUDE_DIR}/thirdparty/termcolor.hpp
+    ${MAMBA_INCLUDE_DIR}/thirdparty/WinReg.hpp
+)
+
+# Targets and link
+# ================
+
+set(mamba_targets "")
+
+add_library(mamba STATIC ${MAMBA_SOURCES} ${MAMBA_HEADERS} ${MAMBA_THIRD_PARTIES})
 if (LINK_STATIC)
-    target_link_libraries(mamba_lib PUBLIC "${MAMBA_STATIC_LIBS}" ${MAMBA_FORCE_DYNAMIC_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
+    target_link_libraries(mamba PUBLIC "${MAMBA_STATIC_LIBS}" ${MAMBA_FORCE_DYNAMIC_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
+    list(APPEND mamba_targets mamba)
 else()
-    target_link_libraries(mamba_lib PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+    target_link_libraries(mamba PUBLIC ${MAMBA_REQUIRED_LIBS} Threads::Threads)
+    list(APPEND mamba_targets mamba)
 endif()
+
+    # Output
+    # ======
+
+    target_include_directories(
+        mamba
+        PUBLIC $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}>
+        $<INSTALL_INTERFACE:include>
+    )
+
+    target_include_directories(
+        mamba
+        PUBLIC $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}/thirdparty/>
+        $<INSTALL_INTERFACE:include/mamba/thirdparty>
+    )
+
+    set_target_properties(
+        mamba
+        PROPERTIES
+        COMPILE_DEFINITIONS "MAMBA_EXPORTS"
+        PREFIX ""
+        VERSION ${MAMBA_BINARY_VERSION}
+        SOVERSION ${MAMBA_BINARY_CURRENT}
+        OUTPUT_NAME "libmamba"
+    )
+
+target_link_libraries(mamba PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 
 if (BUILD_BINDINGS)
     find_package(pybind11 REQUIRED)
@@ -167,7 +250,7 @@ if (BUILD_BINDINGS)
     pybind11_add_module(mamba_api
         src/py_interface.cpp
     )
-    target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba_lib)
+    target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba)
     set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)
 
     install(TARGETS mamba_api
@@ -180,12 +263,63 @@ if (BUILD_EXE)
     )
 
     add_executable(micromamba ${MAMBA_EXE})
-    target_link_libraries(micromamba PUBLIC mamba_lib)
+    target_link_libraries(micromamba PUBLIC mamba)
 
     install(TARGETS micromamba)
 endif()
 
+# Tests
+# =====
+
+option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
 
 if (ENABLE_TESTS)
     add_subdirectory(test)
 endif()
+
+# Installation
+# ============
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+set(MAMBA_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for mambaConfig.cmake")
+
+install(TARGETS ${mamba_targets}
+        EXPORT ${PROJECT_NAME}-targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Makes the project importable from the build directory
+export(EXPORT ${PROJECT_NAME}-targets
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+
+# Headers from third party dependency should not be in the public API
+# Running install directory because PUBLIC_HEADER DESTINATION does not keep the directory structure (it flattens everything)
+install(DIRECTORY ${MAMBA_INCLUDE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# Configure 'mambaConfig.cmake' for a build tree
+set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")
+set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n")
+set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}##################################################")
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                              "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+                              INSTALL_DESTINATION ${PROJECT_BINARY_DIR})
+
+# Configure 'mambaConfig.cmake' for an install tree
+set(MAMBA_CONFIG_CODE "")
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                              "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+                              INSTALL_DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
+
+
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                                 VERSION ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}
+                                 COMPATIBILITY AnyNewerVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+              DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
+install(EXPORT ${PROJECT_NAME}-targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})

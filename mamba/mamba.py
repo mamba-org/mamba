@@ -871,6 +871,13 @@ def _wrapped_main(*args, **kwargs):
         use_mamba_experimental = True
         argv.remove("--mamba-experimental")
 
+    print_banner = True
+    if "--no-banner" in argv:
+        print_banner = False
+        argv.remove("--no-banner")
+    elif "MAMBA_NO_BANNER" in os.environ:
+        print_banner = False
+
     args = argv
 
     p = generate_parser()
@@ -878,7 +885,7 @@ def _wrapped_main(*args, **kwargs):
     args = p.parse_args(args[1:])
 
     context.__init__(argparse_args=args)
-    if not (context.quiet or context.json):
+    if print_banner and not (context.quiet or context.json):
         print(banner)
 
     init_loggers(context)

@@ -21,7 +21,7 @@ with open(os.path.join(here, "mamba", "_version.py")) as f:
 
 __version__ = version_ns["__version__"]
 
-with open("include/version.hpp.in", "r") as fi:
+with open("include/mamba/version.hpp.in", "r") as fi:
     cpp_version_template = fi.read()
 
 v = version_ns["version_info"]

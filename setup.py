@@ -31,7 +31,7 @@ cpp_version_template = (
     .replace("@MAMBA_VERSION_PATCH@", str(v[2]))
 )
 
-with open("include/version.hpp", "w") as fo:
+with open("include/mamba/version.hpp", "w") as fo:
     fo.write(cpp_version_template)
 
 
@@ -116,8 +116,8 @@ ext_modules = [
             get_pybind_include(),
             get_pybind_include(user=True),
             os.path.join(libsolv_prefix, "include"),
-            "include/",
-            "include/thirdparty/",
+            "include/mamba/",
+            "include/mamba/thirdparty/",
         ],
         library_dirs=library_dir,
         extra_link_args=extra_link_args,

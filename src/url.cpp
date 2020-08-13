@@ -4,13 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "url.hpp"
-
 #include <iostream>
 #include <regex>
 
-#include "thirdparty/filesystem.hpp"
-#include "util.hpp"
+#include "mamba/url.hpp"
+#include "mamba/thirdparty/filesystem.hpp"
+#include "mamba/util.hpp"
 
 namespace fs = ghc::filesystem;
 

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "subdirdata.hpp"
-#include "util.hpp"
+#include "mamba/subdirdata.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

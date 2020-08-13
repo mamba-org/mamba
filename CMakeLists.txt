@@ -10,7 +10,7 @@ if(POLICY CMP0025)
 endif()
 project(mamba)
 
-set(MAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/mamba)
+set(MAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
@@ -50,11 +50,6 @@ set(MAMBA_REQUIRED_LIBS
     nlohmann_json::nlohmann_json
 )
 
-include_directories(
-    include
-    include/thirdparty
-)
-
 # Versionning
 # ===========
 
@@ -74,7 +69,7 @@ message("--> mamba version: ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMB
 # Binary version
 # See the following URL for explanations about the binary versionning
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
-file(STRINGS "${MAMBA_INCLUDE_DIR}/version.hpp.in" mamba_version_defines
+file(STRINGS "${MAMBA_INCLUDE_DIR}/mamba/version.hpp.in" mamba_version_defines
     REGEX "#define MAMBA_BINARY_(CURRENT|REVISION|AGE)")
 foreach(ver ${mamba_version_defines})
     if(ver MATCHES "#define MAMBA_BINARY_(CURRENT|REVISION|AGE) +([^ ]+)$")
@@ -84,7 +79,8 @@ endforeach()
 set(MAMBA_BINARY_VERSION
     ${MAMBA_BINARY_CURRENT}.${MAMBA_BINARY_REVISION}.${MAMBA_BINARY_AGE})
 message(STATUS "mamba binary version: v${MAMBA_BINARY_VERSION}")
-configure_file(${MAMBA_INCLUDE_DIR}/version.hpp.in ${CMAKE_SOURCE_DIR}/include/version.hpp @ONLY)
+configure_file(${MAMBA_INCLUDE_DIR}/mamba/version.hpp.in
+    ${CMAKE_SOURCE_DIR}/include/mamba/version.hpp @ONLY)
 
 if (LINK_STATIC)
 
@@ -171,36 +167,36 @@ set(MAMBA_SOURCES
 )
 
 set(MAMBA_HEADERS
-    ${MAMBA_INCLUDE_DIR}/activation.hpp
-    ${MAMBA_INCLUDE_DIR}/channel.hpp
-    ${MAMBA_INCLUDE_DIR}/context.hpp
-    ${MAMBA_INCLUDE_DIR}/environments_manager.hpp
-    ${MAMBA_INCLUDE_DIR}/fetch.hpp
-    ${MAMBA_INCLUDE_DIR}/transaction_context.hpp
-    ${MAMBA_INCLUDE_DIR}/link.hpp
-    ${MAMBA_INCLUDE_DIR}/history.hpp
-    ${MAMBA_INCLUDE_DIR}/match_spec.hpp
-    ${MAMBA_INCLUDE_DIR}/url.hpp
-    ${MAMBA_INCLUDE_DIR}/output.hpp
-    ${MAMBA_INCLUDE_DIR}/package_handling.hpp
-    ${MAMBA_INCLUDE_DIR}/package_cache.hpp
-    ${MAMBA_INCLUDE_DIR}/pool.hpp
-    ${MAMBA_INCLUDE_DIR}/prefix_data.hpp
-    ${MAMBA_INCLUDE_DIR}/package_info.hpp
-    ${MAMBA_INCLUDE_DIR}/package_paths.hpp
-    ${MAMBA_INCLUDE_DIR}/query.hpp
-    ${MAMBA_INCLUDE_DIR}/repo.hpp
-    ${MAMBA_INCLUDE_DIR}/solver.hpp
-    ${MAMBA_INCLUDE_DIR}/subdirdata.hpp
-    ${MAMBA_INCLUDE_DIR}/thread_utils.hpp
-    ${MAMBA_INCLUDE_DIR}/transaction.hpp
-    ${MAMBA_INCLUDE_DIR}/util.hpp
-    ${MAMBA_INCLUDE_DIR}/validate.hpp
-    ${MAMBA_INCLUDE_DIR}/version.hpp
-    ${MAMBA_INCLUDE_DIR}/thirdparty/filesystem.hpp
-    ${MAMBA_INCLUDE_DIR}/thirdparty/subprocess.hpp
-    ${MAMBA_INCLUDE_DIR}/thirdparty/termcolor.hpp
-    ${MAMBA_INCLUDE_DIR}/thirdparty/WinReg.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/activation.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/channel.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/environments_manager.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/fetch.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/transaction_context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/link.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/history.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/match_spec.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/url.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/output.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/package_handling.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/package_cache.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/pool.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/prefix_data.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/package_info.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/package_paths.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/query.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/repo.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/solver.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/subdirdata.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/thread_utils.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/transaction.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/util.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/version.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/filesystem.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/subprocess.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/termcolor.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/WinReg.hpp
 )
 
 # Targets and link
@@ -224,12 +220,6 @@ endif()
         mamba
         PUBLIC $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:include>
-    )
-
-    target_include_directories(
-        mamba
-        PUBLIC $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}/thirdparty/>
-        $<INSTALL_INTERFACE:include/mamba/thirdparty>
     )
 
     set_target_properties(

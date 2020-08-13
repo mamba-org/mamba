@@ -7,16 +7,16 @@
 // #include <cxxopts.hpp>
 #include <CLI/CLI.hpp>
 
-#include "activation.hpp"
-#include "channel.hpp"
-#include "context.hpp"
-#include "prefix_data.hpp"
-#include "repo.hpp"
-#include "shell_init.hpp"
-#include "solver.hpp"
-#include "subdirdata.hpp"
-#include "transaction.hpp"
-#include "version.hpp"
+#include "mamba/activation.hpp"
+#include "mamba/channel.hpp"
+#include "mamba/context.hpp"
+#include "mamba/prefix_data.hpp"
+#include "mamba/repo.hpp"
+#include "mamba/shell_init.hpp"
+#include "mamba/solver.hpp"
+#include "mamba/subdirdata.hpp"
+#include "mamba/transaction.hpp"
+#include "mamba/version.hpp"
 
 const char banner[] = R"MAMBARAW(
                                            __

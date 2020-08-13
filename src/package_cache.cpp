@@ -4,11 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "package_cache.hpp"
-
+#include "mamba/package_cache.hpp"
 #include "nlohmann/json.hpp"
-#include "package_handling.hpp"
-#include "validate.hpp"
+#include "mamba/package_handling.hpp"
+#include "mamba/validate.hpp"
 
 namespace mamba
 {

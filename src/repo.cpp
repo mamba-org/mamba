@@ -4,10 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "repo.hpp"
-
-#include "output.hpp"
-#include "package_info.hpp"
+#include "mamba/repo.hpp"
+#include "mamba/output.hpp"
+#include "mamba/package_info.hpp"
 
 extern "C"
 {

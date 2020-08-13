@@ -7,17 +7,17 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "channel.hpp"
-#include "context.hpp"
-#include "pool.hpp"
-#include "prefix_data.hpp"
-#include "query.hpp"
-#include "repo.hpp"
-#include "solver.hpp"
-#include "subdirdata.hpp"
-#include "transaction.hpp"
-#include "url.hpp"
-#include "util.hpp"
+#include "mamba/channel.hpp"
+#include "mamba/context.hpp"
+#include "mamba/pool.hpp"
+#include "mamba/prefix_data.hpp"
+#include "mamba/query.hpp"
+#include "mamba/repo.hpp"
+#include "mamba/solver.hpp"
+#include "mamba/subdirdata.hpp"
+#include "mamba/transaction.hpp"
+#include "mamba/url.hpp"
+#include "mamba/util.hpp"
 
 namespace py = pybind11;
 

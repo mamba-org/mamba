@@ -4,14 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "fetch.hpp"
-
 #include <string_view>
 #include <thread>
 
-#include "context.hpp"
-#include "thread_utils.hpp"
-#include "util.hpp"
+#include "mamba/fetch.hpp"
+#include "mamba/context.hpp"
+#include "mamba/thread_utils.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

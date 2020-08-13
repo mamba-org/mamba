@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "shell_init.hpp"
-#include "util.hpp"
+#include "mamba/shell_init.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

@@ -4,14 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "validate.hpp"
-
 #include <iostream>
 
 #include "openssl/md5.h"
 #include "openssl/sha.h"
-#include "output.hpp"
-#include "util.hpp"
+#include "mamba/validate.hpp"
+#include "mamba/output.hpp"
+#include "mamba/util.hpp"
 
 namespace validate
 {

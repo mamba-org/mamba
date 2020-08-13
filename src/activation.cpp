@@ -4,9 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "activation.hpp"
-
-#include "environment.hpp"
+#include "mamba/activation.hpp"
+#include "mamba/environment.hpp"
 
 namespace mamba
 {

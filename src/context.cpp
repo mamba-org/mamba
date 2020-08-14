@@ -4,14 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "context.hpp"
-
 #include <csignal>
 
-#include "output.hpp"
-#include "thirdparty/termcolor.hpp"
-#include "thread_utils.hpp"
-#include "util.hpp"
+#include "mamba/context.hpp"
+#include "mamba/output.hpp"
+#include "mamba/thirdparty/termcolor.hpp"
+#include "mamba/thread_utils.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

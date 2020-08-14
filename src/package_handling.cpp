@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "package_handling.hpp"
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -12,9 +11,10 @@
 #include <sstream>
 
 #include "nlohmann/json.hpp"
-#include "output.hpp"
-#include "thread_utils.hpp"
-#include "util.hpp"
+#include "mamba/package_handling.hpp"
+#include "mamba/output.hpp"
+#include "mamba/thread_utils.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

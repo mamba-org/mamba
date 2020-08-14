@@ -4,12 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "solver.hpp"
-
-#include "channel.hpp"
-#include "output.hpp"
-#include "package_info.hpp"
-#include "util.hpp"
+#include "mamba/solver.hpp"
+#include "mamba/channel.hpp"
+#include "mamba/output.hpp"
+#include "mamba/package_info.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "util.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

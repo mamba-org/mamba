@@ -4,15 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "transaction.hpp"
-
 #include <iostream>
 #include <stack>
 #include <thread>
 
-#include "link.hpp"
-#include "match_spec.hpp"
-#include "thread_utils.hpp"
+#include "mamba/transaction.hpp"
+#include "mamba/link.hpp"
+#include "mamba/match_spec.hpp"
+#include "mamba/thread_utils.hpp"
 
 namespace mamba
 {

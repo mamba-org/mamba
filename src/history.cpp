@@ -4,11 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "history.hpp"
 
 #include <fstream>
 
-#include "fsutil.hpp"
+#include "mamba/fsutil.hpp"
+#include "mamba/history.hpp"
 
 namespace mamba
 {

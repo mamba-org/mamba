@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "version.hpp"
+#include "mamba/version.hpp"
 
 const char mamba_version[] = MAMBA_VERSION_STRING;
 int mamba_version_major = MAMBA_VERSION_MAJOR;

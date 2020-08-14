@@ -4,9 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "pool.hpp"
-
-#include "output.hpp"
+#include "mamba/pool.hpp"
+#include "mamba/output.hpp"
 
 namespace mamba
 {

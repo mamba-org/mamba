@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "channel.hpp"
-
 #include <iostream>
 #include <regex>
 #include <set>
@@ -13,10 +11,11 @@
 #include <tuple>
 #include <utility>
 
-#include "context.hpp"
-#include "package_handling.hpp"
-#include "url.hpp"
-#include "util.hpp"
+#include "mamba/channel.hpp"
+#include "mamba/context.hpp"
+#include "mamba/package_handling.hpp"
+#include "mamba/url.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

@@ -4,8 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "query.hpp"
-
 extern "C"
 {
 #include <solv/evr.h>
@@ -17,10 +15,11 @@ extern "C"
 #include <sstream>
 #include <stack>
 
-#include "match_spec.hpp"
-#include "output.hpp"
-#include "package_info.hpp"
-#include "util.hpp"
+#include "mamba/query.hpp"
+#include "mamba/match_spec.hpp"
+#include "mamba/output.hpp"
+#include "mamba/package_info.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

@@ -4,13 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "package_info.hpp"
-
 #include <functional>
 #include <map>
 
-#include "output.hpp"
-#include "util.hpp"
+#include "mamba/package_info.hpp"
+#include "mamba/output.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "graph_util.hpp"
+#include "mamba/graph_util.hpp"
 
 namespace mamba
 {

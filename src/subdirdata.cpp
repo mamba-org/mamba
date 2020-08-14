@@ -4,12 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "subdirdata.hpp"
-
 #include "openssl/md5.h"
-#include "output.hpp"
-#include "package_cache.hpp"
-#include "thirdparty/filesystem.hpp"
+
+#include "mamba/subdirdata.hpp"
+#include "mamba/output.hpp"
+#include "mamba/package_cache.hpp"
+#include "mamba/thirdparty/filesystem.hpp"
 
 namespace fs = ghc::filesystem;
 

@@ -4,4 +4,4 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "environments_manager.hpp"
+#include "mamba/environments_manager.hpp"

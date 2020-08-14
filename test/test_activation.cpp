@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "activation.hpp"
+#include "mamba/activation.hpp"
 
 namespace mamba
 {

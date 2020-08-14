@@ -16,8 +16,8 @@
 #include <cassert>
 #endif
 
-#include "context.hpp"
-#include "util.hpp"
+#include "mamba/context.hpp"
+#include "mamba/util.hpp"
 
 namespace mamba
 {

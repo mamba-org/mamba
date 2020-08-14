@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "thirdparty/filesystem.hpp"
-#include "url.hpp"
+#include "mamba/thirdparty/filesystem.hpp"
+#include "mamba/url.hpp"
 namespace fs = ghc::filesystem;
 
 namespace mamba

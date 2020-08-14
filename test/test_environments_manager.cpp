@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "environments_manager.hpp"
+#include "mamba/environments_manager.hpp"
 
 namespace mamba
 {

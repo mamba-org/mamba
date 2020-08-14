@@ -4,20 +4,19 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "link.hpp"
-
 #include <regex>
 #include <string>
 #include <tuple>
 #include <vector>
 
-#include "environment.hpp"
-#include "match_spec.hpp"
-#include "output.hpp"
-#include "thirdparty/subprocess.hpp"
-#include "transaction_context.hpp"
-#include "util.hpp"
-#include "validate.hpp"
+#include "mamba/environment.hpp"
+#include "mamba/link.hpp"
+#include "mamba/match_spec.hpp"
+#include "mamba/output.hpp"
+#include "mamba/thirdparty/subprocess.hpp"
+#include "mamba/transaction_context.hpp"
+#include "mamba/util.hpp"
+#include "mamba/validate.hpp"
 
 namespace mamba
 {

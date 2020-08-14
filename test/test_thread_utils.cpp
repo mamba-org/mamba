@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "context.hpp"
-#include "output.hpp"
-#include "thread_utils.hpp"
+#include "mamba/context.hpp"
+#include "mamba/output.hpp"
+#include "mamba/thread_utils.hpp"
 
 namespace mamba
 {

@@ -16,38 +16,48 @@ namespace mamba
 {
     namespace
     {
-// armv6l and armv7l
-#if defined(__arm__) || defined(__thumb__)
-#ifdef ___ARM_ARCH_6__
-        static const char MAMBA_PLATFORM[] = "armv6l";
-#elif __ARM_ARCH_7__
-        static const char MAMBA_PLATFORM[] = "armv7l";
-#else
-#error "Unknown platform"
-#endif
-#elif _M_ARM == 6
-        static const char MAMBA_PLATFORM[] = "armv6l";
-#elif _M_ARM == 7
-        static const char MAMBA_PLATFORM[] = "armv7l";
-// aarch64
-#elif defined(__aarch64__)
-        static const char MAMBA_PLATFORM[] = "aarch64";
-#elif defined(__ppc64__) || defined(__powerpc64__)
-#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        static const char MAMBA_PLATFORM[] = "ppc64";
-#else
-        static const char MAMBA_PLATFORM[] = "ppc64le";
-#endif
 // Linux
-#elif defined(__linux__)
+#if defined(__linux__)
 #if __x86_64__
         static const char MAMBA_PLATFORM[] = "linux-64";
-#else
+#elif defined(i386)
         static const char MAMBA_PLATFORM[] = "linux-32";
+// armv6l and armv7l
+#elif defined(__arm__) || defined(__thumb__)
+#ifdef ___ARM_ARCH_6__
+        static const char MAMBA_PLATFORM[] = "linux-armv6l";
+#elif __ARM_ARCH_7__
+        static const char MAMBA_PLATFORM[] = "linux-armv7l";
+#else
+#error "Unknown Linux arm platform"
+#endif
+#elif _M_ARM == 6
+        static const char MAMBA_PLATFORM[] = "linux-armv6l";
+#elif _M_ARM == 7
+        static const char MAMBA_PLATFORM[] = "linux-armv7l";
+// aarch64
+#elif defined(__aarch64__)
+        static const char MAMBA_PLATFORM[] = "linux-aarch64";
+#elif defined(__ppc64__) || defined(__powerpc64__)
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+        static const char MAMBA_PLATFORM[] = "linux-ppc64";
+#else
+        static const char MAMBA_PLATFORM[] = "linux-ppc64le";
+#endif
+#elif defined(__s390x__)
+        static const char MAMBA_PLATFORM[] = "linux-s390x";
+#else
+#error "Unknown Linux platform"
 #endif
 // OSX
 #elif defined(__APPLE__) || defined(__MACH__)
+#if __x86_64__
         static const char MAMBA_PLATFORM[] = "osx-64";
+#elif __arm64__
+        static const char MAMBA_PLATFORM[] = "osx-arm64";
+#else
+#error "Unknown OSX platform"
+#endif
 // Windows
 #elif defined(_WIN64)
         static const char MAMBA_PLATFORM[] = "win-64";

@@ -81,6 +81,10 @@ else:
     CURL_LIB = "curl"
     CRYPTO_LIB = "crypto"
 
+libraries = ["archive", "solv", "solvext", CURL_LIB, CRYPTO_LIB]
+if sys.platform == "win32":
+    libraries.append("advapi32")
+
 ext_modules = [
     Extension(
         "mamba.mamba_api",
@@ -102,6 +106,7 @@ ext_modules = [
             "src/query.cpp",
             "src/repo.cpp",
             "src/solver.cpp",
+            "src/shell_init.cpp",
             "src/subdirdata.cpp",
             "src/thread_utils.cpp",
             "src/transaction.cpp",
@@ -120,7 +125,7 @@ ext_modules = [
         ],
         library_dirs=library_dir,
         extra_link_args=extra_link_args,
-        libraries=["archive", "solv", "solvext", CURL_LIB, CRYPTO_LIB],
+        libraries=libraries,
         language="c++",
     ),
 ]

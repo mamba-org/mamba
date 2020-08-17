@@ -14,10 +14,11 @@
 #include <cstdlib>
 
 #include "mamba/output.hpp"
-#include "mamba/thirdparty/termcolor.hpp"
 #include "mamba/thread_utils.hpp"
 #include "mamba/url.hpp"
 #include "mamba/util.hpp"
+
+#include "thirdparty/termcolor.hpp"
 
 namespace mamba
 {

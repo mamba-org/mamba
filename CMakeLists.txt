@@ -157,6 +157,7 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/package_paths.cpp
     ${CMAKE_SOURCE_DIR}/src/query.cpp
     ${CMAKE_SOURCE_DIR}/src/repo.cpp
+    ${CMAKE_SOURCE_DIR}/src/shell_init.cpp
     ${CMAKE_SOURCE_DIR}/src/solver.cpp
     ${CMAKE_SOURCE_DIR}/src/subdirdata.cpp
     ${CMAKE_SOURCE_DIR}/src/thread_utils.cpp
@@ -164,6 +165,9 @@ set(MAMBA_SOURCES
     ${CMAKE_SOURCE_DIR}/src/util.cpp
     ${CMAKE_SOURCE_DIR}/src/validate.cpp
     ${CMAKE_SOURCE_DIR}/src/version.cpp
+    ${CMAKE_SOURCE_DIR}/src/thirdparty/WinReg.hpp
+    ${CMAKE_SOURCE_DIR}/src/thirdparty/WinReg.hpp
+    ${CMAKE_SOURCE_DIR}/src/thirdparty/WinReg.hpp
 )
 
 set(MAMBA_HEADERS
@@ -194,9 +198,6 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/version.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/filesystem.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/subprocess.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/termcolor.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/WinReg.hpp
 )
 
 # Targets and link

@@ -13,10 +13,11 @@
 #include "mamba/link.hpp"
 #include "mamba/match_spec.hpp"
 #include "mamba/output.hpp"
-#include "mamba/thirdparty/subprocess.hpp"
 #include "mamba/transaction_context.hpp"
 #include "mamba/util.hpp"
 #include "mamba/validate.hpp"
+
+#include "thirdparty/subprocess.hpp"
 
 namespace mamba
 {

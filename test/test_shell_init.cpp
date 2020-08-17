@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "mamba/environment.hpp"
 #include "mamba/shell_init.hpp"
 #include "mamba/util.hpp"
 

@@ -8,9 +8,10 @@
 
 #include "mamba/context.hpp"
 #include "mamba/output.hpp"
-#include "mamba/thirdparty/termcolor.hpp"
 #include "mamba/thread_utils.hpp"
 #include "mamba/util.hpp"
+
+#include "thirdparty/termcolor.hpp"
 
 namespace mamba
 {

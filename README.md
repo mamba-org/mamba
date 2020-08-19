@@ -1,5 +1,7 @@
 ![mamba header image](docs/assets/mamba_header.png)
 
+## The Fast Cross-Platform Package Manager
+
 <table>
 <thead align="center" cellspacing="10">
   <tr>

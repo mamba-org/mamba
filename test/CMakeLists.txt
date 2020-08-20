@@ -25,7 +25,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
     ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/aux_file COPYONLY)
 
 target_link_libraries(test_mamba PRIVATE ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(test_mamba PUBLIC mamba)
+target_link_libraries(test_mamba PUBLIC mamba-static)
 set_property(TARGET test_mamba PROPERTY CXX_STANDARD 17)
 
 add_custom_target(test COMMAND test_mamba DEPENDS test_mamba)

@@ -54,7 +54,7 @@ jobs:
           touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DPYTHON_EXECUTABLE=`which python`
           make test -j2
 
   build_unix:

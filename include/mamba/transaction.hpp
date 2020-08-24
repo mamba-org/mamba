@@ -15,14 +15,15 @@
 #include <tuple>
 #include <vector>
 
-#include "fetch.hpp"
 #include "nlohmann/json.hpp"
+
+#include "fetch.hpp"
+#include "mamba_fs.hpp"
 #include "output.hpp"
 #include "package_cache.hpp"
 #include "package_handling.hpp"
 #include "prefix_data.hpp"
 #include "repo.hpp"
-#include "thirdparty/filesystem.hpp"
 #include "transaction_context.hpp"
 
 extern "C"
@@ -32,7 +33,6 @@ extern "C"
 
 #include "solver.hpp"
 
-namespace fs = ghc::filesystem;
 
 namespace mamba
 {

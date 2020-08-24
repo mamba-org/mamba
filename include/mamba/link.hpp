@@ -13,14 +13,13 @@
 #include <tuple>
 #include <vector>
 
-#include "match_spec.hpp"
 #include "nlohmann/json.hpp"
+
+#include "mamba_fs.hpp"
+#include "match_spec.hpp"
 #include "package_paths.hpp"
-#include "thirdparty/filesystem.hpp"
 #include "transaction.hpp"
 #include "transaction_context.hpp"
-
-namespace fs = ghc::filesystem;
 
 namespace mamba
 {

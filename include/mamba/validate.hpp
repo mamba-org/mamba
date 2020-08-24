@@ -9,9 +9,7 @@
 
 #include <string>
 
-#include "thirdparty/filesystem.hpp"
-
-namespace fs = ghc::filesystem;
+#include "mamba_fs.hpp"
 
 namespace validate
 {

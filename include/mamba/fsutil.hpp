@@ -10,10 +10,8 @@
 #include <string>
 
 #include "environment.hpp"
-#include "thirdparty/filesystem.hpp"
+#include "mamba_fs.hpp"
 #include "util.hpp"
-
-namespace fs = ghc::filesystem;
 
 namespace mamba
 {

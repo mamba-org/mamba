@@ -7,11 +7,9 @@
 #include <iostream>
 #include <regex>
 
+#include "mamba/mamba_fs.hpp"
 #include "mamba/url.hpp"
-#include "mamba/thirdparty/filesystem.hpp"
 #include "mamba/util.hpp"
-
-namespace fs = ghc::filesystem;
 
 namespace mamba
 {

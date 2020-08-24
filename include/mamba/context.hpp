@@ -11,9 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "thirdparty/filesystem.hpp"
-
-namespace fs = ghc::filesystem;
+#include "mamba_fs.hpp"
 
 #define ROOT_ENV_NAME "base"
 

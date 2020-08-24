@@ -6,12 +6,10 @@
 
 #include "openssl/md5.h"
 
-#include "mamba/subdirdata.hpp"
+#include "mamba/mamba_fs.hpp"
 #include "mamba/output.hpp"
 #include "mamba/package_cache.hpp"
-#include "mamba/thirdparty/filesystem.hpp"
-
-namespace fs = ghc::filesystem;
+#include "mamba/subdirdata.hpp"
 
 namespace decompress
 {

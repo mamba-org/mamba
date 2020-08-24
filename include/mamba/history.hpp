@@ -13,11 +13,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mamba_fs.hpp"
 #include "match_spec.hpp"
 #include "output.hpp"
-#include "thirdparty/filesystem.hpp"
 
-namespace fs = ghc::filesystem;
 
 namespace mamba
 {

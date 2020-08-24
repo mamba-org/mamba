@@ -314,7 +314,7 @@ export(EXPORT ${PROJECT_NAME}-targets
 
 # Headers from third party dependency should not be in the public API
 # Running install directory because PUBLIC_HEADER DESTINATION does not keep the directory structure (it flattens everything)
-install(DIRECTORY ${MAMBA_INCLUDE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${MAMBA_INCLUDE_DIR}/mamba DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")

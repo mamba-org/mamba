@@ -205,7 +205,7 @@ set(MAMBA_HEADERS
 
 set(mamba_targets "")
 
-add_library(mamba STATIC ${MAMBA_SOURCES} ${MAMBA_HEADERS} ${MAMBA_THIRD_PARTIES})
+add_library(mamba SHARED ${MAMBA_SOURCES} ${MAMBA_HEADERS} ${MAMBA_THIRD_PARTIES})
 if (LINK_STATIC)
     target_link_libraries(mamba PUBLIC "${MAMBA_STATIC_LIBS}" ${MAMBA_FORCE_DYNAMIC_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
     list(APPEND mamba_targets mamba)
@@ -288,7 +288,7 @@ export(EXPORT ${PROJECT_NAME}-targets
 
 # Headers from third party dependency should not be in the public API
 # Running install directory because PUBLIC_HEADER DESTINATION does not keep the directory structure (it flattens everything)
-install(DIRECTORY ${MAMBA_INCLUDE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(DIRECTORY ${MAMBA_INCLUDE_DIR}/mamba DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")

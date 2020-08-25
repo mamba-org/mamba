@@ -25,12 +25,12 @@ PYBIND11_MODULE(mamba_api, m)
 {
     using namespace mamba;
 
-    py::class_<ghc::filesystem::path>(m, "Path")
+    py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())
-        .def("__repr__", [](ghc::filesystem::path& self) -> std::string {
-            return std::string("ghc::filesystem::path[") + std::string(self) + "]";
+        .def("__repr__", [](fs::path& self) -> std::string {
+            return std::string("fs::path[") + std::string(self) + "]";
         });
-    py::implicitly_convertible<std::string, ghc::filesystem::path>();
+    py::implicitly_convertible<std::string, fs::path>();
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
 

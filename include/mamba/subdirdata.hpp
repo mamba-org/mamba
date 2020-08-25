@@ -11,15 +11,15 @@
 #include <regex>
 #include <string>
 
+#include "nlohmann/json.hpp"
+
 #include "context.hpp"
 #include "fetch.hpp"
-#include "nlohmann/json.hpp"
+#include "mamba_fs.hpp"
 #include "output.hpp"
 #include "repo.hpp"
-#include "thirdparty/filesystem.hpp"
 #include "util.hpp"
 
-namespace fs = ghc::filesystem;
 
 namespace decompress
 {

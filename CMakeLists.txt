@@ -172,7 +172,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/link.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/history.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/match_spec.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/url.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/mamba_fs.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/output.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/package_handling.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/package_cache.hpp
@@ -186,10 +186,10 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/subdirdata.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/thread_utils.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/transaction.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/url.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/util.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/version.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/thirdparty/filesystem.hpp
 )
 
 # Targets and link

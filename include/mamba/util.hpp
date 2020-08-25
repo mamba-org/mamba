@@ -18,9 +18,8 @@
 #include <vector>
 
 #include "nlohmann/json.hpp"
-#include "thirdparty/filesystem.hpp"
 
-namespace fs = ghc::filesystem;
+#include "mamba_fs.hpp"
 
 namespace mamba
 {

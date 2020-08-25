@@ -1,10 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "mamba/channel.hpp"
-#include "mamba/thirdparty/filesystem.hpp"
+#include "mamba/mamba_fs.hpp"
 #include "mamba/url.hpp"
 #include "mamba/util.hpp"
-namespace fs = ghc::filesystem;
 
 namespace mamba
 {

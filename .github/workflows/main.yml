@@ -40,7 +40,7 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/micromamba
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest "cpp-tabulate>=1.2" -c conda-forge
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem "cpp-tabulate>=1.2" -c conda-forge
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: build tests
@@ -87,7 +87,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -127,7 +127,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json conda cmake gtest ninja
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies

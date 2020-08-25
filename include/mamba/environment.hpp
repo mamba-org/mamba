@@ -12,11 +12,8 @@
 #include <cassert>
 #include <string_view>
 
+#include "mamba_fs.hpp"
 #include "util.hpp"
-
-#include "thirdparty/filesystem.hpp"
-
-namespace fs = ghc::filesystem;
 
 #ifdef _WIN32
 #include <Shlobj.h>;

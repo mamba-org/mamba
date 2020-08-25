@@ -231,6 +231,7 @@ macro(mamba_create_target target_name linkage output_name)
     set_target_properties(
         ${target_name}
         PROPERTIES
+        PUBLIC_HEADER "${MAMBA_HEADERS}"
         COMPILE_DEFINITIONS "MAMBA_EXPORTS"
         PREFIX ""
         VERSION ${MAMBA_BINARY_VERSION}
@@ -306,15 +307,12 @@ install(TARGETS ${mamba_targets}
         EXPORT ${PROJECT_NAME}-targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mamba)
 
 # Makes the project importable from the build directory
 export(EXPORT ${PROJECT_NAME}-targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
-
-# Headers from third party dependency should not be in the public API
-# Running install directory because PUBLIC_HEADER DESTINATION does not keep the directory structure (it flattens everything)
-install(DIRECTORY ${MAMBA_INCLUDE_DIR}/mamba DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")

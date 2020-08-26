@@ -70,7 +70,8 @@ struct formatted_pkg
     std::string name, version, build, channel;
 };
 
-bool compareAlphabetically(const formatted_pkg &a, const formatted_pkg &b)
+bool
+compareAlphabetically(const formatted_pkg& a, const formatted_pkg& b)
 {
     return a.name < b.name;
 }
@@ -364,7 +365,7 @@ list_packages()
 
     std::vector<formatted_pkg> packages;
 
-    //order list of packages from prefix_data by alphabetical order
+    // order list of packages from prefix_data by alphabetical order
     for (auto package : prefix_data.m_package_records)
     {
         formatted_pkgs.name = package.second.name;
@@ -384,7 +385,7 @@ list_packages()
 
     std::sort(packages.begin(), packages.end(), compareAlphabetically);
 
-    //format and print table
+    // format and print table
     printers::Table t({ "Name", "Version", "Build", "Channel" });
     t.set_alignment({ printers::alignment::left,
                       printers::alignment::left,
@@ -394,7 +395,7 @@ list_packages()
 
     for (auto p : packages)
     {
-        t.add_row({p.name, p.version, p.build, p.channel});
+        t.add_row({ p.name, p.version, p.build, p.channel });
     }
 
     t.print(std::cout);
@@ -443,7 +444,8 @@ init_create_parser(CLI::App* subcom)
     });
 }
 
-std::string version()
+std::string
+version()
 {
     return mamba_version;
 }
@@ -469,8 +471,7 @@ main(int argc, char** argv)
         = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
 
-    CLI::App* list_subcom
-        = app.add_subcommand("list", "List packages in active environment");
+    CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     init_list_parser(list_subcom);
 
     // just for the help text

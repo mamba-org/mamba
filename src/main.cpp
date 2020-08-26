@@ -225,6 +225,17 @@ init_shell_parser(CLI::App* subcom)
             {
                 shell_options.prefix = Context::instance().root_prefix;
             }
+            // checking wether we have a path or a name
+            if (shell_options.prefix.find_first_of("/\\") == std::string::npos)
+            {
+                if (Context::instance().root_prefix.empty())
+                {
+                    throw std::runtime_error(
+                        "Trying to activate environment by name, but MAMBA_ROOT_PREFIX environment variable is not set.\nPlease run micromamba shell init.");
+                }
+                shell_options.prefix
+                    = Context::instance().root_prefix / "envs" / shell_options.prefix;
+            }
             std::cout << activator->activate(shell_options.prefix, shell_options.stack);
         }
         else if (shell_options.action == "reactivate")
@@ -421,14 +432,29 @@ init_create_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
+    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
-    // subcom->add_option("-n,--name" create_options.name, "Prefix name");
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
-        ctx.target_prefix = create_options.prefix;
+        if (!create_options.name.empty() && !create_options.prefix.empty())
+        {
+            throw std::runtime_error("Cannot set both, prefix and name.");
+        }
+        if (!create_options.name.empty())
+        {
+            ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+        }
+        else
+        {
+            if (create_options.prefix.empty())
+            {
+                throw std::runtime_error("Prefix and name arguments are empty.");
+            }
+            ctx.target_prefix = create_options.prefix;
+        }
 
         set_network_options(ctx);
         set_channels(ctx);
@@ -472,8 +498,7 @@ main(int argc, char** argv)
     init_install_parser(install_subcom);
 
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
-    init_list_parser(list_subcom);
-
+    list_subcom->callback([]() { list_packages(); });
     // just for the help text
     app.footer(R"MRAW(To activate environments, use
     $ micromamba activate -p PATH/TO/PREFIX

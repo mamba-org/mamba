@@ -4,12 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+
 // #include <cxxopts.hpp>
 #include <CLI/CLI.hpp>
 
 #include "mamba/activation.hpp"
 #include "mamba/channel.hpp"
 #include "mamba/context.hpp"
+#include "mamba/output.hpp"
 #include "mamba/prefix_data.hpp"
 #include "mamba/repo.hpp"
 #include "mamba/shell_init.hpp"
@@ -61,6 +64,17 @@ static struct
     bool offline = false;
     bool dry_run = false;
 } global_options;
+
+struct formatted_pkg
+{
+    std::string name, version, build, channel;
+};
+
+bool
+compareAlphabetically(const formatted_pkg& a, const formatted_pkg& b)
+{
+    return a.name < b.name;
+}
 
 void
 init_network_parser(CLI::App* subcom)
@@ -339,6 +353,55 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
 }
 
 void
+list_packages()
+{
+    auto& ctx = Context::instance();
+    PrefixData prefix_data(ctx.target_prefix);
+    prefix_data.load();
+
+    std::cout << "List of packages in environment: " << ctx.target_prefix << std::endl;
+
+    formatted_pkg formatted_pkgs;
+
+    std::vector<formatted_pkg> packages;
+
+    // order list of packages from prefix_data by alphabetical order
+    for (auto package : prefix_data.m_package_records)
+    {
+        formatted_pkgs.name = package.second.name;
+        formatted_pkgs.version = package.second.version;
+        formatted_pkgs.build = package.second.build_string;
+        if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
+        {
+            formatted_pkgs.channel = "";
+        }
+        else
+        {
+            Channel& channel = make_channel(package.second.url);
+            formatted_pkgs.channel = channel.name();
+        }
+        packages.push_back(formatted_pkgs);
+    }
+
+    std::sort(packages.begin(), packages.end(), compareAlphabetically);
+
+    // format and print table
+    printers::Table t({ "Name", "Version", "Build", "Channel" });
+    t.set_alignment({ printers::alignment::left,
+                      printers::alignment::left,
+                      printers::alignment::left,
+                      printers::alignment::left });
+    t.set_padding({ 2, 2, 2, 2 });
+
+    for (auto p : packages)
+    {
+        t.add_row({ p.name, p.version, p.build, p.channel });
+    }
+
+    t.print(std::cout);
+}
+
+void
 init_install_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
@@ -407,6 +470,9 @@ main(int argc, char** argv)
     CLI::App* install_subcom
         = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
+
+    CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
+    init_list_parser(list_subcom);
 
     // just for the help text
     app.footer(R"MRAW(To activate environments, use

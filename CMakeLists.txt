@@ -67,6 +67,7 @@ find_package(CURL REQUIRED)
 find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(ghcFilesystem REQUIRED)
 
 if (STATIC_DEPENDENCIES)
     set(MAMBA_DEPENDENCIES_LIBS
@@ -218,6 +219,7 @@ macro(mamba_create_target target_name linkage output_name)
                           ${MAMBA_DEPENDENCIES_LIBS}
                           ${MAMBA_FORCE_DYNAMIC_LIBS}
                           nlohmann_json::nlohmann_json
+                          ghc_filesystem
                           Threads::Threads)
 
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)

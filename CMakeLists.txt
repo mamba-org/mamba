@@ -168,26 +168,29 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/activation.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/channel.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/environment.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/environments_manager.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/fetch.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/transaction_context.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/link.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/fsutil.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/graph_util.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/history.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/match_spec.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/link.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/mamba_fs.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/match_spec.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/output.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/package_handling.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/package_cache.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/pool.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/prefix_data.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/package_handling.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/package_info.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/package_paths.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/pool.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/prefix_data.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/query.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/repo.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/solver.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/subdirdata.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/thread_utils.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/transaction.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/transaction_context.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/url.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/util.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp

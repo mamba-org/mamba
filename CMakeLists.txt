@@ -94,6 +94,8 @@ if (STATIC_DEPENDENCIES)
 
         libsolv.a
         libsolvext.a
+
+        libnghttp2.a
     )
 
     if (APPLE)

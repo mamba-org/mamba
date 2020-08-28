@@ -613,7 +613,8 @@ def install(args, parser, command="install"):
         exit(0)
     PackageCacheData.first_writable().reload()
 
-    if use_mamba_experimental and not os.name == "nt":
+    # if use_mamba_experimental and not os.name == "nt":
+    if use_mamba_experimental:
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
 

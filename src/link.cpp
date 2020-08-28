@@ -655,9 +655,9 @@ namespace mamba
         {
             // Sometimes we might want to raise here ...
             LOG_ERROR << "Clobberwarning: " << dst;
-            #ifdef _WIN32
+#ifdef _WIN32
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
-            #endif
+#endif
             fs::remove(dst);
         }
 
@@ -668,9 +668,9 @@ namespace mamba
             // we have to replace the PREFIX stuff in the data
             // and copy the file
             std::string new_prefix = m_context->target_prefix;
-            #ifdef _WIN32
+#ifdef _WIN32
             replace_all(new_prefix, "\\", "/");
-            #endif
+#endif
             LOG_INFO << "Copying file & replace prefix " << src << " -> " << dst;
             // TODO windows does something else here
 
@@ -685,15 +685,15 @@ namespace mamba
                 assert(path_data.file_mode == FileMode::BINARY);
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
 
-                #ifdef _WIN32
-                auto has_pyzzer_entrypoint = [](const std::string& data) {
-                    return data.rfind("PK\x05\x06");
-                };
+#ifdef _WIN32
+                auto has_pyzzer_entrypoint
+                    = [](const std::string& data) { return data.rfind("PK\x05\x06"); };
 
                 // on win we only replace pyzzer entrypoints apparently
                 auto entry_point = has_pyzzer_entrypoint(buffer);
 
-                struct pyzzer_struct {
+                struct pyzzer_struct
+                {
                     uint32_t cdr_size;
                     uint32_t cdr_offset;
                 } pyzzer_entry;
@@ -701,8 +701,10 @@ namespace mamba
                 if (entry_point != std::string::npos)
                 {
                     std::string launcher, shebang;
-                    pyzzer_entry = *reinterpret_cast<const pyzzer_struct*>(buffer.c_str() + entry_point);
-                    std::size_t arc_pos = entry_point - pyzzer_entry.cdr_size - pyzzer_entry.cdr_offset;
+                    pyzzer_entry
+                        = *reinterpret_cast<const pyzzer_struct*>(buffer.c_str() + entry_point);
+                    std::size_t arc_pos
+                        = entry_point - pyzzer_entry.cdr_size - pyzzer_entry.cdr_offset;
 
                     if (arc_pos > 0)
                     {
@@ -731,9 +733,11 @@ namespace mamba
                     std::make_tuple(validate::sha256sum(dst), rel_dst);
                 }
 
-                #else
-                std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size()) ?
-                                           path_data.prefix_placeholder.size() - new_prefix.size() : 0;
+#else
+                std::size_t padding_size
+                    = (path_data.prefix_placeholder.size() > new_prefix.size())
+                          ? path_data.prefix_placeholder.size() - new_prefix.size()
+                          : 0;
                 std::string padding(padding_size, '\0');
 
                 auto binary_replace
@@ -757,7 +761,7 @@ namespace mamba
                     binary_replace(pos, end, suffix);
                     pos = buffer.find(path_data.prefix_placeholder, end);
                 }
-                #endif
+#endif
             }
 
             auto open_mode = (path_data.file_mode == FileMode::BINARY)
@@ -982,7 +986,8 @@ namespace mamba
 
 #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files[0] }, { "path_type", "windows_python_entry_point_script" } });
+                        { { "_path", files[0] },
+                          { "path_type", "windows_python_entry_point_script" } });
                     out_json["paths_data"]["paths"].push_back(
                         { { "_path", files[1] },
                           { "path_type", "windows_python_entry_point_exe" } });

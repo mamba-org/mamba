@@ -35,6 +35,7 @@ namespace mamba
     void DownloadTarget::init_curl_target(const std::string& url)
     {
         curl_easy_setopt(m_handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(m_handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
 
         curl_easy_setopt(m_handle, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         curl_easy_setopt(m_handle, CURLOPT_HEADERDATA, this);

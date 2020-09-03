@@ -363,6 +363,67 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     trans.execute(prefix_data, ctx.root_prefix / "pkgs");
 }
 
+bool
+remove_specs(const std::vector<std::string>& specs)
+{
+    auto& ctx = Context::instance();
+
+    set_global_options(ctx);
+
+    Console::print(banner);
+
+    if (ctx.root_prefix.empty())
+    {
+        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
+                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                     "shell init ... \nto initialize your shell, then restart or "
+                     "source the contents of the shell init script.\n";
+        exit(1);
+    }
+
+    if (ctx.target_prefix.empty())
+    {
+        std::cout << "No active target prefix.\n\nRun $ micromamba activate "
+                     "<PATH_TO_MY_ENV>\nto activate an environment.\n";
+        exit(1);
+    }
+
+    std::vector<MRepo> repos;
+    MPool pool;
+    PrefixData prefix_data(ctx.target_prefix);
+    prefix_data.load();
+    auto repo = MRepo(pool, prefix_data);
+    repos.push_back(repo);
+
+    MSolver solver(pool,
+                   { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 }, { SOLVER_FLAG_ALLOW_UNINSTALL, 1 } });
+    solver.add_jobs(create_options.specs, SOLVER_ERASE);
+    solver.solve();
+
+    mamba::MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
+    mamba::MTransaction trans(solver, package_caches);
+
+    if (ctx.json)
+    {
+        trans.log_json();
+    }
+    // TODO this is not so great
+    std::vector<MRepo*> repo_ptrs;
+    for (auto& r : repos)
+    {
+        repo_ptrs.push_back(&r);
+    }
+
+    std::cout << std::endl;
+    bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
+    if (!yes)
+        exit(0);
+
+    trans.execute(prefix_data, ctx.root_prefix / "pkgs");
+
+    return true;
+}
+
 void
 list_packages()
 {
@@ -415,7 +476,7 @@ list_packages()
 void
 init_install_parser(CLI::App* subcom)
 {
-    subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
+    subcom->add_option("specs", create_options.specs, "Specs to install into the environment");
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
@@ -425,6 +486,15 @@ init_install_parser(CLI::App* subcom)
         set_channels(Context::instance());
         install_specs(create_options.specs);
     });
+}
+
+void
+init_remove_parser(CLI::App* subcom)
+{
+    subcom->add_option("specs", create_options.specs, "Specs to remove from the environment");
+    init_global_parser(subcom);
+
+    subcom->callback([&]() { remove_specs(create_options.specs); });
 }
 
 void
@@ -496,6 +566,10 @@ main(int argc, char** argv)
     CLI::App* install_subcom
         = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
+
+    CLI::App* remove_subcom
+        = app.add_subcommand("remove", "Remove packages from active environment");
+    init_remove_parser(remove_subcom);
 
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     list_subcom->callback([]() { list_packages(); });

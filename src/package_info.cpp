@@ -176,6 +176,15 @@ namespace mamba
         assign_or(j, "license", license, ""s);
         assign_or(j, "md5", md5, ""s);
         assign_or(j, "sha256", sha256, ""s);
+
+        if (j.contains("depends"))
+        {
+            depends = j["depends"].get<std::vector<std::string>>();
+        }
+        if (j.contains("constrains"))
+        {
+            constrains = j["constrains"].get<std::vector<std::string>>();
+        }
     }
 
     PackageInfo::PackageInfo(const std::string& n)

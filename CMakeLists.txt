@@ -286,6 +286,7 @@ if (BUILD_EXE)
 
     add_executable(micromamba ${MAMBA_EXE})
     target_link_libraries(micromamba PUBLIC mamba-static)
+    target_link_libraries(micromamba PUBLIC yaml-cpp)
     set_property(TARGET micromamba PROPERTY CXX_STANDARD 17)
 
     install(TARGETS micromamba)

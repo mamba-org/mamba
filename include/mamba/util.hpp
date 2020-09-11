@@ -153,6 +153,11 @@ namespace mamba
                                     const std::string_view& sep,
                                     std::size_t max_split = SIZE_MAX);
 
+    void split_package_extension(const std::string& file,
+                                 std::string& name,
+                                 std::string& extension);
+    fs::path strip_package_extension(const std::string& file);
+
     template <class S>
     inline std::string join(const char* j, const S& container)
     {

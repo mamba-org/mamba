@@ -505,6 +505,27 @@ init_remove_parser(CLI::App* subcom)
     subcom->callback([&]() { remove_specs(create_options.specs); });
 }
 
+void install_explicit_specs(std::vector<std::string>& specs)
+{
+    std::vector<mamba::MatchSpec> match_specs;
+
+    for (auto& spec : specs)
+    {
+        std::size_t hash = spec.find_first_of('#');
+        std::cout << "adding spec " << spec.substr(0, hash) << std::endl;
+        match_specs.emplace_back(spec.substr(0, hash));
+        if (hash != std::string::npos)
+        {
+            match_specs.back().brackets["md5"] = spec.substr(hash + 1);
+        }
+    }
+
+    for (auto& ms : match_specs)
+    {
+        std::cout << ms.str() << std::endl;
+    }
+}
+
 void
 init_create_parser(CLI::App* subcom)
 {
@@ -518,6 +539,7 @@ init_create_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
+        set_global_options(ctx);
 
         if (!create_options.file.empty())
         {
@@ -537,10 +559,28 @@ init_create_parser(CLI::App* subcom)
                     std::cout << "file is empty" << std::endl;
                     exit(1);
                 }
-                if (file_contents[0] == "@explicit")
+                for (std::size_t i = 0; i < file_contents.size(); ++i)
                 {
-                    std::cout << "Explicit packages...";
-                    exit(1);
+                    auto& line = file_contents[i];
+                    if (starts_with(line, "@EXPLICIT"))
+                    {
+                        // this is an explicit env
+                        // we can check if the platform is correct with the previous line
+                        std::string platform;
+                        if (i >= 1)
+                        {
+                            platform = file_contents[i - 1];
+                            if (starts_with(platform, "# platform: "))
+                            {
+                                platform = platform.substr(12);
+                            }
+                        }
+                        std::cout << "Installing explicit specs for platform " << platform << std::endl;
+
+                        std::vector<std::string> explicit_specs(file_contents.begin() + i + 1, file_contents.end());
+                        install_explicit_specs(explicit_specs);
+                        exit(0);
+                    }
                 }
 
                 for (auto& line : file_contents)

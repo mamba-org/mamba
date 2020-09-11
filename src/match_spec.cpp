@@ -8,9 +8,19 @@
 #include "mamba/output.hpp"
 #include "mamba/url.hpp"
 #include "mamba/util.hpp"
+#include "mamba/channel.hpp"
 
 namespace mamba
 {
+    std::vector<std::string> parse_legacy_dist(std::string dist_str)
+    {
+        try {
+            dist_str = strip_package_extension(dist_str);
+        } catch (...) {}
+        return rsplit(dist_str, "-", 2);
+    }
+
+
     MatchSpec::MatchSpec(const std::string& i_spec)
         : spec(i_spec)
     {
@@ -69,7 +79,26 @@ namespace mamba
                 LOG_INFO << "need to expand path!";
                 // spec_str = unquote(path_to_url(expand(spec_str)))
             }
+            auto parsed_channel = make_channel(spec_str);
+
+            if (parsed_channel.subdir())
+            {
+                std::cout << parsed_channel.name() << std::endl;
+                std::cout << "Package file name: " << parsed_channel.package_filename() << std::endl;
+                auto dist = parse_legacy_dist(parsed_channel.package_filename());
+
+                name = dist[0];
+                version = dist[1];
+                build = dist[2];
+
+                channel = parsed_channel.canonical_name();
+                subdir = parsed_channel.subdir();
+                fn = channel.package_filename();
+                url = spec_str;
+            }
+
             LOG_INFO << "Got a package file: " << spec_str << std::endl;
+            return;
         }
 
         auto extract_kv = [&spec_str](const std::string& kv_string, auto& map) {

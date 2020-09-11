@@ -372,4 +372,40 @@ namespace mamba
         return output;
     }
 
+    void split_package_extension(const std::string& file, std::string& name, std::string& extension)
+    {
+        if (ends_with(file, ".conda"))
+        {
+            name = file.substr(0, file.size() - 6);
+            extension = ".conda";
+        }
+        else if (ends_with(file, ".tar.bz2"))
+        {
+            name = file.substr(0, file.size() - 8);
+            extension = ".tar.bz2";
+        }
+        else if (ends_with(file, ".json"))
+        {
+            name = file.substr(0, file.size() - 5);
+            extension = ".json";
+        }
+        else
+        {
+            name = file;
+            extension = "";
+        }
+    }
+
+    fs::path strip_package_extension(const std::string& file)
+    {
+        std::string name, extension;
+        split_package_extension(file, name, extension);
+
+        if (extension == "")
+        {
+            throw std::runtime_error("Don't know how to handle " + file);
+        }
+
+        return name;
+    }
 }  // namespace mamba

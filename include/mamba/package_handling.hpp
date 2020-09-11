@@ -19,10 +19,6 @@ namespace mamba
     void extract_conda(const fs::path& file,
                        const fs::path& dest_dir,
                        const std::vector<std::string>& parts = { "info", "pkg" });
-    void split_package_extension(const std::string& file,
-                                 std::string& name,
-                                 std::string& extension);
-    fs::path strip_package_extension(const std::string& file);
     fs::path extract(const fs::path& file);
 }  // namespace mamba
 

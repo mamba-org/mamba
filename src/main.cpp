@@ -505,7 +505,8 @@ init_remove_parser(CLI::App* subcom)
     subcom->callback([&]() { remove_specs(create_options.specs); });
 }
 
-void install_explicit_specs(std::vector<std::string>& specs)
+void
+install_explicit_specs(std::vector<std::string>& specs)
 {
     std::vector<mamba::MatchSpec> match_specs;
 
@@ -576,10 +577,13 @@ init_create_parser(CLI::App* subcom)
                             }
                         }
 
-                        std::cout << "Installing explicit specs for platform " << platform << std::endl;
-                        std::cout << "Explicit spec installation is a work-in-progress. Exiting." << std::endl;
+                        std::cout << "Installing explicit specs for platform " << platform
+                                  << std::endl;
+                        std::cout << "Explicit spec installation is a work-in-progress. Exiting."
+                                  << std::endl;
                         exit(1);
-                        std::vector<std::string> explicit_specs(file_contents.begin() + i + 1, file_contents.end());
+                        std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
+                                                                file_contents.end());
                         install_explicit_specs(explicit_specs);
                     }
                 }

@@ -68,63 +68,12 @@ find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-if (STATIC_DEPENDENCIES)
-    set(MAMBA_DEPENDENCIES_LIBS
-        libcurl.a
-        libssh2.a
-
-        libgssapi_krb5.a
-        libkrb5.a
-        libk5crypto.a
-        libkrb5support.a
-        libcom_err.a
-
-        libssl.a
-        libcrypto.a
-
-        libarchive.a
-
-        libiconv.a
-        libbz2.a
-        liblz4.a
-        libzstd.a
-        libz.a
-        liblzma.a
-        liblzo2.a
-
-        libsolv.a
-        libsolvext.a
-
-        libnghttp2.a
-    )
-
-    if (APPLE)
-        set (MAMBA_FORCE_DYNAMIC_LIBS resolv)
-        set(FINAL_LIBS "")
-        foreach(LIB ${MAMBA_DEPENDENCIES_LIBS})
-            set(TMP_LIB "TMP_LIB-NOTFOUND")
-            find_library(TMP_LIB "${LIB}")
-            list(APPEND FINAL_LIBS "${TMP_LIB}")
-        endforeach(LIB)
-        set (MAMBA_DEPENDENCIES_LIBS "${FINAL_LIBS}")
-    elseif (UNIX)
-        set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
-    endif()
-
-    if (APPLE)
-        add_link_options(-static-libstdc++)
-    elseif (UNIX)
-        add_link_options(-static-libstdc++ -static-libgcc)
-    endif ()
-else ()
-    set(MAMBA_DEPENDENCIES_LIBS
-        ${LIBSOLV_LIBRARIES}
-        ${LIBSOLVEXT_LIBRARIES}
-        ${LibArchive_LIBRARIES}
-        ${CURL_LIBRARIES}
-        ${OPENSSL_LIBRARIES})
-    set(MAMBA_FORCE_DYNAMIC_LIBS "")
-endif ()
+set(MAMBA_DEPENDENCIES_LIBS
+    ${LIBSOLV_LIBRARIES}
+    ${LIBSOLVEXT_LIBRARIES}
+    ${LibArchive_LIBRARIES}
+    ${CURL_LIBRARIES}
+    ${OPENSSL_LIBRARIES})
 
 message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 
@@ -219,18 +168,20 @@ macro(mamba_create_target target_name linkage output_name)
     # ======
 
     add_library(${target_name} ${linkage_upper} ${MAMBA_SOURCES} ${MAMBA_HEADERS} ${MAMBA_THIRD_PARTIES})
-    target_link_libraries(${target_name} PUBLIC
-                          ${MAMBA_DEPENDENCIES_LIBS}
-                          ${MAMBA_FORCE_DYNAMIC_LIBS}
-                          nlohmann_json::nlohmann_json
-                          Threads::Threads)
-
+    if (NOT linkage_upper EQUAL "STATIC")
+        target_link_libraries(${target_name} PUBLIC
+                              ${MAMBA_DEPENDENCIES_LIBS}
+                              ${MAMBA_FORCE_DYNAMIC_LIBS}
+                              nlohmann_json::nlohmann_json
+                              Threads::Threads)
+    endif()
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
 
     target_include_directories(
         ${target_name}
-        PUBLIC $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}>
-        $<INSTALL_INTERFACE:include>
+        PUBLIC
+            $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}>
+            $<INSTALL_INTERFACE:include>
     )
 
     set_target_properties(
@@ -263,6 +214,13 @@ if (BUILD_STATIC)
     else ()
         mamba_create_target(mamba-static STATIC mamba)
     endif ()
+
+    find_package(nlohmann_json CONFIG REQUIRED)
+
+    target_link_libraries(mamba-static PUBLIC
+                          nlohmann_json::nlohmann_json
+                          Threads::Threads)
+
     list(APPEND mamba_targets mamba-static)
 endif ()
 
@@ -285,8 +243,109 @@ if (BUILD_EXE)
     )
 
     add_executable(micromamba ${MAMBA_EXE})
-    target_link_libraries(micromamba PUBLIC mamba-static)
-    target_link_libraries(micromamba PUBLIC yaml-cpp)
+
+    target_include_directories(
+        micromamba
+        PRIVATE $<BUILD_INTERFACE:${MAMBA_INCLUDE_DIR}>
+    )
+
+    target_link_libraries(micromamba PRIVATE mamba-static)
+
+    if (STATIC_DEPENDENCIES AND UNIX)
+        set(MAMBA_DEPENDENCIES_LIBS
+            libcurl.a
+            libssh2.a
+
+            libgssapi_krb5.a
+            libkrb5.a
+            libk5crypto.a
+            libkrb5support.a
+            libcom_err.a
+
+            libssl.a
+            libcrypto.a
+
+            libarchive.a
+
+            libiconv.a
+            libbz2.a
+            liblz4.a
+            libzstd.a
+            libz.a
+            liblzma.a
+            liblzo2.a
+
+            libsolv.a
+            libsolvext.a
+
+            libnghttp2.a
+
+            libyaml-cpp.a
+        )
+
+        if (APPLE)
+            set (MAMBA_FORCE_DYNAMIC_LIBS resolv)
+            set(FINAL_LIBS "")
+            foreach(LIB ${MAMBA_DEPENDENCIES_LIBS})
+                set(TMP_LIB "TMP_LIB-NOTFOUND")
+                find_library(TMP_LIB "${LIB}")
+                list(APPEND FINAL_LIBS "${TMP_LIB}")
+            endforeach(LIB)
+            set (MAMBA_DEPENDENCIES_LIBS "${FINAL_LIBS}")
+        elseif (UNIX)
+            set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)
+        endif()
+
+        if (APPLE)
+            add_link_options(-static-libstdc++)
+        elseif (UNIX)
+            add_link_options(-static-libstdc++ -static-libgcc)
+        endif ()
+
+        target_link_libraries(micromamba PUBLIC ${MAMBA_DEPENDENCIES_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS})
+
+    elseif (STATIC_DEPENDENCIES AND WIN32)
+
+        set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
+
+        # For Windows we have a vcpkg based build system right now.
+        find_package(LibArchive REQUIRED)
+        find_package(CURL CONFIG REQUIRED)
+        find_package(yaml-cpp CONFIG REQUIRED)
+        find_package(nlohmann_json CONFIG REQUIRED)
+        find_package(LibLZMA CONFIG REQUIRED)
+        find_library(LZ4_LIBRARY NAMES lz4)
+        find_library(LZO2_LIBRARY NAMES lzo2)
+        find_package(zstd CONFIG REQUIRED)
+        find_library(BZIP2_LIBRARIES NAMES bz2)
+        find_library(CRYPTO_LIBRARIES NAMES libcrypto)
+
+        find_library(LIBSOLV_STATIC_LIBRARIES NAMES solv_static)
+        find_library(LIBSOLVEXT_STATIC_LIBRARIES NAMES solvext_static)
+
+        target_link_libraries(micromamba PRIVATE
+            ${CRYPTO_LIBRARIES}
+            ${LibArchive_LIBRARY}
+            libzstd
+            ${LZ4_LIBRARY}
+            ${LZO2_LIBRARY}
+            ${BZIP2_LIBRARIES}
+            ${LIBLZMA_LIBRARIES}
+            CURL::libcurl
+            nlohmann_json
+            nlohmann_json::nlohmann_json
+            ${YAML_CPP_LIBRARIES}
+            ${LIBSOLV_STATIC_LIBRARIES}
+            ${LIBSOLVEXT_STATIC_LIBRARIES}
+        )
+
+        add_definitions("-DLIBARCHIVE_STATIC -DCURL_STATICLIB -DSOLV_STATIC_LIB")
+        # string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELEASE)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+        include_directories($ENV{CONDA_PREFIX}/Library/include/)
+        include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
+    endif()
+
     set_property(TARGET micromamba PROPERTY CXX_STANDARD 17)
 
     install(TARGETS micromamba)
@@ -309,38 +368,41 @@ include(CMakePackageConfigHelpers)
 
 set(MAMBA_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for mambaConfig.cmake")
 
-install(TARGETS ${mamba_targets}
-        EXPORT ${PROJECT_NAME}-targets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mamba)
+if (NOT (BUILD_EXE AND STATIC_DEPENDENCIES))
 
-# Makes the project importable from the build directory
-export(EXPORT ${PROJECT_NAME}-targets
-       FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+    install(TARGETS ${mamba_targets}
+            EXPORT ${PROJECT_NAME}-targets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mamba)
 
-# Configure 'mambaConfig.cmake' for a build tree
-set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")
-set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n")
-set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}##################################################")
-configure_package_config_file(${PROJECT_NAME}Config.cmake.in
-                              "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-                              INSTALL_DESTINATION ${PROJECT_BINARY_DIR})
+    # Makes the project importable from the build directory
+    export(EXPORT ${PROJECT_NAME}-targets
+           FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
 
-# Configure 'mambaConfig.cmake' for an install tree
-set(MAMBA_CONFIG_CODE "")
-configure_package_config_file(${PROJECT_NAME}Config.cmake.in
-                              "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
-                              INSTALL_DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
+    # Configure 'mambaConfig.cmake' for a build tree
+    set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")
+    set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n")
+    set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}##################################################")
+    configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                                  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+                                  INSTALL_DESTINATION ${PROJECT_BINARY_DIR})
+
+    # Configure 'mambaConfig.cmake' for an install tree
+    set(MAMBA_CONFIG_CODE "")
+    configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                                  "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+                                  INSTALL_DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
 
 
-write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-                                 VERSION ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}
-                                 COMPATIBILITY AnyNewerVersion)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
-              ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-              DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
-install(EXPORT ${PROJECT_NAME}-targets
-        FILE ${PROJECT_NAME}Targets.cmake
-        DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
+    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                                     VERSION ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}
+                                     COMPATIBILITY AnyNewerVersion)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+                  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                  DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
+    install(EXPORT ${PROJECT_NAME}-targets
+            FILE ${PROJECT_NAME}Targets.cmake
+            DESTINATION ${MAMBA_CMAKECONFIG_INSTALL_DIR})
+endif ()

@@ -14,9 +14,13 @@ namespace mamba
 {
     std::vector<std::string> parse_legacy_dist(std::string dist_str)
     {
-        try {
+        try
+        {
             dist_str = strip_package_extension(dist_str);
-        } catch (...) {}
+        }
+        catch (...)
+        {
+        }
         return rsplit(dist_str, "-", 2);
     }
 
@@ -84,7 +88,8 @@ namespace mamba
             if (!parsed_channel.platform().empty())
             {
                 std::cout << parsed_channel.name() << std::endl;
-                std::cout << "Package file name: " << parsed_channel.package_filename() << std::endl;
+                std::cout << "Package file name: " << parsed_channel.package_filename()
+                          << std::endl;
                 auto dist = parse_legacy_dist(parsed_channel.package_filename());
 
                 name = dist[0];

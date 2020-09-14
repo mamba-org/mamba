@@ -9,7 +9,7 @@
 
 extern "C"
 {
-#include <curl/curl.h>
+#include <curl/urlapi.h>
 }
 
 #include <limits>

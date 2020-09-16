@@ -575,11 +575,12 @@ init_create_parser(CLI::App* subcom)
                                 platform = platform.substr(12);
                             }
                         }
-                        std::cout << "Installing explicit specs for platform " << platform << std::endl;
 
+                        std::cout << "Installing explicit specs for platform " << platform << std::endl;
+                        std::cout << "Explicit spec installation is a work-in-progress. Exiting." << std::endl;
+                        exit(1);
                         std::vector<std::string> explicit_specs(file_contents.begin() + i + 1, file_contents.end());
                         install_explicit_specs(explicit_specs);
-                        exit(0);
                     }
                 }
 
@@ -591,7 +592,6 @@ init_create_parser(CLI::App* subcom)
                     }
                     else
                     {
-                        std::cout << "Specs: " << line << std::endl;
                         create_options.specs.push_back(line);
                     }
                 }

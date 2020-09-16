@@ -81,7 +81,7 @@ namespace mamba
             }
             auto parsed_channel = make_channel(spec_str);
 
-            if (parsed_channel.subdir())
+            if (!parsed_channel.platform().empty())
             {
                 std::cout << parsed_channel.name() << std::endl;
                 std::cout << "Package file name: " << parsed_channel.package_filename() << std::endl;
@@ -92,8 +92,8 @@ namespace mamba
                 build = dist[2];
 
                 channel = parsed_channel.canonical_name();
-                subdir = parsed_channel.subdir();
-                fn = channel.package_filename();
+                subdir = parsed_channel.platform();
+                fn = parsed_channel.package_filename();
                 url = spec_str;
             }
 

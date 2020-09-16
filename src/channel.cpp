@@ -46,15 +46,9 @@ namespace mamba
         // ATTENTION names with substrings need to go longer -> smalle
         // otherwise linux-ppc64 matches for linux-ppc64le etc!
         const std::vector<std::string> KNOWN_PLATFORMS
-<<<<<<< HEAD
             = { "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
                 "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
                 "win-32",       "win-64",        "zos-z" };
-=======
-            = { "noarch",       "linux-32",     "linux-64",    "linux-aarch64",
-                "linux-armv6l", "linux-armv7l", "linux-ppc64", "linux-ppc64le",
-                "osx-64",       "osx-arm64",    "win-32",       "win-64",      "zos-z" };
->>>>>>> 9748b25... work on handling explicit specs
     }  // namespace
 
     /**************************

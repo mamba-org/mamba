@@ -5,6 +5,11 @@
 
 namespace mamba
 {
+    const std::vector<std::string> KNOWN_PLATFORMS
+        = { "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
+            "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
+            "win-32",       "win-64",        "zos-z" };
+
     TEST(url, parse)
     {
         {
@@ -190,6 +195,16 @@ namespace mamba
         split_platform(known_platforms, input, cleaned_url, platform);
         EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
         EXPECT_EQ(platform, "linux-64");
+
+        input = "https://1.2.3.4/t/tk-123/linux-ppc64le/path";
+        split_platform(KNOWN_PLATFORMS, input, cleaned_url, platform);
+        EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
+        EXPECT_EQ(platform, "linux-ppc64le");
+
+        input = "https://1.2.3.4/t/tk-123/linux-ppc64/path";
+        split_platform(KNOWN_PLATFORMS, input, cleaned_url, platform);
+        EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
+        EXPECT_EQ(platform, "linux-ppc64");
     }
 
     TEST(path, is_path)

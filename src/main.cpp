@@ -8,6 +8,7 @@
 
 // #include <cxxopts.hpp>
 #include <CLI/CLI.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include "mamba/activation.hpp"
 #include "mamba/channel.hpp"
@@ -20,6 +21,7 @@
 #include "mamba/subdirdata.hpp"
 #include "mamba/transaction.hpp"
 #include "mamba/version.hpp"
+#include "mamba/util.hpp"
 
 const char banner[] = R"MAMBARAW(
                                            __
@@ -46,6 +48,7 @@ static struct
     std::vector<std::string> specs;
     std::string prefix;
     std::string name;
+    std::string file;
     std::vector<std::string> channels;
 } create_options;
 
@@ -332,7 +335,12 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
 
     MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
     solver.add_jobs(create_options.specs, SOLVER_INSTALL);
-    solver.solve();
+    bool success = solver.solve();
+    if (!success)
+    {
+        std::cout << "\n" << solver.problems_to_str() << std::endl;
+        exit(1);
+    }
 
     mamba::MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
     mamba::MTransaction trans(solver, package_caches);
@@ -497,18 +505,99 @@ init_remove_parser(CLI::App* subcom)
     subcom->callback([&]() { remove_specs(create_options.specs); });
 }
 
+void install_explicit_specs(std::vector<std::string>& specs)
+{
+    std::vector<mamba::MatchSpec> match_specs;
+
+    for (auto& spec : specs)
+    {
+        std::size_t hash = spec.find_first_of('#');
+        std::cout << "adding spec " << spec.substr(0, hash) << std::endl;
+        match_specs.emplace_back(spec.substr(0, hash));
+        if (hash != std::string::npos)
+        {
+            match_specs.back().brackets["md5"] = spec.substr(hash + 1);
+        }
+    }
+
+    for (auto& ms : match_specs)
+    {
+        std::cout << ms.str() << std::endl;
+    }
+}
+
 void
 init_create_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
     subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
+    subcom->add_option("-f,--file", create_options.file, "File (yaml, explicit or plain)");
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
+        set_global_options(ctx);
+
+        if (!create_options.file.empty())
+        {
+            // read specs from file :)
+            if (ends_with(create_options.file, ".yml") || ends_with(create_options.file, ".yaml"))
+            {
+                YAML::Node config = YAML::LoadFile(create_options.file);
+                create_options.channels = config["channels"].as<std::vector<std::string>>();
+                create_options.name = config["name"].as<std::string>();
+                create_options.specs = config["dependencies"].as<std::vector<std::string>>();
+            }
+            else
+            {
+                std::vector<std::string> file_contents = read_lines(create_options.file);
+                if (file_contents.size() == 0)
+                {
+                    std::cout << "file is empty" << std::endl;
+                    exit(1);
+                }
+                for (std::size_t i = 0; i < file_contents.size(); ++i)
+                {
+                    auto& line = file_contents[i];
+                    if (starts_with(line, "@EXPLICIT"))
+                    {
+                        // this is an explicit env
+                        // we can check if the platform is correct with the previous line
+                        std::string platform;
+                        if (i >= 1)
+                        {
+                            platform = file_contents[i - 1];
+                            if (starts_with(platform, "# platform: "))
+                            {
+                                platform = platform.substr(12);
+                            }
+                        }
+
+                        std::cout << "Installing explicit specs for platform " << platform << std::endl;
+                        std::cout << "Explicit spec installation is a work-in-progress. Exiting." << std::endl;
+                        exit(1);
+                        std::vector<std::string> explicit_specs(file_contents.begin() + i + 1, file_contents.end());
+                        install_explicit_specs(explicit_specs);
+                    }
+                }
+
+                for (auto& line : file_contents)
+                {
+                    if (line[0] == '#' || line[0] == '@')
+                    {
+                        // skip
+                    }
+                    else
+                    {
+                        create_options.specs.push_back(line);
+                    }
+                }
+            }
+        }
+
         if (!create_options.name.empty() && !create_options.prefix.empty())
         {
             throw std::runtime_error("Cannot set both, prefix and name.");
@@ -529,10 +618,15 @@ init_create_parser(CLI::App* subcom)
         set_network_options(ctx);
         set_channels(ctx);
 
-        if (fs::exists(ctx.target_prefix))
+        // if (fs::exists(ctx.target_prefix))
+        // {
+        //     std::cout << "Prefix already exists";
+        //     exit(1);
+        // }
+
+        for (auto& s : create_options.specs)
         {
-            std::cout << "Prefix already exists";
-            exit(1);
+            std::cout << "looking for " << s << std::endl;
         }
         install_specs(create_options.specs, true);
 

@@ -9,36 +9,66 @@ on:
     - master
 
 jobs:
-  test_micromamba_win:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
+  # test_micromamba_win:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows-latest]
+  #   steps:
+  #     - name: Install micromamba
+  #       shell: powershell
+  #         # Set-UseUnsafeHeaderParsing -Enable
+  #         # Invoke-Webrequest -URI https://micromamba.snakepit.net/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
+  #       run: |
+  #         Invoke-Webrequest -URI https://anaconda.org/conda-forge/micromamba/0.5.2/download/win-64/micromamba-0.5.2-ha925a31_0.tar.bz2 -OutFile micromamba.tar.bz2
+  #         C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
+  #         C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
+  #         MOVE -Force Library\bin\micromamba.exe micromamba.exe
+  #         REMOVE-ITEM -Force -Recurse Library
+  #         RM micromamba.tar.bz2
+  #         RM micromamba.tar
+  #     - name: Run micromamba
+  #       shell: powershell
+  #       run: |
+  #         $Env:CI=1
+  #         $Env:MAMBA_ROOT_PREFIX=Get-Location
+  #         .\micromamba
+  #         .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX xtensor -c conda-forge
+  #     - name: Run micromamba again
+  #       shell: powershell
+  #       run: |
+  #         $Env:CI=1
+  #         $Env:MAMBA_ROOT_PREFIX=Get-Location
+  #         .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX/another python=3.7 -c conda-forge
+  #         . "$env:MAMBA_ROOT_PREFIX\another\python.exe" -V
+  aarch64_job:
+    # The host should always be Linux
+    runs-on: ubuntu-20.04
+    name: Build on ubuntu-20.04 aarch64
     steps:
-      - name: Install micromamba
-        shell: powershell
-          # Set-UseUnsafeHeaderParsing -Enable
-          # Invoke-Webrequest -URI https://micromamba.snakepit.net/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
+      - uses: actions/checkout@v2.1.0
+      - uses: uraimo/run-on-arch-action@v2.0.5
+        name: Run commands
+        id: runcmd
+        with:
+          arch: aarch64
+          distro: ubuntu20.04
+
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
+
+          # Set an output parameter `uname` for use in subsequent steps
+          run: |
+            uname -a
+            apt update && apt install wget tar
+            echo ::set-output name=uname::$(uname -a)
+            wget -qO- https://anaconda.org/conda-forge/micromamba/0.5.2/download/linux-aarch64/micromamba-0.5.2-h2a4a447_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
+            export MAMBA_ROOT_PREFIX=$(pwd)
+            ./micromamba -v -y create -p $(pwd)/env xtensor -c conda-forge
+
+      - name: Get the output
+        # Echo the `uname` output parameter from the `runcmd` step
         run: |
-          Invoke-Webrequest -URI https://anaconda.org/conda-forge/micromamba/0.5.2/download/win-64/micromamba-0.5.2-ha925a31_0.tar.bz2 -OutFile micromamba.tar.bz2
-          C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
-          C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
-          MOVE -Force Library\bin\micromamba.exe micromamba.exe
-          REMOVE-ITEM -Force -Recurse Library
-          RM micromamba.tar.bz2
-          RM micromamba.tar
-      - name: Run micromamba
-        shell: powershell
-        run: |
-          $Env:CI=1
-          $Env:MAMBA_ROOT_PREFIX=Get-Location
-          .\micromamba
-          .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX xtensor -c conda-forge
-      - name: Run micromamba again
-        shell: powershell
-        run: |
-          $Env:CI=1
-          $Env:MAMBA_ROOT_PREFIX=Get-Location
-          .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX/another python=3.7 -c conda-forge
-          . "$env:MAMBA_ROOT_PREFIX\another\python.exe" -V
+          echo "The uname output was ${{ steps.runcmd.outputs.uname }}"

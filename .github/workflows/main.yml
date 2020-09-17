@@ -35,3 +35,10 @@ jobs:
           $Env:MAMBA_ROOT_PREFIX=Get-Location
           .\micromamba
           .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX xtensor -c conda-forge
+      - name: Run micromamba again
+        shell: powershell
+        run: |
+          $Env:CI=1
+          $Env:MAMBA_ROOT_PREFIX=Get-Location
+          .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX/another python=3.7 -c conda-forge
+          . "$env:MAMBA_ROOT_PREFIX\another\python.exe" -V

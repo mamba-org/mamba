@@ -60,20 +60,9 @@ option(STATIC_DEPENDENCIES "" OFF)
 # Dependencies
 # ============
 
-find_package(Threads REQUIRED)
-find_library(LIBSOLV_LIBRARIES NAMES solv)
-find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
-find_package(CURL REQUIRED)
-find_package(LibArchive REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(nlohmann_json REQUIRED)
 
-set(MAMBA_DEPENDENCIES_LIBS
-    ${LIBSOLV_LIBRARIES}
-    ${LIBSOLVEXT_LIBRARIES}
-    ${LibArchive_LIBRARIES}
-    ${CURL_LIBRARIES}
-    ${OPENSSL_LIBRARIES})
+find_package(Threads REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 
@@ -168,7 +157,20 @@ macro(mamba_create_target target_name linkage output_name)
     # ======
 
     add_library(${target_name} ${linkage_upper} ${MAMBA_SOURCES} ${MAMBA_HEADERS} ${MAMBA_THIRD_PARTIES})
-    if (NOT linkage_upper EQUAL "STATIC")
+    if ("${linkage_upper}" MATCHES "^SHARED$")
+        find_library(LIBSOLV_LIBRARIES NAMES solv)
+        find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
+        find_package(CURL REQUIRED)
+        find_package(LibArchive REQUIRED)
+        find_package(OpenSSL REQUIRED)
+
+        set(MAMBA_DEPENDENCIES_LIBS
+            ${LIBSOLV_LIBRARIES}
+            ${LIBSOLVEXT_LIBRARIES}
+            ${LibArchive_LIBRARIES}
+            ${CURL_LIBRARIES}
+            ${OPENSSL_LIBRARIES})
+
         target_link_libraries(${target_name} PUBLIC
                               ${MAMBA_DEPENDENCIES_LIBS}
                               ${MAMBA_FORCE_DYNAMIC_LIBS}
@@ -283,6 +285,7 @@ if (BUILD_EXE)
             libyaml-cpp.a
         )
 
+        message("Mamba deps: ${MAMBA_DEPENDENCIES_LIBS}")
         if (APPLE)
             set (MAMBA_FORCE_DYNAMIC_LIBS resolv)
             set(FINAL_LIBS "")
@@ -297,12 +300,13 @@ if (BUILD_EXE)
         endif()
 
         if (APPLE)
-            add_link_options(-static-libstdc++)
+            target_link_options(micromamba PRIVATE -static-libstdc++)
         elseif (UNIX)
-            add_link_options(-static-libstdc++ -static-libgcc)
+            message("Adding link options!")
+            target_link_options(micromamba PRIVATE -static-libstdc++ -static-libgcc)
         endif ()
 
-        target_link_libraries(micromamba PUBLIC ${MAMBA_DEPENDENCIES_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS})
+        target_link_libraries(micromamba PRIVATE ${MAMBA_DEPENDENCIES_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS})
 
     elseif (STATIC_DEPENDENCIES AND WIN32)
 

@@ -62,7 +62,7 @@ jobs:
           # Set an output parameter `uname` for use in subsequent steps
           run: |
             uname -a
-            apt update && apt install wget tar
+            apt update && apt install wget tar -y
             echo ::set-output name=uname::$(uname -a)
             wget -qO- https://anaconda.org/conda-forge/micromamba/0.5.2/download/linux-aarch64/micromamba-0.5.2-h2a4a447_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
             export MAMBA_ROOT_PREFIX=$(pwd)

@@ -64,9 +64,11 @@ jobs:
             uname -a
             apt update && apt install wget tar -y
             echo ::set-output name=uname::$(uname -a)
-            wget -qO- https://anaconda.org/conda-forge/micromamba/0.5.2/download/linux-aarch64/micromamba-0.5.2-h2a4a447_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
+            wget https://anaconda.org/conda-forge/micromamba/0.5.2/download/linux-aarch64/micromamba-0.5.2-h2a4a447_0.tar.bz2 -O micromamba.tar.bz2
+            tar -xvf micromamba.tar.bz2
+            rm -rf ./info
             export MAMBA_ROOT_PREFIX=$(pwd)
-            ./micromamba -v -y create -p $(pwd)/env xtensor -c conda-forge
+            ./bin/micromamba -v -y create -p $(pwd)/testenv xtensor -c conda-forge
 
       - name: Get the output
         # Echo the `uname` output parameter from the `runcmd` step

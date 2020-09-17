@@ -9,144 +9,29 @@ on:
     - master
 
 jobs:
-  test_cpp_micromamba:
+  test_micromamba_win:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [windows-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install micromamba
+        shell: powershell
+          # Set-UseUnsafeHeaderParsing -Enable
+          # Invoke-Webrequest -URI https://micromamba.snakepit.net/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
         run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: install micromamba
+          Invoke-Webrequest -URI https://anaconda.org/conda-forge/micromamba/0.5.2/download/win-64/micromamba-0.5.2-ha925a31_0.tar.bz2 -OutFile micromamba.tar.bz2
+          C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
+          C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
+          MOVE -Force Library\bin\micromamba.exe micromamba.exe
+          REMOVE-ITEM -Force -Recurse Library
+          RM micromamba.tar.bz2
+          RM micromamba.tar
+      - name: Run micromamba
+        shell: powershell
         run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
-          else
-            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
-            mv bin/micromamba ./micromamba
-          fi
-          ./micromamba shell init -s bash -p ~/micromamba
-      - name: install deps
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem "cpp-tabulate>=1.2" -c conda-forge
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: build tests
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba activate ~/build_env
-          mkdir -p ~/.conda
-          touch ~/.conda/environments.txt
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DPYTHON_EXECUTABLE=`which python`
-          make test -j2
-
-  build_unix:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: [ '3.8' ]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: goanpeca/setup-miniconda@v1
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: Conda info
-        shell: bash -l {0}
-        run: conda info
-      - name: Create the conda environment
-        shell: bash -l {0}
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Install dependencies
-        shell: bash -l {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mamba-tests
-          python --version
-          python -m pip install ".[test]"
-      - name: Run tests OS X and Linux
-        shell: bash -l {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mamba-tests
-          py.test test
-          mamba create -n test_env xtensor -c conda-forge -y
-          mamba env create -f test/test_env.yml
-          mamba env update -f test/update_env.yml
-
-  build_win:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2016]
-        python-version: [ '3.7' ]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: goanpeca/setup-miniconda@v1
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - name: Conda info
-        run: conda info
-      - name: Create the conda environment
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          conda activate mamba-tests
-          python --version
-          python -m pip install ".[test]"
-      - name: Run tests on Windows
-        run: |
-          conda activate mamba-tests
-          py.test test
-          mamba create -n test_env xtensor -c conda-forge -y
-          mamba env create -f test/test_env.yml
-          mamba env update -f test/update_env.yml
-      - name: Run C++ tests Windows
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
-          mkdir cmake_build
-          cd cmake_build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
-          ninja test
+          $Env:CI=1
+          $Env:MAMBA_ROOT_PREFIX=Get-Location
+          .\micromamba
+          .\micromamba create -y -p $Env:MAMBA_ROOT_PREFIX xtensor -c conda-forge

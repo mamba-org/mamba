@@ -157,7 +157,7 @@ macro(mamba_create_target target_name linkage output_name)
     # ======
 
     add_library(${target_name} ${linkage_upper} ${MAMBA_SOURCES} ${MAMBA_HEADERS} ${MAMBA_THIRD_PARTIES})
-    if ("${linkage_upper}" MATCHES "^SHARED$")
+    if (NOT STATIC_DEPENDENCIES)
         find_library(LIBSOLV_LIBRARIES NAMES solv)
         find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
         find_package(CURL REQUIRED)

@@ -81,7 +81,7 @@ banner = f"""
 
         mamba ({mamba.__version__}) supported by @QuantStack
 
-        GitHub:  https://github.com/TheSnakePit/mamba
+        GitHub:  https://github.com/mamba-org/mamba
         Twitter: https://twitter.com/QuantStack
 
 █████████████████████████████████████████████████████████████

@@ -10,6 +10,7 @@
 #include "mamba/channel.hpp"
 #include "mamba/context.hpp"
 #include "mamba/pool.hpp"
+#include "mamba/package_handling.hpp"
 #include "mamba/prefix_data.hpp"
 #include "mamba/query.hpp"
 #include "mamba/repo.hpp"
@@ -173,6 +174,8 @@ PYBIND11_MODULE(mamba_api, m)
 
     m.def("get_channel_urls", &get_channel_urls);
     m.def("calculate_channel_urls", &calculate_channel_urls);
+
+    m.def("transmute", &transmute);
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

@@ -357,7 +357,28 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Unknown file format (" + std::string(file) + ")");
+            throw std::runtime_error("Unknown package format (" + file.string() + ")");
         }
+    }
+
+    bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level)
+    {
+        TemporaryDirectory extract_dir;
+
+        if (ends_with(pkg_file.string(), ".tar.bz2"))
+        {
+            extract_archive(pkg_file, extract_dir);
+        }
+        else if (ends_with(pkg_file.string(), ".conda"))
+        {
+            extract_conda(pkg_file, extract_dir);
+        }
+        else
+        {
+            throw std::runtime_error("Unknown package format (" + pkg_file.string() + ")");
+        }
+
+        create_package(extract_dir, target, compression_level);
+        return true;
     }
 }  // namespace mamba

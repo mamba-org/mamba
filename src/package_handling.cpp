@@ -48,7 +48,7 @@ namespace mamba
     {
         int r;
         const void* buff;
-        size_t size;
+        std::size_t size;
         la_int64_t offset;
 
         while (true)
@@ -70,6 +70,163 @@ namespace mamba
             }
         }
         return r;
+    }
+
+    // Bundle up all files in directory and create destination archive
+    void create_archive(const fs::path& directory,
+                        const fs::path& destination,
+                        compression_algorithm ca,
+                        int compression_level,
+                        bool (*filter)(const std::string&))
+    {
+        struct archive* a;
+
+        fs::path abs_out_path = fs::absolute(destination);
+        a = archive_write_new();
+        if (ca == compression_algorithm::bzip2)
+        {
+            archive_write_set_format_gnutar(a);
+            archive_write_set_format_pax_restricted(a);  // Note 1
+            archive_write_add_filter_bzip2(a);
+        }
+        if (ca == compression_algorithm::zip)
+        {
+            std::string comp_level
+                = std::string("zip:compression-level=") + std::to_string(compression_level);
+            archive_write_set_format_zip(a);
+            archive_write_set_options(a, comp_level.c_str());
+        }
+        if (ca == compression_algorithm::zstd)
+        {
+            archive_write_set_format_gnutar(a);
+            archive_write_set_format_pax_restricted(a);  // Note 1
+            archive_write_add_filter_zstd(a);
+            std::string comp_level
+                = std::string("zstd:compression-level=") + std::to_string(compression_level);
+            archive_write_set_options(a, comp_level.c_str());
+        }
+
+        archive_write_open_filename(a, abs_out_path.c_str());
+
+        auto prev_path = fs::current_path();
+        if (!fs::exists(directory))
+        {
+            throw std::runtime_error("Directory does not exist.");
+        }
+        fs::current_path(directory);
+
+        for (auto& dir_entry : fs::recursive_directory_iterator("."))
+        {
+            if (dir_entry.is_directory())
+            {
+                continue;
+            }
+
+            std::string p = dir_entry.path().string();
+            // do this in a better way?
+            if (p[0] == '.')
+            {
+                p = p.substr(1);
+            }
+            if (p[0] == '/')
+            {
+                p = p.substr(1);
+            }
+            if (filter && filter(p))
+            {
+                continue;
+            }
+
+            struct archive_entry* entry;
+            entry = archive_entry_new();
+
+            struct archive* disk;
+
+            disk = archive_read_disk_new();
+            if (disk == nullptr)
+            {
+                throw std::runtime_error(concat("libarchive error: could not create read_disk"));
+            }
+            if (archive_read_disk_set_behavior(disk, 0) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+            }
+            if (archive_read_disk_open(disk, p.c_str()) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+            }
+            if (archive_read_next_header2(disk, entry) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+            }
+            if (archive_read_disk_descend(disk) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
+            }
+            if (archive_write_header(a, entry) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
+            }
+
+            std::array<char, 8192> buffer;
+            std::ifstream fin(p, std::ios::in | std::ios::binary);
+
+            while (!fin.eof())
+            {
+                fin.read(buffer.data(), buffer.size());
+                std::streamsize len = fin.gcount();
+                archive_write_data(a, buffer.data(), len);
+            }
+
+            if (archive_write_finish_entry(a) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
+            }
+
+            archive_read_close(disk);
+            archive_read_free(disk);
+            archive_entry_clear(entry);
+        }
+
+        archive_write_close(a);  // Note 4
+        archive_write_free(a);   // Note 5
+        fs::current_path(prev_path);
+    }
+
+    // note the info folder must have already been created!
+    void create_package(const fs::path& directory, const fs::path& out_file, int compression_level)
+    {
+        fs::path out_file_abs = fs::absolute(out_file);
+        if (ends_with(out_file.string(), ".tar.bz2"))
+        {
+            create_archive(
+                directory, out_file_abs, bzip2, compression_level, [](const std::string&) {
+                    return false;
+                });
+        }
+        else if (ends_with(out_file.string(), ".conda"))
+        {
+            TemporaryDirectory tdir;
+            create_archive(directory,
+                           tdir.path() / concat("info-", out_file.stem().string(), ".tar.zst"),
+                           zstd,
+                           compression_level,
+                           [](const std::string& p) -> bool { return !starts_with(p, "info/"); });
+            create_archive(directory,
+                           tdir.path() / concat("pkg-", out_file.stem().string(), ".tar.zst"),
+                           zstd,
+                           compression_level,
+                           [](const std::string& p) -> bool { return starts_with(p, "info/"); });
+
+            nlohmann::json pkg_metadata;
+            pkg_metadata["conda_pkg_format_version"] = 2;
+            std::ofstream metadata_file(tdir.path() / "metadata.json");
+            metadata_file << pkg_metadata;
+            metadata_file.close();
+
+            create_archive(
+                tdir.path(), out_file_abs, zip, 0, [](const std::string&) { return false; });
+        }
     }
 
     void extract_archive(const fs::path& file, const fs::path& destination)
@@ -212,7 +369,28 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Unknown file format (" + std::string(file) + ")");
+            throw std::runtime_error("Unknown package format (" + file.string() + ")");
         }
+    }
+
+    bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level)
+    {
+        TemporaryDirectory extract_dir;
+
+        if (ends_with(pkg_file.string(), ".tar.bz2"))
+        {
+            extract_archive(pkg_file, extract_dir);
+        }
+        else if (ends_with(pkg_file.string(), ".conda"))
+        {
+            extract_conda(pkg_file, extract_dir);
+        }
+        else
+        {
+            throw std::runtime_error("Unknown package format (" + pkg_file.string() + ")");
+        }
+
+        create_package(extract_dir, target, compression_level);
+        return true;
     }
 }  // namespace mamba

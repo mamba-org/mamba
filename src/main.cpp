@@ -6,8 +6,12 @@
 
 #include <algorithm>
 
-// #include <cxxopts.hpp>
-#include <CLI/CLI.hpp>
+#ifdef VENDORED_CLI11
+    #include "mamba/CLI.hpp"
+#else
+    #include <CLI/CLI.hpp>
+#endif
+
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/activation.hpp"
@@ -48,8 +52,9 @@ static struct
     std::vector<std::string> specs;
     std::string prefix;
     std::string name;
-    std::string file;
+    std::vector<std::string> files;
     std::vector<std::string> channels;
+    bool override_channels = false;  // currently a no-op!
 } create_options;
 
 static struct
@@ -156,8 +161,13 @@ void
 init_channel_parser(CLI::App* subcom)
 {
     subcom->add_option("-c,--channel", create_options.channels)
-        ->type_size(1, 1)
-        ->allow_extra_args(false);
+          ->type_size(1)
+          ->allow_extra_args(false)
+    ;
+
+    subcom->add_flag("--override-channels",
+                     create_options.override_channels,
+                     "Override channels (ignored, because micromamba has no default channels)");
 }
 
 void
@@ -533,7 +543,10 @@ init_create_parser(CLI::App* subcom)
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
     subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
-    subcom->add_option("-f,--file", create_options.file, "File (yaml, explicit or plain)");
+    subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
+          ->type_size(1)
+          ->allow_extra_args(false)
+    ;
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
@@ -542,61 +555,73 @@ init_create_parser(CLI::App* subcom)
         auto& ctx = Context::instance();
         set_global_options(ctx);
 
-        if (!create_options.file.empty())
+        if (create_options.files.size() != 0)
         {
-            // read specs from file :)
-            if (ends_with(create_options.file, ".yml") || ends_with(create_options.file, ".yaml"))
+            for (auto& file : create_options.files)
             {
-                YAML::Node config = YAML::LoadFile(create_options.file);
-                create_options.channels = config["channels"].as<std::vector<std::string>>();
-                create_options.name = config["name"].as<std::string>();
-                create_options.specs = config["dependencies"].as<std::vector<std::string>>();
-            }
-            else
-            {
-                std::vector<std::string> file_contents = read_lines(create_options.file);
-                if (file_contents.size() == 0)
+                if ((ends_with(file, ".yml") || ends_with(file, ".yaml")) && create_options.files.size() != 1)
                 {
-                    std::cout << "file is empty" << std::endl;
+                    std::cout << "Can only handle 1 yaml file!" << std::endl;
                     exit(1);
                 }
-                for (std::size_t i = 0; i < file_contents.size(); ++i)
-                {
-                    auto& line = file_contents[i];
-                    if (starts_with(line, "@EXPLICIT"))
-                    {
-                        // this is an explicit env
-                        // we can check if the platform is correct with the previous line
-                        std::string platform;
-                        if (i >= 1)
-                        {
-                            platform = file_contents[i - 1];
-                            if (starts_with(platform, "# platform: "))
-                            {
-                                platform = platform.substr(12);
-                            }
-                        }
+            }
 
-                        std::cout << "Installing explicit specs for platform " << platform
-                                  << std::endl;
-                        std::cout << "Explicit spec installation is a work-in-progress. Exiting."
-                                  << std::endl;
-                        exit(1);
-                        std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
-                                                                file_contents.end());
-                        install_explicit_specs(explicit_specs);
-                    }
+            for (auto& file : create_options.files)
+            {
+                // read specs from file :)
+                if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
+                {
+                    YAML::Node config = YAML::LoadFile(file);
+                    create_options.channels = config["channels"].as<std::vector<std::string>>();
+                    create_options.name = config["name"].as<std::string>();
+                    create_options.specs = config["dependencies"].as<std::vector<std::string>>();
                 }
-
-                for (auto& line : file_contents)
+                else
                 {
-                    if (line[0] == '#' || line[0] == '@')
+                    std::vector<std::string> file_contents = read_lines(file);
+                    if (file_contents.size() == 0)
                     {
-                        // skip
+                        std::cout << "file is empty" << std::endl;
+                        exit(1);
                     }
-                    else
+                    for (std::size_t i = 0; i < file_contents.size(); ++i)
                     {
-                        create_options.specs.push_back(line);
+                        auto& line = file_contents[i];
+                        if (starts_with(line, "@EXPLICIT"))
+                        {
+                            // this is an explicit env
+                            // we can check if the platform is correct with the previous line
+                            std::string platform;
+                            if (i >= 1)
+                            {
+                                platform = file_contents[i - 1];
+                                if (starts_with(platform, "# platform: "))
+                                {
+                                    platform = platform.substr(12);
+                                }
+                            }
+
+                            std::cout << "Installing explicit specs for platform " << platform
+                                      << std::endl;
+                            std::cout << "Explicit spec installation is a work-in-progress. Exiting."
+                                      << std::endl;
+                            exit(1);
+                            std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
+                                                                    file_contents.end());
+                            install_explicit_specs(explicit_specs);
+                        }
+                    }
+
+                    for (auto& line : file_contents)
+                    {
+                        if (line[0] == '#' || line[0] == '@')
+                        {
+                            // skip
+                        }
+                        else
+                        {
+                            create_options.specs.push_back(line);
+                        }
                     }
                 }
             }

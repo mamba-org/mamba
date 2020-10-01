@@ -7,9 +7,9 @@
 #include <algorithm>
 
 #ifdef VENDORED_CLI11
-    #include "mamba/CLI.hpp"
+#include "mamba/CLI.hpp"
 #else
-    #include <CLI/CLI.hpp>
+#include <CLI/CLI.hpp>
 #endif
 
 #include <yaml-cpp/yaml.h>
@@ -161,9 +161,8 @@ void
 init_channel_parser(CLI::App* subcom)
 {
     subcom->add_option("-c,--channel", create_options.channels)
-          ->type_size(1)
-          ->allow_extra_args(false)
-    ;
+        ->type_size(1)
+        ->allow_extra_args(false);
 
     subcom->add_flag("--override-channels",
                      create_options.override_channels,
@@ -544,9 +543,8 @@ init_create_parser(CLI::App* subcom)
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
     subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
-          ->type_size(1)
-          ->allow_extra_args(false)
-    ;
+        ->type_size(1)
+        ->allow_extra_args(false);
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
@@ -559,7 +557,8 @@ init_create_parser(CLI::App* subcom)
         {
             for (auto& file : create_options.files)
             {
-                if ((ends_with(file, ".yml") || ends_with(file, ".yaml")) && create_options.files.size() != 1)
+                if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
+                    && create_options.files.size() != 1)
                 {
                     std::cout << "Can only handle 1 yaml file!" << std::endl;
                     exit(1);
@@ -603,8 +602,9 @@ init_create_parser(CLI::App* subcom)
 
                             std::cout << "Installing explicit specs for platform " << platform
                                       << std::endl;
-                            std::cout << "Explicit spec installation is a work-in-progress. Exiting."
-                                      << std::endl;
+                            std::cout
+                                << "Explicit spec installation is a work-in-progress. Exiting."
+                                << std::endl;
                             exit(1);
                             std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                                     file_contents.end());

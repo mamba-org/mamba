@@ -29,7 +29,7 @@ namespace mamba
         {
             return res;
         }
-        for (auto& l : read_lines(path))
+        for (auto& l : read_lines(file_path))
         {
             // TODO: make sure that strings that are quoted are still split correctly
             //       e.g. when a file path contains a space...

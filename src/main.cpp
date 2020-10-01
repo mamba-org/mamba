@@ -647,16 +647,12 @@ init_create_parser(CLI::App* subcom)
         set_network_options(ctx);
         set_channels(ctx);
 
-        // if (fs::exists(ctx.target_prefix))
-        // {
-        //     std::cout << "Prefix already exists";
-        //     exit(1);
-        // }
-
-        for (auto& s : create_options.specs)
+        if (fs::exists(ctx.target_prefix))
         {
-            std::cout << "looking for " << s << std::endl;
+            std::cout << "Prefix already exists";
+            exit(1);
         }
+
         install_specs(create_options.specs, true);
 
         return 0;

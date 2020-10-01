@@ -48,7 +48,7 @@ namespace mamba
     {
         int r;
         const void* buff;
-        size_t size;
+        std::size_t size;
         la_int64_t offset;
 
         while (true)
@@ -80,10 +80,6 @@ namespace mamba
                         bool (*filter)(const std::string&))
     {
         struct archive* a;
-        struct archive_entry* entry;
-        char buff[8192];
-        int fd;
-        int status;
 
         fs::path abs_out_path = fs::absolute(destination);
         a = archive_write_new();
@@ -141,48 +137,52 @@ namespace mamba
                 continue;
             }
 
-            struct archive_entry *entry;
+            struct archive_entry* entry;
             entry = archive_entry_new();
 
-            struct archive *disk;
-            std::size_t len;
-            int flags = 0;
+            struct archive* disk;
 
             disk = archive_read_disk_new();
-            if (disk == NULL) {
-                // return 1;
+            if (disk == nullptr)
+            {
+                throw std::runtime_error(concat("libarchive error: could not create read_disk"));
             }
-            if (archive_read_disk_set_behavior(disk, flags) < ARCHIVE_OK) {
-                std::cout << "ERROR" << archive_error_string(disk);
-                // return 1;
+            if (archive_read_disk_set_behavior(disk, 0) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
             }
-            if (archive_read_disk_open(disk, p.c_str()) < ARCHIVE_OK) {
-                std::cout << "ERROR" << archive_error_string(disk);
-                // return 1;
+            if (archive_read_disk_open(disk, p.c_str()) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
             }
-            if (archive_read_next_header2(disk, entry) < ARCHIVE_OK) {
-                std::cout << "ERROR" << archive_error_string(disk);
-                // return 1;
+            if (archive_read_next_header2(disk, entry) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
             }
-            if (archive_read_disk_descend(disk) < ARCHIVE_OK) {
-                std::cout << "ERROR" << archive_error_string(disk);
-                // return 1;
+            if (archive_read_disk_descend(disk) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
             }
-            if (archive_write_header(a, entry) < ARCHIVE_OK) {
-                std::cout << "ERROR" << archive_error_string(a);
-                // return 1;
+            if (archive_write_header(a, entry) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
             }
-            fd = open(p.c_str(), O_RDONLY); // | O_BINARY);
-            len = read(fd, buff, sizeof(buff));
-            while ( len > 0 ) {
-                archive_write_data(a, buff, len);
-                len = read(fd, buff, sizeof(buff));
+
+            std::array<char, 8192> buffer;
+            std::ifstream fin(p, std::ios::in | std::ios::binary);
+
+            while (!fin.eof())
+            {
+                fin.read(buffer.data(), buffer.size());
+                std::streamsize len = fin.gcount();
+                archive_write_data(a, buffer.data(), len);
             }
-            close(fd);
-            if (archive_write_finish_entry(a) < ARCHIVE_OK) {
-                std::cout << "ERROR" << archive_error_string(a);
-                // return 1;
+
+            if (archive_write_finish_entry(a) < ARCHIVE_OK)
+            {
+                throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
             }
+
             archive_read_close(disk);
             archive_read_free(disk);
             archive_entry_clear(entry);

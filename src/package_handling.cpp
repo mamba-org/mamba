@@ -119,10 +119,6 @@ namespace mamba
         }
         fs::current_path(directory);
 
-        struct archive* ard;
-        ard = archive_read_disk_new();
-        archive_read_disk_set_standard_lookup(ard);
-
         for (auto& dir_entry : fs::recursive_directory_iterator("."))
         {
             if (dir_entry.is_directory())
@@ -145,37 +141,53 @@ namespace mamba
                 continue;
             }
 
-            entry = archive_entry_new();  // Note 2
-            archive_entry_set_pathname(entry, p.c_str());
-            archive_entry_copy_sourcepath(entry, p.c_str());
+            struct archive_entry *entry;
+            entry = archive_entry_new();
 
-            fd = open(p.c_str(), O_RDONLY);
-            status = archive_read_disk_entry_from_file(ard, entry, fd, NULL);
-            if (status != ARCHIVE_OK)
-            {
-                LOG_ERROR << "Read disk entry: " << archive_error_string(a);
-            }
-            status = archive_write_header(a, entry);
-            if (status != ARCHIVE_OK)
-            {
-                LOG_ERROR << "Write header: " << archive_error_string(a);
-            }
+            struct archive *disk;
+            std::size_t len;
+            int flags = 0;
 
-            std::size_t bytes_read;
-            while ((bytes_read = read(fd, buff, sizeof(buff))) > 0)
-            {
-                status = archive_write_data(a, buff, bytes_read);
-                if (status < 0)
-                {
-                    LOG_ERROR << "Write data: " << archive_error_string(a);
-                }
+            disk = archive_read_disk_new();
+            if (disk == NULL) {
+                // return 1;
             }
-
+            if (archive_read_disk_set_behavior(disk, flags) < ARCHIVE_OK) {
+                std::cout << "ERROR" << archive_error_string(disk);
+                // return 1;
+            }
+            if (archive_read_disk_open(disk, p.c_str()) < ARCHIVE_OK) {
+                std::cout << "ERROR" << archive_error_string(disk);
+                // return 1;
+            }
+            if (archive_read_next_header2(disk, entry) < ARCHIVE_OK) {
+                std::cout << "ERROR" << archive_error_string(disk);
+                // return 1;
+            }
+            if (archive_read_disk_descend(disk) < ARCHIVE_OK) {
+                std::cout << "ERROR" << archive_error_string(disk);
+                // return 1;
+            }
+            if (archive_write_header(a, entry) < ARCHIVE_OK) {
+                std::cout << "ERROR" << archive_error_string(a);
+                // return 1;
+            }
+            fd = open(p.c_str(), O_RDONLY); // | O_BINARY);
+            len = read(fd, buff, sizeof(buff));
+            while ( len > 0 ) {
+                archive_write_data(a, buff, len);
+                len = read(fd, buff, sizeof(buff));
+            }
             close(fd);
-            archive_entry_free(entry);
+            if (archive_write_finish_entry(a) < ARCHIVE_OK) {
+                std::cout << "ERROR" << archive_error_string(a);
+                // return 1;
+            }
+            archive_read_close(disk);
+            archive_read_free(disk);
+            archive_entry_clear(entry);
         }
 
-        archive_read_free(ard);
         archive_write_close(a);  // Note 4
         archive_write_free(a);   // Note 5
         fs::current_path(prev_path);

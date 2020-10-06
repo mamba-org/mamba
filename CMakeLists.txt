@@ -65,7 +65,6 @@ endif()
 # Dependencies
 # ============
 
-
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
@@ -129,6 +128,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/prefix_data.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/query.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/repo.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/shell_init.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/solver.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/subdirdata.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/thread_utils.hpp

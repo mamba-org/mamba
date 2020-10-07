@@ -1,0 +1,7 @@
+name: docs
+channels:
+  - conda-forge
+dependencies:
+  - myst-parser
+  - sphinx
+  - sphinx-book-theme

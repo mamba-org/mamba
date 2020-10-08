@@ -42,7 +42,8 @@ namespace mamba
     class PackageDownloadExtractTarget
     {
     public:
-        PackageDownloadExtractTarget(const MRepo& repo, Solvable* solvable);
+        PackageDownloadExtractTarget(Solvable* solvable);
+        PackageDownloadExtractTarget(const PackageInfo& pkg_info);
 
         void write_repodata_record(const fs::path& base_path);
         void add_url();
@@ -52,7 +53,11 @@ namespace mamba
         DownloadTarget* target(const fs::path& cache_path, MultiPackageCache& cache);
 
     private:
-        Solvable* m_solv;
+        bool m_finished;
+        PackageInfo m_package_info;
+
+        std::string m_sha256, m_md5;
+        std::size_t m_expected_size;
 
         ProgressProxy m_progress_proxy;
         std::unique_ptr<DownloadTarget> m_target;
@@ -61,7 +66,6 @@ namespace mamba
         fs::path m_tarball_path, m_cache_path;
 
         std::future<bool> m_extract_future;
-        bool m_finished;
 
         static std::mutex extract_mutex;
     };

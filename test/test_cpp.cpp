@@ -128,17 +128,56 @@ namespace mamba
             EXPECT_EQ(ms.build_number, "<=3");
         }
         {
+            MatchSpec ms(
+                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            EXPECT_EQ(ms.name, "_libgcc_mutex");
+            EXPECT_EQ(ms.version, "0.1");
+            EXPECT_EQ(ms.build, "conda_forge");
+            EXPECT_EQ(
+                ms.url,
+                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            EXPECT_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+        }
+        {
+            MatchSpec ms(
+                "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            EXPECT_EQ(ms.name, "_libgcc_mutex");
+            EXPECT_EQ(ms.version, "0.1");
+            EXPECT_EQ(ms.build, "conda_forge");
+#ifdef _WIN32
+            EXPECT_EQ(
+                ms.url,
+                "file://C:/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+#else
+            EXPECT_EQ(
+                ms.url,
+                "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+#endif
+            EXPECT_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
+        }
+        {
             MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/"
                          "xtensor-0.21.4-hc9558a2_0.tar.bz2]");
             EXPECT_EQ(ms.name, "xtensor");
             EXPECT_EQ(ms.brackets["url"],
                       "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
-            EXPECT_EQ(ms.fn, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            EXPECT_EQ(ms.url, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
         {
             MatchSpec ms("foo=1.0=2");
             EXPECT_EQ(ms.conda_build_form(), "foo 1.0 2");
             EXPECT_EQ(ms.str(), "foo==1.0=2");
+        }
+        {
+            MatchSpec ms("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2']");
+            EXPECT_EQ(ms.conda_build_form(), "foo 1.0 2");
+            EXPECT_EQ(ms.str(), "foo==1.0=2[md5=123123123,license=BSD-3,fn='test 123.tar.bz2']");
+        }
+        {
+            MatchSpec ms(
+                "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']");
+            EXPECT_EQ(ms.conda_build_form(), "foo 1.0 2");
+            EXPECT_EQ(ms.str(), "foo==1.0=2[url=abcdef,md5=123123123,license=BSD-3]");
         }
         {
             MatchSpec ms("libblas=*=*mkl");

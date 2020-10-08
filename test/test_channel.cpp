@@ -7,12 +7,27 @@
 
 namespace mamba
 {
+    std::string fix_win_path(const std::string& path);
+
 #ifdef __linux__
     std::string platform("linux-64");
 #elif __APPLE__
     std::string platform("osx-64");
 #elif _WIN32
     std::string platform("win-64");
+#endif
+
+#ifdef _WIN32
+    TEST(Channel, fix_win_path)
+    {
+        std::string test_str("file://\\unc\\path\\on\\win");
+        auto out = fix_win_path(test_str);
+        EXPECT_EQ(out, "file:///unc/path/on/win");
+        auto out2 = fix_win_path("file://C:\\Program\\ (x74)\\Users\\hello\\ world");
+        EXPECT_EQ(out2, "file://C:/Program\\ (x74)/Users/hello\\ world");
+        auto out3 = fix_win_path("file://\\\\Programs\\xyz");
+        EXPECT_EQ(out3, "file://Programs/xyz");
+    }
 #endif
 
     TEST(ChannelContext, init)

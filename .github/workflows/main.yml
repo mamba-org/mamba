@@ -54,8 +54,14 @@ jobs:
           touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DPYTHON_EXECUTABLE=`which python`
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
           make test -j2
+      - name: run new micromamba
+        shell: bash -l {0}
+        run: |
+          make -j2
+          ./micromamba --version
+          ./micromamba create -p ~/explicit_env -f ../test/explicit_env.txt
 
   build_unix:
     runs-on: ${{ matrix.os }}

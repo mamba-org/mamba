@@ -123,7 +123,7 @@ namespace mamba
             fs::path tarball_path = m_pkgs_dir / s.fn;
             // validate that this tarball has the right size and MD5 sum
             valid = validate::file_size(tarball_path, s.size);
-            valid = valid && validate::md5(tarball_path, s.md5);
+            valid = (valid || s.size == 0) && validate::md5(tarball_path, s.md5);
             LOG_INFO << tarball_path << " is " << valid;
             m_valid_cache[pkg] = valid;
         }
@@ -138,15 +138,57 @@ namespace mamba
                     std::ifstream repodata_record_f(repodata_record_path);
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
-                    valid = repodata_record["size"].get<std::size_t>() == s.size;
-                    valid = valid && repodata_record["sha256"].get<std::string>() == s.sha256;
-                    valid = valid && repodata_record["channel"].get<std::string>() == s.channel;
-                    valid = valid && repodata_record["url"].get<std::string>() == s.url;
+                    valid = true;
+                    if (s.size != 0)
+                    {
+                        valid = valid && repodata_record["size"].get<std::size_t>() == s.size;
+                        LOG_INFO << "Found cache, size differs.";
+                    }
+                    if (!s.sha256.empty())
+                    {
+                        if (s.sha256 != repodata_record["sha256"].get<std::string>())
+                        {
+                            valid = false;
+                            LOG_INFO << "Found cache, sha256 differs.";
+                        }
+                    }
+                    else if (!s.md5.empty())
+                    {
+                        if (s.md5 != repodata_record["md5"].get<std::string>())
+                        {
+                            LOG_INFO << "Found cache, md5 differs. ("
+                                     << repodata_record["md5"].get<std::string>() << " vs " << s.md5
+                                     << ")";
+                            valid = false;
+                        }
+                    }
+                    else
+                    {
+                        LOG_INFO << "Found cache, no checksum.";
+                        valid = false;  // cannot validate if we don't know either md5 or sha256
+                    }
+                    if (!repodata_record["url"].get<std::string>().empty())
+                    {
+                        if (repodata_record["url"].get<std::string>() != s.url)
+                        {
+                            LOG_INFO << "Found cache, url differs.";
+                            valid = false;
+                        }
+                    }
+                    else
+                    {
+                        if (repodata_record["channel"].get<std::string>() != s.channel)
+                        {
+                            valid = false;
+                            LOG_INFO << "Found cache, channel differs.";
+                        }
+                    }
+
                     if (!valid)
                     {
-                        LOG_WARNING << "Found directory with same name, but different size, "
-                                       "channel, url or checksum "
-                                    << repodata_record_path;
+                        LOG_INFO << "Found directory with same name, but different size, "
+                                    "channel, url or checksum "
+                                 << repodata_record_path;
                     }
                 }
                 catch (...)

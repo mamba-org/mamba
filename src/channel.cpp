@@ -297,7 +297,7 @@ namespace mamba
         {
             auto sp = rsplit(cleaned_url, "/", 1);
             cleaned_url = sp[0];
-            package_name = sp[1];
+            package_name = sp[1] + extension;
         }
         else
         {
@@ -458,7 +458,7 @@ namespace mamba
 #ifdef _WIN32
         if (starts_with(path, "file:"))
         {
-            std::regex re(R"(\\(?! )");
+            std::regex re(R"(\\(?! ))");
             std::string res = std::regex_replace(path, re, R"(/)");
             replace_all(res, ":////", "://");
             return res;

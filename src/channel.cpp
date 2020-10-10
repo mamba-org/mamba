@@ -390,17 +390,9 @@ namespace mamba
             return channel_configuration(sp[0].size() ? sp[0] : "/", sp[1], "file", "", "");
         }
 
-        // Case 7: fallback, channel_location = host:port and channel_name = path,
-        //         bumps the first token of paths starting with /conda for
-        //         compatibiliy with Anaconda Enterprise Repository software
+        // Case 7: fallback, channel_location = host:port and channel_name = path
         spath = lstrip(spath, "/");
-        std::string bump = "";
-        if (starts_with(spath, "conda"))
-        {
-            bump = "conda";
-            spath = spath.replace(0, 6, "");
-        }
-        std::string location = URLHandler().set_host(host).set_port(port).set_path(bump).url();
+        std::string location = URLHandler().set_host(host).set_port(port).url();
         return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
     }
 

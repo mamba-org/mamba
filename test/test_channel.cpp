@@ -92,6 +92,14 @@ namespace mamba
 #endif
         EXPECT_EQ(c5.name(), "channel_b");
         EXPECT_EQ(c5.platform(), platform);
+
+        std::string value6a = "http://localhost:8000/conda-forge/noarch";
+        Channel& c6a = make_channel(value6a);
+        EXPECT_EQ(c6a.url(false), value6a);
+
+        std::string value6b = "http://localhost:8000/conda_mirror/conda-forge/noarch";
+        Channel& c6b = make_channel(value6b);
+        EXPECT_EQ(c6b.url(false), value6b);
     }
 
     TEST(Channel, urls)

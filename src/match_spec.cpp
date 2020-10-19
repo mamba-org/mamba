@@ -9,6 +9,7 @@
 #include "mamba/url.hpp"
 #include "mamba/util.hpp"
 #include "mamba/channel.hpp"
+#include "mamba/environment.hpp"
 
 namespace mamba
 {
@@ -81,15 +82,12 @@ namespace mamba
             if (!has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                // spec_str = unquote(path_to_url(expand(spec_str)))
+                spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)));
             }
             auto parsed_channel = make_channel(spec_str);
 
             if (!parsed_channel.platform().empty())
             {
-                std::cout << parsed_channel.name() << std::endl;
-                std::cout << "Package file name: " << parsed_channel.package_filename()
-                          << std::endl;
                 auto dist = parse_legacy_dist(parsed_channel.package_filename());
 
                 name = dist[0];
@@ -100,9 +98,8 @@ namespace mamba
                 subdir = parsed_channel.platform();
                 fn = parsed_channel.package_filename();
                 url = spec_str;
+                is_file = true;
             }
-
-            LOG_INFO << "Got a package file: " << spec_str << std::endl;
             return;
         }
 
@@ -278,10 +275,11 @@ namespace mamba
             else if (k == "url")
             {
                 is_file = true;
-                fn = v;
+                url = v;
             }
             else if (k == "fn")
             {
+                is_file = true;
                 fn = v;
             }
         }
@@ -339,7 +337,7 @@ namespace mamba
         //     res << ":";
         // }
         res << (!name.empty() ? name : "*");
-        std::vector<std::string> brackets;
+        std::vector<std::string> formatted_brackets;
         bool version_exact = false;
 
         auto is_complex_relation
@@ -349,13 +347,13 @@ namespace mamba
         {
             if (is_complex_relation(version))
             {
-                brackets.push_back(concat("version='", version, "'"));
+                formatted_brackets.push_back(concat("version='", version, "'"));
             }
             else if (starts_with(version, "!=") || starts_with(version, "~="))
             {
                 if (!build.empty())
                 {
-                    brackets.push_back(concat("version='", version, "'"));
+                    formatted_brackets.push_back(concat("version='", version, "'"));
                 }
                 else
                 {
@@ -393,11 +391,11 @@ namespace mamba
         {
             if (is_complex_relation(build))
             {
-                brackets.push_back(concat("build='", build, "'"));
+                formatted_brackets.push_back(concat("build='", build, "'"));
             }
             else if (build.find("*") != build.npos)
             {
-                brackets.push_back(concat("build=", build));
+                formatted_brackets.push_back(concat("build=", build));
             }
             else if (version_exact)
             {
@@ -405,13 +403,34 @@ namespace mamba
             }
             else
             {
-                brackets.push_back(concat("build=", build));
+                formatted_brackets.push_back(concat("build=", build));
             }
         }
 
-        // _skip = {'channel', 'subdir', 'name', 'version', 'build'}
-        // if 'url' in self._match_components and 'fn' in self._match_components:
-        //     _skip.add('fn')
+        std::vector<std::string> check
+            = { "build_number", "track_features", "features",       "url",
+                "md5",          "license",        "license_family", "fn" };
+
+        if (!url.empty())
+        {
+            // erase "fn" when we have a URL
+            check.pop_back();
+        }
+        for (const auto& key : check)
+        {
+            if (brackets.find(key) != brackets.end())
+            {
+                if (brackets.at(key).find_first_of("= ,") != std::string::npos)
+                {
+                    // need quoting
+                    formatted_brackets.push_back(concat(key, "='", brackets.at(key), "'"));
+                }
+                else
+                {
+                    formatted_brackets.push_back(concat(key, "=", brackets.at(key)));
+                }
+            }
+        }
         // for key in self.FIELD_NAMES:
         //     if key not in _skip and key in self._match_components:
         //         if key == 'url' and channel_matcher:
@@ -423,9 +442,9 @@ namespace mamba
         //         else:
         //             brackets.append("%s=%s" % (key, value))
 
-        if (brackets.size())
+        if (formatted_brackets.size())
         {
-            res << "[" << join(",", brackets) << "]";
+            res << "[" << join(",", formatted_brackets) << "]";
         }
         return res.str();
     }

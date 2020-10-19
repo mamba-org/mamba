@@ -26,15 +26,32 @@ namespace mamba
 
     std::mutex PackageDownloadExtractTarget::extract_mutex;
 
-    PackageDownloadExtractTarget::PackageDownloadExtractTarget(const MRepo& repo,
-                                                               Solvable* solvable)
-        : m_solv(solvable)
-        , m_finished(false)
+    static std::mutex lookup_checksum_mutex;
+    std::string lookup_checksum(Solvable* s, Id checksum_type)
     {
-        m_filename = solvable_lookup_str(m_solv, SOLVABLE_MEDIAFILE);
-        m_channel = repo.url();
-        m_url = m_channel + "/" + m_filename;
-        m_name = pool_id2str(m_solv->repo->pool, m_solv->name);
+        Id unused;
+        std::lock_guard<std::mutex> lock(lookup_checksum_mutex);
+        std::string chksum = check_char(solvable_lookup_checksum(s, checksum_type, &unused));
+        return chksum;
+    }
+
+    PackageDownloadExtractTarget::PackageDownloadExtractTarget(Solvable* solvable)
+        : PackageDownloadExtractTarget(PackageInfo(solvable))
+    {
+    }
+
+    PackageDownloadExtractTarget::PackageDownloadExtractTarget(const PackageInfo& pkg_info)
+        : m_finished(false)
+        , m_package_info(pkg_info)
+    {
+        m_filename = pkg_info.fn;
+        m_channel = pkg_info.channel;
+        m_url = pkg_info.url;
+        m_name = pkg_info.name;
+
+        m_expected_size = pkg_info.size;
+        m_sha256 = pkg_info.sha256;
+        m_md5 = pkg_info.md5;
     }
 
     void PackageDownloadExtractTarget::write_repodata_record(const fs::path& base_path)
@@ -46,14 +63,8 @@ namespace mamba
         std::ifstream index_file(index_path);
         index_file >> index;
 
-        solvable_json = solvable_to_json(m_solv);
-
-        // merge those two
+        solvable_json = m_package_info.json();
         index.insert(solvable_json.cbegin(), solvable_json.cend());
-
-        index["url"] = m_url;
-        index["channel"] = m_channel;
-        index["fn"] = m_filename;
 
         std::ofstream repodata_record(repodata_record_path);
         repodata_record << index.dump(4);
@@ -65,28 +76,18 @@ namespace mamba
         urls_txt << m_url << std::endl;
     }
 
-    static std::mutex lookup_checksum_mutex;
-    std::string lookup_checksum(Solvable* s, Id checksum_type)
-    {
-        Id unused;
-        std::lock_guard<std::mutex> lock(lookup_checksum_mutex);
-        std::string chksum = check_char(solvable_lookup_checksum(s, checksum_type, &unused));
-        return chksum;
-    }
-
     bool PackageDownloadExtractTarget::validate_extract()
     {
         // Validation
-        auto expected_size = solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0);
-        if (size_t(m_target->downloaded_size) != expected_size)
+        if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: file size doesn't match expectation ("
                                      + std::string(m_tarball_path) + ")");
         }
         interruption_point();
-        std::string sha256_check = lookup_checksum(m_solv, SOLVABLE_CHECKSUM);
-        if (!sha256_check.empty() && !validate::sha256(m_tarball_path, sha256_check))
+
+        if (!m_sha256.empty() && !validate::sha256(m_tarball_path, m_sha256))
         {
             LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path;
             throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation ("
@@ -94,8 +95,7 @@ namespace mamba
         }
         else
         {
-            std::string md5_check = lookup_checksum(m_solv, SOLVABLE_PKGID);
-            if (!md5_check.empty() && !validate::md5(m_tarball_path, md5_check))
+            if (!m_md5.empty() && !validate::md5(m_tarball_path, m_md5))
             {
                 LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path;
                 throw std::runtime_error("File not valid: MD5 sum doesn't match expectation ("
@@ -124,7 +124,7 @@ namespace mamba
                   << std::setw(8);
         m_progress_proxy.elapsed_time_to_stream(final_msg);
         final_msg << " " << std::setw(12 + 2);
-        to_human_readable_filesize(final_msg, expected_size);
+        to_human_readable_filesize(final_msg, m_expected_size);
         final_msg << " " << std::setw(6);
         to_human_readable_filesize(final_msg, m_target->avg_speed);
         final_msg << "/s";
@@ -161,7 +161,7 @@ namespace mamba
         fs::path dest_dir = strip_package_extension(m_tarball_path);
         bool dest_dir_exists = fs::exists(dest_dir);
 
-        bool valid = cache.query(m_solv);
+        bool valid = cache.query(m_package_info);
 
         if (valid && !dest_dir_exists)
         {
@@ -177,7 +177,7 @@ namespace mamba
             m_progress_proxy = Console::instance().add_progress_bar(m_name);
             m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
             m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
-            m_target->set_expected_size(solvable_lookup_num(m_solv, SOLVABLE_DOWNLOADSIZE, 0));
+            m_target->set_expected_size(m_expected_size);
             m_target->set_progress_bar(m_progress_proxy);
         }
         else
@@ -652,7 +652,7 @@ namespace mamba
                 throw std::runtime_error("Repo not associated.");
             }
 
-            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(*mamba_repo, s));
+            targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
             multi_dl.add(targets[targets.size() - 1]->target(cache_path, m_multi_cache));
         }
 

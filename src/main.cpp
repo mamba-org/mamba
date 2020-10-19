@@ -15,6 +15,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/activation.hpp"
+#include "mamba/link.hpp"
 #include "mamba/channel.hpp"
 #include "mamba/context.hpp"
 #include "mamba/output.hpp"
@@ -24,6 +25,7 @@
 #include "mamba/solver.hpp"
 #include "mamba/subdirdata.hpp"
 #include "mamba/transaction.hpp"
+#include "mamba/thread_utils.hpp"
 #include "mamba/version.hpp"
 #include "mamba/util.hpp"
 
@@ -55,6 +57,7 @@ static struct
     std::vector<std::string> files;
     std::vector<std::string> channels;
     bool override_channels = false;  // currently a no-op!
+    bool strict_channel_priority = false;
 } create_options;
 
 static struct
@@ -167,6 +170,9 @@ init_channel_parser(CLI::App* subcom)
     subcom->add_flag("--override-channels",
                      create_options.override_channels,
                      "Override channels (ignored, because micromamba has no default channels)");
+    subcom->add_flag("--strict-channel-priority",
+                     create_options.strict_channel_priority,
+                     "Enable strict channel priority");
 }
 
 void
@@ -312,6 +318,9 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     std::vector<std::shared_ptr<MSubdirData>> subdirs;
     MultiDownloadTarget multi_dl;
 
+    std::vector<std::pair<int, int>> priorities;
+    int max_prio = static_cast<int>(channel_urls.size());
+    std::string prev_channel_name;
     for (auto& url : channel_urls)
     {
         auto& channel = make_channel(url);
@@ -324,6 +333,19 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         sdir->load();
         multi_dl.add(sdir->target());
         subdirs.push_back(sdir);
+        if (ctx.strict_channel_priority)
+        {
+            if (channel.name() != prev_channel_name)
+            {
+                max_prio--;
+                prev_channel_name = channel.name();
+            }
+            priorities.push_back(std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
+        }
+        else
+        {
+            priorities.push_back(std::make_pair(0, max_prio--));
+        }
     }
     multi_dl.download(true);
 
@@ -334,11 +356,25 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     auto repo = MRepo(pool, prefix_data);
     repos.push_back(repo);
 
-    int prio_counter = subdirs.size();
-    for (auto& subdir : subdirs)
+    std::string prev_channel;
+    for (std::size_t i = 0; i < subdirs.size(); ++i)
     {
+        auto& subdir = subdirs[i];
+        if (!subdir->loaded())
+        {
+            if (mamba::ends_with(subdir->name(), "/noarch"))
+            {
+                continue;
+            }
+            else
+            {
+                throw std::runtime_error("Subdir " + subdir->name() + " not loaded!");
+            }
+        }
+
+        auto& prio = priorities[i];
         MRepo repo = subdir->create_repo(pool);
-        repo.set_priority(prio_counter--, 0);
+        repo.set_priority(prio.first, prio.second);
         repos.push_back(repo);
     }
 
@@ -372,7 +408,6 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
 
     if (create_env && !Context::instance().dry_run)
     {
-        fs::create_directories(ctx.target_prefix);
         fs::create_directories(ctx.target_prefix / "conda-meta");
         fs::create_directories(ctx.target_prefix / "pkgs");
     }
@@ -514,25 +549,104 @@ init_remove_parser(CLI::App* subcom)
     subcom->callback([&]() { remove_specs(create_options.specs); });
 }
 
+bool
+download_explicit(const std::vector<PackageInfo>& pkgs)
+{
+    fs::path cache_path(Context::instance().root_prefix / "pkgs");
+    std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
+    MultiDownloadTarget multi_dl;
+    MultiPackageCache pkg_cache({ Context::instance().root_prefix / "pkgs" });
+    Console::instance().init_multi_progress();
+
+    for (auto& pkg : pkgs)
+    {
+        targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(pkg));
+        multi_dl.add(targets[targets.size() - 1]->target(cache_path, pkg_cache));
+    }
+
+    interruption_guard g([]() { Console::instance().init_multi_progress(); });
+
+    bool downloaded = multi_dl.download(true);
+
+    if (!downloaded)
+    {
+        LOG_ERROR << "Download didn't finish!";
+        return false;
+    }
+    // make sure that all targets have finished extracting
+    while (!is_sig_interrupted())
+    {
+        bool all_finished = true;
+        for (const auto& t : targets)
+        {
+            if (!t->finished())
+            {
+                all_finished = false;
+                break;
+            }
+        }
+        if (all_finished)
+        {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return !is_sig_interrupted() && downloaded;
+}
+
 void
 install_explicit_specs(std::vector<std::string>& specs)
 {
     std::vector<mamba::MatchSpec> match_specs;
+    std::vector<mamba::PackageInfo> pkg_infos;
+    mamba::History hist(Context::instance().target_prefix);
+    auto hist_entry = History::UserRequest::prefilled();
+
+    // TODO unify this
+    if (Context::instance().root_prefix.empty())
+    {
+        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
+                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                     "shell init ... \nto initialize your shell, then restart or "
+                     "source the contents of the shell init script.\n";
+        exit(1);
+    }
 
     for (auto& spec : specs)
     {
         std::size_t hash = spec.find_first_of('#');
-        std::cout << "adding spec " << spec.substr(0, hash) << std::endl;
         match_specs.emplace_back(spec.substr(0, hash));
+        auto& ms = match_specs.back();
+        PackageInfo p(ms.name);
+        p.url = ms.url;
+        p.build_string = ms.build;
+        p.version = ms.version;
+        p.channel = ms.channel;
+        p.fn = ms.fn;
+
         if (hash != std::string::npos)
         {
-            match_specs.back().brackets["md5"] = spec.substr(hash + 1);
+            ms.brackets["md5"] = spec.substr(hash + 1);
+            p.md5 = spec.substr(hash + 1);
         }
+        hist_entry.update.push_back(ms.str());
+        pkg_infos.push_back(p);
     }
-
-    for (auto& ms : match_specs)
+    if (download_explicit(pkg_infos))
     {
-        std::cout << ms.str() << std::endl;
+        // pkgs can now be linked
+        fs::create_directories(Context::instance().target_prefix / "conda-meta");
+
+        TransactionContext ctx(Context::instance().target_prefix, "");
+        for (auto& pkg : pkg_infos)
+        {
+            LinkPackage lp(pkg, Context::instance().root_prefix / "pkgs", &ctx);
+            std::cout << "Linking " << pkg.str() << "\n";
+            hist_entry.link_dists.push_back(pkg.long_str());
+            lp.execute();
+        }
+
+        hist.add_entry(hist_entry);
     }
 }
 
@@ -545,6 +659,7 @@ init_create_parser(CLI::App* subcom)
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
+
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
@@ -552,6 +667,31 @@ init_create_parser(CLI::App* subcom)
     subcom->callback([&]() {
         auto& ctx = Context::instance();
         set_global_options(ctx);
+
+        if (!create_options.name.empty() && !create_options.prefix.empty())
+        {
+            throw std::runtime_error("Cannot set both, prefix and name.");
+        }
+        if (!create_options.name.empty())
+        {
+            if (create_options.name == "base")
+            {
+                throw std::runtime_error(
+                    "Cannot create environment with name 'base'.");  // TODO! Use install -n.
+            }
+            ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+        }
+        else
+        {
+            if (create_options.prefix.empty())
+            {
+                throw std::runtime_error("Prefix and name arguments are empty.");
+            }
+            ctx.target_prefix = create_options.prefix;
+        }
+
+        set_network_options(ctx);
+        ctx.strict_channel_priority = create_options.strict_channel_priority;
 
         if (create_options.files.size() != 0)
         {
@@ -602,13 +742,10 @@ init_create_parser(CLI::App* subcom)
 
                             std::cout << "Installing explicit specs for platform " << platform
                                       << std::endl;
-                            std::cout
-                                << "Explicit spec installation is a work-in-progress. Exiting."
-                                << std::endl;
-                            exit(1);
                             std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                                     file_contents.end());
                             install_explicit_specs(explicit_specs);
+                            exit(0);
                         }
                     }
 
@@ -627,30 +764,28 @@ init_create_parser(CLI::App* subcom)
             }
         }
 
-        if (!create_options.name.empty() && !create_options.prefix.empty())
-        {
-            throw std::runtime_error("Cannot set both, prefix and name.");
-        }
-        if (!create_options.name.empty())
-        {
-            ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
-        }
-        else
-        {
-            if (create_options.prefix.empty())
-            {
-                throw std::runtime_error("Prefix and name arguments are empty.");
-            }
-            ctx.target_prefix = create_options.prefix;
-        }
-
-        set_network_options(ctx);
         set_channels(ctx);
 
         if (fs::exists(ctx.target_prefix))
         {
-            std::cout << "Prefix already exists";
-            exit(1);
+            if (fs::exists(ctx.target_prefix / "conda-meta"))
+            {
+                if (Console::prompt("Found conda-prefix in " + ctx.target_prefix.string()
+                                        + ". Overwrite?",
+                                    'n'))
+                {
+                    fs::remove_all(ctx.target_prefix);
+                }
+                else
+                {
+                    exit(1);
+                }
+            }
+            else
+            {
+                Console::print("Non-conda folder exists at prefix. Exiting.");
+                exit(1);
+            }
         }
 
         install_specs(create_options.specs, true);

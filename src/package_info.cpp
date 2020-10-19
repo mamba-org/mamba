@@ -220,10 +220,8 @@ namespace mamba
         j["license"] = license;
         j["md5"] = md5;
         j["sha256"] = sha256;
-        if (!depends.empty())
-            j["depends"] = depends;
-        if (!constrains.empty())
-            j["constrains"] = constrains;
+        j["depends"] = depends;
+        j["constrains"] = constrains;
         return j;
     }
 

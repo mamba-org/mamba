@@ -47,14 +47,14 @@ namespace mamba
         std::string name;
         std::string version;
         std::string build_string;
-        std::size_t build_number;
+        std::size_t build_number = 0;
         std::string channel;
         std::string url;
         std::string subdir;
         std::string fn;
         std::string license;
-        std::size_t size;
-        std::size_t timestamp;
+        std::size_t size = 0;
+        std::size_t timestamp = 0;
         std::string md5;
         std::string sha256;
         std::vector<std::string> depends;

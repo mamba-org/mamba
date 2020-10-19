@@ -118,7 +118,7 @@ conda.install = mamba_install
 
 
 def main():
-    from conda_env.cli.main import main
+    from conda_env.cli.main import main as conda_env_main
 
     sys.argv = sys.argv[0:1] + sys.argv[2:]
-    return main()
+    return conda_env_main()

@@ -2,4 +2,3 @@ version: 2
 
 conda:
   environment: docs/environment.yml
-

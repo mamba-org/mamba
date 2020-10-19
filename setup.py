@@ -127,7 +127,7 @@ ext_modules = [
         extra_link_args=extra_link_args,
         libraries=libraries,
         language="c++",
-    ),
+    )
 ]
 
 

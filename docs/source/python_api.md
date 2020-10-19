@@ -131,4 +131,4 @@ class MambaSolver:
 
 Let's walk through this example:
 
-We first use the `get_index` method to download repository data from the channels. 
+We first use the `get_index` method to download repository data from the channels.

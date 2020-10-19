@@ -492,7 +492,6 @@ namespace mamba
         {
             return true;
         }
-        char in;
         while (!is_sig_interrupted())
         {
             std::cout << message << ": ";
@@ -508,17 +507,18 @@ namespace mamba
             {
                 std::cout << "[y/n] ";
             }
-            in = std::cin.get();
-            if (in == '\n')
+            std::string response;
+            std::getline(std::cin, response);
+            if (response.size() == 0)
             {
                 // enter pressed
-                in = fallback;
+                response = std::string(1, fallback);
             }
-            if (in == 'y' || in == 'Y')
+            if (response.compare("y") == 0 || response.compare("Y") == 0)
             {
                 return true && !is_sig_interrupted();
             }
-            if (in == 'n' || in == 'N')
+            if (response.compare("n") == 0 || response.compare("N") == 0)
             {
                 return false;
             }

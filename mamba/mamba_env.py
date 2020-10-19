@@ -20,11 +20,21 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     # TODO: support all various ways this happens
     init_api_context()
     api.Context().target_prefix = prefix
+
+    match_specs = [MatchSpec(s) for s in specs]
+
     # Including 'nodefaults' in the channels list disables the defaults
     channel_urls = [chan for chan in env.channels if chan != "nodefaults"]
 
     if "nodefaults" not in env.channels:
         channel_urls.extend(context.channels)
+
+    for spec in match_specs:
+        # CONDA TODO: correct handling for subdir isn't yet done
+        spec_channel = spec.get_exact_value("channel")
+        if spec_channel and spec_channel not in channel_urls:
+            channel_urls.append(str(spec_channel))
+
     _channel_priority_map = prioritize_channels(channel_urls)
 
     index = get_index(tuple(_channel_priority_map.keys()), prepend=False)
@@ -64,7 +74,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         # Also pin the Python version if it's installed
         # If python was not specified, check if it is installed.
         # If yes, add the installed python to the specs to prevent updating it.
-        if "python" not in [MatchSpec(s).name for s in specs]:
+        if "python" not in [s.name for s in match_specs]:
             installed_names = [i_rec.name for i_rec in installed_pkg_recs]
             if "python" in installed_names:
                 i = installed_names.index("python")

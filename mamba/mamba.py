@@ -658,7 +658,7 @@ def create(args, parser):
             default="no",
             dry_run=False,
         )
-    install(args, parser, "create")
+    return install(args, parser, "create")
 
 
 def update(args, parser):
@@ -674,7 +674,7 @@ def update(args, parser):
         )
 
     # need to implement some modifications on the update function
-    install(args, parser, "update")
+    return install(args, parser, "update")
 
 
 def repoquery(args, parser):

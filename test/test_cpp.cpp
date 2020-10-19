@@ -145,9 +145,11 @@ namespace mamba
             EXPECT_EQ(ms.version, "0.1");
             EXPECT_EQ(ms.build, "conda_forge");
 #ifdef _WIN32
+            std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
             EXPECT_EQ(
                 ms.url,
-                "file://C:/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+                std::string("file://") + driveletter
+                    + ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
 #else
             EXPECT_EQ(
                 ms.url,

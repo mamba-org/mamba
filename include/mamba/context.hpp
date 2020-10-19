@@ -42,6 +42,7 @@ namespace mamba
         bool offline = false;
         bool quiet = false;
         bool json = false;
+        bool strict_channel_priority = false;
         bool auto_activate_base = false;
 
         long max_parallel_downloads = 5;

@@ -57,6 +57,7 @@ static struct
     std::vector<std::string> files;
     std::vector<std::string> channels;
     bool override_channels = false;  // currently a no-op!
+    bool strict_channel_priority = false;
 } create_options;
 
 static struct
@@ -169,6 +170,9 @@ init_channel_parser(CLI::App* subcom)
     subcom->add_flag("--override-channels",
                      create_options.override_channels,
                      "Override channels (ignored, because micromamba has no default channels)");
+    subcom->add_flag("--strict-channel-priority",
+                     create_options.strict_channel_priority,
+                     "Enable strict channel priority");
 }
 
 void
@@ -314,6 +318,9 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     std::vector<std::shared_ptr<MSubdirData>> subdirs;
     MultiDownloadTarget multi_dl;
 
+    std::vector<std::pair<int, int>> priorities;
+    int max_prio = static_cast<int>(channel_urls.size());
+    std::string prev_channel_name;
     for (auto& url : channel_urls)
     {
         auto& channel = make_channel(url);
@@ -326,6 +333,19 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         sdir->load();
         multi_dl.add(sdir->target());
         subdirs.push_back(sdir);
+        if (ctx.strict_channel_priority)
+        {
+            if (channel.name() != prev_channel_name)
+            {
+                max_prio--;
+                prev_channel_name = channel.name();
+            }
+            priorities.push_back(std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
+        }
+        else
+        {
+            priorities.push_back(std::make_pair(0, max_prio--));
+        }
     }
     multi_dl.download(true);
 
@@ -336,11 +356,25 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     auto repo = MRepo(pool, prefix_data);
     repos.push_back(repo);
 
-    int prio_counter = subdirs.size();
-    for (auto& subdir : subdirs)
+    std::string prev_channel;
+    for (std::size_t i = 0; i < subdirs.size(); ++i)
     {
+        auto& subdir = subdirs[i];
+        if (!subdir->loaded())
+        {
+            if (mamba::ends_with(subdir->name(), "/noarch"))
+            {
+                continue;
+            }
+            else
+            {
+                throw std::runtime_error("Subdir " + subdir->name() + " not loaded!");
+            }
+        }
+
+        auto& prio = priorities[i];
         MRepo repo = subdir->create_repo(pool);
-        repo.set_priority(prio_counter--, 0);
+        repo.set_priority(prio.first, prio.second);
         repos.push_back(repo);
     }
 
@@ -567,6 +601,17 @@ install_explicit_specs(std::vector<std::string>& specs)
     std::vector<mamba::PackageInfo> pkg_infos;
     mamba::History hist(Context::instance().target_prefix);
     auto hist_entry = History::UserRequest::prefilled();
+
+    // TODO unify this
+    if (Context::instance().root_prefix.empty())
+    {
+        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
+                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                     "shell init ... \nto initialize your shell, then restart or "
+                     "source the contents of the shell init script.\n";
+        exit(1);
+    }
+
     for (auto& spec : specs)
     {
         std::size_t hash = spec.find_first_of('#');
@@ -614,6 +659,7 @@ init_create_parser(CLI::App* subcom)
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
+
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
@@ -645,6 +691,7 @@ init_create_parser(CLI::App* subcom)
         }
 
         set_network_options(ctx);
+        ctx.strict_channel_priority = create_options.strict_channel_priority;
 
         if (create_options.files.size() != 0)
         {
@@ -721,8 +768,24 @@ init_create_parser(CLI::App* subcom)
 
         if (fs::exists(ctx.target_prefix))
         {
-            std::cout << "Prefix already exists";
-            exit(1);
+            if (fs::exists(ctx.target_prefix / "conda-meta"))
+            {
+                if (Console::prompt("Found conda-prefix in " + ctx.target_prefix.string()
+                                        + ". Overwrite?",
+                                    'n'))
+                {
+                    fs::remove_all(ctx.target_prefix);
+                }
+                else
+                {
+                    exit(1);
+                }
+            }
+            else
+            {
+                Console::print("Non-conda folder exists at prefix. Exiting.");
+                exit(1);
+            }
         }
 
         install_specs(create_options.specs, true);

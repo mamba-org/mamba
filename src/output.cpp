@@ -509,6 +509,9 @@ namespace mamba
             }
             std::string response;
             std::getline(std::cin, response);
+#ifdef _WIN32
+            response = strip(response);
+#endif
             if (response.size() == 0)
             {
                 // enter pressed

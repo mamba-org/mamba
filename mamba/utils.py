@@ -8,6 +8,7 @@ import os
 import tempfile
 
 from conda._vendor.boltons.setutils import IndexedSet
+from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump
 from conda.common.url import join_url, split_anaconda_token
@@ -74,6 +75,64 @@ def get_index(
 
     if not is_downloaded:
         raise RuntimeError("Error downloading repodata.")
+
+    return index
+
+
+def load_channels(
+    pool,
+    channels,
+    repos,
+    strict_priority=None,
+    prepend=True,
+    platform=None,
+    use_local=False,
+    repodata_fn="repodata.json",
+):
+    index = get_index(
+        channel_urls=channels,
+        prepend=prepend,
+        platform=platform,
+        use_local=use_local,
+        repodata_fn=repodata_fn,
+    )
+
+    if strict_priority is None:
+        strict_priority = context.channel_priority == ChannelPriority.STRICT
+
+    subprio_index = len(index)
+    if strict_priority:
+        # first, count unique channels
+        n_channels = len(set([channel.canonical_name for _, channel in index]))
+        current_channel = index[0][1].canonical_name
+        channel_prio = n_channels
+
+    for subdir, chan in index:
+        # add priority here
+        if strict_priority:
+            if chan.canonical_name != current_channel:
+                channel_prio -= 1
+                current_channel = chan.canonical_name
+            priority = channel_prio
+        else:
+            priority = 0
+        if strict_priority:
+            subpriority = 0 if chan.platform == "noarch" else 1
+        else:
+            subpriority = subprio_index
+            subprio_index -= 1
+
+        if not subdir.loaded() and chan.platform != "noarch":
+            # ignore non-loaded subdir if channel is != noarch
+            continue
+
+        if context.verbosity != 0:
+            print("Channel: {}, prio: {} : {}".format(chan, priority, subpriority))
+            print("Cache path: ", subdir.cache_path())
+
+        repo = subdir.create_repo(pool)
+        repo.set_priority(priority, subpriority)
+        repos.append(repo)
 
     return index
 

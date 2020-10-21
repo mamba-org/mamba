@@ -10,7 +10,7 @@ from logging import getLogger
 from os.path import isdir, isfile, join
 
 # create support
-from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
+from conda.base.constants import DepsModifier, UpdateModifier
 from conda.base.context import context
 from conda.cli import common as cli_common
 from conda.cli.common import (
@@ -50,7 +50,13 @@ from conda.models.match_spec import MatchSpec
 
 import mamba
 import mamba.mamba_api as api
-from mamba.utils import get_index, get_installed_jsonfile, init_api_context, to_txn
+from mamba.utils import (
+    get_index,
+    get_installed_jsonfile,
+    init_api_context,
+    load_channels,
+    to_txn,
+)
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
@@ -408,50 +414,6 @@ def install(args, parser, command="install"):
 
     index_args["channel_urls"] = channels
 
-    index = get_index(
-        channel_urls=index_args["channel_urls"],
-        prepend=index_args["prepend"],
-        platform=None,
-        use_local=index_args["use_local"],
-        use_cache=index_args["use_cache"],
-        unknown=index_args["unknown"],
-        prefix=prefix,
-    )
-
-    channel_json = []
-    strict_priority = context.channel_priority == ChannelPriority.STRICT
-    subprio_index = len(index)
-    if strict_priority:
-        # first, count unique channels
-        n_channels = len(set([channel.canonical_name for _, channel in index]))
-        current_channel = index[0][1].canonical_name
-        channel_prio = n_channels
-
-    for subdir, chan in index:
-        # add priority here
-        if strict_priority:
-            if chan.canonical_name != current_channel:
-                channel_prio -= 1
-                current_channel = chan.canonical_name
-            priority = channel_prio
-        else:
-            priority = 0
-        if strict_priority:
-            subpriority = 0 if chan.platform == "noarch" else 1
-        else:
-            subpriority = subprio_index
-            subprio_index -= 1
-
-        if not subdir.loaded() and chan.platform != "noarch":
-            # ignore non-loaded subdir if channel is != noarch
-            continue
-
-        if context.verbosity != 0:
-            print("Channel: {}, prio: {} : {}".format(chan, priority, subpriority))
-            print("Cache path: ", subdir.cache_path())
-
-        channel_json.append((chan, subdir, priority, subpriority))
-
     installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
 
     if isinstall and args.revision:
@@ -548,10 +510,7 @@ def install(args, parser, command="install"):
         repo.set_installed()
         repos.append(repo)
 
-    for _, subdir, priority, subpriority in channel_json:
-        repo = subdir.create_repo(pool)
-        repo.set_priority(priority, subpriority)
-        repos.append(repo)
+    index = load_channels(pool, channels, repos)
 
     if context.force_reinstall:
         solver = api.Solver(pool, solver_options, prefix_data)

@@ -76,6 +76,13 @@ static struct
     bool dry_run = false;
 } global_options;
 
+static struct
+{
+    std::string prefix;
+    bool extract_conda_pkgs = false;
+    std::string extract_tarball;
+} constructor_options;
+
 struct formatted_pkg
 {
     std::string name, version, build, channel;
@@ -178,6 +185,18 @@ init_channel_parser(CLI::App* subcom)
 void
 set_channels(Context& ctx)
 {
+    if (create_options.channels.empty()) {
+        char* comma_separated_channels = std::getenv("CONDA_CHANNELS");
+        if (comma_separated_channels != nullptr)
+        {
+            std::stringstream channels_stream(comma_separated_channels);
+            while(channels_stream.good()) {
+                std::string channel;
+                std::getline(channels_stream, channel, ',');
+                create_options.channels.push_back(channel);
+            }
+        }
+    }
     ctx.channels = create_options.channels;
 }
 
@@ -525,18 +544,57 @@ list_packages()
     t.print(std::cout);
 }
 
+void parse_file_options();
+
 void
 init_install_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the environment");
+    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
+    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
+    subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
+        ->type_size(1)
+        ->allow_extra_args(false);
+
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
 
     subcom->callback([&]() {
-        set_network_options(Context::instance());
-        set_channels(Context::instance());
-        install_specs(create_options.specs);
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+
+        if (!create_options.name.empty() && !create_options.prefix.empty())
+        {
+            throw std::runtime_error("Cannot set both, prefix and name.");
+        }
+        if (!create_options.name.empty())
+        {
+            if (create_options.name == "base")
+            {
+                 ctx.target_prefix = Context::instance().root_prefix;
+            }
+            else
+            {
+                 ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+            }
+        }
+        else
+        {
+            if (create_options.prefix.empty())
+            {
+                throw std::runtime_error("Prefix and name arguments are empty.");
+            }
+            ctx.target_prefix = create_options.prefix;
+        }
+
+        set_network_options(ctx);
+        ctx.strict_channel_priority = create_options.strict_channel_priority;
+
+        parse_file_options();
+        set_channels(ctx);
+
+        install_specs(create_options.specs, false);
     });
 }
 
@@ -650,6 +708,82 @@ install_explicit_specs(std::vector<std::string>& specs)
     }
 }
 
+void parse_file_options()
+{
+    if (create_options.files.size() == 0)
+    {
+        return;
+    }
+    for (auto& file : create_options.files)
+    {
+        if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
+            && create_options.files.size() != 1)
+        {
+            std::cout << "Can only handle 1 yaml file!" << std::endl;
+            exit(1);
+        }
+    }
+
+    for (auto& file : create_options.files)
+    {
+        // read specs from file :)
+        if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
+        {
+            YAML::Node config = YAML::LoadFile(file);
+            create_options.channels = config["channels"].as<std::vector<std::string>>();
+            create_options.name = config["name"].as<std::string>();
+            create_options.specs = config["dependencies"].as<std::vector<std::string>>();
+        }
+        else
+        {
+            std::vector<std::string> file_contents = read_lines(file);
+            if (file_contents.size() == 0)
+            {
+                std::cout << "file is empty" << std::endl;
+                exit(1);
+            }
+            for (std::size_t i = 0; i < file_contents.size(); ++i)
+            {
+                auto& line = file_contents[i];
+                if (starts_with(line, "@EXPLICIT"))
+                {
+                    // this is an explicit env
+                    // we can check if the platform is correct with the previous line
+                    std::string platform;
+                    if (i >= 1)
+                    {
+                        platform = file_contents[i - 1];
+                        if (starts_with(platform, "# platform: "))
+                        {
+                            platform = platform.substr(12);
+                        }
+                    }
+
+                    std::cout << "Installing explicit specs for platform " << platform
+                              << std::endl;
+                    std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
+                                                            file_contents.end());
+                    install_explicit_specs(explicit_specs);
+                    exit(0);
+                }
+            }
+
+            for (auto& line : file_contents)
+            {
+                if (line[0] == '#' || line[0] == '@')
+                {
+                    // skip
+                }
+                else
+                {
+                    create_options.specs.push_back(line);
+                }
+            }
+        }
+    }
+}
+
+
 void
 init_create_parser(CLI::App* subcom)
 {
@@ -693,77 +827,7 @@ init_create_parser(CLI::App* subcom)
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
 
-        if (create_options.files.size() != 0)
-        {
-            for (auto& file : create_options.files)
-            {
-                if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
-                    && create_options.files.size() != 1)
-                {
-                    std::cout << "Can only handle 1 yaml file!" << std::endl;
-                    exit(1);
-                }
-            }
-
-            for (auto& file : create_options.files)
-            {
-                // read specs from file :)
-                if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
-                {
-                    YAML::Node config = YAML::LoadFile(file);
-                    create_options.channels = config["channels"].as<std::vector<std::string>>();
-                    create_options.name = config["name"].as<std::string>();
-                    create_options.specs = config["dependencies"].as<std::vector<std::string>>();
-                }
-                else
-                {
-                    std::vector<std::string> file_contents = read_lines(file);
-                    if (file_contents.size() == 0)
-                    {
-                        std::cout << "file is empty" << std::endl;
-                        exit(1);
-                    }
-                    for (std::size_t i = 0; i < file_contents.size(); ++i)
-                    {
-                        auto& line = file_contents[i];
-                        if (starts_with(line, "@EXPLICIT"))
-                        {
-                            // this is an explicit env
-                            // we can check if the platform is correct with the previous line
-                            std::string platform;
-                            if (i >= 1)
-                            {
-                                platform = file_contents[i - 1];
-                                if (starts_with(platform, "# platform: "))
-                                {
-                                    platform = platform.substr(12);
-                                }
-                            }
-
-                            std::cout << "Installing explicit specs for platform " << platform
-                                      << std::endl;
-                            std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
-                                                                    file_contents.end());
-                            install_explicit_specs(explicit_specs);
-                            exit(0);
-                        }
-                    }
-
-                    for (auto& line : file_contents)
-                    {
-                        if (line[0] == '#' || line[0] == '@')
-                        {
-                            // skip
-                        }
-                        else
-                        {
-                            create_options.specs.push_back(line);
-                        }
-                    }
-                }
-            }
-        }
-
+        parse_file_options();
         set_channels(ctx);
 
         if (fs::exists(ctx.target_prefix))
@@ -790,6 +854,45 @@ init_create_parser(CLI::App* subcom)
 
         install_specs(create_options.specs, true);
 
+        return 0;
+    });
+}
+
+void
+init_constructor_parser(CLI::App* subcom)
+{
+    subcom->add_option("-p,--prefix", constructor_options.prefix, "Path to the Prefix");
+    subcom->add_flag("--extract-conda-pkgs", constructor_options.extract_conda_pkgs,
+                     "Extract the conda pkgs in <prefix>/pkgs");
+    subcom->add_option("--extract-tarball", constructor_options.extract_tarball,
+                     "Extract given tarball into prefix");
+
+    subcom->callback([&]() {
+        auto& ctx = Context::instance();
+
+        if (constructor_options.prefix.empty())
+        {
+            throw std::runtime_error("Prefix is required.");
+        }
+        if (constructor_options.extract_conda_pkgs)
+        {
+            fs::path pkgs_dir = constructor_options.prefix;
+            fs::path filename;
+            pkgs_dir = pkgs_dir / "pkgs";
+            for (const auto& entry : fs::directory_iterator(pkgs_dir))
+            {
+                 filename = entry.path().filename();
+                 if (ends_with(filename.string(), ".tar.bz2") ||
+		     ends_with(filename.string(), ".conda"))
+                 {
+                      extract(entry.path());
+                 }
+            }
+        }
+        if (!constructor_options.extract_tarball.empty())
+        {
+            extract_archive(constructor_options.extract_tarball, constructor_options.prefix);
+        }
         return 0;
     });
 }
@@ -833,6 +936,10 @@ main(int argc, char** argv)
 to deactivate, use micromamba deactivate.
 For this functionality to work, you need to initialize your shell with $ ./micromamba shell init
 )MRAW");
+
+    CLI::App* constructor_subcom
+        = app.add_subcommand("constructor", "Commands to support using micromamba in constructor");
+    init_constructor_parser(constructor_subcom);
 
     CLI11_PARSE(app, argc, argv);
 

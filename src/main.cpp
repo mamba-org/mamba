@@ -291,6 +291,27 @@ init_shell_parser(CLI::App* subcom)
     });
 }
 
+MRepo create_repo_from_pkgs_dir(MPool &pool, const fs::path &pkgs_dir)
+{
+    if (!fs::exists(pkgs_dir))
+    {
+        std::cout << "pkgs_dir does not exist\n";
+        exit(1);
+    }
+    PrefixData prefix_data(pkgs_dir);
+    prefix_data.load();
+    for (const auto& entry : fs::directory_iterator(pkgs_dir))
+    {
+         fs::path info_json = entry.path() / "info" / "index.json";
+         if (!fs::exists(info_json))
+         {
+             continue;
+         }
+         prefix_data.load_single_record(info_json);
+    }
+    return MRepo(pool, prefix_data);
+}
+
 void
 install_specs(const std::vector<std::string>& specs, bool create_env = false)
 {
@@ -366,10 +387,18 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
             priorities.push_back(std::make_pair(0, max_prio--));
         }
     }
-    multi_dl.download(true);
+    if (!ctx.offline)
+    {
+        multi_dl.download(true);
+    }
 
     std::vector<MRepo> repos;
     MPool pool;
+    if (ctx.offline)
+    {
+        LOG_INFO << "Creating repo from pkgs_dir for offline";
+        repos.push_back(create_repo_from_pkgs_dir(pool, ctx.root_prefix / "pkgs"));
+    }
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
     auto repo = MRepo(pool, prefix_data);
@@ -381,7 +410,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         auto& subdir = subdirs[i];
         if (!subdir->loaded())
         {
-            if (mamba::ends_with(subdir->name(), "/noarch"))
+            if (ctx.offline || mamba::ends_with(subdir->name(), "/noarch"))
             {
                 continue;
             }

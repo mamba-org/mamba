@@ -651,6 +651,10 @@ namespace mamba
             {
                 throw std::runtime_error("Repo not associated.");
             }
+            if (mamba_repo->url() == "")
+            {
+                continue;
+            }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
             multi_dl.add(targets[targets.size() - 1]->target(cache_path, m_multi_cache));

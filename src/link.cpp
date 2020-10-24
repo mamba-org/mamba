@@ -661,8 +661,10 @@ namespace mamba
             fs::remove(dst);
         }
 
+#ifdef __APPLE__
+        bool binary_changed = false;
+#endif
         // std::string path_type = path_data["path_type"].get<std::string>();
-
         if (!path_data.prefix_placeholder.empty())
         {
             // we have to replace the PREFIX stuff in the data
@@ -749,6 +751,9 @@ namespace mamba
                 std::size_t pos = buffer.find(path_data.prefix_placeholder);
                 while (pos != std::string::npos)
                 {
+#if defined(__APPLE__)
+                    binary_changed = true;
+#endif
                     std::size_t end = pos + path_data.prefix_placeholder.size();
                     std::string suffix;
 
@@ -773,7 +778,7 @@ namespace mamba
 
             fs::permissions(dst, fs::status(src).permissions());
 #if defined(__APPLE__)
-            if (m_pkg_info.subdir == "osx-arm64")
+            if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
                 subprocess::call(
                     {

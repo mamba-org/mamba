@@ -5,6 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <fstream>
+#include <cstdio>
+#include <cstring>
+#include <array>
 
 #ifdef VENDORED_CLI11
 #include "mamba/CLI.hpp"
@@ -80,7 +84,7 @@ static struct
 {
     std::string prefix;
     bool extract_conda_pkgs = false;
-    std::string extract_tarball;
+    bool extract_tarball = false;
 } constructor_options;
 
 struct formatted_pkg
@@ -892,19 +896,41 @@ init_create_parser(CLI::App* subcom)
 }
 
 void
+read_binary_from_stdin_and_write_to_file(fs::path& filename)
+{
+    std::ofstream out_stream(filename.string().c_str(), std::ofstream::binary);
+    // Need to reopen stdin as binary
+    std::freopen(nullptr, "rb", stdin);
+    if (std::ferror(stdin))
+    {
+        throw std::runtime_error("Re-opening stdin as binary failed.");
+    }
+    std::size_t len;
+    std::array<char, 1024> buffer;
+
+    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin)) > 0)
+    {
+        if (std::ferror(stdin) && !std::feof(stdin))
+        {
+            throw std::runtime_error("Reading from stdin failed.");
+        }
+        out_stream.write(buffer.data(), len);
+    }
+    out_stream.close();
+}
+
+void
 init_constructor_parser(CLI::App* subcom)
 {
     subcom->add_option("-p,--prefix", constructor_options.prefix, "Path to the Prefix");
     subcom->add_flag("--extract-conda-pkgs",
                      constructor_options.extract_conda_pkgs,
                      "Extract the conda pkgs in <prefix>/pkgs");
-    subcom->add_option("--extract-tarball",
-                       constructor_options.extract_tarball,
-                       "Extract given tarball into prefix");
+    subcom->add_flag("--extract-tarball",
+                     constructor_options.extract_tarball,
+                     "Extract given tarball into prefix");
 
     subcom->callback([&]() {
-        auto& ctx = Context::instance();
-
         if (constructor_options.prefix.empty())
         {
             throw std::runtime_error("Prefix is required.");
@@ -924,9 +950,11 @@ init_constructor_parser(CLI::App* subcom)
                 }
             }
         }
-        if (!constructor_options.extract_tarball.empty())
+        if (constructor_options.extract_tarball)
         {
-            extract_archive(constructor_options.extract_tarball, constructor_options.prefix);
+            fs::path extract_tarball_path = fs::path(constructor_options.prefix) / "_tmp.tar.bz2";
+            read_binary_from_stdin_and_write_to_file(extract_tarball_path);
+            extract_archive(extract_tarball_path, constructor_options.prefix);
         }
         return 0;
     });

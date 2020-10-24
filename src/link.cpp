@@ -772,6 +772,20 @@ namespace mamba
             fo.close();
 
             fs::permissions(dst, fs::status(src).permissions());
+#if defined(__APPLE__)
+            if (m_pkg_info.subdir == "osx-arm64")
+            {
+                subprocess::call(
+                    {
+                        "/usr/bin/codesign",
+                        "-s",
+                        "-",
+                        "-f",
+                        dst.string().c_str(),
+                    },
+                    subprocess::cwd{ dst.parent_path().string() });
+            }
+#endif
 
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }

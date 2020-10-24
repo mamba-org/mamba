@@ -616,7 +616,16 @@ init_install_parser(CLI::App* subcom)
         }
         if (!create_options.name.empty())
         {
-            if (create_options.name == "base")
+            if (Context::instance().root_prefix.empty())
+            {
+                std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
+                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                     "shell init ... \nto initialize your shell, then restart or "
+                     "source the contents of the shell init script.\n";
+		exit(1);
+
+            }
+            else if (create_options.name == "base")
             {
                 ctx.target_prefix = Context::instance().root_prefix;
             }

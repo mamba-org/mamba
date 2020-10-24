@@ -955,6 +955,7 @@ init_constructor_parser(CLI::App* subcom)
             fs::path extract_tarball_path = fs::path(constructor_options.prefix) / "_tmp.tar.bz2";
             read_binary_from_stdin_and_write_to_file(extract_tarball_path);
             extract_archive(extract_tarball_path, constructor_options.prefix);
+            fs::remove(extract_tarball_path);
         }
         return 0;
     });

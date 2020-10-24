@@ -185,12 +185,14 @@ init_channel_parser(CLI::App* subcom)
 void
 set_channels(Context& ctx)
 {
-    if (create_options.channels.empty()) {
+    if (create_options.channels.empty())
+    {
         char* comma_separated_channels = std::getenv("CONDA_CHANNELS");
         if (comma_separated_channels != nullptr)
         {
             std::stringstream channels_stream(comma_separated_channels);
-            while(channels_stream.good()) {
+            while (channels_stream.good())
+            {
                 std::string channel;
                 std::getline(channels_stream, channel, ',');
                 create_options.channels.push_back(channel);
@@ -291,7 +293,8 @@ init_shell_parser(CLI::App* subcom)
     });
 }
 
-MRepo create_repo_from_pkgs_dir(MPool &pool, const fs::path &pkgs_dir)
+MRepo
+create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
 {
     if (!fs::exists(pkgs_dir))
     {
@@ -302,12 +305,12 @@ MRepo create_repo_from_pkgs_dir(MPool &pool, const fs::path &pkgs_dir)
     prefix_data.load();
     for (const auto& entry : fs::directory_iterator(pkgs_dir))
     {
-         fs::path info_json = entry.path() / "info" / "index.json";
-         if (!fs::exists(info_json))
-         {
-             continue;
-         }
-         prefix_data.load_single_record(info_json);
+        fs::path info_json = entry.path() / "info" / "index.json";
+        if (!fs::exists(info_json))
+        {
+            continue;
+        }
+        prefix_data.load_single_record(info_json);
     }
     return MRepo(pool, prefix_data);
 }
@@ -573,7 +576,8 @@ list_packages()
     t.print(std::cout);
 }
 
-void parse_file_options();
+void
+parse_file_options();
 
 void
 init_install_parser(CLI::App* subcom)
@@ -601,11 +605,11 @@ init_install_parser(CLI::App* subcom)
         {
             if (create_options.name == "base")
             {
-                 ctx.target_prefix = Context::instance().root_prefix;
+                ctx.target_prefix = Context::instance().root_prefix;
             }
             else
             {
-                 ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+                ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
             }
         }
         else
@@ -737,7 +741,8 @@ install_explicit_specs(std::vector<std::string>& specs)
     }
 }
 
-void parse_file_options()
+void
+parse_file_options()
 {
     if (create_options.files.size() == 0)
     {
@@ -788,8 +793,7 @@ void parse_file_options()
                         }
                     }
 
-                    std::cout << "Installing explicit specs for platform " << platform
-                              << std::endl;
+                    std::cout << "Installing explicit specs for platform " << platform << std::endl;
                     std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                             file_contents.end());
                     install_explicit_specs(explicit_specs);
@@ -891,10 +895,12 @@ void
 init_constructor_parser(CLI::App* subcom)
 {
     subcom->add_option("-p,--prefix", constructor_options.prefix, "Path to the Prefix");
-    subcom->add_flag("--extract-conda-pkgs", constructor_options.extract_conda_pkgs,
+    subcom->add_flag("--extract-conda-pkgs",
+                     constructor_options.extract_conda_pkgs,
                      "Extract the conda pkgs in <prefix>/pkgs");
-    subcom->add_option("--extract-tarball", constructor_options.extract_tarball,
-                     "Extract given tarball into prefix");
+    subcom->add_option("--extract-tarball",
+                       constructor_options.extract_tarball,
+                       "Extract given tarball into prefix");
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
@@ -910,12 +916,12 @@ init_constructor_parser(CLI::App* subcom)
             pkgs_dir = pkgs_dir / "pkgs";
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
-                 filename = entry.path().filename();
-                 if (ends_with(filename.string(), ".tar.bz2") ||
-		     ends_with(filename.string(), ".conda"))
-                 {
-                      extract(entry.path());
-                 }
+                filename = entry.path().filename();
+                if (ends_with(filename.string(), ".tar.bz2")
+                    || ends_with(filename.string(), ".conda"))
+                {
+                    extract(entry.path());
+                }
             }
         }
         if (!constructor_options.extract_tarball.empty())

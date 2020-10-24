@@ -328,13 +328,22 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
 
     Console::print(banner);
 
-    if (ctx.root_prefix.empty())
+    fs::path pkgs_dirs;
+    if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
+    {
+        pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
+    }
+    else if (ctx.root_prefix.empty())
     {
         std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
                      "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
                      "shell init ... \nto initialize your shell, then restart or "
                      "source the contents of the shell init script.\n";
         exit(1);
+    }
+    else
+    {
+        pkgs_dirs = ctx.root_prefix / "pkgs";
     }
 
     if (ctx.target_prefix.empty())
@@ -349,7 +358,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         exit(1);
     }
 
-    fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
+    fs::path cache_dir = pkgs_dirs / "cache";
     try
     {
         fs::create_directories(cache_dir);
@@ -404,7 +413,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     if (ctx.offline)
     {
         LOG_INFO << "Creating repo from pkgs_dir for offline";
-        repos.push_back(create_repo_from_pkgs_dir(pool, ctx.root_prefix / "pkgs"));
+        repos.push_back(create_repo_from_pkgs_dir(pool, pkgs_dirs));
     }
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
@@ -442,7 +451,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         exit(1);
     }
 
-    mamba::MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
+    mamba::MultiPackageCache package_caches({ pkgs_dirs });
     mamba::MTransaction trans(solver, package_caches);
 
     if (ctx.json)
@@ -457,7 +466,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     }
 
     std::cout << std::endl;
-    bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
+    bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
     if (!yes)
         exit(0);
 
@@ -467,7 +476,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         fs::create_directories(ctx.target_prefix / "pkgs");
     }
 
-    trans.execute(prefix_data, ctx.root_prefix / "pkgs");
+    trans.execute(prefix_data, pkgs_dirs);
 }
 
 bool

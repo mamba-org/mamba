@@ -856,6 +856,10 @@ init_create_parser(CLI::App* subcom)
         auto& ctx = Context::instance();
         set_global_options(ctx);
 
+        // file options have to be parsed _before_ the following checks
+        // to fill in name and prefix
+        parse_file_options();
+
         if (!create_options.name.empty() && !create_options.prefix.empty())
         {
             throw std::runtime_error("Cannot set both, prefix and name.");
@@ -881,7 +885,6 @@ init_create_parser(CLI::App* subcom)
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
 
-        parse_file_options();
         set_channels(ctx);
 
         if (fs::exists(ctx.target_prefix))

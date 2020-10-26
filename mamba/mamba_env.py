@@ -13,7 +13,7 @@ from conda.models.match_spec import MatchSpec
 from conda_env.installers import conda
 
 import mamba.mamba_api as api
-from mamba.utils import get_index, get_installed_jsonfile, init_api_context, to_txn
+from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 
 def mamba_install(prefix, specs, args, env, *_, **kwargs):
@@ -35,32 +35,18 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         if spec_channel and spec_channel not in channel_urls:
             channel_urls.append(str(spec_channel))
 
-    _channel_priority_map = prioritize_channels(channel_urls)
+    ordered_channels_dict = prioritize_channels(channel_urls)
 
-    index = get_index(tuple(_channel_priority_map.keys()), prepend=False)
-
-    channel_json = []
-
-    for subdir, chan in index:
-        # add priority here
-        priority = (
-            len(_channel_priority_map)
-            - _channel_priority_map[chan.url(with_credentials=True)][1]
-        )
-        subpriority = 0 if chan.platform == "noarch" else 1
-        if not subdir.loaded() and chan.platform != "noarch":
-            # ignore non-loaded subdir if channel is != noarch
-            continue
-
-        channel_json.append((chan, subdir, priority, subpriority))
+    pool = api.Pool()
+    repos = []
+    index = load_channels(
+        pool, tuple(ordered_channels_dict.keys()), repos, prepend=False
+    )
 
     if not (context.quiet or context.json):
         print("\n\nLooking for: {}\n\n".format(specs))
 
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
-
-    pool = api.Pool()
-    repos = []
 
     # if using update
     installed_pkg_recs = []
@@ -80,11 +66,6 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
                 i = installed_names.index("python")
                 version = installed_pkg_recs[i].version
                 python_constraint = MatchSpec("python==" + version).conda_build_form()
-
-    for _, subdir, priority, subpriority in channel_json:
-        repo = subdir.create_repo(pool)
-        repo.set_priority(priority, subpriority)
-        repos.append(repo)
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(specs, api.SOLVER_INSTALL)

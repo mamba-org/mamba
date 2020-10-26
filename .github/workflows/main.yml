@@ -65,6 +65,21 @@ jobs:
           make -j2
           ./micromamba --version
           ./micromamba create -p ~/explicit_env -f ../test/explicit_env.txt
+      - name: run new micromamba yaml env
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_EXE=$(pwd)/micromamba
+          cd build
+          ./micromamba create -f ../test/yaml_env.yml
+      - name: run new micromamba spec files
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_EXE=$(pwd)/micromamba
+          cd build
+          ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
+          ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
 
   build_unix:
     runs-on: ${{ matrix.os }}

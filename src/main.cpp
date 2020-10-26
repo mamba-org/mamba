@@ -5,6 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <fstream>
+#include <cstdio>
+#include <cstring>
+#include <array>
 
 #ifdef VENDORED_CLI11
 #include "mamba/CLI.hpp"
@@ -75,6 +79,13 @@ static struct
     bool offline = false;
     bool dry_run = false;
 } global_options;
+
+static struct
+{
+    std::string prefix;
+    bool extract_conda_pkgs = false;
+    bool extract_tarball = false;
+} constructor_options;
 
 struct formatted_pkg
 {
@@ -178,6 +189,20 @@ init_channel_parser(CLI::App* subcom)
 void
 set_channels(Context& ctx)
 {
+    if (create_options.channels.empty())
+    {
+        char* comma_separated_channels = std::getenv("CONDA_CHANNELS");
+        if (comma_separated_channels != nullptr)
+        {
+            std::stringstream channels_stream(comma_separated_channels);
+            while (channels_stream.good())
+            {
+                std::string channel;
+                std::getline(channels_stream, channel, ',');
+                create_options.channels.push_back(channel);
+            }
+        }
+    }
     ctx.channels = create_options.channels;
 }
 
@@ -272,6 +297,28 @@ init_shell_parser(CLI::App* subcom)
     });
 }
 
+MRepo
+create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
+{
+    if (!fs::exists(pkgs_dir))
+    {
+        std::cout << "pkgs_dir does not exist\n";
+        exit(1);
+    }
+    PrefixData prefix_data(pkgs_dir);
+    prefix_data.load();
+    for (const auto& entry : fs::directory_iterator(pkgs_dir))
+    {
+        fs::path info_json = entry.path() / "info" / "index.json";
+        if (!fs::exists(info_json))
+        {
+            continue;
+        }
+        prefix_data.load_single_record(info_json);
+    }
+    return MRepo(pool, prefix_data);
+}
+
 void
 install_specs(const std::vector<std::string>& specs, bool create_env = false)
 {
@@ -281,13 +328,22 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
 
     Console::print(banner);
 
-    if (ctx.root_prefix.empty())
+    fs::path pkgs_dirs;
+    if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
+    {
+        pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
+    }
+    else if (ctx.root_prefix.empty())
     {
         std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
                      "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
                      "shell init ... \nto initialize your shell, then restart or "
                      "source the contents of the shell init script.\n";
         exit(1);
+    }
+    else
+    {
+        pkgs_dirs = ctx.root_prefix / "pkgs";
     }
 
     if (ctx.target_prefix.empty())
@@ -302,7 +358,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         exit(1);
     }
 
-    fs::path cache_dir = ctx.root_prefix / "pkgs" / "cache";
+    fs::path cache_dir = pkgs_dirs / "cache";
     try
     {
         fs::create_directories(cache_dir);
@@ -347,10 +403,18 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
             priorities.push_back(std::make_pair(0, max_prio--));
         }
     }
-    multi_dl.download(true);
+    if (!ctx.offline)
+    {
+        multi_dl.download(true);
+    }
 
     std::vector<MRepo> repos;
     MPool pool;
+    if (ctx.offline)
+    {
+        LOG_INFO << "Creating repo from pkgs_dir for offline";
+        repos.push_back(create_repo_from_pkgs_dir(pool, pkgs_dirs));
+    }
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
     auto repo = MRepo(pool, prefix_data);
@@ -362,7 +426,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         auto& subdir = subdirs[i];
         if (!subdir->loaded())
         {
-            if (mamba::ends_with(subdir->name(), "/noarch"))
+            if (ctx.offline || mamba::ends_with(subdir->name(), "/noarch"))
             {
                 continue;
             }
@@ -387,7 +451,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         exit(1);
     }
 
-    mamba::MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
+    mamba::MultiPackageCache package_caches({ pkgs_dirs });
     mamba::MTransaction trans(solver, package_caches);
 
     if (ctx.json)
@@ -402,7 +466,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     }
 
     std::cout << std::endl;
-    bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
+    bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
     if (!yes)
         exit(0);
 
@@ -412,7 +476,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         fs::create_directories(ctx.target_prefix / "pkgs");
     }
 
-    trans.execute(prefix_data, ctx.root_prefix / "pkgs");
+    trans.execute(prefix_data, pkgs_dirs);
 }
 
 bool
@@ -526,17 +590,65 @@ list_packages()
 }
 
 void
+parse_file_options();
+
+void
 init_install_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the environment");
+    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
+    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
+    subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
+        ->type_size(1)
+        ->allow_extra_args(false);
+
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
 
     subcom->callback([&]() {
-        set_network_options(Context::instance());
-        set_channels(Context::instance());
-        install_specs(create_options.specs);
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+
+        if (!create_options.name.empty() && !create_options.prefix.empty())
+        {
+            throw std::runtime_error("Cannot set both, prefix and name.");
+        }
+        if (!create_options.name.empty())
+        {
+            if (Context::instance().root_prefix.empty())
+            {
+                std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
+                             "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                             "shell init ... \nto initialize your shell, then restart or "
+                             "source the contents of the shell init script.\n";
+                exit(1);
+            }
+            else if (create_options.name == "base")
+            {
+                ctx.target_prefix = Context::instance().root_prefix;
+            }
+            else
+            {
+                ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+            }
+        }
+        else
+        {
+            if (create_options.prefix.empty())
+            {
+                throw std::runtime_error("Prefix and name arguments are empty.");
+            }
+            ctx.target_prefix = create_options.prefix;
+        }
+
+        set_network_options(ctx);
+        ctx.strict_channel_priority = create_options.strict_channel_priority;
+
+        parse_file_options();
+        set_channels(ctx);
+
+        install_specs(create_options.specs, false);
     });
 }
 
@@ -651,6 +763,82 @@ install_explicit_specs(std::vector<std::string>& specs)
 }
 
 void
+parse_file_options()
+{
+    if (create_options.files.size() == 0)
+    {
+        return;
+    }
+    for (auto& file : create_options.files)
+    {
+        if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
+            && create_options.files.size() != 1)
+        {
+            std::cout << "Can only handle 1 yaml file!" << std::endl;
+            exit(1);
+        }
+    }
+
+    for (auto& file : create_options.files)
+    {
+        // read specs from file :)
+        if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
+        {
+            YAML::Node config = YAML::LoadFile(file);
+            create_options.channels = config["channels"].as<std::vector<std::string>>();
+            create_options.name = config["name"].as<std::string>();
+            create_options.specs = config["dependencies"].as<std::vector<std::string>>();
+        }
+        else
+        {
+            std::vector<std::string> file_contents = read_lines(file);
+            if (file_contents.size() == 0)
+            {
+                std::cout << "file is empty" << std::endl;
+                exit(1);
+            }
+            for (std::size_t i = 0; i < file_contents.size(); ++i)
+            {
+                auto& line = file_contents[i];
+                if (starts_with(line, "@EXPLICIT"))
+                {
+                    // this is an explicit env
+                    // we can check if the platform is correct with the previous line
+                    std::string platform;
+                    if (i >= 1)
+                    {
+                        platform = file_contents[i - 1];
+                        if (starts_with(platform, "# platform: "))
+                        {
+                            platform = platform.substr(12);
+                        }
+                    }
+
+                    std::cout << "Installing explicit specs for platform " << platform << std::endl;
+                    std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
+                                                            file_contents.end());
+                    install_explicit_specs(explicit_specs);
+                    exit(0);
+                }
+            }
+
+            for (auto& line : file_contents)
+            {
+                if (line[0] == '#' || line[0] == '@')
+                {
+                    // skip
+                }
+                else
+                {
+                    create_options.specs.push_back(line);
+                }
+            }
+        }
+    }
+}
+
+
+void
 init_create_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
@@ -693,77 +881,7 @@ init_create_parser(CLI::App* subcom)
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
 
-        if (create_options.files.size() != 0)
-        {
-            for (auto& file : create_options.files)
-            {
-                if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
-                    && create_options.files.size() != 1)
-                {
-                    std::cout << "Can only handle 1 yaml file!" << std::endl;
-                    exit(1);
-                }
-            }
-
-            for (auto& file : create_options.files)
-            {
-                // read specs from file :)
-                if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
-                {
-                    YAML::Node config = YAML::LoadFile(file);
-                    create_options.channels = config["channels"].as<std::vector<std::string>>();
-                    create_options.name = config["name"].as<std::string>();
-                    create_options.specs = config["dependencies"].as<std::vector<std::string>>();
-                }
-                else
-                {
-                    std::vector<std::string> file_contents = read_lines(file);
-                    if (file_contents.size() == 0)
-                    {
-                        std::cout << "file is empty" << std::endl;
-                        exit(1);
-                    }
-                    for (std::size_t i = 0; i < file_contents.size(); ++i)
-                    {
-                        auto& line = file_contents[i];
-                        if (starts_with(line, "@EXPLICIT"))
-                        {
-                            // this is an explicit env
-                            // we can check if the platform is correct with the previous line
-                            std::string platform;
-                            if (i >= 1)
-                            {
-                                platform = file_contents[i - 1];
-                                if (starts_with(platform, "# platform: "))
-                                {
-                                    platform = platform.substr(12);
-                                }
-                            }
-
-                            std::cout << "Installing explicit specs for platform " << platform
-                                      << std::endl;
-                            std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
-                                                                    file_contents.end());
-                            install_explicit_specs(explicit_specs);
-                            exit(0);
-                        }
-                    }
-
-                    for (auto& line : file_contents)
-                    {
-                        if (line[0] == '#' || line[0] == '@')
-                        {
-                            // skip
-                        }
-                        else
-                        {
-                            create_options.specs.push_back(line);
-                        }
-                    }
-                }
-            }
-        }
-
+        parse_file_options();
         set_channels(ctx);
 
         if (fs::exists(ctx.target_prefix))
@@ -790,6 +908,72 @@ init_create_parser(CLI::App* subcom)
 
         install_specs(create_options.specs, true);
 
+        return 0;
+    });
+}
+
+void
+read_binary_from_stdin_and_write_to_file(fs::path& filename)
+{
+    std::ofstream out_stream(filename.string().c_str(), std::ofstream::binary);
+    // Need to reopen stdin as binary
+    std::freopen(nullptr, "rb", stdin);
+    if (std::ferror(stdin))
+    {
+        throw std::runtime_error("Re-opening stdin as binary failed.");
+    }
+    std::size_t len;
+    std::array<char, 1024> buffer;
+
+    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin)) > 0)
+    {
+        if (std::ferror(stdin) && !std::feof(stdin))
+        {
+            throw std::runtime_error("Reading from stdin failed.");
+        }
+        out_stream.write(buffer.data(), len);
+    }
+    out_stream.close();
+}
+
+void
+init_constructor_parser(CLI::App* subcom)
+{
+    subcom->add_option("-p,--prefix", constructor_options.prefix, "Path to the Prefix");
+    subcom->add_flag("--extract-conda-pkgs",
+                     constructor_options.extract_conda_pkgs,
+                     "Extract the conda pkgs in <prefix>/pkgs");
+    subcom->add_flag("--extract-tarball",
+                     constructor_options.extract_tarball,
+                     "Extract given tarball into prefix");
+
+    subcom->callback([&]() {
+        if (constructor_options.prefix.empty())
+        {
+            throw std::runtime_error("Prefix is required.");
+        }
+        if (constructor_options.extract_conda_pkgs)
+        {
+            fs::path pkgs_dir = constructor_options.prefix;
+            fs::path filename;
+            pkgs_dir = pkgs_dir / "pkgs";
+            for (const auto& entry : fs::directory_iterator(pkgs_dir))
+            {
+                filename = entry.path().filename();
+                if (ends_with(filename.string(), ".tar.bz2")
+                    || ends_with(filename.string(), ".conda"))
+                {
+                    extract(entry.path());
+                }
+            }
+        }
+        if (constructor_options.extract_tarball)
+        {
+            fs::path extract_tarball_path = fs::path(constructor_options.prefix) / "_tmp.tar.bz2";
+            read_binary_from_stdin_and_write_to_file(extract_tarball_path);
+            extract_archive(extract_tarball_path, constructor_options.prefix);
+            fs::remove(extract_tarball_path);
+        }
         return 0;
     });
 }
@@ -833,6 +1017,10 @@ main(int argc, char** argv)
 to deactivate, use micromamba deactivate.
 For this functionality to work, you need to initialize your shell with $ ./micromamba shell init
 )MRAW");
+
+    CLI::App* constructor_subcom
+        = app.add_subcommand("constructor", "Commands to support using micromamba in constructor");
+    init_constructor_parser(constructor_subcom);
 
     CLI11_PARSE(app, argc, argv);
 

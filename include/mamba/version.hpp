@@ -6,7 +6,7 @@
 
 #define MAMBA_VERSION_MAJOR 0
 #define MAMBA_VERSION_MINOR 6
-#define MAMBA_VERSION_PATCH 3
+#define MAMBA_VERSION_PATCH 4
 
 // Binary version
 #define MAMBA_BINARY_CURRENT 1
@@ -15,7 +15,7 @@
 
 #define MAMBA_VERSION                                                                              \
     (MAMBA_VERSION_MAJOR * 10000 + MAMBA_VERSION_MINOR * 100 + MAMBA_VERSION_PATCH)
-#define MAMBA_VERSION_STRING "0.6.3"
+#define MAMBA_VERSION_STRING "0.6.4"
 
 extern const char mamba_version[];
 extern int mamba_version_major;

@@ -258,6 +258,8 @@ namespace mamba
             Solvable* pkg_s;
             Id python = pool_str2id(m_repo->pool, "python", 0);
             Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
+            Id pip = pool_str2id(m_repo->pool, "pip", 0);
+            Id python_dep = pool_conda_matchspec(m_repo->pool, "python");
 
             FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
             {
@@ -268,6 +270,11 @@ namespace mamba
                     {
                         pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
                     }
+                }
+                if (pkg_s->name == pip)
+                {
+                    pkg_s->requires = repo_addid_dep(
+                        m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
                 }
             }
         }

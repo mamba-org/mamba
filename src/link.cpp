@@ -780,15 +780,8 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                subprocess::call(
-                    {
-                        "/usr/bin/codesign",
-                        "-s",
-                        "-",
-                        "-f",
-                        dst.string().c_str(),
-                    },
-                    subprocess::cwd{ dst.parent_path().string() });
+                std::string cmd = "/usr/bin/codesign -s - -f " + dst.string();
+                system(cmd.c_str());
             }
 #endif
 

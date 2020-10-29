@@ -100,12 +100,17 @@ namespace mamba
         this->verbosity = lvl;
     }
 
-    std::string Context::platform() const
+    std::string Context::platform()
     {
-        return MAMBA_PLATFORM;
+        std::string platform = std::getenv("CONDA_SUBDIR") ? std::getenv("CONDA_SUBDIR") : "";
+        if (platform.empty()){
+            return MAMBA_PLATFORM;
+        } else {
+            return platform;
+        }
     }
 
-    std::vector<std::string> Context::platforms() const
+    std::vector<std::string> Context::platforms()
     {
         return { platform(), "noarch" };
     }

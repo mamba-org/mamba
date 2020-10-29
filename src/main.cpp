@@ -616,7 +616,7 @@ init_install_parser(CLI::App* subcom)
         }
         if (!create_options.name.empty())
         {
-            if (Context::instance().root_prefix.empty())
+            if (ctx.root_prefix.empty())
             {
                 std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
                              "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
@@ -626,11 +626,11 @@ init_install_parser(CLI::App* subcom)
             }
             else if (create_options.name == "base")
             {
-                ctx.target_prefix = Context::instance().root_prefix;
+                ctx.target_prefix = ctx.root_prefix;
             }
             else
             {
-                ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+                ctx.target_prefix = ctx.root_prefix / "envs" / create_options.name;
             }
         }
         else if (!create_options.prefix.empty())

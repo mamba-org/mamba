@@ -633,13 +633,14 @@ init_install_parser(CLI::App* subcom)
                 ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
             }
         }
-        else
+        else if (!create_options.prefix.empty())
         {
-            if (create_options.prefix.empty())
-            {
-                throw std::runtime_error("Prefix and name arguments are empty.");
-            }
             ctx.target_prefix = create_options.prefix;
+        }
+        else if (ctx.target_prefix.empty())
+        {
+            throw std::runtime_error(
+                "Prefix and name arguments are empty and a conda environment is not activated.");
         }
 
         set_network_options(ctx);

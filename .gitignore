@@ -1,4 +1,4 @@
-include/version.hpp
+include/mamba/version.hpp
 
 *build
 __cache__/

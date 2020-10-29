@@ -103,9 +103,12 @@ namespace mamba
     std::string Context::platform()
     {
         std::string platform = std::getenv("CONDA_SUBDIR") ? std::getenv("CONDA_SUBDIR") : "";
-        if (platform.empty()){
+        if (platform.empty())
+        {
             return MAMBA_PLATFORM;
-        } else {
+        }
+        else
+        {
             return platform;
         }
     }

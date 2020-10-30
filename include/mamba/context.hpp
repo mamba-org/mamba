@@ -78,8 +78,8 @@ namespace mamba
 
         void set_verbosity(int lvl);
 
-        std::string platform() const;
-        std::vector<std::string> platforms() const;
+        static std::string platform();
+        static std::vector<std::string> platforms();
 
         std::vector<std::string> channels = {};
 

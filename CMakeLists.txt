@@ -169,6 +169,7 @@ macro(mamba_create_target target_name linkage output_name)
         find_package(LibArchive REQUIRED)
         find_package(OpenSSL REQUIRED)
         find_package(yaml-cpp CONFIG REQUIRED)
+        find_package(reproc++ CONFIG REQUIRED)
 
         set(MAMBA_DEPENDENCIES_LIBS
             ${LIBSOLV_LIBRARIES}
@@ -176,7 +177,9 @@ macro(mamba_create_target target_name linkage output_name)
             ${LibArchive_LIBRARIES}
             ${CURL_LIBRARIES}
             ${OPENSSL_LIBRARIES}
-            ${YAML_CPP_LIBRARIES})
+            ${YAML_CPP_LIBRARIES}
+            reproc++
+        )
 
         target_link_libraries(${target_name} PUBLIC
                               ${MAMBA_DEPENDENCIES_LIBS}

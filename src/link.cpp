@@ -9,6 +9,8 @@
 #include <tuple>
 #include <vector>
 
+#include <reproc++/run.hpp>
+
 #include "mamba/environment.hpp"
 #include "mamba/link.hpp"
 #include "mamba/match_spec.hpp"
@@ -18,6 +20,10 @@
 #include "mamba/validate.hpp"
 
 #include "thirdparty/subprocess.hpp"
+
+#if _WIN32
+#include "../data/conda_exe.hpp"
+#endif
 
 namespace mamba
 {
@@ -147,13 +153,6 @@ namespace mamba
         out_file.close();
 
 #ifdef _WIN32
-        fs::path conda_exe = Context::instance().conda_prefix / "Scripts" / "conda.exe";
-        if (!fs::exists(conda_exe))
-        {
-            throw std::runtime_error(
-                "Cannot link noarch package entrypoint conda.exe because conda.exe is "
-                "not installed.");
-        }
         fs::path script_exe = path;
         script_exe.replace_extension("exe");
 
@@ -162,9 +161,12 @@ namespace mamba
             LOG_ERROR << "Clobberwarning " << m_context->target_prefix / script_exe;
             fs::remove(m_context->target_prefix / script_exe);
         }
-        LOG_INFO << "Linking exe " << conda_exe << " --> " << script_exe;
-        fs::create_hard_link(conda_exe, m_context->target_prefix / script_exe);
+
+        std::ofstream conda_exe_f(m_context->target_prefix / script_exe, std::ios::binary);
+        conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
+        conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
+        std::cout << "Retuning from linking the script exe stuff." << std::endl;
         return std::array<std::string, 2>{ win_script, script_exe };
 #else
         if (!python_path.empty())
@@ -826,6 +828,7 @@ namespace mamba
         }
         all_py_files_f.close();
         // TODO use the real python file here?!
+        std::cout << "Running " << m_context->target_prefix / m_context->python_path << " -Wi -m compileall -q -l -i " << all_py_files.path() << std::endl;
         std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
                                              "-Wi",
                                              "-m",
@@ -843,9 +846,24 @@ namespace mamba
             // activate parallel pyc compilation
             command.push_back("-j0");
         }
-        auto out = subprocess::check_output(
-            command, subprocess::cwd{ std::string(m_context->target_prefix) });
+        std::cout << "Calling -- GO. (CWD: " << m_context->target_prefix << ")" << std::endl;
+        // auto out = subprocess::check_output(
+        //     command, subprocess::cwd{ std::string(m_context->target_prefix) });
 
+        int status = -1;
+        std::error_code ec;
+        reproc::options options;
+        options.redirect.parent = true;
+        options.working_directory = m_context->target_prefix.c_str();
+        // options.deadline = reproc::milliseconds(5000);
+
+        std::tie(status, ec) = reproc::run(command, options);
+
+        if (ec) {
+            std::cerr << ec.message() << std::endl;
+        }
+
+        // std::cout << "Checked output == " << (char*)out.buf.data() << std::endl;
         return pyc_files;
     }
 

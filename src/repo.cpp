@@ -24,7 +24,7 @@ namespace mamba
         const size_t bufferSize = 30;
         static char MTV[bufferSize];
         MTV[0] = '\0';
-        snprintf(MTV, bufferSize, MAMBA_TOOL_VERSION, "_", solv_version);
+        snprintf(MTV, bufferSize, MAMBA_SOLV_VERSION);
         return MTV;
     }
 

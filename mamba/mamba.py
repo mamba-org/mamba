@@ -106,14 +106,10 @@ def specs_from_args(args, json=False):
         try:
             spec = MatchSpec(arg)
         except Exception:
-            from ..exceptions import CondaValueError
-
             raise CondaValueError("invalid package specification: %s" % arg)
 
         name = spec.name
         if not spec._is_simple() and update:
-            from ..exceptions import CondaValueError
-
             raise CondaValueError(
                 """version specifications not allowed with 'update'; use
         conda update  %s%s  or

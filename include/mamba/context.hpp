@@ -55,7 +55,7 @@ namespace mamba
         bool always_yes = false;
 
         // debug helpers
-        bool keep_temp_files = false;
+        bool keep_temp_files = true;
         bool keep_temp_directories = false;
 
         bool change_ps1 = true;

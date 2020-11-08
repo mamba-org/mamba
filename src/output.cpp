@@ -280,10 +280,6 @@ namespace mamba
 
     namespace printers
     {
-        constexpr const char* green = "\033[32m";
-        constexpr const char* red = "\033[31m";
-        constexpr const char* reset = "\033[00m";
-
         Table::Table(const std::vector<FormattedString>& header)
             : m_header(header)
         {

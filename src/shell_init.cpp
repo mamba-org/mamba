@@ -12,8 +12,9 @@
 #include "mamba/activation.hpp"
 #include "mamba/environment.hpp"
 
-#include "thirdparty/subprocess.hpp"
 #include "thirdparty/termcolor.hpp"
+
+#include <reproc++/run.hpp>
 
 #ifndef _WIN32
 #if defined(__APPLE__)
@@ -190,13 +191,19 @@ namespace mamba
     std::string native_path_to_unix(const fs::path& path)
     {
         fs::path bash = env::which("bash");
-        std::string command;
-        command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
-        command += " " + path.string();
+        std::string command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
+        std::string out, err;
         try
         {
-            auto obuf = subprocess::check_output(command);
-            return obuf.buf.data();
+            auto [status, ec] = reproc::run(std::vector<std::string>{ command, path.string() },
+                                            reproc::options{},
+                                            reproc::sink::string(out),
+                                            reproc::sink::string(err));
+            if (ec)
+            {
+                throw std::runtime_error(ec.message());
+            }
+            return out;
         }
         catch (...)
         {
@@ -518,10 +525,17 @@ namespace mamba
             auto find_powershell_paths = [&profile_var](const std::string& exe) -> std::string {
                 try
                 {
-                    auto obuf
-                        = subprocess::check_output({ exe, "-NoProfile", "-Command", profile_var });
-                    std::string res(obuf.buf.data());
-                    return std::string(strip(res));
+                    std::string out, err;
+                    auto [status, ec] = reproc::run(
+                        std::vector<std::string>{ exe, "-NoProfile", "-Command", profile_var },
+                        reproc::options{},
+                        reproc::sink::string(out),
+                        reproc::sink::string(err));
+                    if (ec)
+                    {
+                        throw std::runtime_error(ec.message());
+                    }
+                    return std::string(strip(out));
                 }
                 catch (...)
                 {

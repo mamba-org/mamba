@@ -19,8 +19,6 @@
 #include "mamba/util.hpp"
 #include "mamba/validate.hpp"
 
-#include "thirdparty/subprocess.hpp"
-
 #if _WIN32
 #include "../data/conda_exe.hpp"
 #endif
@@ -534,15 +532,30 @@ namespace mamba
         envmap["PKG_BUILDNUM"] = pkg_info.build_number;
 
         std::string PATH = env::get("PATH");
+        envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
 
         std::string cargs = join(" ", command_args);
-        envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
         LOG_WARNING << "Calling " << cargs;
 
-        int response = subprocess::call(
-            cargs, subprocess::environment{ envmap }, subprocess::cwd{ path.parent_path() });
+
+        reproc::options options;
+        options.redirect.parent = true;
+        options.env.behavior = reproc::env::extend;
+        options.env.extra = envmap;
+        std::string cwd = path.parent_path();
+        options.working_directory = cwd.c_str();
+
+        LOG_DEBUG << "ENV MAP:"
+                  << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
+                  << "\n PREFIX: " << envmap["PREFIX"] << "\n PKG_NAME: " << envmap["PKG_NAME"]
+                  << "\n PKG_VERSION: " << envmap["PKG_VERSION"]
+                  << "\n PKG_BUILDNUM: " << envmap["PKG_BUILDNUM"] << "\n PATH: " << envmap["PATH"]
+                  << "\n CWD: " << cwd;
+
+        auto [status, ec] = reproc::run(command_args, options);
+
         auto msg = get_prefix_messages(envmap["PREFIX"]);
         if (Context::instance().json)
         {
@@ -554,9 +567,9 @@ namespace mamba
             Console::print(msg);
         }
 
-        if (response != 0)
+        if (ec)
         {
-            LOG_ERROR << "response code: " << response;
+            LOG_ERROR << "response code: " << status << " error message: " << ec.message();
             if (script_file != nullptr && env::get("CONDA_TEST_SAVE_TEMPS").size())
             {
                 LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
@@ -782,8 +795,14 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                std::string cmd = "/usr/bin/codesign -s - -f " + dst.string();
-                system(cmd.c_str());
+                std::vector<std::string> cmd
+                    = { "/usr/bin/codesign", "-s", "-", "-f", dst.string() };
+                auto [status, ec] = reproc::run(cmd, reproc::options{});
+                if (ec)
+                {
+                    throw std::runtime_error(std::string("Could not codesign executable")
+                                             + ec.message());
+                }
             }
 #endif
 
@@ -827,8 +846,10 @@ namespace mamba
             LOG_INFO << "Compiling " << pyc_files[pyc_files.size() - 1];
         }
         all_py_files_f.close();
+
         // TODO use the real python file here?!
-        std::cout << "Running " << m_context->target_prefix / m_context->python_path << " -Wi -m compileall -q -l -i " << all_py_files.path() << std::endl;
+        LOG_DEBUG << "Running " << m_context->target_prefix / m_context->python_path
+                  << " -Wi -m compileall -q -l -i " << all_py_files.path() << std::endl;
         std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
                                              "-Wi",
                                              "-m",
@@ -846,24 +867,19 @@ namespace mamba
             // activate parallel pyc compilation
             command.push_back("-j0");
         }
-        std::cout << "Calling -- GO. (CWD: " << m_context->target_prefix << ")" << std::endl;
-        // auto out = subprocess::check_output(
-        //     command, subprocess::cwd{ std::string(m_context->target_prefix) });
 
-        int status = -1;
-        std::error_code ec;
         reproc::options options;
         options.redirect.parent = true;
-        options.working_directory = m_context->target_prefix.c_str();
-        // options.deadline = reproc::milliseconds(5000);
+        std::string cwd = m_context->target_prefix;
+        options.working_directory = cwd.c_str();
 
-        std::tie(status, ec) = reproc::run(command, options);
+        auto [status, ec] = reproc::run(command, options);
 
-        if (ec) {
-            std::cerr << ec.message() << std::endl;
+        if (ec)
+        {
+            throw std::runtime_error(ec.message());
         }
 
-        // std::cout << "Checked output == " << (char*)out.buf.data() << std::endl;
         return pyc_files;
     }
 

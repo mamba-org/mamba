@@ -293,6 +293,8 @@ if (BUILD_EXE)
             libnghttp2.a
 
             libyaml-cpp.a
+
+            libreproc++.a
         )
 
         message("Mamba deps: ${MAMBA_DEPENDENCIES_LIBS}")

@@ -3,6 +3,7 @@
 
 #ifdef MAMBA_USE_STD_FS
 #include <filesystem>
+#include <fstream>
 namespace fs = std::filesystem;
 #else
 #include "ghc/filesystem.hpp"

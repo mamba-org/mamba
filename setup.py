@@ -116,6 +116,7 @@ ext_modules = [
             "src/validate.cpp",
             "src/version.cpp",
             "src/link.cpp",
+            "src/shell_init.cpp",
         ],
         include_dirs=[
             get_pybind_include(),
@@ -126,7 +127,7 @@ ext_modules = [
         library_dirs=library_dir,
         extra_link_args=extra_link_args,
         libraries=libraries,
-        language="c++",
+        language="c++"
     )
 ]
 
@@ -172,6 +173,9 @@ class BuildExt(build_ext):
                 opts.append("-fvisibility=hidden")
         elif ct == "msvc":
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
+
+        if sys.platform == "win32":
+            self.compiler.macros.append(('REPROCXX_SHARED', 1))
 
         for ext in self.extensions:
             ext.extra_compile_args = opts

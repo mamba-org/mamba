@@ -22,6 +22,7 @@ namespace mamba
 #endif
 
     fs::path get_self_exe_path();
+    std::string get_hook_contents(const std::string& shell);
 
     // this function calls cygpath to convert win path to unix
     std::string native_path_to_unix(const fs::path& path);

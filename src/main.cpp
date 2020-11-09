@@ -231,7 +231,8 @@ init_shell_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         std::unique_ptr<Activator> activator;
-        if (shell_options.shell_type == "bash" || shell_options.shell_type == "zsh")
+        if (shell_options.shell_type == "bash" || shell_options.shell_type == "zsh"
+            || shell_options.shell_type == "posix")
         {
             activator = std::make_unique<mamba::PosixActivator>();
         }
@@ -249,7 +250,7 @@ init_shell_parser(CLI::App* subcom)
         }
         else
         {
-            std::cout << "Currently allowed values are: bash, zsh, cmd.exe & powershell"
+            std::cout << "Currently allowed values are: posix, bash, zsh, cmd.exe & powershell"
                       << std::endl;
             exit(1);
         }
@@ -991,6 +992,8 @@ version()
 int
 main(int argc, char** argv)
 {
+    Context::instance().is_micromamba = true;
+
     CLI::App app{ std::string(banner) + "\nVersion: " + version() + "\n" };
 
     auto print_version = [](int count) {

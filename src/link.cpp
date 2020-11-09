@@ -18,6 +18,7 @@
 #include "mamba/transaction_context.hpp"
 #include "mamba/util.hpp"
 #include "mamba/validate.hpp"
+#include "mamba/shell_init.hpp"
 
 #if _WIN32
 #include "../data/conda_exe.hpp"
@@ -336,9 +337,7 @@ namespace mamba
 
         std::ofstream out(tf->path());
 
-        std::string silencer;
-        if (!debug_wrapper_scripts)
-            silencer = "@";
+        std::string silencer = debug_wrapper_scripts ? "" : "@";
 
         out << silencer << "ECHO OFF\n";
         out << silencer << "SET PYTHONIOENCODING=utf-8\n";
@@ -371,48 +370,57 @@ namespace mamba
 
         out << silencer << "CALL \"" << conda_bat << "\" activate \"" << prefix << "\"\n";
         out << silencer << "IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n";
+
         if (debug_wrapper_scripts)
         {
             out << "echo *** environment after *** 1>&2\n";
             out << "SET 1>&2\n";
         }
-
 #else
+        auto tf = std::make_unique<TemporaryFile>();
+        std::ofstream out(tf->path());
+        std::stringstream hook_quoted;
 
-        // During tests, we sometimes like to have a temp env with e.g. an old python
-        // in it and have it run tests against the very latest development sources.
-        // For that to work we need extra smarts here, we want it to be instead:
-        std::string shebang;
-        std::string dev_arg;
-        if (dev_mode)
-        {
-            shebang += std::string(root_prefix / "bin" / "python");
-            shebang += " -m conda";
+        std::string shebang, dev_arg;
 
-            dev_arg = "--dev";
-        }
-        else
+        if (!Context::instance().is_micromamba)
         {
-            if (std::getenv("CONDA_EXE"))
+            // During tests, we sometimes like to have a temp env with e.g. an old python
+            // in it and have it run tests against the very latest development sources.
+            // For that to work we need extra smarts here, we want it to be instead:
+            if (dev_mode)
             {
-                shebang = std::getenv("CONDA_EXE");
+                shebang += std::string(root_prefix / "bin" / "python");
+                shebang += " -m conda";
+
+                dev_arg = "--dev";
             }
             else
             {
-                shebang = std::string(root_prefix / "bin" / "conda");
+                if (std::getenv("CONDA_EXE"))
+                {
+                    shebang = std::getenv("CONDA_EXE");
+                }
+                else
+                {
+                    shebang = std::string(root_prefix / "bin" / "conda");
+                }
             }
+
+            if (dev_mode)
+            {
+                // out << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            }
+
+            hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
         }
-
-        auto tf = std::make_unique<TemporaryFile>();
-        std::ofstream out(tf->path());
-
-        if (dev_mode)
+        else
         {
-            // tf << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            // Micromamba hook
+            hook_quoted << std::quoted(get_self_exe_path().string(), '\'')
+                        << " 'shell' 'hook' '-s' 'bash' '-p' "
+                        << std::quoted(Context::instance().root_prefix.string(), '\'');
         }
-
-        std::stringstream hook_quoted;
-        hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
         if (debug_wrapper_scripts)
         {
             out << "set -x\n";
@@ -421,7 +429,16 @@ namespace mamba
                 << ">&2 echo \"$(" << hook_quoted.str() << ")\"\n";
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
-        out << "conda activate " << dev_arg << " " << std::quoted(prefix.c_str()) << "\n";
+
+        if (!Context::instance().is_micromamba)
+        {
+            out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
+        }
+        else
+        {
+            out << "micromamba activate " << std::quoted(prefix.string()) << "\n";
+        }
+
 
         if (debug_wrapper_scripts)
         {

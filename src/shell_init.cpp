@@ -343,6 +343,20 @@ namespace mamba
         return true;
     }
 
+    std::string get_hook_contents(const std::string& shell)
+    {
+        if (shell == "zsh" || shell == "bash" || shell == "posix")
+        {
+            return mamba_sh;
+        }
+        if (shell == "xonsh")
+        {
+            return mamba_xsh;
+        }
+
+        return "";
+    }
+
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix)
     {
         Context::instance().root_prefix = root_prefix;
@@ -356,7 +370,7 @@ namespace mamba
             }
         }
 
-        if (shell == "zsh" || shell == "bash")
+        if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             PosixActivator a;
             auto sh_source_path = a.hook_source_path();

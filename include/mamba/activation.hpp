@@ -52,6 +52,7 @@ namespace mamba
             const std::string& conda_prompt_modifier)
             = 0;
         virtual std::string shell_extension() = 0;
+        virtual std::string shell() = 0;
 
         std::vector<fs::path> get_activate_scripts(const fs::path& prefix);
         std::vector<fs::path> get_deactivate_scripts(const fs::path& prefix);
@@ -94,7 +95,7 @@ namespace mamba
 
         bool m_stack = false;
         ActivationType m_action;
-        std::string m_shell_extension;
+
         std::map<std::string, std::string> m_env;
     };
 
@@ -108,6 +109,7 @@ namespace mamba
         std::pair<std::string, std::string> update_prompt(
             const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
+        std::string shell() override;
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
@@ -124,6 +126,7 @@ namespace mamba
         std::pair<std::string, std::string> update_prompt(
             const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
+        std::string shell() override;
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
@@ -140,6 +143,7 @@ namespace mamba
         std::pair<std::string, std::string> update_prompt(
             const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
+        std::string shell() override;
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
@@ -156,6 +160,7 @@ namespace mamba
         std::pair<std::string, std::string> update_prompt(
             const std::string& conda_prompt_modifier) override;
         std::string shell_extension() override;
+        std::string shell() override;
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;

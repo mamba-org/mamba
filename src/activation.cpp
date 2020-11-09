@@ -6,6 +6,7 @@
 
 #include "mamba/activation.hpp"
 #include "mamba/environment.hpp"
+#include "mamba/shell_init.hpp"
 
 namespace mamba
 {
@@ -662,7 +663,14 @@ namespace mamba
         builder << hook_preamble() << "\n";
         if (!hook_source_path().empty())
         {
-            builder << read_contents(hook_source_path()) << "\n";
+            if (fs::exists(hook_source_path()))
+            {
+                builder << read_contents(hook_source_path()) << "\n";
+            }
+            else
+            {
+                builder << get_hook_contents(shell()) << "\n";
+            }
         }
         if (Context::instance().auto_activate_base)
         {
@@ -740,6 +748,11 @@ namespace mamba
         return ".sh";
     }
 
+    std::string PosixActivator::shell()
+    {
+        return "posix";
+    }
+
     std::string PosixActivator::hook_preamble()
     {
         // result = ''
@@ -773,6 +786,11 @@ namespace mamba
     std::string CmdExeActivator::shell_extension()
     {
         return ".bat";
+    }
+
+    std::string CmdExeActivator::shell()
+    {
+        return "cmd.exe";
     }
 
     std::string CmdExeActivator::hook_preamble()
@@ -843,6 +861,11 @@ namespace mamba
         return ".ps1";
     }
 
+    std::string PowerShellActivator::shell()
+    {
+        return "powershell";
+    }
+
     std::string PowerShellActivator::hook_preamble()
     {
         return "";
@@ -908,6 +931,11 @@ namespace mamba
     std::string XonshActivator::shell_extension()
     {
         return ".sh";
+    }
+
+    std::string XonshActivator::shell()
+    {
+        return "xonsh";
     }
 
     std::string XonshActivator::hook_preamble()

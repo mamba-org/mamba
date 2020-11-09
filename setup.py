@@ -116,7 +116,6 @@ ext_modules = [
             "src/validate.cpp",
             "src/version.cpp",
             "src/link.cpp",
-            "src/shell_init.cpp",
         ],
         include_dirs=[
             get_pybind_include(),

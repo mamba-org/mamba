@@ -71,6 +71,15 @@ namespace mamba
     std::string guess_shell()
     {
         auto shell = env::get("shell");
+
+        // auto penv = [](const char* x) {
+        //     std::cout << x << ": " << (std::getenv(x)  ? std::getenv(x) : "") << std::endl;
+        // };
+        // penv("BASH_VERSION");
+        // penv("XONSH_VERSION") ;
+        // penv("CMDEXTVERSION");
+        // penv("PSModulePath");
+
         auto bash_version = env::get("BASH_VERSION");
         if (!bash_version.empty() || shell == "bash")
         {
@@ -85,6 +94,11 @@ namespace mamba
         if (!xonsh_version.empty())
         {
             return "xonsh";
+        }
+        auto cmd_exe_version = env::get("CMDEXTVERSION");
+        if (!cmd_exe_version.empty())
+        {
+            return "cmd.exe";
         }
         auto psmodule_path = env::get("PSModulePath");
         if (!psmodule_path.empty())
@@ -357,6 +371,13 @@ namespace mamba
             replace_all(contents, "$MAMBA_EXE", get_self_exe_path().string());
             return contents;
         }
+        if (shell == "powershell")
+        {
+            std::string contents = mamba_psm1;
+            contents += "$Env:MAMBA_EXE=" + get_self_exe_path().string();
+            contents += mamba_hook_ps1;
+            return contents;
+        }
 
         return "";
     }
@@ -569,6 +590,7 @@ namespace mamba
                 {
                     profile_path = res;
                     exe = iter_exe;
+                    break;
                 }
             }
             std::cout << "Found powershell at " << exe << " and user profile at " << profile_path

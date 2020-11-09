@@ -83,7 +83,7 @@ namespace mamba
                                       "abcdefghijklmnopqrstuvwxyz";
         thread_local auto rng = random_generator<std::mt19937>();
 
-        auto dist = std::uniform_int_distribution{ {}, std::strlen(chars) };
+        auto dist = std::uniform_int_distribution{ {}, std::strlen(chars) - 1 };
         auto result = std::string(len, '\0');
         std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
         return result;

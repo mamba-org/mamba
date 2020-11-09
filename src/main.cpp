@@ -33,6 +33,8 @@
 #include "mamba/version.hpp"
 #include "mamba/util.hpp"
 
+#include "thirdparty/termcolor.hpp"
+
 const char banner[] = R"MAMBARAW(
                                            __
           __  ______ ___  ____ _____ ___  / /_  ____ _
@@ -231,6 +233,16 @@ init_shell_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         std::unique_ptr<Activator> activator;
+        if (shell_options.shell_type.empty())
+        {
+            std::string guessed_shell = guess_shell();
+            if (!guessed_shell.empty())
+            {
+                // std::cout << "Guessing shell " << termcolor::green << guessed_shell << termcolor::reset << std::endl;
+                shell_options.shell_type = guessed_shell;
+            }
+        }
+
         if (shell_options.shell_type == "bash" || shell_options.shell_type == "zsh"
             || shell_options.shell_type == "posix")
         {
@@ -988,6 +1000,7 @@ version()
 {
     return mamba_version;
 }
+
 
 int
 main(int argc, char** argv)

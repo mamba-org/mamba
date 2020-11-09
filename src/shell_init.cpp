@@ -347,11 +347,15 @@ namespace mamba
     {
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
-            return mamba_sh;
+            std::string contents = mamba_sh;
+            replace_all(contents, "$MAMBA_EXE", get_self_exe_path().string());
+            return contents;
         }
         if (shell == "xonsh")
         {
-            return mamba_xsh;
+            std::string contents = mamba_xsh;
+            replace_all(contents, "$MAMBA_EXE", get_self_exe_path().string());
+            return contents;
         }
 
         return "";

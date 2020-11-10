@@ -209,6 +209,7 @@ set_global_options(Context& ctx)
     ctx.always_yes = global_options.always_yes;
     ctx.offline = global_options.offline;
     ctx.dry_run = global_options.dry_run;
+    check_root_prefix();
 }
 
 void
@@ -867,6 +868,7 @@ init_create_parser(CLI::App* subcom)
     init_channel_parser(subcom);
     init_global_parser(subcom);
 
+
     subcom->callback([&]() {
         auto& ctx = Context::instance();
         set_global_options(ctx);
@@ -1011,7 +1013,6 @@ main(int argc, char** argv)
 
     // initial stuff
     Context::instance().is_micromamba = true;
-    check_root_prefix();
 
     auto print_version = [](int count) {
         std::cout << version() << std::endl;

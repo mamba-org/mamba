@@ -217,7 +217,7 @@ namespace mamba
             {
                 throw std::runtime_error(ec.message());
             }
-            return out;
+            return std::string(strip(out));
         }
         catch (...)
         {

@@ -29,8 +29,14 @@ import sys
 comment = """
 /*
 This is a conda-specific repackaged launcher.c from Python setuptools.
-The original source code for launcher.c can be found here: https://raw.githubusercontent.com/python/cpython/3.7/PC/launcher.c
-The source code for the conda.exe launcher can be found here: https://github.com/conda/conda-build/tree/master/conda_build/launcher_sources
+The original source code for launcher.c can be found here:
+
+    https://raw.githubusercontent.com/python/cpython/3.7/PC/launcher.c
+
+The source code for the conda.exe launcher can be found here:
+
+    https://github.com/conda/conda-build/tree/master/conda_build/launcher_sources
+
 In conda-build / launcher_sources
 */
 """

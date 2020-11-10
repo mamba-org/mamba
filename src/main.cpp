@@ -101,7 +101,7 @@ compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
 }
 
 void
-check_root_prefix(bool silent=false)
+check_root_prefix(bool silent = false)
 {
     if (Context::instance().root_prefix.empty())
     {
@@ -118,7 +118,8 @@ check_root_prefix(bool silent=false)
         }
         Context::instance().root_prefix = fallback_root_prefix;
 
-        if (silent) return;
+        if (silent)
+            return;
 
         // only print for the first time...
         if (!fs::exists(fallback_root_prefix))

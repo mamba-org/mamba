@@ -375,8 +375,6 @@ namespace mamba
             out << "echo *** environment after *** 1>&2\n";
             out << "SET 1>&2\n";
         }
-
-        out << "\n" << join(" ", arguments);
 #else
         auto tf = std::make_unique<TemporaryFile>();
         std::ofstream out(tf->path());
@@ -446,12 +444,9 @@ namespace mamba
             out << ">&2 echo \"*** environment after ***\"\n"
                 << ">&2 env\n";
         }
-
-        out << "\n" << join(" ", arguments);
 #endif
-
-        out.close();
-
+        // write our command
+        out << "\n" << join(" ", arguments);
         return tf;
     }
 
@@ -547,7 +542,9 @@ namespace mamba
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : std::string(prefix);
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
-        envmap["PKG_BUILDNUM"] = pkg_info.build_string.empty() ? std::to_string(pkg_info.build_number) : pkg_info.build_string;
+        envmap["PKG_BUILDNUM"] = pkg_info.build_string.empty()
+                                     ? std::to_string(pkg_info.build_number)
+                                     : pkg_info.build_string;
 
         std::string PATH = env::get("PATH");
         envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);

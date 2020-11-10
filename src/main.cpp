@@ -95,9 +95,47 @@ struct formatted_pkg
 };
 
 bool
-compareAlphabetically(const formatted_pkg& a, const formatted_pkg& b)
+compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
 {
     return a.name < b.name;
+}
+
+void
+check_root_prefix()
+{
+    if (Context::instance().root_prefix.empty())
+    {
+        fs::path fallback_root_prefix = env::home_directory() / "micromamba";
+        if (fs::exists(fallback_root_prefix) && !fs::is_empty(fallback_root_prefix))
+        {
+            if (!(fs::exists(fallback_root_prefix / "pkgs")
+                  || fs::exists(fallback_root_prefix / "conda-meta")))
+            {
+                std::cout << "Could not use fallback root prefix " << fallback_root_prefix
+                          << "\nDirectory exists, is not emtpy and not a conda prefix.";
+                exit(1);
+            }
+        }
+        Context::instance().root_prefix = fallback_root_prefix;
+
+        // only print for the first time...
+        if (!fs::exists(fallback_root_prefix))
+        {
+            std::cout << termcolor::yellow << "Warning: " << termcolor::reset
+                      << "setting fallback $MAMBA_ROOT_PREFIX to " << fallback_root_prefix
+                      << ".\n\n";
+            std::cout
+                << "You have not set a $MAMBA_ROOT_PREFIX environment variable.\nTo permanently modify the root prefix location, either set the "
+                   "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
+                   "shell init ... \nto initialize your shell, then restart or "
+                   "source the contents of the shell init script.\n\n";
+        }
+        else
+        {
+            std::cout << termcolor::yellow << "Using fallback root prefix: " << termcolor::reset
+                      << fallback_root_prefix << ".\n\n";
+        }
+    }
 }
 
 void
@@ -238,7 +276,8 @@ init_shell_parser(CLI::App* subcom)
             std::string guessed_shell = guess_shell();
             if (!guessed_shell.empty())
             {
-                // std::cout << "Guessing shell " << termcolor::green << guessed_shell << termcolor::reset << std::endl;
+                // std::cout << "Guessing shell " << termcolor::green << guessed_shell <<
+                // termcolor::reset << std::endl;
                 shell_options.shell_type = guessed_shell;
             }
         }
@@ -284,11 +323,6 @@ init_shell_parser(CLI::App* subcom)
             // checking wether we have a path or a name
             if (shell_options.prefix.find_first_of("/\\") == std::string::npos)
             {
-                if (Context::instance().root_prefix.empty())
-                {
-                    throw std::runtime_error(
-                        "Trying to activate environment by name, but MAMBA_ROOT_PREFIX environment variable is not set.\nPlease run micromamba shell init.");
-                }
                 shell_options.prefix
                     = Context::instance().root_prefix / "envs" / shell_options.prefix;
             }
@@ -342,17 +376,10 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
     Console::print(banner);
 
     fs::path pkgs_dirs;
+
     if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
     {
         pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
-    }
-    else if (ctx.root_prefix.empty())
-    {
-        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
-                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
-                     "shell init ... \nto initialize your shell, then restart or "
-                     "source the contents of the shell init script.\n";
-        exit(1);
     }
     else
     {
@@ -501,15 +528,6 @@ remove_specs(const std::vector<std::string>& specs)
 
     Console::print(banner);
 
-    if (ctx.root_prefix.empty())
-    {
-        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
-                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
-                     "shell init ... \nto initialize your shell, then restart or "
-                     "source the contents of the shell init script.\n";
-        exit(1);
-    }
-
     if (ctx.target_prefix.empty())
     {
         std::cout << "No active target prefix.\n\nRun $ micromamba activate "
@@ -584,7 +602,7 @@ list_packages()
         packages.push_back(formatted_pkgs);
     }
 
-    std::sort(packages.begin(), packages.end(), compareAlphabetically);
+    std::sort(packages.begin(), packages.end(), compare_alphabetically);
 
     // format and print table
     printers::Table t({ "Name", "Version", "Build", "Channel" });
@@ -629,15 +647,7 @@ init_install_parser(CLI::App* subcom)
         }
         if (!create_options.name.empty())
         {
-            if (ctx.root_prefix.empty())
-            {
-                std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
-                             "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
-                             "shell init ... \nto initialize your shell, then restart or "
-                             "source the contents of the shell init script.\n";
-                exit(1);
-            }
-            else if (create_options.name == "base")
+            if (create_options.name == "base")
             {
                 ctx.target_prefix = ctx.root_prefix;
             }
@@ -729,15 +739,6 @@ install_explicit_specs(std::vector<std::string>& specs)
     auto hist_entry = History::UserRequest::prefilled();
 
     // TODO unify this
-    if (Context::instance().root_prefix.empty())
-    {
-        std::cout << "You have not set a $MAMBA_ROOT_PREFIX.\nEither set the "
-                     "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
-                     "shell init ... \nto initialize your shell, then restart or "
-                     "source the contents of the shell init script.\n";
-        exit(1);
-    }
-
     for (auto& spec : specs)
     {
         std::size_t hash = spec.find_first_of('#');
@@ -885,6 +886,7 @@ init_create_parser(CLI::App* subcom)
                 throw std::runtime_error(
                     "Cannot create environment with name 'base'.");  // TODO! Use install -n.
             }
+
             ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
         }
         else
@@ -1005,9 +1007,11 @@ version()
 int
 main(int argc, char** argv)
 {
-    Context::instance().is_micromamba = true;
-
     CLI::App app{ std::string(banner) + "\nVersion: " + version() + "\n" };
+
+    // initial stuff
+    Context::instance().is_micromamba = true;
+    check_root_prefix();
 
     auto print_version = [](int count) {
         std::cout << version() << std::endl;

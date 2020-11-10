@@ -278,13 +278,14 @@ init_shell_parser(CLI::App* subcom)
 
         if (shell_options.shell_type.empty())
         {
-            std::string guessed_shell = guess_shell();
-            if (!guessed_shell.empty())
-            {
-                // std::cout << "Guessing shell " << termcolor::green << guessed_shell <<
-                // termcolor::reset << std::endl;
-                shell_options.shell_type = guessed_shell;
-            }
+            // Doesnt work yet.
+            // std::string guessed_shell = guess_shell();
+            // if (!guessed_shell.empty())
+            // {
+            //     // std::cout << "Guessing shell " << termcolor::green << guessed_shell <<
+            //     // termcolor::reset << std::endl;
+            //     shell_options.shell_type = guessed_shell;
+            // }
         }
 
         if (shell_options.shell_type == "bash" || shell_options.shell_type == "zsh"

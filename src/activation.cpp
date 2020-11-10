@@ -672,6 +672,14 @@ namespace mamba
                 builder << get_hook_contents(shell()) << "\n";
             }
         }
+
+        // special handling for cmd.exe
+        if (!fs::exists(hook_source_path()) && shell() == "cmd.exe")
+        {
+            get_hook_contents(shell());
+            return "";
+        }
+
         if (Context::instance().auto_activate_base)
         {
             builder << "micromamba activate base\n";

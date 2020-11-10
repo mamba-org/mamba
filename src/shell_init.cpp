@@ -71,7 +71,6 @@ namespace mamba
     std::string guess_shell()
     {
         auto shell = env::get("shell");
-
         // auto penv = [](const char* x) {
         //     std::cout << x << ": " << (std::getenv(x)  ? std::getenv(x) : "") << std::endl;
         // };
@@ -379,6 +378,12 @@ namespace mamba
             psm1 = psm1.substr(0, psm1.find("## EXPORTS ##"));
             contents << psm1;
             return contents.str();
+        }
+        else if (shell == "cmd.exe")
+        {
+            init_root_prefix_cmdexe(Context::instance().root_prefix);
+            std::cout << termcolor::red << "Hook installed, now 'manually' execute:\n\n" << termcolor::reset
+                      << "       CALL " << std::quoted((Context::instance().root_prefix / "condabin" / "mamba_hook.bat").string()) << std::endl;
         }
         return "";
     }

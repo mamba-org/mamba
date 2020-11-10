@@ -184,3 +184,19 @@ jobs:
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
           ninja
           .\micromamba.exe --help
+      - name: Install "wheel" in micromamba default env
+        shell: powershell
+        run: |
+          .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+          micromamba create -n testenv python=3.8 wheel -c conda-forge
+          micromamba activate testenv
+          wheel --help
+      - name: Test activation on cmd.bat
+        shell: cmd
+        run: |
+          .\micromamba.exe shell hook -s cmd.exe
+          CALL %userprofile%\micromamba\condabin\mamba_hook.bat
+          cd %userprofile%
+          micromamba create -n testenv2 python=3.8 wheel -c conda-forge
+          micromamba activate testenv
+          wheel --help

@@ -168,6 +168,35 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
+
+  build_win_micromamba:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        run: conda info
+      - name: Create the conda environment
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          conda activate mamba-tests
+          python --version
+          python -m pip install ".[test]"
       - name: Run C++ tests Windows
         shell: cmd
         run: |
@@ -187,13 +216,16 @@ jobs:
       - name: Install "wheel" in micromamba default env
         shell: powershell
         run: |
+          cd cmake_build
           .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+          cd \
           micromamba create -n testenv python=3.8 wheel -c conda-forge
           micromamba activate testenv
           wheel --help
       - name: Test activation on cmd.bat
         shell: cmd
         run: |
+          cd cmake_build
           .\micromamba.exe shell hook -s cmd.exe
           CALL %userprofile%\micromamba\condabin\mamba_hook.bat
           cd %userprofile%

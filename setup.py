@@ -126,7 +126,7 @@ ext_modules = [
         library_dirs=library_dir,
         extra_link_args=extra_link_args,
         libraries=libraries,
-        language="c++"
+        language="c++",
     )
 ]
 
@@ -174,7 +174,7 @@ class BuildExt(build_ext):
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
 
         if sys.platform == "win32":
-            self.compiler.macros.append(('REPROCXX_SHARED', 1))
+            self.compiler.macros.append(("REPROCXX_SHARED", 1))
 
         for ext in self.extensions:
             ext.extra_compile_args = opts

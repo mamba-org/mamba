@@ -113,21 +113,20 @@ namespace mamba
     auto LinkPackage::create_python_entry_point(const fs::path& path,
                                                 const python_entry_point_parsed& entry_point)
     {
-        fs::path target = m_context->target_prefix / path;
-        if (fs::exists(target))
-        {
-            throw std::runtime_error("clobber warning");
-        }
-
 #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will
         // automatically find the correct script to launch
-        std::string win_script = path;
-        win_script += "-script.py";
-        std::ofstream out_file(m_context->target_prefix / win_script);
+        std::string win_script = path.string() + "-script.py";
+        fs::path script_path = m_context->target_prefix / win_script;
 #else
-        std::ofstream out_file(target);
+        fs::path script_path = m_context->target_prefix / path;
 #endif
+        if (fs::exists(script_path))
+        {
+            LOG_ERROR << "Clobberwarning " << script_path;
+            fs::remove(script_path);
+        }
+        std::ofstream out_file(script_path);
 
         fs::path python_path;
         if (m_context->has_python)
@@ -169,7 +168,7 @@ namespace mamba
 #else
         if (!python_path.empty())
         {
-            make_executable(target);
+            make_executable(script_path);
         }
         return path;
 #endif
@@ -451,7 +450,7 @@ namespace mamba
     }
 
     /*
-        call the post-link or pre-unlink script and return true / false on success /
+       call the post-link or pre-unlink script and return true / false on success /
        failure
     */
     bool run_script(const fs::path& prefix,
@@ -553,7 +552,6 @@ namespace mamba
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
         LOG_WARNING << "Calling " << cargs;
-
 
         reproc::options options;
         options.redirect.parent = true;
@@ -831,7 +829,7 @@ namespace mamba
         }
         else if (path_data.path_type == PathType::SOFTLINK)
         {
-            LOG_INFO << "soft linked " << src << " -> " << dst;
+            LOG_INFO << "soft linked " << src << " --> " << dst;
             fs::copy_symlink(src, dst);
         }
         else

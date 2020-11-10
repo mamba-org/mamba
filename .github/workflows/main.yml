@@ -80,6 +80,8 @@ jobs:
           cd build
           ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
           ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
+          # test noarch packages
+          $MAMBA_ROOT_PREFIX/envs/testenv_two_files/bin/wheel --help
 
   build_unix:
     runs-on: ${{ matrix.os }}
@@ -174,3 +176,11 @@ jobs:
           cd cmake_build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
           ninja test
+      - name: Build micromamba on Windows
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          cd cmake_build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
+          ninja
+          .\micromamba.exe --help

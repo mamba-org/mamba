@@ -39,6 +39,8 @@ namespace mamba
                         const std::string& shell,
                         const fs::path& mamba_exe);
 
+    // we need this function during linking...
+    void init_root_prefix_cmdexe(const fs::path& root_prefix);
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix);
 
     std::string powershell_contents(const fs::path& conda_prefix);

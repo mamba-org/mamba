@@ -36,7 +36,7 @@ R"MAMBARAW(
 )
 @ECHO Failed to create temp directory "%TMP%\conda-<RANDOM>\" & exit /b 1
 :tmp_file_created
-@"%MAMBA_EXE%" shell -s cmd.exe %* 1>%UNIQUE%
+@"%MAMBA_EXE%" shell --shell cmd.exe %1 --prefix %2 1>%UNIQUE%
 @IF %ErrorLevel% NEQ 0 @EXIT /B %ErrorLevel%
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
 @RMDIR /S /Q %UNIQUE_DIR%

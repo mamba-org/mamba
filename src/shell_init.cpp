@@ -359,27 +359,53 @@ namespace mamba
 
     std::string get_hook_contents(const std::string& shell)
     {
+        fs::path exe = get_self_exe_path();
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             std::string contents = mamba_sh;
-            replace_all(contents, "$MAMBA_EXE", get_self_exe_path().string());
+            replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
-        if (shell == "xonsh")
+        else if (shell == "xonsh")
         {
             std::string contents = mamba_xsh;
-            replace_all(contents, "$MAMBA_EXE", get_self_exe_path().string());
+            replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
-        if (shell == "powershell")
+        else if (shell == "powershell")
         {
             std::string contents = mamba_psm1;
-            contents += "$Env:MAMBA_EXE=" + get_self_exe_path().string();
+            contents += "$Env:MAMBA_EXE=" + exe.string();
             contents += mamba_hook_ps1;
             return contents;
         }
-
         return "";
+    }
+
+    void init_root_prefix_cmdexe(const fs::path& root_prefix)
+    {
+        fs::path exe = get_self_exe_path();
+        fs::create_directories(root_prefix / "condabin");
+        std::ofstream mamba_bat_f(root_prefix / "condabin" / "mamba.bat");
+        std::string mamba_bat_contents(mamba_bat);
+        replace_all(mamba_bat_contents,
+                    std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
+                    std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
+        replace_all(mamba_bat_contents,
+                    std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                    std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
+
+        mamba_bat_f << mamba_bat_contents;
+        std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
+        _mamba_activate_bat_f << _mamba_activate_bat;
+
+        std::string hook_content = mamba_hook_bat;
+        replace_all(hook_content,
+                    std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                    std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
+
+        std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");
+        mamba_hook_bat_f << hook_content;
     }
 
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix)
@@ -413,34 +439,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            CmdExeActivator a;
-
-            fs::path self_path = get_self_exe_path();
-
-            fs::create_directories(root_prefix / "condabin");
-            std::cout << "writing out files to condabin: " << (root_prefix / "condabin")
-                      << std::endl;
-            std::ofstream mamba_bat_f(root_prefix / "condabin" / "mamba.bat");
-            std::string mamba_bat_contents(mamba_bat);
-            replace_all(mamba_bat_contents,
-                        std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-                        std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
-            replace_all(mamba_bat_contents,
-                        std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-                        std::string("@SET \"MAMBA_EXE=" + self_path.string() + "\""));
-
-            mamba_bat_f << mamba_bat_contents;
-            std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
-            _mamba_activate_bat_f << _mamba_activate_bat;
-
-            std::string hook_content = mamba_hook_bat;
-            std::cout << "Self exe path: " << self_path << std::endl;
-            replace_all(hook_content,
-                        std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-                        std::string("@SET \"MAMBA_EXE=" + self_path.string() + "\""));
-
-            std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");
-            mamba_hook_bat_f << hook_content;
+            init_root_prefix_cmdexe(root_prefix);
         }
         else if (shell == "powershell")
         {

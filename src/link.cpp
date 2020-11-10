@@ -318,6 +318,8 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
+        std::string bat_name = Context::instance().is_micromamba ? "mamba.bat" : "conda.bat";
+
         if (dev_mode)
         {
             conda_bat = fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat";
@@ -327,10 +329,15 @@ namespace mamba
             conda_bat = env::get("CONDA_BAT");
             if (conda_bat.size() == 0)
             {
-                // TODO add call to abspath
-                conda_bat = root_prefix / "condabin" / "conda.bat";
+                conda_bat = fs::absolute(root_prefix) / "condabin" / bat_name;
             }
         }
+        if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
+        {
+            // this adds in the needed .bat files for activation
+            init_root_prefix_cmdexe(Context::instance().root_prefix);
+        }
+
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
 
         std::ofstream out(tf->path());
@@ -366,7 +373,7 @@ namespace mamba
             out << "SET 1>&2\n";
         }
 
-        out << silencer << "CALL \"" << conda_bat << "\" activate \"" << prefix << "\"\n";
+        out << silencer << "CALL \"" << conda_bat << "\" activate " << prefix << "\n";
         out << silencer << "IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n";
 
         if (debug_wrapper_scripts)

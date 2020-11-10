@@ -284,7 +284,6 @@ namespace mamba
 
         if (on_win)
         {
-            // from ..activate import native_path_to_unix
             s_mamba_exe = native_path_to_unix(mamba_exe);
         }
         else
@@ -374,10 +373,12 @@ namespace mamba
         }
         else if (shell == "powershell")
         {
-            std::string contents = mamba_psm1;
-            contents += "$Env:MAMBA_EXE=" + exe.string();
-            contents += mamba_hook_ps1;
-            return contents;
+            std::stringstream contents;
+            contents << "$Env:MAMBA_EXE=" << exe << "\n";
+            std::string psm1 = mamba_psm1;
+            psm1 = psm1.substr(0, psm1.find("## EXPORTS ##"));
+            contents << psm1;
+            return contents.str();
         }
         return "";
     }

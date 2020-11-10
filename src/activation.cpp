@@ -674,7 +674,7 @@ namespace mamba
         }
         if (Context::instance().auto_activate_base)
         {
-            builder << "mamba activate base\n";
+            builder << "micromamba activate base\n";
         }
         builder << hook_postamble() << "\n";
         return builder.str();

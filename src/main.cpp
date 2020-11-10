@@ -101,7 +101,7 @@ compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b)
 }
 
 void
-check_root_prefix()
+check_root_prefix(bool silent=false)
 {
     if (Context::instance().root_prefix.empty())
     {
@@ -117,6 +117,8 @@ check_root_prefix()
             }
         }
         Context::instance().root_prefix = fallback_root_prefix;
+
+        if (silent) return;
 
         // only print for the first time...
         if (!fs::exists(fallback_root_prefix))
@@ -272,6 +274,8 @@ init_shell_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         std::unique_ptr<Activator> activator;
+        check_root_prefix(true);
+
         if (shell_options.shell_type.empty())
         {
             std::string guessed_shell = guess_shell();
@@ -312,7 +316,7 @@ init_shell_parser(CLI::App* subcom)
         }
         else if (shell_options.action == "hook")
         {
-            Context::instance().root_prefix = shell_options.prefix;
+            // TODO do we need to do something wtih `prefix -> root_prefix?`?
             std::cout << activator->hook();
         }
         else if (shell_options.action == "activate")

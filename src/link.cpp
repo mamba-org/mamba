@@ -9,6 +9,8 @@
 #include <tuple>
 #include <vector>
 
+#include <reproc++/run.hpp>
+
 #include "mamba/environment.hpp"
 #include "mamba/link.hpp"
 #include "mamba/match_spec.hpp"
@@ -16,8 +18,11 @@
 #include "mamba/transaction_context.hpp"
 #include "mamba/util.hpp"
 #include "mamba/validate.hpp"
+#include "mamba/shell_init.hpp"
 
-#include "thirdparty/subprocess.hpp"
+#if _WIN32
+#include "../data/conda_exe.hpp"
+#endif
 
 namespace mamba
 {
@@ -108,21 +113,20 @@ namespace mamba
     auto LinkPackage::create_python_entry_point(const fs::path& path,
                                                 const python_entry_point_parsed& entry_point)
     {
-        fs::path target = m_context->target_prefix / path;
-        if (fs::exists(target))
-        {
-            throw std::runtime_error("clobber warning");
-        }
-
 #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will
         // automatically find the correct script to launch
-        std::string win_script = path;
-        win_script += "-script.py";
-        std::ofstream out_file(m_context->target_prefix / win_script);
+        std::string win_script = path.string() + "-script.py";
+        fs::path script_path = m_context->target_prefix / win_script;
 #else
-        std::ofstream out_file(target);
+        fs::path script_path = m_context->target_prefix / path;
 #endif
+        if (fs::exists(script_path))
+        {
+            LOG_ERROR << "Clobberwarning " << script_path;
+            fs::remove(script_path);
+        }
+        std::ofstream out_file(script_path);
 
         fs::path python_path;
         if (m_context->has_python)
@@ -147,13 +151,6 @@ namespace mamba
         out_file.close();
 
 #ifdef _WIN32
-        fs::path conda_exe = Context::instance().conda_prefix / "Scripts" / "conda.exe";
-        if (!fs::exists(conda_exe))
-        {
-            throw std::runtime_error(
-                "Cannot link noarch package entrypoint conda.exe because conda.exe is "
-                "not installed.");
-        }
         fs::path script_exe = path;
         script_exe.replace_extension("exe");
 
@@ -162,14 +159,16 @@ namespace mamba
             LOG_ERROR << "Clobberwarning " << m_context->target_prefix / script_exe;
             fs::remove(m_context->target_prefix / script_exe);
         }
-        LOG_INFO << "Linking exe " << conda_exe << " --> " << script_exe;
-        fs::create_hard_link(conda_exe, m_context->target_prefix / script_exe);
+
+        std::ofstream conda_exe_f(m_context->target_prefix / script_exe, std::ios::binary);
+        conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
+        conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
         return std::array<std::string, 2>{ win_script, script_exe };
 #else
         if (!python_path.empty())
         {
-            make_executable(target);
+            make_executable(script_path);
         }
         return path;
 #endif
@@ -319,6 +318,8 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
+        std::string bat_name = Context::instance().is_micromamba ? "mamba.bat" : "conda.bat";
+
         if (dev_mode)
         {
             conda_bat = fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat";
@@ -328,17 +329,20 @@ namespace mamba
             conda_bat = env::get("CONDA_BAT");
             if (conda_bat.size() == 0)
             {
-                // TODO add call to abspath
-                conda_bat = root_prefix / "condabin" / "conda.bat";
+                conda_bat = fs::absolute(root_prefix) / "condabin" / bat_name;
             }
         }
+        if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
+        {
+            // this adds in the needed .bat files for activation
+            init_root_prefix_cmdexe(Context::instance().root_prefix);
+        }
+
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
 
         std::ofstream out(tf->path());
 
-        std::string silencer;
-        if (!debug_wrapper_scripts)
-            silencer = "@";
+        std::string silencer = debug_wrapper_scripts ? "" : "@";
 
         out << silencer << "ECHO OFF\n";
         out << silencer << "SET PYTHONIOENCODING=utf-8\n";
@@ -369,50 +373,59 @@ namespace mamba
             out << "SET 1>&2\n";
         }
 
-        out << silencer << "CALL \"" << conda_bat << "\" activate \"" << prefix << "\"\n";
+        out << silencer << "CALL \"" << conda_bat << "\" activate " << prefix << "\n";
         out << silencer << "IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n";
+
         if (debug_wrapper_scripts)
         {
             out << "echo *** environment after *** 1>&2\n";
             out << "SET 1>&2\n";
         }
-
 #else
+        auto tf = std::make_unique<TemporaryFile>();
+        std::ofstream out(tf->path());
+        std::stringstream hook_quoted;
 
-        // During tests, we sometimes like to have a temp env with e.g. an old python
-        // in it and have it run tests against the very latest development sources.
-        // For that to work we need extra smarts here, we want it to be instead:
-        std::string shebang;
-        std::string dev_arg;
-        if (dev_mode)
-        {
-            shebang += std::string(root_prefix / "bin" / "python");
-            shebang += " -m conda";
+        std::string shebang, dev_arg;
 
-            dev_arg = "--dev";
-        }
-        else
+        if (!Context::instance().is_micromamba)
         {
-            if (std::getenv("CONDA_EXE"))
+            // During tests, we sometimes like to have a temp env with e.g. an old python
+            // in it and have it run tests against the very latest development sources.
+            // For that to work we need extra smarts here, we want it to be instead:
+            if (dev_mode)
             {
-                shebang = std::getenv("CONDA_EXE");
+                shebang += std::string(root_prefix / "bin" / "python");
+                shebang += " -m conda";
+
+                dev_arg = "--dev";
             }
             else
             {
-                shebang = std::string(root_prefix / "bin" / "conda");
+                if (std::getenv("CONDA_EXE"))
+                {
+                    shebang = std::getenv("CONDA_EXE");
+                }
+                else
+                {
+                    shebang = std::string(root_prefix / "bin" / "conda");
+                }
             }
+
+            if (dev_mode)
+            {
+                // out << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            }
+
+            hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
         }
-
-        auto tf = std::make_unique<TemporaryFile>();
-        std::ofstream out(tf->path());
-
-        if (dev_mode)
+        else
         {
-            // tf << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            // Micromamba hook
+            hook_quoted << std::quoted(get_self_exe_path().string(), '\'')
+                        << " 'shell' 'hook' '-s' 'bash' '-p' "
+                        << std::quoted(Context::instance().root_prefix.string(), '\'');
         }
-
-        std::stringstream hook_quoted;
-        hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
         if (debug_wrapper_scripts)
         {
             out << "set -x\n";
@@ -421,24 +434,30 @@ namespace mamba
                 << ">&2 echo \"$(" << hook_quoted.str() << ")\"\n";
         }
         out << "eval \"$(" << hook_quoted.str() << ")\"\n";
-        out << "conda activate " << dev_arg << " " << std::quoted(prefix.c_str()) << "\n";
+
+        if (!Context::instance().is_micromamba)
+        {
+            out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
+        }
+        else
+        {
+            out << "micromamba activate " << std::quoted(prefix.string()) << "\n";
+        }
+
 
         if (debug_wrapper_scripts)
         {
             out << ">&2 echo \"*** environment after ***\"\n"
                 << ">&2 env\n";
         }
-
-        out << "\n" << join(" ", arguments);
 #endif
-
-        out.close();
-
+        // write our command
+        out << "\n" << join(" ", arguments);
         return tf;
     }
 
     /*
-        call the post-link or pre-unlink script and return true / false on success /
+       call the post-link or pre-unlink script and return true / false on success /
        failure
     */
     bool run_script(const fs::path& prefix,
@@ -529,18 +548,34 @@ namespace mamba
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : std::string(prefix);
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
-        envmap["PKG_BUILDNUM"] = pkg_info.build_number;
+        envmap["PKG_BUILDNUM"] = pkg_info.build_string.empty()
+                                     ? std::to_string(pkg_info.build_number)
+                                     : pkg_info.build_string;
 
         std::string PATH = env::get("PATH");
+        envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
 
         std::string cargs = join(" ", command_args);
-        envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
         LOG_WARNING << "Calling " << cargs;
 
-        int response = subprocess::call(
-            cargs, subprocess::environment{ envmap }, subprocess::cwd{ path.parent_path() });
+        reproc::options options;
+        options.redirect.parent = true;
+        options.env.behavior = reproc::env::extend;
+        options.env.extra = envmap;
+        std::string cwd = path.parent_path();
+        options.working_directory = cwd.c_str();
+
+        LOG_DEBUG << "ENV MAP:"
+                  << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
+                  << "\n PREFIX: " << envmap["PREFIX"] << "\n PKG_NAME: " << envmap["PKG_NAME"]
+                  << "\n PKG_VERSION: " << envmap["PKG_VERSION"]
+                  << "\n PKG_BUILDNUM: " << envmap["PKG_BUILDNUM"] << "\n PATH: " << envmap["PATH"]
+                  << "\n CWD: " << cwd;
+
+        auto [status, ec] = reproc::run(command_args, options);
+
         auto msg = get_prefix_messages(envmap["PREFIX"]);
         if (Context::instance().json)
         {
@@ -552,9 +587,9 @@ namespace mamba
             Console::print(msg);
         }
 
-        if (response != 0)
+        if (ec)
         {
-            LOG_ERROR << "response code: " << response;
+            LOG_ERROR << "response code: " << status << " error message: " << ec.message();
             if (script_file != nullptr && env::get("CONDA_TEST_SAVE_TEMPS").size())
             {
                 LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
@@ -780,8 +815,14 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                std::string cmd = "/usr/bin/codesign -s - -f " + dst.string();
-                system(cmd.c_str());
+                std::vector<std::string> cmd
+                    = { "/usr/bin/codesign", "-s", "-", "-f", dst.string() };
+                auto [status, ec] = reproc::run(cmd, reproc::options{});
+                if (ec)
+                {
+                    throw std::runtime_error(std::string("Could not codesign executable")
+                                             + ec.message());
+                }
             }
 #endif
 
@@ -795,7 +836,7 @@ namespace mamba
         }
         else if (path_data.path_type == PathType::SOFTLINK)
         {
-            LOG_INFO << "soft linked " << src << " -> " << dst;
+            LOG_INFO << "soft linked " << src << " --> " << dst;
             fs::copy_symlink(src, dst);
         }
         else
@@ -825,7 +866,10 @@ namespace mamba
             LOG_INFO << "Compiling " << pyc_files[pyc_files.size() - 1];
         }
         all_py_files_f.close();
+
         // TODO use the real python file here?!
+        LOG_DEBUG << "Running " << m_context->target_prefix / m_context->python_path
+                  << " -Wi -m compileall -q -l -i " << all_py_files.path() << std::endl;
         std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
                                              "-Wi",
                                              "-m",
@@ -843,8 +887,18 @@ namespace mamba
             // activate parallel pyc compilation
             command.push_back("-j0");
         }
-        auto out = subprocess::check_output(
-            command, subprocess::cwd{ std::string(m_context->target_prefix) });
+
+        reproc::options options;
+        options.redirect.parent = true;
+        std::string cwd = m_context->target_prefix;
+        options.working_directory = cwd.c_str();
+
+        auto [status, ec] = reproc::run(command, options);
+
+        if (ec)
+        {
+            throw std::runtime_error(ec.message());
+        }
 
         return pyc_files;
     }

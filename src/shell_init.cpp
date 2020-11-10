@@ -12,8 +12,9 @@
 #include "mamba/activation.hpp"
 #include "mamba/environment.hpp"
 
-#include "thirdparty/subprocess.hpp"
 #include "thirdparty/termcolor.hpp"
+
+#include <reproc++/run.hpp>
 
 #ifndef _WIN32
 #if defined(__APPLE__)
@@ -70,6 +71,14 @@ namespace mamba
     std::string guess_shell()
     {
         auto shell = env::get("shell");
+        // auto penv = [](const char* x) {
+        //     std::cout << x << ": " << (std::getenv(x)  ? std::getenv(x) : "") << std::endl;
+        // };
+        // penv("BASH_VERSION");
+        // penv("XONSH_VERSION") ;
+        // penv("CMDEXTVERSION");
+        // penv("PSModulePath");
+
         auto bash_version = env::get("BASH_VERSION");
         if (!bash_version.empty() || shell == "bash")
         {
@@ -84,6 +93,11 @@ namespace mamba
         if (!xonsh_version.empty())
         {
             return "xonsh";
+        }
+        auto cmd_exe_version = env::get("CMDEXTVERSION");
+        if (!cmd_exe_version.empty())
+        {
+            return "cmd.exe";
         }
         auto psmodule_path = env::get("PSModulePath");
         if (!psmodule_path.empty())
@@ -190,13 +204,19 @@ namespace mamba
     std::string native_path_to_unix(const fs::path& path)
     {
         fs::path bash = env::which("bash");
-        std::string command;
-        command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
-        command += " " + path.string();
+        std::string command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
+        std::string out, err;
         try
         {
-            auto obuf = subprocess::check_output(command);
-            return obuf.buf.data();
+            auto [status, ec] = reproc::run(std::vector<std::string>{ command, path.string() },
+                                            reproc::options{},
+                                            reproc::sink::string(out),
+                                            reproc::sink::string(err));
+            if (ec)
+            {
+                throw std::runtime_error(ec.message());
+            }
+            return std::string(strip(out));
         }
         catch (...)
         {
@@ -263,7 +283,6 @@ namespace mamba
 
         if (on_win)
         {
-            // from ..activate import native_path_to_unix
             s_mamba_exe = native_path_to_unix(mamba_exe);
         }
         else
@@ -336,6 +355,69 @@ namespace mamba
         return true;
     }
 
+    std::string get_hook_contents(const std::string& shell)
+    {
+        fs::path exe = get_self_exe_path();
+        if (shell == "zsh" || shell == "bash" || shell == "posix")
+        {
+            std::string contents = mamba_sh;
+            replace_all(contents, "$MAMBA_EXE", exe.string());
+            return contents;
+        }
+        else if (shell == "xonsh")
+        {
+            std::string contents = mamba_xsh;
+            replace_all(contents, "$MAMBA_EXE", exe.string());
+            return contents;
+        }
+        else if (shell == "powershell")
+        {
+            std::stringstream contents;
+            contents << "$Env:MAMBA_EXE=" << exe << "\n";
+            std::string psm1 = mamba_psm1;
+            psm1 = psm1.substr(0, psm1.find("## EXPORTS ##"));
+            contents << psm1;
+            return contents.str();
+        }
+        else if (shell == "cmd.exe")
+        {
+            init_root_prefix_cmdexe(Context::instance().root_prefix);
+            std::cout
+                << termcolor::red << "Hook installed, now 'manually' execute:\n\n"
+                << termcolor::reset << "       CALL "
+                << std::quoted(
+                       (Context::instance().root_prefix / "condabin" / "mamba_hook.bat").string())
+                << std::endl;
+        }
+        return "";
+    }
+
+    void init_root_prefix_cmdexe(const fs::path& root_prefix)
+    {
+        fs::path exe = get_self_exe_path();
+        fs::create_directories(root_prefix / "condabin");
+        std::ofstream mamba_bat_f(root_prefix / "condabin" / "mamba.bat");
+        std::string mamba_bat_contents(mamba_bat);
+        replace_all(mamba_bat_contents,
+                    std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
+                    std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
+        replace_all(mamba_bat_contents,
+                    std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                    std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
+
+        mamba_bat_f << mamba_bat_contents;
+        std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
+        _mamba_activate_bat_f << _mamba_activate_bat;
+
+        std::string hook_content = mamba_hook_bat;
+        replace_all(hook_content,
+                    std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                    std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
+
+        std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");
+        mamba_hook_bat_f << hook_content;
+    }
+
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix)
     {
         Context::instance().root_prefix = root_prefix;
@@ -349,7 +431,7 @@ namespace mamba
             }
         }
 
-        if (shell == "zsh" || shell == "bash")
+        if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             PosixActivator a;
             auto sh_source_path = a.hook_source_path();
@@ -367,34 +449,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-            CmdExeActivator a;
-
-            fs::path self_path = get_self_exe_path();
-
-            fs::create_directories(root_prefix / "condabin");
-            std::cout << "writing out files to condabin: " << (root_prefix / "condabin")
-                      << std::endl;
-            std::ofstream mamba_bat_f(root_prefix / "condabin" / "mamba.bat");
-            std::string mamba_bat_contents(mamba_bat);
-            replace_all(mamba_bat_contents,
-                        std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
-                        std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
-            replace_all(mamba_bat_contents,
-                        std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-                        std::string("@SET \"MAMBA_EXE=" + self_path.string() + "\""));
-
-            mamba_bat_f << mamba_bat_contents;
-            std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
-            _mamba_activate_bat_f << _mamba_activate_bat;
-
-            std::string hook_content = mamba_hook_bat;
-            std::cout << "Self exe path: " << self_path << std::endl;
-            replace_all(hook_content,
-                        std::string("__MAMBA_INSERT_MAMBA_EXE__"),
-                        std::string("@SET \"MAMBA_EXE=" + self_path.string() + "\""));
-
-            std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");
-            mamba_hook_bat_f << hook_content;
+            init_root_prefix_cmdexe(root_prefix);
         }
         else if (shell == "powershell")
         {
@@ -518,10 +573,17 @@ namespace mamba
             auto find_powershell_paths = [&profile_var](const std::string& exe) -> std::string {
                 try
                 {
-                    auto obuf
-                        = subprocess::check_output({ exe, "-NoProfile", "-Command", profile_var });
-                    std::string res(obuf.buf.data());
-                    return std::string(strip(res));
+                    std::string out, err;
+                    auto [status, ec] = reproc::run(
+                        std::vector<std::string>{ exe, "-NoProfile", "-Command", profile_var },
+                        reproc::options{},
+                        reproc::sink::string(out),
+                        reproc::sink::string(err));
+                    if (ec)
+                    {
+                        throw std::runtime_error(ec.message());
+                    }
+                    return std::string(strip(out));
                 }
                 catch (...)
                 {
@@ -537,6 +599,7 @@ namespace mamba
                 {
                     profile_path = res;
                     exe = iter_exe;
+                    break;
                 }
             }
             std::cout << "Found powershell at " << exe << " and user profile at " << profile_path

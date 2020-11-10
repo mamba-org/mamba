@@ -81,7 +81,7 @@ else:
     CURL_LIB = "curl"
     CRYPTO_LIB = "crypto"
 
-libraries = ["archive", "solv", "solvext", CURL_LIB, CRYPTO_LIB]
+libraries = ["archive", "solv", "solvext", "reproc++", CURL_LIB, CRYPTO_LIB]
 if sys.platform == "win32":
     libraries.append("advapi32")
 
@@ -172,6 +172,9 @@ class BuildExt(build_ext):
                 opts.append("-fvisibility=hidden")
         elif ct == "msvc":
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
+
+        if sys.platform == "win32":
+            self.compiler.macros.append(("REPROCXX_SHARED", 1))
 
         for ext in self.extensions:
             ext.extra_compile_args = opts

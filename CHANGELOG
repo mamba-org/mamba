@@ -1,0 +1,16 @@
+0.7.0 (Nov 2020)
+================
+
+- Switching `subprocess` implementation to more tested `reproc++`
+- Fixing Windows noarch entrypoints generation with micromamba
+- Fix pre-/post-link script running with micromamba to use micromamba activation logic
+- Empty environment creation skips all repodata downloading & solving
+- Fix micromamba install when environment is activated (thanks @isuruf)
+- Micromamba now respects the $CONDA_SUBDIR environment variable (thanks @mariusvniekerk)
+- Fix compile time warning (thanks @obilaniu)
+- Fixed wrong CondaValueError import statement in mamba.py (thanks @saraedum)
+
+0.6.5 (Oct 2020)
+================
+
+- Fix code signing for Apple Silicon (osx-arm64) @isuruf

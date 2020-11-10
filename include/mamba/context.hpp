@@ -26,6 +26,7 @@ namespace mamba
     public:
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
+        bool is_micromamba = false;
 
         fs::path target_prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
         // Need to prevent circular imports here (otherwise using env::get())
@@ -55,7 +56,7 @@ namespace mamba
         bool always_yes = false;
 
         // debug helpers
-        bool keep_temp_files = false;
+        bool keep_temp_files = true;
         bool keep_temp_directories = false;
 
         bool change_ps1 = true;

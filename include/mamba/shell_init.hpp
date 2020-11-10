@@ -22,6 +22,7 @@ namespace mamba
 #endif
 
     fs::path get_self_exe_path();
+    std::string get_hook_contents(const std::string& shell);
 
     // this function calls cygpath to convert win path to unix
     std::string native_path_to_unix(const fs::path& path);
@@ -38,6 +39,8 @@ namespace mamba
                         const std::string& shell,
                         const fs::path& mamba_exe);
 
+    // we need this function during linking...
+    void init_root_prefix_cmdexe(const fs::path& root_prefix);
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix);
 
     std::string powershell_contents(const fs::path& conda_prefix);

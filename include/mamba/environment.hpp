@@ -118,8 +118,7 @@ namespace mamba
                 std::string_view s = current;
                 auto pos = s.find("=");
                 assert(pos != std::string_view::npos);
-                std::string_view key = s.substr(0, pos);
-
+                std::string key = to_upper(s.substr(0, pos));
                 if (!key.empty())
                 {
                     std::string_view value = (pos != s.npos) ? s.substr(pos + 1) : "";

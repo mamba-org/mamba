@@ -40,7 +40,7 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/micromamba
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem "cpp-tabulate>=1.2" yaml-cpp cli11 -c conda-forge
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: build tests
@@ -80,6 +80,8 @@ jobs:
           cd build
           ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
           ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
+          # test noarch packages
+          $MAMBA_ROOT_PREFIX/envs/testenv_two_files/bin/wheel --help
 
   build_unix:
     runs-on: ${{ matrix.os }}
@@ -111,7 +113,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cxx-compiler cmake gtest "cpp-tabulate>=1.2"
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cxx-compiler cmake gtest reproc-cpp
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -151,7 +153,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja yaml-cpp
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -166,6 +168,35 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
+
+  build_win_micromamba:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        run: conda info
+      - name: Create the conda environment
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          conda activate mamba-tests
+          python --version
+          python -m pip install ".[test]"
       - name: Run C++ tests Windows
         shell: cmd
         run: |
@@ -174,3 +205,32 @@ jobs:
           cd cmake_build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
           ninja test
+      - name: Build micromamba on Windows
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          cd cmake_build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
+          ninja
+          .\micromamba.exe --help
+      - name: Install "wheel" in micromamba default env
+        shell: powershell
+        run: |
+          conda activate mamba-tests
+          cd cmake_build
+          .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+          cd \
+          micromamba create -n testenv python=3.8 wheel -c conda-forge
+          micromamba activate testenv
+          wheel --help
+      - name: Test activation on cmd.bat
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          cd cmake_build
+          .\micromamba shell hook -s cmd.exe
+          CALL %userprofile%\micromamba\condabin\mamba_hook.bat
+          cd %userprofile%
+          micromamba create -n testenv2 python=3.8 wheel -c conda-forge
+          micromamba activate testenv
+          wheel --help

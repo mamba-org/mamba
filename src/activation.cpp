@@ -835,7 +835,7 @@ namespace mamba
 
         if (!env_transform.export_path.empty())
         {
-            out << "@SET PATH='" << env_transform.export_path << "'\n";
+            out << "@SET \"PATH=" << env_transform.export_path << "\"\n";
         }
 
         for (const fs::path& ds : env_transform.deactivate_scripts)

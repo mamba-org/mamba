@@ -314,6 +314,10 @@ init_shell_parser(CLI::App* subcom)
         }
         if (shell_options.action == "init")
         {
+            if (shell_options.prefix == "base")
+            {
+                shell_options.prefix = Context::instance().root_prefix;
+            }
             init_shell(shell_options.shell_type, shell_options.prefix);
         }
         else if (shell_options.action == "hook")

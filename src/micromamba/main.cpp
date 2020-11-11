@@ -33,7 +33,7 @@
 #include "mamba/version.hpp"
 #include "mamba/util.hpp"
 
-#include "thirdparty/termcolor.hpp"
+#include "../thirdparty/termcolor.hpp"
 
 const char banner[] = R"MAMBARAW(
                                            __

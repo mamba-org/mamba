@@ -269,7 +269,7 @@ namespace mamba
                   });
             if (no_condabin)
             {
-                auto condabin_dir = Context::instance().conda_prefix / "condabin";
+                auto condabin_dir = Context::instance().root_prefix / "condabin";
                 path_list.insert(path_list.begin(), condabin_dir);
             }
         }
@@ -289,29 +289,38 @@ namespace mamba
     {
         // TODO not done yet.
         std::vector<fs::path> current_path = get_clean_dirs();
-
         assert(!old_prefix.empty());
+
         std::vector<fs::path> old_prefix_dirs = get_path_dirs(old_prefix);
 
         // remove all old paths
-        current_path.erase(std::remove_if(
-            current_path.begin(), current_path.end(), [&](const fs::path& path_elem) {
-                return std::find_if(old_prefix_dirs.begin(),
-                                    old_prefix_dirs.end(),
-                                    [&path_elem](const fs::path& old_dir) {
-                                        return paths_equal(old_dir, path_elem);
-                                    })
-                       != old_prefix_dirs.end();
-            }));
+        std::vector<fs::path> cleaned_path;
+        for (auto& cp : current_path)
+        {
+            bool is_in = false;
+            for (auto& op : old_prefix_dirs)
+            {
+                if (paths_equal(cp, op))
+                {
+                    is_in = true;
+                    break;
+                }
+            }
+            if (!is_in)
+            {
+                cleaned_path.push_back(cp);
+            }
+        }
+        current_path = cleaned_path;
 
         // TODO remove `sys.prefix\Library\bin` on Windows?!
         // Not sure if necessary as we don't fiddle with Python
-
         std::vector<fs::path> final_path;
         if (!new_prefix.empty())
         {
             final_path = get_path_dirs(new_prefix);
             final_path.insert(final_path.end(), current_path.begin(), current_path.end());
+
             // remove duplicates
             final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
             std::string result = join(env::pathsep(), final_path);

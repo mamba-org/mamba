@@ -4,7 +4,7 @@ R"MAMBARAW(
 @REM The file name is conda_hook.bat rather than conda-hook.bat because conda will see
 @REM the latter as a 'conda hook' command.
 
-@IF DEFINED MAMBA_SHLVL GOTO :EOF
+@IF DEFINED CONDA_SHLVL GOTO :EOF
 
 @FOR %%F in ("%~dp0") do @SET "__mambabin_dir=%%~dpF"
 @SET "__mambabin_dir=%__mambabin_dir:~0,-1%"
@@ -17,5 +17,5 @@ __MAMBA_INSERT_MAMBA_EXE__
 
 @DOSKEY micromamba="%MAMBA_BAT%" $*
 
-@SET MAMBA_SHLVL=0
+@SET CONDA_SHLVL=0
 )MAMBARAW"

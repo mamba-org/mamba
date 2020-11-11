@@ -173,7 +173,8 @@ namespace mamba
     {
         if (on_win)
         {
-            return { prefix / "Library" / "mingw-w64" / "bin",
+            return { prefix,
+                     prefix / "Library" / "mingw-w64" / "bin",
                      prefix / "Library" / "usr" / "bin",
                      prefix / "Library" / "bin",
                      prefix / "Scripts",
@@ -231,20 +232,23 @@ namespace mamba
         // performed in condabin\conda.bat and condabin\ _conda_activate.bat. However,
         // we need to ignore the stuff we add there, and only consider actual PATH
         // entries.
-
-        // prefix_dirs = tuple(self._get_path_dirs(sys.prefix))
-        // start_index = 0
-        // while (start_index < len(prefix_dirs) and
-        //        start_index < len(path_split) and
-        //        paths_equal(path_split[start_index], prefix_dirs[start_index])):
-        //     start_index += 1
-        // path_split = path_split[start_index:]
-        // library_bin_dir = self.path_conversion(
-        //         self.sep.join((sys.prefix, 'Library', 'bin')))
-        // if paths_equal(path_split[0], library_bin_dir):
-        //     path_split = path_split[1:]
-        // return path_split
-
+        auto prefix_dirs = get_path_dirs(Context::instance().root_prefix);
+        std::size_t start_index = 0;
+        while (start_index < prefix_dirs.size() &&
+               start_index < path.size() &&
+               paths_equal(path[start_index], prefix_dirs[start_index]))
+        {
+            start_index++;
+        }
+        if (start_index > 0)
+        {
+            path.erase(path.begin(), path.begin() + start_index);
+        }
+        if (path.size() &&
+            paths_equal(path[0], (Context::instance().root_prefix / "Library" / "bin")))
+        {
+            path.erase(path.begin(), path.begin() + 1);
+        }
         return path;
     }
 
@@ -470,7 +474,7 @@ namespace mamba
             }
 
             std::vector<std::pair<std::string, std::string>> env_vars_to_export
-                = { { "conda_prefix", "new_prefix" },
+                = { { "conda_prefix", new_prefix },
                     { "conda_shlvl", std::to_string(new_conda_shlvl) },
                     { "conda_default_env", conda_default_env },
                     { "conda_prompt_modifier", conda_prompt_modifier } };
@@ -505,6 +509,8 @@ namespace mamba
                 envt.export_vars.push_back({ env_var.first, m_env[save_var] });
             }
         }
+
+        // TODO if shlvl == 0 unset conda_prefix?!
         return envt;
     }
 
@@ -829,7 +835,7 @@ namespace mamba
 
         if (!env_transform.export_path.empty())
         {
-            out << "export PATH='" << env_transform.export_path << "'\n";
+            out << "@SET PATH='" << env_transform.export_path << "'\n";
         }
 
         for (const fs::path& ds : env_transform.deactivate_scripts)

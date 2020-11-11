@@ -45,6 +45,9 @@ function Get-CondaEnvironment {
         $OldPath = Add-Sys-Prefix-To-Path
 #>
 function Add-Sys-Prefix-To-Path() {
+    if ($Env:MAMBA_ROOT_PREFIX -eq $NULL) {
+        return $Env:PATH;
+    }
     $OldPath = $Env:PATH;
     if ($Env:OS -eq 'Windows_NT') {
         $Env:PATH = $Env:MAMBA_ROOT_PREFIX + ';' +

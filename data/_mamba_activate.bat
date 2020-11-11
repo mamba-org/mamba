@@ -17,8 +17,10 @@ R"MAMBARAW(
 @REM IF NOT EXIST "!_sysp!\Scripts\micromamba.exe" @SET "_sysp=!_sysp!..\"
 
 @FOR %%A in ("%TMP%") do @SET TMP=%%~sA
-@SET _sysp=!_sysp:~0,-1!
-@SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
+@IF "%MAMBA_ROOT_PREFIX%" NEQ "" (
+    @SET "_sysp=%MAMBA_ROOT_PREFIX%"
+    @SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
+)
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
 @REM and %* to contain: activate "Something With Spaces does not exist".
 @REM MSDOS associates the outer "'s and is unable to run very much at all.
@@ -36,7 +38,12 @@ R"MAMBARAW(
 )
 @ECHO Failed to create temp directory "%TMP%\conda-<RANDOM>\" & exit /b 1
 :tmp_file_created
-@"%MAMBA_EXE%" shell --shell cmd.exe %1 --prefix %2 1>%UNIQUE%
+@IF "%2" == "" (
+    SET PREFIX=base
+) else (
+    SET PREFIX=%2
+)
+@"%MAMBA_EXE%" shell --shell cmd.exe %1 --prefix %PREFIX% 1>%UNIQUE%
 @IF %ErrorLevel% NEQ 0 @EXIT /B %ErrorLevel%
 @FOR /F %%i IN (%UNIQUE%) DO @SET _TEMP_SCRIPT_PATH=%%i
 @RMDIR /S /Q %UNIQUE_DIR%

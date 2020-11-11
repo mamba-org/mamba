@@ -2,28 +2,29 @@ R"MAMBARAW(
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-__add_sys_prefix_to_path() {
-    # In dev-mode MAMBA_EXE is python.exe and on Windows
-    # it is in a different relative location to condabin.
-    if [ -n "${_CE_CONDA}" ] && [ -n "${WINDIR+x}" ]; then
-        SYSP=$(\dirname "${MAMBA_EXE}")
-    else
-        SYSP=$(\dirname "${MAMBA_EXE}")
-        SYSP=$(\dirname "${SYSP}")
-    fi
-
-    if [ -n "${WINDIR+x}" ]; then
-        PATH="${SYSP}/bin:${PATH}"
-        PATH="${SYSP}/Scripts:${PATH}"
-        PATH="${SYSP}/Library/bin:${PATH}"
-        PATH="${SYSP}/Library/usr/bin:${PATH}"
-        PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
-        PATH="${SYSP}:${PATH}"
-    else
-        PATH="${SYSP}/bin:${PATH}"
-    fi
-    \export PATH
-}
+# We should not need to do this since micromamba is statically linked.
+# __add_sys_prefix_to_path() {
+#     # In dev-mode MAMBA_EXE is python.exe and on Windows
+#     # it is in a different relative location to condabin.
+#     if [ -n "${_CE_CONDA}" ] && [ -n "${WINDIR+x}" ]; then
+#         SYSP=$(\dirname "${MAMBA_EXE}")
+#     else
+#         SYSP=$(\dirname "${MAMBA_EXE}")
+#         SYSP=$(\dirname "${SYSP}")
+#     fi
+#
+#     if [ -n "${WINDIR+x}" ]; then
+#         PATH="${SYSP}/bin:${PATH}"
+#         PATH="${SYSP}/Scripts:${PATH}"
+#         PATH="${SYSP}/Library/bin:${PATH}"
+#         PATH="${SYSP}/Library/usr/bin:${PATH}"
+#         PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
+#         PATH="${SYSP}:${PATH}"
+#     else
+#         PATH="${SYSP}/bin:${PATH}"
+#     fi
+#     \export PATH
+# }
 
 __conda_hashr() {
     if [ -n "${ZSH_VERSION:+x}" ]; then
@@ -40,7 +41,7 @@ __mamba_activate() {
     shift
     \local ask_conda
     CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
+    # __add_sys_prefix_to_path
     \local prefix="$@"
     if [ "$prefix" = "" ]; then
         prefix="base"
@@ -58,7 +59,7 @@ __mamba_activate() {
 __mamba_reactivate() {
     \local ask_conda
     CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
+    # __add_sys_prefix_to_path
     ask_conda="$(PS1="$PS1" "$MAMBA_EXE" shell --shell bash reactivate)" || \return $?
     PATH="${CONDA_INTERNAL_OLDPATH}"
     \eval "$ask_conda"
@@ -77,7 +78,7 @@ micromamba() {
                 ;;
             install|update|upgrade|remove|uninstall)
                 CONDA_INTERNAL_OLDPATH="${PATH}"
-                __add_sys_prefix_to_path
+                # __add_sys_prefix_to_path
                 "$MAMBA_EXE" "$cmd" "$@"
                 \local t1=$?
                 PATH="${CONDA_INTERNAL_OLDPATH}"
@@ -89,7 +90,7 @@ micromamba() {
                 ;;
             *)
                 CONDA_INTERNAL_OLDPATH="${PATH}"
-                __add_sys_prefix_to_path
+                # __add_sys_prefix_to_path
                 "$MAMBA_EXE" "$cmd" "$@"
                 \local t1=$?
                 PATH="${CONDA_INTERNAL_OLDPATH}"

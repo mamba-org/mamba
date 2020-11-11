@@ -33,7 +33,7 @@
 #include "mamba/version.hpp"
 #include "mamba/util.hpp"
 
-#include "thirdparty/termcolor.hpp"
+#include "../thirdparty/termcolor.hpp"
 
 const char banner[] = R"MAMBARAW(
                                            __
@@ -323,7 +323,7 @@ init_shell_parser(CLI::App* subcom)
         }
         else if (shell_options.action == "activate")
         {
-            if (shell_options.prefix == "base")
+            if (shell_options.prefix == "base" || shell_options.prefix.empty())
             {
                 shell_options.prefix = Context::instance().root_prefix;
             }

@@ -1026,6 +1026,24 @@ main(int argc, char** argv)
     };
     app.add_flag_function("--version", print_version);
 
+    CLI::App* activate_subcom
+        = app.add_subcommand("activate", "Activate a conda / micromamba environment");
+    CLI::App* deactivate_subcom
+        = app.add_subcommand("deactivate", "Deactivate a conda / micromamba environment");
+
+    auto activate_deactivate_callback = []() {
+        std::cout << termcolor::red
+                  << "In order to use activate and deactivate you need to initialize your shell.\n"
+                  << "Either call shell init ... or execute the shell hook directly:\n\n"
+                  << "    eval \"$(./micromamba shell hook -s bash)\"\n\n"
+                  << "and then run\n\n"
+                  << "    micromamba activate  " << termcolor::white
+                  << "# notice the missing dot in front of the command\n\n"
+                  << termcolor::reset;
+    };
+    activate_subcom->callback(activate_deactivate_callback);
+    deactivate_subcom->callback(activate_deactivate_callback);
+
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);
 
@@ -1044,7 +1062,7 @@ main(int argc, char** argv)
     list_subcom->callback([]() { list_packages(); });
     // just for the help text
     app.footer(R"MRAW(To activate environments, use
-    $ micromamba activate -p PATH/TO/PREFIX
+    $ micromamba activate PATH/TO/PREFIX
 to deactivate, use micromamba deactivate.
 For this functionality to work, you need to initialize your shell with $ ./micromamba shell init
 )MRAW");

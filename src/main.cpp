@@ -1026,6 +1026,7 @@ main(int argc, char** argv)
     };
     app.add_flag_function("--version", print_version);
 
+#ifndef _WIN32
     CLI::App* activate_subcom
         = app.add_subcommand("activate", "Activate a conda / micromamba environment");
     CLI::App* deactivate_subcom
@@ -1043,6 +1044,7 @@ main(int argc, char** argv)
     };
     activate_subcom->callback(activate_deactivate_callback);
     deactivate_subcom->callback(activate_deactivate_callback);
+#endif
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);

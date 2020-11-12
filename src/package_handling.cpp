@@ -79,6 +79,7 @@ namespace mamba
                         int compression_level,
                         bool (*filter)(const std::string&))
     {
+        int r;
         struct archive* a;
 
         fs::path abs_out_path = fs::absolute(destination);
@@ -178,7 +179,12 @@ namespace mamba
                 archive_write_data(a, buffer.data(), len);
             }
 
-            if (archive_write_finish_entry(a) < ARCHIVE_OK)
+            r = archive_write_finish_entry(a);
+            if (r == ARCHIVE_WARN)
+            {
+                LOG_WARNING << "libarchive warning: " << archive_error_string(a);
+            }
+            else if (r < ARCHIVE_OK)
             {
                 throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
             }
@@ -306,7 +312,11 @@ namespace mamba
                 }
             }
             r = archive_write_finish_entry(ext);
-            if (r < ARCHIVE_OK)
+            if (r == ARCHIVE_WARN)
+            {
+                LOG_WARNING << "libarchive warning: " << archive_error_string(a);
+            }
+            else if (r < ARCHIVE_OK)
             {
                 throw std::runtime_error(archive_error_string(ext));
             }

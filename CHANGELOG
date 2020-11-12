@@ -1,6 +1,7 @@
-0.7.0 (Nov 2020)
-================
+0.7.0 (Nov 12, 2020)
+====================
 
+- Improve activation and deactivation logic for micromamba
 - Switching `subprocess` implementation to more tested `reproc++`
 - Fixing Windows noarch entrypoints generation with micromamba
 - Fix pre-/post-link script running with micromamba to use micromamba activation logic

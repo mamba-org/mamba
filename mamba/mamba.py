@@ -506,67 +506,80 @@ def install(args, parser, command="install"):
         repo.set_installed()
         repos.append(repo)
 
-    index = load_channels(pool, channels, repos)
-
-    if context.force_reinstall:
-        solver = api.Solver(pool, solver_options, prefix_data)
+    if newenv and not specs:
+        # creating an empty environment with e.g. "mamba create -n my_env"
+        # should not download the repodata
+        index = []
+        specs_to_add = []
+        specs_to_remove = []
+        to_link = []
+        to_unlink = []
+        installed_pkg_recs = []
     else:
-        solver = api.Solver(pool, solver_options)
+        index = load_channels(pool, channels, repos)
 
-    solver.set_postsolve_flags(
-        [
-            (api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS),
-            (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
-            (api.MAMBA_FORCE_REINSTALL, context.force_reinstall),
-        ]
-    )
-    solver.add_jobs(mamba_solve_specs, solver_task)
+        if context.force_reinstall:
+            solver = api.Solver(pool, solver_options, prefix_data)
+        else:
+            solver = api.Solver(pool, solver_options)
 
-    if not context.force_reinstall:
-        # as a security feature this will _always_ attempt to upgrade certain packages
-        for a_pkg in [_.name for _ in context.aggressive_update_packages]:
-            if a_pkg in installed_names:
-                solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
+        solver.set_postsolve_flags(
+            [
+                (api.MAMBA_NO_DEPS, context.deps_modifier == DepsModifier.NO_DEPS),
+                (api.MAMBA_ONLY_DEPS, context.deps_modifier == DepsModifier.ONLY_DEPS),
+                (api.MAMBA_FORCE_REINSTALL, context.force_reinstall),
+            ]
+        )
+        solver.add_jobs(mamba_solve_specs, solver_task)
 
-    if python_constraint:
-        solver.add_pin(python_constraint)
+        if not context.force_reinstall:
+            # as a security feature this will _always_ attempt to upgradecertain
+            # packages
+            for a_pkg in [_.name for _ in context.aggressive_update_packages]:
+                if a_pkg in installed_names:
+                    solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
 
-    pinned_specs = get_pinned_specs(context.target_prefix)
-    if pinned_specs:
-        conda_prefix_data = PrefixData(context.target_prefix)
-    for s in pinned_specs:
-        x = conda_prefix_data.query(s.name)
-        if x:
-            for el in x:
-                if not s.match(el):
-                    print(
-                        "Your pinning does not match what's currently installed."
-                        " Please remove the pin and fix your installation"
-                    )
-                    print("  Pin: {}".format(s))
-                    print("  Currently installed: {}".format(el))
-                    exit(1)
-        solver.add_pin(str(s))
+        if python_constraint:
+            solver.add_pin(python_constraint)
 
-    success = solver.solve()
-    if not success:
-        print(solver.problems_to_str())
-        exit_code = 1
-        return exit_code
+        pinned_specs = get_pinned_specs(context.target_prefix)
+        if pinned_specs:
+            conda_prefix_data = PrefixData(context.target_prefix)
+        for s in pinned_specs:
+            x = conda_prefix_data.query(s.name)
+            if x:
+                for el in x:
+                    if not s.match(el):
+                        print(
+                            "Your pinning does not match what's currently installed."
+                            " Please remove the pin and fix your installation"
+                        )
+                        print("  Pin: {}".format(s))
+                        print("  Currently installed: {}".format(el))
+                        exit(1)
+            solver.add_pin(str(s))
 
-    package_cache = api.MultiPackageCache(context.pkgs_dirs)
-    transaction = api.Transaction(solver, package_cache)
-    mmb_specs, to_link, to_unlink = transaction.to_conda()
+        success = solver.solve()
+        if not success:
+            print(solver.problems_to_str())
+            exit_code = 1
+            return exit_code
 
-    specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
-    specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
+        package_cache = api.MultiPackageCache(context.pkgs_dirs)
+        transaction = api.Transaction(solver, package_cache)
+        mmb_specs, to_link, to_unlink = transaction.to_conda()
 
-    transaction.log_json()
+        specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
+        specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
-    downloaded = transaction.prompt(PackageCacheData.first_writable().pkgs_dir, repos)
-    if not downloaded:
-        exit(0)
-    PackageCacheData.first_writable().reload()
+        transaction.log_json()
+
+        downloaded = transaction.prompt(
+            PackageCacheData.first_writable().pkgs_dir, repos
+        )
+        if not downloaded:
+            exit(0)
+        PackageCacheData.first_writable().reload()
 
     # if use_mamba_experimental and not os.name == "nt":
     if use_mamba_experimental:

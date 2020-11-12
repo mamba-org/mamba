@@ -41,7 +41,7 @@ namespace mamba
 #include "../data/mamba.sh"
             ;
         constexpr const char mamba_bat[] =
-#include "../data/mamba.bat"
+#include "../data/micromamba.bat"
             ;
         constexpr const char _mamba_activate_bat[] =
 #include "../data/_mamba_activate.bat"
@@ -201,17 +201,18 @@ namespace mamba
     }
 
     // this function calls cygpath to convert win path to unix
-    std::string native_path_to_unix(const fs::path& path)
+    std::string native_path_to_unix(const std::string& path, bool is_a_path_env)
     {
         fs::path bash = env::which("bash");
         std::string command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
         std::string out, err;
         try
         {
-            auto [status, ec] = reproc::run(std::vector<std::string>{ command, path.string() },
-                                            reproc::options{},
-                                            reproc::sink::string(out),
-                                            reproc::sink::string(err));
+            std::vector<std::string> args{ command, path };
+            if (is_a_path_env)
+                args.push_back("--path");
+            auto [status, ec] = reproc::run(
+                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
             if (ec)
             {
                 throw std::runtime_error(ec.message());
@@ -228,6 +229,7 @@ namespace mamba
         }
     }
 
+
     std::string rcfile_content(const fs::path& env_prefix,
                                const std::string& shell,
                                const fs::path& mamba_exe)
@@ -236,12 +238,14 @@ namespace mamba
 
         // todo use get bin dir here!
 #ifdef _WIN32
-        std::string cyg_mamba_exe = native_path_to_unix(mamba_exe);
-        // fs::path cyg_mamba_exe = native_path_to_unix(env_prefix / 'Scripts' / 'micromamba.exe');
+        std::string cyg_mamba_exe = native_path_to_unix(mamba_exe.string());
+        std::string cyg_env_prefix = native_path_to_unix(env_prefix.string());
         content << "# >>> mamba initialize >>>\n";
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "export MAMBA_EXE=" << std::quoted(cyg_mamba_exe, '\'') << ";\n";
+        content << "export MAMBA_ROOT_PREFIX=" << std::quoted(cyg_env_prefix, '\'') << ";\n";
         content << "eval \"$(" << std::quoted(cyg_mamba_exe, '\'') << " shell hook --shell "
-                << shell << " --prefix " << std::quoted(env_prefix.string(), '\'') << ")\"\n";
+                << shell << " --prefix " << std::quoted(cyg_env_prefix, '\'') << ")\"\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
 
@@ -283,7 +287,7 @@ namespace mamba
 
         if (on_win)
         {
-            s_mamba_exe = native_path_to_unix(mamba_exe);
+            s_mamba_exe = native_path_to_unix(mamba_exe.string());
         }
         else
         {
@@ -344,12 +348,12 @@ namespace mamba
 
         if (result.find("# >>> mamba initialize >>>") == result.npos)
         {
-            std::ofstream rc_file(file_path, std::ios::app);
-            rc_file << "\n" << conda_init_content;
+            std::ofstream rc_file(file_path, std::ios::app | std::ios::binary);
+            rc_file << std::endl << conda_init_content;
         }
         else
         {
-            std::ofstream rc_file(file_path, std::ios::out);
+            std::ofstream rc_file(file_path, std::ios::out | std::ios::binary);
             rc_file << result;
         }
         return true;
@@ -396,7 +400,7 @@ namespace mamba
     {
         fs::path exe = get_self_exe_path();
         fs::create_directories(root_prefix / "condabin");
-        std::ofstream mamba_bat_f(root_prefix / "condabin" / "mamba.bat");
+        std::ofstream mamba_bat_f(root_prefix / "condabin" / "micromamba.bat");
         std::string mamba_bat_contents(mamba_bat);
         replace_all(mamba_bat_contents,
                     std::string("__MAMBA_INSERT_ROOT_PREFIX__"),

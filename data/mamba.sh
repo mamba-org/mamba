@@ -10,14 +10,14 @@ __add_sys_prefix_to_path() {
     fi;
 
     if [ -n "${WINDIR+x}" ]; then
-        PATH="${SYSP}/bin:${PATH}"
-        PATH="${SYSP}/Scripts:${PATH}"
-        PATH="${SYSP}/Library/bin:${PATH}"
-        PATH="${SYSP}/Library/usr/bin:${PATH}"
-        PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
-        PATH="${SYSP}:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}/Scripts:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}/Library/bin:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}/Library/usr/bin:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}/Library/mingw-w64/bin:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}:${PATH}"
     else
-        PATH="${SYSP}/bin:${PATH}"
+        PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
     fi
     \export PATH
 }
@@ -102,9 +102,9 @@ if [ -z "${CONDA_SHLVL+x}" ]; then
     # In dev-mode MAMBA_EXE is python.exe and on Windows
     # it is in a different relative location to condabin.
     if [ -n "${_CE_CONDA+x}" ] && [ -n "${WINDIR+x}" ]; then
-        PATH="$(\dirname "$MAMBA_ROOT_PREFIX")/condabin${PATH:+":${PATH}"}"
+        PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
     else
-        PATH="$(\dirname "$(\dirname "$MAMBA_ROOT_PREFIX")")/condabin${PATH:+":${PATH}"}"
+        PATH="${MAMBA_ROOT_PREFIX}/condabin:${PATH}"
     fi
     \export PATH
 

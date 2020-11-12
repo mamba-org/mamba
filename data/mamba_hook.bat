@@ -9,7 +9,7 @@ R"MAMBARAW(
 @FOR %%F in ("%~dp0") do @SET "__mambabin_dir=%%~dpF"
 @SET "__mambabin_dir=%__mambabin_dir:~0,-1%"
 @SET "PATH=%__mambabin_dir%;%PATH%"
-@SET "MAMBA_BAT=%__mambabin_dir%\mamba.bat"
+@SET "MAMBA_BAT=%__mambabin_dir%\micromamba.bat"
 @FOR %%F in ("%__mambabin_dir%") do @SET "__mamba_root=%%~dpF"
 __MAMBA_INSERT_MAMBA_EXE__
 @SET __mambabin_dir=

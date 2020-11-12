@@ -25,7 +25,8 @@ namespace mamba
     std::string get_hook_contents(const std::string& shell);
 
     // this function calls cygpath to convert win path to unix
-    std::string native_path_to_unix(const fs::path& path);
+    std::string native_path_to_unix(const std::string& path, bool is_a_path_env = false);
+
     std::string rcfile_content(const fs::path& env_prefix,
                                const std::string& shell,
                                const fs::path& mamba_exe);

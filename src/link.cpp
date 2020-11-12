@@ -318,7 +318,7 @@ namespace mamba
         // TODO
         std::string CONDA_PACKAGE_ROOT = "";
 
-        std::string bat_name = Context::instance().is_micromamba ? "mamba.bat" : "conda.bat";
+        std::string bat_name = Context::instance().is_micromamba ? "micromamba.bat" : "conda.bat";
 
         if (dev_mode)
         {

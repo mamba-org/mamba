@@ -234,9 +234,8 @@ namespace mamba
         // entries.
         auto prefix_dirs = get_path_dirs(Context::instance().root_prefix);
         std::size_t start_index = 0;
-        while (start_index < prefix_dirs.size() &&
-               start_index < path.size() &&
-               paths_equal(path[start_index], prefix_dirs[start_index]))
+        while (start_index < prefix_dirs.size() && start_index < path.size()
+               && paths_equal(path[start_index], prefix_dirs[start_index]))
         {
             start_index++;
         }
@@ -244,8 +243,8 @@ namespace mamba
         {
             path.erase(path.begin(), path.begin() + start_index);
         }
-        if (path.size() &&
-            paths_equal(path[0], (Context::instance().root_prefix / "Library" / "bin")))
+        if (path.size()
+            && paths_equal(path[0], (Context::instance().root_prefix / "Library" / "bin")))
         {
             path.erase(path.begin(), path.begin() + 1);
         }
@@ -710,10 +709,18 @@ namespace mamba
     std::string PosixActivator::script(const EnvironmentTransform& env_transform)
     {
         std::stringstream out;
-
         if (!env_transform.export_path.empty())
         {
-            out << "export PATH='" << env_transform.export_path << "'\n";
+            if (on_win)
+            {
+                out << "export PATH='"
+                    << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
+                    << "'\n";
+            }
+            else
+            {
+                out << "export PATH='" << env_transform.export_path << "'\n";
+            }
         }
 
         for (const fs::path& ds : env_transform.deactivate_scripts)
@@ -733,7 +740,15 @@ namespace mamba
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            out << "export " << ekey << "='" << evar << "'\n";
+            if (on_win && ekey == "PATH")
+            {
+                out << "export " << ekey << "='"
+                    << native_path_to_unix(evar, /*is_a_env_path=*/true) << "'\n";
+            }
+            else
+            {
+                out << "export " << ekey << "='" << evar << "'\n";
+            }
         }
 
         for (const fs::path& p : env_transform.activate_scripts)

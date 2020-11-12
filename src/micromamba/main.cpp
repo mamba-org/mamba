@@ -1030,25 +1030,26 @@ main(int argc, char** argv)
     };
     app.add_flag_function("--version", print_version);
 
-#ifndef _WIN32
-    CLI::App* activate_subcom
-        = app.add_subcommand("activate", "Activate a conda / micromamba environment");
-    CLI::App* deactivate_subcom
-        = app.add_subcommand("deactivate", "Deactivate a conda / micromamba environment");
+    // #ifndef _WIN32
+    //     CLI::App* activate_subcom
+    //         = app.add_subcommand("activate", "Activate a conda / micromamba environment");
+    //     CLI::App* deactivate_subcom
+    //         = app.add_subcommand("deactivate", "Deactivate a conda / micromamba environment");
 
-    auto activate_deactivate_callback = []() {
-        std::cout << termcolor::red
-                  << "In order to use activate and deactivate you need to initialize your shell.\n"
-                  << "Either call shell init ... or execute the shell hook directly:\n\n"
-                  << "    eval \"$(./micromamba shell hook -s bash)\"\n\n"
-                  << "and then run\n\n"
-                  << "    micromamba activate  " << termcolor::white
-                  << "# notice the missing dot in front of the command\n\n"
-                  << termcolor::reset;
-    };
-    activate_subcom->callback(activate_deactivate_callback);
-    deactivate_subcom->callback(activate_deactivate_callback);
-#endif
+    //     auto activate_deactivate_callback = []() {
+    //         std::cout << termcolor::red
+    //                   << "In order to use activate and deactivate you need to initialize your
+    //                   shell.\n"
+    //                   << "Either call shell init ... or execute the shell hook directly:\n\n"
+    //                   << "    eval \"$(./micromamba shell hook -s bash)\"\n\n"
+    //                   << "and then run\n\n"
+    //                   << "    micromamba activate  " << termcolor::white
+    //                   << "# notice the missing dot in front of the command\n\n"
+    //                   << termcolor::reset;
+    //     };
+    //     activate_subcom->callback(activate_deactivate_callback);
+    //     deactivate_subcom->callback(activate_deactivate_callback);
+    // #endif
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);
@@ -1067,11 +1068,22 @@ main(int argc, char** argv)
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     list_subcom->callback([]() { list_packages(); });
     // just for the help text
-    app.footer(R"MRAW(To activate environments, use
-    $ micromamba activate PATH/TO/PREFIX
-to deactivate, use micromamba deactivate.
-For this functionality to work, you need to initialize your shell with $ ./micromamba shell init
-)MRAW");
+
+    std::stringstream footer;
+
+    footer
+        << "In order to use activate and deactivate you need to initialize your shell.\n"
+        << "Either call shell init ... or execute the shell hook directly:\n\n"
+        << "    $ eval \"$(./micromamba shell hook -s bash)\"\n\n"
+        << "and then run activate and deactivate like so:\n\n"
+        << "    $ micromamba activate  " << termcolor::white
+        << "# notice the missing dot in front of the command\n\n"
+        << "To permanently initialize your shell, use shell init like so:\n\n"
+        << "    $ ./micromamba shell init -s bash -p /home/$USER/micromamba \n\n"
+        << "and restart your shell. Supported shells are bash, zsh, xonsh, cmd.exe, and powershell."
+        << termcolor::reset;
+
+    app.footer(footer.str());
 
     CLI::App* constructor_subcom
         = app.add_subcommand("constructor", "Commands to support using micromamba in constructor");

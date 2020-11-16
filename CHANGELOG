@@ -1,3 +1,8 @@
+0.7.1 (Nov 16, 2020)
+====================
+
+- Handle LIBARCHIVE_WARN to not error, instead print warning (thanks @obilaniu)
+
 0.7.0 (Nov 12, 2020)
 ====================
 

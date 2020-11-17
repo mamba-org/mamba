@@ -82,6 +82,8 @@ namespace mamba
         int r;
         struct archive* a;
 
+        extraction_guard g(destination);
+
         fs::path abs_out_path = fs::absolute(destination);
         a = archive_write_new();
         if (ca == compression_algorithm::bzip2)
@@ -169,14 +171,18 @@ namespace mamba
                 throw std::runtime_error(concat("libarchive error: ", archive_error_string(a)));
             }
 
-            std::array<char, 8192> buffer;
-            std::ifstream fin(p, std::ios::in | std::ios::binary);
 
-            while (!fin.eof())
+            if (!fs::is_symlink(p))
             {
-                fin.read(buffer.data(), buffer.size());
-                std::streamsize len = fin.gcount();
-                archive_write_data(a, buffer.data(), len);
+                std::array<char, 8192> buffer;
+                std::ifstream fin(p, std::ios::in | std::ios::binary);
+                while (!fin.eof())
+                {
+                    interruption_point();
+                    fin.read(buffer.data(), buffer.size());
+                    std::streamsize len = fin.gcount();
+                    archive_write_data(a, buffer.data(), len);
+                }
             }
 
             r = archive_write_finish_entry(a);

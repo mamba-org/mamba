@@ -133,7 +133,9 @@ PYBIND11_MODULE(mamba_api, m)
                          res_stream << res.json().dump(4);
                          break;
                      case query::TABLE:
-                         res.table(res_stream);
+                         res.table(
+                             res_stream,
+                             { "Name", "Version", "Build", concat("Depends:", query), "Channel" });
                  }
                  return res_stream.str();
              })
@@ -152,6 +154,8 @@ PYBIND11_MODULE(mamba_api, m)
                          res_stream << res.json().dump(4);
                          break;
                      case query::TABLE:
+                         // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
+                         // query), "Channel"});
                          res.table(res_stream);
                  }
                  return res_stream.str();

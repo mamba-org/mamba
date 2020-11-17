@@ -399,12 +399,74 @@ namespace mamba
 
     std::ostream& query_result::table(std::ostream& out) const
     {
+        return table(out, { "Name", "Version", "Build", "Channel" });
+    }
+
+    std::ostream& query_result::table(std::ostream& out, const std::vector<std::string>& fmt) const
+    {
         if (m_pkg_view_list.empty())
         {
             out << "No entries matching \"" << m_query << "\" found";
         }
 
-        printers::Table printer({ "Name", "Version", "Build", "Channel" });
+        std::vector<mamba::printers::FormattedString> headers;
+        std::vector<std::string> cmds, args;
+        for (auto& f : fmt)
+        {
+            if (f.find_first_of(":") == f.npos)
+            {
+                headers.push_back(f);
+                cmds.push_back(f);
+                args.push_back("");
+            }
+            else
+            {
+                auto sfmt = split(f, ":", 1);
+                headers.push_back(sfmt[0]);
+                cmds.push_back(sfmt[0]);
+                args.push_back(sfmt[1]);
+            }
+        }
+
+        auto format_row = [&](auto& pkg) {
+            std::vector<mamba::printers::FormattedString> row;
+            for (std::size_t i = 0; i < cmds.size(); ++i)
+            {
+                const auto& cmd = cmds[i];
+                if (cmd == "Name")
+                {
+                    row.push_back(pkg->name);
+                }
+                else if (cmd == "Version")
+                {
+                    row.push_back(pkg->version);
+                }
+                else if (cmd == "Build")
+                {
+                    row.push_back(pkg->build_string);
+                }
+                else if (cmd == "Channel")
+                {
+                    row.push_back(cut_repo_name(pkg->channel));
+                }
+                else if (cmd == "Depends")
+                {
+                    std::string depends_qualifier;
+                    for (const auto& dep : pkg->depends)
+                    {
+                        if (starts_with(dep, args[i]))
+                        {
+                            depends_qualifier = dep;
+                            break;
+                        }
+                    }
+                    row.push_back(depends_qualifier);
+                }
+            }
+            return row;
+        };
+
+        printers::Table printer(headers);
 
         if (!m_ordered_pkg_list.empty())
         {
@@ -412,10 +474,7 @@ namespace mamba
             {
                 for (auto& pkg : entry.second)
                 {
-                    printer.add_row({ pkg->name,
-                                      pkg->version,
-                                      pkg->build_string,
-                                      cut_repo_name(pkg->channel) });
+                    printer.add_row(format_row(pkg));
                 }
             }
         }
@@ -423,7 +482,7 @@ namespace mamba
         {
             for (const auto& pkg : m_pkg_view_list)
             {
-                printer.add_row({ pkg->name, pkg->version, pkg->build_string, pkg->channel });
+                printer.add_row(format_row(pkg));
             }
         }
         return printer.print(out);

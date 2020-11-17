@@ -9,8 +9,8 @@
 
 #include "mamba/channel.hpp"
 #include "mamba/context.hpp"
-#include "mamba/pool.hpp"
 #include "mamba/package_handling.hpp"
+#include "mamba/pool.hpp"
 #include "mamba/prefix_data.hpp"
 #include "mamba/query.hpp"
 #include "mamba/repo.hpp"
@@ -21,6 +21,16 @@
 #include "mamba/util.hpp"
 
 namespace py = pybind11;
+
+namespace query
+{
+    enum RESULT_FORMAT
+    {
+        JSON,
+        TREE,
+        TABLE
+    };
+}
 
 PYBIND11_MODULE(mamba_api, m)
 {
@@ -84,35 +94,68 @@ PYBIND11_MODULE(mamba_api, m)
         .def("depends", &Query::depends)
     ;*/
 
+    py::enum_<query::RESULT_FORMAT>(m, "QueryFormat")
+        .value("JSON", query::RESULT_FORMAT::JSON)
+        .value("TREE", query::RESULT_FORMAT::TREE)
+        .value("TABLE", query::RESULT_FORMAT::TABLE);
+
     py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
         .def("find",
-             [](const Query& q, const std::string& query) {
-                 if (Context::instance().json)
-                     std::cout << q.find(query).groupby("name").json().dump(4);
-                 else
-                     q.find(query).groupby("name").table(std::cout);
+             [](const Query& q,
+                const std::string& query,
+                const query::RESULT_FORMAT format) -> std::string {
+                 std::stringstream res_stream;
+                 switch (format)
+                 {
+                     case query::JSON:
+                         res_stream << q.find(query).groupby("name").json().dump(4);
+                         break;
+                     case query::TREE:
+                     case query::TABLE:
+                         q.find(query).groupby("name").table(res_stream);
+                 }
+                 return res_stream.str();
              })
         .def("whoneeds",
-             [](const Query& q, const std::string& query, bool tree) {
+             [](const Query& q,
+                const std::string& query,
+                const query::RESULT_FORMAT format) -> std::string {
                  // QueryResult res = q.whoneeds(query, tree);
-                 query_result res = q.whoneeds(query, tree);
-                 if (tree)
-                     res.tree(std::cout);
-                 else if (Context::instance().json)
-                     std::cout << res.json().dump(4);
-                 else
-                     res.table(std::cout);
+                 std::stringstream res_stream;
+                 query_result res = q.whoneeds(query, (format == query::TREE));
+                 switch (format)
+                 {
+                     case query::TREE:
+                         res.tree(res_stream);
+                         break;
+                     case query::JSON:
+                         res_stream << res.json().dump(4);
+                         break;
+                     case query::TABLE:
+                         res.table(res_stream);
+                 }
+                 return res_stream.str();
              })
-        .def("depends", [](const Query& q, const std::string& query, bool tree) {
-            query_result res = q.depends(query, tree);
-            if (Context::instance().json)
-                std::cout << res.json().dump(4);
-            else if (tree)
-                res.tree(std::cout);
-            else
-                res.table(std::cout);
-        });
+        .def("depends",
+             [](const Query& q,
+                const std::string& query,
+                const query::RESULT_FORMAT format) -> std::string {
+                 query_result res = q.depends(query, (format == query::TREE));
+                 std::stringstream res_stream;
+                 switch (format)
+                 {
+                     case query::TREE:
+                         res.tree(res_stream);
+                         break;
+                     case query::JSON:
+                         res_stream << res.json().dump(4);
+                         break;
+                     case query::TABLE:
+                         res.table(res_stream);
+                 }
+                 return res_stream.str();
+             });
 
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init<const std::string&, const std::string&, const std::string&>())

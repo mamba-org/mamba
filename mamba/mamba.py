@@ -718,13 +718,20 @@ def repoquery(args, parser):
     if not context.json:
         print("\nExecuting the query %s\n" % args.package_query)
 
+    if context.json:
+        fmt = api.QueryFormat.JSON
+    elif hasattr(args, "tree") and args.tree:
+        fmt = api.QueryFormat.TREE
+    else:
+        fmt = api.QueryFormat.TABLE
+
     query = api.Query(pool)
     if args.subcmd == "whoneeds":
-        query.whoneeds(args.package_query, args.tree)
+        print(query.whoneeds(args.package_query, fmt))
     if args.subcmd == "depends":
-        query.depends(args.package_query, args.tree)
+        print(query.depends(args.package_query, fmt))
     if args.subcmd == "search":
-        query.find(args.package_query)
+        print(query.find(args.package_query, fmt))
 
 
 def do_call(args, parser):

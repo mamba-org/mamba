@@ -18,7 +18,7 @@ jobs:
       with:
         python-version: 3.8
     - name: Setup Miniconda
-      uses: goanpeca/setup-miniconda@v1.0.2
+      uses: conda-incubator/setup-miniconda@v2
       with:
         miniconda-version: 'latest'
         activate-environment: linters

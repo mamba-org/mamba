@@ -254,11 +254,7 @@ namespace mamba
             for (int i = 1; i < solvables.count; ++i)
             {
                 Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
-                if (pool_evrcmp_str(m_pool.get(),
-                                    pool_id2evr(m_pool.get(), s->evr),
-                                    pool_id2evr(m_pool.get(), latest->evr),
-                                    0)
-                    > 0)
+                if (pool_evrcmp(m_pool.get(), s->evr, latest->evr, 0) > 0)
                 {
                     latest = s;
                 }

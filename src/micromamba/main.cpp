@@ -700,6 +700,12 @@ bool
 download_explicit(const std::vector<PackageInfo>& pkgs)
 {
     fs::path cache_path(Context::instance().root_prefix / "pkgs");
+    // TODO better error handling for checking that cache path is
+    // directory and writable etc.
+    if (!fs::exists(cache_path))
+    {
+        fs::create_directories(cache_path);
+    }
     std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
     MultiDownloadTarget multi_dl;
     MultiPackageCache pkg_cache({ Context::instance().root_prefix / "pkgs" });

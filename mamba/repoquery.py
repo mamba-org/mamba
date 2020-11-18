@@ -1,3 +1,6 @@
+# Copyright (C) 2020, QuantStack
+# SPDX-License-Identifier: BSD-3-Clause
+
 import json
 
 from conda.base.context import context

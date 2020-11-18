@@ -651,6 +651,8 @@ init_install_parser(CLI::App* subcom)
     subcom->callback([&]() {
         auto& ctx = Context::instance();
         set_global_options(ctx);
+        set_network_options(ctx);
+        ctx.strict_channel_priority = create_options.strict_channel_priority;
 
         if (!create_options.name.empty() && !create_options.prefix.empty())
         {
@@ -676,9 +678,6 @@ init_install_parser(CLI::App* subcom)
             throw std::runtime_error(
                 "Prefix and name arguments are empty and a conda environment is not activated.");
         }
-
-        set_network_options(ctx);
-        ctx.strict_channel_priority = create_options.strict_channel_priority;
 
         parse_file_options();
         set_channels(ctx);
@@ -888,6 +887,8 @@ init_create_parser(CLI::App* subcom)
     subcom->callback([&]() {
         auto& ctx = Context::instance();
         set_global_options(ctx);
+        set_network_options(ctx);
+        ctx.strict_channel_priority = create_options.strict_channel_priority;
 
         // file options have to be parsed _before_ the following checks
         // to fill in name and prefix
@@ -915,9 +916,6 @@ init_create_parser(CLI::App* subcom)
             }
             ctx.target_prefix = create_options.prefix;
         }
-
-        set_network_options(ctx);
-        ctx.strict_channel_priority = create_options.strict_channel_priority;
 
         set_channels(ctx);
 

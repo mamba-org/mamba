@@ -757,6 +757,8 @@ install_explicit_specs(std::vector<std::string>& specs)
     // TODO unify this
     for (auto& spec : specs)
     {
+        if (strip(spec).size() == 0)
+            continue;
         std::size_t hash = spec.find_first_of('#');
         match_specs.emplace_back(spec.substr(0, hash));
         auto& ms = match_specs.back();
@@ -792,6 +794,58 @@ install_explicit_specs(std::vector<std::string>& specs)
         hist.add_entry(hist_entry);
     }
 }
+
+
+void
+set_target_prefix()
+{
+    auto& ctx = Context::instance();
+
+    if (!create_options.name.empty() && !create_options.prefix.empty())
+    {
+        throw std::runtime_error("Cannot set both, prefix and name.");
+    }
+    if (!create_options.name.empty())
+    {
+        if (create_options.name == "base")
+        {
+            throw std::runtime_error(
+                "Cannot create environment with name 'base'.");  // TODO! Use install -n.
+        }
+
+        ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+    }
+    else
+    {
+        if (create_options.prefix.empty())
+        {
+            throw std::runtime_error("Prefix and name arguments are empty.");
+        }
+        ctx.target_prefix = create_options.prefix;
+    }
+
+    if (fs::exists(ctx.target_prefix))
+    {
+        if (fs::exists(ctx.target_prefix / "conda-meta"))
+        {
+            if (Console::prompt(
+                    "Found conda-prefix in " + ctx.target_prefix.string() + ". Overwrite?", 'n'))
+            {
+                fs::remove_all(ctx.target_prefix);
+            }
+            else
+            {
+                exit(1);
+            }
+        }
+        else
+        {
+            Console::print("Non-conda folder exists at prefix. Exiting.");
+            exit(1);
+        }
+    }
+}
+
 
 void
 parse_file_options()
@@ -838,16 +892,21 @@ parse_file_options()
                     std::string platform;
                     if (i >= 1)
                     {
-                        platform = file_contents[i - 1];
-                        if (starts_with(platform, "# platform: "))
+                        for (std::size_t j = 0; j < i; ++j)
                         {
-                            platform = platform.substr(12);
+                            platform = file_contents[j];
+                            if (starts_with(platform, "# platform: "))
+                            {
+                                platform = platform.substr(12);
+                                break;
+                            }
                         }
                     }
 
                     std::cout << "Installing explicit specs for platform " << platform << std::endl;
                     std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                             file_contents.end());
+                    set_target_prefix();
                     install_explicit_specs(explicit_specs);
                     exit(0);
                 }
@@ -883,7 +942,6 @@ init_create_parser(CLI::App* subcom)
     init_channel_parser(subcom);
     init_global_parser(subcom);
 
-
     subcom->callback([&]() {
         auto& ctx = Context::instance();
         set_global_options(ctx);
@@ -893,53 +951,8 @@ init_create_parser(CLI::App* subcom)
         // file options have to be parsed _before_ the following checks
         // to fill in name and prefix
         parse_file_options();
-
-        if (!create_options.name.empty() && !create_options.prefix.empty())
-        {
-            throw std::runtime_error("Cannot set both, prefix and name.");
-        }
-        if (!create_options.name.empty())
-        {
-            if (create_options.name == "base")
-            {
-                throw std::runtime_error(
-                    "Cannot create environment with name 'base'.");  // TODO! Use install -n.
-            }
-
-            ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
-        }
-        else
-        {
-            if (create_options.prefix.empty())
-            {
-                throw std::runtime_error("Prefix and name arguments are empty.");
-            }
-            ctx.target_prefix = create_options.prefix;
-        }
-
+        set_target_prefix();
         set_channels(ctx);
-
-        if (fs::exists(ctx.target_prefix))
-        {
-            if (fs::exists(ctx.target_prefix / "conda-meta"))
-            {
-                if (Console::prompt("Found conda-prefix in " + ctx.target_prefix.string()
-                                        + ". Overwrite?",
-                                    'n'))
-                {
-                    fs::remove_all(ctx.target_prefix);
-                }
-                else
-                {
-                    exit(1);
-                }
-            }
-            else
-            {
-                Console::print("Non-conda folder exists at prefix. Exiting.");
-                exit(1);
-            }
-        }
 
         install_specs(create_options.specs, true);
 

@@ -6,6 +6,7 @@
 	- network settings are correctly set to make ssl verification work
 - New Python repoquery API for mamba
 - Fix symlink packing for mamba package creation and transmute
+- Do not keep tempfiles around
 
 0.7.1 (Nov 16, 2020)
 ====================

@@ -248,8 +248,8 @@ namespace mamba
         selection_solvables(m_pool.get(), &job, &solvables);
 
         int depth = tree ? -1 : 1;
-        if (solvables.count > 0)
-        {
+
+        auto find_latest = [&](Queue& solvables) -> Solvable* {
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
             for (int i = 1; i < solvables.count; ++i)
             {
@@ -259,6 +259,12 @@ namespace mamba
                     latest = s;
                 }
             }
+            return latest;
+        };
+
+        if (solvables.count > 0)
+        {
+            Solvable* latest = find_latest(solvables);
             auto id = g.add_node(PackageInfo(latest));
             std::map<Solvable*, size_t> visited = { { latest, id } };
             std::map<std::string, size_t> not_found;

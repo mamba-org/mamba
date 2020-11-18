@@ -87,6 +87,7 @@ def load_channels(
     prepend=True,
     platform=None,
     use_local=False,
+    use_cache=True,
     repodata_fn="repodata.json",
 ):
     index = get_index(
@@ -95,6 +96,7 @@ def load_channels(
         platform=platform,
         use_local=use_local,
         repodata_fn=repodata_fn,
+        use_cache=use_cache,
     )
 
     if strict_priority is None:

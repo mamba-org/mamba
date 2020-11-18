@@ -50,7 +50,7 @@ from conda.models.match_spec import MatchSpec
 
 import mamba
 import mamba.mamba_api as api
-from mamba.repoquery import _repoquery, create_context
+from mamba import repoquery as repoquery_api
 from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 if sys.version_info < (3, 2):
@@ -665,6 +665,11 @@ def repoquery(args, parser):
     if args.no_installed:
         use_installed = False
 
+    # if we're asking for depends and channels are given, disregard
+    # installed packages to prevent weird mixing
+    if args.subcmd in ("depends", "whoneeds") and use_installed and channels:
+        use_installed = False
+
     only_installed = True
     if args.subcmd == "search" and not args.installed:
         only_installed = False
@@ -686,10 +691,10 @@ def repoquery(args, parser):
     else:
         fmt = api.QueryFormat.TABLE
 
-    pool = create_context(channels, platform, use_installed)
+    pool = repoquery_api.create_pool(channels, platform, use_installed)
 
     print("\n")
-    print(_repoquery(args.subcmd, args.package_query, pool, fmt))
+    print(repoquery_api._repoquery(args.subcmd, args.package_query, pool, fmt))
 
 
 def do_call(args, parser):

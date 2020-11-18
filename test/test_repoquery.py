@@ -2,7 +2,7 @@ from mamba import repoquery
 
 
 def test_depends():
-    pool = repoquery.create_context(["conda-forge"], "linux-64", False)
+    pool = repoquery.create_pool(["conda-forge"], "linux-64", False)
     res = repoquery.depends("xtensor", pool)
     assert res["query"]["query"] == "xtensor"
     assert res["query"]["type"] == "depends"
@@ -15,7 +15,7 @@ def test_depends():
 
 
 def test_whoneeds():
-    pool = repoquery.create_context(["conda-forge"], "osx-64", False)
+    pool = repoquery.create_pool(["conda-forge"], "osx-64", False)
     res = repoquery.whoneeds("xtensor", pool)
     assert res["query"]["query"] == "xtensor"
     assert res["query"]["type"] == "whoneeds"
@@ -29,7 +29,7 @@ def test_whoneeds():
 
 
 def test_search():
-    pool = repoquery.create_context(["conda-forge"], "win-64", False)
+    pool = repoquery.create_pool(["conda-forge"], "win-64", False)
     res = repoquery.search("xtensor*", pool)
 
     assert res["query"]["query"] == "xtensor*"

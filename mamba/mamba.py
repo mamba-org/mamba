@@ -50,13 +50,8 @@ from conda.models.match_spec import MatchSpec
 
 import mamba
 import mamba.mamba_api as api
-from mamba.utils import (
-    get_index,
-    get_installed_jsonfile,
-    init_api_context,
-    load_channels,
-    to_txn,
-)
+from mamba import repoquery as repoquery_api
+from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
@@ -652,31 +647,33 @@ def repoquery(args, parser):
         print("    $ mamba repoquery search xtensor\n")
         exit(1)
 
+    # print(args)
     if args.platform:
-        context._subdirs = (args.platform, "noarch")
+        platform = args.platform
+    else:
+        platform = context.subdir
 
-    prefix = context.target_prefix
+    channels = None
+    if hasattr(args, "channel"):
+        channels = args.channel
+    if args.all_channels or (channels is None and args.subcmd == "search"):
+        if channels:
+            print("WARNING: Using all channels instead of configured channels")
+        channels = context.channels
 
-    init_api_context()
+    use_installed = args.installed
+    if args.no_installed:
+        use_installed = False
 
-    index_args = {
-        "use_cache": args.use_index_cache,
-        "channel_urls": context.channels,
-        "unknown": args.unknown,
-        "prepend": not args.override_channels,
-        "use_local": args.use_local,
-    }
-
-    installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
-
-    pool = api.Pool()
-    repos = []
+    # if we're asking for depends and channels are given, disregard
+    # installed packages to prevent weird mixing
+    if args.subcmd in ("depends", "whoneeds") and use_installed and channels:
+        use_installed = False
 
     only_installed = True
-    channels = args.channel or []
     if args.subcmd == "search" and not args.installed:
         only_installed = False
-    elif args.all_channels or len(channels):
+    elif args.all_channels or (channels and len(channels)):
         only_installed = False
 
     if only_installed and args.no_installed:
@@ -684,47 +681,20 @@ def repoquery(args, parser):
         print("Activate -a to search all channels.")
         exit(1)
 
-    if not args.no_installed:
-        # add installed
-        repo = api.Repo(pool, "installed", installed_json_f.name, "")
-        repo.set_installed()
-        repos.append(repo)
-
-    if not only_installed:
-        index = get_index(
-            channel_urls=index_args["channel_urls"],
-            prepend=index_args["prepend"],
-            platform=None,
-            use_local=index_args["use_local"],
-            use_cache=index_args["use_cache"],
-            unknown=index_args["unknown"],
-            prefix=prefix,
-        )
-
-        for subdir, channel in index:
-            if not subdir.loaded() and channel.platform != "noarch":
-                # ignore non-loaded subdir if channel is != noarch
-                continue
-
-            repo = api.Repo(
-                pool,
-                str(channel),
-                subdir.cache_path(),
-                channel.url(with_credentials=True),
-            )
-            repo.set_priority(0, 0)
-            repos.append(repo)
-
     if not context.json:
         print("\nExecuting the query %s\n" % args.package_query)
 
-    query = api.Query(pool)
-    if args.subcmd == "whoneeds":
-        query.whoneeds(args.package_query, args.tree)
-    if args.subcmd == "depends":
-        query.depends(args.package_query, args.tree)
-    if args.subcmd == "search":
-        query.find(args.package_query)
+    if context.json:
+        fmt = api.QueryFormat.JSON
+    elif hasattr(args, "tree") and args.tree:
+        fmt = api.QueryFormat.TREE
+    else:
+        fmt = api.QueryFormat.TABLE
+
+    pool = repoquery_api.create_pool(channels, platform, use_installed)
+
+    print("\n")
+    print(repoquery_api._repoquery(args.subcmd, args.package_query, pool, fmt))
 
 
 def do_call(args, parser):
@@ -784,7 +754,9 @@ Examples:
     subsub_parser = p.add_subparsers(dest="subcmd")
     package_cmds = argparse.ArgumentParser(add_help=False)
     package_cmds.add_argument("package_query", help="the target package")
-    package_cmds.add_argument("-i", "--installed", action="store_true", help=SUPPRESS)
+    package_cmds.add_argument(
+        "-i", "--installed", action="store_true", default=True, help=SUPPRESS
+    )
 
     package_cmds.add_argument("-p", "--platform")
     package_cmds.add_argument("--no-installed", action="store_true")
@@ -854,6 +826,7 @@ def _wrapped_main(*args, **kwargs):
     args = p.parse_args(args[1:])
 
     context.__init__(argparse_args=args)
+    context.__initialized__ = True
     if print_banner and not (context.quiet or context.json):
         print(banner)
 

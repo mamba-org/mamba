@@ -87,6 +87,7 @@ namespace mamba
         query_result& reset();
 
         std::ostream& table(std::ostream&) const;
+        std::ostream& table(std::ostream&, const std::vector<std::string>& fmt) const;
         std::ostream& tree(std::ostream&) const;
         nl::json json() const;
 

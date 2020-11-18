@@ -1,3 +1,12 @@
+0.7.2 (Nov 18, 2020)
+====================
+
+- [micromamba] explicit specs installing should be better now
+	- empty lines are ignored
+	- network settings are correctly set to make ssl verification work
+- New Python repoquery API for mamba
+- Fix symlink packing for mamba package creation and transmute
+
 0.7.1 (Nov 16, 2020)
 ====================
 

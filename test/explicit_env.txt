@@ -1,12 +1,18 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
 # platform: linux-64
+
 @EXPLICIT
+
 https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81
 https://conda.anaconda.org/conda-forge/linux-64/libstdcxx-ng-9.3.0-hdf63c60_16.tar.bz2#2c7c23cdad4f42f924d19029ef97475c
 https://conda.anaconda.org/conda-forge/linux-64/libgomp-9.3.0-h24d8f2e_16.tar.bz2#48f89ebfddb4ac93e74b0f4ab14c4a13
+
+
 https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-1_gnu.tar.bz2#561e277319a41d4f24f5c05a9ef63c04
 https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-9.3.0-h24d8f2e_16.tar.bz2#846daf5c2a4dd387047cc5ccc6b9c613
 https://conda.anaconda.org/conda-forge/linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f
+
+
 https://conda.anaconda.org/conda-forge/linux-64/xtl-0.6.18-hc9558a2_0.tar.bz2#735bcdd69de4fc87cc85c8d3add8a178
 https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887

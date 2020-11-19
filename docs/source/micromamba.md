@@ -97,10 +97,10 @@ C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.e
 $Env:MAMBA_ROOT_PREFIX="C:\Your\Root\Prefix"
 
 # Invoke the hook
-.\micrommaba.exe shell hook -s powershell | Out-String | Invoke-Expression
+.\Library\bin\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
 
 # ... or initialize the shell
-.\micrommaba.exe shell init -s powershell -p C:\Your\Root\Prefix
+.\Library\bin\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
 
 micromamba create -f ./test/env_win.yaml -y
 micromamba activate ...

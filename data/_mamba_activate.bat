@@ -19,7 +19,7 @@ R"MAMBARAW(
 @FOR %%A in ("%TMP%") do @SET TMP=%%~sA
 @IF "%MAMBA_ROOT_PREFIX%" NEQ "" (
     @SET "_sysp=%MAMBA_ROOT_PREFIX%"
-    @SET PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%
+    @SET "PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%"
 )
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
 @REM and %* to contain: activate "Something With Spaces does not exist".

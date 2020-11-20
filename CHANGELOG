@@ -1,3 +1,10 @@
+0.7.3 (Nov 20, 2020)
+====================
+
+- [micromamba] fix installation of noarch files with long prefixes
+- [micromamba] fix activation on windows with whitespaces in root prefix (thanks @adriendelsalle)
+- [micromamba] add `--json` output to micromamba list
+
 0.7.2 (Nov 18, 2020)
 ====================
 

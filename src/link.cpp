@@ -105,7 +105,8 @@ namespace mamba
             return concat("#!/usr/bin/env ",
                           std::string(shebang_path.filename()),
                           " ",
-                          shebang.substr(path_end));
+                          shebang.substr(path_end),
+                          "\n");
         }
     }
 
@@ -139,7 +140,7 @@ namespace mamba
             // Shebangs cannot be longer than 127 characters
             if (py_str.size() > (127 - 2))
             {
-                out_file << "#!/usr/bin/env python";
+                out_file << "#!/usr/bin/env python\n";
             }
             else
             {

@@ -583,11 +583,49 @@ remove_specs(const std::vector<std::string>& specs)
 }
 
 void
+init_list_parser(CLI::App* subcom)
+{
+    init_global_parser(subcom);
+}
+
+void
 list_packages()
 {
     auto& ctx = Context::instance();
+    set_global_options(ctx);
+
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
+
+    if (ctx.json)
+    {
+        auto jout = nlohmann::json::array();
+        std::vector<std::string> keys;
+
+        for (const auto& pkg : prefix_data.m_package_records)
+        {
+            keys.push_back(pkg.first);
+        }
+        std::sort(keys.begin(), keys.end());
+
+        for (const auto& key : keys)
+        {
+            auto obj = nlohmann::json();
+            const auto& pkg_info = prefix_data.m_package_records.find(key)->second;
+            auto channel = mamba::make_channel(pkg_info.url);
+            obj["base_url"] = channel.base_url();
+            obj["build_number"] = pkg_info.build_number;
+            obj["build_string"] = pkg_info.build_string;
+            obj["channel"] = channel.name();
+            obj["dist_name"] = pkg_info.str();
+            obj["name"] = pkg_info.name;
+            obj["platform"] = pkg_info.subdir;
+            obj["version"] = pkg_info.version;
+            jout.push_back(obj);
+        }
+        std::cout << jout.dump(4) << std::endl;
+        return;
+    }
 
     std::cout << "List of packages in environment: " << ctx.target_prefix << std::endl;
 
@@ -596,7 +634,7 @@ list_packages()
     std::vector<formatted_pkg> packages;
 
     // order list of packages from prefix_data by alphabetical order
-    for (auto package : prefix_data.m_package_records)
+    for (const auto& package : prefix_data.m_package_records)
     {
         formatted_pkgs.name = package.second.name;
         formatted_pkgs.version = package.second.version;
@@ -1083,6 +1121,7 @@ main(int argc, char** argv)
     init_remove_parser(remove_subcom);
 
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
+    init_list_parser(list_subcom);
     list_subcom->callback([]() { list_packages(); });
     // just for the help text
 

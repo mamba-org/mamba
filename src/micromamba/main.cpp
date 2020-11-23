@@ -791,7 +791,7 @@ install_explicit_specs(std::vector<std::string>& specs)
     std::vector<mamba::PackageInfo> pkg_infos;
     mamba::History hist(Context::instance().target_prefix);
     auto hist_entry = History::UserRequest::prefilled();
-
+    std::string python_version;  // for pyc compilation
     // TODO unify this
     for (auto& spec : specs)
     {
@@ -814,13 +814,18 @@ install_explicit_specs(std::vector<std::string>& specs)
         }
         hist_entry.update.push_back(ms.str());
         pkg_infos.push_back(p);
+
+        if (ms.name == "python")
+        {
+            python_version = ms.version;
+        }
     }
     if (download_explicit(pkg_infos))
     {
         // pkgs can now be linked
         fs::create_directories(Context::instance().target_prefix / "conda-meta");
 
-        TransactionContext ctx(Context::instance().target_prefix, "");
+        TransactionContext ctx(Context::instance().target_prefix, python_version);
         for (auto& pkg : pkg_infos)
         {
             LinkPackage lp(pkg, Context::instance().root_prefix / "pkgs", &ctx);

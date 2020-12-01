@@ -11,8 +11,79 @@
 #include "mamba/package_cache.hpp"
 #include "mamba/subdirdata.hpp"
 
+#define BUF_SIZE 32768
+
 namespace decompress
 {
+    bool error2(char* data, zckCtx* zck, bool good_exit, const char* out_name, int src_fd, int dst_fd)
+    {
+        free(data);
+        zck_free(&zck);
+        if(!good_exit)
+            unlink(out_name);
+        close(src_fd);
+        close(dst_fd);
+        return good_exit;
+    }
+
+    bool zck(const std::string& in, const std::string& out)
+    {
+        int src_fd = open(in.c_str(), O_RDONLY);
+        if(src_fd < 0) {
+            std::cerr << "Unable to open " << in << std::endl;
+            perror("");
+            exit(1);
+        }
+        const char* out_name = out.c_str();
+
+        int dst_fd = open(out_name, O_TRUNC | O_WRONLY | O_CREAT, 0666);
+        if(dst_fd < 0) {
+            std::cerr << "Unable to open " << out_name << std::endl;
+            perror("");
+            exit(1);
+        }
+
+        bool good_exit = false;
+
+        char *data = NULL;
+        zckCtx *zck = zck_create();
+        if(!zck_init_read(zck, src_fd)) {
+            dprintf(STDERR_FILENO, "%s", zck_get_error(zck));
+            return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        }
+
+        int ret = zck_validate_data_checksum(zck);
+        if(ret < 1) {
+            if(ret == -1)
+                dprintf(STDERR_FILENO, "Data checksum failed verification\n");
+            return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        }
+
+        data = (char*)calloc(BUF_SIZE, 1);
+        assert(data);
+        size_t total = 0;
+        while(true) {
+            ssize_t read = zck_read(zck, data, BUF_SIZE);
+            if(read < 0) {
+                dprintf(STDERR_FILENO, "%s", zck_get_error(zck));
+                return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+            }
+            if(read == 0)
+                break;
+            if(write(dst_fd, data, read) != read) {
+                dprintf(STDERR_FILENO, "Error writing to %s\n", out_name);
+                return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+            }
+            total += read;
+        }
+        if(!zck_close(zck)) {
+            dprintf(STDERR_FILENO, "%s", zck_get_error(zck));
+            return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        }
+        good_exit = true;
+        return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+    }
+
     bool raw(const std::string& in, const std::string& out)
     {
         int r;
@@ -73,6 +144,13 @@ namespace mamba
         , m_json_fn(repodata_fn)
         , m_solv_fn(repodata_fn.substr(0, repodata_fn.size() - 4) + "solv")
     {
+        if (Context::instance().use_zchunk)
+        {
+            if (starts_with(url, "http://127"))  // TODO: remove
+            {
+                m_url = m_url + ".zck";
+            }
+        }
     }
 
     fs::file_time_type::duration MSubdirData::check_cache(
@@ -196,117 +274,178 @@ namespace mamba
 
     bool MSubdirData::finalize_transfer()
     {
-        if (m_target->result != 0 || m_target->http_status >= 400)
-        {
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for " << m_url;
-            m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
-            m_progress_bar.set_progress(100);
-            m_progress_bar.mark_as_completed();
-            m_loaded = false;
-            return false;
-        }
-
-        LOG_WARNING << "HTTP response code: " << m_target->http_status;
-        // Note HTTP status == 0 for files
-        if (m_target->http_status == 0 || m_target->http_status == 200
-            || m_target->http_status == 304)
+        if (m_target->is_zchunk())
         {
             m_download_complete = true;
-        }
-        else
-        {
-            throw std::runtime_error("Unhandled HTTP code: "
-                                     + std::to_string(m_target->http_status));
-        }
 
-        if (m_target->http_status == 304)
-        {
-            // cache still valid
-            auto now = fs::file_time_type::clock::now();
-            auto cache_age = check_cache(m_json_fn, now);
-            auto solv_age = check_cache(m_solv_fn, now);
+            m_mod_etag.clear();
+            m_mod_etag["_url"] = m_url;
+            m_mod_etag["_etag"] = m_target->etag;
+            m_mod_etag["_mod"] = m_target->mod;
+            m_mod_etag["_cache_control"] = m_target->cache_control;
 
-            fs::last_write_time(m_json_fn, now);
-            LOG_INFO << "Solv age: "
-                     << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
-                     << ", JSON age: "
-                     << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-            if (solv_age != fs::file_time_type::duration::max()
-                && solv_age.count() <= cache_age.count())
+            LOG_WARNING << "Opening: " << m_json_fn;
+            std::ofstream final_file(m_json_fn);
+            // TODO make sure that cache directory exists!
+            if (!final_file.is_open())
             {
-                fs::last_write_time(m_solv_fn, now);
-                m_solv_cache_valid = true;
+                throw std::runtime_error("Could not open file.");
             }
 
-            m_progress_bar.set_postfix("No change");
+            m_progress_bar.set_postfix("Decomp...");
+            decompress(true);
+
+            m_progress_bar.set_postfix("Finalizing...");
+
+            std::ifstream temp_file(m_temp_file->path());
+            std::stringstream temp_json;
+            //temp_json << m_mod_etag.dump();
+
+            //// replace `}` with `,`
+            //temp_json.seekp(-1, temp_json.cur);
+            //temp_json << ',';
+            //final_file << temp_json.str();
+            //temp_file.seekg(1);
+            std::copy(std::istreambuf_iterator<char>(temp_file),
+                      std::istreambuf_iterator<char>(),
+                      std::ostreambuf_iterator<char>(final_file));
+
+            m_progress_bar.set_postfix("Done");
             m_progress_bar.set_progress(100);
             m_progress_bar.mark_as_completed();
 
             m_json_cache_valid = true;
             m_loaded = true;
+
+            temp_file.close();
             m_temp_file.reset(nullptr);
+            final_file.close();
+
+            fs::last_write_time(m_json_fn, fs::file_time_type::clock::now());
             return true;
         }
-
-        LOG_INFO << "Finalized transfer: " << m_url;
-
-        m_mod_etag.clear();
-        m_mod_etag["_url"] = m_url;
-        m_mod_etag["_etag"] = m_target->etag;
-        m_mod_etag["_mod"] = m_target->mod;
-        m_mod_etag["_cache_control"] = m_target->cache_control;
-
-        LOG_WARNING << "Opening: " << m_json_fn;
-        std::ofstream final_file(m_json_fn);
-        // TODO make sure that cache directory exists!
-        if (!final_file.is_open())
+        else
         {
-            throw std::runtime_error("Could not open file.");
+            if (m_target->result != 0 || m_target->http_status >= 400)
+            {
+                LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
+                         << ") for " << m_url;
+                m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
+                m_progress_bar.set_progress(100);
+                m_progress_bar.mark_as_completed();
+                m_loaded = false;
+                return false;
+            }
+
+            LOG_WARNING << "HTTP response code: " << m_target->http_status;
+            // Note HTTP status == 0 for files
+            if (m_target->http_status == 0 || m_target->http_status == 200
+                || m_target->http_status == 304)
+            {
+                m_download_complete = true;
+            }
+            else
+            {
+                throw std::runtime_error("Unhandled HTTP code: "
+                                         + std::to_string(m_target->http_status));
+            }
+
+            if (m_target->http_status == 304)
+            {
+                // cache still valid
+                auto now = fs::file_time_type::clock::now();
+                auto cache_age = check_cache(m_json_fn, now);
+                auto solv_age = check_cache(m_solv_fn, now);
+
+                fs::last_write_time(m_json_fn, now);
+                LOG_INFO << "Solv age: "
+                         << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
+                         << ", JSON age: "
+                         << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+                if (solv_age != fs::file_time_type::duration::max()
+                    && solv_age.count() <= cache_age.count())
+                {
+                    fs::last_write_time(m_solv_fn, now);
+                    m_solv_cache_valid = true;
+                }
+
+                m_progress_bar.set_postfix("No change");
+                m_progress_bar.set_progress(100);
+                m_progress_bar.mark_as_completed();
+
+                m_json_cache_valid = true;
+                m_loaded = true;
+                m_temp_file.reset(nullptr);
+                return true;
+            }
+
+            LOG_INFO << "Finalized transfer: " << m_url;
+
+            m_mod_etag.clear();
+            m_mod_etag["_url"] = m_url;
+            m_mod_etag["_etag"] = m_target->etag;
+            m_mod_etag["_mod"] = m_target->mod;
+            m_mod_etag["_cache_control"] = m_target->cache_control;
+
+            LOG_WARNING << "Opening: " << m_json_fn;
+            std::ofstream final_file(m_json_fn);
+            // TODO make sure that cache directory exists!
+            if (!final_file.is_open())
+            {
+                throw std::runtime_error("Could not open file.");
+            }
+
+            if (ends_with(m_url, ".bz2"))
+            {
+                m_progress_bar.set_postfix("Decomp...");
+                decompress(false);
+            }
+
+            m_progress_bar.set_postfix("Finalizing...");
+
+            std::ifstream temp_file(m_temp_file->path());
+            std::stringstream temp_json;
+            temp_json << m_mod_etag.dump();
+
+            // replace `}` with `,`
+            temp_json.seekp(-1, temp_json.cur);
+            temp_json << ',';
+            final_file << temp_json.str();
+            temp_file.seekg(1);
+            std::copy(std::istreambuf_iterator<char>(temp_file),
+                      std::istreambuf_iterator<char>(),
+                      std::ostreambuf_iterator<char>(final_file));
+
+            m_progress_bar.set_postfix("Done");
+            m_progress_bar.set_progress(100);
+            m_progress_bar.mark_as_completed();
+
+            m_json_cache_valid = true;
+            m_loaded = true;
+
+            temp_file.close();
+            m_temp_file.reset(nullptr);
+            final_file.close();
+
+            fs::last_write_time(m_json_fn, fs::file_time_type::clock::now());
+
+            return true;
         }
-
-        if (ends_with(m_url, ".bz2"))
-        {
-            m_progress_bar.set_postfix("Decomp...");
-            decompress();
-        }
-
-        m_progress_bar.set_postfix("Finalizing...");
-
-        std::ifstream temp_file(m_temp_file->path());
-        std::stringstream temp_json;
-        temp_json << m_mod_etag.dump();
-
-        // replace `}` with `,`
-        temp_json.seekp(-1, temp_json.cur);
-        temp_json << ',';
-        final_file << temp_json.str();
-        temp_file.seekg(1);
-        std::copy(std::istreambuf_iterator<char>(temp_file),
-                  std::istreambuf_iterator<char>(),
-                  std::ostreambuf_iterator<char>(final_file));
-
-        m_progress_bar.set_postfix("Done");
-        m_progress_bar.set_progress(100);
-        m_progress_bar.mark_as_completed();
-
-        m_json_cache_valid = true;
-        m_loaded = true;
-
-        temp_file.close();
-        m_temp_file.reset(nullptr);
-        final_file.close();
-
-        fs::last_write_time(m_json_fn, fs::file_time_type::clock::now());
-
-        return true;
     }
 
-    bool MSubdirData::decompress()
+    bool MSubdirData::decompress(bool is_zchunk)
     {
         LOG_INFO << "Decompressing metadata";
         auto json_temp_file = std::make_unique<TemporaryFile>();
-        bool result = decompress::raw(m_temp_file->path(), json_temp_file->path());
+        bool result;
+        if (is_zchunk)
+        {
+            result = decompress::zck(m_temp_file->path(), json_temp_file->path());
+        }
+        else
+        {
+            result = decompress::raw(m_temp_file->path(), json_temp_file->path());
+        }
         if (!result)
         {
             LOG_WARNING << "Could not decompress " << m_temp_file->path();

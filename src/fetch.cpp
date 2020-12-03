@@ -15,9 +15,9 @@
 namespace mamba
 {
     // Fail if dl_ctx->fail_no_ranges is set and we get a 200 response
-    size_t dl_header_cb(char *b, size_t l, size_t c, void *dl_v)
+    size_t dl_header_cb(char* b, size_t l, size_t c, void* dl_v)
     {
-        dlCtx *dl_ctx = (dlCtx*)dl_v;
+        dlCtx* dl_ctx = (dlCtx*) dl_v;
         if (dl_ctx->fail_no_ranges)
         {
             long code = -1;
@@ -45,9 +45,7 @@ namespace mamba
         , m_zchunk_source(zchunk_source)
         , m_zck_src(NULL)
         , m_is_zchunk(false)
-        , m_fail_no_ranges(true)
         , m_zchunk_err(0)
-        , m_zchunk_pct(0.)
     {
         m_file = std::ofstream(filename, std::ios::binary);
 
@@ -77,21 +75,21 @@ namespace mamba
 
     // Return 0 on error, -1 on 200 response (if fail_no_ranges),
     // and 1 on complete success
-    bool DownloadTarget::dl_range(int& result, dlCtx *dl_ctx, const char *url, char *range, int is_chunk)
+    bool DownloadTarget::dl_range(
+        int& result, dlCtx* dl_ctx, const char* url, char* range, int is_chunk)
     {
-        #define VARIABLE(x) __dl_range_##x##__
+#define VARIABLE(x) __dl_range_##x##__
         BEGIN(dl_range);
 
         if (dl_ctx == NULL || dl_ctx->dl == NULL)
         {
             free(range);
-            LOG_INFO << "Struct not defined";
+            LOG_ERROR << "Struct not defined";
             result = 0;
             RETURN(dl_range);
         }
 
         VARIABLE(curl) = dl_ctx->curl;
-        //CURLcode res;
 
         curl_easy_setopt(VARIABLE(curl), CURLOPT_URL, url);
         curl_easy_setopt(VARIABLE(curl), CURLOPT_FOLLOWLOCATION, 1L);
@@ -107,7 +105,7 @@ namespace mamba
         }
         curl_easy_setopt(VARIABLE(curl), CURLOPT_WRITEDATA, dl_ctx->dl);
         curl_easy_setopt(VARIABLE(curl), CURLOPT_RANGE, range);
-        YIELD(dl_range);
+        YIELD(dl_range);  // this is when the CURL download will happen
         free(range);
 
         if (dl_ctx->range_fail)
@@ -120,7 +118,7 @@ namespace mamba
         curl_easy_getinfo(VARIABLE(curl), CURLINFO_RESPONSE_CODE, &code);
         if (code != 206 && code != 200)
         {
-            LOG_INFO << "HTTP Error: " << code << " when downloading " << url;
+            LOG_ERROR << "HTTP Error: " << code << " when downloading " << url;
             result = 0;
             RETURN(dl_range);
         }
@@ -128,29 +126,36 @@ namespace mamba
         result = 1;
 
         END(dl_range);
-        #undef VARIABLE
+#undef VARIABLE
     }
 
-    bool DownloadTarget::dl_byte_range(int& result, dlCtx *dl_ctx, const char *url, int start, int end)
+    bool DownloadTarget::dl_byte_range(
+        int& result, dlCtx* dl_ctx, const char* url, int start, int end)
     {
-        #define VARIABLE(x) __dl_byte_range_##x##__
+#define VARIABLE(x) __dl_byte_range_##x##__
         BEGIN(dl_byte_range);
 
         VARIABLE(range) = NULL;
         zck_dl_reset(dl_ctx->dl);
-        if(start > -1 && end > -1)
+        if (start > -1 && end > -1)
         {
             VARIABLE(range) = zck_get_range(start, end);
         }
         AWAIT(dl_byte_range, dl_range(result, dl_ctx, url, VARIABLE(range), 0));
 
         END(dl_byte_range);
-        #undef VARIABLE
+#undef VARIABLE
     }
 
-    bool DownloadTarget::dl_bytes(int& result, dlCtx *dl_ctx, const char *url, size_t bytes, size_t start, size_t *buffer_len, int log_level)
+    bool DownloadTarget::dl_bytes(int& result,
+                                  dlCtx* dl_ctx,
+                                  const char* url,
+                                  size_t bytes,
+                                  size_t start,
+                                  size_t* buffer_len,
+                                  int log_level)
     {
-        #define VARIABLE(x) __dl_bytes_##x##__
+#define VARIABLE(x) __dl_bytes_##x##__
         BEGIN(dl_bytes);
 
         if (start + bytes > *buffer_len)
@@ -159,31 +164,35 @@ namespace mamba
 
             VARIABLE(fd) = zck_get_fd(zck_dl_get_zck(VARIABLE(dl)));
 
-            if(lseek(VARIABLE(fd), *buffer_len, SEEK_SET) == -1)
+            if (lseek(VARIABLE(fd), *buffer_len, SEEK_SET) == -1)
             {
-                LOG_INFO << "Seek to download location failed: " << strerror(errno);
+                LOG_ERROR << "Seek to download location failed: " << strerror(errno);
                 result = 0;
                 RETURN(dl_bytes);
             }
-            if(*buffer_len >= start + bytes)
+            if (*buffer_len >= start + bytes)
             {
                 result = 1;
                 RETURN(dl_bytes);
             }
 
-            AWAIT(dl_bytes, dl_byte_range(VARIABLE(retval), dl_ctx, url, *buffer_len, (start + bytes) - 1));
-            if(VARIABLE(retval) < 1)
+            AWAIT(dl_bytes,
+                  dl_byte_range(VARIABLE(retval), dl_ctx, url, *buffer_len, (start + bytes) - 1));
+
+            if (VARIABLE(retval) < 1)
             {
                 result = VARIABLE(retval);
                 RETURN(dl_bytes);
             }
 
-            if(log_level <= ZCK_LOG_DEBUG)
-                LOG_INFO << "Downloading " << (unsigned long)start+bytes-*buffer_len<< " bytes at position " << (unsigned long)*buffer_len;
+            if (log_level <= ZCK_LOG_DEBUG)
+                LOG_INFO << "Downloading " << (unsigned long) start + bytes - *buffer_len
+                         << " bytes at position " << (unsigned long) *buffer_len;
             *buffer_len += start + bytes - *buffer_len;
-            if(lseek(VARIABLE(fd), start, SEEK_SET) == -1)
+            if (lseek(VARIABLE(fd), start, SEEK_SET) == -1)
             {
-                LOG_INFO << "Seek to byte " << (unsigned long)start << " of temporary file failed: " << strerror(errno);
+                LOG_ERROR << "Seek to byte " << (unsigned long) start
+                          << " of temporary file failed: " << strerror(errno);
                 result = 0;
                 RETURN(dl_bytes);
             }
@@ -191,25 +200,33 @@ namespace mamba
         result = 1;
 
         END(dl_bytes);
-        #undef VARIABLE
+#undef VARIABLE
     }
 
-    bool DownloadTarget::dl_header(int& result, CURL *curl, zckDL *dl, const char *url, int fail_no_ranges, int log_level)
+    bool DownloadTarget::dl_header(
+        int& result, CURL* curl, zckDL* dl, const char* url, int fail_no_ranges, int log_level)
     {
-        #define VARIABLE(x) __dl_header_##x##__
+#define VARIABLE(x) __dl_header_##x##__
         BEGIN(dl_header);
 
         VARIABLE(buffer_len) = 0;
         VARIABLE(start) = 0;
 
-        VARIABLE(dl_ctx) = {0};
+        VARIABLE(dl_ctx) = { 0 };
         VARIABLE(dl_ctx).fail_no_ranges = 1;
         VARIABLE(dl_ctx).dl = dl;
         VARIABLE(dl_ctx).curl = curl;
         VARIABLE(dl_ctx).max_ranges = 1;
 
         // Download minimum download size and read magic and hash type
-        AWAIT(dl_header, dl_bytes(VARIABLE(retval), &VARIABLE(dl_ctx), url, zck_get_min_download_size(), VARIABLE(start), &VARIABLE(buffer_len), log_level));
+        AWAIT(dl_header,
+              dl_bytes(VARIABLE(retval),
+                       &VARIABLE(dl_ctx),
+                       url,
+                       zck_get_min_download_size(),
+                       VARIABLE(start),
+                       &VARIABLE(buffer_len),
+                       log_level));
         if (VARIABLE(retval) < 1)
         {
             result = VARIABLE(retval);
@@ -227,7 +244,14 @@ namespace mamba
             RETURN(dl_header);
         }
         VARIABLE(start) = zck_get_lead_length(VARIABLE(zck));
-        AWAIT(dl_header, dl_bytes(VARIABLE(retval), &VARIABLE(dl_ctx), url, zck_get_header_length(VARIABLE(zck)) - VARIABLE(start), VARIABLE(start), &VARIABLE(buffer_len), log_level));
+        AWAIT(dl_header,
+              dl_bytes(VARIABLE(retval),
+                       &VARIABLE(dl_ctx),
+                       url,
+                       zck_get_header_length(VARIABLE(zck)) - VARIABLE(start),
+                       VARIABLE(start),
+                       &VARIABLE(buffer_len),
+                       log_level));
         if (!VARIABLE(retval))
         {
             result = 0;
@@ -241,7 +265,7 @@ namespace mamba
         result = 1;
 
         END(dl_header);
-        #undef VARIABLE
+#undef VARIABLE
     }
 
     bool DownloadTarget::zchunk_try_open_source()
@@ -249,20 +273,21 @@ namespace mamba
         int src_fd = open(m_zchunk_source.c_str(), O_RDONLY);
         if (src_fd < 0)
         {
-            LOG_INFO << "[ZCHUNK] Unable to open source file " << m_zchunk_source;
+            LOG_INFO << "Unable to open source file " << m_zchunk_source;
             return false;
         }
         m_zck_src = zck_create();
         if (m_zck_src == NULL)
         {
-            LOG_INFO << "[ZCHUNK] Error: " << zck_get_error(NULL);
+            LOG_ERROR << "Error: " << zck_get_error(NULL);
             zck_clear_error(NULL);
             return false;
         }
         if (!zck_init_read(m_zck_src, src_fd))
         {
             m_zck_src = NULL;
-            LOG_INFO << "[ZCHUNK] Unable to open " << m_zchunk_source << ": " << zck_get_error(m_zck_src);
+            LOG_ERROR << "Unable to open " << m_zchunk_source << ": "
+                      << zck_get_error(m_zck_src);
             return false;
         }
         return true;
@@ -270,8 +295,8 @@ namespace mamba
 
     bool DownloadTarget::init_zchunk_target(const std::string& url)
     {
-        #define VARIABLE(x) __init_zchunk_target_##x##__
-        int range_attempt[] = {255, 127, 7, 2, 1};
+#define VARIABLE(x) __init_zchunk_target_##x##__
+        int range_attempt[] = { 255, 127, 7, 2, 1 };
 
         BEGIN(init_zchunk_target);
         zck_set_log_level(ZCK_LOG_INFO);
@@ -280,20 +305,19 @@ namespace mamba
         {
             if (!zchunk_try_open_source())
             {
-                // there is a problem with the source file
-                // let's remove it and start fresh next time
                 if (fs::exists(m_zchunk_source))
                 {
+                    // there is a problem with the source file
+                    // let's remove it and start fresh next time
                     fs::remove(m_zchunk_source);
                 }
             }
         }
 
-        VARIABLE(outname) = m_filename;
-        VARIABLE(dst_fd) = open(VARIABLE(outname).c_str(), O_RDWR | O_CREAT, 0666);
+        VARIABLE(dst_fd) = open(m_filename.c_str(), O_RDWR | O_CREAT, 0666);
         if (VARIABLE(dst_fd) < 0)
         {
-            throw std::runtime_error("Unable to open " + VARIABLE(outname) + ": " + strerror(errno));
+            throw std::runtime_error("Unable to open " + m_filename + ": " + strerror(errno));
         }
         VARIABLE(zck_tgt) = zck_create();
         if (VARIABLE(zck_tgt) == NULL)
@@ -316,11 +340,11 @@ namespace mamba
         }
 
         ;
-        AWAIT(init_zchunk_target, dl_header(VARIABLE(retval), m_handle, VARIABLE(dl), m_url.c_str(), m_fail_no_ranges, ZCK_LOG_DEBUG));
+        AWAIT(init_zchunk_target,
+              dl_header(VARIABLE(retval), m_handle, VARIABLE(dl), m_url.c_str(), 1, ZCK_LOG_DEBUG));
         if (!VARIABLE(retval))
         {
             zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-            m_zchunk_err = 10;
             RETURN(init_zchunk_target);
         }
 
@@ -333,25 +357,23 @@ namespace mamba
             {
                 perror(NULL);
                 zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                m_zchunk_err = 10;
                 RETURN(init_zchunk_target);
             }
-            VARIABLE(dl_ctx) = {0};
+            VARIABLE(dl_ctx) = { 0 };
             VARIABLE(dl_ctx).dl = VARIABLE(dl);
             VARIABLE(dl_ctx).curl = m_handle;
             VARIABLE(dl_ctx).max_ranges = 0;
-            AWAIT(init_zchunk_target, dl_byte_range(VARIABLE(result), &VARIABLE(dl_ctx), m_url.c_str(), -1, -1));
+            AWAIT(init_zchunk_target,
+                  dl_byte_range(VARIABLE(result), &VARIABLE(dl_ctx), m_url.c_str(), -1, -1));
             if (!VARIABLE(result))
             {
                 zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                m_zchunk_err = 10;
                 RETURN(init_zchunk_target);
             }
             lseek(VARIABLE(dst_fd), 0, SEEK_SET);
             if (!zck_read_lead(VARIABLE(zck_tgt)) || !zck_read_header(VARIABLE(zck_tgt)))
             {
                 zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                m_zchunk_err = 10;
                 RETURN(init_zchunk_target);
             }
         }
@@ -362,18 +384,17 @@ namespace mamba
             if (VARIABLE(retval) == 0)
             {
                 zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                m_zchunk_err = 10;
                 RETURN(init_zchunk_target);
             }
             if (VARIABLE(retval) == 1)
             {
                 LOG_INFO << "Missing chunks: 0";
-                LOG_INFO << "Downloaded " << (long unsigned)zck_dl_get_bytes_downloaded(VARIABLE(dl)) << " bytes";
+                LOG_INFO << "Downloaded "
+                         << (long unsigned) zck_dl_get_bytes_downloaded(VARIABLE(dl)) << " bytes";
                 if (ftruncate(VARIABLE(dst_fd), zck_get_length(VARIABLE(zck_tgt))) < 0)
                 {
                     perror(NULL);
                     zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                    m_zchunk_err = 10;
                     RETURN(init_zchunk_target);
                 }
                 else
@@ -385,11 +406,10 @@ namespace mamba
             if (m_zck_src && !zck_copy_chunks(m_zck_src, VARIABLE(zck_tgt)))
             {
                 zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                m_zchunk_err = 10;
                 RETURN(init_zchunk_target);
             }
             zck_reset_failed_chunks(VARIABLE(zck_tgt));
-            VARIABLE(dl_ctx) = {0};
+            VARIABLE(dl_ctx) = { 0 };
             VARIABLE(dl_ctx).dl = VARIABLE(dl);
             VARIABLE(dl_ctx).curl = m_handle;
             VARIABLE(dl_ctx).max_ranges = range_attempt[0];
@@ -399,17 +419,18 @@ namespace mamba
             LOG_INFO << "Missing chunks: " << m_zchunk_missing;
             while (zck_missing_chunks(VARIABLE(zck_tgt)) > 0)
             {
-                m_zchunk_pct = 100. * ((float)m_zchunk_missing - (float)zck_missing_chunks(VARIABLE(zck_tgt))) / (float)m_zchunk_missing;
                 VARIABLE(dl_ctx).range_fail = 0;
                 zck_dl_reset(VARIABLE(dl));
-                VARIABLE(range) = zck_get_missing_range(VARIABLE(zck_tgt), VARIABLE(dl_ctx).max_ranges);
+                VARIABLE(range)
+                    = zck_get_missing_range(VARIABLE(zck_tgt), VARIABLE(dl_ctx).max_ranges);
                 if (VARIABLE(range) == NULL || !zck_dl_set_range(VARIABLE(dl), VARIABLE(range)))
                 {
                     zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                    m_zchunk_err = 10;
                     RETURN(init_zchunk_target);
                 }
-                while (range_attempt[VARIABLE(ra_index)] > 1 && range_attempt[VARIABLE(ra_index) + 1] > zck_get_range_count(VARIABLE(range)))
+                while (range_attempt[VARIABLE(ra_index)] > 1
+                       && range_attempt[VARIABLE(ra_index) + 1]
+                              > zck_get_range_count(VARIABLE(range)))
                 {
                     VARIABLE(ra_index)++;
                 }
@@ -417,10 +438,14 @@ namespace mamba
                 if (VARIABLE(range_string) == NULL)
                 {
                     zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                    m_zchunk_err = 10;
                     RETURN(init_zchunk_target);
                 }
-                AWAIT(init_zchunk_target, dl_range(VARIABLE(retval), &VARIABLE(dl_ctx), m_url.c_str(), VARIABLE(range_string), 1));
+                AWAIT(init_zchunk_target,
+                      dl_range(VARIABLE(retval),
+                               &VARIABLE(dl_ctx),
+                               m_url.c_str(),
+                               VARIABLE(range_string),
+                               1));
                 if (VARIABLE(retval) == -1)
                 {
                     if (VARIABLE(dl_ctx).max_ranges > 1)
@@ -428,68 +453,67 @@ namespace mamba
                         VARIABLE(ra_index) += 1;
                         VARIABLE(dl_ctx).max_ranges = range_attempt[VARIABLE(ra_index)];
                     }
-                    LOG_INFO << "Tried downloading too many ranges, reducing to " << VARIABLE(dl_ctx).max_ranges;
+                    LOG_INFO << "Tried downloading too many ranges, reducing to "
+                             << VARIABLE(dl_ctx).max_ranges;
                 }
                 if (!zck_dl_set_range(VARIABLE(dl), NULL))
                 {
                     zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                    m_zchunk_err = 10;
                     RETURN(init_zchunk_target);
                 }
                 zck_range_free(&VARIABLE(range));
                 if (!VARIABLE(retval))
                 {
                     zchunk_out(1, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
-                    m_zchunk_err = 1;
                     RETURN(init_zchunk_target);
                 }
             }
         }
+        LOG_INFO << "Downloaded " << (long unsigned) zck_dl_get_bytes_downloaded(VARIABLE(dl))
+                 << " bytes";
+        if (ftruncate(VARIABLE(dst_fd), zck_get_length(VARIABLE(zck_tgt))) < 0)
+        {
+            perror(NULL);
+            zchunk_out(10, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
+            RETURN(init_zchunk_target);
+        }
+        switch (zck_validate_data_checksum(VARIABLE(zck_tgt)))
+        {
+            case -1:
+                zchunk_out(1, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
+                RETURN(init_zchunk_target);
+                break;
+            case 0:
+                zchunk_out(1, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
+                RETURN(init_zchunk_target);
+                break;
+            default:
+                break;
+        }
+
         zchunk_out(0, VARIABLE(dl), VARIABLE(dst_fd), VARIABLE(zck_tgt));
 
         END(init_zchunk_target);
-        #undef VARIABLE
+#undef VARIABLE
     }
 
     void DownloadTarget::zchunk_out(int exit_val, zckDL* dl, int dst_fd, zckCtx* zck_tgt)
     {
-        if (exit_val == 0)
-        {
-            LOG_INFO << "Downloaded " << (long unsigned)zck_dl_get_bytes_downloaded(dl) << " bytes";
-            if(ftruncate(dst_fd, zck_get_length(zck_tgt)) < 0)
-            {
-                perror(NULL);
-                exit_val = 10;
-            }
-            else
-            {
-                switch(zck_validate_data_checksum(zck_tgt))
-                {
-                    case -1:
-                        exit_val = 1;
-                        break;
-                    case 0:
-                        exit_val = 1;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-        if(exit_val > 0)
+        m_zchunk_err = exit_val;
+        if (exit_val > 0)
         {
             if (zck_is_error(NULL))
             {
-                LOG_INFO << zck_get_error(NULL);
+                LOG_ERROR << zck_get_error(NULL);
                 zck_clear_error(NULL);
             }
-            if(zck_is_error(m_zck_src))
+            if (zck_is_error(m_zck_src))
             {
-                LOG_INFO << zck_get_error(m_zck_src);
+                LOG_ERROR << zck_get_error(m_zck_src);
             }
-            if(zck_is_error(zck_tgt))
+            if (zck_is_error(zck_tgt))
             {
-                LOG_INFO << zck_get_error(zck_tgt);
+                LOG_ERROR << zck_get_error(zck_tgt);
             }
         }
         zck_dl_free(&dl);
@@ -569,7 +593,7 @@ namespace mamba
     {
         if (m_is_zchunk)
         {
-            return m_zchunk_err == 0;
+            return m_retries < size_t(Context::instance().max_retries);
         }
         return m_retries < size_t(Context::instance().max_retries) && http_status >= 500
                && !starts_with(m_url, "file://");
@@ -577,7 +601,7 @@ namespace mamba
 
     CURL* DownloadTarget::retry()
     {
-        if (m_is_zchunk)
+        if (m_is_zchunk and (m_zchunk_err == 0))
         {
             return m_handle;
         }
@@ -590,7 +614,14 @@ namespace mamba
                 fs::remove(m_filename);
                 m_file.open(m_filename);
             }
-            init_curl_target(m_url);
+            if (m_is_zchunk)
+            {
+                init_zchunk_target(m_url);
+            }
+            else
+            {
+                init_curl_target(m_url);
+            }
             if (m_has_progress_bar)
             {
                 curl_easy_setopt(
@@ -800,9 +831,9 @@ namespace mamba
 
         if (m_is_zchunk)
         {
-            std::stringstream msg;
             if (init_zchunk_target(m_url))
             {
+                std::stringstream msg;
                 m_file.close();
                 final_url = effective_url;
                 msg << "Done";
@@ -816,8 +847,6 @@ namespace mamba
             }
             else
             {
-                m_progress_bar.set_progress(m_zchunk_pct);
-                m_progress_bar.set_postfix(msg.str());
                 return false;
             }
         }

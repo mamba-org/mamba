@@ -15,12 +15,15 @@
 
 namespace decompress
 {
-    bool error2(char* data, zckCtx* zck, bool good_exit, const char* out_name, int src_fd, int dst_fd)
+    bool zck_exit(
+        char* data, zckCtx* zck, bool good_exit, const char* out_name, int src_fd, int dst_fd)
     {
         free(data);
         zck_free(&zck);
-        if(!good_exit)
+        if (!good_exit)
+        {
             unlink(out_name);
+        }
         close(src_fd);
         close(dst_fd);
         return good_exit;
@@ -28,60 +31,72 @@ namespace decompress
 
     bool zck(const std::string& in, const std::string& out)
     {
+        LOG_INFO << "Decompressing from " << in << " to " << out;
+
         int src_fd = open(in.c_str(), O_RDONLY);
-        if(src_fd < 0) {
-            std::cerr << "Unable to open " << in << std::endl;
+        if (src_fd < 0)
+        {
             perror("");
-            exit(1);
+            throw std::runtime_error("Unable to open " + in);
         }
         const char* out_name = out.c_str();
 
         int dst_fd = open(out_name, O_TRUNC | O_WRONLY | O_CREAT, 0666);
-        if(dst_fd < 0) {
-            std::cerr << "Unable to open " << out_name << std::endl;
+        if (dst_fd < 0)
+        {
             perror("");
-            exit(1);
+            throw std::runtime_error("Unable to open " + out);
         }
 
         bool good_exit = false;
 
-        char *data = NULL;
-        zckCtx *zck = zck_create();
-        if(!zck_init_read(zck, src_fd)) {
-            dprintf(STDERR_FILENO, "%s", zck_get_error(zck));
-            return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        char* data = NULL;
+        zckCtx* zck = zck_create();
+        if (!zck_init_read(zck, src_fd))
+        {
+            LOG_WARNING << zck_get_error(zck);
+            return zck_exit(data, zck, good_exit, out_name, src_fd, dst_fd);
         }
 
         int ret = zck_validate_data_checksum(zck);
-        if(ret < 1) {
-            if(ret == -1)
-                dprintf(STDERR_FILENO, "Data checksum failed verification\n");
-            return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        if (ret < 1)
+        {
+            if (ret == -1)
+            {
+                LOG_WARNING << "Data checksum failed verification";
+            }
+            return zck_exit(data, zck, good_exit, out_name, src_fd, dst_fd);
         }
 
-        data = (char*)calloc(BUF_SIZE, 1);
+        data = (char*) calloc(BUF_SIZE, 1);
         assert(data);
         size_t total = 0;
-        while(true) {
+        while (true)
+        {
             ssize_t read = zck_read(zck, data, BUF_SIZE);
-            if(read < 0) {
-                dprintf(STDERR_FILENO, "%s", zck_get_error(zck));
-                return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+            if (read < 0)
+            {
+                LOG_WARNING << zck_get_error(zck);
+                return zck_exit(data, zck, good_exit, out_name, src_fd, dst_fd);
             }
-            if(read == 0)
+            if (read == 0)
+            {
                 break;
-            if(write(dst_fd, data, read) != read) {
-                dprintf(STDERR_FILENO, "Error writing to %s\n", out_name);
-                return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+            }
+            if (write(dst_fd, data, read) != read)
+            {
+                LOG_WARNING << "Error writing to " << out_name;
+                return zck_exit(data, zck, good_exit, out_name, src_fd, dst_fd);
             }
             total += read;
         }
-        if(!zck_close(zck)) {
-            dprintf(STDERR_FILENO, "%s", zck_get_error(zck));
-            return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        if (!zck_close(zck))
+        {
+            LOG_WARNING << zck_get_error(zck);
+            return zck_exit(data, zck, good_exit, out_name, src_fd, dst_fd);
         }
         good_exit = true;
-        return error2(data, zck, good_exit, out_name, src_fd, dst_fd);
+        return zck_exit(data, zck, good_exit, out_name, src_fd, dst_fd);
     }
 
     bool raw(const std::string& in, const std::string& out)
@@ -284,6 +299,17 @@ namespace mamba
             m_mod_etag["_mod"] = m_target->mod;
             m_mod_etag["_cache_control"] = m_target->cache_control;
 
+            // copy downloaded file to ZCK file
+            auto zck_fn = m_json_fn + ".zck";
+            LOG_WARNING << "Opening: " << zck_fn;
+            std::ofstream zck_file(zck_fn);
+            if (!zck_file.is_open())
+            {
+                throw std::runtime_error("Could not open ZCK file.");
+            }
+            std::ifstream temp_zck_file(m_temp_file->path());
+            zck_file << temp_zck_file.rdbuf();
+
             LOG_WARNING << "Opening: " << m_json_fn;
             std::ofstream final_file(m_json_fn);
             // TODO make sure that cache directory exists!
@@ -299,13 +325,13 @@ namespace mamba
 
             std::ifstream temp_file(m_temp_file->path());
             std::stringstream temp_json;
-            //temp_json << m_mod_etag.dump();
+            // temp_json << m_mod_etag.dump();
 
             //// replace `}` with `,`
-            //temp_json.seekp(-1, temp_json.cur);
-            //temp_json << ',';
-            //final_file << temp_json.str();
-            //temp_file.seekg(1);
+            // temp_json.seekp(-1, temp_json.cur);
+            // temp_json << ',';
+            // final_file << temp_json.str();
+            // temp_file.seekg(1);
             std::copy(std::istreambuf_iterator<char>(temp_file),
                       std::istreambuf_iterator<char>(),
                       std::ostreambuf_iterator<char>(final_file));
@@ -458,7 +484,15 @@ namespace mamba
     {
         m_temp_file = std::make_unique<TemporaryFile>();
         m_progress_bar = Console::instance().add_progress_bar(m_name);
-        m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
+        if (Context::instance().use_zchunk)
+        {
+            auto zck_fn = m_json_fn + ".zck";
+            m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path(), zck_fn);
+        }
+        else
+        {
+            m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
+        }
         m_target->set_progress_bar(m_progress_bar);
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved

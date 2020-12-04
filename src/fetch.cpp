@@ -18,6 +18,7 @@ namespace mamba
     size_t dl_header_cb(char* b, size_t l, size_t c, void* dl_v)
     {
         dlCtx* dl_ctx = (dlCtx*) dl_v;
+        DownloadTarget::header_callback(b, l, c, dl_ctx->target);
         if (dl_ctx->fail_no_ranges)
         {
             long code = -1;
@@ -88,6 +89,7 @@ namespace mamba
             result = 0;
             RETURN(dl_range);
         }
+        dl_ctx->target = this;
 
         VARIABLE(curl) = dl_ctx->curl;
 
@@ -298,7 +300,7 @@ namespace mamba
         int range_attempt[] = { 255, 127, 7, 2, 1 };
 
         BEGIN(init_zchunk_target);
-        zck_set_log_level(ZCK_LOG_DEBUG);
+        zck_set_log_level(ZCK_LOG_DDEBUG);
 
         if (!m_zchunk_source.empty())
         {

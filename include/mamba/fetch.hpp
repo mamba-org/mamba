@@ -59,6 +59,8 @@ extern "C"
 
 namespace mamba
 {
+    class DownloadTarget;
+
     typedef struct dlCtx
     {
         CURL* curl;
@@ -66,6 +68,7 @@ namespace mamba
         int fail_no_ranges;
         int range_fail;
         int max_ranges;
+        DownloadTarget* target;
     } dlCtx;
 
     class DownloadTarget

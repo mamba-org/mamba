@@ -286,8 +286,7 @@ namespace mamba
         if (!zck_init_read(m_zck_src, src_fd))
         {
             m_zck_src = NULL;
-            LOG_ERROR << "Unable to open " << m_zchunk_source << ": "
-                      << zck_get_error(m_zck_src);
+            LOG_ERROR << "Unable to open " << m_zchunk_source << ": " << zck_get_error(m_zck_src);
             return false;
         }
         return true;
@@ -299,7 +298,7 @@ namespace mamba
         int range_attempt[] = { 255, 127, 7, 2, 1 };
 
         BEGIN(init_zchunk_target);
-        zck_set_log_level(ZCK_LOG_INFO);
+        zck_set_log_level(ZCK_LOG_DEBUG);
 
         if (!m_zchunk_source.empty())
         {

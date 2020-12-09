@@ -164,18 +164,20 @@ namespace mamba
             {
                 ++colon_idx;
             }
-            // remove \r\n header ending
 
+            // remove \r\n header ending
             value = header.substr(colon_idx, header.size() - colon_idx - 2);
-            if (key == "ETag")
+            // http headers are case insensitive!
+            std::string lkey = to_lower(key);
+            if (lkey == "etag")
             {
                 s->etag = value;
             }
-            else if (key == "Cache-Control")
+            else if (lkey == "cache-control")
             {
                 s->cache_control = value;
             }
-            else if (key == "Last-Modified")
+            else if (lkey == "last-modified")
             {
                 s->mod = value;
             }

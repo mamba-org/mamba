@@ -933,7 +933,12 @@ parse_file_options()
                     create_options.channels.push_back(c);
                 }
             }
-            if (create_options.name.empty())
+            else
+            {
+                std::cout << termcolor::yellow << "WARNING: No channels specified in " << file
+                          << termcolor::reset << std::endl;
+            }
+            if (create_options.name.empty() && create_options.prefix.empty())
             {
                 try
                 {
@@ -943,6 +948,7 @@ parse_file_options()
                 {
                     std::cout << termcolor::red
                               << "ERROR: Could not read environment 'name' as string from " << file
+                              << " and no name (-n) or prefix (-p) given on the command line"
                               << termcolor::reset << std::endl;
                     exit(1);
                 }

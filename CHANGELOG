@@ -1,3 +1,15 @@
+0.7.5 (Dec 10, 2020)
+====================
+
+- [micromamba] better error handling for YAML file reading, allows to pass in `-n` and `-p` from command line
+- [mamba & micromamba] ignore case of HTTP headers
+- [mamba] fix channel keys are without tokens (thanks @s22chan)
+
+0.7.4 (Dec 5, 2020)
+====================
+
+- [micromamba] fix noarch installation for explicit environments
+
 0.7.3 (Nov 20, 2020)
 ====================
 

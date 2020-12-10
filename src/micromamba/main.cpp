@@ -913,9 +913,52 @@ parse_file_options()
         if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
         {
             YAML::Node config = YAML::LoadFile(file);
-            create_options.channels = config["channels"].as<std::vector<std::string>>();
-            create_options.name = config["name"].as<std::string>();
-            create_options.specs = config["dependencies"].as<std::vector<std::string>>();
+            if (config["channels"])
+            {
+                std::vector<std::string> yaml_channels;
+                try
+                {
+                    yaml_channels = config["channels"].as<std::vector<std::string>>();
+                }
+                catch (YAML::Exception& e)
+                {
+                    std::cout << termcolor::red
+                              << "ERROR: Could not read 'channels' as list of strings from "
+                              << termcolor::reset << file << std::endl;
+                    exit(1);
+                }
+
+                for (const auto& c : yaml_channels)
+                {
+                    create_options.channels.push_back(c);
+                }
+            }
+            if (create_options.name.empty())
+            {
+                try
+                {
+                    create_options.name = config["name"].as<std::string>();
+                }
+                catch (YAML::Exception& e)
+                {
+                    std::cout << termcolor::red
+                              << "ERROR: Could not read environment 'name' as string from " << file
+                              << termcolor::reset << std::endl;
+                    exit(1);
+                }
+            }
+            try
+            {
+                create_options.specs = config["dependencies"].as<std::vector<std::string>>();
+            }
+            catch (YAML::Exception& e)
+            {
+                std::cout
+                    << termcolor::red
+                    << "ERROR: Could not read environment 'dependencies' as list of strings from "
+                    << file << termcolor::reset << std::endl;
+                exit(1);
+            }
         }
         else
         {

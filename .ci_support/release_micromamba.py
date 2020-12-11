@@ -23,7 +23,6 @@ def _make_or_upload_asset(path, rel, name=None):
     if name is not None:
         return rel.upload_asset(
             path,
-            content_type="application/x-bzip2",
             name=name,
         )
     else:

@@ -20,3 +20,4 @@ dependencies:
   - yaml-cpp
   - cli11
   - pygithub
+  - git

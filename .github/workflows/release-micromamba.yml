@@ -3,8 +3,8 @@ name: release-micromamba
 on:
   workflow_dispatch: null
   push:
-    branches:
-    - master
+    # branches:
+    # - master
 
 jobs:
   release-micromamba-linux-osx:
@@ -19,6 +19,7 @@ jobs:
         run: |
           echo "found tag: '$(git tag --points-at HEAD)'"
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=blah" >> $GITHUB_ENV
 
       - name: free disk space
         if: matrix.os == 'ubuntu-latest' && env.GIT_TAG != ''
@@ -79,59 +80,91 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # release-micromamba-win:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: [windows-2016]
-  #       python-version: [ '3.7' ]
-  #
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: look for a tag
-  #       shell: bash
-  #       run: |
-  #         echo "found tag: '$(git tag --points-at HEAD)'"
-  #         echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
-  #
-  #     - uses: conda-incubator/setup-miniconda@v2
-  #       if: env.GIT_TAG != ''
-  #       with:
-  #         auto-update-conda: true
-  #         python-version: ${{ matrix.python-version }}
-  #         channels: conda-forge,defaults
-  #         channel-priority: strict
-  #
-  #     - name: create conda environment
-  #       if: env.GIT_TAG != ''
-  #       run: |
-  #         conda env create -q --file environment-win.yml
-  #
-  #     - name: install deps
-  #       if: env.GIT_TAG != ''
-  #       run: |
-  #         conda activate mamba-tests
-  #         python --version
-  #         python -m pip install ".[test]"
-  #
-  #     - name: build micromamba
-  #       if: env.GIT_TAG != ''
-  #       shell: cmd
-  #       run: |
-  #         call conda activate mamba-tests
-  #         mkdir cmake_build
-  #         cd cmake_build
-  #         cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
-  #         ninja
-  #         .\micromamba.exe --help
-  #
-  #     - name: make release
-  #       if: env.GIT_TAG != ''
-  #       shell: cmd
-  #       run: |
-  #         call conda activate mamba-tests
-  #         cd cmake_build
-  #         python ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
-  #       env:
-  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release-micromamba-win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: look for a tag
+        shell: bash
+        run: |
+          echo "found tag: '$(git tag --points-at HEAD)'"
+          # echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=blah" >> $GITHUB_ENV
+
+      - uses: conda-incubator/setup-miniconda@v2
+        if: env.GIT_TAG != ''
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge,defaults
+          channel-priority: strict
+
+      - name: create conda environment
+        if: env.GIT_TAG != ''
+        run: |
+          conda env create -q --file environment-win.yml
+
+      - name: install deps
+        if: env.GIT_TAG != ''
+        run: |
+          conda activate mamba-tests
+          python --version
+          python -m pip install ".[test]"
+
+      - name: build micromamba
+        if: env.GIT_TAG != ''
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+
+          # use the stuff from the feedstock
+          # ugly and needs fixing
+          git clone https://github.com/conda-forge/micromamba-feedstock.git
+
+          mkdir cmake_build
+          cd cmake_build
+
+          ROBOCOPY ..\recipe\libsolv %VCPKG_ROOT%\ports\libsolv
+          ROBOCOPY ..\recipe\curl %VCPKG_ROOT%\ports\curl
+          ROBOCOPY ..\recipe\reproc %VCPKG_ROOT%\ports\reproc
+
+          SET VCPKG_BUILD_TYPE=release
+
+          vcpkg install libsolv[conda] --triplet x64-windows-static
+          vcpkg install libarchive --triplet x64-windows-static
+          vcpkg install curl --triplet x64-windows-static
+          vcpkg install yaml-cpp --triplet x64-windows-static
+          vcpkg install reproc --triplet x64-windows-static
+
+          set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
+
+          cmake .. ^
+              -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+              -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%" ^
+              -D CMAKE_BUILD_TYPE="Release" ^
+              -D BUILD_EXE=ON ^
+              -D BUILD_STATIC=ON ^
+              -D BUILD_SHARED=OFF ^
+              -D STATIC_DEPENDENCIES=ON ^
+              -D BUILD_BINDINGS=OFF ^
+              -D USE_VENDORED_CLI11=ON ^
+              -G "Ninja"
+
+          ninja
+          .\micromamba.exe --help
+
+      - name: make release
+        if: env.GIT_TAG != ''
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          cd cmake_build
+          python ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -178,7 +178,7 @@ Note that the pre-release is essential since otherwise the GitHub links to the
 latest release will point to partial releases, breaking any workflows that
 depend on those links.
 
-## Support us
+## Support Us
 
 For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 

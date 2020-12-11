@@ -61,11 +61,11 @@ if __name__ == "__main__":
     if subdir.startswith("win"):
         dest_pth = f"{name}\\Library\\bin\\micromamba.exe"
         src_pth = "micromamba.exe"
-        dest_exe = name + "_" + subdir + ".exe"
+        dest_exe = name + ".exe"
     else:
         dest_pth = f"{name}/bin/micromamba"
         src_pth = "micromamba"
-        dest_exe = name + "_" + subdir
+        dest_exe = name
 
     with tarfile.open(f"{name}.tar.bz2", "w:bz2") as tf:
         tf.add(src_pth, arcname=dest_pth)

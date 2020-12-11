@@ -42,8 +42,16 @@ if __name__ == "__main__":
 
     rel = _make_or_get_release(tag, repo)
 
-    with tarfile.open(f"micromamba-{platform}.tar.bz2", "w:bz2") as tf:
-        tf.add("micromamba", arcname="bin/micromamba")
+    name = f"micromamba-{platform}"
+    if platform == "win":
+        dest_pth = f"{name}/bin/micromamba"
+        src_pth = "micromamba"
+    else:
+        dest_pth = f"{name}\\Library\\bin\\micromamba.exe"
+        src_pth = "micromamba.exe"
+
+    with tarfile.open(f"{name}.tar.bz2", "w:bz2") as tf:
+        tf.add(src_pth, arcname=dest_pth)
 
     print("uploading the asset...", flush=True)
     ast = _make_or_upload_asset(f"micromamba-{platform}.tar.bz2", rel)

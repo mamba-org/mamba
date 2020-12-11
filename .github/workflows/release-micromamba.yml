@@ -109,7 +109,18 @@ jobs:
         shell: cmd
         run: |
           call conda activate mamba-tests
+          mkdir cmake_build
           cd cmake_build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
           ninja
           .\micromamba.exe --help
+
+      - name: make release
+        if: env.GIT_TAG != ''
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          cd cmake_build
+          .\python.exe ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

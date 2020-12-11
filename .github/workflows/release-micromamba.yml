@@ -27,34 +27,26 @@ jobs:
           sudo apt clean
           docker rmi $(docker image ls -aq)
           df -h
-      - name: install micromamba
+
+      - uses: conda-incubator/setup-miniconda@v2
         if: env.GIT_TAG != ''
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
-          else
-            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
-            mv bin/micromamba ./micromamba
-          fi
-          ./micromamba shell init -s bash -p ~/micromamba
+        with:
+          auto-update-conda: true
+          python-version: 3.8
+          channels: conda-forge,defaults
+          channel_priority: strict
+
       - name: install deps
         if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env --strict-channel-priority --file environment-unix.yml
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
+          conda env create -q -y --file environment-unix.yml
+
       - name: build tests
         if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba activate ~/build_env
+          conda activate mamba-tests
           mkdir -p ~/.conda
           touch ~/.conda/environments.txt
           mkdir build
@@ -83,23 +75,25 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+
       - name: Conda info
         if: env.GIT_TAG != ''
         run: conda info
+
       - name: Create the conda environment
         if: env.GIT_TAG != ''
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
           conda env create -q -y --file environment-win.yml
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
+
       - name: Install dependencies
         if: env.GIT_TAG != ''
         run: |
           conda activate mamba-tests
           python --version
           python -m pip install ".[test]"
+
       - name: Run C++ tests Windows
         if: env.GIT_TAG != ''
         shell: cmd
@@ -109,6 +103,7 @@ jobs:
           cd cmake_build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
           ninja test
+
       - name: Build micromamba on Windows
         if: env.GIT_TAG != ''
         shell: cmd

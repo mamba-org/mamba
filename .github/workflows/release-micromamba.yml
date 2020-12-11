@@ -5,6 +5,7 @@ on:
   push:
     branches:
     - master
+  pull_request: null
 
 jobs:
   release-micromamba-linux-osx:
@@ -21,7 +22,7 @@ jobs:
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
 
       - name: free disk space
-        if: matrix.os == 'ubuntu-latest' && env.GIT_TAG != ''
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo swapoff -a
           sudo rm -f /swapfile
@@ -30,7 +31,6 @@ jobs:
           df -h
 
       - uses: conda-incubator/setup-miniconda@v2
-        if: env.GIT_TAG != ''
         with:
           auto-update-conda: true
           python-version: 3.8
@@ -38,7 +38,6 @@ jobs:
           channel-priority: strict
 
       - name: install deps
-        if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
           conda env create -q --file environment-unix.yml
@@ -46,7 +45,6 @@ jobs:
           conda list
 
       - name: build micromamba
-        if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
           conda activate mamba-tests
@@ -97,7 +95,6 @@ jobs:
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
 
       - uses: conda-incubator/setup-miniconda@v2
-        if: env.GIT_TAG != ''
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
@@ -105,12 +102,10 @@ jobs:
           channel-priority: strict
 
       - name: create conda environment
-        if: env.GIT_TAG != ''
         run: |
           conda env create -q --file environment-win.yml
 
       - name: build micromamba
-        if: env.GIT_TAG != ''
         shell: cmd
         run: |
           call conda activate mamba-tests
@@ -178,7 +173,6 @@ jobs:
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
 
       - uses: conda-incubator/setup-miniconda@v2
-        if: env.GIT_TAG != ''
         with:
           auto-update-conda: true
           python-version: 3.8
@@ -186,7 +180,6 @@ jobs:
           channel-priority: strict
 
       - name: install deps
-        if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
           conda env create -q --file environment-unix.yml

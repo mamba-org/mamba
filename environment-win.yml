@@ -21,3 +21,4 @@ dependencies:
   - cli11
   - pygithub
   - git
+  - vcpkg

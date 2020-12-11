@@ -116,8 +116,8 @@ jobs:
         run: |
           call conda activate mamba-tests
 
-          # use the stuff from the feedstock
-          # ugly and needs fixing
+          :: use the stuff from the feedstock
+          :: ugly and needs fixing
           git clone https://github.com/conda-forge/micromamba-feedstock.git
 
           mkdir cmake_build

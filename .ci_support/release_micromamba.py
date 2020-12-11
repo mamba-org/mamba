@@ -11,6 +11,9 @@ def _make_or_get_release(tag, repo):
             return rel
 
     # if we get here no release was found
+    # Note that the pre-release is essential since otherwise the GitHub links to the
+    # latest release will point to partial releases, breaking any workflows that
+    # depend on those links.
     return repo.create_git_release(tag, tag, "", prerelease=True)
 
 

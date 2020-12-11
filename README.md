@@ -168,11 +168,21 @@ cmake .. \
     -DENABLE_TESTS=ON
 ```
 
-### Support us
+### Releasing `micromamba`
+
+When tags are pushed to the repo, a CI job will make a pre-release on GitHub
+with the built `micromamba` artifacts. You then need to use the GitHub UI to
+remove the pre-release status and release the artifacts.
+
+Note that the pre-release is essential since otherwise the GitHub links to the
+latest release will point to partial releases, breaking any workflows that
+depend on those links.
+
+## Support us
 
 For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
-### License
+## License
 
 We use a shared copyright model that enables all contributors to maintain the copyright on their contributions.
 

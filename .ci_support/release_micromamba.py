@@ -13,17 +13,24 @@ def _make_or_get_release(tag, repo):
     return repo.create_git_release(tag, tag, "", prerelease=True)
 
 
-def _make_or_upload_asset(path, rel):
+def _make_or_upload_asset(path, rel, name=None):
     name = os.path.basename(path)
     for ast in rel.get_assets():
         if ast.name == name:
             return ast
 
     # if we get here, we upload the asset
-    return rel.upload_asset(
-        path,
-        content_type="application/x-bzip2",
-    )
+    if name is not None:
+        return rel.upload_asset(
+            path,
+            content_type="application/x-bzip2",
+            name=name,
+        )
+    else:
+        return rel.upload_asset(
+            path,
+            content_type="application/x-bzip2",
+        )
 
 
 if __name__ == "__main__":
@@ -44,17 +51,22 @@ if __name__ == "__main__":
 
     name = f"micromamba-{platform}"
     if platform == "win":
-        dest_pth = f"{name}/bin/micromamba"
-        src_pth = "micromamba"
-    else:
         dest_pth = f"{name}\\Library\\bin\\micromamba.exe"
         src_pth = "micromamba.exe"
+        dest_exe = name + ".exe"
+    else:
+        dest_pth = f"{name}/bin/micromamba"
+        src_pth = "micromamba"
+        dest_exe = name
 
     with tarfile.open(f"{name}.tar.bz2", "w:bz2") as tf:
         tf.add(src_pth, arcname=dest_pth)
 
-    print("uploading the asset...", flush=True)
+    print("uploading the tar.bz2 asset...", flush=True)
     ast = _make_or_upload_asset(f"micromamba-{platform}.tar.bz2", rel)
+
+    print("uploading the exe asset...", flush=True)
+    ast = _make_or_upload_asset(src_pth, rel, name=dest_exe)
 
     # if we get here, we mark the release as not a pre-release
     rel.update_release(tag, "", prerelease=False)

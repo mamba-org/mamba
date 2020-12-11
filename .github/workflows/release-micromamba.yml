@@ -52,9 +52,21 @@ jobs:
           conda activate mamba-tests
           mkdir -p ~/.conda
           touch ~/.conda/environments.txt
+
+          curl -Ls https://github.com/CLIUtils/CLI11/releases/download/v1.9.1/CLI11.hpp -o include/mamba/CLI.hpp
+
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
+          cmake ${CMAKE_ARGS} .. \
+            -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX
+            -DCMAKE_BUILD_TYPE="Release" \
+            -DBUILD_EXE=ON \
+            -DBUILD_BINDINGS=OFF \
+            -DBUILD_STATIC=ON \
+            -DBUILD_SHARED=OFF \
+            -DSTATIC_DEPENDENCIES=ON \
+            -DUSE_VENDORED_CLI11=ON
+
           make -j2
 
       - name: make release

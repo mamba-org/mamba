@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: look for a tag
         run: |
+          echo "found tag: $(git tag --points-at HEAD)"
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
 
       - name: free disk space

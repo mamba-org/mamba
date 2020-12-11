@@ -81,61 +81,61 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release-micromamba-win:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2016]
-        python-version: [ '3.7' ]
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: look for a tag
-        shell: bash
-        run: |
-          echo "found tag: '$(git tag --points-at HEAD)'"
-          # echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
-          # FIXME: remove this after testing
-          echo "GIT_TAG=blah" >> $GITHUB_ENV
-
-      - uses: conda-incubator/setup-miniconda@v2
-        if: env.GIT_TAG != ''
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-          channels: conda-forge,defaults
-          channel-priority: strict
-
-      - name: create conda environment
-        if: env.GIT_TAG != ''
-        run: |
-          conda env create -q --file environment-win.yml
-
-      - name: install deps
-        if: env.GIT_TAG != ''
-        run: |
-          conda activate mamba-tests
-          python --version
-          python -m pip install ".[test]"
-
-      - name: build micromamba
-        if: env.GIT_TAG != ''
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
-          mkdir cmake_build
-          cd cmake_build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
-          ninja
-          .\micromamba.exe --help
-
-      - name: make release
-        if: env.GIT_TAG != ''
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
-          cd cmake_build
-          python ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # release-micromamba-win:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows-2016]
+  #       python-version: [ '3.7' ]
+  #
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: look for a tag
+  #       shell: bash
+  #       run: |
+  #         echo "found tag: '$(git tag --points-at HEAD)'"
+  #         # echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
+  #         # FIXME: remove this after testing
+  #         echo "GIT_TAG=blah" >> $GITHUB_ENV
+  #
+  #     - uses: conda-incubator/setup-miniconda@v2
+  #       if: env.GIT_TAG != ''
+  #       with:
+  #         auto-update-conda: true
+  #         python-version: ${{ matrix.python-version }}
+  #         channels: conda-forge,defaults
+  #         channel-priority: strict
+  #
+  #     - name: create conda environment
+  #       if: env.GIT_TAG != ''
+  #       run: |
+  #         conda env create -q --file environment-win.yml
+  #
+  #     - name: install deps
+  #       if: env.GIT_TAG != ''
+  #       run: |
+  #         conda activate mamba-tests
+  #         python --version
+  #         python -m pip install ".[test]"
+  #
+  #     - name: build micromamba
+  #       if: env.GIT_TAG != ''
+  #       shell: cmd
+  #       run: |
+  #         call conda activate mamba-tests
+  #         mkdir cmake_build
+  #         cd cmake_build
+  #         cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
+  #         ninja
+  #         .\micromamba.exe --help
+  #
+  #     - name: make release
+  #       if: env.GIT_TAG != ''
+  #       shell: cmd
+  #       run: |
+  #         call conda activate mamba-tests
+  #         cd cmake_build
+  #         python ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

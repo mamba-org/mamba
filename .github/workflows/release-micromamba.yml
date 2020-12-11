@@ -120,6 +120,9 @@ jobs:
           :: ugly and needs fixing
           git clone https://github.com/conda-forge/micromamba-feedstock.git
 
+          :: need this too
+          curl -Ls https://github.com/CLIUtils/CLI11/releases/download/v1.9.1/CLI11.hpp -o include\mamba\CLI.hpp
+
           mkdir cmake_build
           cd cmake_build
 

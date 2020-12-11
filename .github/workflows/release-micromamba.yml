@@ -44,7 +44,7 @@ jobs:
         run: |
           conda env create -q --file environment-unix.yml
 
-      - name: build tests
+      - name: build micromamba
         if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
@@ -54,7 +54,7 @@ jobs:
           mkdir build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
-          make test -j2
+          make -j2
 
       - name: make release
         if: env.GIT_TAG != ''
@@ -92,33 +92,19 @@ jobs:
           channels: conda-forge,defaults
           channel_priority: strict
 
-      - name: Conda info
-        if: env.GIT_TAG != ''
-        run: conda info
-
-      - name: Create the conda environment
+      - name: create conda environment
         if: env.GIT_TAG != ''
         run: |
           conda env create -q --file environment-win.yml
 
-      - name: Install dependencies
+      - name: install deps
         if: env.GIT_TAG != ''
         run: |
           conda activate mamba-tests
           python --version
           python -m pip install ".[test]"
 
-      - name: Run C++ tests Windows
-        if: env.GIT_TAG != ''
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
-          mkdir cmake_build
-          cd cmake_build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
-          ninja test
-
-      - name: Build micromamba on Windows
+      - name: build micromamba
         if: env.GIT_TAG != ''
         shell: cmd
         run: |

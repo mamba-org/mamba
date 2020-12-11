@@ -63,6 +63,8 @@ jobs:
           conda activate mamba-tests
           cd build
           python ../.ci_support/release_micromamba.py ${{ env.GIT_TAG }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-micromamba-win:
     runs-on: ${{ matrix.os }}

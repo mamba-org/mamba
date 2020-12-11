@@ -19,7 +19,7 @@ def _make_or_get_release(tag, repo):
 
 
 def _make_or_upload_asset(path, rel, name=None):
-    ast_name = os.path.basename(path)
+    ast_name = name or os.path.basename(path)
     for ast in rel.get_assets():
         if ast.name == ast_name:
             return ast

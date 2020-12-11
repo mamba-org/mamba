@@ -3,6 +3,7 @@ name: release-micromamba
 on:
   workflow_dispatch: null
   pull_request: null
+  push: null
 
 jobs:
   release-micromamba-linux-osx:

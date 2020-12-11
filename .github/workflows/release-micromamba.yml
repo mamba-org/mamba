@@ -2,9 +2,6 @@ name: release-micromamba
 
 on:
   workflow_dispatch: null
-  push:
-    branches:
-    - master
   pull_request: null
 
 jobs:

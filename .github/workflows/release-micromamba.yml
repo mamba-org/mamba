@@ -58,7 +58,7 @@ jobs:
           mkdir build
           cd build
           cmake ${CMAKE_ARGS} .. \
-            -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX
+            -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
             -DCMAKE_BUILD_TYPE="Release" \
             -DBUILD_EXE=ON \
             -DBUILD_BINDINGS=OFF \

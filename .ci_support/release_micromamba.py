@@ -1,8 +1,9 @@
 import os
-import tarfile
-import sys
-import github
 import platform
+import sys
+import tarfile
+
+import github
 
 
 def _make_or_get_release(tag, repo):
@@ -25,15 +26,9 @@ def _make_or_upload_asset(path, rel, name=None):
 
     # if we get here, we upload the asset
     if name is not None:
-        return rel.upload_asset(
-            path,
-            name=name,
-        )
+        return rel.upload_asset(path, name=name,)
     else:
-        return rel.upload_asset(
-            path,
-            content_type="application/x-bzip2",
-        )
+        return rel.upload_asset(path, content_type="application/x-bzip2",)
 
 
 if __name__ == "__main__":

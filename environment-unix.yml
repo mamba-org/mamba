@@ -6,7 +6,7 @@ dependencies:
   - curl
   - pybind11
   - libsolv
-  - libarchive
+  - libarchive=3.3
   - libcurl
   - nlohmann_json
   - cxx-compiler

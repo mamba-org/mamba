@@ -3,8 +3,8 @@ name: release-micromamba
 on:
   workflow_dispatch: null
   push:
-    # branches:
-    # - master
+    branches:
+    - master
 
 jobs:
   release-micromamba-linux-osx:
@@ -19,7 +19,6 @@ jobs:
         run: |
           echo "found tag: '$(git tag --points-at HEAD)'"
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
-          echo "GIT_TAG=blah" >> $GITHUB_ENV
 
       - name: free disk space
         if: matrix.os == 'ubuntu-latest' && env.GIT_TAG != ''
@@ -94,8 +93,7 @@ jobs:
         shell: bash
         run: |
           echo "found tag: '$(git tag --points-at HEAD)'"
-          # echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
-          echo "GIT_TAG=blah" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
 
       - uses: conda-incubator/setup-miniconda@v2
         if: env.GIT_TAG != ''
@@ -177,7 +175,6 @@ jobs:
         run: |
           echo "found tag: '$(git tag --points-at HEAD)'"
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
-          echo "GIT_TAG=blah" >> $GITHUB_ENV
 
       - uses: conda-incubator/setup-miniconda@v2
         if: env.GIT_TAG != ''

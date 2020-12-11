@@ -76,7 +76,7 @@ jobs:
         run: |
           conda activate mamba-tests
           cd build
-          python ../.ci_support/release_micromamba.py ${{ env.GIT_TAG }}
+          python ../.ci_support/upload_micromamba.py ${{ env.GIT_TAG }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -161,6 +161,45 @@ jobs:
         run: |
           call conda activate mamba-tests
           cd cmake_build
-          python ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
+          python ..\.ci_support\upload_micromamba.py ${{ env.GIT_TAG }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  finally-release:
+    runs-on: ubuntu-latest
+    needs:
+      - release-micromamba-linux-osx
+      - release-micromamba-win
+    steps:
+      - uses: actions/checkout@v2
+      - name: look for a tag
+        run: |
+          echo "found tag: '$(git tag --points-at HEAD)'"
+          echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=blah" >> $GITHUB_ENV
+
+      - uses: conda-incubator/setup-miniconda@v2
+        if: env.GIT_TAG != ''
+        with:
+          auto-update-conda: true
+          python-version: 3.8
+          channels: conda-forge,defaults
+          channel-priority: strict
+
+      - name: install deps
+        if: env.GIT_TAG != ''
+        shell: bash -l {0}
+        run: |
+          conda env create -q --file environment-unix.yml
+          conda activate mamba-tests
+          conda list
+
+      - name: finally release
+        if: env.GIT_TAG != ''
+        shell: bash -l {0}
+        run: |
+          conda activate mamba-tests
+          python .ci_support/release_micromamba.py ${{ env.GIT_TAG }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

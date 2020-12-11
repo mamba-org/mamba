@@ -110,13 +110,6 @@ jobs:
         run: |
           conda env create -q --file environment-win.yml
 
-      - name: install deps
-        if: env.GIT_TAG != ''
-        run: |
-          conda activate mamba-tests
-          python --version
-          python -m pip install ".[test]"
-
       - name: build micromamba
         if: env.GIT_TAG != ''
         shell: cmd

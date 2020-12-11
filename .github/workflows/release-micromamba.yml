@@ -37,7 +37,7 @@ jobs:
           auto-update-conda: true
           python-version: 3.8
           channels: conda-forge,defaults
-          channel_priority: strict
+          channel-priority: strict
 
       - name: install deps
         if: env.GIT_TAG != ''
@@ -105,7 +105,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: conda-forge,defaults
-          channel_priority: strict
+          channel-priority: strict
 
       - name: create conda environment
         if: env.GIT_TAG != ''

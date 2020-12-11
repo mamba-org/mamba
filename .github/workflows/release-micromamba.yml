@@ -42,7 +42,7 @@ jobs:
         if: env.GIT_TAG != ''
         shell: bash -l {0}
         run: |
-          conda env create -q -y --file environment-unix.yml
+          conda env create -q --file environment-unix.yml
 
       - name: build tests
         if: env.GIT_TAG != ''
@@ -79,6 +79,8 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+          channels: conda-forge,defaults
+          channel_priority: strict
 
       - name: Conda info
         if: env.GIT_TAG != ''
@@ -87,9 +89,7 @@ jobs:
       - name: Create the conda environment
         if: env.GIT_TAG != ''
         run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda env create -q -y --file environment-win.yml
+          conda env create -q --file environment-win.yml
 
       - name: Install dependencies
         if: env.GIT_TAG != ''

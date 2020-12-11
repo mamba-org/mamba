@@ -123,9 +123,9 @@ jobs:
           mkdir cmake_build
           cd cmake_build
 
-          ROBOCOPY ..\recipe\libsolv %VCPKG_ROOT%\ports\libsolv
-          ROBOCOPY ..\recipe\curl %VCPKG_ROOT%\ports\curl
-          ROBOCOPY ..\recipe\reproc %VCPKG_ROOT%\ports\reproc
+          ROBOCOPY ..\micromamba-feedstock\recipe\libsolv %VCPKG_ROOT%\ports\libsolv
+          ROBOCOPY ..\micromamba-feedstock\recipe\curl %VCPKG_ROOT%\ports\curl
+          ROBOCOPY ..\micromamba-feedstock\recipe\reproc %VCPKG_ROOT%\ports\reproc
 
           SET VCPKG_BUILD_TYPE=release
 

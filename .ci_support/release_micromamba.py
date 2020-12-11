@@ -2,6 +2,7 @@ import os
 import tarfile
 import sys
 import github
+import platform
 
 
 def _make_or_get_release(tag, repo):
@@ -14,9 +15,9 @@ def _make_or_get_release(tag, repo):
 
 
 def _make_or_upload_asset(path, rel, name=None):
-    name = os.path.basename(path)
+    ast_name = os.path.basename(path)
     for ast in rel.get_assets():
-        if ast.name == name:
+        if ast.name == ast_name:
             return ast
 
     # if we get here, we upload the asset
@@ -34,12 +35,17 @@ def _make_or_upload_asset(path, rel, name=None):
 
 if __name__ == "__main__":
     tag = sys.argv[1]
-    if sys.platform.startswith("win"):
-        platform = "win"
-    elif sys.platform == "darwin":
-        platform = "osx"
+    if platform.machine() == "x86_64":
+        plat = "64"
     else:
-        platform = "linux"
+        raise ValueError("could not find a valid platform!")
+
+    if sys.platform.startswith("win"):
+        subdir = f"win-{plat}"
+    elif sys.platform == "darwin":
+        subdir = f"osx-{plat}"
+    else:
+        subdir = f"linux-{plat}"
 
     print("making release for tag:", tag, flush=True)
 
@@ -48,15 +54,15 @@ if __name__ == "__main__":
 
     rel = _make_or_get_release(tag, repo)
 
-    name = f"micromamba-{platform}"
+    name = f"micromamba-{subdir}"
     if platform == "win":
         dest_pth = f"{name}\\Library\\bin\\micromamba.exe"
         src_pth = "micromamba.exe"
-        dest_exe = name + ".exe"
+        dest_exe = name + "_" + subdir + ".exe"
     else:
         dest_pth = f"{name}/bin/micromamba"
         src_pth = "micromamba"
-        dest_exe = name
+        dest_exe = name + "_" + subdir
 
     with tarfile.open(f"{name}.tar.bz2", "w:bz2") as tf:
         tf.add(src_pth, arcname=dest_pth)

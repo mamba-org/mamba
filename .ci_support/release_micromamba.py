@@ -2,6 +2,7 @@ import os
 import sys
 
 import github
+import semver
 
 
 def _make_or_get_release(tag, repo):
@@ -19,11 +20,16 @@ def _make_or_get_release(tag, repo):
 if __name__ == "__main__":
     tag = sys.argv[1]
 
+    if tag.startswith("v"):
+        ver = semver.VersionInfo.parse(tag[1:])
+    else:
+        ver = semver.VersionInfo.parse(tag)
+    
     print("making release for tag:", tag, flush=True)
 
     gh = github.Github(os.environ["GH_TOKEN"])
     repo = gh.get_repo(os.environ["GITHUB_REPOSITORY"])
 
-    rel = _make_or_get_release(tag, repo)
-
-    rel.update_release(tag, "", prerelease=False)
+    if ver.prerelease is None and ver.build is None:
+        rel = _make_or_get_release(tag, repo)
+        rel.update_release(tag, "", prerelease=False)

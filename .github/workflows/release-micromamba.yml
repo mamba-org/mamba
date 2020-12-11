@@ -1,0 +1,117 @@
+name: release-micromamba
+
+on:
+  push:
+    # branches:
+    # - master
+
+jobs:
+  release-micromamba-linux-osx:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: look for a tag
+        run: |
+          echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
+
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest' && env.HEAD_TAG != ''
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+      - name: install micromamba
+        if: env.HEAD_TAG != ''
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
+          else
+            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
+            mv bin/micromamba ./micromamba
+          fi
+          ./micromamba shell init -s bash -p ~/micromamba
+      - name: install deps
+        if: env.HEAD_TAG != ''
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: build tests
+        if: env.HEAD_TAG != ''
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba activate ~/build_env
+          mkdir -p ~/.conda
+          touch ~/.conda/environments.txt
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
+          make test -j2
+
+  release-micromamba-win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: look for a tag
+        run: |
+          echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV
+
+      - uses: conda-incubator/setup-miniconda@v2
+        if: env.HEAD_TAG != ''
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        if: env.HEAD_TAG != ''
+        run: conda info
+      - name: Create the conda environment
+        if: env.HEAD_TAG != ''
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Install dependencies
+        if: env.HEAD_TAG != ''
+        run: |
+          conda activate mamba-tests
+          python --version
+          python -m pip install ".[test]"
+      - name: Run C++ tests Windows
+        if: env.HEAD_TAG != ''
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          mkdir cmake_build
+          cd cmake_build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
+          ninja test
+      - name: Build micromamba on Windows
+        if: env.HEAD_TAG != ''
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+          cd cmake_build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
+          ninja
+          .\micromamba.exe --help

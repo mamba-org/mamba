@@ -38,6 +38,7 @@ def _make_or_upload_asset(path, rel, name=None):
 
 if __name__ == "__main__":
     tag = sys.argv[1]
+    print("platform machine:", platform.machine(), flush=True)
     if platform.machine() == "x86_64":
         plat = "64"
     else:

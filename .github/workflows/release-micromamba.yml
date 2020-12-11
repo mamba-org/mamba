@@ -56,6 +56,14 @@ jobs:
           cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
           make test -j2
 
+      - name: make release
+        if: env.GIT_TAG != ''
+        shell: bash -l {0}
+        run: |
+          conda activate mamba-tests
+          cd build
+          python ../.ci_support/release_micromamba.py ${{ env.GIT_TAG }}
+
   release-micromamba-win:
     runs-on: ${{ matrix.os }}
     strategy:

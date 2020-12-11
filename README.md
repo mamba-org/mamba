@@ -171,8 +171,8 @@ cmake .. \
 ### Releasing `micromamba`
 
 When tags are pushed to the repo, a CI job will make a pre-release on GitHub
-with the built `micromamba` artifacts. If the tag is a release version, this 
-pre-release will be converted to a full release automatically. 
+with the built `micromamba` artifacts. If the tag is a release version, this
+pre-release will be converted to a full release automatically.
 
 Note that the pre-release is essential since otherwise the GitHub links to the
 latest release will point to partial releases, breaking any workflows that

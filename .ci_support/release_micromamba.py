@@ -24,7 +24,7 @@ if __name__ == "__main__":
         ver = semver.VersionInfo.parse(tag[1:])
     else:
         ver = semver.VersionInfo.parse(tag)
-    
+
     print("making release for tag:", tag, flush=True)
 
     gh = github.Github(os.environ["GH_TOKEN"])

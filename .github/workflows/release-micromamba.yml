@@ -44,7 +44,7 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/micromamba
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
+          micromamba create -y -p ~/build_env --strict-channel-priority --file environment-unix.yml
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: build tests
@@ -91,7 +91,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+          conda env create -q -y --file environment-win.yml
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies

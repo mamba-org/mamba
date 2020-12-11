@@ -1,6 +1,7 @@
 name: release-micromamba
 
 on:
+  workflow_dispatch: null
   push:
     # branches:
     # - master
@@ -121,6 +122,6 @@ jobs:
         run: |
           call conda activate mamba-tests
           cd cmake_build
-          .\python.exe ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
+          python ..\.ci_support\release_micromamba.py ${{ env.GIT_TAG }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

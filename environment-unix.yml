@@ -29,3 +29,4 @@ dependencies:
   - lz4-c-static
   - reproc-static
   - reproc-cpp-static
+  - libxml2

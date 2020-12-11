@@ -44,6 +44,8 @@ jobs:
         shell: bash -l {0}
         run: |
           conda env create -q --file environment-unix.yml
+          conda activate mamba-tests
+          conda list
 
       - name: build micromamba
         if: env.GIT_TAG != ''

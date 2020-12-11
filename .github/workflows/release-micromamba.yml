@@ -68,6 +68,7 @@ jobs:
             -DUSE_VENDORED_CLI11=ON
 
           make -j2
+          ./micromamba --help
 
       - name: make release
         if: env.GIT_TAG != ''

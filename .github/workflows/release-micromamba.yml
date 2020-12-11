@@ -73,6 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: look for a tag
+        shell: bash
         run: |
           echo "found tag: '$(git tag --points-at HEAD)'"
           echo "GIT_TAG=$(git tag --points-at HEAD)" >> $GITHUB_ENV

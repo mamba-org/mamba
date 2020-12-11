@@ -30,3 +30,4 @@ dependencies:
   - reproc-static
   - reproc-cpp-static
   - libxml2
+  - semver

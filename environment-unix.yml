@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - curl
   - pybind11
   - libsolv
   - libarchive
@@ -16,3 +17,15 @@ dependencies:
   - yaml-cpp
   - cli11
   - pygithub
+  - yaml-cpp-static
+  - libcurl-static
+  - xz-static
+  - libssh2-static
+  - krb5-static
+  - libsolv-static
+  - libopenssl-static
+  - zstd-static
+  - libnghttp2-static
+  - lz4-c-static
+  - reproc-static
+  - reproc-cpp-static

@@ -19,7 +19,14 @@ def _repoquery(query_type, q, pool, fmt=api.QueryFormat.JSON):
         return query.find(q, fmt)
 
 
-def create_pool(channels, platform, installed):
+def create_pool(
+    channels,
+    platform,
+    installed,
+    repodata_fn="repodata.json",
+    use_cache=True,
+    use_local=False,
+):
     if hasattr(context, "__initialized__") is False or context.__initialized__ is False:
         context.__init__()
         context.__initialized__ = True
@@ -43,9 +50,9 @@ def create_pool(channels, platform, installed):
             repos,
             prepend=False,
             platform=platform,
-            use_cache=True,
-            repodata_fn="repodata.json",
-            use_local=False,
+            use_cache=use_cache,
+            repodata_fn=repodata_fn,
+            use_local=use_local,
         )
 
     return pool

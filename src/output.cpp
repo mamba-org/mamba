@@ -397,7 +397,7 @@ namespace mamba
                 {
                     // print header
                     if (i != 0)
-                        std::cout << "\n";
+                        out << "\n";
 
                     for (int x = 0; x < m_padding[0]; ++x)
                     {
@@ -416,8 +416,9 @@ namespace mamba
                 {
                     print_row(m_table[i]);
                 }
-                out << "\n";
+                out << '\n';
             }
+            out << std::flush;
             return out;
         }
     }  // namespace printers
@@ -551,7 +552,7 @@ namespace mamba
         if (Context::instance().no_progress_bars
             && !(Context::instance().quiet || Context::instance().json))
         {
-            std::cout << m_progress_bars[idx]->prefix() << " " << msg << "\n";
+            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
         }
 
         auto it = std::find(m_active_progress_bars.begin(),
@@ -562,6 +563,7 @@ namespace mamba
         {
             // if no_progress_bars is true, should return here as no progress bars are
             // active
+            std::cout << std::flush;
             return;
         }
 
@@ -571,7 +573,7 @@ namespace mamba
         if (msg.empty())
         {
             m_progress_bars[idx]->print();
-            std::cout << "\n";
+            std::cout << std::endl;
         }
         else
         {
@@ -626,8 +628,9 @@ namespace mamba
         for (auto& bar : m_active_progress_bars)
         {
             bar->print();
-            std::cout << "\n";
+            std::cout << '\n';
         }
+        std::cout << std::flush;
     }
 
     bool Console::skip_progress_bars() const

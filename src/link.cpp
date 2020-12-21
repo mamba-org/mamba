@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 
+#include "thirdparty/termcolor.hpp"
 #include <reproc++/run.hpp>
 
 #include "mamba/environment.hpp"
@@ -124,7 +125,9 @@ namespace mamba
 #endif
         if (fs::exists(script_path))
         {
-            LOG_ERROR << "Clobberwarning " << script_path;
+            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
+                      << "$CONDA_PREFIX/"
+                      << fs::relative(script_path, m_context->target_prefix).string() << std::endl;
             fs::remove(script_path);
         }
         std::ofstream out_file(script_path);
@@ -157,7 +160,8 @@ namespace mamba
 
         if (fs::exists(m_context->target_prefix / script_exe))
         {
-            LOG_ERROR << "Clobberwarning " << m_context->target_prefix / script_exe;
+            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
+                      << "$CONDA_PREFIX/" << script_exe.string() << std::endl;
             fs::remove(m_context->target_prefix / script_exe);
         }
 
@@ -217,7 +221,8 @@ namespace mamba
         // target_full_path: the location of the new entry point file being created
         if (fs::exists(target_full_path))
         {
-            throw std::runtime_error("clobber warning");
+            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
+                      << target_full_path.string() << std::endl;
         }
 
         if (!fs::is_directory(target_full_path.parent_path()))
@@ -690,7 +695,8 @@ namespace mamba
         if (fs::exists(dst))
         {
             // Sometimes we might want to raise here ...
-            LOG_ERROR << "Clobberwarning: " << dst;
+            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
+                      << "$CONDA_PREFIX/" << rel_dst.string() << std::endl;
 #ifdef _WIN32
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
 #endif

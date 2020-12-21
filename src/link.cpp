@@ -9,7 +9,7 @@
 #include <tuple>
 #include <vector>
 
-#include "termcolor.hpp"
+#include "thirdparty/termcolor.hpp"
 #include <reproc++/run.hpp>
 
 #include "mamba/environment.hpp"

@@ -69,6 +69,7 @@ static struct
 static struct
 {
     bool ssl_verify = true;
+    std::size_t repodata_ttl = 1;
     std::string cacert_path;
 } network_options;
 
@@ -147,6 +148,10 @@ init_network_parser(CLI::App* subcom)
     subcom->add_option(
         "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
     subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
+    subcom->add_option(
+        "--repodata-ttl",
+        network_options.repodata_ttl,
+        "Repodata cache lifetime:\n 0 = always update\n 1 = respect HTTP header (default)\n>1 = cache lifetime in seconds");
 }
 
 void
@@ -201,6 +206,8 @@ set_network_options(Context& ctx)
             ctx.ssl_verify = "<false>";
         }
     }
+
+    ctx.local_repodata_ttl = network_options.repodata_ttl;
 }
 
 void

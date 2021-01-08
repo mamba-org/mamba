@@ -56,8 +56,8 @@ namespace mamba
         bool always_yes = false;
 
         // debug helpers
-        bool keep_temp_files = false;
-        bool keep_temp_directories = false;
+        bool keep_temp_files = std::getenv("MAMBA_KEEP_TEMP") ? 1 : 0;
+        bool keep_temp_directories = std::getenv("MAMBA_KEEP_TEMP_DIRS") ? 1 : 0;
 
         bool change_ps1 = true;
 

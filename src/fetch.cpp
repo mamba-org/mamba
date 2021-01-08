@@ -25,8 +25,13 @@ namespace mamba
         , m_filename(filename)
         , m_url(url)
     {
+        LOG_INFO << "Downloading to filename: " << m_filename;
         m_file = std::ofstream(filename, std::ios::binary);
-
+        if (!m_file)
+        {
+            LOG_ERROR << "Could not open file for download " << filename << ": " << strerror(errno);
+            exit(1);
+        }
         m_handle = curl_easy_init();
 
         init_curl_target(m_url);
@@ -145,6 +150,11 @@ namespace mamba
     {
         auto* s = reinterpret_cast<DownloadTarget*>(self);
         s->m_file.write(ptr, size * nmemb);
+        if (!s->m_file)
+        {
+            LOG_ERROR << "Could not write to file " << s->m_filename << ": " << strerror(errno);
+            exit(1);
+        }
         return size * nmemb;
     }
 

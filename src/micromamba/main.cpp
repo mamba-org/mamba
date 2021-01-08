@@ -495,9 +495,18 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         }
 
         auto& prio = priorities[i];
-        MRepo repo = subdir->create_repo(pool);
-        repo.set_priority(prio.first, prio.second);
-        repos.push_back(repo);
+        try
+        {
+            MRepo repo = subdir->create_repo(pool);
+            repo.set_priority(prio.first, prio.second);
+            repos.push_back(repo);
+        }
+        catch (std::runtime_error& e)
+        {
+            LOG_WARNING << "Could not load repodata.json for " << subdir->name()
+                        << ". Deleting cache, and retrying.";
+            subdir->clear_cache();
+        }
     }
 
     MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });

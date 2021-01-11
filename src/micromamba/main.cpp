@@ -385,7 +385,7 @@ create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
 }
 
 void
-install_specs(const std::vector<std::string>& specs, bool create_env = false)
+install_specs(const std::vector<std::string>& specs, bool create_env = false, bool is_retry = false)
 {
     auto& ctx = Context::instance();
 
@@ -503,9 +503,17 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false)
         }
         catch (std::runtime_error& e)
         {
+            if (is_retry)
+            {
+                LOG_ERROR << "Could not load repodata.json for " << subdir->name()
+                          << " after retry."
+                          << "Please check repodata source. Exiting." << std::endl;
+                exit(1);
+            }
             LOG_WARNING << "Could not load repodata.json for " << subdir->name()
                         << ". Deleting cache, and retrying.";
             subdir->clear_cache();
+            install_specs(specs, create_env, true);
         }
     }
 

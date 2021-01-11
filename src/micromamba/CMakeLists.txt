@@ -92,9 +92,17 @@ elseif (STATIC_DEPENDENCIES AND WIN32)
     find_library(LIBSOLVEXT_STATIC_LIBRARIES NAMES solvext_static)
     find_package(reproc++ CONFIG REQUIRED)
 
+    find_library(LIBXML2_LIBRARY NAMES libxml2)
+    find_library(ICONV_LIBRARY NAMES libiconv)
+    find_library(CHARSET_LIBRARY NAMES libcharset)
+    message("Found: ${LIBXML2_LIBRARY} ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
+
     target_link_libraries(micromamba PRIVATE
         ${CRYPTO_LIBRARIES}
         ${LibArchive_LIBRARY}
+        ${LIBXML2_LIBRARY}
+        ${ICONV_LIBRARY}
+        ${CHARSET_LIBRARY}
         libzstd
         ${LZ4_LIBRARY}
         ${LZO2_LIBRARY}

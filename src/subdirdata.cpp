@@ -257,12 +257,13 @@ namespace mamba
         m_mod_etag["_mod"] = m_target->mod;
         m_mod_etag["_cache_control"] = m_target->cache_control;
 
-        LOG_WARNING << "Opening: " << m_json_fn;
+        LOG_INFO << "Opening: " << m_json_fn;
         std::ofstream final_file(m_json_fn);
         // TODO make sure that cache directory exists!
         if (!final_file.is_open())
         {
-            throw std::runtime_error("Could not open file.");
+            LOG_ERROR << "Could not open file " << m_json_fn;
+            exit(1);
         }
 
         if (ends_with(m_url, ".bz2"))
@@ -285,6 +286,14 @@ namespace mamba
         std::copy(std::istreambuf_iterator<char>(temp_file),
                   std::istreambuf_iterator<char>(),
                   std::ostreambuf_iterator<char>(final_file));
+
+        if (!temp_file)
+        {
+            LOG_ERROR << "Could not write out repodata file " << m_json_fn << ": "
+                      << strerror(errno);
+            fs::remove(m_json_fn);
+            exit(1);
+        }
 
         m_progress_bar.set_postfix("Done");
         m_progress_bar.set_progress(100);
@@ -427,5 +436,17 @@ namespace mamba
                            m_mod_etag["_mod"] };
 
         return MRepo(pool, m_name, cache_path(), meta);
+    }
+
+    void MSubdirData::clear_cache()
+    {
+        if (fs::exists(m_json_fn))
+        {
+            fs::remove(m_json_fn);
+        }
+        if (fs::exists(m_solv_fn))
+        {
+            fs::remove(m_solv_fn);
+        }
     }
 }  // namespace mamba

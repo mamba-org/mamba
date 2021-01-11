@@ -179,7 +179,7 @@ namespace mamba
             int ret = repo_add_solv(m_repo, fp, 0);
             if (ret != 0)
             {
-                LOG_ERROR << "Could not load .solv file, falling back to JSON"
+                LOG_ERROR << "Could not load .solv file, falling back to JSON: "
                           << pool_errstr(m_repo->pool);
             }
             else

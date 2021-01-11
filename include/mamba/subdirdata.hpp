@@ -40,6 +40,7 @@ namespace mamba
                                                  const fs::file_time_type::clock::time_point& ref);
         bool loaded();
         bool forbid_cache();
+        void clear_cache();
         bool load();
         std::string cache_path() const;
         DownloadTarget* target();

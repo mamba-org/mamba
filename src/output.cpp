@@ -660,7 +660,9 @@ namespace mamba
         , m_severity(severity)
         , m_stream()
     {
+#ifdef MAMBA_DEVELOPMENT
         m_stream << m_file << ":" << m_line << " ";
+#endif
     }
 
     MessageLogger::~MessageLogger()

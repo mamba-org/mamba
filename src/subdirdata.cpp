@@ -83,9 +83,6 @@ namespace mamba
             auto last_write = fs::last_write_time(cache_file);
             auto tdiff = ref - last_write;
             return tdiff;
-            // auto as_seconds =
-            // std::chrono::duration_cast<std::chrono::duration<double>>(tdiff); return
-            // as_seconds.count();
         }
         catch (...)
         {

@@ -103,8 +103,6 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/validate.cpp
     ${MAMBA_SOURCE_DIR}/version.cpp
     ${MAMBA_SOURCE_DIR}/thirdparty/WinReg.hpp
-    ${MAMBA_SOURCE_DIR}/thirdparty/WinReg.hpp
-    ${MAMBA_SOURCE_DIR}/thirdparty/WinReg.hpp
 )
 
 set(MAMBA_HEADERS

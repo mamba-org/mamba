@@ -1,3 +1,19 @@
+0.7.8 (Jan 14, 2021)
+====================
+
+- [micromamba] retry on corrupted repodata
+- [mamba & micromamba] fix error handling when writing repodata
+
+0.7.6 (Dec 22, 2020)
+====================
+
+- [micromamba] more console flushing for std::cout consumers
+
+0.7.6 (Dec 14, 2020)
+====================
+
+- [mamba] more arguments for repodata.create_pool
+
 0.7.5 (Dec 10, 2020)
 ====================
 

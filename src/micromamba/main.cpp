@@ -70,6 +70,7 @@ static struct
 {
     bool ssl_verify = true;
     std::size_t repodata_ttl = 1;
+    bool retry_clean_cache = false;
     std::string cacert_path;
 } network_options;
 
@@ -112,9 +113,10 @@ check_root_prefix(bool silent = false)
             if (!(fs::exists(fallback_root_prefix / "pkgs")
                   || fs::exists(fallback_root_prefix / "conda-meta")))
             {
-                std::cout << "Could not use fallback root prefix " << fallback_root_prefix
-                          << "\nDirectory exists, is not emtpy and not a conda prefix.";
-                exit(1);
+                throw std::runtime_error(
+                    mamba::concat("Could not use fallback root prefix ",
+                                  fallback_root_prefix.string(),
+                                  "\nDirectory exists, is not emtpy and not a conda prefix."));
             }
         }
         Context::instance().root_prefix = fallback_root_prefix;
@@ -148,6 +150,9 @@ init_network_parser(CLI::App* subcom)
     subcom->add_option(
         "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
     subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
+    subcom->add_flag("--retry-with-clean-cache",
+                     network_options.retry_clean_cache,
+                     "If solve fails, try to fetch updated repodata.");
     subcom->add_option(
         "--repodata-ttl",
         network_options.repodata_ttl,
@@ -315,9 +320,8 @@ init_shell_parser(CLI::App* subcom)
         }
         else
         {
-            std::cout << "Currently allowed values are: posix, bash, zsh, cmd.exe & powershell"
-                      << std::endl;
-            exit(1);
+            throw std::runtime_error(
+                "Currently allowed values are: posix, bash, zsh, cmd.exe & powershell");
         }
         if (shell_options.action == "init")
         {
@@ -356,8 +360,7 @@ init_shell_parser(CLI::App* subcom)
         }
         else
         {
-            std::cout << "Need an action (activate, deactivate or hook)";
-            exit(1);
+            throw std::runtime_error("Need an action (activate, deactivate or hook)");
         }
     });
 }
@@ -367,8 +370,7 @@ create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
 {
     if (!fs::exists(pkgs_dir))
     {
-        std::cout << "pkgs_dir does not exist\n";
-        exit(1);
+        throw std::runtime_error("Specified pkgs_dir does not exist\n");
     }
     PrefixData prefix_data(pkgs_dir);
     prefix_data.load();
@@ -384,14 +386,20 @@ create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
     return MRepo(pool, prefix_data);
 }
 
+int RETRY_SUBDIR_FETCH = 1 << 0;
+int RETRY_SOLVE_ERROR = 1 << 1;
+
 void
-install_specs(const std::vector<std::string>& specs, bool create_env = false, bool is_retry = false)
+install_specs(const std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
 {
     auto& ctx = Context::instance();
 
     set_global_options(ctx);
 
-    Console::print(banner);
+    if (!is_retry)
+    {
+        Console::print(banner);
+    }
 
     fs::path pkgs_dirs;
 
@@ -406,14 +414,12 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, bo
 
     if (ctx.target_prefix.empty())
     {
-        std::cout << "No active target prefix.\n\nRun $ micromamba activate "
-                     "<PATH_TO_MY_ENV>\nto activate an environment.\n";
-        exit(1);
+        throw std::runtime_error(
+            "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
     }
     if (!fs::exists(ctx.target_prefix) && create_env == false)
     {
-        std::cout << "Prefix does not exist\n";
-        exit(1);
+        throw std::runtime_error("Prefix does not exist\n");
     }
 
     fs::path cache_dir = pkgs_dirs / "cache";
@@ -423,8 +429,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, bo
     }
     catch (...)
     {
-        std::cout << "Could not create `pkgs/cache/` dirs" << std::endl;
-        exit(1);
+        throw std::runtime_error("Could not create `pkgs/cache/` dirs");
     }
 
     std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
@@ -479,6 +484,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, bo
     repos.push_back(repo);
 
     std::string prev_channel;
+    bool loading_failed = false;
     for (std::size_t i = 0; i < subdirs.size(); ++i)
     {
         auto& subdir = subdirs[i];
@@ -503,27 +509,44 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, bo
         }
         catch (std::runtime_error& e)
         {
-            if (is_retry)
+            if (is_retry & RETRY_SUBDIR_FETCH)
             {
-                LOG_ERROR << "Could not load repodata.json for " << subdir->name()
-                          << " after retry."
-                          << "Please check repodata source. Exiting." << std::endl;
-                exit(1);
+                std::stringstream ss;
+                ss << "Could not load repodata.json for " << subdir->name() << " after retry."
+                   << "Please check repodata source. Exiting." << std::endl;
+                throw std::runtime_error(ss.str());
             }
-            LOG_WARNING << "Could not load repodata.json for " << subdir->name()
-                        << ". Deleting cache, and retrying.";
+
+            std::cout << termcolor::yellow << "Could not load repodata.json for " << subdir->name()
+                      << ". Deleting cache, and retrying." << termcolor::reset << std::endl;
             subdir->clear_cache();
-            install_specs(specs, create_env, true);
+            loading_failed = true;
         }
+    }
+
+    if (loading_failed)
+    {
+        if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
+        {
+            LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
+            return install_specs(specs, create_env, is_retry | RETRY_SUBDIR_FETCH);
+        }
+        throw std::runtime_error("Could not load repodata. Cache corrupted?");
     }
 
     MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
     solver.add_jobs(create_options.specs, SOLVER_INSTALL);
+
     bool success = solver.solve();
     if (!success)
     {
         std::cout << "\n" << solver.problems_to_str() << std::endl;
-        exit(1);
+        if (network_options.retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
+        {
+            ctx.local_repodata_ttl = 2;
+            return install_specs(specs, create_env, is_retry | RETRY_SOLVE_ERROR);
+        }
+        throw std::runtime_error("Could not solve for environment specs");
     }
 
     mamba::MultiPackageCache package_caches({ pkgs_dirs });
@@ -565,9 +588,8 @@ remove_specs(const std::vector<std::string>& specs)
 
     if (ctx.target_prefix.empty())
     {
-        std::cout << "No active target prefix.\n\nRun $ micromamba activate "
-                     "<PATH_TO_MY_ENV>\nto activate an environment.\n";
-        exit(1);
+        throw std::runtime_error(
+            "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
     }
 
     std::vector<MRepo> repos;
@@ -907,8 +929,7 @@ set_target_prefix()
         }
         else
         {
-            Console::print("Non-conda folder exists at prefix. Exiting.");
-            exit(1);
+            throw std::runtime_error("Non-conda folder exists at prefix. Exiting.");
         }
     }
 }
@@ -926,8 +947,7 @@ parse_file_options()
         if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
             && create_options.files.size() != 1)
         {
-            std::cout << "Can only handle 1 yaml file!" << std::endl;
-            exit(1);
+            throw std::runtime_error("Can only handle 1 yaml file!");
         }
     }
 
@@ -946,10 +966,8 @@ parse_file_options()
                 }
                 catch (YAML::Exception& e)
                 {
-                    std::cout << termcolor::red
-                              << "ERROR: Could not read 'channels' as list of strings from "
-                              << termcolor::reset << file << std::endl;
-                    exit(1);
+                    throw std::runtime_error(
+                        mamba::concat("Could not read 'channels' as list of strings from ", file));
                 }
 
                 for (const auto& c : yaml_channels)
@@ -970,11 +988,10 @@ parse_file_options()
                 }
                 catch (YAML::Exception& e)
                 {
-                    std::cout << termcolor::red
-                              << "ERROR: Could not read environment 'name' as string from " << file
-                              << " and no name (-n) or prefix (-p) given on the command line"
-                              << termcolor::reset << std::endl;
-                    exit(1);
+                    throw std::runtime_error(mamba::concat(
+                        "Could not read environment 'name' as string from ",
+                        file,
+                        " and no name (-n) or prefix (-p) given on the command line"));
                 }
             }
             try
@@ -983,11 +1000,8 @@ parse_file_options()
             }
             catch (YAML::Exception& e)
             {
-                std::cout
-                    << termcolor::red
-                    << "ERROR: Could not read environment 'dependencies' as list of strings from "
-                    << file << termcolor::reset << std::endl;
-                exit(1);
+                throw std::runtime_error(mamba::concat(
+                    "Could not read environment 'dependencies' as list of strings from ", file));
             }
         }
         else
@@ -995,8 +1009,7 @@ parse_file_options()
             std::vector<std::string> file_contents = read_lines(file);
             if (file_contents.size() == 0)
             {
-                std::cout << "file is empty" << std::endl;
-                exit(1);
+                throw std::runtime_error("file is empty");
             }
             for (std::size_t i = 0; i < file_contents.size(); ++i)
             {
@@ -1223,7 +1236,15 @@ main(int argc, char** argv)
         = app.add_subcommand("constructor", "Commands to support using micromamba in constructor");
     init_constructor_parser(constructor_subcom);
 
-    CLI11_PARSE(app, argc, argv);
+    try
+    {
+        CLI11_PARSE(app, argc, argv);
+    }
+    catch (std::exception& e)
+    {
+        LOG_ERROR << e.what();
+        exit(1);
+    }
 
     if (app.get_subcommands().size() == 0)
     {

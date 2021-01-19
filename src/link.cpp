@@ -20,6 +20,7 @@
 #include "mamba/util.hpp"
 #include "mamba/validate.hpp"
 #include "mamba/shell_init.hpp"
+#include "mamba/activation.hpp"
 
 #if _WIN32
 #include "../data/conda_exe.hpp"
@@ -900,7 +901,19 @@ namespace mamba
         std::string cwd = m_context->target_prefix;
         options.working_directory = cwd.c_str();
 
-        auto [status, ec] = reproc::run(command, options);
+        std::map<std::string, std::string> envmap;
+#ifdef _WIN32
+        CmdExeActivator activator;
+#else
+        PosixActivator activator;
+#endif
+        std::string current_env_path = activator.add_prefix_to_path(m_context->target_prefix, 0);
+
+        envmap["PATH"] = current_env_path;
+        options.env.behavior = reproc::env::extend;
+        options.env.extra = envmap;
+
+        auto [_, ec] = reproc::run(command, options);
 
         if (ec)
         {

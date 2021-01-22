@@ -901,16 +901,15 @@ namespace mamba
         std::string cwd = m_context->target_prefix;
         options.working_directory = cwd.c_str();
 
-        std::map<std::string, std::string> envmap;
+        std::map<std::string, std::string> envmap = env::copy();
 #ifdef _WIN32
         CmdExeActivator activator;
 #else
         PosixActivator activator;
 #endif
         std::string current_env_path = activator.add_prefix_to_path(m_context->target_prefix, 0);
-
         envmap["PATH"] = current_env_path;
-        options.env.behavior = reproc::env::extend;
+        options.env.behavior = reproc::env::empty;
         options.env.extra = envmap;
 
         auto [_, ec] = reproc::run(command, options);

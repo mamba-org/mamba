@@ -1,3 +1,14 @@
+0.7.10 (Jan 22, 2021)
+====================
+
+- [micromamba] properly fix PATH when linking, prevents missing vcruntime140.dll
+- [mamba] add virtual packages when creating any environment, not just on update (thanks @cbalioglu)
+
+0.7.9 (Jan 19, 2021)
+====================
+
+- [micromamba] fix PATH when linking
+
 0.7.8 (Jan 14, 2021)
 ====================
 

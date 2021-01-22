@@ -48,24 +48,26 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
-    # if using update
     installed_pkg_recs = []
     python_constraint = None
-    if "update" in args.func:
-        installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
-        repo = api.Repo(pool, "installed", installed_json_f.name, "")
-        repo.set_installed()
-        repos.append(repo)
 
-        # Also pin the Python version if it's installed
-        # If python was not specified, check if it is installed.
-        # If yes, add the installed python to the specs to prevent updating it.
-        if "python" not in [s.name for s in match_specs]:
-            installed_names = [i_rec.name for i_rec in installed_pkg_recs]
-            if "python" in installed_names:
-                i = installed_names.index("python")
-                version = installed_pkg_recs[i].version
-                python_constraint = MatchSpec("python==" + version).conda_build_form()
+    # We check for installed packages even while creating a new
+    # Conda environment as virtual packages such as __glibc are
+    # always available regardless of the environment.
+    installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
+    repo = api.Repo(pool, "installed", installed_json_f.name, "")
+    repo.set_installed()
+    repos.append(repo)
+
+    # Also pin the Python version if it's installed
+    # If python was not specified, check if it is installed.
+    # If yes, add the installed python to the specs to prevent updating it.
+    if "python" not in [s.name for s in match_specs]:
+        installed_names = [i_rec.name for i_rec in installed_pkg_recs]
+        if "python" in installed_names:
+            i = installed_names.index("python")
+            version = installed_pkg_recs[i].version
+            python_constraint = MatchSpec("python==" + version).conda_build_form()
 
     solver = api.Solver(pool, solver_options)
     solver.add_jobs(specs, api.SOLVER_INSTALL)

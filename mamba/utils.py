@@ -11,7 +11,7 @@ from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump
-from conda.common.url import join_url, split_anaconda_token
+from conda.common.url import join_url, split_anaconda_token, remove_auth
 from conda.core.index import (
     _supplement_index_with_system,
     calculate_channel_urls,
@@ -251,7 +251,7 @@ def to_txn(
             print("No package record found!")
 
     for c, pkg, jsn_s in to_link:
-        sdir = lookup_dict[split_anaconda_token(c)[0]]
+        sdir = lookup_dict[split_anaconda_token(remove_auth(c))[0]]
         rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
         final_precs.add(rec)
         to_link_records.append(rec)

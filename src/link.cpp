@@ -946,11 +946,6 @@ namespace mamba
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(m_context->target_prefix, command);
         LOG_INFO << "Running wrapped python compilation command " << join(" ", command);
-#ifndef NDEBUG
-        std::ifstream ix(script_file->path());
-        LOG_DEBUG << "Wrapped activation:\n" << ix.rdbuf() << "\n";
-        ix.close();
-#endif
         auto [_, ec] = reproc::run(wrapped_command, options);
 
         if (ec)

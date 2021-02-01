@@ -50,7 +50,22 @@ namespace mamba
         bool finalize_callback();
         bool finished();
         bool validate_extract();
+        auto validation_result() const;
+        void clear_cache() const;
+
         DownloadTarget* target(const fs::path& cache_path, MultiPackageCache& cache);
+
+        enum VALIDATION_RESULT
+        {
+            UNDEFINED = 0,
+            VALID = 1,
+            SHA256_ERROR,
+            MD5SUM_ERROR,
+            SIZE_ERROR,
+            EXTRACT_ERROR
+        };
+
+        std::exception m_decompress_exception;
 
     private:
         bool m_finished;
@@ -67,6 +82,7 @@ namespace mamba
 
         std::future<bool> m_extract_future;
 
+        VALIDATION_RESULT m_validation_result = VALIDATION_RESULT::UNDEFINED;
         static std::mutex extract_mutex;
     };
 

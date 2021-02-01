@@ -103,10 +103,12 @@ namespace mamba
 
     void register_cleaning_thread_id(std::thread::native_handle_type id)
     {
+#ifndef _WIN32
         if (cleanup_id)
         {
             pthread_cancel(cleanup_id);
         }
+#endif
         cleanup_id = id;
     }
 

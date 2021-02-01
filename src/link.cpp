@@ -463,6 +463,43 @@ namespace mamba
         return tf;
     }
 
+    auto prepare_wrapped_call(const fs::path& prefix, const std::vector<std::string>& cmd)
+    {
+        std::vector<std::string> command_args;
+        std::unique_ptr<TemporaryFile> script_file;
+
+        if (on_win)
+        {
+            ensure_comspec_set();
+            std::string comspec = env::get("COMSPEC");
+            if (comspec.size() == 0)
+            {
+                throw std::runtime_error(
+                    concat("Failed to run script: COMSPEC not set in env vars."));
+            }
+
+            script_file = wrap_call(
+                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+
+            command_args = { comspec, "/d", "/c", script_file->path() };
+        }
+        else
+        {
+            // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
+            fs::path shell_path = env::which("bash");
+            if (shell_path.empty())
+            {
+                shell_path = env::which("sh");
+            }
+
+            script_file = wrap_call(
+                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+            command_args.push_back(shell_path);
+            command_args.push_back(script_file->path());
+        }
+        return std::make_tuple(command_args, std::move(script_file));
+    }
+
     /*
        call the post-link or pre-unlink script and return true / false on success /
        failure
@@ -473,13 +510,17 @@ namespace mamba
                     const std::string& env_prefix = "",
                     bool activate = false)
     {
-#ifdef _WIN32
-        auto path = prefix / get_bin_directory_short_path()
-                    / concat(".", pkg_info.name, "-", action, ".bat");
-#else
-        auto path = prefix / get_bin_directory_short_path()
-                    / concat(".", pkg_info.name, "-", action, ".sh");
-#endif
+        fs::path path;
+        if (on_win)
+        {
+            path = prefix / get_bin_directory_short_path()
+                   / concat(".", pkg_info.name, "-", action, ".bat");
+        }
+        else
+        {
+            path = prefix / get_bin_directory_short_path()
+                   / concat(".", pkg_info.name, "-", action, ".sh");
+        }
 
         if (!fs::exists(path))
         {
@@ -500,56 +541,60 @@ namespace mamba
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
 
-#ifdef _WIN32
-        ensure_comspec_set();
-        std::string comspec = env::get("COMSPEC");
-        if (comspec.size() == 0)
+        if (on_win)
         {
-            LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name
-                      << " due to COMSPEC not set in env vars.";
-            return false;
+            ensure_comspec_set();
+            std::string comspec = env::get("COMSPEC");
+            if (comspec.size() == 0)
+            {
+                LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name
+                          << " due to COMSPEC not set in env vars.";
+                return false;
+            }
+
+            if (activate)
+            {
+                script_file = wrap_call(Context::instance().root_prefix,
+                                        prefix,
+                                        Context::instance().dev,
+                                        false,
+                                        { "@CALL", path });
+
+                command_args = { comspec, "/d", "/c", script_file->path() };
+            }
+            else
+            {
+                command_args = { comspec, "/d", "/c", path };
+            }
         }
 
-        if (activate)
-        {
-            script_file = wrap_call(Context::instance().root_prefix,
-                                    prefix,
-                                    Context::instance().dev,
-                                    false,
-                                    { "@CALL", path });
-
-            command_args = { comspec, "/d", "/c", script_file->path() };
-        }
         else
         {
-            command_args = { comspec, "/d", "/c", path };
-        }
-#else
-        // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-        fs::path shell_path = env::which("bash");
-        if (shell_path.empty())
-        {
-            shell_path = env::which("sh");
-        }
+            // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
+            fs::path shell_path = env::which("bash");
+            if (shell_path.empty())
+            {
+                shell_path = env::which("sh");
+            }
 
-        if (activate)
-        {
-            // std::string caller
-            script_file = wrap_call(Context::instance().root_prefix,
-                                    prefix,
-                                    Context::instance().dev,
-                                    false,
-                                    { ".", path });
-            command_args.push_back(shell_path);
-            command_args.push_back(script_file->path());
+            if (activate)
+            {
+                // std::string caller
+                script_file = wrap_call(Context::instance().root_prefix,
+                                        prefix,
+                                        Context::instance().dev,
+                                        false,
+                                        { ".", path });
+                command_args.push_back(shell_path);
+                command_args.push_back(script_file->path());
+            }
+            else
+            {
+                command_args.push_back(shell_path);
+                command_args.push_back("-x");
+                command_args.push_back(path);
+            }
         }
-        else
-        {
-            command_args.push_back(shell_path);
-            command_args.push_back("-x");
-            command_args.push_back(path);
-        }
-#endif
 
         envmap["ROOT_PREFIX"] = Context::instance().root_prefix;
         envmap["PREFIX"] = env_prefix.size() ? env_prefix : std::string(prefix);
@@ -875,9 +920,6 @@ namespace mamba
         }
         all_py_files_f.close();
 
-        // TODO use the real python file here?!
-        LOG_DEBUG << "Running " << m_context->target_prefix / m_context->python_path
-                  << " -Wi -m compileall -q -l -i " << all_py_files.path() << std::endl;
         std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
                                              "-Wi",
                                              "-m",
@@ -901,18 +943,15 @@ namespace mamba
         std::string cwd = m_context->target_prefix;
         options.working_directory = cwd.c_str();
 
-        std::map<std::string, std::string> envmap = env::copy();
-#ifdef _WIN32
-        CmdExeActivator activator;
-#else
-        PosixActivator activator;
+        auto [wrapped_command, script_file]
+            = prepare_wrapped_call(m_context->target_prefix, command);
+        LOG_INFO << "Running wrapped python compilation command " << join(" ", command);
+#ifndef NDEBUG
+        std::ifstream ix(script_file->path());
+        LOG_DEBUG << "Wrapped activation:\n" << ix.rdbuf() << "\n";
+        ix.close();
 #endif
-        std::string current_env_path = activator.add_prefix_to_path(m_context->target_prefix, 0);
-        envmap["PATH"] = current_env_path;
-        options.env.behavior = reproc::env::empty;
-        options.env.extra = envmap;
-
-        auto [_, ec] = reproc::run(command, options);
+        auto [_, ec] = reproc::run(wrapped_command, options);
 
         if (ec)
         {

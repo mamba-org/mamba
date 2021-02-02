@@ -968,11 +968,11 @@ namespace mamba
     {
         LOG_INFO << "Executing install for " << m_source;
         nlohmann::json index_json, out_json;
-        LOG_WARNING << "Opening: " << m_source / "info" / "paths.json";
+        LOG_INFO << "Opening: " << m_source / "info" / "paths.json";
 
         auto paths_data = read_paths(m_source);
 
-        LOG_WARNING << "Opening: " << m_source / "info" / "repodata_record.json";
+        LOG_INFO << "Opening: " << m_source / "info" / "repodata_record.json";
         std::ifstream repodata_f(m_source / "info" / "repodata_record.json");
 
         repodata_f >> index_json;

@@ -79,28 +79,38 @@ namespace mamba
     bool PackageDownloadExtractTarget::validate_extract()
     {
         // Validation
+        m_validation_result = VALIDATION_RESULT::VALID;
         if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
         {
-            LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path;
-            throw std::runtime_error("File not valid: file size doesn't match expectation ("
-                                     + std::string(m_tarball_path) + ")");
+            LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
+                      << "\nExpected: " << m_expected_size << "\n";
+            m_progress_proxy.mark_as_completed("File size validation error.");
+            m_validation_result = SIZE_ERROR;
         }
         interruption_point();
 
         if (!m_sha256.empty() && !validate::sha256(m_tarball_path, m_sha256))
         {
-            LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path;
-            throw std::runtime_error("File not valid: SHA256 sum doesn't match expectation ("
-                                     + std::string(m_tarball_path) + ")");
+            m_validation_result = SHA256_ERROR;
+            m_progress_proxy.mark_as_completed("SHA256 sum validation error.");
+            LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path
+                      << "\nExpected: " << m_sha256 << "\n";
         }
         else
         {
             if (!m_md5.empty() && !validate::md5(m_tarball_path, m_md5))
             {
-                LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path;
-                throw std::runtime_error("File not valid: MD5 sum doesn't match expectation ("
-                                         + std::string(m_tarball_path) + ")");
+                m_validation_result = MD5SUM_ERROR;
+                m_progress_proxy.mark_as_completed("MD5 sum validation error.");
+                LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path
+                          << "\nExpected: " << m_md5 << "\n";
             }
+        }
+        if (m_validation_result != VALIDATION_RESULT::VALID)
+        {
+            // abort here, but set finished to true
+            m_finished = true;
+            return true;
         }
 
         interruption_point();
@@ -112,10 +122,22 @@ namespace mamba
             interruption_point();
             m_progress_proxy.set_postfix("Decompressing...");
             LOG_INFO << "Decompressing " << m_tarball_path;
-            auto extract_path = extract(m_tarball_path);
-            LOG_INFO << "Extracted to " << extract_path;
-            write_repodata_record(extract_path);
-            add_url();
+            try
+            {
+                auto extract_path = extract(m_tarball_path);
+                LOG_INFO << "Extracted to " << extract_path;
+                write_repodata_record(extract_path);
+                add_url();
+            }
+            catch (std::exception& e)
+            {
+                LOG_ERROR << "Error when extracting package: " << e.what();
+                m_decompress_exception = e;
+                m_validation_result = VALIDATION_RESULT::EXTRACT_ERROR;
+                m_finished = true;
+                m_progress_proxy.mark_as_completed("Extraction error");
+                return m_finished;
+            }
         }
 
         interruption_point();
@@ -152,6 +174,21 @@ namespace mamba
         return m_target == nullptr ? true : m_finished;
     }
 
+    auto PackageDownloadExtractTarget::validation_result() const
+    {
+        return m_validation_result;
+    }
+
+    void PackageDownloadExtractTarget::clear_cache() const
+    {
+        fs::remove_all(m_tarball_path);
+        fs::path dest_dir = strip_package_extension(m_tarball_path);
+        if (fs::exists(dest_dir))
+        {
+            fs::remove_all(dest_dir);
+        }
+    }
+
     // todo remove cache from this interface
     DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path,
                                                          MultiPackageCache& cache)
@@ -166,6 +203,7 @@ namespace mamba
         if (valid && !dest_dir_exists)
         {
             // TODO add extract job here
+            // finalize_callback();
         }
 
         // tarball can be removed, it's fine if only the correct dest dir exists
@@ -663,6 +701,7 @@ namespace mamba
         interruption_guard g([]() { Console::instance().init_multi_progress(); });
 
         bool downloaded = multi_dl.download(true);
+        bool all_valid = true;
 
         if (!downloaded)
         {
@@ -688,7 +727,19 @@ namespace mamba
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        return !is_sig_interrupted() && downloaded;
+        for (const auto& t : targets)
+        {
+            if (t->validation_result() != PackageDownloadExtractTarget::VALIDATION_RESULT::VALID
+                && t->validation_result()
+                       != PackageDownloadExtractTarget::VALIDATION_RESULT::UNDEFINED)
+            {
+                t->clear_cache();
+                all_valid = false;
+                throw std::runtime_error("Found incorrect download. Aborting");
+            }
+        }
+
+        return !is_sig_interrupted() && downloaded && all_valid;
     }
 
     bool MTransaction::empty()

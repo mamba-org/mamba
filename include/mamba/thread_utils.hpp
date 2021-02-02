@@ -50,7 +50,7 @@ namespace mamba
     // Must be called by the cleaning thread to ensure
     // it won't free ressources that could be required
     // by threads still active.
-    void wait_before_cleaning();
+    void wait_for_all_threads();
     void notify_cleanup();
 
     // Should be called by the main thread to ensure
@@ -145,7 +145,7 @@ namespace mamba
         m_cleanup_function = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
         std::signal(SIGINT, [](int) {
             set_sig_interrupted();
-            wait_before_cleaning();
+            wait_for_all_threads();
             m_cleanup_function();
         });
     }
@@ -159,11 +159,15 @@ namespace mamba
         block_signals();
         auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
         std::thread victor_the_cleaner([f, this]() {
+            pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+            pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+
             wait_for_signal();
+
             if (m_interrupt.load())
             {
                 set_sig_interrupted();
-                wait_before_cleaning();
+                wait_for_all_threads();
                 f();
                 notify_cleanup();
             }

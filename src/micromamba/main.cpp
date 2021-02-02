@@ -792,7 +792,6 @@ download_explicit(const std::vector<PackageInfo>& pkgs)
     std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
     MultiDownloadTarget multi_dl;
     MultiPackageCache pkg_cache({ Context::instance().root_prefix / "pkgs" });
-    Console::instance().init_multi_progress();
 
     for (auto& pkg : pkgs)
     {
@@ -1240,9 +1239,11 @@ main(int argc, char** argv)
     {
         CLI11_PARSE(app, argc, argv);
     }
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
         LOG_ERROR << e.what();
+        std::raise(SIGTERM);
+        std::cout << "Exiting." << std::endl;
         exit(1);
     }
 

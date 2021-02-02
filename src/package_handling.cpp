@@ -371,22 +371,24 @@ namespace mamba
     fs::path extract(const fs::path& file)
     {
         std::string dest_dir = file;
+        TemporaryDirectory temp_extract_dir;
+
         if (ends_with(dest_dir, ".tar.bz2"))
         {
             dest_dir = dest_dir.substr(0, dest_dir.size() - 8);
-            extract_archive(file, dest_dir);
-            return dest_dir;
+            extract_archive(file, temp_extract_dir.path());
         }
         else if (ends_with(dest_dir, ".conda"))
         {
             dest_dir = dest_dir.substr(0, dest_dir.size() - 6);
-            extract_conda(file, dest_dir);
-            return dest_dir;
+            extract_conda(file, temp_extract_dir.path());
         }
         else
         {
             throw std::runtime_error("Unknown package format (" + file.string() + ")");
         }
+        fs::rename(temp_extract_dir.path(), dest_dir);
+        return dest_dir;
     }
 
     bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level)

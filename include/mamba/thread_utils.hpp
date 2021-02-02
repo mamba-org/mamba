@@ -159,8 +159,6 @@ namespace mamba
         block_signals();
         auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
         std::thread victor_the_cleaner([f, this]() {
-            pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
-            pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
             wait_for_signal();
 

@@ -24,7 +24,7 @@ namespace mamba
 
     void set_default_signal_handler()
     {
-        std::signal(SIGINT, [](int signum) { set_sig_interrupted(); });
+        //std::signal(SIGINT, [](int signum) { set_sig_interrupted(); });
     }
 
     bool is_sig_interrupted() noexcept
@@ -103,12 +103,6 @@ namespace mamba
 
     void register_cleaning_thread_id(std::thread::native_handle_type id)
     {
-#ifndef _WIN32
-        if (cleanup_id)
-        {
-            pthread_cancel(cleanup_id);
-        }
-#endif
         cleanup_id = id;
     }
 
@@ -166,13 +160,10 @@ namespace mamba
         if (is_sig_interrupted())
         {
             wait_for_cleanup();
-            std::cout << "Cleanup done." << std::endl;
         }
         m_interrupt.store(false);
+        pthread_kill(get_cleaning_thread_id(), SIGINT);
         pthread_sigmask(SIG_UNBLOCK, &sigset, nullptr);
-        set_default_signal_handler();
-        pthread_cancel(get_cleaning_thread_id());
-        register_cleaning_thread_id(0);
     }
 
     void interruption_guard::block_signals() const

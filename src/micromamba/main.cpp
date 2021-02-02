@@ -1242,7 +1242,7 @@ main(int argc, char** argv)
     catch (const std::exception& e)
     {
         LOG_ERROR << e.what();
-        std::raise(SIGINT);
+        // std::raise(SIGINT);
         std::cout << "Exiting." << std::endl;
         exit(1);
     }

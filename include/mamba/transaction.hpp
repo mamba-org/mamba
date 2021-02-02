@@ -49,7 +49,11 @@ namespace mamba
         void add_url();
         bool finalize_callback();
         bool finished();
+        void validate();
+        bool extract();
+        bool extract_from_cache();
         bool validate_extract();
+        const std::string& name() const;
         auto validation_result() const;
         void clear_cache() const;
 

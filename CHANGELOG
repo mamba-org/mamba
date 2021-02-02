@@ -1,3 +1,11 @@
+0.7.11 (Feb 2, 2021)
+====================
+
+- [micromamba] use wrapped call when compiling noarch Python code, which properly calls chcp for Windows
+- [micromamba] improve checking the pkgs cache
+- [mamba] fix authenticated URLs (thanks @wenjuno)
+- first extract to temporary directory, then move to final pkgs cache to prevent corrupted extracted data
+
 0.7.10 (Jan 22, 2021)
 ====================
 

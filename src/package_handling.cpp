@@ -31,7 +31,14 @@ namespace mamba
             if (is_sig_interrupted())
             {
                 LOG_INFO << "Extraction interrupted, erasing " << m_file.string();
-                fs::remove_all(m_file);
+                try
+                {
+                    fs::remove_all(m_file);
+                }
+                catch (std::exception& e)
+                {
+                    LOG_ERROR << "Removing failed, error: " << e.what();
+                }
             }
         }
 
@@ -51,9 +58,8 @@ namespace mamba
         std::size_t size;
         la_int64_t offset;
 
-        while (true)
+        while (true && !is_sig_interrupted())
         {
-            interruption_point();
             r = archive_read_data_block(ar, &buff, &size, &offset);
             if (r == ARCHIVE_EOF)
             {
@@ -176,9 +182,8 @@ namespace mamba
             {
                 std::array<char, 8192> buffer;
                 std::ifstream fin(p, std::ios::in | std::ios::binary);
-                while (!fin.eof())
+                while (!fin.eof() && !is_sig_interrupted())
                 {
-                    interruption_point();
                     fin.read(buffer.data(), buffer.size());
                     std::streamsize len = fin.gcount();
                     archive_write_data(a, buffer.data(), len);
@@ -284,7 +289,11 @@ namespace mamba
 
         for (;;)
         {
-            interruption_point();
+            if (is_sig_interrupted())
+            {
+                break;
+            }
+
             r = archive_read_next_header(a, &entry);
             if (r == ARCHIVE_EOF)
             {

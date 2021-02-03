@@ -75,8 +75,13 @@ namespace mamba
     {
         int res1 = test_interruption_guard(false);
         EXPECT_EQ(res1, 5);
+        // Ensures the interruption guard is not allocated at the same
+        // place
+        double d = 4;
         int res2 = test_interruption_guard(false);
         EXPECT_EQ(res2, 5);
+        // Ensures the compiler does not remove d
+        EXPECT_EQ(d, 4);
     }
 #endif
 }  // namespace mamba

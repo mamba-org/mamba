@@ -10,7 +10,7 @@ namespace mamba
     {
         std::mutex res_mutex;
     }
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+
     int test_interruption_guard(bool interrupt)
     {
         int res = 0;
@@ -48,10 +48,6 @@ namespace mamba
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             }
         }
-        if (!interrupt)
-        {
-            wait_for_all_threads();
-        }
         return res;
     }
 
@@ -82,5 +78,4 @@ namespace mamba
         int res2 = test_interruption_guard(false);
         EXPECT_EQ(res2, 5);
     }
-#endif
 }  // namespace mamba

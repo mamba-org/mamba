@@ -128,21 +128,6 @@ namespace mamba
         clean_var.wait(lk, []() { return thread_count == 0; });
     }
 
-    namespace
-    {
-        std::thread::native_handle_type cleanup_id = 0;
-    }
-
-    void register_cleaning_thread_id(std::thread::native_handle_type id)
-    {
-        cleanup_id = id;
-    }
-
-    std::thread::native_handle_type get_cleaning_thread_id()
-    {
-        return cleanup_id;
-    }
-
     /*************************
      * thread implementation *
      *************************/
@@ -173,23 +158,13 @@ namespace mamba
 
     std::function<void()> interruption_guard::m_cleanup_function;
 
-#ifdef _WIN32
-
     interruption_guard::~interruption_guard()
     {
-        set_default_signal_handler();
-    }
-
-#else
-    interruption_guard::~interruption_guard()
-    {
+        wait_for_all_threads();
         if (is_sig_interrupted())
         {
-            wait_for_all_threads();
             m_cleanup_function();
         }
     }
-
-#endif
 
 }  // namespace mamba

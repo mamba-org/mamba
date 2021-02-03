@@ -19,8 +19,6 @@ namespace mamba
     namespace
     {
         std::atomic<bool> sig_interrupted(false);
-        std::mutex sig_interrupted_cv_mutex;
-        std::condition_variable sig_interrupted_cv;
     }
 
 #ifndef _WIN32
@@ -46,8 +44,6 @@ namespace mamba
         // wait until a signal is delivered:
         sigwait(&sigset, &signum);
         sig_interrupted.store(true);
-        // notify all waiting workers to check their predicate:
-        sig_interrupted_cv.notify_all();
         return signum;
     }
 

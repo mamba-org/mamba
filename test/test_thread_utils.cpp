@@ -48,10 +48,6 @@ namespace mamba
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             }
         }
-        if (!interrupt)
-        {
-            wait_for_all_threads();
-        }
         return res;
     }
 

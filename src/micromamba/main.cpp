@@ -1171,30 +1171,9 @@ main(int argc, char** argv)
 
     auto print_version = [](int count) {
         std::cout << version() << std::endl;
-        exit(0);
+        return 0;
     };
     app.add_flag_function("--version", print_version);
-
-    // #ifndef _WIN32
-    //     CLI::App* activate_subcom
-    //         = app.add_subcommand("activate", "Activate a conda / micromamba environment");
-    //     CLI::App* deactivate_subcom
-    //         = app.add_subcommand("deactivate", "Deactivate a conda / micromamba environment");
-
-    //     auto activate_deactivate_callback = []() {
-    //         std::cout << termcolor::red
-    //                   << "In order to use activate and deactivate you need to initialize your
-    //                   shell.\n"
-    //                   << "Either call shell init ... or execute the shell hook directly:\n\n"
-    //                   << "    eval \"$(./micromamba shell hook -s bash)\"\n\n"
-    //                   << "and then run\n\n"
-    //                   << "    micromamba activate  " << termcolor::white
-    //                   << "# notice the missing dot in front of the command\n\n"
-    //                   << termcolor::reset;
-    //     };
-    //     activate_subcom->callback(activate_deactivate_callback);
-    //     deactivate_subcom->callback(activate_deactivate_callback);
-    // #endif
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);
@@ -1242,15 +1221,13 @@ main(int argc, char** argv)
     catch (const std::exception& e)
     {
         LOG_ERROR << e.what();
-        // std::raise(SIGINT);
-        std::cout << "Exiting." << std::endl;
-        exit(1);
+        set_sig_interrupted();
+        return 1;
     }
 
     if (app.get_subcommands().size() == 0)
     {
         std::cout << app.help() << std::endl;
     }
-
     return 0;
 }

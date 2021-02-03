@@ -52,8 +52,6 @@ namespace mamba
     // by threads still active.
     void wait_for_all_threads();
 
-    void register_cleaning_thread_id(std::thread::native_handle_type);
-    std::thread::native_handle_type get_cleaning_thread_id();
     std::thread::native_handle_type get_signal_receiver_thread_id();
     void reset_sig_interrupted();
 
@@ -127,28 +125,11 @@ namespace mamba
         static std::function<void()> m_cleanup_function;
     };
 
-#ifdef _WIN32
-
-    template <class Function, class... Args>
-    inline interruption_guard::interruption_guard(Function&& func, Args&&... args)
-    {
-        m_cleanup_function = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
-        std::signal(SIGINT, [](int) {
-            set_sig_interrupted();
-            wait_for_all_threads();
-            m_cleanup_function();
-        });
-    }
-
-#else
-
     template <class Function, class... Args>
     inline interruption_guard::interruption_guard(Function&& func, Args&&... args)
     {
         m_cleanup_function = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
     }
-
-#endif
 
 }  // namespace mamba
 

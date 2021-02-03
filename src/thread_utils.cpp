@@ -9,7 +9,6 @@
 #include <signal.h>
 #endif
 
-#include <iostream>
 
 namespace mamba
 {
@@ -19,13 +18,58 @@ namespace mamba
 
     namespace
     {
-        std::atomic<bool> sig_interrupted;
+        std::atomic<bool> sig_interrupted(false);
+        std::mutex sig_interrupted_cv_mutex;
+        std::condition_variable sig_interrupted_cv;
+    }
+
+#ifndef _WIN32
+    namespace
+    {
+        std::thread::native_handle_type sig_recv_thread;
+    }
+
+    void reset_sig_interrupted()
+    {
+        sig_interrupted.store(false);
+        set_default_signal_handler();
+    }
+
+    std::thread::native_handle_type get_signal_receiver_thread_id()
+    {
+        return sig_recv_thread;
+    }
+
+    int default_signal_handler(sigset_t sigset)
+    {
+        int signum = 0;
+        // wait until a signal is delivered:
+        sigwait(&sigset, &signum);
+        sig_interrupted.store(true);
+        // notify all waiting workers to check their predicate:
+        sig_interrupted_cv.notify_all();
+        return signum;
     }
 
     void set_default_signal_handler()
     {
+        // block signals in this thread and subsequently
+        // spawned threads
+        sigset_t sigset;
+        sigemptyset(&sigset);
+        sigaddset(&sigset, SIGINT);
+        // sigaddset(&sigset, SIGTERM);
+        pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
+        std::thread receiver(default_signal_handler, sigset);
+        sig_recv_thread = receiver.native_handle();
+        receiver.detach();
+    }
+#else
+    void set_default_signal_handler()
+    {
         std::signal(SIGINT, [](int signum) { set_sig_interrupted(); });
     }
+#endif
 
     bool is_sig_interrupted() noexcept
     {
@@ -84,18 +128,6 @@ namespace mamba
         clean_var.wait(lk, []() { return thread_count == 0; });
     }
 
-    void notify_cleanup()
-    {
-        is_clean.store(true);
-        main_var.notify_one();
-    }
-
-    void wait_for_cleanup()
-    {
-        std::unique_lock<std::mutex> lk(main_mutex);
-        main_var.wait(lk, []() { return is_clean.load(); });
-    }
-
     namespace
     {
         std::thread::native_handle_type cleanup_id = 0;
@@ -103,12 +135,6 @@ namespace mamba
 
     void register_cleaning_thread_id(std::thread::native_handle_type id)
     {
-#ifndef _WIN32
-        if (cleanup_id)
-        {
-            pthread_cancel(cleanup_id);
-        }
-#endif
         cleanup_id = id;
     }
 
@@ -145,9 +171,9 @@ namespace mamba
      * interruption_guard *
      **********************/
 
-#ifdef _WIN32
-
     std::function<void()> interruption_guard::m_cleanup_function;
+
+#ifdef _WIN32
 
     interruption_guard::~interruption_guard()
     {
@@ -155,37 +181,13 @@ namespace mamba
     }
 
 #else
-
-    namespace
-    {
-        sigset_t sigset;
-    }
-
     interruption_guard::~interruption_guard()
     {
         if (is_sig_interrupted())
         {
-            wait_for_cleanup();
-            std::cout << "Cleanup done." << std::endl;
+            wait_for_all_threads();
+            m_cleanup_function();
         }
-        m_interrupt.store(false);
-        pthread_sigmask(SIG_UNBLOCK, &sigset, nullptr);
-        set_default_signal_handler();
-        pthread_cancel(get_cleaning_thread_id());
-        register_cleaning_thread_id(0);
-    }
-
-    void interruption_guard::block_signals() const
-    {
-        sigemptyset(&sigset);
-        sigaddset(&sigset, SIGINT);
-        pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
-    }
-
-    void interruption_guard::wait_for_signal() const
-    {
-        int signum = 0;
-        sigwait(&sigset, &signum);
     }
 
 #endif

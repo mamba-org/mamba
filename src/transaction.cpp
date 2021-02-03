@@ -76,9 +76,8 @@ namespace mamba
         urls_txt << m_url << std::endl;
     }
 
-    bool PackageDownloadExtractTarget::validate_extract()
+    void PackageDownloadExtractTarget::validate()
     {
-        // Validation
         m_validation_result = VALIDATION_RESULT::VALID;
         if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
         {
@@ -106,25 +105,23 @@ namespace mamba
                           << "\nExpected: " << m_md5 << "\n";
             }
         }
-        if (m_validation_result != VALIDATION_RESULT::VALID)
-        {
-            // abort here, but set finished to true
-            m_finished = true;
-            return true;
-        }
+    }
 
+    bool PackageDownloadExtractTarget::extract()
+    {
+        // Extracting is __not__ yet thread safe it seems...
         interruption_point();
         LOG_INFO << "Waiting for decompression " << m_tarball_path;
         m_progress_proxy.set_postfix("Waiting...");
-        // Extract path is __not__ yet thread safe it seems...
         {
             std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
             interruption_point();
             m_progress_proxy.set_postfix("Decompressing...");
             LOG_INFO << "Decompressing " << m_tarball_path;
+            fs::path extract_path;
             try
             {
-                auto extract_path = extract(m_tarball_path);
+                extract_path = mamba::extract(m_tarball_path);
                 LOG_INFO << "Extracted to " << extract_path;
                 write_repodata_record(extract_path);
                 add_url();
@@ -136,11 +133,40 @@ namespace mamba
                 m_validation_result = VALIDATION_RESULT::EXTRACT_ERROR;
                 m_finished = true;
                 m_progress_proxy.mark_as_completed("Extraction error");
-                return m_finished;
+                return false;
             }
         }
 
-        interruption_point();
+        m_finished = true;
+        return m_finished;
+    }
+
+    bool PackageDownloadExtractTarget::extract_from_cache()
+    {
+        bool result = this->extract();
+        if (result)
+        {
+            std::stringstream final_msg;
+            final_msg << "Extracted " << std::left << std::setw(30) << m_name;
+            m_progress_proxy.mark_as_completed(final_msg.str());
+            return result;
+        }
+        // currently we always return true
+        return true;
+    }
+
+    bool PackageDownloadExtractTarget::validate_extract()
+    {
+        validate();
+        // Validation
+        if (m_validation_result != VALIDATION_RESULT::VALID)
+        {
+            // abort here, but set finished to true
+            m_finished = true;
+            return true;
+        }
+
+        bool result = this->extract();
         std::stringstream final_msg;
         final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right
                   << std::setw(8);
@@ -151,9 +177,7 @@ namespace mamba
         to_human_readable_filesize(final_msg, m_target->avg_speed);
         final_msg << "/s";
         m_progress_proxy.mark_as_completed(final_msg.str());
-
-        m_finished = true;
-        return m_finished;
+        return result;
     }
 
     bool PackageDownloadExtractTarget::finalize_callback()
@@ -171,7 +195,7 @@ namespace mamba
 
     bool PackageDownloadExtractTarget::finished()
     {
-        return m_target == nullptr ? true : m_finished;
+        return m_finished;
     }
 
     auto PackageDownloadExtractTarget::validation_result() const
@@ -189,6 +213,11 @@ namespace mamba
         }
     }
 
+    const std::string& PackageDownloadExtractTarget::name() const
+    {
+        return m_name;
+    }
+
     // todo remove cache from this interface
     DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path,
                                                          MultiPackageCache& cache)
@@ -202,8 +231,11 @@ namespace mamba
 
         if (valid && !dest_dir_exists)
         {
-            // TODO add extract job here
-            // finalize_callback();
+            m_progress_proxy = Console::instance().add_progress_bar(m_name);
+            m_validation_result = VALIDATION_RESULT::VALID;
+            thread v(&PackageDownloadExtractTarget::extract_from_cache, this);
+            v.detach();
+            return nullptr;
         }
 
         // tarball can be removed, it's fine if only the correct dest dir exists
@@ -221,6 +253,7 @@ namespace mamba
         else
         {
             LOG_INFO << "Using cache " << m_name;
+            m_finished = true;
         }
         return m_target.get();
     }

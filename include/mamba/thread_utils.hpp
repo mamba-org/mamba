@@ -51,15 +51,11 @@ namespace mamba
     // it won't free ressources that could be required
     // by threads still active.
     void wait_for_all_threads();
-    void notify_cleanup();
-
-    // Should be called by the main thread to ensure
-    // it does not exit before the cleaning thread has
-    // terminated.
-    void wait_for_cleanup();
 
     void register_cleaning_thread_id(std::thread::native_handle_type);
     std::thread::native_handle_type get_cleaning_thread_id();
+    std::thread::native_handle_type get_signal_receiver_thread_id();
+    void reset_sig_interrupted();
 
     /**********
      * thread *
@@ -96,9 +92,9 @@ namespace mamba
     template <class Function, class... Args>
     inline thread::thread(Function&& func, Args&&... args)
     {
+        increase_thread_count();
         auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
         m_thread = std::thread([f]() {
-            increase_thread_count();
             try
             {
                 f();
@@ -128,13 +124,7 @@ namespace mamba
         interruption_guard& operator=(interruption_guard&&) = delete;
 
     private:
-#ifdef _WIN32
         static std::function<void()> m_cleanup_function;
-#else
-        void block_signals() const;
-        void wait_for_signal() const;
-        std::atomic<bool> m_interrupt;
-#endif
     };
 
 #ifdef _WIN32
@@ -154,26 +144,8 @@ namespace mamba
 
     template <class Function, class... Args>
     inline interruption_guard::interruption_guard(Function&& func, Args&&... args)
-        : m_interrupt(true)
     {
-        block_signals();
-        auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
-        std::thread victor_the_cleaner([f, this]() {
-            pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
-            pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
-
-            wait_for_signal();
-
-            if (m_interrupt.load())
-            {
-                set_sig_interrupted();
-                wait_for_all_threads();
-                f();
-                notify_cleanup();
-            }
-        });
-        register_cleaning_thread_id(victor_the_cleaner.native_handle());
-        victor_the_cleaner.detach();
+        m_cleanup_function = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
     }
 
 #endif

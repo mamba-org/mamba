@@ -36,6 +36,10 @@ namespace mamba
     {
     public:
         thread_interrupted() = default;
+        const char* what() const throw()
+        {
+            return "Thread interrupted";
+        }
     };
 
     /****************

@@ -122,6 +122,7 @@ namespace mamba
             try
             {
                 extract_path = mamba::extract(m_tarball_path);
+                interruption_point();
                 LOG_INFO << "Extracted to " << extract_path;
                 write_repodata_record(extract_path);
                 add_url();

@@ -1,3 +1,10 @@
+0.7.12 (Feb 3, 2021)
+====================
+
+- [micromamba] Improve CTRL+C signal handling behavior and simplify code
+- [micromamba] Revert extraction to temporary directory because of invalid cross-device links on Linux
+- [micromamba] Clean up partially extracted archives when CTRL+C interruption occured
+
 0.7.11 (Feb 2, 2021)
 ====================
 

@@ -289,24 +289,27 @@ namespace mamba
 
     TEST(link, replace_long_shebang)
     {
-        std::string res = replace_long_shebang(
-            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
-        EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
-        res = replace_long_shebang(
-            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/python -o test -x");
-        EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
-        res = replace_long_shebang(
-            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
-        EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
-        res = replace_long_shebang(
-            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
-        EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
-        res = replace_long_shebang(
-            "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
-        EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
-        res = replace_long_shebang(
-            "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo  ooooooo oooooo oooooo ooooooooooooooooo ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
-        EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+        if (!on_win)
+        {
+            std::string res = replace_long_shebang(
+                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
+            EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+            res = replace_long_shebang(
+                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/python -o test -x");
+            EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+            res = replace_long_shebang(
+                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
+            EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
+            res = replace_long_shebang(
+                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+            res = replace_long_shebang(
+                "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+            res = replace_long_shebang(
+                "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo  ooooooo oooooo oooooo ooooooooooooooooo ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
+            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+        }
     }
 
     TEST(utils, quote_for_shell)

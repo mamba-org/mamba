@@ -408,4 +408,48 @@ namespace mamba
 
         return name;
     }
+
+    std::string quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell)
+    {
+        if (shell.empty() && on_win)
+        {
+            // return list2cmdline(arguments);
+            return join(" ", arguments);
+        }
+        else
+        {
+            auto quote_arg = [](const std::string& s) {
+                char quote_char;
+                if (s.find('"') != s.npos)
+                {
+                    quote_char = '\'';
+                }
+                else if (s.find('\'') != s.npos)
+                {
+                    quote_char = '\"';
+                }
+                else if (s.find_first_of(" \n") == s.npos)
+                {
+                    return s;
+                }
+                else
+                {
+                    quote_char = '"';
+                }
+                return concat(quote_char, s, quote_char);
+            };
+
+            if (arguments.empty())
+                return "";
+
+            std::string argstring;
+            argstring += quote_arg(arguments[0]);
+            for (std::size_t i = 1; i < arguments.size(); ++i)
+            {
+                argstring += " ";
+                argstring += quote_arg(arguments[i]);
+            }
+            return argstring;
+        }
+    }
 }  // namespace mamba

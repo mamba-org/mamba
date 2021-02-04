@@ -255,6 +255,8 @@ namespace mamba
 
     std::string quote_for_shell(const std::vector<std::string>& arguments,
                                 const std::string& shell = "");
+
+    void remove_or_rename(const fs::path& path);
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

@@ -1,3 +1,8 @@
+0.7.13 (Feb 4, 2021)
+====================
+
+- [micromamba] Immediately exit after printing version (again)
+
 0.7.12 (Feb 3, 2021)
 ====================
 

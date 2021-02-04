@@ -1171,7 +1171,7 @@ main(int argc, char** argv)
 
     auto print_version = [](int count) {
         std::cout << version() << std::endl;
-        return 0;
+        exit(0);
     };
     app.add_flag_function("--version", print_version);
 

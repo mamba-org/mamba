@@ -286,4 +286,20 @@ namespace mamba
             EXPECT_THROW(path::is_writable("/tmp/this/path/doesnt/exist"), std::runtime_error);
         }
     }
+
+    TEST(link, replace_long_shebang)
+    {
+        std::string res = replace_long_shebang(
+            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
+        EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+        res = replace_long_shebang(
+            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/python -o test -x");
+        EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+        res = replace_long_shebang(
+            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
+        EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
+        res = replace_long_shebang(
+            "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+        EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+    }
 }  // namespace mamba

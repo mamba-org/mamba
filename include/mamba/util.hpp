@@ -252,6 +252,9 @@ namespace mamba
         else
             target = default_value;
     }
+
+    std::string quote_for_shell(const std::vector<std::string>& arguments,
+                                const std::string& shell = "");
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

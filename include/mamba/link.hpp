@@ -23,6 +23,8 @@
 
 namespace mamba
 {
+    std::string replace_long_shebang(const std::string& shebang);
+
     struct python_entry_point_parsed
     {
         std::string command, module, func;

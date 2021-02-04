@@ -92,6 +92,13 @@ namespace mamba
         return result;
     }
 
+    static std::regex shebang_regex(
+        "^(#!"                    // pretty much the whole match string
+        "(?:[ ]*)"                // allow spaces between #! and beginning of the executable path
+        "(/(?:\\ |[^ \n\r\t])*)"  // the executable is the next text block without an escaped space
+                                  // or non-space whitespace character  # NOQA
+        "(.*))$");                // end whole_shebang group
+
     std::string replace_long_shebang(const std::string& shebang)
     {
         if (shebang.size() <= 127)
@@ -101,14 +108,18 @@ namespace mamba
         else
         {
             assert(shebang.substr(0, 2) == "#!");
-            auto path_begin = shebang.find_first_not_of(WHITESPACES);
-            auto path_end = shebang.substr(path_begin).find_first_not_of(WHITESPACES);
-            fs::path shebang_path = shebang.substr(path_begin, path_end);
-            return concat("#!/usr/bin/env ",
-                          std::string(shebang_path.filename()),
-                          " ",
-                          shebang.substr(path_end),
-                          "\n");
+            std::smatch match;
+            if (std::regex_match(shebang, match, shebang_regex))
+            {
+                fs::path shebang_path = match[2].str();
+                LOG_INFO << "New shebang path " << shebang_path;
+                return concat("#!/usr/bin/env ", shebang_path.filename().string(), match[3].str());
+            }
+            else
+            {
+                LOG_WARNING << "Could not replace shebang (" << shebang << ")";
+                return shebang;
+            }
         }
     }
 
@@ -459,7 +470,7 @@ namespace mamba
         }
 #endif
         // write our command
-        out << "\n" << join(" ", arguments);
+        out << "\n" << quote_for_shell(arguments);
         return tf;
     }
 
@@ -769,6 +780,18 @@ namespace mamba
             {
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
                 replace_all(buffer, path_data.prefix_placeholder, new_prefix);
+
+                // we need to check the first line for a shebang and replace it if it's too long
+                if (!on_win && buffer[0] == '#' && buffer[1] == '!')
+                {
+                    std::size_t end_of_line = buffer.find_first_of('\n');
+                    std::string first_line = buffer.substr(0, end_of_line);
+                    if (first_line.size() > 127)
+                    {
+                        std::string new_shebang = replace_long_shebang(first_line);
+                        buffer.replace(0, end_of_line, new_shebang);
+                    }
+                }
             }
             else
             {

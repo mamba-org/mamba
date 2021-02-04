@@ -301,5 +301,26 @@ namespace mamba
         res = replace_long_shebang(
             "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
         EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+        res = replace_long_shebang(
+            "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+        EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+        res = replace_long_shebang(
+            "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo  ooooooo oooooo oooooo ooooooooooooooooo ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
+        EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+    }
+
+    TEST(utils, quote_for_shell)
+    {
+        if (!on_win)
+        {
+            std::vector<std::string> args1 = { "python", "-c", "print('is great')" };
+            EXPECT_EQ(quote_for_shell(args1), "python -c \"print('is great')\"");
+            std::vector<std::string> args2 = { "python", "-c", "print(\"is great\")" };
+            EXPECT_EQ(quote_for_shell(args2), "python -c 'print(\"is great\")'");
+            std::vector<std::string> args3 = { "python", "very nice", "print(\"is great\")" };
+            EXPECT_EQ(quote_for_shell(args3), "python \"very nice\" 'print(\"is great\")'");
+            std::vector<std::string> args4 = { "pyt \t tab", "very nice", "print(\"is great\")" };
+            EXPECT_EQ(quote_for_shell(args4), "\"pyt \t tab\" \"very nice\" 'print(\"is great\")'");
+        }
     }
 }  // namespace mamba

@@ -438,12 +438,18 @@ namespace mamba
                 }
                 return concat(quote_char, s, quote_char);
             };
-            std::stringstream argstream;
-            for (const auto& arg : arguments)
+
+            if (arguments.empty())
+                return "";
+
+            std::string argstring;
+            argstring += quote_arg(arguments[0]);
+            for (std::size_t i = 1; i < arguments.size(); ++i)
             {
-                argstream << quote_arg(arg) << " ";
+                argstring += " ";
+                argstring += quote_arg(arguments[i]);
             }
-            return argstream.str();
+            return argstring;
         }
     }
 }  // namespace mamba

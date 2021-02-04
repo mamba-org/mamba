@@ -96,7 +96,7 @@ namespace mamba
         "^(#!"                    // pretty much the whole match string
         "(?:[ ]*)"                // allow spaces between #! and beginning of the executable path
         "(/(?:\\ |[^ \n\r\t])*)"  // the executable is the next text block without an escaped space
-                                  // or non-space whitespace character  # NOQA
+                                  // or non-space whitespace character
         "(.*))$");                // end whole_shebang group
 
     std::string replace_long_shebang(const std::string& shebang)

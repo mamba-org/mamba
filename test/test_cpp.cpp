@@ -325,5 +325,22 @@ namespace mamba
             std::vector<std::string> args4 = { "pyt \t tab", "very nice", "print(\"is great\")" };
             EXPECT_EQ(quote_for_shell(args4), "\"pyt \t tab\" \"very nice\" 'print(\"is great\")'");
         }
+
+        std::vector<std::string> args1 = { "a b c", "d", "e" };
+        EXPECT_EQ(quote_for_shell(args1, "cmdexe"), "\"a b c\" d e");
+        std::vector<std::string> args2 = { "ab\"c", "\\", "d" };
+        EXPECT_EQ(quote_for_shell(args2, "cmdexe"), "ab\\\"c \\ d");
+        std::vector<std::string> args3 = { "ab\"c", " \\", "d" };
+        EXPECT_EQ(quote_for_shell(args3, "cmdexe"), "ab\\\"c \" \\\\\" d");
+        std::vector<std::string> args4 = { "a\\\\\\b", "de fg", "h" };
+        EXPECT_EQ(quote_for_shell(args4, "cmdexe"), "a\\\\\\b \"de fg\" h");
+        std::vector<std::string> args5 = { "a\\\"b", "c", "d" };
+        EXPECT_EQ(quote_for_shell(args5, "cmdexe"), "a\\\\\\\"b c d");
+        std::vector<std::string> args6 = { "a\\\\b c", "d", "e" };
+        EXPECT_EQ(quote_for_shell(args6, "cmdexe"), "\"a\\\\b c\" d e");
+        std::vector<std::string> args7 = { "a\\\\b\\ c", "d", "e" };
+        EXPECT_EQ(quote_for_shell(args7, "cmdexe"), "\"a\\\\b\\ c\" d e");
+        std::vector<std::string> args8 = { "ab", "" };
+        EXPECT_EQ(quote_for_shell(args8, "cmdexe"), "ab \"\"");
     }
 }  // namespace mamba

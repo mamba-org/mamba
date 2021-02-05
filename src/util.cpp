@@ -411,10 +411,81 @@ namespace mamba
 
     std::string quote_for_shell(const std::vector<std::string>& arguments, const std::string& shell)
     {
-        if (shell.empty() && on_win)
+        if ((shell.empty() && on_win) || shell == "cmdexe")
         {
-            // return list2cmdline(arguments);
-            return join(" ", arguments);
+            // ported from CPython's list2cmdline to C++
+            //
+            // Translate a sequence of arguments into a command line
+            // string, using the same rules as the MS C runtime:
+            // 1) Arguments are delimited by white space, which is either a
+            //    space or a tab.
+            // 2) A string surrounded by double quotation marks is
+            //    interpreted as a single argument, regardless of white space
+            //    contained within.  A quoted string can be embedded in an
+            //    argument.
+            // 3) A double quotation mark preceded by a backslash is
+            //    interpreted as a literal double quotation mark.
+            // 4) Backslashes are interpreted literally, unless they
+            //    immediately precede a double quotation mark.
+            // 5) If backslashes immediately precede a double quotation mark,
+            //    every pair of backslashes is interpreted as a literal
+            //    backslash.  If the number of backslashes is odd, the last
+            //    backslash escapes the next double quotation mark as
+            //    described in rule 3.
+            // See
+            // http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
+            // or search http://msdn.microsoft.com for
+            // "Parsing C++ Command-Line Arguments"
+            std::string result, bs_buf;
+            bool need_quote = false;
+            for (const auto& arg : arguments)
+            {
+                bs_buf.clear();
+                if (!result.empty())
+                {
+                    // seperate arguments
+                    result += " ";
+                }
+
+                need_quote = arg.find_first_of(" \t") != arg.npos || arg.empty();
+                if (need_quote)
+                {
+                    result += "\"";
+                }
+
+                for (char c : arg)
+                {
+                    if (c == '\\')
+                    {
+                        bs_buf += c;
+                    }
+                    else if (c == '"')
+                    {
+                        result += std::string(bs_buf.size() * 2, '\\');
+                        bs_buf.clear();
+                        result += "\\\"";
+                    }
+                    else
+                    {
+                        if (!bs_buf.empty())
+                        {
+                            result += bs_buf;
+                            bs_buf.clear();
+                        }
+                        result += c;
+                    }
+                }
+                if (!bs_buf.empty())
+                {
+                    result += bs_buf;
+                }
+                if (need_quote)
+                {
+                    result += bs_buf;
+                    result += "\"";
+                }
+            }
+            return result;
         }
         else
         {

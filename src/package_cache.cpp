@@ -116,7 +116,7 @@ namespace mamba
         }
 
         assert(!s.fn.empty());
-        // TODO move entire cache checking logic here (including md5 sum check)
+
         bool valid = false, extract_dir_valid = false;
         if (fs::exists(m_pkgs_dir / s.fn))
         {
@@ -139,12 +139,14 @@ namespace mamba
                     std::ifstream repodata_record_f(repodata_record_path);
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
-                    extract_dir_valid = true;
+                    extract_dir_valid = false;
                     if (s.size != 0)
                     {
-                        extract_dir_valid = extract_dir_valid
-                                            && repodata_record["size"].get<std::size_t>() == s.size;
-                        LOG_INFO << "Found cache, size differs.";
+                        extract_dir_valid = repodata_record["size"].get<std::size_t>() == s.size;
+                        if (!extract_dir_valid)
+                        {
+                            LOG_INFO << "Found cache, size differs.";
+                        }
                     }
                     if (!s.sha256.empty())
                     {

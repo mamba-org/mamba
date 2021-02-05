@@ -351,8 +351,7 @@ init_shell_parser(CLI::App* subcom)
             if (!fs::exists(shell_options.prefix))
             {
                 throw std::runtime_error(
-                    "Cannot activate, environment does not exist: " + shell_options.prefix + "\n"
-                );
+                    "Cannot activate, environment does not exist: " + shell_options.prefix + "\n");
             }
             std::cout << activator->activate(shell_options.prefix, shell_options.stack);
         }

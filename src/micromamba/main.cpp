@@ -321,7 +321,7 @@ init_shell_parser(CLI::App* subcom)
         else
         {
             throw std::runtime_error(
-                "Currently allowed values are: posix, bash, zsh, cmd.exe & powershell");
+                "Currently allowed values are: posix, bash, xonsh, zsh, cmd.exe & powershell");
         }
         if (shell_options.action == "init")
         {

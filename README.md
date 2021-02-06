@@ -173,7 +173,8 @@ cmake --build . -j
 ```
 
 This would generate the test program `./test/test_mamba` under the `build`
-directory which you can execute with `make test`.
+directory which you can execute with `make test`. To generate the executable
+`micromamba` also include the CMake option `-DBUILD_EXE=ON` in the above step.
 
 ### Support us
 

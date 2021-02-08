@@ -321,7 +321,7 @@ init_shell_parser(CLI::App* subcom)
         else
         {
             throw std::runtime_error(
-                "Currently allowed values are: posix, bash, zsh, cmd.exe & powershell");
+                "Currently allowed values are: posix, bash, xonsh, zsh, cmd.exe & powershell");
         }
         if (shell_options.action == "init")
         {
@@ -347,6 +347,11 @@ init_shell_parser(CLI::App* subcom)
             {
                 shell_options.prefix
                     = Context::instance().root_prefix / "envs" / shell_options.prefix;
+            }
+            if (!fs::exists(shell_options.prefix))
+            {
+                throw std::runtime_error(
+                    "Cannot activate, environment does not exist: " + shell_options.prefix + "\n");
             }
             std::cout << activator->activate(shell_options.prefix, shell_options.stack);
         }

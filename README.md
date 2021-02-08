@@ -159,15 +159,22 @@ mamba install -c conda-forge cli11 cmake
 ```
 
 For the C++ tests, you need Google Tests installed (e.g. `mamba install gtest`).
-To build the program using CMake, the following line needs to be used:
+To build the program using CMake, the following lines need to be used:
 
 ```bash
+mkdir -p build
+cd build
 cmake .. \
     -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
     -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
     -DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
     -DENABLE_TESTS=ON
+cmake --build . -j
 ```
+
+This would generate the test program `./test/test_mamba` under the `build`
+directory which you can execute with `make test`. To generate the executable
+`micromamba` also include the CMake option `-DBUILD_EXE=ON` in the above step.
 
 ### Support us
 

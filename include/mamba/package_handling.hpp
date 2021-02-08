@@ -34,6 +34,7 @@ namespace mamba
                        const std::vector<std::string>& parts = { "info", "pkg" });
     fs::path extract(const fs::path& file);
     bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level);
+    bool validate(const fs::path& pkg_folder);
 }  // namespace mamba
 
 #endif  // MAMBA_PACKAGE_HANDLING_HPP

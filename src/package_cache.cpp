@@ -168,9 +168,9 @@ namespace mamba
                     }
                     else
                     {
+                        // cannot validate if we don't know either md5 or sha256
                         LOG_INFO << "Found cache, no checksum.";
-                        extract_dir_valid
-                            = false;  // cannot validate if we don't know either md5 or sha256
+                        extract_dir_valid = false;
                     }
                     if (!repodata_record["url"].get<std::string>().empty())
                     {
@@ -200,6 +200,10 @@ namespace mamba
                 {
                     LOG_WARNING << "Found corrupted repodata_record file " << repodata_record_path;
                     extract_dir_valid = false;
+                }
+                if (extract_dir_valid)
+                {
+                    extract_dir_valid = validate(extract_dir);
                 }
             }
             if (!extract_dir_valid)

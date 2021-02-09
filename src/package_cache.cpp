@@ -155,6 +155,12 @@ namespace mamba
                             extract_dir_valid = false;
                             LOG_INFO << "Found cache, sha256 differs.";
                         }
+                        else if (s.size == 0)
+                        {
+                            // in case we have no s.size
+                            // set extract_dir_valid true here
+                            extract_dir_valid = true;
+                        }
                     }
                     else if (!s.md5.empty())
                     {
@@ -164,6 +170,12 @@ namespace mamba
                                      << repodata_record["md5"].get<std::string>() << " vs " << s.md5
                                      << ")";
                             extract_dir_valid = false;
+                        }
+                        else if (s.size == 0)
+                        {
+                            // for explicit env, we have no size, nor sha256 so we need to
+                            // set extract_dir_valid true here
+                            extract_dir_valid = true;
                         }
                     }
                     else

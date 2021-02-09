@@ -218,8 +218,14 @@ namespace mamba
         j["build_string"] = build_string;
         j["build_number"] = build_number;
         j["license"] = license;
-        j["md5"] = md5;
-        j["sha256"] = sha256;
+        if (!md5.empty())
+        {
+            j["md5"] = md5;
+        }
+        if (!sha256.empty())
+        {
+            j["sha256"] = sha256;
+        }
         j["depends"] = depends;
         j["constrains"] = constrains;
         return j;

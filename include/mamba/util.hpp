@@ -245,7 +245,7 @@ namespace mamba
     // get the value corresponding to a key in a JSON object and assign it to target
     // if the key is not found, assign default_value to target
     template <typename T>
-    void assign_or(nlohmann::json j, const char* key, T& target, T default_value)
+    void assign_or(const nlohmann::json& j, const char* key, T& target, T default_value)
     {
         if (j.contains(key))
             target = j[key];

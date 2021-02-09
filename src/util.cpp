@@ -523,4 +523,32 @@ namespace mamba
             return argstring;
         }
     }
+
+    void remove_or_rename(const fs::path& path)
+    {
+        if (fs::is_directory(path))
+        {
+            try
+            {
+                fs::remove_all(path);
+            }
+            catch (const fs::filesystem_error& e)
+            {
+                std::cout << "Caught a filesystem error: " << e.what();
+                throw std::runtime_error("Could not remove directory " + path.string());
+            }
+        }
+        else
+        {
+            try
+            {
+                fs::remove(path);
+            }
+            catch (const fs::filesystem_error& e)
+            {
+                std::cout << "Caught a filesystem error: " << e.what();
+                throw std::runtime_error("Could not remove file " + path.string());
+            }
+        }
+    }
 }  // namespace mamba

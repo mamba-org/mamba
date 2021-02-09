@@ -116,8 +116,8 @@ namespace mamba
         }
 
         assert(!s.fn.empty());
-        // TODO move entire cache checking logic here (including md5 sum check)
-        bool valid = false;
+
+        bool valid = false, extract_dir_valid = false;
         if (fs::exists(m_pkgs_dir / s.fn))
         {
             fs::path tarball_path = m_pkgs_dir / s.fn;
@@ -127,10 +127,11 @@ namespace mamba
             LOG_INFO << tarball_path << " is " << valid;
             m_valid_cache[pkg] = valid;
         }
-        else if (fs::exists(m_pkgs_dir / strip_package_extension(s.fn)))
+
+        fs::path extract_dir = m_pkgs_dir / strip_package_extension(s.fn);
+        if (fs::exists(extract_dir))
         {
-            auto repodata_record_path
-                = m_pkgs_dir / strip_package_extension(s.fn) / "info" / "repodata_record.json";
+            auto repodata_record_path = extract_dir / "info" / "repodata_record.json";
             if (fs::exists(repodata_record_path))
             {
                 try
@@ -138,18 +139,27 @@ namespace mamba
                     std::ifstream repodata_record_f(repodata_record_path);
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
-                    valid = true;
+                    extract_dir_valid = false;
                     if (s.size != 0)
                     {
-                        valid = valid && repodata_record["size"].get<std::size_t>() == s.size;
-                        LOG_INFO << "Found cache, size differs.";
+                        extract_dir_valid = repodata_record["size"].get<std::size_t>() == s.size;
+                        if (!extract_dir_valid)
+                        {
+                            LOG_INFO << "Found cache, size differs.";
+                        }
                     }
                     if (!s.sha256.empty())
                     {
                         if (s.sha256 != repodata_record["sha256"].get<std::string>())
                         {
-                            valid = false;
+                            extract_dir_valid = false;
                             LOG_INFO << "Found cache, sha256 differs.";
+                        }
+                        else if (s.size == 0)
+                        {
+                            // in case we have no s.size
+                            // set extract_dir_valid true here
+                            extract_dir_valid = true;
                         }
                     }
                     else if (!s.md5.empty())
@@ -159,32 +169,39 @@ namespace mamba
                             LOG_INFO << "Found cache, md5 differs. ("
                                      << repodata_record["md5"].get<std::string>() << " vs " << s.md5
                                      << ")";
-                            valid = false;
+                            extract_dir_valid = false;
+                        }
+                        else if (s.size == 0)
+                        {
+                            // for explicit env, we have no size, nor sha256 so we need to
+                            // set extract_dir_valid true here
+                            extract_dir_valid = true;
                         }
                     }
                     else
                     {
+                        // cannot validate if we don't know either md5 or sha256
                         LOG_INFO << "Found cache, no checksum.";
-                        valid = false;  // cannot validate if we don't know either md5 or sha256
+                        extract_dir_valid = false;
                     }
                     if (!repodata_record["url"].get<std::string>().empty())
                     {
                         if (repodata_record["url"].get<std::string>() != s.url)
                         {
                             LOG_INFO << "Found cache, url differs.";
-                            valid = false;
+                            extract_dir_valid = false;
                         }
                     }
                     else
                     {
                         if (repodata_record["channel"].get<std::string>() != s.channel)
                         {
-                            valid = false;
+                            extract_dir_valid = false;
                             LOG_INFO << "Found cache, channel differs.";
                         }
                     }
 
-                    if (!valid)
+                    if (!extract_dir_valid)
                     {
                         LOG_INFO << "Found directory with same name, but different size, "
                                     "channel, url or checksum "
@@ -194,8 +211,20 @@ namespace mamba
                 catch (...)
                 {
                     LOG_WARNING << "Found corrupted repodata_record file " << repodata_record_path;
-                    valid = false;
+                    extract_dir_valid = false;
                 }
+                if (extract_dir_valid)
+                {
+                    extract_dir_valid = validate(extract_dir);
+                }
+            }
+            if (!extract_dir_valid)
+            {
+                remove_or_rename(extract_dir);
+            }
+            else
+            {
+                valid = true;
             }
         }
         m_valid_cache[pkg] = valid;

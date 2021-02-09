@@ -12,9 +12,11 @@
 
 #include "nlohmann/json.hpp"
 #include "mamba/package_handling.hpp"
+#include "mamba/package_paths.hpp"
 #include "mamba/output.hpp"
 #include "mamba/thread_utils.hpp"
 #include "mamba/util.hpp"
+#include "mamba/validate.hpp"
 
 namespace mamba
 {
@@ -415,6 +417,49 @@ namespace mamba
         }
 
         create_package(extract_dir, target, compression_level);
+        return true;
+    }
+
+    bool validate(const fs::path& pkg_folder)
+    {
+        bool validate_full = true;
+        try
+        {
+            auto paths_data = read_paths(pkg_folder);
+            for (auto& p : paths_data)
+            {
+                fs::path full_path = pkg_folder / p.path;
+                if (!fs::exists(full_path))
+                {
+                    LOG_WARNING << "Missing file from package cache: " << full_path;
+                    return false;
+                }
+                // old packages don't have paths.json with validation information
+                if (p.size_in_bytes != 0)
+                {
+                    if (p.path_type != PathType::SOFTLINK
+                        && !validate::file_size(full_path, p.size_in_bytes))
+                    {
+                        LOG_WARNING << "Size incorrect, file modified in package cache "
+                                    << full_path;
+                        return false;
+                    }
+                    if (validate_full && p.path_type != PathType::SOFTLINK
+                        && !validate::sha256(full_path, p.sha256))
+                    {
+                        LOG_WARNING << "SHA256 checksum incorrect, file modified in package cache "
+                                    << full_path;
+                        return false;
+                    }
+                }
+                LOG_INFO << "Validated " << p.path;
+            }
+        }
+        catch (...)
+        {
+            LOG_WARNING << "Could not read paths.json from " << pkg_folder << std::endl;
+            return false;
+        }
         return true;
     }
 }  // namespace mamba

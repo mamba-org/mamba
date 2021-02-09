@@ -204,7 +204,7 @@ namespace mamba
             return false;
         }
 
-        LOG_WARNING << "HTTP response code: " << m_target->http_status;
+        LOG_INFO << "HTTP response code: " << m_target->http_status;
         // Note HTTP status == 0 for files
         if (m_target->http_status == 0 || m_target->http_status == 200
             || m_target->http_status == 304)
@@ -213,6 +213,7 @@ namespace mamba
         }
         else
         {
+            LOG_WARNING << "HTTP response code indicates error, retrying.";
             throw std::runtime_error("Unhandled HTTP code: "
                                      + std::to_string(m_target->http_status));
         }

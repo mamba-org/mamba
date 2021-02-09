@@ -621,7 +621,7 @@ namespace mamba
         std::string cargs = join(" ", command_args);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
-        LOG_WARNING << "Calling " << cargs;
+        LOG_INFO << "Calling " << cargs;
 
         reproc::options options;
         options.redirect.parent = true;

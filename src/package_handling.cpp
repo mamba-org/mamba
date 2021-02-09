@@ -437,17 +437,19 @@ namespace mamba
                 // old packages don't have paths.json with validation information
                 if (p.size_in_bytes != 0 && Context::instance().extra_safety_checks)
                 {
+                    bool is_invalid = false;
                     if (p.path_type != PathType::SOFTLINK
                         && !validate::file_size(full_path, p.size_in_bytes))
                     {
                         LOG_WARNING << "Size incorrect, file modified in package cache "
                                     << full_path;
+                        is_invalid = true;
                         if (Context::instance().extra_safety_checks != VerificationLevel::WARN)
                         {
                             return false;
                         }
                     }
-                    if (full_validation && p.path_type != PathType::SOFTLINK
+                    if (!is_invalid && full_validation && p.path_type != PathType::SOFTLINK
                         && !validate::sha256(full_path, p.sha256))
                     {
                         LOG_WARNING << "SHA256 checksum incorrect, file modified in package cache "

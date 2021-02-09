@@ -305,7 +305,7 @@ namespace mamba
 
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;
-        LOG_WARNING << "Problem count: " << solver_problem_count(m_solver) << std::endl;
+        LOG_INFO << "Problem count: " << solver_problem_count(m_solver) << std::endl;
         success = solver_problem_count(m_solver) == 0;
         JsonLogger::instance().json_write({ { "success", success } });
         return success;

@@ -88,7 +88,7 @@ namespace mamba
 
     void Context::set_verbosity(int lvl)
     {
-        MessageLogger::global_log_severity() = mamba::LogSeverity::error;
+        MessageLogger::global_log_severity() = mamba::LogSeverity::warning;
         if (lvl == 1)
         {
             MessageLogger::global_log_severity() = mamba::LogSeverity::info;

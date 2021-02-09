@@ -675,16 +675,16 @@ namespace mamba
         switch (m_severity)
         {
             case LogSeverity::fatal:
-                Console::stream() << "\033[1;35m"
-                                  << "FATAL   " << m_stream.str() << "\033[0m";
+                Console::stream() << termcolor::on_red << "FATAL   " << termcolor::reset
+                                  << m_stream.str();
                 break;
             case LogSeverity::error:
-                Console::stream() << "\033[1;31m"
-                                  << "ERROR   " << m_stream.str() << "\033[0m";
+                Console::stream() << termcolor::red << "ERROR   " << termcolor::reset
+                                  << m_stream.str();
                 break;
             case LogSeverity::warning:
-                Console::stream() << "\033[1;33m"
-                                  << "WARNING " << m_stream.str() << "\033[0m";
+                Console::stream() << termcolor::yellow << "WARNING " << termcolor::reset
+                                  << m_stream.str();
                 break;
             case LogSeverity::info:
                 Console::stream() << "INFO    " << m_stream.str();

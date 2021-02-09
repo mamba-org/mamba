@@ -60,6 +60,7 @@ namespace mamba
         PackageCacheData& first_writable();
 
         bool query(const PackageInfo& s);
+        std::vector<PackageCacheData*> writable_caches();
 
     private:
         std::vector<PackageCacheData> m_caches;

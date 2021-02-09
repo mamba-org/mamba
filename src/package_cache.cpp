@@ -234,6 +234,20 @@ namespace mamba
         throw std::runtime_error("Did not find a writable package cache directory!");
     }
 
+    std::vector<PackageCacheData*> MultiPackageCache::writable_caches()
+    {
+        std::vector<PackageCacheData*> res;
+        for (auto& pc : m_caches)
+        {
+            auto status = pc.is_writable();
+            if (status == Writable::WRITABLE)
+            {
+                res.push_back(&pc);
+            }
+        }
+        return res;
+    }
+
     bool MultiPackageCache::query(const PackageInfo& s)
     {
         for (auto& c : m_caches)

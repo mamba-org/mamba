@@ -57,6 +57,15 @@ static struct
 
 static struct
 {
+    bool all;
+    bool index_cache;
+    bool packages;
+    bool tarballs;
+    // bool force_pkgs_dirs;
+} clean_options;
+
+static struct
+{
     std::vector<std::string> specs;
     std::string prefix;
     std::string name;
@@ -1094,6 +1103,209 @@ init_create_parser(CLI::App* subcom)
 }
 
 void
+init_clean_parser(CLI::App* subcom)
+{
+    init_global_parser(subcom);
+    subcom->add_flag("-a,--all",
+                     clean_options.all,
+                     "Remove index cache, lock files, unused cache packages, and tarballs.");
+    subcom->add_flag("-i,--index-cache", clean_options.index_cache, "Remove index cache.");
+    subcom->add_flag("-p,--packages",
+                     clean_options.packages,
+                     "Remove unused packages from writable package caches.\n"
+                     "WARNING: This does not check for packages installed using\n"
+                     "symlinks back to the package cache.");
+    subcom->add_flag("-t,--tarballs", clean_options.tarballs, "Remove cached package tarballs.");
+
+
+    subcom->callback([&]() {
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+        Console::print("Cleaning up ... ");
+
+        std::vector<fs::path> envs;
+
+        MultiPackageCache caches(ctx.pkgs_dirs);
+        if (!ctx.dry_run && (clean_options.index_cache || clean_options.all))
+        {
+            for (auto* pkg_cache : caches.writable_caches())
+                if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
+                {
+                    try
+                    {
+                        fs::remove_all(pkg_cache->get_pkgs_dir() / "cache");
+                    }
+                    catch (...)
+                    {
+                        LOG_WARNING << "Could not clean " << pkg_cache->get_pkgs_dir() / "cache";
+                    }
+                }
+        }
+
+        if (fs::exists(ctx.root_prefix / "conda-meta"))
+        {
+            envs.push_back(ctx.root_prefix);
+        }
+
+        for (auto& p : fs::directory_iterator(ctx.root_prefix / "envs"))
+        {
+            if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
+            {
+                LOG_INFO << "Found environment: " << p.path();
+                envs.push_back(p);
+            }
+        }
+
+        // globally, collect installed packages
+        std::set<std::string> installed_pkgs;
+        for (auto& env : envs)
+        {
+            for (auto& pkg : fs::directory_iterator(env / "conda-meta"))
+            {
+                if (ends_with(pkg.path().string(), ".json"))
+                {
+                    std::string pkg_name = pkg.path().filename().string();
+                    installed_pkgs.insert(pkg_name.substr(0, pkg_name.size() - 5));
+                }
+            }
+        }
+
+        auto get_file_size = [](const auto& s) -> std::string {
+            std::stringstream ss;
+            to_human_readable_filesize(ss, s);
+            return ss.str();
+        };
+
+        auto collect_tarballs = [&]() {
+            std::vector<fs::path> res;
+            std::size_t total_size = 0;
+            std::vector<printers::FormattedString> header = { "Package file", "Size" };
+            mamba::printers::Table t(header);
+            t.set_alignment({ printers::alignment::left, printers::alignment::right });
+            t.set_padding({ 2, 4 });
+
+            for (auto* pkg_cache : caches.writable_caches())
+            {
+                std::string header_line
+                    = concat("Package cache folder: ", pkg_cache->get_pkgs_dir().string());
+                std::vector<std::vector<printers::FormattedString>> rows;
+                for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                {
+                    std::string fname = p.path().filename();
+                    if (!p.is_directory()
+                        && (ends_with(p.path().string(), ".tar.bz2")
+                            || ends_with(p.path().string(), ".conda")))
+                    {
+                        res.push_back(p.path());
+                        rows.push_back(
+                            { p.path().filename().string(), get_file_size(p.file_size()) });
+                        total_size += p.file_size();
+                    }
+                }
+                std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
+                    return a[0].s < b[0].s;
+                });
+                t.add_rows(pkg_cache->get_pkgs_dir().string(), rows);
+            }
+            if (total_size)
+            {
+                t.add_rows({}, { { "Total size: ", get_file_size(total_size) } });
+                t.print(std::cout);
+            }
+            return res;
+        };
+
+        if (clean_options.all || clean_options.tarballs)
+        {
+            auto to_be_removed = collect_tarballs();
+            if (to_be_removed.size() == 0)
+            {
+                Console::print("No cached tarballs found");
+            }
+            else if (!ctx.dry_run && Console::prompt("\n\nRemove tarballs", 'y'))
+            {
+                for (auto& tbr : to_be_removed)
+                {
+                    fs::remove(tbr);
+                }
+                Console::print("\n\n");
+            }
+        }
+
+        auto get_folder_size = [](auto& p) {
+            std::size_t size = 0;
+            for (auto& fp : fs::recursive_directory_iterator(p))
+            {
+                if (!fp.is_symlink())
+                {
+                    size += fp.file_size();
+                }
+            }
+            return size;
+        };
+
+        auto collect_package_folders = [&]() {
+            std::vector<fs::path> res;
+            std::size_t total_size = 0;
+            std::vector<printers::FormattedString> header = { "Package folder", "Size" };
+            mamba::printers::Table t(header);
+            t.set_alignment({ printers::alignment::left, printers::alignment::right });
+            t.set_padding({ 2, 4 });
+
+            for (auto* pkg_cache : caches.writable_caches())
+            {
+                std::string header_line
+                    = concat("Package cache folder: ", pkg_cache->get_pkgs_dir().string());
+                std::vector<std::vector<printers::FormattedString>> rows;
+                for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                {
+                    std::string fname = p.path().filename();
+                    if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
+                    {
+                        if (installed_pkgs.find(p.path().filename()) != installed_pkgs.end())
+                        {
+                            // do not remove installed packages
+                            continue;
+                        }
+                        res.push_back(p.path());
+                        std::size_t folder_size = get_folder_size(p);
+                        rows.push_back(
+                            { p.path().filename().string(), get_file_size(folder_size) });
+                        total_size += folder_size;
+                    }
+                }
+                std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
+                    return a[0].s < b[0].s;
+                });
+                t.add_rows(pkg_cache->get_pkgs_dir().string(), rows);
+            }
+            if (total_size)
+            {
+                t.add_rows({}, { { "Total size: ", get_file_size(total_size) } });
+                t.print(std::cout);
+            }
+            return res;
+        };
+
+        if (clean_options.all || clean_options.packages)
+        {
+            auto to_be_removed = collect_package_folders();
+            if (to_be_removed.size() == 0)
+            {
+                Console::print("No cached tarballs found");
+            }
+            else if (!ctx.dry_run && Console::prompt("\n\nRemove unused packages", 'y'))
+            {
+                for (auto& tbr : to_be_removed)
+                {
+                    fs::remove_all(tbr);
+                }
+            }
+        }
+    });
+}
+
+void
 read_binary_from_stdin_and_write_to_file(fs::path& filename)
 {
     std::ofstream out_stream(filename.string().c_str(), std::ofstream::binary);
@@ -1197,7 +1409,9 @@ main(int argc, char** argv)
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     init_list_parser(list_subcom);
     list_subcom->callback([]() { list_packages(); });
-    // just for the help text
+
+    CLI::App* clean_subcom = app.add_subcommand("clean", "Clean package cache");
+    init_clean_parser(clean_subcom);
 
     std::stringstream footer;
 

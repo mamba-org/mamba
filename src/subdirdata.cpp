@@ -159,7 +159,7 @@ namespace mamba
         else
         {
             LOG_INFO << "No cache found " << m_url;
-            if (!Context::instance().offline)
+            if (!Context::instance().offline || forbid_cache())
             {
                 create_target(m_mod_etag);
             }

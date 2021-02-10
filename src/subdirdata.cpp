@@ -105,7 +105,7 @@ namespace mamba
     {
         auto now = fs::file_time_type::clock::now();
         auto cache_age = check_cache(m_json_fn, now);
-        if (cache_age != fs::file_time_type::duration::max())
+        if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
         {
             LOG_INFO << "Found valid cache file.";
             m_mod_etag = read_mod_and_etag();
@@ -125,7 +125,7 @@ namespace mamba
 
                 auto cache_age_seconds
                     = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-                if ((max_age > cache_age_seconds || Context::instance().offline) && !forbid_cache())
+                if ((max_age > cache_age_seconds || Context::instance().offline))
                 {
                     // cache valid!
                     LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age_seconds
@@ -152,7 +152,7 @@ namespace mamba
             }
             else
             {
-                LOG_WARNING << "Could not determine mod / etag headers.";
+                LOG_INFO << "Could not determine cache file mod / etag headers";
             }
             create_target(m_mod_etag);
         }

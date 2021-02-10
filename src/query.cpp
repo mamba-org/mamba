@@ -624,7 +624,7 @@ namespace mamba
             j["result"]["pkgs"].push_back(m_pkg_view_list[i]->json());
         }
 
-        if (m_type != QueryType::Search)
+        if (m_type != QueryType::Search && !m_pkg_view_list.empty())
         {
             bool has_root = !m_dep_graph.get_edge_list(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();

@@ -675,25 +675,25 @@ namespace mamba
         switch (m_severity)
         {
             case LogSeverity::fatal:
-                std::cout << termcolor::on_red << "FATAL   " << termcolor::reset << m_stream.str()
+                std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset << m_stream.str()
                           << std::endl;
                 break;
             case LogSeverity::error:
-                std::cout << termcolor::red << "ERROR   " << termcolor::reset << m_stream.str()
+                std::cerr << termcolor::red << "ERROR   " << termcolor::reset << m_stream.str()
                           << std::endl;
                 break;
             case LogSeverity::warning:
-                std::cout << termcolor::yellow << "WARNING " << termcolor::reset << m_stream.str()
+                std::cerr << termcolor::yellow << "WARNING " << termcolor::reset << m_stream.str()
                           << std::endl;
                 break;
             case LogSeverity::info:
-                std::cout << "INFO    " << m_stream.str() << std::endl;
+                std::cerr << "INFO    " << m_stream.str() << std::endl;
                 break;
             case LogSeverity::debug:
-                std::cout << "DEBUG   " << m_stream.str() << std::endl;
+                std::cerr << "DEBUG   " << m_stream.str() << std::endl;
                 break;
             default:
-                std::cout << "UNKOWN  " << m_stream.str() << std::endl;
+                std::cerr << "UNKOWN  " << m_stream.str() << std::endl;
                 break;
         }
 

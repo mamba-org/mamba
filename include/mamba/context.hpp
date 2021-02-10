@@ -17,6 +17,13 @@
 
 namespace mamba
 {
+    enum VerificationLevel
+    {
+        NONE,
+        WARN,
+        FAIL
+    };
+
     std::string env_name(const fs::path& prefix);
     fs::path locate_prefix_by_name(const std::string& name);
 
@@ -54,6 +61,8 @@ namespace mamba
         bool no_progress_bars = false;
         bool dry_run = false;
         bool always_yes = false;
+
+        VerificationLevel extra_safety_checks = VerificationLevel::NONE;
 
         // debug helpers
         bool keep_temp_files = std::getenv("MAMBA_KEEP_TEMP") ? 1 : 0;

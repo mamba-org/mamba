@@ -73,6 +73,7 @@ static struct
     std::vector<std::string> channels;
     bool override_channels = false;  // currently a no-op!
     bool strict_channel_priority = false;
+    std::string extra_safety_checks;
 } create_options;
 
 static struct
@@ -234,6 +235,27 @@ set_global_options(Context& ctx)
     ctx.offline = global_options.offline;
     ctx.dry_run = global_options.dry_run;
     check_root_prefix();
+
+    if (!create_options.extra_safety_checks.empty())
+    {
+        if (to_lower(create_options.extra_safety_checks) == "none")
+        {
+            ctx.extra_safety_checks = VerificationLevel::NONE;
+        }
+        else if (to_lower(create_options.extra_safety_checks) == "warn")
+        {
+            ctx.extra_safety_checks = VerificationLevel::WARN;
+        }
+        else if (to_lower(create_options.extra_safety_checks) == "fail")
+        {
+            ctx.extra_safety_checks = VerificationLevel::FAIL;
+        }
+        else
+        {
+            LOG_ERROR << "Could not parse option for --extra-safety-checks\n"
+                      << "Select none (default), warn or fail";
+        }
+    }
 }
 
 void
@@ -777,6 +799,8 @@ init_install_parser(CLI::App* subcom)
                 "Prefix and name arguments are empty and a conda environment is not activated.");
         }
 
+        ctx.target_prefix = fs::absolute(ctx.target_prefix);
+
         parse_file_options();
         set_channels(ctx);
 
@@ -915,7 +939,7 @@ set_target_prefix()
                 "Cannot create environment with name 'base'.");  // TODO! Use install -n.
         }
 
-        ctx.target_prefix = Context::instance().root_prefix / "envs" / create_options.name;
+        ctx.target_prefix = ctx.root_prefix / "envs" / create_options.name;
     }
     else
     {
@@ -925,6 +949,8 @@ set_target_prefix()
         }
         ctx.target_prefix = create_options.prefix;
     }
+
+    ctx.target_prefix = fs::absolute(ctx.target_prefix);
 
     if (fs::exists(ctx.target_prefix))
     {
@@ -1079,6 +1105,9 @@ init_create_parser(CLI::App* subcom)
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
+
+    subcom->add_option(
+        "--extra-safety-checks", create_options.extra_safety_checks, "Perform extra safety checks");
 
     init_network_parser(subcom);
     init_channel_parser(subcom);

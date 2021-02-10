@@ -439,7 +439,7 @@ namespace mamba
 
             if (msg->msg == CURLMSG_DONE)
             {
-                LOG_WARNING << "Transfer done ...";
+                LOG_INFO << "Transfer done ...";
                 // We are only interested in messages about finished transfers
                 curl_multi_remove_handle(m_handle, current_target->handle());
 
@@ -449,7 +449,7 @@ namespace mamba
                     // transfer did not work! can we retry?
                     if (current_target->can_retry())
                     {
-                        LOG_WARNING << "Adding target to retry!";
+                        LOG_INFO << "Adding target to retry!";
                         m_retry_targets.push_back(current_target);
                     }
                     else

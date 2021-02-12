@@ -1,0 +1,14 @@
+package:
+  name: test-package
+  version: 0.1
+
+build:
+  number: 0
+  script: echo Hello world
+  noarch: generic
+
+about:
+  home: https://github.com/mamba-org/mamba
+  license: BSD
+  license_family: BSD
+  summary: I am just a test package!

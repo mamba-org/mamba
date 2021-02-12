@@ -313,7 +313,7 @@ namespace mamba
             std::stringstream err;
             err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
                 << effective_url << "]";
-            LOG_WARNING << err.str();
+            LOG_INFO << err.str();
 
             m_next_retry
                 = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);

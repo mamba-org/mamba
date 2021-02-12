@@ -1,3 +1,15 @@
+0.7.14 (Feb 12, 2021)
+=====================
+
+- [micromamba] better validation of extracted directories
+- [mamba] add additional tests for authentication and simple repodata server
+- make LOG_WARN the default log level, and move some logs to INFO
+- [micromamba] properly replace long shebangs when linking
+- [micromamba] add quote for shell for prefixes with spaces
+- [micromamba] add clean functionality
+- [micromamba] always make target prefix path absolute
+
+
 0.7.13 (Feb 4, 2021)
 ====================
 

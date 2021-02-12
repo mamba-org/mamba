@@ -1,5 +1,7 @@
 include/mamba/version.hpp
 
+.cache
+
 *build
 __cache__/
 .ipynb_checkpoints/

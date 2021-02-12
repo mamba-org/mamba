@@ -132,6 +132,13 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
+      - name: Run server auth tests
+        shell: bash -l {0}
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mamba-tests
+          cd test
+          sh testserver.sh
 
   build_win:
     runs-on: ${{ matrix.os }}

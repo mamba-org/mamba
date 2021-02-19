@@ -93,15 +93,18 @@ Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutF
 C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
 C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
 
-# set a custom root prefix
+MOVE -Force Library\bin\micromamba.exe micromamba.exe
+.\micromamba.exe --help
+
+# You can use e.g. $HOME\micromambaenv as your base prefix
 $Env:MAMBA_ROOT_PREFIX="C:\Your\Root\Prefix"
 
 # Invoke the hook
-.\Library\bin\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+.\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
 
 # ... or initialize the shell
-.\Library\bin\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
-
+.\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
+# and use micromamba directly
 micromamba create -f ./test/env_win.yaml -y
 micromamba activate ...
 ```

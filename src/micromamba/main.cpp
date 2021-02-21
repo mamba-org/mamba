@@ -217,8 +217,8 @@ set_network_options(Context& ctx)
         }
         if (ctx.ssl_verify.empty())
         {
-            LOG_WARNING << "No ca certificates found, disabling SSL verification";
-            ctx.ssl_verify = "<false>";
+            LOG_ERROR << "ssl_verify is enabled but no ca certificates found";
+            exit(1);
         }
     }
 

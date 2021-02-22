@@ -63,6 +63,8 @@ if (USE_VENDORED_CLI11)
     add_definitions(-DVENDORED_CLI11=1)
 endif()
 
+add_definitions(-DMAMBA_USE_YAML_CPP)
+
 # Dependencies
 # ============
 
@@ -77,6 +79,7 @@ message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/activation.cpp
     ${MAMBA_SOURCE_DIR}/channel.cpp
+    ${MAMBA_SOURCE_DIR}/config.cpp
     ${MAMBA_SOURCE_DIR}/context.cpp
     ${MAMBA_SOURCE_DIR}/environments_manager.cpp
     ${MAMBA_SOURCE_DIR}/fetch.cpp

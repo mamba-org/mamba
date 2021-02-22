@@ -185,6 +185,17 @@ namespace mamba
             return p;
         }
 
+        inline fs::path shrink_user(const fs::path& path)
+        {
+            auto p = path.string();
+            auto home = home_directory().string();
+            if (starts_with(p, home))
+            {
+                p.replace(0, home.size(), "~");
+            }
+            return p;
+        }
+
         inline bool is_admin()
         {
 #ifdef _WIN32

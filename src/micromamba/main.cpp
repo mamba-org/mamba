@@ -22,6 +22,7 @@
 #include "mamba/link.hpp"
 #include "mamba/channel.hpp"
 #include "mamba/context.hpp"
+#include "mamba/config.hpp"
 #include "mamba/output.hpp"
 #include "mamba/prefix_data.hpp"
 #include "mamba/repo.hpp"
@@ -71,7 +72,7 @@ static struct
     std::string name;
     std::vector<std::string> files;
     std::vector<std::string> channels;
-    bool override_channels = false;  // currently a no-op!
+    bool override_channels = false;
     bool strict_channel_priority = false;
     std::string extra_safety_checks;
 } create_options;
@@ -83,6 +84,11 @@ static struct
     bool retry_clean_cache = false;
     std::string cacert_path;
 } network_options;
+
+static struct
+{
+    bool show_sources = false;
+} config_options;
 
 static struct
 {
@@ -268,9 +274,7 @@ init_channel_parser(CLI::App* subcom)
         ->type_size(1)
         ->allow_extra_args(false);
 
-    subcom->add_flag("--override-channels",
-                     create_options.override_channels,
-                     "Override channels (ignored, because micromamba has no default channels)");
+    subcom->add_flag("--override-channels", create_options.override_channels, "Override channels");
     subcom->add_flag("--strict-channel-priority",
                      create_options.strict_channel_priority,
                      "Enable strict channel priority");
@@ -293,7 +297,26 @@ set_channels(Context& ctx)
             }
         }
     }
-    ctx.channels = create_options.channels;
+
+    if (create_options.override_channels && !ctx.override_channels_enabled)
+    {
+        LOG_WARNING << "override_channels is currently disabled by configuration (skipped)";
+    }
+    if (create_options.override_channels && ctx.override_channels_enabled)
+    {
+        ctx.channels = create_options.channels;
+    }
+    else
+    {
+        for (auto c : create_options.channels)
+        {
+            auto found_c = std::find(ctx.channels.begin(), ctx.channels.end(), c);
+            if (found_c == ctx.channels.end())
+            {
+                ctx.channels.push_back(c);
+            }
+        }
+    }
 }
 
 void
@@ -668,12 +691,6 @@ remove_specs(const std::vector<std::string>& specs)
 }
 
 void
-init_list_parser(CLI::App* subcom)
-{
-    init_global_parser(subcom);
-}
-
-void
 list_packages()
 {
     auto& ctx = Context::instance();
@@ -755,6 +772,14 @@ list_packages()
 }
 
 void
+init_list_parser(CLI::App* subcom)
+{
+    init_global_parser(subcom);
+
+    subcom->callback([]() { list_packages(); });
+}
+
+void
 parse_file_options();
 
 void
@@ -773,6 +798,7 @@ init_install_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
+        ctx.load_config();
         set_global_options(ctx);
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
@@ -818,6 +844,80 @@ init_remove_parser(CLI::App* subcom)
     init_global_parser(subcom);
 
     subcom->callback([&]() { remove_specs(create_options.specs); });
+}
+
+void
+init_config_parser(CLI::App* subcom)
+{
+    init_global_parser(subcom);
+
+    auto& ctx = Context::instance();
+    auto default_rc = (env::home_directory() / ".mambarc").string();
+    auto root_rc = (ctx.root_prefix / ".mambarc").string();
+    auto prefix_rc = (ctx.target_prefix / ".mambarc").string();
+
+    /*
+        auto config_loc_desc =
+        unindent(R"(
+            Config File Location Selection:
+              Without one of these flags, the user config file at ')") + default_rc + R"(' is used.
+            )";
+
+        subcom->add_flag("--system")
+              ->description("Write to the system .mambarc file at '" + root_rc + "'.")
+              ->group(config_loc_desc);
+
+        subcom->add_flag("--env")
+              ->description("Write to the active conda environment .mambarc file (" + prefix_rc +
+       "). " + "If no environment is active, write to the user config file (" + default_rc + ").")
+              ->group(config_loc_desc);
+
+        subcom->add_option("--file")
+              ->description("Write to the given file.")
+              ->group(config_loc_desc);
+    */
+
+    auto list_subcom = subcom->add_subcommand("list", "Show configuration values.");
+    list_subcom->add_flag("--show-source",
+                          config_options.show_sources,
+                          "Display all identified configuration sources.");
+
+    list_subcom->callback([&]() {
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+
+        Configurable config;
+        Console::print(config.dump(config_options.show_sources));
+
+        return 0;
+    });
+
+    auto sources_subcom = subcom->add_subcommand("sources", "Show configuration sources.");
+    sources_subcom->callback([&]() {
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+
+        Console::print("Configuration files (by precedence order):");
+
+        Configurable config;
+        auto srcs = config.get_sources();
+        auto valid_srcs = config.get_valid_sources();
+
+        for (auto s : srcs)
+        {
+            auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
+            if (found_s != valid_srcs.end())
+            {
+                Console::print(env::shrink_user(s).string());
+            }
+            else
+            {
+                Console::print(env::shrink_user(s).string() + " (invalid)");
+            }
+        }
+
+        return 0;
+    });
 }
 
 bool
@@ -1118,6 +1218,7 @@ init_create_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
+        ctx.load_config();
         set_global_options(ctx);
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
@@ -1440,12 +1541,11 @@ main(int argc, char** argv)
 
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     init_list_parser(list_subcom);
-    list_subcom->callback([]() { list_packages(); });
 
-    CLI::App* clean_subcom = app.add_subcommand("clean", "Clean package cache");
-    init_clean_parser(clean_subcom);
+    CLI::App* config_subcom = app.add_subcommand("config", "Configuration of micromamba");
+    init_config_parser(config_subcom);
 
-    std::stringstream footer;
+    std::stringstream footer;  // just for the help text
 
     footer
         << "In order to use activate and deactivate you need to initialize your shell.\n"
@@ -1480,5 +1580,11 @@ main(int argc, char** argv)
     {
         std::cout << app.help() << std::endl;
     }
+
+    if (app.got_subcommand(config_subcom) && config_subcom->get_subcommands().size() == 0)
+    {
+        std::cout << config_subcom->help() << std::endl;
+    }
+
     return 0;
 }

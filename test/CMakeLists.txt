@@ -5,6 +5,7 @@ include_directories(${GTEST_INCLUDE_DIR})
 
 set(TEST_SRCS
     test_channel.cpp
+    test_config.cpp
     test_cpp.cpp
     test_url.cpp
     history_test/test_history.cpp
@@ -23,6 +24,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/history
     ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/history COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
     ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/aux_file COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
+    ${CMAKE_CURRENT_BINARY_DIR}/config_test/.condarc COPYONLY)
 
 target_link_libraries(test_mamba PRIVATE ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(test_mamba PUBLIC mamba-static)

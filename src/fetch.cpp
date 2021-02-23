@@ -77,6 +77,24 @@ namespace mamba
         curl_easy_setopt(
             m_handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
 
+        const struct curl_tlssessioninfo* info = NULL;
+        CURLcode res = curl_easy_getinfo(m_handle, CURLINFO_TLS_SSL_PTR, &info);
+        if (info && !res)
+        {
+            if (info->backend == CURLSSLBACKEND_OPENSSL)
+            {
+                LOG_INFO << "Using OpenSSL backend";
+            }
+            else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
+            {
+                LOG_INFO << "Using macOS SecureTransport backend";
+            }
+            else if (info->backend == CURLSSLBACKEND_SCHANNEL)
+            {
+                LOG_INFO << "Using Windows Schannel backend";
+            }
+        }
+
         std::string& ssl_verify = Context::instance().ssl_verify;
 
         if (!ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)

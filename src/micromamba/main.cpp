@@ -186,15 +186,6 @@ init_global_parser(CLI::App* subcom)
 void
 set_network_options(Context& ctx)
 {
-    std::array<std::string, 6> cert_locations{
-        "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
-        "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
-        "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
-        "/etc/pki/tls/cacert.pem",                            // OpenELEC
-        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
-        "/etc/ssl/cert.pem",                                  // Alpine Linux
-    };
-
     // ssl verify can be either an empty string (regular SSL verification),
     // the string "<false>" to indicate no SSL verification, or a path to
     // a directory with cert files, or a cert file.
@@ -208,17 +199,29 @@ set_network_options(Context& ctx)
     }
     else
     {
-        for (const auto& loc : cert_locations)
+        if (on_linux)
         {
-            if (fs::exists(loc))
+            std::array<std::string, 6> cert_locations{
+                "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
+                "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
+                "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
+                "/etc/pki/tls/cacert.pem",                            // OpenELEC
+                "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+                "/etc/ssl/cert.pem",                                  // Alpine Linux
+            };
+
+            for (const auto& loc : cert_locations)
             {
-                ctx.ssl_verify = loc;
+                if (fs::exists(loc))
+                {
+                    ctx.ssl_verify = loc;
+                }
             }
-        }
-        if (ctx.ssl_verify.empty())
-        {
-            LOG_ERROR << "ssl_verify is enabled but no ca certificates found";
-            exit(1);
+            if (ctx.ssl_verify.empty())
+            {
+                LOG_ERROR << "ssl_verify is enabled but no ca certificates found";
+                exit(1);
+            }
         }
     }
 

@@ -113,12 +113,19 @@ namespace mamba
                                bool reverse)
     {
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
-        std::wstring prev_value = key.GetStringValue(L"AutoRun");
+        std::wstring prev_value;
+        try
+        {
+            prev_value = key.GetStringValue(L"AutoRun");
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
         // std::wstring hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
         std::wstring hook_string = std::wstring(L"\"")
                                    + (conda_prefix / "condabin" / "mamba_hook.bat").wstring()
                                    + std::wstring(L"\"");
-
         if (reverse)
         {
             // Not implemented yet

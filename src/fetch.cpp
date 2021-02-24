@@ -26,12 +26,6 @@ namespace mamba
         , m_url(url)
     {
         LOG_INFO << "Downloading to filename: " << m_filename;
-        m_file = std::ofstream(filename, std::ios::binary);
-        if (!m_file)
-        {
-            LOG_ERROR << "Could not open file for download " << filename << ": " << strerror(errno);
-            exit(1);
-        }
         m_handle = curl_easy_init();
 
         init_curl_target(m_url);
@@ -136,9 +130,7 @@ namespace mamba
         {
             if (fs::exists(m_filename))
             {
-                m_file.close();
                 fs::remove(m_filename);
-                m_file.open(m_filename);
             }
             init_curl_target(m_url);
             if (m_has_progress_bar)
@@ -167,7 +159,19 @@ namespace mamba
     size_t DownloadTarget::write_callback(char* ptr, size_t size, size_t nmemb, void* self)
     {
         auto* s = reinterpret_cast<DownloadTarget*>(self);
+        if (!s->m_file.is_open())
+        {
+            s->m_file = std::ofstream(s->m_filename, std::ios::binary);
+            if (!s->m_file)
+            {
+                LOG_ERROR << "Could not open file for download " << s->m_filename << ": "
+                          << strerror(errno);
+                exit(1);
+            }
+        }
+
         s->m_file.write(ptr, size * nmemb);
+
         if (!s->m_file)
         {
             LOG_ERROR << "Could not write to file " << s->m_filename << ": " << strerror(errno);

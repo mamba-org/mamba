@@ -14,13 +14,15 @@ After successful installation, you can use the mamba commands as described in [H
 For conda users
 ---------------
 
-If you are already a conda users, very good! Using mamba will feel natural.
+If you are already a conda user, very good! Using mamba will feel natural.
 
 To get mamba, install it _into the base environment_ from the `conda-forge` channel:
 
 ```
 conda install mamba -n base -c conda-forge
 ```
+
+_Note: Installing mamba into any other environment can cause unexpected behavior._
 
 There is little difference between using conda & mamba. You can swap almost all commands:
 

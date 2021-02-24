@@ -120,19 +120,24 @@ namespace mamba
 
     void Configurable::update_sources()
     {
-        fs::path env_var_specified = std::getenv("CONDARC") ? std::getenv("CONDARC") : "";
+        fs::path condarc_env_var = std::getenv("CONDARC") ? std::getenv("CONDARC") : "";
+        fs::path mambarc_env_var = std::getenv("MAMBARC") ? std::getenv("MAMBARC") : "";
 
         std::vector<fs::path> possible_sources = { ctx().root_prefix / ".condarc",
                                                    ctx().root_prefix / "condarc",
                                                    ctx().root_prefix / "condarc.d",
+                                                   ctx().root_prefix / ".mambarc",
                                                    env::home_directory() / ".conda/.condarc",
                                                    env::home_directory() / ".conda/condarc",
                                                    env::home_directory() / ".conda/condarc.d",
                                                    env::home_directory() / ".condarc",
+                                                   env::home_directory() / ".mambarc",
                                                    ctx().target_prefix / ".condarc",
                                                    ctx().target_prefix / "condarc",
                                                    ctx().target_prefix / "condarc.d",
-                                                   env_var_specified };
+                                                   ctx().target_prefix / ".mambarc",
+                                                   condarc_env_var,
+                                                   mambarc_env_var };
 
         sources.clear();
 

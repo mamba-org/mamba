@@ -93,6 +93,7 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/package_cache.cpp
     ${MAMBA_SOURCE_DIR}/pool.cpp
     ${MAMBA_SOURCE_DIR}/prefix_data.cpp
+    ${MAMBA_SOURCE_DIR}/pinning.cpp
     ${MAMBA_SOURCE_DIR}/package_info.cpp
     ${MAMBA_SOURCE_DIR}/package_paths.cpp
     ${MAMBA_SOURCE_DIR}/query.cpp
@@ -128,6 +129,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/package_paths.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/pool.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/prefix_data.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/pinning.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/query.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/repo.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/shell_init.hpp

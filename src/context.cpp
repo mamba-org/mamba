@@ -114,7 +114,10 @@ namespace mamba
         {
             channels = c["channels"].as<std::vector<std::string>>();
         }
-
+        if (c["pinned_packages"])
+        {
+            pinned_packages = c["pinned_packages"].as<std::vector<std::string>>();
+        }
         channel_alias = c["channel_alias"] ? c["channel_alias"].as<std::string>() : channel_alias;
         override_channels_enabled = c["override_channels_enabled"]
                                         ? c["override_channels_enabled"].as<bool>()

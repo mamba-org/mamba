@@ -487,5 +487,40 @@ namespace mamba
             ASSERT_TRUE(config["channel_priority"]);
             ASSERT_EQ(config["channel_priority"].as<std::string>(), "strict");
         }
+
+        TEST_F(Configurable, pinned_packages)
+        {
+            std::string rc1 = unindent(R"(
+                pinned_packages:
+                    - jupyterlab=3
+                    - numpy=1.19)");
+            std::string rc2 = unindent(R"(
+                pinned_packages:
+                    - matplotlib
+                    - numpy=1.19)");
+            std::string rc3 = unindent(R"(
+                pinned_packages:
+                    - jupyterlab=3
+                    - bokeh
+                    - matplotlib)");
+
+            load_test_config(std::vector<std::string>({ rc1, rc2, rc3 }));
+            ASSERT_TRUE(config["pinned_packages"]);
+            EXPECT_EQ(dump(), unindent(R"(
+                        pinned_packages:
+                          - jupyterlab=3
+                          - numpy=1.19
+                          - matplotlib
+                          - bokeh)"));
+
+            load_test_config(std::vector<std::string>({ rc2, rc1, rc3 }));
+            ASSERT_TRUE(config["pinned_packages"]);
+            EXPECT_EQ(dump(), unindent(R"(
+                        pinned_packages:
+                          - matplotlib
+                          - numpy=1.19
+                          - jupyterlab=3
+                          - bokeh)"));
+        }
     }  // namespace testing
 }  // namespace mamba

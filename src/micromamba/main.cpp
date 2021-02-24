@@ -25,6 +25,7 @@
 #include "mamba/config.hpp"
 #include "mamba/output.hpp"
 #include "mamba/prefix_data.hpp"
+#include "mamba/pinning.hpp"
 #include "mamba/repo.hpp"
 #include "mamba/shell_init.hpp"
 #include "mamba/solver.hpp"
@@ -75,6 +76,7 @@ static struct
     bool override_channels = false;
     bool strict_channel_priority = false;
     std::string extra_safety_checks;
+    bool no_pin = false;
 } create_options;
 
 static struct
@@ -452,7 +454,7 @@ int RETRY_SUBDIR_FETCH = 1 << 0;
 int RETRY_SOLVE_ERROR = 1 << 1;
 
 void
-install_specs(const std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
+install_specs(std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
 {
     auto& ctx = Context::instance();
 
@@ -542,6 +544,14 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, in
     }
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
+
+    if (!create_options.no_pin)
+    {
+        pin_file_specs(prefix_data.path() / "conda-meta/pinned", specs);
+        pin_config_specs(ctx.pinned_packages, specs);
+    }
+    pin_python_spec(prefix_data, specs);
+
     auto repo = MRepo(pool, prefix_data);
     repos.push_back(repo);
 
@@ -791,6 +801,8 @@ init_install_parser(CLI::App* subcom)
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
+    subcom->add_flag(
+        "--no-pin", create_options.no_pin, "Ignore pinned packages (from config or prefix file)");
 
     init_network_parser(subcom);
     init_channel_parser(subcom);
@@ -1208,6 +1220,8 @@ init_create_parser(CLI::App* subcom)
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
+    subcom->add_flag(
+        "--no-pin", create_options.no_pin, "Ignore pinned packages (from config or prefix file)");
 
     subcom->add_option(
         "--extra-safety-checks", create_options.extra_safety_checks, "Perform extra safety checks");

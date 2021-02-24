@@ -97,6 +97,8 @@ namespace mamba
         std::string channel_alias = "";
         bool override_channels_enabled = true;
 
+        std::vector<std::string> pinned_packages = {};
+
         static Context& instance();
 
         Context(const Context&) = delete;

@@ -36,10 +36,10 @@ The ecosystem also consists of `quetz`, an open source conda package server and 
 
 ### Installation
 
-It's advised to install mamba from conda-forge. If you already have conda:
+It's advised to install mamba from conda-forge. If you already have conda, install mamba into the base environment:
 
 ```
-conda install mamba -c conda-forge
+conda install mamba -n base -c conda-forge
 ```
 
 otherwise it's best to start with [Miniconda](https://docs.conda.io/en/latest/miniconda.html).

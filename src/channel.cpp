@@ -642,7 +642,7 @@ namespace mamba
     Channel ChannelContext::build_channel_alias()
     {
         auto& ctx = Context::instance();
-        std::string alias = ctx.channel_alias != "" ? ctx.channel_alias : DEFAULT_CHANNEL_ALIAS;
+        std::string alias = ctx.channel_alias.empty() ? DEFAULT_CHANNEL_ALIAS : ctx.channel_alias;
         std::string location, scheme, auth, token;
         split_scheme_auth_token(alias, location, scheme, auth, token);
         return Channel(scheme, auth, location, token);

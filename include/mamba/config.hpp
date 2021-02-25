@@ -38,7 +38,7 @@ namespace mamba
         };
 
         static bool has_config_extension(const std::string& file);
-        static bool looks_config_file(const fs::path& path);
+        static bool is_config_file(const fs::path& path);
 
         static YAML::Node load_rc_file(const fs::path& file);
 

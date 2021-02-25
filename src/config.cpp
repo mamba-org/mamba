@@ -14,7 +14,7 @@ namespace mamba
     Configurable::Configurable(std::string unique_source)
     {
         sources.clear();
-        if (looks_config_file(unique_source))
+        if (is_config_file(unique_source))
         {
             sources.push_back(unique_source);
             LOG_DEBUG << "Configuration found at '" << unique_source << "'";
@@ -64,17 +64,11 @@ namespace mamba
 
     bool Configurable::has_config_extension(const std::string& file)
     {
-#ifdef _WIN32
-        std::string sep = "\\";
-#else
-        std::string sep = "/";
-#endif
-        return rsplit(file, sep, 1).back() == ".condarc"
-               || rsplit(file, sep, 1).back() == ".mambarc" || ends_with(file, ".yml")
-               || ends_with(file, ".yaml");
+        return fs::path(file).filename() == ".condarc" || fs::path(file).filename() == ".mambarc"
+               || ends_with(file, ".yml") || ends_with(file, ".yaml");
     }
 
-    bool Configurable::looks_config_file(const fs::path& path)
+    bool Configurable::is_config_file(const fs::path& path)
     {
         return fs::exists(path) && (!fs::is_directory(path)) && has_config_extension(path.string());
     }
@@ -143,7 +137,7 @@ namespace mamba
 
         for (const fs::path& l : possible_sources)
         {
-            if (looks_config_file(l))
+            if (is_config_file(l))
             {
                 sources.push_back(l);
                 LOG_DEBUG << "Configuration found at '" << l.string() << "'";
@@ -152,7 +146,7 @@ namespace mamba
             {
                 for (fs::path p : fs::directory_iterator(l))
                 {
-                    if (looks_config_file(p))
+                    if (is_config_file(p))
                     {
                         sources.push_back(p);
                         LOG_DEBUG << "Configuration found at '" << p.string() << "'";

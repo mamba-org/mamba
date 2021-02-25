@@ -212,7 +212,7 @@ namespace mamba
             EXPECT_TRUE(has_config_extension("config.yml"));
         }
 
-        TEST_F(Configurable, looks_config_file)
+        TEST_F(Configurable, is_config_file)
         {
             fs::path p = "config_test/.condarc";
 
@@ -220,11 +220,11 @@ namespace mamba
                 "config_test", "conf_test", "config_test/condarc", "history_test/conda-meta/history"
             };
 
-            EXPECT_TRUE(looks_config_file(p));
+            EXPECT_TRUE(is_config_file(p));
 
             for (fs::path p : wrong_paths)
             {
-                EXPECT_FALSE(looks_config_file(p));
+                EXPECT_FALSE(is_config_file(p));
             }
         }
 

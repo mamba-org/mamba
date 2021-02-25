@@ -278,7 +278,8 @@ load_rc_files(Context& ctx)
 {
     if (!global_options.no_rc)
     {
-        ctx.load_config(global_options.rc_file);
+        Configurable::instance().load(global_options.rc_file);
+        ctx.load_config();
     }
 }
 
@@ -931,7 +932,7 @@ init_config_parser(CLI::App* subcom)
         }
         else
         {
-            Configurable config(global_options.rc_file);
+            Configurable& config = Configurable::instance();
             Console::print(config.dump(config_options.show_sources));
         }
         return 0;
@@ -951,7 +952,7 @@ init_config_parser(CLI::App* subcom)
         {
             Console::print("Configuration files (by precedence order):");
 
-            Configurable config(global_options.rc_file);
+            Configurable& config = Configurable::instance();
             auto srcs = config.get_sources();
             auto valid_srcs = config.get_valid_sources();
 

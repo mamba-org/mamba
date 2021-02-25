@@ -16,7 +16,7 @@ namespace mamba
         {
         public:
             Configurable()
-                : mamba::Configurable("none")  // prevent loading other sources
+                : mamba::Configurable()
             {
             }
 
@@ -29,10 +29,7 @@ namespace mamba
                 out_file << rc;
                 out_file.close();
 
-                sources.clear();
-                sources.push_back(unique_location);
-
-                load_config();
+                load(unique_location);
             }
 
             void load_test_config(std::vector<std::string> rcs)

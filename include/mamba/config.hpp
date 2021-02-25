@@ -21,16 +21,20 @@ namespace mamba
     class Configurable
     {
     public:
-        Configurable();
-        Configurable(std::string unique_source);
+        static Configurable& instance();
 
         const YAML::Node& get_config();
         std::vector<fs::path> get_sources();
         std::vector<fs::path> get_valid_sources();
 
+        void load(std::string unique_source = "");
+
         std::string dump(bool show_sources = false);
 
     protected:
+        Configurable();
+        ~Configurable() = default;
+
         static Context& ctx()
         {
             return Context::instance();

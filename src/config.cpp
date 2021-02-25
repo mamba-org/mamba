@@ -13,11 +13,15 @@ namespace mamba
 {
     Configurable::Configurable()
     {
-        update_sources();
-        load_config();
     }
 
-    Configurable::Configurable(std::string unique_source)
+    Configurable& Configurable::instance()
+    {
+        static Configurable config;
+        return config;
+    }
+
+    void Configurable::load(std::string unique_source)
     {
         update_sources(unique_source);
         load_config();

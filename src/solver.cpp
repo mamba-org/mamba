@@ -179,7 +179,7 @@ namespace mamba
         queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
-    void MSolver::add_pin(const std::string& job)
+    void MSolver::add_pin(const std::string& pin)
     {
         // if we pin a package, we need to remove all packages that don't match the
         // pin from being available for installation! This is done by adding
@@ -192,7 +192,7 @@ namespace mamba
         // First we need to check if the pin is OK given the currently installed
         // packages
         Pool* pool = m_pool;
-        MatchSpec ms(job);
+        MatchSpec ms(pin);
 
         // TODO
         // if (m_prefix_data)
@@ -233,7 +233,7 @@ namespace mamba
 
         if (all_solvables.size() != 0 && matching_solvables.size() == 0)
         {
-            LOG_ERROR << "No package can be installed for pin: " << job;
+            LOG_ERROR << "No package can be installed for pin: " << pin;
             exit(1);
         }
 
@@ -253,6 +253,14 @@ namespace mamba
         Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
         queue_push2(&m_jobs, SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
         queue_free(&selected_pkgs);
+    }
+
+    void MSolver::add_pins(const std::vector<std::string>& pins)
+    {
+        for (auto pin : pins)
+        {
+            add_pin(pin);
+        }
     }
 
     void MSolver::set_postsolve_flags(const std::vector<std::pair<int, int>>& flags)

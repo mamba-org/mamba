@@ -7,116 +7,77 @@ namespace mamba
 {
     namespace testing
     {
-        TEST(pinning, pin_python_spec)
+        TEST(pinning, python_pin)
         {
             std::vector<std::string> specs;
+            std::string pin;
             PrefixData prefix_data("");
             ASSERT_EQ(prefix_data.records().size(), 0);
 
             specs = { "python" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
+
+            specs = { "python-test" };
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             specs = { "python=3" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python=3");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             specs = { "python==3.8" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python==3.8");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             specs = { "python==3.8.3" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python==3.8.3");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             specs = { "numpy" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "numpy");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
             prefix_data.m_package_records.insert({ "python", pkg_info });
             ASSERT_EQ(prefix_data.records().size(), 1);
 
             specs = { "python" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python=3.7.10");
-
-            specs = { "python==3" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python=3.7.10");
-
-            specs = { "python=3.*" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python=3.7.10");
-
-            specs = { "python=3.8" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python=3.8");
-
-            specs = { "python=3.8.3" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 1);
-            EXPECT_EQ(specs[0], "python=3.8.3");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             specs = { "numpy" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 2);
-            EXPECT_EQ(specs[0], "numpy");
-            EXPECT_EQ(specs[1], "python=3.7.10");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "python=3.7.10");
+
+            specs = { "python-test" };
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "python=3.7.10");
+
+            specs = { "python==3" };
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
+
+            specs = { "python=3.*" };
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
+
+            specs = { "python=3.8" };
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
+
+            specs = { "python=3.8.3" };
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
 
             specs = { "numpy", "python" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 2);
-            EXPECT_EQ(specs[0], "numpy");
-            EXPECT_EQ(specs[1], "python=3.7.10");
-
-            specs = { "numpy", "python=3.8" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 2);
-            EXPECT_EQ(specs[0], "numpy");
-            EXPECT_EQ(specs[1], "python=3.8");
-
-            specs = { "numpy", "python=3.8.3" };
-            pin_python_spec(prefix_data, specs);
-            ASSERT_EQ(specs.size(), 2);
-            EXPECT_EQ(specs[0], "numpy");
-            EXPECT_EQ(specs[1], "python=3.8.3");
+            pin = python_pin(prefix_data, specs);
+            EXPECT_EQ(pin, "");
         }
 
-        TEST(pinning, pin_config_specs)
+        TEST(pinning, file_pins)
         {
-            std::vector<std::string> specs;
-            std::vector<std::string> config_specs;
-
-            specs = { "python" };
-            config_specs = { "numpy=1.13", "jupyterlab=3" };
-            pin_config_specs(config_specs, specs);
-            ASSERT_EQ(specs.size(), 3);
-            EXPECT_EQ(specs[0], "python");
-            EXPECT_EQ(specs[1], "numpy=1.13");
-            EXPECT_EQ(specs[2], "jupyterlab=3");
-
-            specs = { "python=3.7.10" };
-            config_specs = { "numpy=1.13", "python=3.7.5" };
-            pin_config_specs(config_specs, specs);
-            ASSERT_EQ(specs.size(), 3);
-            EXPECT_EQ(specs[0], "python=3.7.10");
-            EXPECT_EQ(specs[1], "numpy=1.13");
-            EXPECT_EQ(specs[2], "python=3.7.5");
-        }
-
-        TEST(pinning, pin_file_specs)
-        {
-            std::vector<std::string> specs;
+            std::vector<std::string> pins;
 
             auto tempfile = std::make_unique<TemporaryFile>("pinned", "");
             std::string path = tempfile->path();
@@ -124,23 +85,19 @@ namespace mamba
             out_file << "numpy=1.13\njupyterlab=3";
             out_file.close();
 
-            specs = { "python" };
-            pin_file_specs(path, specs);
-            ASSERT_EQ(specs.size(), 3);
-            EXPECT_EQ(specs[0], "python");
-            EXPECT_EQ(specs[1], "numpy=1.13");
-            EXPECT_EQ(specs[2], "jupyterlab=3");
+            pins = file_pins(path);
+            ASSERT_EQ(pins.size(), 2);
+            EXPECT_EQ(pins[0], "numpy=1.13");
+            EXPECT_EQ(pins[1], "jupyterlab=3");
 
-            specs = { "python=3.7.10" };
             out_file.open(path, std::ofstream::out | std::ofstream::trunc);
             out_file << "numpy=1.13\npython=3.7.5";
             out_file.close();
 
-            pin_file_specs(path, specs);
-            ASSERT_EQ(specs.size(), 3);
-            EXPECT_EQ(specs[0], "python=3.7.10");
-            EXPECT_EQ(specs[1], "numpy=1.13");
-            EXPECT_EQ(specs[2], "python=3.7.5");
+            pins = file_pins(path);
+            ASSERT_EQ(pins.size(), 2);
+            EXPECT_EQ(pins[0], "numpy=1.13");
+            EXPECT_EQ(pins[1], "python=3.7.5");
         }
     }  // namespace testing
 }  // namespace mamba

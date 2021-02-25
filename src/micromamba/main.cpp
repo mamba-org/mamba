@@ -545,13 +545,6 @@ install_specs(std::vector<std::string>& specs, bool create_env = false, int is_r
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
 
-    if (!create_options.no_pin)
-    {
-        pin_file_specs(prefix_data.path() / "conda-meta/pinned", specs);
-        pin_config_specs(ctx.pinned_packages, specs);
-    }
-    pin_python_spec(prefix_data, specs);
-
     auto repo = MRepo(pool, prefix_data);
     repos.push_back(repo);
 
@@ -608,6 +601,18 @@ install_specs(std::vector<std::string>& specs, bool create_env = false, int is_r
 
     MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
     solver.add_jobs(create_options.specs, SOLVER_INSTALL);
+
+    if (!create_options.no_pin)
+    {
+        solver.add_pins(file_pins(prefix_data.path() / "conda-meta/pinned"));
+        solver.add_pins(ctx.pinned_packages);
+    }
+
+    auto py_pin = python_pin(prefix_data, specs);
+    if (!py_pin.empty())
+    {
+        solver.add_pin(py_pin);
+    }
 
     bool success = solver.solve();
     if (!success)

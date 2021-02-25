@@ -46,7 +46,8 @@ namespace mamba
 
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void add_constraint(const std::string& job);
-        void add_pin(const std::string& job);
+        void add_pin(const std::string& pin);
+        void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
         bool is_solved();

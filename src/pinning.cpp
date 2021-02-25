@@ -11,61 +11,47 @@
 
 namespace mamba
 {
-    void pin_python_spec(const PrefixData& prefix_data, std::vector<std::string>& specs)
+    std::string python_pin(const PrefixData& prefix_data, const std::vector<std::string>& specs)
     {
-        bool py_found = false;
-        std::string py_spec = "";
-
-        for (auto spec : specs)
-        {
-            if (spec.find("python") != std::string::npos)
-            {
-                py_found = true;
-                py_spec = spec;
-                break;
-            }
-        }
-
-        if (py_found)
-        {
-            MatchSpec ms(py_spec);
-            std::regex ver_pat("=?[0-9]+\\.[0-9]+.*");
-
-            if (std::regex_match(ms.version, ver_pat))
-            {
-                return;
-            }
-        }
+        std::string pin = "";
+        std::string py_version;
+        MatchSpec ms;
 
         try
         {
-            std::string py_version = prefix_data.records().at("python").version;
-            specs.erase(std::remove(specs.begin(), specs.end(), py_spec), specs.end());
-            specs.push_back("python=" + py_version);
-            return;
+            py_version = prefix_data.records().at("python").version;
         }
         catch (const std::exception& e)
         {
-            return;
+            return "";  // Python not found in prefix
         }
-    }
 
-    void pin_config_specs(const std::vector<std::string>& config_specs,
-                          std::vector<std::string>& specs)
-    {
-        specs.insert(specs.end(), config_specs.begin(), config_specs.end());
-    }
-
-    void pin_file_specs(const fs::path& file_specs, std::vector<std::string>& specs)
-    {
-        if (fs::exists(file_specs) && !fs::is_directory(file_specs))
+        for (auto spec : specs)
         {
-            std::ifstream input_file(file_specs);
+            ms = spec;
+            if (ms.name == "python")
+            {
+                return "";
+            }
+        }
+
+        return "python=" + py_version;
+    }
+
+    std::vector<std::string> file_pins(const fs::path& file)
+    {
+        std::vector<std::string> pins;
+
+        if (fs::exists(file) && !fs::is_directory(file))
+        {
+            std::ifstream input_file(file);
             std::string line;
             while (std::getline(input_file, line))
             {
-                specs.push_back(line);
+                pins.push_back(line);
             }
         }
+
+        return pins;
     }
 }

@@ -88,10 +88,14 @@ namespace mamba
 
         void set_verbosity(int lvl);
 
+        void load_config();
+
         static std::string platform();
         static std::vector<std::string> platforms();
 
         std::vector<std::string> channels = {};
+        std::string channel_alias = "";
+        bool override_channels_enabled = true;
 
         static Context& instance();
 

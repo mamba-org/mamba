@@ -11,6 +11,10 @@
 #include "mamba/thread_utils.hpp"
 #include "mamba/util.hpp"
 
+#ifdef MAMBA_USE_YAML_CPP
+#include "mamba/config.hpp"
+#endif
+
 #include "thirdparty/termcolor.hpp"
 
 namespace mamba
@@ -99,6 +103,24 @@ namespace mamba
         }
         this->verbosity = lvl;
     }
+
+#ifdef MAMBA_USE_YAML_CPP
+    void Context::load_config()
+    {
+        Configurable configurable;
+        auto c = configurable.get_config();
+
+        if (c["channels"])
+        {
+            channels = c["channels"].as<std::vector<std::string>>();
+        }
+
+        channel_alias = c["channel_alias"] ? c["channel_alias"].as<std::string>() : channel_alias;
+        override_channels_enabled = c["override_channels_enabled"]
+                                        ? c["override_channels_enabled"].as<bool>()
+                                        : override_channels_enabled;
+    }
+#endif
 
     std::string Context::platform()
     {

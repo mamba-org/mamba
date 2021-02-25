@@ -257,6 +257,10 @@ namespace mamba
                                 const std::string& shell = "");
 
     void remove_or_rename(const fs::path& path);
+
+    // Unindent a string literal
+    std::string unindent(const char* p);
+
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

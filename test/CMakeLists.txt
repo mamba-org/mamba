@@ -16,6 +16,7 @@ set(TEST_SRCS
     test_transfer.cpp
     test_thread_utils.cpp
     test_graph.cpp
+    test_pinning.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

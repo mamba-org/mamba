@@ -1,3 +1,9 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include "mamba/config.hpp"
 
 #include <algorithm>
@@ -94,7 +100,8 @@ namespace mamba
 
         if (nodes.size() > 0)
         {
-            std::vector<std::string> prepend_seq_config = { "channels", "default_channels" };
+            std::vector<std::string> prepend_seq_config
+                = { "channels", "default_channels", "pinned_packages" };
             for (auto key : prepend_seq_config)
             {
                 build_prepend_seq(nodes, key, node2src, config, config_sources);

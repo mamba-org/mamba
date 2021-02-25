@@ -88,7 +88,7 @@ namespace mamba
 
         void set_verbosity(int lvl);
 
-        void load_config();
+        void load_config(std::string rc_file);
 
         static std::string platform();
         static std::vector<std::string> platforms();

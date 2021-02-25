@@ -16,7 +16,7 @@ namespace mamba
         {
         public:
             Configurable()
-                : mamba::Configurable("")  // prevent loading other sources
+                : mamba::Configurable("none")  // prevent loading other sources
             {
             }
 

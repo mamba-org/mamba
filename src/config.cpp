@@ -19,16 +19,7 @@ namespace mamba
 
     Configurable::Configurable(std::string unique_source)
     {
-        sources.clear();
-        if (is_config_file(unique_source))
-        {
-            sources.push_back(unique_source);
-            LOG_DEBUG << "Configuration found at '" << unique_source << "'";
-        }
-        else
-        {
-            LOG_DEBUG << "Configuration not found at '" << unique_source << "'";
-        }
+        update_sources(unique_source);
         load_config();
     }
 
@@ -119,26 +110,35 @@ namespace mamba
         }
     }
 
-    void Configurable::update_sources()
+    void Configurable::update_sources(std::string unique_source)
     {
-        fs::path condarc_env_var = std::getenv("CONDARC") ? std::getenv("CONDARC") : "";
-        fs::path mambarc_env_var = std::getenv("MAMBARC") ? std::getenv("MAMBARC") : "";
+        std::vector<fs::path> possible_sources;
 
-        std::vector<fs::path> possible_sources = { ctx().root_prefix / ".condarc",
-                                                   ctx().root_prefix / "condarc",
-                                                   ctx().root_prefix / "condarc.d",
-                                                   ctx().root_prefix / ".mambarc",
-                                                   env::home_directory() / ".conda/.condarc",
-                                                   env::home_directory() / ".conda/condarc",
-                                                   env::home_directory() / ".conda/condarc.d",
-                                                   env::home_directory() / ".condarc",
-                                                   env::home_directory() / ".mambarc",
-                                                   ctx().target_prefix / ".condarc",
-                                                   ctx().target_prefix / "condarc",
-                                                   ctx().target_prefix / "condarc.d",
-                                                   ctx().target_prefix / ".mambarc",
-                                                   condarc_env_var,
-                                                   mambarc_env_var };
+        if (!unique_source.empty())
+        {
+            possible_sources.push_back(unique_source);
+        }
+        else
+        {
+            fs::path condarc_env_var = std::getenv("CONDARC") ? std::getenv("CONDARC") : "";
+            fs::path mambarc_env_var = std::getenv("MAMBARC") ? std::getenv("MAMBARC") : "";
+
+            possible_sources = { ctx().root_prefix / ".condarc",
+                                 ctx().root_prefix / "condarc",
+                                 ctx().root_prefix / "condarc.d",
+                                 ctx().root_prefix / ".mambarc",
+                                 env::home_directory() / ".conda/.condarc",
+                                 env::home_directory() / ".conda/condarc",
+                                 env::home_directory() / ".conda/condarc.d",
+                                 env::home_directory() / ".condarc",
+                                 env::home_directory() / ".mambarc",
+                                 ctx().target_prefix / ".condarc",
+                                 ctx().target_prefix / "condarc",
+                                 ctx().target_prefix / "condarc.d",
+                                 ctx().target_prefix / ".mambarc",
+                                 condarc_env_var,
+                                 mambarc_env_var };
+        }
 
         sources.clear();
 

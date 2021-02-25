@@ -22,6 +22,7 @@ namespace mamba
     {
     public:
         Configurable();
+        Configurable(std::string unique_source);
 
         const YAML::Node& get_config();
         std::vector<fs::path> get_sources();
@@ -30,8 +31,6 @@ namespace mamba
         std::string dump(bool show_sources = false);
 
     protected:
-        Configurable(std::string unique_source);
-
         static Context& ctx()
         {
             return Context::instance();
@@ -44,7 +43,7 @@ namespace mamba
 
         void load_config();
         void load_config_files();
-        void update_sources();
+        void update_sources(std::string unique_source = "");
 
         void build_prepend_seq(const std::vector<std::shared_ptr<YAML::Node>>& configs,
                                const std::string& key,

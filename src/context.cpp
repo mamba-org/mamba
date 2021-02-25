@@ -105,9 +105,9 @@ namespace mamba
     }
 
 #ifdef MAMBA_USE_YAML_CPP
-    void Context::load_config()
+    void Context::load_config(std::string rc_file)
     {
-        Configurable configurable;
+        Configurable configurable(rc_file);
         auto c = configurable.get_config();
 
         if (c["channels"])

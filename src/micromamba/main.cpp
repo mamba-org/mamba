@@ -454,7 +454,7 @@ int RETRY_SUBDIR_FETCH = 1 << 0;
 int RETRY_SOLVE_ERROR = 1 << 1;
 
 void
-install_specs(std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
+install_specs(const std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
 {
     auto& ctx = Context::instance();
 

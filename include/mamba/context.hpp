@@ -82,6 +82,7 @@ namespace mamba
         // the string "<false>" to indicate no SSL verification, or a path to
         // a directory with cert files, or a cert file.
         std::string ssl_verify = "";
+        bool ssl_no_revoke = false;
 
         // Conda compat
         bool add_pip_as_python_dependency = true;

@@ -81,6 +81,7 @@ static struct
     bool ssl_verify = true;
     std::size_t repodata_ttl = 1;
     bool retry_clean_cache = false;
+    bool ssl_no_revoke = false;
     std::string cacert_path;
 } network_options;
 
@@ -159,6 +160,9 @@ init_network_parser(CLI::App* subcom)
 {
     subcom->add_option(
         "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
+    subcom->add_option("--ssl-no-revoke",
+                       network_options.ssl_no_revoke,
+                       "Enable or disable SSL certificate revocation checks (default: false)");
     subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
     subcom->add_flag("--retry-with-clean-cache",
                      network_options.retry_clean_cache,
@@ -225,6 +229,7 @@ set_network_options(Context& ctx)
         }
     }
 
+    ctx.ssl_no_revoke = network_options.ssl_no_revoke;
     ctx.local_repodata_ttl = network_options.repodata_ttl;
 }
 

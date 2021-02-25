@@ -159,7 +159,7 @@ def init_api_context(use_mamba_experimental=False):
 
     if context.ssl_verify is False:
         api_ctx.ssl_verify = "<false>"
-    elif context.ssl_verify is None or context.ssl_verify == "":
+    elif context.ssl_verify is not True:
         api_ctx.ssl_verify = context.ssl_verify
     api_ctx.target_prefix = context.target_prefix
     api_ctx.root_prefix = context.root_prefix

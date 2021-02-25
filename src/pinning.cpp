@@ -17,11 +17,12 @@ namespace mamba
         std::string py_version;
         MatchSpec ms;
 
-        try
+        auto iter = prefix_data.records().find("python");
+        if (iter != prefix_data.records().end())
         {
-            py_version = prefix_data.records().at("python").version;
+            py_version = iter->second.version;
         }
-        catch (const std::exception& e)
+        else
         {
             return "";  // Python not found in prefix
         }

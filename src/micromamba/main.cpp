@@ -604,7 +604,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, in
 
     if (!create_options.no_pin)
     {
-        solver.add_pins(file_pins(prefix_data.path() / "conda-meta/pinned"));
+        solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
         solver.add_pins(ctx.pinned_packages);
     }
 

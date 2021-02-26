@@ -21,16 +21,19 @@ namespace mamba
     class Configurable
     {
     public:
-        Configurable();
+        static Configurable& instance();
 
         const YAML::Node& get_config();
         std::vector<fs::path> get_sources();
         std::vector<fs::path> get_valid_sources();
 
+        void load(std::string unique_source = "");
+
         std::string dump(bool show_sources = false);
 
     protected:
-        Configurable(std::string unique_source);
+        Configurable();
+        ~Configurable() = default;
 
         static Context& ctx()
         {
@@ -44,7 +47,7 @@ namespace mamba
 
         void load_config();
         void load_config_files();
-        void update_sources();
+        void update_sources(std::string unique_source = "");
 
         void build_prepend_seq(const std::vector<std::shared_ptr<YAML::Node>>& configs,
                                const std::string& key,

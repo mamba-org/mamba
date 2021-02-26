@@ -107,8 +107,8 @@ namespace mamba
 #ifdef MAMBA_USE_YAML_CPP
     void Context::load_config()
     {
-        Configurable configurable;
-        auto c = configurable.get_config();
+        Configurable& config = Configurable::instance();
+        auto c = config.get_config();
 
         if (c["channels"])
         {

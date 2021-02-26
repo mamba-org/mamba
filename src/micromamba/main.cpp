@@ -101,6 +101,8 @@ static struct
     bool json = false;
     bool offline = false;
     bool dry_run = false;
+    std::string rc_file = "";
+    bool no_rc = false;
 } global_options;
 
 static struct
@@ -193,6 +195,8 @@ init_global_parser(CLI::App* subcom)
     subcom->add_flag("--json", global_options.json, "Report all output as json");
     subcom->add_flag("--offline", global_options.offline, "Force use cached repodata");
     subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done");
+    subcom->add_option("--rc-file", global_options.rc_file, "The unique configuration file to use");
+    subcom->add_flag("--no-rc", global_options.no_rc, "Disable all configuration files");
 }
 
 void
@@ -272,6 +276,23 @@ set_global_options(Context& ctx)
                       << "Select none (default), warn or fail";
         }
     }
+}
+
+void
+load_rc_files(Context& ctx)
+{
+    if (!global_options.no_rc)
+    {
+        Configurable::instance().load(global_options.rc_file);
+        ctx.load_config();
+    }
+}
+
+void
+init_callback(Context& ctx)
+{
+    set_global_options(ctx);
+    load_rc_files(ctx);
 }
 
 void
@@ -462,7 +483,6 @@ void
 install_specs(const std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
 {
     auto& ctx = Context::instance();
-
     set_global_options(ctx);
 
     if (!is_retry)
@@ -663,7 +683,6 @@ bool
 remove_specs(const std::vector<std::string>& specs)
 {
     auto& ctx = Context::instance();
-
     set_global_options(ctx);
 
     Console::print(banner);
@@ -796,7 +815,11 @@ init_list_parser(CLI::App* subcom)
 {
     init_global_parser(subcom);
 
-    subcom->callback([]() { list_packages(); });
+    subcom->callback([]() {
+        auto& ctx = Context::instance();
+        init_callback(ctx);
+        list_packages();
+    });
 }
 
 void
@@ -820,8 +843,7 @@ init_install_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
-        ctx.load_config();
-        set_global_options(ctx);
+        init_callback(ctx);
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
 
@@ -900,44 +922,58 @@ init_config_parser(CLI::App* subcom)
     */
 
     auto list_subcom = subcom->add_subcommand("list", "Show configuration values.");
+    init_global_parser(list_subcom);
     list_subcom->add_flag("--show-source",
                           config_options.show_sources,
                           "Display all identified configuration sources.");
 
     list_subcom->callback([&]() {
         auto& ctx = Context::instance();
-        set_global_options(ctx);
+        init_callback(ctx);
 
-        Configurable config;
-        Console::print(config.dump(config_options.show_sources));
-
+        if (global_options.no_rc)
+        {
+            Console::print("Configuration files disabled by --no-rc flag");
+        }
+        else
+        {
+            Configurable& config = Configurable::instance();
+            Console::print(config.dump(config_options.show_sources));
+        }
         return 0;
     });
 
     auto sources_subcom = subcom->add_subcommand("sources", "Show configuration sources.");
+    init_global_parser(sources_subcom);
     sources_subcom->callback([&]() {
         auto& ctx = Context::instance();
-        set_global_options(ctx);
+        init_callback(ctx);
 
-        Console::print("Configuration files (by precedence order):");
-
-        Configurable config;
-        auto srcs = config.get_sources();
-        auto valid_srcs = config.get_valid_sources();
-
-        for (auto s : srcs)
+        if (global_options.no_rc)
         {
-            auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
-            if (found_s != valid_srcs.end())
+            Console::print("Configuration files disabled by --no-rc flag");
+        }
+        else
+        {
+            Console::print("Configuration files (by precedence order):");
+
+            Configurable& config = Configurable::instance();
+            auto srcs = config.get_sources();
+            auto valid_srcs = config.get_valid_sources();
+
+            for (auto s : srcs)
             {
-                Console::print(env::shrink_user(s).string());
-            }
-            else
-            {
-                Console::print(env::shrink_user(s).string() + " (invalid)");
+                auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
+                if (found_s != valid_srcs.end())
+                {
+                    Console::print(env::shrink_user(s).string());
+                }
+                else
+                {
+                    Console::print(env::shrink_user(s).string() + " (invalid)");
+                }
             }
         }
-
         return 0;
     });
 }
@@ -1242,8 +1278,7 @@ init_create_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
-        ctx.load_config();
-        set_global_options(ctx);
+        init_callback(ctx);
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
 
@@ -1277,7 +1312,7 @@ init_clean_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
-        set_global_options(ctx);
+        init_callback(ctx);
         Console::print("Cleaning up ... ");
 
         std::vector<fs::path> envs;

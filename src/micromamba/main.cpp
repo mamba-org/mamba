@@ -188,7 +188,7 @@ init_network_parser(CLI::App* subcom)
                      network_options.ssl_no_revoke,
                      "Enable or disable SSL certificate revocation checks (default: false)")
         ->group(network);
-    subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate")
+    subcom->add_option("--cacert-path", network_options.cacert_path, "Path for CA Certificate")
         ->group(network);
     subcom
         ->add_flag("--retry-with-clean-cache",

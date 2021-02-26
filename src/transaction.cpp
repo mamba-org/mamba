@@ -815,7 +815,7 @@ namespace mamba
             }
             else
             {
-                Console::print("  Nothing to remove\n");
+                Console::print("  Nothing to do\n");
             }
             return;
         }

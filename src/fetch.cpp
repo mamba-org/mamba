@@ -89,6 +89,13 @@ namespace mamba
             }
         }
 
+        std::string ssl_no_revoke_env
+            = std::getenv("MAMBA_SSL_NO_REVOKE") ? std::getenv("MAMBA_SSL_NO_REVOKE") : "0";
+        if (Context::instance().ssl_no_revoke || ssl_no_revoke_env != "0")
+        {
+            curl_easy_setopt(m_handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
+        }
+
         std::string& ssl_verify = Context::instance().ssl_verify;
 
         if (!ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)

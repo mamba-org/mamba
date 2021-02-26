@@ -178,35 +178,55 @@ check_root_prefix(bool silent = false)
 void
 init_network_parser(CLI::App* subcom)
 {
-    subcom->add_option(
-        "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification");
-    subcom->add_option("--ssl-no-revoke",
-                       network_options.ssl_no_revoke,
-                       "Enable or disable SSL certificate revocation checks (default: false)");
-    subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate");
-    subcom->add_flag("--retry-with-clean-cache",
-                     network_options.retry_clean_cache,
-                     "If solve fails, try to fetch updated repodata.");
-    subcom->add_option(
-        "--repodata-ttl",
-        network_options.repodata_ttl,
-        "Repodata cache lifetime:\n 0 = always update\n 1 = respect HTTP header (default)\n>1 = cache lifetime in seconds");
+    std::string network = "Network options";
+    subcom
+        ->add_option(
+            "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification")
+        ->group(network);
+    subcom
+        ->add_option("--ssl-no-revoke",
+                     network_options.ssl_no_revoke,
+                     "Enable or disable SSL certificate revocation checks (default: false)")
+        ->group(network);
+    subcom->add_option("--cacert_path", network_options.cacert_path, "Path for CA Certificate")
+        ->group(network);
+    subcom
+        ->add_flag("--retry-with-clean-cache",
+                   network_options.retry_clean_cache,
+                   "If solve fails, try to fetch updated repodata.")
+        ->group(network);
+    subcom
+        ->add_option(
+            "--repodata-ttl",
+            network_options.repodata_ttl,
+            "Repodata cache lifetime:\n 0 = always update\n 1 = respect HTTP header (default)\n>1 = cache lifetime in seconds")
+        ->group(network);
 }
 
 void
 init_global_parser(CLI::App* subcom)
 {
-    subcom->add_flag("-v,--verbose",
-                     global_options.verbosity,
-                     "Enbable verbose mode (higher verbosity with multiple -v, e.g. -vvv)");
-    subcom->add_flag("-q,--quiet", global_options.quiet, "Quiet mode (print less output)");
-    subcom->add_flag(
-        "-y,--yes", global_options.always_yes, "Automatically answer yes on all questions");
-    subcom->add_flag("--json", global_options.json, "Report all output as json");
-    subcom->add_flag("--offline", global_options.offline, "Force use cached repodata");
-    subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done");
-    subcom->add_option("--rc-file", global_options.rc_file, "The unique configuration file to use");
-    subcom->add_flag("--no-rc", global_options.no_rc, "Disable all configuration files");
+    std::string global = "Global options";
+    subcom
+        ->add_flag("-v,--verbose",
+                   global_options.verbosity,
+                   "Enable verbose mode (higher verbosity with multiple -v, e.g. -vvv)")
+        ->group(global);
+    subcom->add_flag("-q,--quiet", global_options.quiet, "Quiet mode (print less output)")
+        ->group(global);
+    subcom
+        ->add_flag(
+            "-y,--yes", global_options.always_yes, "Automatically answer yes on all questions")
+        ->group(global);
+    subcom->add_flag("--json", global_options.json, "Report all output as json")->group(global);
+    subcom->add_flag("--offline", global_options.offline, "Force use cached repodata")
+        ->group(global);
+    subcom->add_flag("--dry-run", global_options.dry_run, "Only display what would have been done")
+        ->group(global);
+    subcom->add_option("--rc-file", global_options.rc_file, "The unique configuration file to use")
+        ->group(global);
+    subcom->add_flag("--no-rc", global_options.no_rc, "Disable all configuration files")
+        ->group(global);
 }
 
 void
@@ -720,7 +740,7 @@ update_specs(std::vector<std::string>& specs)
     install_specs(specs, false, SOLVER_UPDATE);
 }
 
-bool
+void
 remove_specs(const std::vector<std::string>& specs)
 {
     auto& ctx = Context::instance();
@@ -766,8 +786,6 @@ remove_specs(const std::vector<std::string>& specs)
         exit(0);
 
     trans.execute(prefix_data, ctx.root_prefix / "pkgs");
-
-    return true;
 }
 
 void
@@ -935,13 +953,22 @@ init_install_parser(CLI::App* subcom)
         parse_file_options();
         set_channels(ctx);
 
-        install_specs(create_options.specs, false);
+        if (!create_options.specs.empty())
+        {
+            install_specs(create_options.specs, false);
+        }
+        else
+        {
+            Console::print("Nothing to do.");
+        }
     });
 }
 
 void
 init_update_parser(CLI::App* subcom)
 {
+    init_install_global_parser(subcom);
+    subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag(
         "-a, --all", update_options.update_all, "Update all packages in the environment");
 
@@ -949,7 +976,37 @@ init_update_parser(CLI::App* subcom)
         auto& ctx = Context::instance();
         init_callback(ctx);
         set_network_options(ctx);
-        update_specs(create_options.specs);
+
+        if (update_options.update_all)
+        {
+            auto& ctx = Context::instance();
+            if (ctx.target_prefix.empty())
+            {
+                throw std::runtime_error(
+                    "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
+            }
+
+            PrefixData prefix_data(ctx.target_prefix);
+            prefix_data.load();
+
+            for (const auto& package : prefix_data.m_package_records)
+            {
+                auto name = package.second.name;
+                if (name != "python")
+                {
+                    create_options.specs.push_back(name);
+                }
+            }
+        }
+
+        if (!create_options.specs.empty())
+        {
+            install_specs(create_options.specs, false, SOLVER_UPDATE);
+        }
+        else
+        {
+            Console::print("Nothing to do.");
+        }
     });
 }
 
@@ -957,9 +1014,23 @@ void
 init_remove_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to remove from the environment");
+    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
+    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
+
     init_global_parser(subcom);
 
-    subcom->callback([&]() { remove_specs(create_options.specs); });
+    subcom->callback([&]() {
+        auto& ctx = Context::instance();
+        init_callback(ctx);
+        if (!create_options.specs.empty())
+        {
+            remove_specs(create_options.specs);
+        }
+        else
+        {
+            Console::print("Nothing to do.");
+        }
+    });
 }
 
 void
@@ -1005,12 +1076,12 @@ init_config_parser(CLI::App* subcom)
 
         if (global_options.no_rc)
         {
-            Console::print("Configuration files disabled by --no-rc flag");
+            std::cout << "Configuration files disabled by --no-rc flag" << std::endl;
         }
         else
         {
             Configurable& config = Configurable::instance();
-            Console::print(config.dump(config_options.show_sources));
+            std::cout << config.dump(config_options.show_sources) << std::endl;
         }
         return 0;
     });
@@ -1023,11 +1094,11 @@ init_config_parser(CLI::App* subcom)
 
         if (global_options.no_rc)
         {
-            Console::print("Configuration files disabled by --no-rc flag");
+            std::cout << "Configuration files disabled by --no-rc flag" << std::endl;
         }
         else
         {
-            Console::print("Configuration files (by precedence order):");
+            std::cout << "Configuration files (by precedence order):" << std::endl;
 
             Configurable& config = Configurable::instance();
             auto srcs = config.get_sources();
@@ -1038,11 +1109,11 @@ init_config_parser(CLI::App* subcom)
                 auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
                 if (found_s != valid_srcs.end())
                 {
-                    Console::print(env::shrink_user(s).string());
+                    std::cout << env::shrink_user(s).string() << std::endl;
                 }
                 else
                 {
-                    Console::print(env::shrink_user(s).string() + " (invalid)");
+                    std::cout << env::shrink_user(s).string() + " (invalid)" << std::endl;
                 }
             }
         }
@@ -1345,10 +1416,18 @@ init_create_parser(CLI::App* subcom)
         // file options have to be parsed _before_ the following checks
         // to fill in name and prefix
         parse_file_options();
-        set_target_prefix();
-        set_channels(ctx);
 
-        install_specs(create_options.specs, true);
+        if (!create_options.specs.empty()
+            && !(create_options.name.empty() && create_options.prefix.empty()))
+        {
+            set_target_prefix();
+            set_channels(ctx);
+            install_specs(create_options.specs, true);
+        }
+        else
+        {
+            Console::print("Nothing to do.");
+        }
 
         return 0;
     });
@@ -1643,6 +1722,7 @@ main(int argc, char** argv)
         exit(0);
     };
     app.add_flag_function("--version", print_version);
+    init_global_parser(&app);
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);
@@ -1700,12 +1780,16 @@ main(int argc, char** argv)
 
     if (app.get_subcommands().size() == 0)
     {
-        std::cout << app.help() << std::endl;
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+        Console::print(app.help());
     }
 
     if (app.got_subcommand(config_subcom) && config_subcom->get_subcommands().size() == 0)
     {
-        std::cout << config_subcom->help() << std::endl;
+        auto& ctx = Context::instance();
+        set_global_options(ctx);
+        Console::print(config_subcom->help());
     }
 
     return 0;

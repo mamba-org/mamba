@@ -81,6 +81,11 @@ static struct
 
 static struct
 {
+    bool update_all = false;
+} update_options;
+
+static struct
+{
     bool ssl_verify = true;
     std::size_t repodata_ttl = 1;
     bool retry_clean_cache = false;
@@ -688,9 +693,30 @@ install_specs(const std::vector<std::string>& specs,
 }
 
 void
-update_specs(const std::vector<std::string>& specs)
+update_specs(std::vector<std::string>& specs)
 {
-    std::cout << specs[0] << std::endl;
+    if (update_options.update_all)
+    {
+        auto& ctx = Context::instance();
+        if (ctx.target_prefix.empty())
+        {
+            throw std::runtime_error(
+                "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
+        }
+
+        PrefixData prefix_data(ctx.target_prefix);
+        prefix_data.load();
+
+        for (const auto& package : prefix_data.m_package_records)
+        {
+            auto name = package.second.name;
+            if (name != "python")
+            {
+                specs.push_back(name);
+            }
+        }
+    }
+
     install_specs(specs, false, SOLVER_UPDATE);
 }
 
@@ -916,7 +942,8 @@ init_install_parser(CLI::App* subcom)
 void
 init_update_parser(CLI::App* subcom)
 {
-    init_install_global_parser(subcom);
+    subcom->add_flag(
+        "-a, --all", update_options.update_all, "Update all packages in the environment");
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();

@@ -81,6 +81,11 @@ static struct
 
 static struct
 {
+    bool update_all = false;
+} update_options;
+
+static struct
+{
     bool ssl_verify = true;
     std::size_t repodata_ttl = 1;
     bool retry_clean_cache = false;
@@ -485,7 +490,10 @@ int RETRY_SUBDIR_FETCH = 1 << 0;
 int RETRY_SOLVE_ERROR = 1 << 1;
 
 void
-install_specs(const std::vector<std::string>& specs, bool create_env = false, int is_retry = 0)
+install_specs(const std::vector<std::string>& specs,
+              bool create_env = false,
+              int solver_flag = SOLVER_INSTALL,
+              int is_retry = 0)
 {
     auto& ctx = Context::instance();
     set_global_options(ctx);
@@ -624,13 +632,13 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, in
         if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
         {
             LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-            return install_specs(specs, create_env, is_retry | RETRY_SUBDIR_FETCH);
+            return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
         }
         throw std::runtime_error("Could not load repodata. Cache corrupted?");
     }
 
     MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
-    solver.add_jobs(create_options.specs, SOLVER_INSTALL);
+    solver.add_jobs(create_options.specs, solver_flag);
 
     if (!create_options.no_pin)
     {
@@ -651,7 +659,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, in
         if (network_options.retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
         {
             ctx.local_repodata_ttl = 2;
-            return install_specs(specs, create_env, is_retry | RETRY_SOLVE_ERROR);
+            return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
         }
         throw std::runtime_error("Could not solve for environment specs");
     }
@@ -682,6 +690,34 @@ install_specs(const std::vector<std::string>& specs, bool create_env = false, in
     }
 
     trans.execute(prefix_data, pkgs_dirs);
+}
+
+void
+update_specs(std::vector<std::string>& specs)
+{
+    if (update_options.update_all)
+    {
+        auto& ctx = Context::instance();
+        if (ctx.target_prefix.empty())
+        {
+            throw std::runtime_error(
+                "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
+        }
+
+        PrefixData prefix_data(ctx.target_prefix);
+        prefix_data.load();
+
+        for (const auto& package : prefix_data.m_package_records)
+        {
+            auto& name = package.second.name;
+            if (name != "python")
+            {
+                specs.push_back(name);
+            }
+        }
+    }
+
+    install_specs(specs, false, SOLVER_UPDATE);
 }
 
 bool
@@ -842,7 +878,7 @@ void
 parse_file_options();
 
 void
-init_install_parser(CLI::App* subcom)
+init_install_global_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to install into the environment");
     subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
@@ -856,6 +892,12 @@ init_install_parser(CLI::App* subcom)
     init_network_parser(subcom);
     init_channel_parser(subcom);
     init_global_parser(subcom);
+}
+
+void
+init_install_parser(CLI::App* subcom)
+{
+    init_install_global_parser(subcom);
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
@@ -894,6 +936,20 @@ init_install_parser(CLI::App* subcom)
         set_channels(ctx);
 
         install_specs(create_options.specs, false);
+    });
+}
+
+void
+init_update_parser(CLI::App* subcom)
+{
+    subcom->add_flag(
+        "-a, --all", update_options.update_all, "Update all packages in the environment");
+
+    subcom->callback([&]() {
+        auto& ctx = Context::instance();
+        init_callback(ctx);
+        set_network_options(ctx);
+        update_specs(create_options.specs);
     });
 }
 
@@ -1272,25 +1328,13 @@ parse_file_options()
     }
 }
 
-
 void
 init_create_parser(CLI::App* subcom)
 {
-    subcom->add_option("specs", create_options.specs, "Specs to install into the new environment");
-    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
-    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
-    subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
-        ->type_size(1)
-        ->allow_extra_args(false);
-    subcom->add_flag(
-        "--no-pin", create_options.no_pin, "Ignore pinned packages (from config or prefix file)");
+    init_install_global_parser(subcom);
 
     subcom->add_option(
         "--extra-safety-checks", create_options.extra_safety_checks, "Perform extra safety checks");
-
-    init_network_parser(subcom);
-    init_channel_parser(subcom);
-    init_global_parser(subcom);
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
@@ -1609,6 +1653,9 @@ main(int argc, char** argv)
     CLI::App* install_subcom
         = app.add_subcommand("install", "Install packages in active environment");
     init_install_parser(install_subcom);
+
+    CLI::App* update_subcom = app.add_subcommand("update", "Update packages in active environment");
+    init_update_parser(update_subcom);
 
     CLI::App* remove_subcom
         = app.add_subcommand("remove", "Remove packages from active environment");

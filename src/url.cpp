@@ -54,6 +54,15 @@ namespace mamba
         remaining_url = rstrip(handler.url(), "/");
     }
 
+    bool compare_cleaned_url(const std::string& url1, const std::string& url2)
+    {
+        std::string u1_remaining, u1_scheme, u1_auth, u1_token;
+        std::string u2_remaining, u2_scheme, u2_auth, u2_token;
+        split_scheme_auth_token(url1, u1_remaining, u1_scheme, u1_auth, u1_token);
+        split_scheme_auth_token(url2, u2_remaining, u2_scheme, u2_auth, u2_token);
+        return u1_remaining == u2_remaining;
+    }
+
     void split_platform(const std::vector<std::string>& known_platforms,
                         const std::string& url,
                         std::string& cleaned_url,

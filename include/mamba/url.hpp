@@ -50,6 +50,8 @@ namespace mamba
                                  std::string& auth,
                                  std::string& token);
 
+    bool compare_cleaned_url(const std::string& url1, const std::string& url2);
+
     void split_platform(const std::vector<std::string>& known_platforms,
                         const std::string& url,
                         std::string& cleaned_url,

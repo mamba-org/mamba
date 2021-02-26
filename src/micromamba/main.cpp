@@ -95,6 +95,11 @@ static struct
 
 static struct
 {
+    std::string regex = "";
+} list_options;
+
+static struct
+{
     int verbosity = 0;
     bool always_yes = false;
     bool quiet = false;
@@ -730,13 +735,15 @@ remove_specs(const std::vector<std::string>& specs)
 }
 
 void
-list_packages()
+list_packages(std::string regex)
 {
     auto& ctx = Context::instance();
     set_global_options(ctx);
 
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
+
+    std::regex spec_pat(regex);
 
     if (ctx.json)
     {
@@ -753,16 +760,20 @@ list_packages()
         {
             auto obj = nlohmann::json();
             const auto& pkg_info = prefix_data.m_package_records.find(key)->second;
-            auto channel = mamba::make_channel(pkg_info.url);
-            obj["base_url"] = channel.base_url();
-            obj["build_number"] = pkg_info.build_number;
-            obj["build_string"] = pkg_info.build_string;
-            obj["channel"] = channel.name();
-            obj["dist_name"] = pkg_info.str();
-            obj["name"] = pkg_info.name;
-            obj["platform"] = pkg_info.subdir;
-            obj["version"] = pkg_info.version;
-            jout.push_back(obj);
+
+            if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
+            {
+                auto channel = mamba::make_channel(pkg_info.url);
+                obj["base_url"] = channel.base_url();
+                obj["build_number"] = pkg_info.build_number;
+                obj["build_string"] = pkg_info.build_string;
+                obj["channel"] = channel.name();
+                obj["dist_name"] = pkg_info.str();
+                obj["name"] = pkg_info.name;
+                obj["platform"] = pkg_info.subdir;
+                obj["version"] = pkg_info.version;
+                jout.push_back(obj);
+            }
         }
         std::cout << jout.dump(4) << std::endl;
         return;
@@ -777,19 +788,22 @@ list_packages()
     // order list of packages from prefix_data by alphabetical order
     for (const auto& package : prefix_data.m_package_records)
     {
-        formatted_pkgs.name = package.second.name;
-        formatted_pkgs.version = package.second.version;
-        formatted_pkgs.build = package.second.build_string;
-        if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
+        if (regex.empty() || std::regex_search(package.second.name, spec_pat))
         {
-            formatted_pkgs.channel = "";
+            formatted_pkgs.name = package.second.name;
+            formatted_pkgs.version = package.second.version;
+            formatted_pkgs.build = package.second.build_string;
+            if (package.second.channel.find("https://repo.anaconda.com/pkgs/") == 0)
+            {
+                formatted_pkgs.channel = "";
+            }
+            else
+            {
+                Channel& channel = make_channel(package.second.url);
+                formatted_pkgs.channel = channel.name();
+            }
+            packages.push_back(formatted_pkgs);
         }
-        else
-        {
-            Channel& channel = make_channel(package.second.url);
-            formatted_pkgs.channel = channel.name();
-        }
-        packages.push_back(formatted_pkgs);
     }
 
     std::sort(packages.begin(), packages.end(), compare_alphabetically);
@@ -814,11 +828,13 @@ void
 init_list_parser(CLI::App* subcom)
 {
     init_global_parser(subcom);
+    subcom->add_option(
+        "regex", list_options.regex, "List only packages matching a regular expression");
 
     subcom->callback([]() {
         auto& ctx = Context::instance();
         init_callback(ctx);
-        list_packages();
+        list_packages(list_options.regex);
     });
 }
 

@@ -709,7 +709,7 @@ update_specs(std::vector<std::string>& specs)
 
         for (const auto& package : prefix_data.m_package_records)
         {
-            auto name = package.second.name;
+            auto& name = package.second.name;
             if (name != "python")
             {
                 specs.push_back(name);

@@ -8,6 +8,7 @@
 #include "nlohmann/json.hpp"
 #include "mamba/package_handling.hpp"
 #include "mamba/validate.hpp"
+#include "mamba/url.hpp"
 
 namespace mamba
 {
@@ -186,7 +187,7 @@ namespace mamba
                     }
                     if (!repodata_record["url"].get<std::string>().empty())
                     {
-                        if (repodata_record["url"].get<std::string>() != s.url)
+                        if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
                         {
                             LOG_INFO << "Found cache, url differs.";
                             extract_dir_valid = false;

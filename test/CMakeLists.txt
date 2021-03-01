@@ -17,6 +17,7 @@ set(TEST_SRCS
     test_thread_utils.cpp
     test_graph.cpp
     test_pinning.cpp
+    test_virtual_packages.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})

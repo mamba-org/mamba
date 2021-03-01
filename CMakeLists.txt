@@ -63,7 +63,7 @@ if (USE_VENDORED_CLI11)
     add_definitions(-DVENDORED_CLI11=1)
 endif()
 
-add_definitions(-DMAMBA_USE_YAML_CPP)
+add_definitions(-DUMAMBA_ONLY)
 
 # Dependencies
 # ============
@@ -106,6 +106,7 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/util.cpp
     ${MAMBA_SOURCE_DIR}/validate.cpp
     ${MAMBA_SOURCE_DIR}/version.cpp
+    ${MAMBA_SOURCE_DIR}/virtual_packages.cpp
     ${MAMBA_SOURCE_DIR}/thirdparty/WinReg.hpp
 )
 
@@ -142,6 +143,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/util.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/version.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/virtual_packages.hpp
 )
 
 # Targets and link

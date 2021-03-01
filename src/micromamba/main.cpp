@@ -1744,6 +1744,9 @@ main(int argc, char** argv)
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     init_list_parser(list_subcom);
 
+    CLI::App* clean_subcom = app.add_subcommand("clean", "Clean package cache");
+    init_clean_parser(clean_subcom);
+
     CLI::App* config_subcom = app.add_subcommand("config", "Configuration of micromamba");
     init_config_parser(config_subcom);
 

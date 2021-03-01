@@ -33,11 +33,11 @@ jobs:
             wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
             mv bin/micromamba ./micromamba
           fi
-          ./micromamba shell init -s bash -p ~/micromamba
+          ./micromamba shell init -s bash -p ~/mambaroot
       - name: install deps
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
           micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
@@ -46,7 +46,7 @@ jobs:
       - name: build tests
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
           micromamba activate ~/build_env
@@ -59,7 +59,7 @@ jobs:
       - name: run new micromamba
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           cd build
           make -j2
@@ -68,20 +68,36 @@ jobs:
       - name: run new micromamba yaml env
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           cd build
           ./micromamba create -f ../test/yaml_env.yml
       - name: run new micromamba spec files
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/micromamba
+          export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           cd build
           ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
           ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
           # test noarch packages
           $MAMBA_ROOT_PREFIX/envs/testenv_two_files/bin/wheel --help
+      - name: micromamba prefix replacement / pkgconfig check
+        shell: bash -l -eo pipefail {0}
+        run: |
+          cd build
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
+
+          micromamba create -n pkgconf pkg-config=0.29.2 eigen -c conda-forge
+          micromamba activate pkgconf
+          IDIR=$(pkg-config eigen3 --cflags-only-I)
+          if [[ "${IDIR}" != "-I$CONDA_PREFIX/include/eigen3" ]];
+          then
+            exit 1;
+          fi
+
 
   build_unix:
     runs-on: ${{ matrix.os }}

@@ -1478,12 +1478,15 @@ init_clean_parser(CLI::App* subcom)
             envs.push_back(ctx.root_prefix);
         }
 
-        for (auto& p : fs::directory_iterator(ctx.root_prefix / "envs"))
+        if (fs::exists(ctx.root_prefix / "envs"))
         {
-            if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
+            for (auto& p : fs::directory_iterator(ctx.root_prefix / "envs"))
             {
-                LOG_INFO << "Found environment: " << p.path();
-                envs.push_back(p);
+                if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
+                {
+                    LOG_INFO << "Found environment: " << p.path();
+                    envs.push_back(p);
+                }
             }
         }
 
@@ -1743,6 +1746,9 @@ main(int argc, char** argv)
 
     CLI::App* list_subcom = app.add_subcommand("list", "List packages in active environment");
     init_list_parser(list_subcom);
+
+    CLI::App* clean_subcom = app.add_subcommand("clean", "Clean package cache");
+    init_clean_parser(clean_subcom);
 
     CLI::App* config_subcom = app.add_subcommand("config", "Configuration of micromamba");
     init_config_parser(config_subcom);

@@ -1478,12 +1478,15 @@ init_clean_parser(CLI::App* subcom)
             envs.push_back(ctx.root_prefix);
         }
 
-        for (auto& p : fs::directory_iterator(ctx.root_prefix / "envs"))
+        if (fs::exists(ctx.root_prefix / "envs"))
         {
-            if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
+            for (auto& p : fs::directory_iterator(ctx.root_prefix / "envs"))
             {
-                LOG_INFO << "Found environment: " << p.path();
-                envs.push_back(p);
+                if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
+                {
+                    LOG_INFO << "Found environment: " << p.path();
+                    envs.push_back(p);
+                }
             }
         }
 

@@ -186,7 +186,7 @@ namespace mamba
     {
         for (auto n : configs)
         {
-            if (!(*n)[key])
+            if (!(*n)[key] || (*n)[key].IsNull())
             {
                 continue;
             }
@@ -225,19 +225,19 @@ namespace mamba
     {
         for (auto n : configs)
         {
-            if ((*n)[key])
+            if (!(*n)[key] || (*n)[key].IsNull())
             {
-                if (!(*n)[key].IsScalar())
-                {
-                    LOG_ERROR << "Error in '" << node2src.at(n) << "' at key '" << key
-                              << "' (Skipped)";
-                    continue;
-                }
-
-                result[key] = (*n)[key];
-                sources[key] = node2src.at(n);
-                break;
+                continue;
             }
+            if (!(*n)[key].IsScalar())
+            {
+                LOG_ERROR << "Error in '" << node2src.at(n) << "' at key '" << key << "' (Skipped)";
+                continue;
+            }
+
+            result[key] = (*n)[key];
+            sources[key] = node2src.at(n);
+            break;
         }
     }
 

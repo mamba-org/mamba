@@ -898,10 +898,44 @@ namespace mamba
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 
-        if (path_data.path_type == PathType::HARDLINK)
+        if (path_data.no_link || (path_data.path_type == PathType::HARDLINK))
         {
-            LOG_INFO << "hard linked " << src << " --> " << dst;
-            fs::create_hard_link(src, dst);
+            bool copy = path_data.no_link || m_context->always_copy;
+            bool softlink = m_context->always_softlink;
+
+            if (!copy && !softlink)
+            {
+                std::error_code ec;
+                fs::create_hard_link(src, dst, ec);
+
+                if (ec)
+                {
+                    softlink = m_context->allow_softlinks;
+                    copy = !softlink;
+                }
+                else
+                {
+                    LOG_INFO << "hard linked " << src << " --> " << dst;
+                }
+            }
+            if (softlink)
+            {
+                std::error_code ec;
+                fs::create_symlink(src, dst, ec);
+                if (ec)
+                {
+                    copy = true;
+                }
+                else
+                {
+                    LOG_INFO << "soft linked " << src << " --> " << dst;
+                }
+            }
+            if (copy)
+            {
+                fs::copy(src, dst);
+                LOG_INFO << "copied " << src << " --> " << dst;
+            }
         }
         else if (path_data.path_type == PathType::SOFTLINK)
         {

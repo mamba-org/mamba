@@ -515,27 +515,29 @@ namespace mamba
 
     bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
     {
+        auto& ctx = Context::instance();
+
         // JSON output
         // back to the top level if any action was required
         if (!empty())
             JsonLogger::instance().json_up();
-        JsonLogger::instance().json_write({ { "dry_run", Context::instance().dry_run },
-                                            { "prefix", Context::instance().target_prefix } });
+        JsonLogger::instance().json_write(
+            { { "dry_run", ctx.dry_run }, { "prefix", ctx.target_prefix } });
         if (empty())
             JsonLogger::instance().json_write(
                 { { "message", "All requested packages already installed" } });
         // finally, print the JSON
-        if (Context::instance().json)
+        if (ctx.json)
             Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
 
-        if (Context::instance().dry_run)
+        if (ctx.dry_run)
         {
             Console::stream() << "Dry run. Not executing transaction.";
             return true;
         }
 
         Console::stream() << "\n\nTransaction starting";
-        m_transaction_context = TransactionContext(prefix.path(), find_python_version());
+        m_transaction_context = TransactionContext(ctx, prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
         TransactionRollback rollback;

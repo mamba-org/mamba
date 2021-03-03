@@ -85,6 +85,9 @@ static struct
     std::string safety_checks;
     bool extra_safety_checks;
     bool no_pin = false;
+    bool allow_softlinks = false;
+    bool always_copy = false;
+    bool always_softlink = false;
 } create_options;
 
 static struct
@@ -385,6 +388,15 @@ set_channels(Context& ctx)
             }
         }
     }
+}
+
+void
+set_create_options(Context& ctx)
+{
+    set_channels(ctx);
+    ctx.allow_softlinks = create_options.allow_softlinks;
+    ctx.always_softlink = create_options.always_softlink;
+    ctx.always_copy = create_options.always_copy;
 }
 
 void
@@ -918,6 +930,12 @@ init_install_global_parser(CLI::App* subcom)
         ->allow_extra_args(false);
     subcom->add_flag(
         "--no-pin", create_options.no_pin, "Ignore pinned packages (from config or prefix file)");
+    subcom->add_flag(
+        "--allow_softlinks", create_options.allow_softlinks, "Allow softlinks when hardlinks fail");
+    auto always_softlink = subcom->add_flag(
+        "--always-softlink", create_options.always_softlink, "Always softlink instead of hardlink");
+    subcom->add_flag("--always-copy", create_options.always_copy, "Always copy instead of hardlink")
+        ->excludes(always_softlink);
 
     init_network_parser(subcom);
     init_channel_parser(subcom);
@@ -963,7 +981,7 @@ init_install_parser(CLI::App* subcom)
         ctx.target_prefix = fs::absolute(ctx.target_prefix);
 
         parse_file_options();
-        set_channels(ctx);
+        set_create_options(ctx);
 
         if (!create_options.specs.empty())
         {
@@ -1301,13 +1319,14 @@ install_explicit_specs(std::vector<std::string>& specs)
     }
     if (download_explicit(pkg_infos))
     {
+        auto& ctx = Context::instance();
         // pkgs can now be linked
-        fs::create_directories(Context::instance().target_prefix / "conda-meta");
+        fs::create_directories(ctx.target_prefix / "conda-meta");
 
-        TransactionContext ctx(Context::instance().target_prefix, python_version);
+        TransactionContext tctx(ctx, ctx.target_prefix, python_version);
         for (auto& pkg : pkg_infos)
         {
-            LinkPackage lp(pkg, Context::instance().root_prefix / "pkgs", &ctx);
+            LinkPackage lp(pkg, ctx.root_prefix / "pkgs", &tctx);
             std::cout << "Linking " << pkg.str() << "\n";
             hist_entry.link_dists.push_back(pkg.long_str());
             lp.execute();
@@ -1517,7 +1536,7 @@ init_create_parser(CLI::App* subcom)
             && !(create_options.name.empty() && create_options.prefix.empty()))
         {
             set_target_prefix();
-            set_channels(ctx);
+            set_create_options(ctx);
             install_specs(create_options.specs, true);
         }
         else

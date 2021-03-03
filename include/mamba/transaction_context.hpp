@@ -9,6 +9,7 @@
 
 #include <string>
 
+#include "context.hpp"
 #include "mamba_fs.hpp"
 
 namespace mamba
@@ -25,7 +26,7 @@ namespace mamba
     {
     public:
         TransactionContext() = default;
-        TransactionContext(const fs::path& prefix, const std::string& py_version);
+        TransactionContext(Context& ctx, const fs::path& prefix, const std::string& py_version);
 
         bool has_python;
         fs::path target_prefix;
@@ -33,6 +34,9 @@ namespace mamba
         fs::path python_path;
         std::string python_version;
         std::string short_python_version;
+        bool allow_softlinks = false;
+        bool always_copy = false;
+        bool always_softlink = false;
     };
 }  // namespace mamba
 

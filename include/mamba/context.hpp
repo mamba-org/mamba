@@ -62,9 +62,13 @@ namespace mamba
         bool dry_run = false;
         bool always_yes = false;
 
+        bool extra_safety_checks = false;
+        bool allow_softlinks = false;
+        bool always_copy = false;
+        bool always_softlink = false;
 
         VerificationLevel safety_checks = VerificationLevel::WARN;
-        bool extra_safety_checks = false;
+        VerificationLevel extra_safety_checks = VerificationLevel::NONE;
 
         // debug helpers
         bool keep_temp_files = std::getenv("MAMBA_KEEP_TEMP") ? 1 : 0;

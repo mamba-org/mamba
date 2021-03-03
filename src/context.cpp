@@ -8,10 +8,11 @@
 
 #include "mamba/context.hpp"
 #include "mamba/output.hpp"
+#include "mamba/environment.hpp"
 #include "mamba/thread_utils.hpp"
 #include "mamba/util.hpp"
 
-#ifdef MAMBA_USE_YAML_CPP
+#ifdef UMAMBA_ONLY
 #include "mamba/config.hpp"
 #endif
 
@@ -104,7 +105,7 @@ namespace mamba
         this->verbosity = lvl;
     }
 
-#ifdef MAMBA_USE_YAML_CPP
+#ifdef UMAMBA_ONLY
     void Context::load_config()
     {
         Configurable& config = Configurable::instance();
@@ -127,7 +128,7 @@ namespace mamba
 
     std::string Context::platform()
     {
-        std::string platform = std::getenv("CONDA_SUBDIR") ? std::getenv("CONDA_SUBDIR") : "";
+        std::string platform = env::get("CONDA_SUBDIR");
         if (platform.empty())
         {
             return MAMBA_PLATFORM;

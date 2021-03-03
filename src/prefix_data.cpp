@@ -7,6 +7,7 @@
 #include "mamba/prefix_data.hpp"
 #include "mamba/output.hpp"
 
+
 namespace mamba
 {
     PrefixData::PrefixData(const std::string& prefix_path)
@@ -29,6 +30,18 @@ namespace mamba
             }
         }
     }
+
+#ifdef UMAMBA_ONLY
+    void PrefixData::add_virtual_packages(const std::vector<PackageInfo>& packages)
+    {
+        for (const auto& pkg : packages)
+        {
+            LOG_INFO << "Adding virtual package: " << pkg.name << "=" << pkg.version << "="
+                     << pkg.build_string;
+            m_package_records.insert({ pkg.name, std::move(pkg) });
+        }
+    }
+#endif
 
     const PrefixData::package_map& PrefixData::records() const
     {

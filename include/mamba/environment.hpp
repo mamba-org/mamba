@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <string_view>
+#include "mamba/output.hpp"
 
 #include "mamba_fs.hpp"
 #include "util.hpp"
@@ -47,16 +48,41 @@ namespace mamba
 
         inline std::string get(const std::string& key)
         {
+#ifdef _WIN32
+            std::size_t size = GetEnvironmentVariableA(key.c_str(), nullptr, 0);
+            if (size == 0)
+            {
+                if (GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+                {
+                    return "";
+                }
+                if (GetLastError() != NO_ERROR)
+                {
+                    LOG_ERROR << "Could not get environment variable: " << GetLastError();
+                }
+                return "";
+            }
+            std::unique_ptr<char[]> temp = std::make_unique<char[]>(size);
+            GetEnvironmentVariableA(key.c_str(), temp.get(), size);
+            std::string res(temp.get());
+            return res;
+#else
             const char* value = std::getenv(key.c_str());
             if (!value)
                 return "";
             return value;
+#endif
         }
 
         inline bool set(const std::string& key, const std::string& value)
         {
 #ifdef _WIN32
-            return SetEnvironmentVariable(key.c_str(), value.c_str());
+            auto res = SetEnvironmentVariableA(key.c_str(), value.c_str());
+            if (!res)
+            {
+                LOG_ERROR << "Could not set environment variable: " << GetLastError();
+            }
+            return res;
 #else
             return setenv(key.c_str(), value.c_str(), 1) == 0;
 #endif

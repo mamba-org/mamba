@@ -33,6 +33,7 @@
 #include "mamba/transaction.hpp"
 #include "mamba/thread_utils.hpp"
 #include "mamba/version.hpp"
+#include "mamba/virtual_packages.hpp"
 #include "mamba/util.hpp"
 
 #include "../thirdparty/termcolor.hpp"
@@ -47,6 +48,12 @@ const char banner[] = R"MAMBARAW(
 )MAMBARAW";
 
 using namespace mamba;  // NOLINT(build/namespaces)
+
+std::string
+version()
+{
+    return mamba_version;
+}
 
 static struct
 {
@@ -602,6 +609,7 @@ install_specs(const std::vector<std::string>& specs,
     }
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();
+    prefix_data.add_virtual_packages(get_virtual_packages());
 
     auto repo = MRepo(pool, prefix_data);
     repos.push_back(repo);
@@ -726,6 +734,7 @@ update_specs(std::vector<std::string>& specs)
 
         PrefixData prefix_data(ctx.target_prefix);
         prefix_data.load();
+        prefix_data.add_virtual_packages(get_virtual_packages());
 
         for (const auto& package : prefix_data.m_package_records)
         {
@@ -988,6 +997,7 @@ init_update_parser(CLI::App* subcom)
 
             PrefixData prefix_data(ctx.target_prefix);
             prefix_data.load();
+            prefix_data.add_virtual_packages(get_virtual_packages());
 
             for (const auto& package : prefix_data.m_package_records)
             {
@@ -1118,6 +1128,78 @@ init_config_parser(CLI::App* subcom)
             }
         }
         return 0;
+    });
+}
+
+void
+info_pretty_print(std::vector<std::tuple<std::string, std::vector<std::string>>> map)
+{
+    int key_max_length = 0;
+    for (auto item : map)
+    {
+        int key_length = std::get<0>(item).size();
+        key_max_length = key_length < key_max_length ? key_max_length : key_length;
+    }
+    ++key_max_length;
+
+    std::cout << std::endl;
+    for (auto item : map)
+    {
+        auto key = std::get<0>(item);
+        auto val = std::get<1>(item);
+        int blk_size = key_max_length - std::get<0>(item).size();
+
+        std::cout << std::string(blk_size, ' ') << key << " : ";
+        for (auto v = val.begin(); v != val.end(); ++v)
+        {
+            std::cout << *v;
+            if (v != (val.end() - 1))
+            {
+                std::cout << std::endl << std::string(key_max_length + 3, ' ');
+            }
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
+
+void
+init_info_parser(CLI::App* subcom)
+{
+    subcom->callback([&]() {
+        auto& ctx = Context::instance();
+        init_callback(ctx);
+
+        std::vector<std::tuple<std::string, std::vector<std::string>>> items;
+
+        auto split_prefix = rsplit(ctx.target_prefix.string(), "/", 1);
+        items.push_back({ "active environment", { split_prefix[1] } });
+        items.push_back({ "active env location", { split_prefix[0] } });
+        // items.insert( { "shell level", { 1 } });
+        items.push_back({ "user config files", { env::home_directory() / ".mambarc" } });
+
+        Configurable& config = Configurable::instance();
+        std::vector<std::string> sources;
+        for (auto s : config.get_valid_sources())
+        {
+            sources.push_back(s.string());
+        };
+        items.push_back({ "populated config files", sources });
+
+        items.push_back({ "micromamba version", { version() } });
+
+        std::vector<std::string> virtual_pkgs;
+        for (auto pkg : get_virtual_packages())
+        {
+            virtual_pkgs.push_back(concat(pkg.name, "=", pkg.version, "=", pkg.build_string));
+        }
+        items.push_back({ "virtual packages", virtual_pkgs });
+
+        items.push_back({ "base environment", { ctx.root_prefix.string() } });
+
+        items.push_back({ "platform", { ctx.platform() } });
+
+        info_pretty_print(items);
     });
 }
 
@@ -1705,13 +1787,6 @@ init_constructor_parser(CLI::App* subcom)
     });
 }
 
-std::string
-version()
-{
-    return mamba_version;
-}
-
-
 int
 main(int argc, char** argv)
 {
@@ -1752,6 +1827,9 @@ main(int argc, char** argv)
 
     CLI::App* config_subcom = app.add_subcommand("config", "Configuration of micromamba");
     init_config_parser(config_subcom);
+
+    CLI::App* info_subcom = app.add_subcommand("info", "Information about micromamba");
+    init_info_parser(info_subcom);
 
     std::stringstream footer;  // just for the help text
 

@@ -111,18 +111,60 @@ namespace mamba
         Configurable& config = Configurable::instance();
         auto c = config.get_config();
 
-        if (c["channels"])
+#define UMAMBA_EXTRACT_CONFIG(OPTIONNAME, TYPE)                                                    \
+    if (c[#OPTIONNAME])                                                                            \
+    {                                                                                              \
+        OPTIONNAME = c[#OPTIONNAME].as<TYPE>();                                                    \
+    }
+
+        UMAMBA_EXTRACT_CONFIG(channels, std::vector<std::string>);
+        UMAMBA_EXTRACT_CONFIG(pinned_packages, std::vector<std::string>);
+        UMAMBA_EXTRACT_CONFIG(ssl_verify, bool);
+        UMAMBA_EXTRACT_CONFIG(extra_safety_checks, bool);
+        UMAMBA_EXTRACT_CONFIG(auto_activate_base, bool);
+        UMAMBA_EXTRACT_CONFIG(override_channels_enabled, bool);
+        UMAMBA_EXTRACT_CONFIG(channel_alias, std::string);
+        UMAMBA_EXTRACT_CONFIG(channel_alias, std::string);
+
+        if (c["safety_checks"])
         {
-            channels = c["channels"].as<std::vector<std::string>>();
+            std::string conf_safety_checks = to_lower(c["safety_checks"].as<std::string>());
+            if (conf_safety_checks == "enabled")
+            {
+                safety_checks = VerificationLevel::ENABLED;
+            }
+            else if (conf_safety_checks == "disabled")
+            {
+                safety_checks = VerificationLevel::DISABLED;
+            }
+            else if (conf_safety_checks == "warn")
+            {
+                safety_checks = VerificationLevel::WARN;
+            }
+            else
+            {
+                LOG_WARNING
+                    << "Could not parse safety_checks option (possible values: enabled, warn, disabled)";
+            }
         }
-        if (c["pinned_packages"])
+
+        if (c["channel_priority"])
         {
-            pinned_packages = c["pinned_packages"].as<std::vector<std::string>>();
+            std::string conf_channel_priority = to_lower(c["channel_priority"].as<std::string>());
+            if (conf_channel_priority == "strict")
+            {
+                strict_channel_priority = true;
+            }
+            else if (conf_channel_priority == "disabled" || conf_channel_priority == "false")
+            {
+                strict_channel_priority = false;
+            }
+            else
+            {
+                LOG_WARNING
+                    << "Could not parse channel_priority option (possible values are strict and disabled)";
+            }
         }
-        channel_alias = c["channel_alias"] ? c["channel_alias"].as<std::string>() : channel_alias;
-        override_channels_enabled = c["override_channels_enabled"]
-                                        ? c["override_channels_enabled"].as<bool>()
-                                        : override_channels_enabled;
     }
 #endif
 

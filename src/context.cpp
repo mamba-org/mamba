@@ -112,7 +112,7 @@ namespace mamba
         auto c = config.get_config();
 
 #define UMAMBA_EXTRACT_CONFIG(OPTIONNAME, TYPE)                                                    \
-    if (c[#OPTIONNAME])                                                                            \
+    if (c[#OPTIONNAME] && !c[#OPTIONNAME].IsNull())                                                \
     {                                                                                              \
         OPTIONNAME = c[#OPTIONNAME].as<TYPE>();                                                    \
     }
@@ -124,9 +124,8 @@ namespace mamba
         UMAMBA_EXTRACT_CONFIG(auto_activate_base, bool);
         UMAMBA_EXTRACT_CONFIG(override_channels_enabled, bool);
         UMAMBA_EXTRACT_CONFIG(channel_alias, std::string);
-        UMAMBA_EXTRACT_CONFIG(channel_alias, std::string);
 
-        if (c["safety_checks"])
+        if (c["safety_checks"] && !c["safety_checks"].IsNull())
         {
             std::string conf_safety_checks = to_lower(c["safety_checks"].as<std::string>());
             if (conf_safety_checks == "enabled")
@@ -148,7 +147,7 @@ namespace mamba
             }
         }
 
-        if (c["channel_priority"])
+        if (c["channel_priority"] && !c["channel_priority"].IsNull())
         {
             std::string conf_channel_priority = to_lower(c["channel_priority"].as<std::string>());
             if (conf_channel_priority == "strict")

@@ -1172,9 +1172,16 @@ init_info_parser(CLI::App* subcom)
 
         std::vector<std::tuple<std::string, std::vector<std::string>>> items;
 
-        auto split_prefix = rsplit(ctx.target_prefix.string(), "/", 1);
-        items.push_back({ "active environment", { split_prefix[1] } });
-        items.push_back({ "active env location", { split_prefix[0] } });
+        if (!ctx.target_prefix.empty())
+        {
+            auto split_prefix = rsplit(ctx.target_prefix.string(), "/", 1);
+            items.push_back({ "active environment", { env_name(ctx.target_prefix) } });
+            items.push_back({ "active env location", { ctx.target_prefix.string() } });
+        }
+        else
+        {
+            items.push_back({ "active environment", { "None" } });
+        }
         // items.insert( { "shell level", { 1 } });
         items.push_back({ "user config files", { env::home_directory() / ".mambarc" } });
 

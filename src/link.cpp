@@ -853,12 +853,6 @@ namespace mamba
                           : 0;
                 std::string padding(padding_size, '\0');
 
-                auto binary_replace
-                    = [&](std::size_t pos, std::size_t end, const std::string& suffix) {
-                          std::string replacement = concat(new_prefix, suffix, padding);
-                          buffer.replace(pos, end - pos, replacement);
-                      };
-
                 std::size_t pos = buffer.find(path_data.prefix_placeholder);
                 while (pos != std::string::npos)
                 {
@@ -874,16 +868,15 @@ namespace mamba
                         ++end;
                     }
 
-                    binary_replace(pos, end, suffix);
-                    pos = buffer.find(path_data.prefix_placeholder, end);
+                    std::string replacement = concat(new_prefix, suffix, padding);
+                    buffer.replace(pos, end - pos, replacement);
+
+                    pos = buffer.find(path_data.prefix_placeholder, pos + new_prefix.size());
                 }
 #endif
             }
 
-            auto open_mode = (path_data.file_mode == FileMode::BINARY)
-                                 ? std::ios::out | std::ios::binary
-                                 : std::ios::out | std::ios::binary;
-            std::ofstream fo(dst, open_mode);
+            std::ofstream fo(dst, std::ios::out | std::ios::binary);
             fo << buffer;
             fo.close();
 

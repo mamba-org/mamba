@@ -202,7 +202,8 @@ PYBIND11_MODULE(mamba_api, m)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def("set_verbosity", &Context::set_verbosity)
-        .def_readwrite("channels", &Context::channels);
+        .def_readwrite("channels", &Context::channels)
+        .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2);
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())

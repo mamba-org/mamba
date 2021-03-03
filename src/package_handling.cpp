@@ -422,7 +422,16 @@ namespace mamba
 
     bool validate(const fs::path& pkg_folder)
     {
-        auto full_validation = Context::instance().extra_safety_checks != VerificationLevel::NONE;
+        auto safety_checks = Context::instance().safety_checks;
+        if (safety_checks == VerificationLevel::DISABLED)
+        {
+            return true;
+        }
+
+        bool is_warn = safety_checks == VerificationLevel::WARN;
+        bool is_fail = safety_checks == VerificationLevel::ENABLED;
+        bool full_validation = Context::instance().extra_safety_checks;
+
         try
         {
             auto paths_data = read_paths(pkg_folder);
@@ -431,9 +440,13 @@ namespace mamba
                 fs::path full_path = pkg_folder / p.path;
                 if (!fs::exists(full_path))
                 {
-                    LOG_WARNING << "Missing file from package cache: " << full_path;
-                    return false;
+                    if (is_warn || is_fail)
+                    {
+                        LOG_WARNING << "Missing file from package cache: " << full_path;
+                        return false;
+                    }
                 }
+
                 // old packages don't have paths.json with validation information
                 if (p.size_in_bytes != 0 && Context::instance().extra_safety_checks)
                 {
@@ -444,23 +457,22 @@ namespace mamba
                         LOG_WARNING << "Size incorrect, file modified in package cache "
                                     << full_path;
                         is_invalid = true;
-                        if (Context::instance().extra_safety_checks != VerificationLevel::WARN)
+                        if (is_fail)
                         {
                             return false;
                         }
                     }
-                    if (!is_invalid && full_validation && p.path_type != PathType::SOFTLINK
+                    if (full_validation && !is_invalid && p.path_type != PathType::SOFTLINK
                         && !validate::sha256(full_path, p.sha256))
                     {
                         LOG_WARNING << "SHA256 checksum incorrect, file modified in package cache "
                                     << full_path;
-                        if (Context::instance().extra_safety_checks != VerificationLevel::WARN)
+                        if (is_fail)
                         {
                             return false;
                         }
                     }
                 }
-                LOG_INFO << "Validated " << p.path;
             }
         }
         catch (...)
@@ -468,6 +480,7 @@ namespace mamba
             LOG_WARNING << "Could not read paths.json from " << pkg_folder << std::endl;
             return false;
         }
+        LOG_INFO << "Validated package cache for " << pkg_folder;
         return true;
     }
 }  // namespace mamba

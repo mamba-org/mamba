@@ -82,7 +82,8 @@ static struct
     std::vector<std::string> channels;
     bool override_channels = false;
     bool strict_channel_priority = false;
-    std::string extra_safety_checks;
+    std::string safety_checks;
+    bool extra_safety_checks;
     bool no_pin = false;
 } create_options;
 
@@ -188,7 +189,7 @@ init_network_parser(CLI::App* subcom)
     std::string network = "Network options";
     subcom
         ->add_option(
-            "--ssl_verify", network_options.ssl_verify, "Enable or disable SSL verification")
+            "--ssl-verify", network_options.ssl_verify, "Enable or disable SSL verification")
         ->group(network);
     subcom
         ->add_option("--ssl-no-revoke",
@@ -293,19 +294,19 @@ set_global_options(Context& ctx)
     ctx.dry_run = global_options.dry_run;
     check_root_prefix();
 
-    if (!create_options.extra_safety_checks.empty())
+    if (!create_options.safety_checks.empty())
     {
-        if (to_lower(create_options.extra_safety_checks) == "none")
+        if (to_lower(create_options.safety_checks) == "disabled")
         {
-            ctx.extra_safety_checks = VerificationLevel::NONE;
+            ctx.safety_checks = VerificationLevel::DISABLED;
         }
-        else if (to_lower(create_options.extra_safety_checks) == "warn")
+        else if (to_lower(create_options.safety_checks) == "warn")
         {
-            ctx.extra_safety_checks = VerificationLevel::WARN;
+            ctx.safety_checks = VerificationLevel::WARN;
         }
-        else if (to_lower(create_options.extra_safety_checks) == "fail")
+        else if (to_lower(create_options.safety_checks) == "enabled")
         {
-            ctx.extra_safety_checks = VerificationLevel::FAIL;
+            ctx.safety_checks = VerificationLevel::ENABLED;
         }
         else
         {
@@ -313,6 +314,8 @@ set_global_options(Context& ctx)
                       << "Select none (default), warn or fail";
         }
     }
+
+    ctx.extra_safety_checks = create_options.extra_safety_checks;
 }
 
 void
@@ -1493,8 +1496,12 @@ init_create_parser(CLI::App* subcom)
 {
     init_install_global_parser(subcom);
 
-    subcom->add_option(
-        "--extra-safety-checks", create_options.extra_safety_checks, "Perform extra safety checks");
+    subcom->add_flag("--extra-safety-checks",
+                     create_options.extra_safety_checks,
+                     "Perform extra safety checks (compute SHA256 sum for each file)");
+    subcom->add_option("--safety-checks",
+                       create_options.safety_checks,
+                       "Set safety check mode: enable, disable or warn");
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();

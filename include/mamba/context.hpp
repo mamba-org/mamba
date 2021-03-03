@@ -17,11 +17,11 @@
 
 namespace mamba
 {
-    enum VerificationLevel
+    enum class VerificationLevel
     {
-        NONE,
+        DISABLED,
         WARN,
-        FAIL
+        ENABLED
     };
 
     std::string env_name(const fs::path& prefix);
@@ -62,7 +62,9 @@ namespace mamba
         bool dry_run = false;
         bool always_yes = false;
 
-        VerificationLevel extra_safety_checks = VerificationLevel::NONE;
+
+        VerificationLevel safety_checks = VerificationLevel::WARN;
+        bool extra_safety_checks = false;
 
         // debug helpers
         bool keep_temp_files = std::getenv("MAMBA_KEEP_TEMP") ? 1 : 0;

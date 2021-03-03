@@ -103,6 +103,8 @@ namespace mamba
             }
 
             std::vector<std::string> override_config = { "ssl_verify",
+                                                         "safety_checks",
+                                                         "extra_safety_checks",
                                                          "auto_activate_base",
                                                          "override_channels_enabled",
                                                          "channel_alias",

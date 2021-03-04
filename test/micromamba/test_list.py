@@ -5,10 +5,12 @@ import subprocess
 
 import pytest
 
+from .helpers import get_umamba
+
 
 def umamba_list(*args):
-    cwd = os.getcwd()
-    umamba = os.path.join(cwd, "build", "micromamba")
+    umamba = get_umamba()
+
     cmd = [umamba, "list"] + [arg for arg in args if arg]
     res = subprocess.check_output(cmd)
 
@@ -30,10 +32,9 @@ class TestList:
 
     @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
     def test_regex(self, quiet_flag):
-        filtered_res = umamba_list("python", "--json", quiet_flag)
+        search_str = "python"
+        filtered_res = umamba_list(search_str, "--json", quiet_flag)
         res = umamba_list("--json")
 
-        regex = re.compile("python")
-        expected = {pkg["name"] for pkg in res if regex.match(pkg["name"])}
+        expected = {pkg["name"] for pkg in res if search_str in pkg["name"]}
         assert expected == {pkg["name"] for pkg in filtered_res}
-        assert len(expected) == 2

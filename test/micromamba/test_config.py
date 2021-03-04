@@ -4,10 +4,11 @@ import subprocess
 
 import pytest
 
+from .helpers import get_umamba
+
 
 def config(*args):
-    cwd = os.getcwd()
-    umamba = os.path.join(cwd, "build", "micromamba")
+    umamba = get_umamba()
     cmd = [umamba, "config"] + [arg for arg in args if arg]
     res = subprocess.check_output(cmd)
     if "--json" in args:

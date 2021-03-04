@@ -241,6 +241,14 @@ init_global_parser(CLI::App* subcom)
 }
 
 void
+init_prefix_parser(CLI::App* subcom)
+{
+    std::string prefix = "Prefix options";
+    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the prefix")->group(prefix);
+    subcom->add_option("-n,--name", create_options.name, "Name of the prefix")->group(prefix);
+}
+
+void
 set_network_options(Context& ctx)
 {
     // ssl verify can be either an empty string (regular SSL verification),
@@ -325,6 +333,62 @@ set_global_options(Context& ctx)
 }
 
 void
+set_target_prefix(Context& ctx)
+{
+    if (!create_options.name.empty() && !create_options.prefix.empty())
+    {
+        throw std::runtime_error("Cannot set both, prefix and name.");
+    }
+
+    if (!create_options.name.empty())
+    {
+        if (create_options.name == "base")
+        {
+            ctx.target_prefix = ctx.root_prefix;
+        }
+        else
+        {
+            ctx.target_prefix = ctx.root_prefix / "envs" / create_options.name;
+        }
+    }
+    else if (!create_options.prefix.empty())
+    {
+        ctx.target_prefix = create_options.prefix;
+    }
+
+    if (ctx.target_prefix.empty())
+    {
+        throw std::runtime_error("Prefix and name arguments are empty.");
+    }
+
+    ctx.target_prefix = fs::absolute(ctx.target_prefix);
+}
+
+void
+catch_existing_target_prefix(Context& ctx)
+{
+    if (fs::exists(ctx.target_prefix))
+    {
+        if (fs::exists(ctx.target_prefix / "conda-meta"))
+        {
+            if (Console::prompt(
+                    "Found conda-prefix in " + ctx.target_prefix.string() + ". Overwrite?", 'n'))
+            {
+                fs::remove_all(ctx.target_prefix);
+            }
+            else
+            {
+                exit(1);
+            }
+        }
+        else
+        {
+            throw std::runtime_error("Non-conda folder exists at prefix. Exiting.");
+        }
+    }
+}
+
+void
 load_rc_files(Context& ctx)
 {
     if (!global_options.no_rc)
@@ -338,6 +402,7 @@ void
 init_callback(Context& ctx)
 {
     set_global_options(ctx);
+    set_target_prefix(ctx);
     load_rc_files(ctx);
 }
 
@@ -912,9 +977,18 @@ list_packages(std::string regex)
 }
 
 void
+init_app_parser(CLI::App* subcom)
+{
+    init_global_parser(subcom);
+    init_prefix_parser(subcom);
+}
+
+void
 init_list_parser(CLI::App* subcom)
 {
     init_global_parser(subcom);
+    init_prefix_parser(subcom);
+
     subcom->add_option(
         "regex", list_options.regex, "List only packages matching a regular expression");
 
@@ -931,9 +1005,12 @@ parse_file_options();
 void
 init_install_global_parser(CLI::App* subcom)
 {
+    init_global_parser(subcom);
+    init_prefix_parser(subcom);
+    init_network_parser(subcom);
+    init_channel_parser(subcom);
+
     subcom->add_option("specs", create_options.specs, "Specs to install into the environment");
-    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
-    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
@@ -949,10 +1026,6 @@ init_install_global_parser(CLI::App* subcom)
     subcom->add_flag("--always-copy,!--no-always-copy",
                      create_options.always_copy,
                      "Always copy instead of hardlink");
-
-    init_network_parser(subcom);
-    init_channel_parser(subcom);
-    init_global_parser(subcom);
 }
 
 void
@@ -962,41 +1035,12 @@ init_install_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
+        parse_file_options();
         init_callback(ctx);
         set_network_options(ctx);
-        ctx.strict_channel_priority = create_options.strict_channel_priority;
-
-        if (!create_options.name.empty() && !create_options.prefix.empty())
-        {
-            throw std::runtime_error("Cannot set both, prefix and name.");
-        }
-        if (!create_options.name.empty())
-        {
-            if (create_options.name == "base")
-            {
-                ctx.target_prefix = ctx.root_prefix;
-            }
-            else
-            {
-                ctx.target_prefix = ctx.root_prefix / "envs" / create_options.name;
-            }
-        }
-        else if (!create_options.prefix.empty())
-        {
-            ctx.target_prefix = create_options.prefix;
-        }
-        else if (ctx.target_prefix.empty())
-        {
-            throw std::runtime_error(
-                "Prefix and name arguments are empty and a conda environment is not activated.");
-        }
-
-        ctx.target_prefix = fs::absolute(ctx.target_prefix);
-
-        parse_file_options();
         set_create_options(ctx);
 
-        if (!create_options.specs.empty())
+        if (!create_options.specs.empty() && !ctx.target_prefix.empty())
         {
             install_specs(create_options.specs, false);
         }
@@ -1058,10 +1102,9 @@ void
 init_remove_parser(CLI::App* subcom)
 {
     subcom->add_option("specs", create_options.specs, "Specs to remove from the environment");
-    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the Prefix");
-    subcom->add_option("-n,--name", create_options.name, "Name of the Prefix");
 
     init_global_parser(subcom);
+    init_prefix_parser(subcom);
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
@@ -1081,35 +1124,12 @@ void
 init_config_parser(CLI::App* subcom)
 {
     init_global_parser(subcom);
-
-    auto& ctx = Context::instance();
-    auto default_rc = (env::home_directory() / ".mambarc").string();
-    auto root_rc = (ctx.root_prefix / ".mambarc").string();
-    auto prefix_rc = (ctx.target_prefix / ".mambarc").string();
-
-    /*
-        auto config_loc_desc =
-        unindent(R"(
-            Config File Location Selection:
-              Without one of these flags, the user config file at ')") + default_rc + R"(' is used.
-            )";
-
-        subcom->add_flag("--system")
-              ->description("Write to the system .mambarc file at '" + root_rc + "'.")
-              ->group(config_loc_desc);
-
-        subcom->add_flag("--env")
-              ->description("Write to the active conda environment .mambarc file (" + prefix_rc +
-       "). " + "If no environment is active, write to the user config file (" + default_rc + ").")
-              ->group(config_loc_desc);
-
-        subcom->add_option("--file")
-              ->description("Write to the given file.")
-              ->group(config_loc_desc);
-    */
+    init_prefix_parser(subcom);
 
     auto list_subcom = subcom->add_subcommand("list", "Show configuration values.");
+
     init_global_parser(list_subcom);
+    init_prefix_parser(list_subcom);
     list_subcom->add_flag("--show-source",
                           config_options.show_sources,
                           "Display all identified configuration sources.");
@@ -1131,7 +1151,10 @@ init_config_parser(CLI::App* subcom)
     });
 
     auto sources_subcom = subcom->add_subcommand("sources", "Show configuration sources.");
+
     init_global_parser(sources_subcom);
+    init_prefix_parser(sources_subcom);
+
     sources_subcom->callback([&]() {
         auto& ctx = Context::instance();
         init_callback(ctx);
@@ -1349,59 +1372,6 @@ install_explicit_specs(std::vector<std::string>& specs)
     }
 }
 
-
-void
-set_target_prefix()
-{
-    auto& ctx = Context::instance();
-
-    if (!create_options.name.empty() && !create_options.prefix.empty())
-    {
-        throw std::runtime_error("Cannot set both, prefix and name.");
-    }
-    if (!create_options.name.empty())
-    {
-        if (create_options.name == "base")
-        {
-            throw std::runtime_error(
-                "Cannot create environment with name 'base'.");  // TODO! Use install -n.
-        }
-
-        ctx.target_prefix = ctx.root_prefix / "envs" / create_options.name;
-    }
-    else
-    {
-        if (create_options.prefix.empty())
-        {
-            throw std::runtime_error("Prefix and name arguments are empty.");
-        }
-        ctx.target_prefix = create_options.prefix;
-    }
-
-    ctx.target_prefix = fs::absolute(ctx.target_prefix);
-
-    if (fs::exists(ctx.target_prefix))
-    {
-        if (fs::exists(ctx.target_prefix / "conda-meta"))
-        {
-            if (Console::prompt(
-                    "Found conda-prefix in " + ctx.target_prefix.string() + ". Overwrite?", 'n'))
-            {
-                fs::remove_all(ctx.target_prefix);
-            }
-            else
-            {
-                exit(1);
-            }
-        }
-        else
-        {
-            throw std::runtime_error("Non-conda folder exists at prefix. Exiting.");
-        }
-    }
-}
-
-
 void
 parse_file_options()
 {
@@ -1502,7 +1472,9 @@ parse_file_options()
                     std::cout << "Installing explicit specs for platform " << platform << std::endl;
                     std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                             file_contents.end());
-                    set_target_prefix();
+                    auto& ctx = Context::instance();
+                    set_target_prefix(ctx);
+                    catch_existing_target_prefix(ctx);
                     install_explicit_specs(explicit_specs);
                     exit(0);
                 }
@@ -1537,19 +1509,30 @@ init_create_parser(CLI::App* subcom)
 
     subcom->callback([&]() {
         auto& ctx = Context::instance();
+        // file options have to be parsed _before_ the following checks
+        // to fill in name and prefix
+        parse_file_options();
         init_callback(ctx);
         set_network_options(ctx);
         ctx.strict_channel_priority = create_options.strict_channel_priority;
 
-        // file options have to be parsed _before_ the following checks
-        // to fill in name and prefix
-        parse_file_options();
-
-        if (!create_options.specs.empty()
-            && !(create_options.name.empty() && create_options.prefix.empty()))
+        if (!create_options.specs.empty() && !ctx.target_prefix.empty())
         {
-            set_target_prefix();
             set_create_options(ctx);
+            if (ctx.target_prefix == ctx.root_prefix)
+            {
+                if (Console::prompt(
+                        "It's not possible to create a new base env. Install in base instead?",
+                        'n'))
+                {
+                    install_specs(create_options.specs, false);
+                }
+                else
+                {
+                    exit(1);
+                }
+            }
+            catch_existing_target_prefix(ctx);
             install_specs(create_options.specs, true);
         }
         else
@@ -1846,7 +1829,7 @@ main(int argc, char** argv)
         exit(0);
     };
     app.add_flag_function("--version", print_version);
-    init_global_parser(&app);
+    init_app_parser(&app);
 
     CLI::App* shell_subcom = app.add_subcommand("shell", "Generate shell init scripts");
     init_shell_parser(shell_subcom);

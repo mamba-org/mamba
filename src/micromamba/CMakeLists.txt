@@ -1,8 +1,37 @@
 set(MAMBA_EXE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/clean.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/constructor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/create.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/info.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/install.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/list.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/options.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/parsers.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/remove.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/shell.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/umamba.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/update.cpp
 )
 
-add_executable(micromamba ${MAMBA_EXE})
+set(MAMBA_EXE_HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/clean.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/config.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/constructor.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/create.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/info.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/install.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/list.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/options.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/parsers.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/remove.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/shell.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/umamba.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/update.hpp
+)
+
+add_executable(micromamba ${MAMBA_EXE} ${MAMBA_EXE_HEADERS})
 
 target_include_directories(
     micromamba

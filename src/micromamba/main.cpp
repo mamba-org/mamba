@@ -80,11 +80,14 @@ static struct
     std::string name;
     std::vector<std::string> files;
     std::vector<std::string> channels;
-    bool override_channels = false;
-    bool strict_channel_priority = false;
+    int override_channels = 0;
+    int strict_channel_priority = 0;
     std::string safety_checks;
-    bool extra_safety_checks;
-    bool no_pin = false;
+    int extra_safety_checks;
+    int no_pin = 0;
+    int allow_softlinks = 0;
+    int always_copy = 0;
+    int always_softlink = 0;
 } create_options;
 
 static struct
@@ -283,6 +286,9 @@ set_network_options(Context& ctx)
     ctx.local_repodata_ttl = network_options.repodata_ttl;
 }
 
+#define SET_BOOLEAN_FLAG(NAME)                                                                     \
+    ctx.NAME = create_options.NAME ? ((create_options.NAME == 1) ? true : false) : ctx.NAME;
+
 void
 set_global_options(Context& ctx)
 {
@@ -315,7 +321,7 @@ set_global_options(Context& ctx)
         }
     }
 
-    ctx.extra_safety_checks = create_options.extra_safety_checks;
+    SET_BOOLEAN_FLAG(extra_safety_checks);
 }
 
 void
@@ -384,6 +390,21 @@ set_channels(Context& ctx)
                 ctx.channels.push_back(c);
             }
         }
+    }
+}
+
+void
+set_create_options(Context& ctx)
+{
+    set_channels(ctx);
+    SET_BOOLEAN_FLAG(strict_channel_priority);
+    SET_BOOLEAN_FLAG(allow_softlinks);
+    SET_BOOLEAN_FLAG(always_softlink);
+    SET_BOOLEAN_FLAG(always_copy);
+
+    if (ctx.always_softlink && ctx.always_copy)
+    {
+        throw std::runtime_error("'always-softlink' and 'always-copy' options are exclusive.");
     }
 }
 
@@ -916,8 +937,18 @@ init_install_global_parser(CLI::App* subcom)
     subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
         ->type_size(1)
         ->allow_extra_args(false);
-    subcom->add_flag(
-        "--no-pin", create_options.no_pin, "Ignore pinned packages (from config or prefix file)");
+    subcom->add_flag("--no-pin,!--pin",
+                     create_options.no_pin,
+                     "Ignore pinned packages (from config or prefix file)");
+    subcom->add_flag("--allow-softlinks,!--no-allow-softlinks",
+                     create_options.allow_softlinks,
+                     "Allow softlinks when hardlinks fail");
+    subcom->add_flag("--always-softlink,!--no-always-softlink",
+                     create_options.always_softlink,
+                     "Always softlink instead of hardlink");
+    subcom->add_flag("--always-copy,!--no-always-copy",
+                     create_options.always_copy,
+                     "Always copy instead of hardlink");
 
     init_network_parser(subcom);
     init_channel_parser(subcom);
@@ -963,7 +994,7 @@ init_install_parser(CLI::App* subcom)
         ctx.target_prefix = fs::absolute(ctx.target_prefix);
 
         parse_file_options();
-        set_channels(ctx);
+        set_create_options(ctx);
 
         if (!create_options.specs.empty())
         {
@@ -1301,13 +1332,14 @@ install_explicit_specs(std::vector<std::string>& specs)
     }
     if (download_explicit(pkg_infos))
     {
+        auto& ctx = Context::instance();
         // pkgs can now be linked
-        fs::create_directories(Context::instance().target_prefix / "conda-meta");
+        fs::create_directories(ctx.target_prefix / "conda-meta");
 
-        TransactionContext ctx(Context::instance().target_prefix, python_version);
+        TransactionContext tctx(ctx.target_prefix, python_version);
         for (auto& pkg : pkg_infos)
         {
-            LinkPackage lp(pkg, Context::instance().root_prefix / "pkgs", &ctx);
+            LinkPackage lp(pkg, ctx.root_prefix / "pkgs", &tctx);
             std::cout << "Linking " << pkg.str() << "\n";
             hist_entry.link_dists.push_back(pkg.long_str());
             lp.execute();
@@ -1517,7 +1549,7 @@ init_create_parser(CLI::App* subcom)
             && !(create_options.name.empty() && create_options.prefix.empty()))
         {
             set_target_prefix();
-            set_channels(ctx);
+            set_create_options(ctx);
             install_specs(create_options.specs, true);
         }
         else

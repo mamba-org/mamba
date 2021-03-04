@@ -9,6 +9,7 @@
 
 #include <string>
 
+#include "context.hpp"
 #include "mamba_fs.hpp"
 
 namespace mamba
@@ -33,6 +34,9 @@ namespace mamba
         fs::path python_path;
         std::string python_version;
         std::string short_python_version;
+        bool allow_softlinks = false;
+        bool always_copy = false;
+        bool always_softlink = false;
     };
 }  // namespace mamba
 

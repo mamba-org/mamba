@@ -69,16 +69,16 @@ namespace mamba
         }
     }
 
-    TransactionContext::TransactionContext(Context& ctx,
-                                           const fs::path& prefix,
-                                           const std::string& py_version)
+    TransactionContext::TransactionContext(const fs::path& prefix, const std::string& py_version)
         : has_python(py_version.size() != 0)
         , target_prefix(prefix)
         , python_version(py_version)
-        , allow_softlinks(ctx.allow_softlinks)
-        , always_copy(ctx.always_copy)
-        , always_softlink(ctx.always_softlink)
     {
+        auto& ctx = Context::instance();
+        allow_softlinks = ctx.allow_softlinks;
+        always_copy = ctx.always_copy;
+        always_softlink = ctx.always_softlink;
+
         if (python_version.size() == 0)
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";

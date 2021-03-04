@@ -108,7 +108,10 @@ namespace mamba
                                                          "auto_activate_base",
                                                          "override_channels_enabled",
                                                          "channel_alias",
-                                                         "channel_priority" };
+                                                         "channel_priority",
+                                                         "allow_softlinks",
+                                                         "always_softlink",
+                                                         "always_copy" };
             for (auto key : override_config)
             {
                 build_override(nodes, key, node2src, config, config_sources);

@@ -537,7 +537,7 @@ namespace mamba
         }
 
         Console::stream() << "\n\nTransaction starting";
-        m_transaction_context = TransactionContext(ctx, prefix.path(), find_python_version());
+        m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
         TransactionRollback rollback;

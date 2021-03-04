@@ -898,7 +898,7 @@ namespace mamba
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 
-        if (path_data.no_link || (path_data.path_type == PathType::HARDLINK))
+        if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
             bool copy = path_data.no_link || m_context->always_copy;
             bool softlink = m_context->always_softlink;

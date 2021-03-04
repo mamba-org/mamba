@@ -124,6 +124,9 @@ namespace mamba
         UMAMBA_EXTRACT_CONFIG(auto_activate_base, bool);
         UMAMBA_EXTRACT_CONFIG(override_channels_enabled, bool);
         UMAMBA_EXTRACT_CONFIG(channel_alias, std::string);
+        UMAMBA_EXTRACT_CONFIG(allow_softlinks, bool);
+        UMAMBA_EXTRACT_CONFIG(always_softlink, bool);
+        UMAMBA_EXTRACT_CONFIG(always_copy, bool);
 
         if (c["safety_checks"] && !c["safety_checks"].IsNull())
         {

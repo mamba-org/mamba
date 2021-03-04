@@ -92,6 +92,49 @@ namespace mamba
 
             if (ec)
             {
+                out = "";
+
+                // Windows fallback
+                bool may_exist = false;
+                std::string path = env::get("PATH");
+                std::vector<std::string> paths = split(path, env::pathsep());
+
+                for (auto& p : paths)
+                {
+                    if (fs::exists(concat(p, env::pathsep(), "nvcuda.dll")))
+                    {
+                        may_exist = true;
+                        break;
+                    }
+                }
+
+                std::string base = "C:\\Windows\\System32\\DriverStore\\FileRepository";
+                if (may_exist)
+                {
+                    for (auto& p : fs::directory_iterator(base))
+                    {
+                        if (starts_with(p.path().string(), "nv")
+                            && fs::exists(p.path() / "nvidia-smi.exe"))
+                        {
+                            std::string err;
+                            std::string f = p.path() / "nvidia-smi.exe";
+                            std::vector<std::string> args = { f, "--query", "-u", "-x" };
+                            auto [status, ec] = reproc::run(args,
+                                                            reproc::options{},
+                                                            reproc::sink::string(out),
+                                                            reproc::sink::string(err));
+
+                            if (!ec)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (out.empty())
+            {
                 LOG_DEBUG << "Could not find CUDA version by calling 'nvidia-smi' (skipped)\n";
                 return "";
             }

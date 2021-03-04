@@ -1063,6 +1063,7 @@ init_update_parser(CLI::App* subcom)
         auto& ctx = Context::instance();
         init_callback(ctx);
         set_network_options(ctx);
+        set_create_options(ctx);
 
         if (update_options.update_all)
         {

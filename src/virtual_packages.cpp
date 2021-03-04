@@ -92,7 +92,7 @@ namespace mamba
 
             if (ec)
             {
-                LOG_ERROR << "Could not find CUDA version by calling 'nvidia-smi' (skipped)\n";
+                LOG_DEBUG << "Could not find CUDA version by calling 'nvidia-smi' (skipped)\n";
                 return "";
             }
 

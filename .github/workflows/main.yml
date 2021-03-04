@@ -97,6 +97,18 @@ jobs:
           then
             exit 1;
           fi
+      - name: micromamba python based tests
+        shell: bash -l -eo pipefail {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/build/micromamba
+          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
+
+          micromamba activate
+          micromamba install python=3.8 pytest -c conda-forge
+
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba
+          pytest test/micromamba -s
 
 
   build_unix:
@@ -144,7 +156,7 @@ jobs:
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mamba-tests
-          py.test test
+          pytest test --ignore=test/micromamba
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
@@ -187,7 +199,7 @@ jobs:
       - name: Run tests on Windows
         run: |
           conda activate mamba-tests
-          py.test test
+          pytest test
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml

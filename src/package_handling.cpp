@@ -448,7 +448,7 @@ namespace mamba
                 }
 
                 // old packages don't have paths.json with validation information
-                if (p.size_in_bytes != 0 && Context::instance().extra_safety_checks)
+                if (p.size_in_bytes != 0)
                 {
                     bool is_invalid = false;
                     if (p.path_type != PathType::SOFTLINK

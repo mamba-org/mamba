@@ -222,7 +222,16 @@ namespace mamba
             }
             if (!extract_dir_valid)
             {
-                remove_or_rename(extract_dir);
+                try
+                {
+                    remove_or_rename(extract_dir);
+                }
+                catch (const std::runtime_error& e)
+                {
+#ifdef UMAMBA_ONLY
+                    throw e;
+#endif
+                }
             }
             else
             {

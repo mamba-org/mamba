@@ -69,7 +69,6 @@ load_general_options(Context& ctx)
     ctx.offline = general_options.offline;
     ctx.dry_run = general_options.dry_run;
     check_root_prefix();
-    init_curl_ssl();
 }
 
 void
@@ -167,6 +166,8 @@ init_network_parser(CLI::App* subcom)
 void
 load_network_options(Context& ctx)
 {
+    init_curl_ssl();
+
     // ssl verify can be either an empty string (regular SSL verification),
     // the string "<false>" to indicate no SSL verification, or a path to
     // a directory with cert files, or a cert file.

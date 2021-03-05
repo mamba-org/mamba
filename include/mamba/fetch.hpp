@@ -22,6 +22,8 @@ extern "C"
 
 namespace mamba
 {
+    void init_curl_ssl();
+
     class DownloadTarget
     {
     public:

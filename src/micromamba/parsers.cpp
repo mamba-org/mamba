@@ -7,6 +7,7 @@
 #include "parsers.hpp"
 #include "options.hpp"
 
+#include "mamba/fetch.hpp"
 #include "mamba/config.hpp"
 
 #include "../thirdparty/termcolor.hpp"
@@ -165,6 +166,8 @@ init_network_parser(CLI::App* subcom)
 void
 load_network_options(Context& ctx)
 {
+    init_curl_ssl();
+
     // ssl verify can be either an empty string (regular SSL verification),
     // the string "<false>" to indicate no SSL verification, or a path to
     // a directory with cert files, or a cert file.

@@ -29,7 +29,7 @@ def rc_file(tmpdir_factory):
 
 class TestConfig:
     def test_empty(self):
-        assert config().startswith("Configuration of micromamba\n")
+        assert config().startswith("Configuration of micromamba")
 
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
     def test_quiet(self, quiet_flag):
@@ -42,10 +42,10 @@ class TestConfigSources:
     def test_sources(self, quiet_flag, rc_flag):
         res = config("sources", quiet_flag, rc_flag)
         expected = {
-            "--no-rc": "Configuration files disabled by --no-rc flag\n",
-            "--rc-file='none'": "Configuration files (by precedence order):\n",
+            "--no-rc": "Configuration files disabled by --no-rc flag",
+            "--rc-file='none'": "Configuration files (by precedence order):",
         }
-        assert res == expected[rc_flag]
+        assert res.strip() == expected[rc_flag]
 
 
 class TestConfigList:
@@ -58,11 +58,12 @@ class TestConfigList:
         if rc_flag == "--rc-file=":
             rc_flag += str(rc_file)
 
-        assert config("list", rc_flag) == expected[rc_flag]
+        assert config("list", rc_flag).splitlines() == expected[rc_flag].splitlines()
 
     def test_list_with_sources(self, rc_file):
-        src = f"  # {rc_file}"
+        home_folder = os.path.expanduser("~")
+        src = f"  # {str(rc_file).replace(home_folder, '~')}"
         assert (
-            config("list", "--rc-file=" + str(rc_file), "--show-source")
-            == f"channels:\n  - channel1{src}\n  - channel2{src}\n"
+            config("list", "--rc-file=" + str(rc_file), "--show-source").splitlines()
+            == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )

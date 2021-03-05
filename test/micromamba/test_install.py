@@ -14,7 +14,7 @@ from .helpers import *
 
 class TestInstall:
     def test_empty(self):
-        assert install() == "Nothing to do.\n"
+        assert install().strip() == "Nothing to do."
 
     def test_already_installed(self):
         res = install("numpy", "--json", "--dry-run")
@@ -42,15 +42,21 @@ class TestInstall:
         assert expected_packages.issubset(packages)
 
 
+if platform.system() == "Windows":
+    xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
+else:
+    xtensor_hpp = "include/xtensor/xtensor.hpp"
+
+
 class TestLinking:
     def test_link(self):
         res = create("xtensor", "-n", "x1", "--json")
-        xf = get_env("x1", "include/xtensor/xtensor.hpp")
+        xf = get_env("x1", xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
 
         stat_orig = orig_file_path.stat()
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
@@ -61,12 +67,12 @@ class TestLinking:
     def test_copy(self):
         env = "x2"
         res = create("xtensor", "-n", env, "--json", "--always-copy")
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
 
         assert not xf.is_symlink()
 
@@ -75,15 +81,19 @@ class TestLinking:
 
         shutil.rmtree(get_env(env))
 
+    @pytest.mark.skipif(
+        platform.system() == "Windows",
+        reason="Softlinking needs admin privileges on win",
+    )
     def test_always_softlink(self):
         env = "x3"
         res = create("xtensor", "-n", env, "--json", "--always-softlink")
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
 
         stat_orig = orig_file_path.stat()
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino

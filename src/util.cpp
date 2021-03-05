@@ -18,6 +18,8 @@
 
 #include "mamba/context.hpp"
 #include "mamba/util.hpp"
+#include "mamba/output.hpp"
+
 
 namespace mamba
 {
@@ -534,7 +536,7 @@ namespace mamba
             }
             catch (const fs::filesystem_error& e)
             {
-                std::cout << "Caught a filesystem error: " << e.what();
+                LOG_ERROR << "Caught a filesystem error: " << e.what();
                 throw std::runtime_error("Could not remove directory " + path.string());
             }
         }
@@ -546,7 +548,7 @@ namespace mamba
             }
             catch (const fs::filesystem_error& e)
             {
-                std::cout << "Caught a filesystem error: " << e.what();
+                LOG_ERROR << "Caught a filesystem error: " << e.what();
                 throw std::runtime_error("Could not remove file " + path.string());
             }
         }

@@ -7,6 +7,7 @@
 #include "parsers.hpp"
 #include "options.hpp"
 
+#include "mamba/fetch.hpp"
 #include "mamba/config.hpp"
 
 #include "../thirdparty/termcolor.hpp"
@@ -68,6 +69,7 @@ load_general_options(Context& ctx)
     ctx.offline = general_options.offline;
     ctx.dry_run = general_options.dry_run;
     check_root_prefix();
+    init_curl_ssl();
 }
 
 void

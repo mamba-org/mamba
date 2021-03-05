@@ -14,6 +14,72 @@
 
 namespace mamba
 {
+    void init_curl_ssl()
+    {
+        CURLsslset sslset_res;
+        const curl_ssl_backend** available_backends;
+
+        if (on_linux)
+        {
+            sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
+        }
+        else if (on_mac)
+        {
+            sslset_res
+                = curl_global_sslset(CURLSSLBACKEND_SECURETRANSPORT, nullptr, &available_backends);
+        }
+        else if (on_win)
+        {
+            sslset_res = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
+        }
+
+        if (sslset_res == CURLSSLSET_TOO_LATE)
+        {
+            LOG_ERROR << "cURL SSL init called too late, that is a bug.";
+        }
+        else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND || sslset_res == CURLSSLSET_NO_BACKENDS)
+        {
+            LOG_WARNING
+                << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
+                << std::endl;
+            LOG_WARNING << "Please check the cURL library configuration that you are using."
+                        << std::endl;
+        }
+
+        CURL* handle = curl_easy_init();
+        if (handle)
+        {
+            const struct curl_tlssessioninfo* info = NULL;
+            CURLcode res = curl_easy_getinfo(handle, CURLINFO_TLS_SSL_PTR, &info);
+            if (info && !res)
+            {
+                if (info->backend == CURLSSLBACKEND_OPENSSL)
+                {
+                    LOG_INFO << "Using OpenSSL backend";
+                }
+                else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
+                {
+                    LOG_INFO << "Using macOS SecureTransport backend";
+                }
+                else if (info->backend == CURLSSLBACKEND_SCHANNEL)
+                {
+                    LOG_INFO << "Using Windows Schannel backend";
+                }
+                else if (info->backend != CURLSSLBACKEND_NONE)
+                {
+                    LOG_INFO << "Using an unknown (to mamba) SSL backend";
+                }
+                else if (info->backend == CURLSSLBACKEND_NONE)
+                {
+                    LOG_WARNING
+                        << "No SSL backend found! Please check how your cURL library is configured.";
+                }
+            }
+
+            curl_easy_cleanup(handle);
+        }
+    }
+
     /*********************************
      * DownloadTarget implementation *
      *********************************/
@@ -70,24 +136,6 @@ namespace mamba
 
         curl_easy_setopt(
             m_handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
-
-        const struct curl_tlssessioninfo* info = NULL;
-        CURLcode res = curl_easy_getinfo(m_handle, CURLINFO_TLS_SSL_PTR, &info);
-        if (info && !res)
-        {
-            if (info->backend == CURLSSLBACKEND_OPENSSL)
-            {
-                LOG_INFO << "Using OpenSSL backend";
-            }
-            else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
-            {
-                LOG_INFO << "Using macOS SecureTransport backend";
-            }
-            else if (info->backend == CURLSSLBACKEND_SCHANNEL)
-            {
-                LOG_INFO << "Using Windows Schannel backend";
-            }
-        }
 
         std::string ssl_no_revoke_env
             = std::getenv("MAMBA_SSL_NO_REVOKE") ? std::getenv("MAMBA_SSL_NO_REVOKE") : "0";

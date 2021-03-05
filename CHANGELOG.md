@@ -1,3 +1,25 @@
+0.8.0 (Mar 5, 2021)
+===================
+
+- [micromamba] condarc and mambarc config file reading (and config subcommand) (thanks @adriendelsalle)
+- [micromamba] support for virtual packages (thanks @adriendelsalle)
+- [micromamba] set ssl backend, use native SSL if possible
+- [micromamba] add python based testing framework for CLI
+- [micromamba] refactor CLI and micromamba main file (thanks @adriendelsalle)
+- [micromamba] add linking options (--always-copy etc.) (thanks @adriendelsalle)
+- [micromamba] fix multiple prefix replacements in binary files
+- [micromamba] fix micromamba clean (thanks @phue)
+- [micromamba] change package validation settings to --safety-checks and --extra-safety-checks
+- [micromamba] add update subcommand (thanks @adriendelsalle)
+- [micromamba] support pinning packages (including python minor version) (thanks @adriendelsalle)
+- [micromamba] add try/catch to WinReg getStringValue (thanks @SvenAdler)
+- [micromamba] add ssl-no-revoke option for more conda-compatibility (thanks @tl-hbk)
+- [micromamba] die when no ssl certificates are found (thanks @wholtz)
+- [docs] add explanation for base env install (thanks @ralexx) and rename changelog to .md (thanks @kevinheavey)
+- [micromamba] compare cleaned URLs for cache invalidation
+- [micromamba] add regex handling to list command
+
+
 0.7.14 (Feb 12, 2021)
 =====================
 

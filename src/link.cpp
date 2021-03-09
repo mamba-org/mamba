@@ -981,8 +981,8 @@ namespace mamba
 
         auto py_ver_split = split(m_context->python_version, ".");
 
-        if (std::stoi(std::string(py_ver_split[0])) >= 3
-            && std::stoi(std::string(py_ver_split[1])) > 5)
+        if (std::stoull(std::string(py_ver_split[0])) >= 3
+            && std::stoull(std::string(py_ver_split[1])) > 5)
         {
             // activate parallel pyc compilation
             command.push_back("-j0");

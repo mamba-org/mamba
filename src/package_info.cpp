@@ -107,7 +107,7 @@ namespace mamba
         str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
         if (str)
         {
-            n = std::stoi(str);
+            n = std::stoull(str);
             build_number = n;
         }
 

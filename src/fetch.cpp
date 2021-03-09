@@ -35,8 +35,11 @@ namespace mamba
             // a url of type file://hostname/path
             static const std::regex file_host(R"(file://([^/]*)(/.*)?)");
             std::smatch match;
-            if(std::regex_match(m_url, match, file_host)){
-                if(match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1" && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))")){
+            if (std::regex_match(m_url, match, file_host))
+            {
+                if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
+                    && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
+                {
                     m_url = "file:////" + std::string(match[1].first, m_url.cend());
                 }
             }

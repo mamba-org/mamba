@@ -30,6 +30,6 @@ jupyter lab               # this will start up jupyter lab and open a browser
 Once an environment is activated, `mamba install` can be used to install further packages into the environment.
 
 ```
-mamba activate myjlabenv
+conda activate myjlabenv
 mamba install bqplot  # now you can use bqplot in myjlabenv
 ```

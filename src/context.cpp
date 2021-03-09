@@ -12,10 +12,6 @@
 #include "mamba/thread_utils.hpp"
 #include "mamba/util.hpp"
 
-#ifdef UMAMBA_ONLY
-#include "mamba/config.hpp"
-#endif
-
 #include "thirdparty/termcolor.hpp"
 
 namespace mamba
@@ -104,71 +100,6 @@ namespace mamba
         }
         this->verbosity = lvl;
     }
-
-#ifdef UMAMBA_ONLY
-    void Context::load_config()
-    {
-        Configurable& config = Configurable::instance();
-        auto c = config.get_config();
-
-#define UMAMBA_EXTRACT_CONFIG(OPTIONNAME, TYPE)                                                    \
-    if (c[#OPTIONNAME] && !c[#OPTIONNAME].IsNull())                                                \
-    {                                                                                              \
-        OPTIONNAME = c[#OPTIONNAME].as<TYPE>();                                                    \
-    }
-
-        UMAMBA_EXTRACT_CONFIG(channels, std::vector<std::string>);
-        UMAMBA_EXTRACT_CONFIG(pinned_packages, std::vector<std::string>);
-        UMAMBA_EXTRACT_CONFIG(ssl_verify, bool);
-        UMAMBA_EXTRACT_CONFIG(extra_safety_checks, bool);
-        UMAMBA_EXTRACT_CONFIG(auto_activate_base, bool);
-        UMAMBA_EXTRACT_CONFIG(override_channels_enabled, bool);
-        UMAMBA_EXTRACT_CONFIG(channel_alias, std::string);
-        UMAMBA_EXTRACT_CONFIG(allow_softlinks, bool);
-        UMAMBA_EXTRACT_CONFIG(always_softlink, bool);
-        UMAMBA_EXTRACT_CONFIG(always_copy, bool);
-
-        if (c["safety_checks"] && !c["safety_checks"].IsNull())
-        {
-            std::string conf_safety_checks = to_lower(c["safety_checks"].as<std::string>());
-            if (conf_safety_checks == "enabled")
-            {
-                safety_checks = VerificationLevel::ENABLED;
-            }
-            else if (conf_safety_checks == "disabled")
-            {
-                safety_checks = VerificationLevel::DISABLED;
-            }
-            else if (conf_safety_checks == "warn")
-            {
-                safety_checks = VerificationLevel::WARN;
-            }
-            else
-            {
-                LOG_WARNING
-                    << "Could not parse safety_checks option (possible values: enabled, warn, disabled)";
-            }
-        }
-
-        if (c["channel_priority"] && !c["channel_priority"].IsNull())
-        {
-            std::string conf_channel_priority = to_lower(c["channel_priority"].as<std::string>());
-            if (conf_channel_priority == "strict")
-            {
-                strict_channel_priority = true;
-            }
-            else if (conf_channel_priority == "disabled" || conf_channel_priority == "false")
-            {
-                strict_channel_priority = false;
-            }
-            else
-            {
-                LOG_WARNING
-                    << "Could not parse channel_priority option (possible values are strict and disabled)";
-            }
-        }
-    }
-#endif
 
     std::string Context::platform()
     {

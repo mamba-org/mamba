@@ -1,8 +1,9 @@
 #include "install.hpp"
 #include "info.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
 #include "mamba/channel.hpp"
+#include "mamba/configuration.hpp"
 #include "mamba/link.hpp"
 #include "mamba/mamba_fs.hpp"
 #include "mamba/output.hpp"
@@ -20,6 +21,7 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+
 void
 init_install_parser(CLI::App* subcom)
 {
@@ -28,73 +30,57 @@ init_install_parser(CLI::App* subcom)
     init_network_parser(subcom);
     init_channel_parser(subcom);
 
-    subcom->add_option("specs", create_options.specs, "Specs to install into the environment");
-    subcom->add_option("-f,--file", create_options.files, "File (yaml, explicit or plain)")
+    auto& config = Configuration::instance();
+
+    auto& specs = config.insert(Configurable("specs", std::vector<std::string>({}))
+                                    .group("cli")
+                                    .rc_configurable(false)
+                                    .description("Specs to install into the environment"));
+    auto& file_specs = config.insert(Configurable("file_specs", std::vector<std::string>({}))
+                                         .group("cli")
+                                         .rc_configurable(false)
+                                         .description("File (yaml, explicit or plain)"));
+    auto& no_pin
+        = config.insert(Configurable("no_pin", false)
+                            .group("cli")
+                            .rc_configurable(false)
+                            .description("Ignore pinned packages (from config or prefix file)"));
+
+    subcom->add_option("specs", specs.set_cli_config({}), specs.description());
+
+    subcom->add_option("-f,--file", file_specs.set_cli_config({}), file_specs.description())
         ->type_size(1)
         ->allow_extra_args(false);
-    subcom->add_flag("--no-pin,!--pin",
-                     create_options.no_pin,
-                     "Ignore pinned packages (from config or prefix file)");
+
+    subcom->add_flag("--no-pin,!--pin", no_pin.set_cli_config(0), no_pin.description());
+
+    auto& allow_softlinks = config.at("allow_softlinks").get_wrapped<bool>();
     subcom->add_flag("--allow-softlinks,!--no-allow-softlinks",
-                     create_options.allow_softlinks,
-                     "Allow softlinks when hardlinks fail");
+                     allow_softlinks.set_cli_config(0),
+                     allow_softlinks.description());
+
+    auto& always_softlink = config.at("always_softlink").get_wrapped<bool>();
     subcom->add_flag("--always-softlink,!--no-always-softlink",
-                     create_options.always_softlink,
-                     "Always softlink instead of hardlink");
+                     always_softlink.set_cli_config(0),
+                     always_softlink.description());
+
+    auto& always_copy = config.at("always_copy").get_wrapped<bool>();
     subcom->add_flag("--always-copy,!--no-always-copy",
-                     create_options.always_copy,
-                     "Always copy instead of hardlink");
+                     always_copy.set_cli_config(0),
+                     always_copy.description());
 
-    subcom->add_flag("--extra-safety-checks",
-                     create_options.extra_safety_checks,
-                     "Perform extra safety checks (compute SHA256 sum for each file)");
-    subcom->add_option("--safety-checks",
-                       create_options.safety_checks,
-                       "Set safety check mode: enable, disable or warn");
+    auto& extra_safety_checks = config.at("extra_safety_checks").get_wrapped<bool>();
+    subcom->add_flag("--extra-safety-checks,!--no-extra-safety-checks",
+                     extra_safety_checks.set_cli_config(0),
+                     extra_safety_checks.description());
+
+    auto& safety_checks = config.at("safety_checks").get_wrapped<VerificationLevel>();
+    subcom->add_set("--safety-checks",
+                    safety_checks.set_cli_config(""),
+                    { "enabled", "warn", "disabled" },
+                    safety_checks.description());
 }
 
-void
-load_install_options(Context& ctx)
-{
-    load_general_options(ctx);
-    load_prefix_options(ctx);
-    load_rc_options(ctx);
-    load_network_options(ctx);
-    load_channel_options(ctx);
-
-    SET_BOOLEAN_FLAG(strict_channel_priority);
-    SET_BOOLEAN_FLAG(allow_softlinks);
-    SET_BOOLEAN_FLAG(always_softlink);
-    SET_BOOLEAN_FLAG(always_copy);
-
-    if (ctx.always_softlink && ctx.always_copy)
-    {
-        throw std::runtime_error("'always-softlink' and 'always-copy' options are exclusive.");
-    }
-
-    if (!create_options.safety_checks.empty())
-    {
-        if (to_lower(create_options.safety_checks) == "disabled")
-        {
-            ctx.safety_checks = VerificationLevel::DISABLED;
-        }
-        else if (to_lower(create_options.safety_checks) == "warn")
-        {
-            ctx.safety_checks = VerificationLevel::WARN;
-        }
-        else if (to_lower(create_options.safety_checks) == "enabled")
-        {
-            ctx.safety_checks = VerificationLevel::ENABLED;
-        }
-        else
-        {
-            LOG_ERROR << "Could not parse option for --extra-safety-checks\n"
-                      << "Select none (default), warn or fail";
-        }
-    }
-
-    SET_BOOLEAN_FLAG(extra_safety_checks);
-}
 
 void
 set_install_command(CLI::App* subcom)
@@ -102,14 +88,17 @@ set_install_command(CLI::App* subcom)
     init_install_parser(subcom);
 
     subcom->callback([&]() {
-        auto& ctx = Context::instance();
+        auto& configuration = Configuration::instance();
 
         parse_file_options();
-        load_install_options(ctx);
+        load_configuration();
 
-        if (!create_options.specs.empty() && !ctx.target_prefix.empty())
+        auto& specs = configuration.at("specs").value<std::vector<std::string>>();
+
+        if (!specs.empty())
         {
-            install_specs(create_options.specs, false);
+            check_target_prefix(true, true, true, true);
+            install_specs(specs, false);
         }
         else
         {
@@ -125,12 +114,10 @@ void
 install_specs(const std::vector<std::string>& specs, bool create_env, int solver_flag, int is_retry)
 {
     auto& ctx = Context::instance();
-    load_general_options(ctx);
+    auto& config = Configuration::instance();
 
-    if (!is_retry)
-    {
-        Console::print(banner);
-    }
+    auto& no_pin = config.at("no_pin").value<bool>();
+    auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
     fs::path pkgs_dirs;
 
@@ -150,7 +137,8 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     }
     if (!fs::exists(ctx.target_prefix) && create_env == false)
     {
-        throw std::runtime_error("Prefix does not exist\n");
+        LOG_ERROR << "Prefix does not exist at: " << ctx.target_prefix;
+        exit(1);
     }
 
     fs::path cache_dir = pkgs_dirs / "cache";
@@ -183,7 +171,11 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
         sdir->load();
         multi_dl.add(sdir->target());
         subdirs.push_back(sdir);
-        if (ctx.strict_channel_priority)
+        if (ctx.channel_priority == ChannelPriority::kDisabled)
+        {
+            priorities.push_back(std::make_pair(0, max_prio--));
+        }
+        else  // Consider 'flexible' and 'strict' the same way
         {
             if (channel.name() != prev_channel_name)
             {
@@ -191,10 +183,6 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
                 prev_channel_name = channel.name();
             }
             priorities.push_back(std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
-        }
-        else
-        {
-            priorities.push_back(std::make_pair(0, max_prio--));
         }
     }
     if (!ctx.offline)
@@ -268,9 +256,9 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     }
 
     MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
-    solver.add_jobs(create_options.specs, solver_flag);
+    solver.add_jobs(specs, solver_flag);
 
-    if (!create_options.no_pin)
+    if (!no_pin)
     {
         solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
         solver.add_pins(ctx.pinned_packages);
@@ -285,8 +273,8 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     bool success = solver.solve();
     if (!success)
     {
-        std::cout << "\n" << solver.problems_to_str() << std::endl;
-        if (network_options.retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
+        LOG_ERROR << solver.problems_to_str();
+        if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
         {
             ctx.local_repodata_ttl = 2;
             return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
@@ -308,7 +296,6 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
         repo_ptrs.push_back(&r);
     }
 
-    std::cout << std::endl;
     bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
     if (!yes)
         exit(0);
@@ -325,31 +312,46 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
 void
 parse_file_options()
 {
-    if (create_options.files.size() == 0)
-    {
+    auto& configuration = Configuration::instance();
+    auto& file_specs
+        = configuration.at("file_specs").compute_config().value<std::vector<std::string>>();
+    auto& env_name = configuration.at("env_name");
+    auto& specs = configuration.at("specs");
+    auto& channels = configuration.at("channels");
+
+    if (file_specs.size() == 0)
         return;
-    }
-    for (auto& file : create_options.files)
+
+    for (auto& file : file_specs)
     {
-        if ((ends_with(file, ".yml") || ends_with(file, ".yaml"))
-            && create_options.files.size() != 1)
+        if ((ends_with(file, ".yml") || ends_with(file, ".yaml")) && file_specs.size() != 1)
         {
             throw std::runtime_error("Can only handle 1 yaml file!");
         }
     }
 
-    for (auto& file : create_options.files)
+    for (auto& file : file_specs)
     {
         // read specs from file :)
         if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
         {
-            YAML::Node config = YAML::LoadFile(file);
+            YAML::Node config;
+            try
+            {
+                config = YAML::LoadFile(file);
+            }
+            catch (YAML::Exception& e)
+            {
+                LOG_ERROR << "Error in spec file: " << file;
+                continue;
+            }
+
             if (config["channels"])
             {
-                std::vector<std::string> yaml_channels;
+                YAML::Node yaml_channels;
                 try
                 {
-                    yaml_channels = config["channels"].as<std::vector<std::string>>();
+                    yaml_channels = config["channels"];
                 }
                 catch (YAML::Exception& e)
                 {
@@ -357,38 +359,28 @@ parse_file_options()
                         mamba::concat("Could not read 'channels' as list of strings from ", file));
                 }
 
-                for (const auto& c : yaml_channels)
-                {
-                    create_options.channels.push_back(c);
-                }
+                channels.add_rc_value(yaml_channels, file);
             }
             else
             {
-                std::cout << termcolor::yellow << "WARNING: No channels specified in " << file
-                          << termcolor::reset << std::endl;
+                LOG_DEBUG << "No 'channels' specified in file: " << file;
             }
-            if (create_options.name.empty() && create_options.prefix.empty())
+
+            if (config["name"])
             {
-                try
-                {
-                    create_options.name = config["name"].as<std::string>();
-                }
-                catch (YAML::Exception& e)
-                {
-                    throw std::runtime_error(mamba::concat(
-                        "Could not read environment 'name' as string from ",
-                        file,
-                        " and no name (-n) or prefix (-p) given on the command line"));
-                }
+                env_name.add_rc_value(config["name"], file);
             }
-            try
             {
-                create_options.specs = config["dependencies"].as<std::vector<std::string>>();
+                LOG_DEBUG << "No env 'name' specified in file: " << file;
             }
-            catch (YAML::Exception& e)
+
+            if (config["dependencies"])
             {
-                throw std::runtime_error(mamba::concat(
-                    "Could not read environment 'dependencies' as list of strings from ", file));
+                specs.add_rc_value(config["dependencies"], file);
+            }
+            else
+            {
+                throw std::runtime_error(concat("No 'dependencies' specified in file: ", file));
             }
         }
         else
@@ -396,7 +388,7 @@ parse_file_options()
             std::vector<std::string> file_contents = read_lines(file);
             if (file_contents.size() == 0)
             {
-                throw std::runtime_error("file is empty");
+                throw std::runtime_error(concat("Got an empty file: ", file));
             }
             for (std::size_t i = 0; i < file_contents.size(); ++i)
             {
@@ -418,25 +410,27 @@ parse_file_options()
                             }
                         }
                     }
+                    LOG_INFO << "Installing explicit specs for platform " << platform;
 
-                    std::cout << "Installing explicit specs for platform " << platform << std::endl;
                     std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                             file_contents.end());
-                    auto& ctx = Context::instance();
-                    load_install_options(ctx);
-                    catch_existing_target_prefix(ctx);
+
+                    load_configuration();
+                    check_target_prefix(false, false, true, false);
                     install_explicit_specs(explicit_specs);
                     exit(0);
                 }
             }
 
+            std::vector<std::string> f_specs;
             for (auto& line : file_contents)
             {
                 if (line[0] != '#' && line[0] != '@')
                 {
-                    create_options.specs.push_back(line);
+                    f_specs.push_back(line);
                 }
             }
+            configuration.at("specs").add_rc_value(YAML::Node(f_specs), file);
         }
     }
 }

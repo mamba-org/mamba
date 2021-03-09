@@ -423,13 +423,13 @@ namespace mamba
     bool validate(const fs::path& pkg_folder)
     {
         auto safety_checks = Context::instance().safety_checks;
-        if (safety_checks == VerificationLevel::DISABLED)
+        if (safety_checks == VerificationLevel::kDisabled)
         {
             return true;
         }
 
-        bool is_warn = safety_checks == VerificationLevel::WARN;
-        bool is_fail = safety_checks == VerificationLevel::ENABLED;
+        bool is_warn = safety_checks == VerificationLevel::kWarn;
+        bool is_fail = safety_checks == VerificationLevel::kEnabled;
         bool full_validation = Context::instance().extra_safety_checks;
 
         try

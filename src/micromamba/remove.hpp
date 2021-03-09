@@ -26,9 +26,6 @@ void
 set_remove_command(CLI::App* subcom);
 
 void
-load_remove_options(mamba::Context& ctx);
-
-void
 remove_specs(const std::vector<std::string>& specs);
 
 #endif

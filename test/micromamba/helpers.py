@@ -25,6 +25,34 @@ def random_string(N=10):
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 
+def shell(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "shell"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+    if "--json" in args:
+        try:
+            j = json.loads(res)
+            return j
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error when loading JSON output from {res}")
+            raise (e)
+    return res.decode()
+
+
+def info(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "info"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+    if "--json" in args:
+        try:
+            j = json.loads(res)
+            return j
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error when loading JSON output from {res}")
+            raise (e)
+    return res.decode()
+
+
 def install(*args):
     umamba = get_umamba()
     cmd = [umamba, "install"] + [arg for arg in args if arg] + channel
@@ -59,6 +87,22 @@ def create(*args):
         raise (e)
 
 
+def remove(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
+
+    try:
+        res = subprocess.check_output(cmd)
+        if "--json" in args:
+            j = json.loads(res)
+            return j
+        return res.decode()
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise (e)
+
+
 def update(*args):
     umamba = get_umamba()
     cmd = [umamba, "update", "-y", "--no-rc"] + [arg for arg in args if arg] + channel
@@ -68,8 +112,15 @@ def update(*args):
     try:
         res = subprocess.check_output(cmd)
         if "--json" in args:
-            j = json.loads(res)
-            return j
+            try:
+                j = json.loads(res)
+                return j
+            except json.decoder.JSONDecodeError as e:
+                print(f"Error when loading JSON output from {res}")
+                raise (e)
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise (e)
+
         return res.decode()
     except subprocess.CalledProcessError as e:
         print(f"Error when executing '{' '.join(cmd)}'")
@@ -93,8 +144,7 @@ def get_env(n, f=None):
         return Path(os.path.join(root_prefix, "envs", n))
 
 
-def get_pkg(n, f=None):
-    root_prefix = os.getenv("MAMBA_ROOT_PREFIX")
+def get_pkg(n, f=None, root_prefix=os.getenv("MAMBA_ROOT_PREFIX")):
     if f:
         return Path(os.path.join(root_prefix, "pkgs", n, f))
     else:

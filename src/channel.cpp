@@ -22,7 +22,6 @@ namespace mamba
     // Constants used by Channel and ChannelContext
     namespace
     {
-        const char DEFAULT_CHANNEL_ALIAS[] = "https://conda.anaconda.org";
         const std::map<std::string, std::string> DEFAULT_CUSTOM_CHANNELS
             = { { "pkgs/pro", "https://repo.anaconda.com" } };
         const char UNKNOWN_CHANNEL[] = "<unknown>";
@@ -32,16 +31,6 @@ namespace mamba
 
         const char LOCAL_CHANNELS_NAME[] = "local";
         const char DEFAULT_CHANNELS_NAME[] = "defaults";
-
-        const std::vector<std::string> DEFAULT_CHANNELS = {
-#ifdef _WIN32
-            "https://repo.anaconda.com/pkgs/main",
-            "https://repo.anaconda.com/pkgs/r",
-            "https://repo.anaconda.com/pkgs/msys2"
-#else
-            "https://repo.anaconda.com/pkgs/main", "https://repo.anaconda.com/pkgs/r"
-#endif
-        };
 
         // ATTENTION names with substrings need to go longer -> smalle
         // otherwise linux-ppc64 matches for linux-ppc64le etc!
@@ -642,7 +631,7 @@ namespace mamba
     Channel ChannelContext::build_channel_alias()
     {
         auto& ctx = Context::instance();
-        std::string alias = ctx.channel_alias.empty() ? DEFAULT_CHANNEL_ALIAS : ctx.channel_alias;
+        std::string alias = ctx.channel_alias;
         std::string location, scheme, auth, token;
         split_scheme_auth_token(alias, location, scheme, auth, token);
         return Channel(scheme, auth, location, token);
@@ -655,9 +644,10 @@ namespace mamba
          ******************/
 
         // Default channels
-        std::vector<std::string> default_names(DEFAULT_CHANNELS.size());
+        auto& default_channels = Context::instance().default_channels;
+        std::vector<std::string> default_names(default_channels.size());
         auto name_iter = default_names.begin();
-        for (auto& url : DEFAULT_CHANNELS)
+        for (auto& url : default_channels)
         {
             auto channel
                 = Channel::make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);

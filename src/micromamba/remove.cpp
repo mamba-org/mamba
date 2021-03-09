@@ -6,8 +6,9 @@
 
 #include "remove.hpp"
 #include "info.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
+#include "mamba/configuration.hpp"
 #include "mamba/output.hpp"
 #include "mamba/package_cache.hpp"
 #include "mamba/prefix_data.hpp"
@@ -24,16 +25,15 @@ init_remove_parser(CLI::App* subcom)
     init_general_options(subcom);
     init_prefix_options(subcom);
 
-    subcom->add_option("specs", create_options.specs, "Specs to remove from the environment");
+    auto& config = Configuration::instance();
+
+    auto& specs = config.insert(Configurable("remove_specs", std::vector<std::string>({}))
+                                    .group("cli")
+                                    .rc_configurable(false)
+                                    .description("Specs to remove from the environment"));
+    subcom->add_option("specs", specs.set_cli_config({}), specs.description());
 }
 
-void
-load_remove_options(Context& ctx)
-{
-    load_general_options(ctx);
-    load_prefix_options(ctx);
-    load_rc_options(ctx);
-}
 
 void
 set_remove_command(CLI::App* subcom)
@@ -41,11 +41,14 @@ set_remove_command(CLI::App* subcom)
     init_remove_parser(subcom);
 
     subcom->callback([&]() {
-        load_remove_options(Context::instance());
+        load_configuration();
 
-        if (!create_options.specs.empty())
+        auto& config = Configuration::instance();
+        auto& specs = config.at("remove_specs").value<std::vector<std::string>>();
+
+        if (!specs.empty())
         {
-            remove_specs(create_options.specs);
+            remove_specs(specs);
         }
         else
         {
@@ -58,14 +61,11 @@ void
 remove_specs(const std::vector<std::string>& specs)
 {
     auto& ctx = Context::instance();
-    load_general_options(ctx);
-
-    Console::print(banner);
 
     if (ctx.target_prefix.empty())
     {
-        throw std::runtime_error(
-            "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
+        LOG_ERROR << "No active target prefix.";
+        exit(1);
     }
 
     std::vector<MRepo> repos;
@@ -77,7 +77,7 @@ remove_specs(const std::vector<std::string>& specs)
 
     MSolver solver(pool,
                    { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 }, { SOLVER_FLAG_ALLOW_UNINSTALL, 1 } });
-    solver.add_jobs(create_options.specs, SOLVER_ERASE);
+    solver.add_jobs(specs, SOLVER_ERASE);
     solver.solve();
 
     MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
@@ -94,7 +94,6 @@ remove_specs(const std::vector<std::string>& specs)
         repo_ptrs.push_back(&r);
     }
 
-    std::cout << std::endl;
     bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
     if (!yes)
         exit(0);

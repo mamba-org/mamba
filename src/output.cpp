@@ -520,6 +520,7 @@ namespace mamba
             }
             if (response.compare("n") == 0 || response.compare("N") == 0)
             {
+                Console::print("Aborted.");
                 return false;
             }
         }

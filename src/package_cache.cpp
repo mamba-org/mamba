@@ -89,21 +89,21 @@ namespace mamba
         fs::path magic_file = m_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE;
         if (fs::is_regular_file(magic_file))
         {
-            LOG_INFO << magic_file << " exists, checking if writable";
+            LOG_DEBUG << magic_file << " exists, checking if writable";
             if (path::is_writable(magic_file))
             {
-                LOG_INFO << magic_file << " writable";
+                LOG_DEBUG << magic_file << " writable";
                 m_writable = Writable::WRITABLE;
             }
             else
             {
                 m_writable = Writable::NOT_WRITABLE;
-                LOG_INFO << magic_file << " not writable";
+                LOG_DEBUG << magic_file << " not writable";
             }
         }
         else
         {
-            LOG_INFO << magic_file << " does not exists";
+            LOG_DEBUG << magic_file << " does not exists";
             m_writable = Writable::DIR_DOES_NOT_EXIST;
         }
     }

@@ -1,10 +1,12 @@
 import json
 import os
+import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
-from .helpers import get_umamba
+from .helpers import get_umamba, random_string
 
 
 def config(*args):
@@ -29,7 +31,7 @@ def rc_file(tmpdir_factory):
 
 class TestConfig:
     def test_empty(self):
-        assert config().startswith("Configuration of micromamba")
+        assert "Configuration of micromamba" in config()
 
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
     def test_quiet(self, quiet_flag):
@@ -37,15 +39,115 @@ class TestConfig:
 
 
 class TestConfigSources:
+
+    root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    target_prefix = os.path.join(os.environ["MAMBA_ROOT_PREFIX"], "envs", "source_env")
+    home_dir = os.path.expanduser("~")
+    rc_files = [
+        # "/etc/conda/.condarc",
+        # "/etc/conda/condarc",
+        # "/etc/conda/condarc.d/",
+        # "/etc/conda/.mambarc",
+        # "/var/lib/conda/.condarc",
+        # "/var/lib/conda/condarc",
+        # "/var/lib/conda/condarc.d/",
+        # "/var/lib/conda/.mambarc",
+        os.path.join(root_prefix, ".condarc"),
+        os.path.join(root_prefix, "condarc"),
+        os.path.join(root_prefix, "condarc.d"),
+        os.path.join(root_prefix, ".mambarc"),
+        os.path.join(home_dir, ".conda/.condarc"),
+        os.path.join(home_dir, ".conda/condarc"),
+        os.path.join(home_dir, ".conda/condarc.d"),
+        os.path.join(home_dir, ".condarc"),
+        os.path.join(home_dir, ".mambarc"),
+        os.path.join(target_prefix, ".condarc"),
+        os.path.join(target_prefix, "condarc"),
+        os.path.join(target_prefix, "condarc.d"),
+        os.path.join(target_prefix, ".mambarc"),
+    ]
+
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
-    @pytest.mark.parametrize("rc_flag", ["--no-rc", "--rc-file='none'"])
-    def test_sources(self, quiet_flag, rc_flag):
-        res = config("sources", quiet_flag, rc_flag)
-        expected = {
-            "--no-rc": "Configuration files disabled by --no-rc flag",
-            "--rc-file='none'": "Configuration files (by precedence order):",
-        }
-        assert res.strip() == expected[rc_flag]
+    @pytest.mark.parametrize("rc_file", ["", "dummy.yaml", ".mambarc"])
+    @pytest.mark.parametrize("norc", [False, True])
+    def test_sources(self, quiet_flag, rc_file, norc):
+        rc_dir = os.path.expanduser(os.path.join("~", random_string()))
+        os.mkdir(rc_dir)
+
+        if rc_file:
+            rc_path = os.path.join(rc_dir, rc_file)
+            with open(rc_path, "w") as f:
+                f.write("override_channels_enabled: true")
+
+            if norc:
+                with pytest.raises(subprocess.CalledProcessError):
+                    config("sources", quiet_flag, "--rc-file", rc_path, "--no-rc")
+            else:
+                res = config("sources", quiet_flag, "--rc-file", rc_path)
+                rc_path_short = rc_path.replace(os.path.expanduser("~"), "~")
+                assert (
+                    res.strip()
+                    == f"Configuration files (by precedence order):\n{rc_path_short}"
+                )
+        else:
+
+            if norc:
+                res = config("sources", quiet_flag, "--no-rc")
+                assert res.strip() == "Configuration files disabled by --no-rc flag"
+            else:
+                res = config("sources", quiet_flag)
+                assert res.startswith("Configuration files (by precedence order):\n")
+
+        shutil.rmtree(rc_dir)
+
+    # TODO: test OS specific sources
+    # TODO: test system located sources?
+    @pytest.mark.parametrize("rc_file", rc_files)
+    def test_rc_file(self, rc_file):
+        tmpfiles = []
+        for file in TestConfigSources.rc_files:
+            folder, f = file.rsplit(os.path.sep, 1)
+
+            if Path(file).exists():
+                tmp_file = os.path.join(folder, "tmp_" + f)
+                if Path(tmp_file).exists():
+                    if Path(tmp_file).is_dir():
+                        shutil.rmtree(tmp_file)
+                    else:
+                        os.remove(tmp_file)
+
+                os.rename(file, tmp_file)
+                tmpfiles.append((file, tmp_file))
+
+        if not Path(TestConfigSources.target_prefix).exists():
+            os.mkdir(TestConfigSources.target_prefix)
+
+        if rc_file.endswith(".d"):
+            os.mkdir(rc_file)
+            rc_file = os.path.join(rc_file, "test.yaml")
+
+        with open(os.path.expanduser(rc_file), "w") as f:
+            f.write("override_channels_enabled: true")
+
+        srcs = config(
+            "sources",
+            "-r",
+            TestConfigSources.root_prefix,
+            "-p",
+            TestConfigSources.target_prefix,
+        )
+        short_name = rc_file.replace(os.path.expanduser("~"), "~")
+        expected_srcs = f"Configuration files (by precedence order):\n{short_name}\n"
+        assert srcs == expected_srcs
+
+        if rc_file.endswith(".d"):
+            shutil.rmtree(rc_file)
+        else:
+            os.remove(rc_file)
+
+        for (file, tmp_file) in tmpfiles:
+            os.rename(tmp_file, file)
+        shutil.rmtree(TestConfigSources.target_prefix)
 
 
 class TestConfigList:
@@ -60,10 +162,41 @@ class TestConfigList:
 
         assert config("list", rc_flag).splitlines() == expected[rc_flag].splitlines()
 
-    def test_list_with_sources(self, rc_file):
+    @pytest.mark.parametrize("source_flag", ["--sources", "-s"])
+    def test_list_with_sources(self, rc_file, source_flag):
         home_folder = os.path.expanduser("~")
-        src = f"  # {str(rc_file).replace(home_folder, '~')}"
+        src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
         assert (
-            config("list", "--rc-file=" + str(rc_file), "--show-source").splitlines()
+            config("list", "--rc-file=" + str(rc_file), source_flag).splitlines()
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
+        )
+
+    @pytest.mark.parametrize("desc_flag", ["--descriptions", "-d"])
+    def test_list_with_descriptions(self, rc_file, desc_flag):
+        assert (
+            config("list", "--rc-file=" + str(rc_file), desc_flag).splitlines()
+            == f"# channels\n#   Define the list of channels\nchannels:\n"
+            "  - channel1\n  - channel2\n".splitlines()
+        )
+
+    @pytest.mark.parametrize("desc_flag", ["--long-descriptions", "-l"])
+    def test_list_with_long_descriptions(self, rc_file, desc_flag):
+        assert (
+            config("list", "--rc-file=" + str(rc_file), desc_flag).splitlines()
+            == f"# channels\n#   The list of channels where the packages will be searched for.\n"
+            "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
+        )
+
+    @pytest.mark.parametrize("group_flag", ["--groups", "-g"])
+    def test_list_with_groups(self, rc_file, group_flag):
+        group = (
+            "# ######################################################\n"
+            "# #               Channels Configuration               #\n"
+            "# ######################################################\n\n"
+        )
+
+        assert (
+            config("list", "--rc-file=" + str(rc_file), "-d", group_flag).splitlines()
+            == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
+            "  - channel1\n  - channel2\n".splitlines()
         )

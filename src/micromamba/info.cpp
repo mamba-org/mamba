@@ -5,9 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "info.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
-#include "mamba/config.hpp"
+#include "mamba/configuration.hpp"
 #include "mamba/environment.hpp"
 #include "mamba/util.hpp"
 #include "mamba/version.hpp"
@@ -23,22 +23,15 @@ init_info_parser(CLI::App* subcom)
 }
 
 void
-load_info_options(Context& ctx)
-{
-    load_general_options(ctx);
-    load_prefix_options(ctx);
-    load_rc_options(ctx);
-}
-
-void
 set_info_command(CLI::App* subcom)
 {
     init_info_parser(subcom);
 
     subcom->callback([&]() {
-        auto& ctx = Context::instance();
-        load_info_options(ctx);
+        load_configuration();
+        check_target_prefix(true, true, false, true);
 
+        auto& ctx = Context::instance();
         std::vector<std::tuple<std::string, std::vector<std::string>>> items;
 
         if (!ctx.target_prefix.empty())
@@ -54,9 +47,9 @@ set_info_command(CLI::App* subcom)
         // items.insert( { "shell level", { 1 } });
         items.push_back({ "user config files", { env::home_directory() / ".mambarc" } });
 
-        Configurable& config = Configurable::instance();
+        Configuration& config = Configuration::instance();
         std::vector<std::string> sources;
-        for (auto s : config.get_valid_sources())
+        for (auto s : config.valid_sources())
         {
             sources.push_back(s.string());
         };

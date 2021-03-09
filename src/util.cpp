@@ -594,7 +594,7 @@ namespace mamba
         return result;
     }
 
-    std::string prepend(std::string p, const char* start, const char* newline)
+    std::string prepend(const std::string& p, const char* start, const char* newline)
     {
         return prepend(p.c_str(), start, newline);
     }

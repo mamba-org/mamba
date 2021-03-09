@@ -5,8 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "constructor.hpp"
-#include "options.hpp"
+#include "common_options.hpp"
 
+#include "mamba/configuration.hpp"
 #include "mamba/package_handling.hpp"
 #include "mamba/util.hpp"
 
@@ -16,13 +17,23 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 init_constructor_parser(CLI::App* subcom)
 {
-    subcom->add_option("-p,--prefix", constructor_options.prefix, "Path to the prefix");
+    auto& config = Configuration::instance();
+
+    auto& extract_conda_pkgs
+        = config.insert(Configurable("constructor_extract_conda_pkgs", false)
+                            .group("cli")
+                            .rc_configurable(false)
+                            .description("Extract the conda pkgs in <prefix>/pkgs"));
     subcom->add_flag("--extract-conda-pkgs",
-                     constructor_options.extract_conda_pkgs,
-                     "Extract the conda pkgs in <prefix>/pkgs");
-    subcom->add_flag("--extract-tarball",
-                     constructor_options.extract_tarball,
-                     "Extract given tarball into prefix");
+                     extract_conda_pkgs.set_cli_config(0),
+                     extract_conda_pkgs.description());
+
+    auto& extract_tarball = config.insert(Configurable("constructor_extract_tarball", false)
+                                              .group("cli")
+                                              .rc_configurable(false)
+                                              .description("Extract given tarball into prefix"));
+    subcom->add_flag(
+        "--extract-tarballs", extract_tarball.set_cli_config(0), extract_tarball.description());
 }
 
 void
@@ -31,15 +42,17 @@ set_constructor_command(CLI::App* subcom)
     init_constructor_parser(subcom);
 
     subcom->callback([&]() {
-        if (constructor_options.prefix.empty())
+        load_configuration(false);
+
+        auto& config = Configuration::instance();
+        fs::path prefix = config.at("target_prefix").value<std::string>();
+        auto& extract_conda_pkgs = config.at("constructor_extract_conda_pkgs").value<bool>();
+        auto& extract_tarball = config.at("constructor_extract_tarball").value<bool>();
+
+        if (extract_conda_pkgs)
         {
-            throw std::runtime_error("Prefix is required.");
-        }
-        if (constructor_options.extract_conda_pkgs)
-        {
-            fs::path pkgs_dir = constructor_options.prefix;
+            fs::path pkgs_dir = prefix / "pkgs";
             fs::path filename;
-            pkgs_dir = pkgs_dir / "pkgs";
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
                 filename = entry.path().filename();
@@ -50,11 +63,11 @@ set_constructor_command(CLI::App* subcom)
                 }
             }
         }
-        if (constructor_options.extract_tarball)
+        if (extract_tarball)
         {
-            fs::path extract_tarball_path = fs::path(constructor_options.prefix) / "_tmp.tar.bz2";
+            fs::path extract_tarball_path = prefix / "_tmp.tar.bz2";
             read_binary_from_stdin_and_write_to_file(extract_tarball_path);
-            extract_archive(extract_tarball_path, constructor_options.prefix);
+            extract_archive(extract_tarball_path, prefix);
             fs::remove(extract_tarball_path);
         }
         return 0;

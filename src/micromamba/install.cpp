@@ -193,6 +193,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     }
     if (!ctx.offline)
     {
+        LockFile f(cache_dir / "mamba.lock");
         multi_dl.download(true);
     }
 
@@ -308,13 +309,16 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     if (!yes)
         exit(0);
 
-    if (create_env && !Context::instance().dry_run)
     {
-        fs::create_directories(ctx.target_prefix / "conda-meta");
-        fs::create_directories(ctx.target_prefix / "pkgs");
-    }
+        LockFile f(package_caches.first_writable().get_pkgs_dir() / "mamba.lock");
+        if (create_env && !Context::instance().dry_run)
+        {
+            fs::create_directories(ctx.target_prefix / "conda-meta");
+            fs::create_directories(ctx.target_prefix / "pkgs");
+        }
 
-    trans.execute(prefix_data, pkgs_dirs);
+        trans.execute(prefix_data, pkgs_dirs);
+    }
 }
 
 void
@@ -543,7 +547,11 @@ download_explicit(const std::vector<PackageInfo>& pkgs)
 
     interruption_guard g([]() { Console::instance().init_multi_progress(); });
 
-    bool downloaded = multi_dl.download(true);
+    bool downloaded;
+    {
+        LockFile f(pkg_cache.first_writable().get_pkgs_dir() / "mamba.lock");
+        downloaded = multi_dl.download(true);
+    }
 
     if (!downloaded)
     {

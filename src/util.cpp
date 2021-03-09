@@ -598,4 +598,45 @@ namespace mamba
     {
         return prepend(p.c_str(), start, newline);
     }
+
+    bool try_lock(int fd)
+    {
+        int ret = -1;
+        struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 1;
+        ret = fcntl(fd, F_SETLKW, &lock);
+        std::cout << "Got lock?: " << ret;
+        return 0 == ret;
+    }
+
+    bool unlock(const fs::path& path)
+    {
+        return true;
+    }
+
+    LockFile::LockFile(const fs::path& path)
+        : m_path(path)
+    {
+        mode_t m = umask(0);
+        m_fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
+        umask(m);
+        LOG_INFO << "Locking file: " << path;
+        if (m_fd <= 0)
+        {
+            LOG_ERROR << "Could not open lockfile " << path;
+        }
+        int ret = try_lock(m_fd);
+        // ...
+    }
+
+    LockFile::~LockFile()
+    {
+        std::cout << "Adios lock." << std::endl;
+        close(m_fd);
+        fs::remove(m_path);
+    }
+
 }  // namespace mamba

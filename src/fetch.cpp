@@ -6,6 +6,7 @@
 
 #include <string_view>
 #include <thread>
+#include <regex>
 
 #include "mamba/fetch.hpp"
 #include "mamba/context.hpp"
@@ -28,6 +29,18 @@ namespace mamba
         LOG_INFO << "Downloading to filename: " << m_filename;
         m_handle = curl_easy_init();
 
+        {
+            // Replicate UNC behaviour of url_to_path from conda.common.path
+            // We cannot use URLHandler for this since CURL returns an error when asked to parse
+            // a url of type file://hostname/path
+            static const std::regex file_host(R"(file://([^/]*)(/.*)?)");
+            std::smatch match;
+            if(std::regex_match(m_url, match, file_host)){
+                if(match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1" && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))")){
+                    m_url = "file:////" + std::string(match[1].first, m_url.cend());
+                }
+            }
+        }
         init_curl_target(m_url);
     }
 

@@ -37,6 +37,7 @@ struct CreateOptions
 {
     std::vector<std::string> specs;
     std::string prefix;
+    std::string root_prefix;
     std::string name;
     std::vector<std::string> files;
     std::vector<std::string> channels;

@@ -273,7 +273,7 @@ load_channel_options(Context& ctx)
 void
 check_root_prefix(bool silent)
 {
-    if (Context::instance().root_prefix.empty())
+    if (Context::instance().root_prefix.empty() && (std::getenv("CONDA_PKGS_DIRS") == nullptr))
     {
         fs::path fallback_root_prefix = env::home_directory() / "micromamba";
         if (fs::exists(fallback_root_prefix) && !fs::is_empty(fallback_root_prefix))
@@ -298,11 +298,12 @@ check_root_prefix(bool silent)
             std::cout << termcolor::yellow << "Warning: " << termcolor::reset
                       << "setting fallback $MAMBA_ROOT_PREFIX to " << fallback_root_prefix
                       << ".\n\n";
-            std::cout
-                << "You have not set a $MAMBA_ROOT_PREFIX environment variable.\nTo permanently modify the root prefix location, either set the "
-                   "MAMBA_ROOT_PREFIX environment variable, or use\n  micromamba "
-                   "shell init ... \nto initialize your shell, then restart or "
-                   "source the contents of the shell init script.\n\n";
+            std::cout << unindent(R"(
+                        You have not set a $MAMBA_ROOT_PREFIX environment variable.
+                        To permanently modify the root prefix location, either set the
+                        MAMBA_ROOT_PREFIX environment variable, or use micromamba
+                        shell init ... to initialize your shell, then restart or
+                        source the contents of the shell init script.)");
         }
         else
         {

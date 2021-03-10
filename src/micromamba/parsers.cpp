@@ -7,6 +7,7 @@
 #include "parsers.hpp"
 #include "options.hpp"
 
+#include "mamba/environment.hpp"
 #include "mamba/fetch.hpp"
 #include "mamba/config.hpp"
 
@@ -68,14 +69,16 @@ load_general_options(Context& ctx)
     ctx.always_yes = general_options.always_yes;
     ctx.offline = general_options.offline;
     ctx.dry_run = general_options.dry_run;
-    check_root_prefix();
 }
 
 void
 init_prefix_options(CLI::App* subcom)
 {
     std::string prefix = "Prefix options";
-    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the prefix")->group(prefix);
+    subcom->add_option("-r,--root-prefix", create_options.root_prefix, "Path to the root prefix")
+        ->group(prefix);
+    subcom->add_option("-p,--prefix", create_options.prefix, "Path to the target prefix")
+        ->group(prefix);
     subcom->add_option("-n,--name", create_options.name, "Name of the prefix")->group(prefix);
 }
 
@@ -86,6 +89,12 @@ load_prefix_options(Context& ctx)
     {
         throw std::runtime_error("Cannot set both, prefix and name.");
     }
+
+    if (!create_options.root_prefix.empty())
+    {
+        ctx.root_prefix = create_options.root_prefix;
+    }
+    check_root_prefix();
 
     if (!create_options.name.empty())
     {
@@ -273,42 +282,47 @@ load_channel_options(Context& ctx)
 void
 check_root_prefix(bool silent)
 {
-    if (Context::instance().root_prefix.empty() && (std::getenv("CONDA_PKGS_DIRS") == nullptr))
+    auto& ctx = Context::instance();
+    if (ctx.root_prefix.empty() && env::get("CONDA_PKGS_DIRS").empty())
     {
-        fs::path fallback_root_prefix = env::home_directory() / "micromamba";
-        if (fs::exists(fallback_root_prefix) && !fs::is_empty(fallback_root_prefix))
+        fs::path default_root_prefix;
+        if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
         {
-            if (!(fs::exists(fallback_root_prefix / "pkgs")
-                  || fs::exists(fallback_root_prefix / "conda-meta")))
+            default_root_prefix = env::home_directory() / "micromamba";
+        }
+        else
+        {
+            default_root_prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
+            LOG_WARNING << unindent(R"(
+                            'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
+                            Consider using 'MAMBA_ROOT_PREFIX' instead)");
+        }
+
+        if (fs::exists(default_root_prefix) && !fs::is_empty(default_root_prefix))
+        {
+            if (!(fs::exists(default_root_prefix / "pkgs")
+                  || fs::exists(default_root_prefix / "conda-meta")))
             {
                 throw std::runtime_error(
-                    mamba::concat("Could not use fallback root prefix ",
-                                  fallback_root_prefix.string(),
+                    mamba::concat("Could not use default root prefix ",
+                                  default_root_prefix.string(),
                                   "\nDirectory exists, is not emtpy and not a conda prefix."));
             }
         }
-        Context::instance().root_prefix = fallback_root_prefix;
+        Context::instance().root_prefix = default_root_prefix;
 
         if (silent)
             return;
 
-        // only print for the first time...
-        if (!fs::exists(fallback_root_prefix))
+        LOG_WARNING << "Using default root prefix: " << default_root_prefix;
+        if (!fs::exists(default_root_prefix))
         {
-            std::cout << termcolor::yellow << "Warning: " << termcolor::reset
-                      << "setting fallback $MAMBA_ROOT_PREFIX to " << fallback_root_prefix
-                      << ".\n\n";
-            std::cout << unindent(R"(
-                        You have not set a $MAMBA_ROOT_PREFIX environment variable.
-                        To permanently modify the root prefix location, either set the
-                        MAMBA_ROOT_PREFIX environment variable, or use micromamba
-                        shell init ... to initialize your shell, then restart or
-                        source the contents of the shell init script.)");
-        }
-        else
-        {
-            std::cout << termcolor::yellow << "Using fallback root prefix: " << termcolor::reset
-                      << fallback_root_prefix << ".\n\n";
+            LOG_WARNING << unindent(R"(
+                            You have not set a $MAMBA_ROOT_PREFIX environment variable.
+                            To permanently modify the root prefix location, either set the
+                            MAMBA_ROOT_PREFIX environment variable, or use micromamba
+                            shell init ... to initialize your shell, then restart or
+                            source the contents of the shell init script.)");
         }
     }
 }

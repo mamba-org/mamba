@@ -261,6 +261,10 @@ namespace mamba
     // Unindent a string literal
     std::string unindent(const char* p);
 
+    std::string prepend(std::string p, const char* start, const char* newline = "");
+
+    std::string prepend(const char* p, const char* start, const char* newline = "");
+
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

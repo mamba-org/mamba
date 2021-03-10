@@ -599,43 +599,123 @@ namespace mamba
         return prepend(p.c_str(), start, newline);
     }
 
-    bool try_lock(int fd)
+    int try_lock(int fd, int pid, bool wait)
     {
-        int ret = -1;
+        // very much inspired by boost file_lock and
+        // dnf's https://github.com/rpm-software-management/dnf lock.py#L80
+#ifdef _WIN32
+        int ret = _locking(fd, LK_LOCK, 1 /*lock_file_contents_length()*/);
+        return ret == 0;
+#else
         struct flock lock;
         lock.l_type = F_WRLCK;
         lock.l_whence = SEEK_SET;
         lock.l_start = 0;
         lock.l_len = 1;
-        ret = fcntl(fd, F_SETLKW, &lock);
-        std::cout << "Got lock?: " << ret;
-        return 0 == ret;
+
+        int ret;
+
+        if (wait)
+        {
+            ret = fcntl(fd, F_SETLKW, &lock);
+            if (ret)
+            {
+                LOG_ERROR << "Could not lock file: " << strerror(errno);
+            }
+        }
+
+        char pidc[20] = "";
+        int read_res = read(fd, pidc, 20);
+        if (read_res == -1 && errno != EBADF)
+        {
+            std::cout << "could not read old PID! " << strerror(errno);
+        }
+
+        std::cout << "PIDC is " << pidc << std::endl;
+
+        if (strlen(pidc) != 0)
+        {
+            int old_pid;
+
+            try
+            {
+                old_pid = std::stoi(pidc);
+            }
+            catch (...)
+            {
+                LOG_ERROR << "Could not parse PID from lock file.";
+                return -1;
+            }
+
+            LOG_INFO << "File currently locked by PID: " << old_pid;
+            if (old_pid == pid)
+            {
+                return pid;
+            }
+
+            // sending `0` with kill will check if the process is still alive
+            if (kill(old_pid, 0) == -1)
+            {
+                lseek(fd, 0, SEEK_SET);
+                ftruncate(fd, 0);
+                auto s = std::to_string(pid);
+                write(fd, s.c_str(), s.size());
+            }
+            else
+            {
+                return old_pid;
+            }
+        }
+        else
+        {
+            auto s = std::to_string(pid);
+            write(fd, s.c_str(), s.size());
+        }
+
+        ret = fcntl(fd, F_SETLK, &lock);
+        if (ret)
+        {
+            LOG_ERROR << "Could not lock file: " << strerror(errno);
+        }
+
+        return pid;
+#endif
     }
 
-    bool unlock(const fs::path& path)
+    bool unlock(int fd)
     {
+#ifdef _WIN32
+        int ret = _locking(fd, LK_UNLCK, 1 /*lock_file_contents_length()*/);
+#else
+
+#endif
+        close(fd);
         return true;
     }
 
     LockFile::LockFile(const fs::path& path)
         : m_path(path)
     {
-        mode_t m = umask(0);
+        LOG_INFO << "Locking " << path;
+        // mode_t m = umask(0);
         m_fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
-        umask(m);
-        LOG_INFO << "Locking file: " << path;
+        // umask(m);
         if (m_fd <= 0)
         {
             LOG_ERROR << "Could not open lockfile " << path;
         }
-        int ret = try_lock(m_fd);
-        // ...
+        m_pid = getpid();
+        int ret = try_lock(m_fd, m_pid, false);
+        if (ret != m_pid)
+        {
+            LOG_ERROR << "Cannot lock file because pid " << ret << " is still running.";
+            try_lock(m_fd, m_pid, true);
+        }
     }
 
     LockFile::~LockFile()
     {
-        std::cout << "Adios lock." << std::endl;
-        close(m_fd);
+        unlock(m_fd);
         fs::remove(m_path);
     }
 

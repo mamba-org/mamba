@@ -577,4 +577,25 @@ namespace mamba
         }
         return result;
     }
+
+    std::string prepend(const char* p, const char* start, const char* newline)
+    {
+        std::string result;
+
+        result += start;
+        while (*p)
+        {
+            result += *p;
+            if (*p++ == '\n')
+            {
+                result += newline;
+            }
+        }
+        return result;
+    }
+
+    std::string prepend(std::string p, const char* start, const char* newline)
+    {
+        return prepend(p.c_str(), start, newline);
+    }
 }  // namespace mamba

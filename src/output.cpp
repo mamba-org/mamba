@@ -675,25 +675,28 @@ namespace mamba
         switch (m_severity)
         {
             case LogSeverity::fatal:
-                std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset << m_stream.str()
-                          << std::endl;
+                std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::error:
-                std::cerr << termcolor::red << "ERROR   " << termcolor::reset << m_stream.str()
-                          << std::endl;
+                std::cerr << termcolor::red << "ERROR   " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::warning:
-                std::cerr << termcolor::yellow << "WARNING " << termcolor::reset << m_stream.str()
-                          << std::endl;
+                std::cerr << termcolor::yellow << "WARNING " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::info:
-                std::cerr << "INFO    " << m_stream.str() << std::endl;
+                std::cerr << "INFO    " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
+                          << std::endl;
                 break;
             case LogSeverity::debug:
-                std::cerr << "DEBUG   " << m_stream.str() << std::endl;
+                std::cerr << "DEBUG   " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
+                          << std::endl;
                 break;
             default:
-                std::cerr << "UNKOWN  " << m_stream.str() << std::endl;
+                std::cerr << "UNKOWN  " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
+                          << std::endl;
                 break;
         }
 

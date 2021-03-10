@@ -306,7 +306,7 @@ check_root_prefix(bool silent)
                 throw std::runtime_error(
                     mamba::concat("Could not use default root prefix ",
                                   default_root_prefix.string(),
-                                  "\nDirectory exists, is not emtpy and not a conda prefix."));
+                                  "\nDirectory exists, is not empty and not a conda prefix."));
             }
         }
         Context::instance().root_prefix = default_root_prefix;

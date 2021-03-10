@@ -373,64 +373,49 @@ namespace mamba
 
     void MTransaction::init()
     {
-        Queue classes, pkgs;
-
-        queue_init(&classes);
-        queue_init(&pkgs);
-
-        int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-
-        transaction_classify(m_transaction, mode, &classes);
-
-        Id cls;
-        for (int i = 0; i < classes.count; i += 4)
+        for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
         {
-            cls = classes.elements[i];
-            // cnt = classes.elements[i + 1];
+            Id p = m_transaction->steps.elements[i];
+            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Solvable* s = pool_id2solvable(m_transaction->pool, p);
 
-            transaction_classify_pkgs(
-                m_transaction, mode, cls, classes.elements[i + 2], classes.elements[i + 3], &pkgs);
-            for (int j = 0; j < pkgs.count; j++)
+            if (filter(s))
             {
-                Id p = pkgs.elements[j];
-                Solvable* s = m_transaction->pool->solvables + p;
+                continue;
+            }
 
-                if (filter(s))
+            switch (ttype)
+            {
+                case SOLVER_TRANSACTION_DOWNGRADED:
+                case SOLVER_TRANSACTION_UPGRADED:
+                case SOLVER_TRANSACTION_CHANGED:
+                case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    continue;
-                }
+                    if (ttype == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
+                        break;
 
-                switch (cls)
-                {
-                    case SOLVER_TRANSACTION_DOWNGRADED:
-                    case SOLVER_TRANSACTION_UPGRADED:
-                    case SOLVER_TRANSACTION_CHANGED:
-                    case SOLVER_TRANSACTION_REINSTALLED:
-                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
-                            break;
-                        m_to_remove.push_back(s);
-                        m_to_install.push_back(m_transaction->pool->solvables
-                                               + transaction_obs_pkg(m_transaction, p));
-                        break;
-                    case SOLVER_TRANSACTION_ERASE:
-                        m_to_remove.push_back(s);
-                        break;
-                    case SOLVER_TRANSACTION_INSTALL:
-                        m_to_install.push_back(s);
-                        break;
-                    case SOLVER_TRANSACTION_IGNORE:
-                        break;
-                    case SOLVER_TRANSACTION_VENDORCHANGE:
-                    case SOLVER_TRANSACTION_ARCHCHANGE:
-                    default:
-                        LOG_WARNING << "Print case not handled: " << cls;
-                        break;
+                    m_to_remove.push_back(s);
+                    m_to_install.push_back(m_transaction->pool->solvables
+                                           + transaction_obs_pkg(m_transaction, p));
+                    break;
                 }
+                case SOLVER_TRANSACTION_ERASE:
+                {
+                    m_to_remove.push_back(s);
+                    break;
+                }
+                case SOLVER_TRANSACTION_INSTALL:
+                {
+                    m_to_install.push_back(s);
+                    break;
+                }
+                case SOLVER_TRANSACTION_IGNORE:
+                    break;
+                default:
+                    LOG_ERROR << "Exec case not handled: " << ttype;
+                    break;
             }
         }
-
-        queue_free(&classes);
-        queue_free(&pkgs);
     }
 
     std::string MTransaction::find_python_version()
@@ -668,8 +653,7 @@ namespace mamba
 
     void MTransaction::log_json()
     {
-        std::vector<nlohmann::json> to_fetch;
-        std::vector<nlohmann::json> to_link;
+        std::vector<nlohmann::json> to_fetch, to_link, to_unlink;
 
         for (Solvable* s : m_to_install)
         {
@@ -684,21 +668,26 @@ namespace mamba
             }
         }
 
-        if (!to_fetch.empty())
+        for (Solvable* s : m_to_remove)
         {
-            JsonLogger::instance().json_down("FETCH");
-            for (nlohmann::json j : to_fetch)
-                JsonLogger::instance().json_append(j);
-            JsonLogger::instance().json_up();
+            to_unlink.push_back(solvable_to_json(s));
         }
 
-        if (!to_link.empty())
-        {
-            JsonLogger::instance().json_down("LINK");
-            for (nlohmann::json j : to_link)
-                JsonLogger::instance().json_append(j);
-            JsonLogger::instance().json_up();
-        }
+        auto add_json = [](const auto& jlist, const char* s) {
+            if (!jlist.empty())
+            {
+                JsonLogger::instance().json_down(s);
+                for (nlohmann::json j : jlist)
+                {
+                    JsonLogger::instance().json_append(j);
+                }
+                JsonLogger::instance().json_up();
+            }
+        };
+
+        add_json(to_fetch, "FETCH");
+        add_json(to_link, "LINK");
+        add_json(to_unlink, "UNLINK");
     }
 
     bool MTransaction::fetch_extract_packages(const std::string& cache_dir,

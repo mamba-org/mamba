@@ -226,8 +226,23 @@ namespace mamba
         {
             j["sha256"] = sha256;
         }
-        j["depends"] = depends;
-        j["constrains"] = constrains;
+        if (depends.empty())
+        {
+            j["depends"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["depends"] = depends;
+        }
+
+        if (constrains.empty())
+        {
+            j["constrains"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["constrains"] = constrains;
+        }
         return j;
     }
 

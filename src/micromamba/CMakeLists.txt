@@ -86,6 +86,13 @@ if (STATIC_DEPENDENCIES AND UNIX)
         list(APPEND FINAL_LIBS "${TMP_LIB}")
     endforeach(LIB)
 
+    if (APPLE)
+        find_library(SECURITY_LIBRARY Security)
+        find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+        message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}")
+        list(APPEND FINAL_LIBS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
+    endif()
+
     message("  Found static dependencies:")
     foreach(LIB ${FINAL_LIBS})
         message("   - ${LIB}")

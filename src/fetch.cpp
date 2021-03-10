@@ -76,6 +76,11 @@ namespace mamba
                 }
             }
 
+            if (Context::instance().ssl_verify == "<system>" && (on_mac || on_win))
+            {
+                curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+            }
+
             curl_easy_cleanup(handle);
         }
     }
@@ -157,6 +162,10 @@ namespace mamba
             {
                 curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
                 curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+            }
+            else if (ssl_verify == "<system>")
+            {
+                curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
             }
             else
             {

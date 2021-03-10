@@ -166,12 +166,10 @@ init_network_parser(CLI::App* subcom)
 void
 load_network_options(Context& ctx)
 {
-    init_curl_ssl();
-
     // ssl verify can be either an empty string (regular SSL verification),
     // the string "<false>" to indicate no SSL verification, or a path to
     // a directory with cert files, or a cert file.
-    if (network_options.ssl_verify == false)
+    if (network_options.ssl_verify == false || ctx.offline)
     {
         ctx.ssl_verify = "<false>";
     }
@@ -205,10 +203,16 @@ load_network_options(Context& ctx)
                 exit(1);
             }
         }
+        else
+        {
+            ctx.ssl_verify = "<system>";
+        }
     }
 
     ctx.ssl_no_revoke = network_options.ssl_no_revoke;
     ctx.local_repodata_ttl = network_options.repodata_ttl;
+
+    init_curl_ssl();
 }
 
 void

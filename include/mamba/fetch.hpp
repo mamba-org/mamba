@@ -104,6 +104,7 @@ namespace mamba
 
         ProgressProxy m_progress_bar;
 
+        char m_errbuf[CURL_ERROR_SIZE];
         std::ofstream m_file;
     };
 

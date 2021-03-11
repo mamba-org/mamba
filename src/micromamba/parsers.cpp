@@ -203,7 +203,9 @@ load_network_options(Context& ctx)
             {
                 if (fs::exists(loc))
                 {
+                    LOG_INFO << "Using SSL certificates from: " << loc;
                     ctx.ssl_verify = loc;
+                    break;
                 }
             }
             if (ctx.ssl_verify.empty())

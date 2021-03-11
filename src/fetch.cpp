@@ -107,6 +107,8 @@ namespace mamba
         curl_easy_setopt(m_handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(m_handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
 
+        curl_easy_setopt(m_handle, CURLOPT_ERRORBUFFER, m_errbuf);
+
         curl_easy_setopt(m_handle, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         curl_easy_setopt(m_handle, CURLOPT_HEADERDATA, this);
 
@@ -154,6 +156,7 @@ namespace mamba
         if (!ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
         {
             ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
+            LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ssl_verify;
         }
 
         if (ssl_verify.size())
@@ -398,7 +401,11 @@ namespace mamba
 
             std::stringstream err;
             err << "Download error (" << result << ") " << curl_easy_strerror(result) << " ["
-                << effective_url << "]";
+                << effective_url << "]\n";
+            if (m_errbuf[0] != '\0')
+            {
+                err << m_errbuf;
+            }
             LOG_INFO << err.str();
 
             m_next_retry

@@ -423,7 +423,7 @@ parse_file_options()
                     std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                             file_contents.end());
                     auto& ctx = Context::instance();
-                    load_prefix_options(ctx);
+                    load_install_options(ctx);
                     catch_existing_target_prefix(ctx);
                     install_explicit_specs(explicit_specs);
                     exit(0);
@@ -432,11 +432,7 @@ parse_file_options()
 
             for (auto& line : file_contents)
             {
-                if (line[0] == '#' || line[0] == '@')
-                {
-                    // skip
-                }
-                else
+                if (line[0] != '#' && line[0] != '@')
                 {
                     create_options.specs.push_back(line);
                 }

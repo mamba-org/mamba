@@ -1,3 +1,16 @@
+0.8.1 (Mar 11, 2021)
+====================
+
+- use stoull (instead of stoi) to prevent overflow with long package build numbers (thanks @pbauwens-kbc)
+- [micromamba] fixing OS X certificate search path
+- [micromamba] refactor default root prefix, make it configurable from CLI (thanks @adriendelsalle)
+- [micromamba] set ssl backend, use native SSL if possible (thanks @adriendelsalle)
+- [micromamba] sort json transaction, and add UNLINK field
+- [micromamba] left align log messages
+- [micromamba] libsolv log messages to stderr (thanks @mariusvniekerk)
+- [micromamba] better curl error messages
+
+
 0.8.0 (Mar 5, 2021)
 ===================
 

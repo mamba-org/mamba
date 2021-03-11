@@ -177,12 +177,12 @@ class TestLinking:
             create_args.append("--always-copy")
         res = create(*create_args)
 
-        xf = Path(env + "/include/xtensor/xtensor.hpp")
+        xf = Path(env) / xtensor_hpp
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
 
         stat_orig = orig_file_path.stat()
         assert stat_orig.st_dev != stat_xf.st_dev and stat_orig.st_ino != stat_xf.st_ino
@@ -195,12 +195,12 @@ class TestPkgCache:
     def test_extracted_file_deleted(self):
         ref_env = "x"
         res = create("xtensor", "-n", ref_env, "--json")
-        xf = get_env(ref_env, "include/xtensor/xtensor.hpp")
+        xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
         stat_orig = orig_file_path.stat()
 
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
@@ -209,7 +209,7 @@ class TestPkgCache:
 
         env = "x1"
         res = create("xtensor", "-n", env, "--json")
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
@@ -224,12 +224,12 @@ class TestPkgCache:
         res = create(
             "xtensor", "-n", ref_env, "--json", "--safety-checks", safety_checks
         )
-        xf = get_env(ref_env, "include/xtensor/xtensor.hpp")
+        xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
         stat_orig = orig_file_path.stat()
 
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
@@ -239,7 +239,7 @@ class TestPkgCache:
 
         env = "x1"
         res = create("xtensor", "-n", env, "--json", "--safety-checks", safety_checks)
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
@@ -261,12 +261,12 @@ class TestPkgCache:
     def test_tarball_deleted(self):
         ref_env = "x"
         res = create("xtensor", "-n", ref_env, "--json")
-        xf = get_env(ref_env, "include/xtensor/xtensor.hpp")
+        xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
         stat_orig = orig_file_path.stat()
 
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
@@ -275,7 +275,7 @@ class TestPkgCache:
 
         env = "x1"
         res = create("xtensor", "-n", env, "--json")
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
@@ -289,12 +289,12 @@ class TestPkgCache:
     def test_tarball_and_extracted_file_deleted(self):
         ref_env = "x"
         res = create("xtensor", "-n", ref_env, "--json")
-        xf = get_env(ref_env, "include/xtensor/xtensor.hpp")
+        xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
         stat_orig = orig_file_path.stat()
 
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
@@ -305,7 +305,7 @@ class TestPkgCache:
 
         env = "x1"
         res = create("xtensor", "-n", env, "--json")
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
@@ -319,12 +319,12 @@ class TestPkgCache:
     def test_tarball_corrupted_and_extracted_file_deleted(self):
         ref_env = "x"
         res = create("xtensor", "-n", ref_env, "--json")
-        xf = get_env(ref_env, "include/xtensor/xtensor.hpp")
+        xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
         stat_orig = orig_file_path.stat()
 
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
@@ -337,7 +337,7 @@ class TestPkgCache:
 
         env = "x1"
         res = create("xtensor", "-n", env, "--json")
-        xf = get_env(env, "include/xtensor/xtensor.hpp")
+        xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
@@ -351,12 +351,12 @@ class TestPkgCache:
     def test_extracted_file_corrupted_no_perm(self):
         ref_env = "x"
         res = create("xtensor", "-n", ref_env, "--json")
-        xf = get_env(ref_env, "include/xtensor/xtensor.hpp")
+        xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
 
         pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, "include/xtensor/xtensor.hpp")
+        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
         stat_orig = orig_file_path.stat()
 
         assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino

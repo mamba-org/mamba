@@ -1,3 +1,10 @@
+0.8.2 (Mar 12, 2021)
+====================
+
+- [micromamba] fix setting network options before explicit spec installation
+- [micromamba] fix python based tests for windows
+
+
 0.8.1 (Mar 11, 2021)
 ====================
 

@@ -244,7 +244,8 @@ namespace mamba
         }
 
         LOG_INFO << "loading from json " << m_json_file;
-        int ret = repo_add_conda(m_repo, fp, 0);
+        int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
+        int ret = repo_add_conda(m_repo, fp, flags);
         if (ret != 0)
         {
             throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") "

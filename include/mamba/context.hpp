@@ -105,6 +105,8 @@ namespace mamba
 
         std::vector<std::string> pinned_packages = {};
 
+        bool use_only_tar_bz2 = false;
+
         static Context& instance();
 
         Context(const Context&) = delete;

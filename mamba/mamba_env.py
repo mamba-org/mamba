@@ -8,6 +8,8 @@ from __future__ import absolute_import, print_function
 import sys
 
 from conda.base.context import context
+from conda.core.prefix_data import PrefixData
+from conda.core.solve import get_pinned_specs
 from conda.models.channel import prioritize_channels
 from conda.models.match_spec import MatchSpec
 from conda_env.installers import conda
@@ -49,7 +51,6 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
 
     installed_pkg_recs = []
-    python_constraint = None
 
     # We check for installed packages even while creating a new
     # Conda environment as virtual packages such as __glibc are
@@ -58,6 +59,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     repo = api.Repo(pool, "installed", installed_json_f.name, "")
     repo.set_installed()
     repos.append(repo)
+
+    solver = api.Solver(pool, solver_options)
 
     # Also pin the Python version if it's installed
     # If python was not specified, check if it is installed.
@@ -68,12 +71,26 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
             i = installed_names.index("python")
             version = installed_pkg_recs[i].version
             python_constraint = MatchSpec("python==" + version).conda_build_form()
+            solver.add_pin(python_constraint)
 
-    solver = api.Solver(pool, solver_options)
+    pinned_specs = get_pinned_specs(prefix)
+    if pinned_specs:
+        conda_prefix_data = PrefixData(prefix)
+    for s in pinned_specs:
+        x = conda_prefix_data.query(s.name)
+        if x:
+            for el in x:
+                if not s.match(el):
+                    print(
+                        "Your pinning does not match what's currently installed."
+                        " Please remove the pin and fix your installation"
+                    )
+                    print("  Pin: {}".format(s))
+                    print("  Currently installed: {}".format(el))
+                    exit(1)
+        solver.add_pin(str(s))
+
     solver.add_jobs(specs, api.SOLVER_INSTALL)
-
-    if python_constraint:
-        solver.add_pin(python_constraint)
 
     success = solver.solve()
     if not success:

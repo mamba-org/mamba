@@ -204,6 +204,7 @@ def get_installed_packages(prefix, show_channel_urls=None):
     for prec in installed:
         json_rec = prec.dist_fields_dump()
         json_rec["depends"] = prec.depends
+        json_rec["constrains"] = prec.constrains
         json_rec["build"] = prec.build
         result["packages"][prec.fn] = json_rec
 

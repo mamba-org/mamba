@@ -618,9 +618,11 @@ namespace mamba
         if (wait)
         {
             ret = fcntl(fd, F_SETLKW, &lock);
+
             if (ret)
             {
                 LOG_ERROR << "Could not lock file: " << strerror(errno);
+                return -1;
             }
         }
 
@@ -628,10 +630,11 @@ namespace mamba
         int read_res = read(fd, pidc, 20);
         if (read_res == -1 && errno != EBADF)
         {
-            std::cout << "could not read old PID! " << strerror(errno);
+            LOG_ERROR << "Could not read old PID from lockfile " << strerror(errno);
+            return -1;
         }
 
-        std::cout << "PIDC is " << pidc << std::endl;
+        LOG_INFO << "Currently locked by PID " << pidc;
 
         if (strlen(pidc) != 0)
         {
@@ -686,8 +689,6 @@ namespace mamba
     {
 #ifdef _WIN32
         int ret = _locking(fd, LK_UNLCK, 1 /*lock_file_contents_length()*/);
-#else
-
 #endif
         close(fd);
         return true;
@@ -704,12 +705,15 @@ namespace mamba
         {
             LOG_ERROR << "Could not open lockfile " << path;
         }
-        m_pid = getpid();
-        int ret = try_lock(m_fd, m_pid, false);
-        if (ret != m_pid)
+        else
         {
-            LOG_ERROR << "Cannot lock file because pid " << ret << " is still running.";
-            try_lock(m_fd, m_pid, true);
+            m_pid = getpid();
+            int ret = try_lock(m_fd, m_pid, false);
+            if (ret != m_pid)
+            {
+                LOG_ERROR << "Cannot lock file " << path;
+                try_lock(m_fd, m_pid, true);
+            }
         }
     }
 

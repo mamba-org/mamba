@@ -10,6 +10,10 @@
 #include <mutex>
 #include <thread>
 
+#if defined(__APPLE__) || defined(__linux__)
+#include <csignal>
+#endif
+
 #ifdef _WIN32
 #include <io.h>
 

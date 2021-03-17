@@ -15,7 +15,13 @@ from conda.models.match_spec import MatchSpec
 from conda_env.installers import conda
 
 import mamba.mamba_api as api
-from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
+from mamba.utils import (
+    get_installed_jsonfile,
+    init_api_context,
+    load_channels,
+    loosen_spec,
+    to_txn,
+)
 
 
 def mamba_install(prefix, specs, args, env, *_, **kwargs):
@@ -74,6 +80,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
             solver.add_pin(python_constraint)
 
     pinned_specs = get_pinned_specs(prefix)
+    pinned_specs_info = ""
     if pinned_specs:
         conda_prefix_data = PrefixData(prefix)
     for s in pinned_specs:
@@ -88,7 +95,13 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
                     print("  Pin: {}".format(s))
                     print("  Currently installed: {}".format(el))
                     exit(1)
-        solver.add_pin(str(s))
+
+        final_spec = loosen_spec(s.conda_build_form())
+        pinned_specs_info += f"  - {final_spec}"
+        solver.add_pin(final_spec)
+
+    if pinned_specs_info:
+        print(f"\n  Pinned packages:\n\n{pinned_specs_info}\n")
 
     solver.add_jobs(specs, api.SOLVER_INSTALL)
 

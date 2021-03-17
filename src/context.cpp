@@ -71,7 +71,6 @@ namespace mamba
     }  // namespace
     Context::Context()
     {
-        set_verbosity(0);
         on_ci = (std::getenv("CI") != nullptr);
         if (on_ci || !termcolor::_internal::is_atty(std::cout))
         {
@@ -89,16 +88,21 @@ namespace mamba
 
     void Context::set_verbosity(int lvl)
     {
-        MessageLogger::global_log_severity() = mamba::LogSeverity::kWarning;
+        this->verbosity = LogLevel::kWarning;
         if (lvl == 1)
         {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+            this->verbosity = LogLevel::kInfo;
         }
-        else if (lvl > 1)
+        else if (lvl == 2)
         {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            this->verbosity = LogLevel::kDebug;
         }
-        this->verbosity = lvl;
+        else if (lvl >= 2)
+        {
+            this->verbosity = LogLevel::kTrace;
+        }
+
+        MessageLogger::global_log_level() = this->verbosity;
     }
 
     std::string Context::platform()

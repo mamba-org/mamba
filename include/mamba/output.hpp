@@ -7,6 +7,11 @@
 #ifndef MAMBA_OUTPUT_HPP
 #define MAMBA_OUTPUT_HPP
 
+#include "context.hpp"
+#include "util.hpp"
+
+#include "nlohmann/json.hpp"
+
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -18,8 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "context.hpp"
-#include "nlohmann/json.hpp"
 
 #define ENUM_FLAG_OPERATOR(T, X)                                                                   \
     inline T operator X(T lhs, T rhs)                                                              \
@@ -39,6 +42,17 @@
     enum class T
 
 #define PREFIX_LENGTH 25
+
+namespace mamba
+{
+    const char banner[] =
+        R"MAMBARAW(                                        __
+            _____ ___  ____ _____ ___  / /_  ____ _
+            / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
+           / / / / / / /_/ / / / / / / /_/ / /_/ /
+          /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
+    )MAMBARAW";
+}
 
 namespace cursor
 {
@@ -324,29 +338,21 @@ namespace mamba
 #undef ERROR
 #undef FATAL
 
-    enum class LogSeverity
-    {
-        kDebug,
-        kInfo,
-        kWarning,
-        kError,
-        kFatal
-    };
 
     class MessageLogger
     {
     public:
-        MessageLogger(const char* file, int line, LogSeverity severity);
+        MessageLogger(const char* file, int line, LogLevel severity);
         ~MessageLogger();
 
         std::stringstream& stream();
 
-        static LogSeverity& global_log_severity();
+        static LogLevel& global_log_level();
 
     private:
         std::string m_file;
         int m_line;
-        LogSeverity m_severity;
+        LogLevel m_level;
         std::stringstream m_stream;
     };
 
@@ -382,10 +388,11 @@ namespace mamba
 #undef FATAL
 
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
-#define LOG_DEBUG LOG(mamba::LogSeverity::kDebug)
-#define LOG_INFO LOG(mamba::LogSeverity::kInfo)
-#define LOG_WARNING LOG(mamba::LogSeverity::kWarning)
-#define LOG_ERROR LOG(mamba::LogSeverity::kError)
-#define LOG_FATAL LOG(mamba::LogSeverity::kFatal)
+#define LOG_TRACE LOG(mamba::LogLevel::kTrace)
+#define LOG_DEBUG LOG(mamba::LogLevel::kDebug)
+#define LOG_INFO LOG(mamba::LogLevel::kInfo)
+#define LOG_WARNING LOG(mamba::LogLevel::kWarning)
+#define LOG_ERROR LOG(mamba::LogLevel::kError)
+#define LOG_FATAL LOG(mamba::LogLevel::kFatal)
 
 #endif  // MAMBA_OUTPUT_HPP

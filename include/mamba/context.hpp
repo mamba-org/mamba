@@ -32,6 +32,16 @@ namespace mamba
         kStrict
     };
 
+    enum class LogLevel
+    {
+        kOff = 0,
+        kFatal,
+        kError,
+        kWarning,
+        kInfo,
+        kDebug,
+        kTrace
+    };
 
     std::string env_name(const fs::path& prefix);
     fs::path locate_prefix_by_name(const std::string& name);
@@ -63,7 +73,7 @@ namespace mamba
         bool auto_activate_base = false;
 
         long max_parallel_downloads = 5;
-        int verbosity = 0;
+        LogLevel verbosity = LogLevel::kWarning;
 
         bool dev = false;
         bool on_ci = false;

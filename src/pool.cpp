@@ -26,9 +26,9 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         m_pool->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().verbosity > 2)
+        if (Context::instance().verbosity >= LogLevel::kDebug)
         {
-            pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
+            pool_setdebuglevel(m_pool, 2);
         }
     }
 

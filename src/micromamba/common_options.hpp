@@ -30,9 +30,6 @@ void
 init_prefix_options(CLI::App* subcom);
 
 void
-target_prefix_hook(fs::path& prefix);
-
-void
 init_network_parser(CLI::App* subcom);
 
 void

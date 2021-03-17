@@ -328,10 +328,12 @@ namespace mamba
         for (int i = 1; i <= count; i++)
         {
             queue_push(&problem_queue, i);
-            problems << "Problem: " << solver_problem2str(m_solver, i) << "\n";
+            if (i > 1)
+                problems << "\n";
+            problems << "- " << solver_problem2str(m_solver, i);
         }
         queue_free(&problem_queue);
-        return "Encountered problems while solving.\n" + problems.str();
+        return "Encountered problems while solving:\n" + problems.str();
     }
 
     MSolver::operator Solver*()

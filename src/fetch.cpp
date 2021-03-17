@@ -144,7 +144,8 @@ namespace mamba
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
-        curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+        curl_easy_setopt(
+            m_handle, CURLOPT_VERBOSE, Context::instance().verbosity == LogLevel::kTrace);
 
         curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1L);
 

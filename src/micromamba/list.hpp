@@ -18,15 +18,4 @@ init_list_parser(CLI::App* subcom);
 void
 set_list_command(CLI::App* subcom);
 
-void
-list_packages(std::string regex);
-
-struct formatted_pkg
-{
-    std::string name, version, build, channel;
-};
-
-bool
-compare_alphabetically(const formatted_pkg& a, const formatted_pkg& b);
-
 #endif

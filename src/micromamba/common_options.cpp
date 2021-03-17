@@ -19,89 +19,56 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 init_rc_options(CLI::App* subcom)
 {
-    auto& ctx = Context::instance();
     auto& config = Configuration::instance();
     std::string cli_group = "Configuration options";
 
-    auto& rc_file = config.insert(Configurable("rc_file", std::string(""))
-                                      .group("cli")
-                                      .rc_configurable(false)
-                                      .set_env_var_name()
-                                      .description("Path to the unique configuration file to use"));
+    auto& rc_file = config.at("rc_file").get_wrapped<std::string>();
     subcom->add_option("--rc-file", rc_file.set_cli_config(""), rc_file.description())
         ->group(cli_group);
 
-    auto& no_rc = config.insert(Configurable("no_rc", &ctx.no_rc)
-                                    .group("cli")
-                                    .rc_configurable(false)
-                                    .set_env_var_name()
-                                    .description("Disable the use of configuration files"));
+    auto& no_rc = config.at("no_rc").get_wrapped<bool>();
     subcom->add_flag("--no-rc", no_rc.set_cli_config(0), no_rc.description())->group(cli_group);
 
-    auto& no_env = config.insert(Configurable("no_env", &ctx.no_env)
-                                     .group("cli")
-                                     .rc_configurable(false)
-                                     .set_env_var_name()
-                                     .description("Disable the use of environment variables"));
+    auto& no_env = config.at("no_env").get_wrapped<bool>();
     subcom->add_flag("--no-env", no_env.set_cli_config(0), no_env.description())->group(cli_group);
 }
-
 
 void
 init_general_options(CLI::App* subcom)
 {
     init_rc_options(subcom);
 
-    auto& ctx = Context::instance();
     auto& config = Configuration::instance();
     std::string cli_group = "Global options";
 
-    auto& verbosity = config.insert(
-        Configurable("verbosity", 0)
-            .group("cli")
-            .rc_configurable(false)
-            .set_env_var_name()
-            .description("Set verbosity (higher verbosity with multiple -v, e.g. -vvv)"));
-    subcom->add_flag("-v,--verbose", verbosity.set_cli_config(0), verbosity.description())
+    auto& log_lvl = config.at("log_level").get_wrapped<LogLevel>();
+    subcom
+        ->add_set("--log-level",
+                  log_lvl.set_cli_config(""),
+                  { "off", "fatal", "error", "warning", "info", "debug", "trace" },
+                  log_lvl.description())
         ->group(cli_group);
 
-    auto& quiet = config.insert(Configurable("quiet", &ctx.quiet)
-                                    .group("cli")
-                                    .rc_configurable(false)
-                                    .set_env_var_name()
-                                    .description("Set quiet mode (print less output)"));
+    auto& verbose = config.at("verbose").get_wrapped<std::uint8_t>();
+    subcom->add_flag("-v,--verbose", verbose.set_cli_config(-1), verbose.description())
+        ->group(cli_group);
+
+    auto& quiet = config.at("quiet").get_wrapped<bool>();
     subcom->add_flag("-q,--quiet", quiet.set_cli_config(false), quiet.description())
         ->group(cli_group);
 
-    auto& always_yes
-        = config.insert(Configurable("always_yes", &ctx.always_yes)
-                            .group("cli")
-                            .rc_configurable(false)
-                            .set_env_var_name()
-                            .description("Automatically answer yes on prompted questions"));
+    auto& always_yes = config.at("always_yes").get_wrapped<bool>();
     subcom->add_flag("-y,--yes", always_yes.set_cli_config(false), always_yes.description())
         ->group(cli_group);
 
-    auto& json = config.insert(Configurable("json", &ctx.json)
-                                   .group("cli")
-                                   .rc_configurable(false)
-                                   .set_env_var_name()
-                                   .description("Report all output as json"));
-    subcom->add_flag("--json", json.set_cli_config(false), json.description())->group(cli_group);
+    auto& json = config.at("json").get_wrapped<bool>();
+    subcom->add_flag("--json", json.set_cli_config(0), json.description())->group(cli_group);
 
-    auto& offline = config.insert(Configurable("offline", &ctx.offline)
-                                      .group("cli")
-                                      .rc_configurable(false)
-                                      .set_env_var_name()
-                                      .description("Force use cached repodata"));
+    auto& offline = config.at("offline").get_wrapped<bool>();
     subcom->add_flag("--offline", offline.set_cli_config(false), offline.description())
         ->group(cli_group);
 
-    auto& dry_run = config.insert(Configurable("dry_run", &ctx.dry_run)
-                                      .group("cli")
-                                      .rc_configurable(false)
-                                      .set_env_var_name()
-                                      .description("Only display what would have been done"));
+    auto& dry_run = config.at("dry_run").get_wrapped<bool>();
     subcom->add_flag("--dry-run", dry_run.set_cli_config(false), dry_run.description())
         ->group(cli_group);
 }
@@ -109,64 +76,20 @@ init_general_options(CLI::App* subcom)
 void
 init_prefix_options(CLI::App* subcom)
 {
-    auto& ctx = Context::instance();
     auto& config = Configuration::instance();
     std::string cli_group = "Prefix options";
 
-    auto& root = config.insert(Configurable("root_prefix", &ctx.root_prefix)
-                                   .group("cli")
-                                   .rc_configurable(false)
-                                   .set_env_var_name()
-                                   .description("Path to the root prefix")
-                                   .set_post_build_hook(root_prefix_hook));
-    auto& prefix = config.insert(Configurable("target_prefix", &ctx.target_prefix)
-                                     .group("cli")
-                                     .rc_configurable(false)
-                                     .set_env_var_name()
-                                     .description("Path to the target prefix")
-                                     .set_post_build_hook(target_prefix_hook));
-    auto& name = config.insert(Configurable("env_name", std::string(""))
-                                   .group("cli")
-                                   .rc_configurable(false)
-                                   .description("Name of the environment"));
-
+    auto& root = config.at("root_prefix").get_wrapped<fs::path>();
     subcom->add_option("-r,--root-prefix", root.set_cli_config(""), root.description())
         ->group(cli_group);
-    subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description())
+
+    auto& target = config.at("target_prefix").get_wrapped<fs::path>();
+    subcom->add_option("-p,--prefix", target.set_cli_config(""), target.description())
         ->group(cli_group);
+
+    auto& name = config.at("env_name").get_wrapped<std::string>();
     subcom->add_option("-n,--name", name.set_cli_config(""), name.description())->group(cli_group);
 }
-
-void
-target_prefix_hook(fs::path& prefix)
-{
-    auto& config = Configuration::instance();
-    auto& root_prefix = config.at("root_prefix").compute_config().value<fs::path>();
-    auto& env_name = config.at("env_name").compute_config().value<std::string>();
-
-    if (!env_name.empty() && config.at("target_prefix").configured())
-    {
-        throw std::runtime_error("Cannot set both prefix and env name.");
-    }
-
-    if (!env_name.empty())
-    {
-        if (env_name == "base")
-        {
-            prefix = root_prefix;
-        }
-        else
-        {
-            prefix = root_prefix / "envs" / env_name;
-        }
-    }
-
-    if (!prefix.empty())
-    {
-        prefix = fs::absolute(prefix);
-    }
-}
-
 
 void
 init_network_parser(CLI::App* subcom)
@@ -195,12 +118,7 @@ init_network_parser(CLI::App* subcom)
                      local_repodata_ttl.description())
         ->group(cli_group);
 
-    auto& retry_clean_cache
-        = config.insert(Configurable("retry_clean_cache", false)
-                            .group("cli")
-                            .rc_configurable(false)
-                            .set_env_var_name()
-                            .description("If solve fails, try to fetch updated repodata"));
+    auto& retry_clean_cache = config.at("retry_clean_cache").get_wrapped<bool>();
     subcom
         ->add_flag("--retry-clean-cache",
                    retry_clean_cache.set_cli_config(false),
@@ -261,12 +179,12 @@ channels_hook(std::vector<std::string>& channels)
 {
     auto& config = Configuration::instance();
 
-    // Workaround to silent the hook warning
+    // Workaround to silent "override_channels_hook" warning
     // TODO: resolve configurable deps/workflow to compute only once
-    auto verbosity = MessageLogger::global_log_severity();
-    MessageLogger::global_log_severity() = mamba::LogSeverity::kError;
+    auto verbosity = MessageLogger::global_log_level();
+    MessageLogger::global_log_level() = mamba::LogLevel::kError;
     auto& override_channels = config.at("override_channels").compute_config().value<bool>();
-    MessageLogger::global_log_severity() = verbosity;
+    MessageLogger::global_log_level() = verbosity;
 
     if (override_channels)
     {
@@ -465,14 +383,12 @@ check_target_prefix(int options)
 void
 load_configuration(int options, bool show_banner)
 {
-    auto& ctx = Context::instance();
     auto& config = Configuration::instance();
 
     config.at("no_env").compute_config().set_context();
     auto& no_rc = config.at("no_rc").compute_config().set_context().value<bool>();
     auto& rc_file = config.at("rc_file").compute_config().value<std::string>();
 
-    ctx.set_verbosity(config.at("verbosity").compute_config().value<int>());
     config.at("quiet").compute_config().set_context();
     config.at("json").compute_config().set_context();
     config.at("always_yes").compute_config().set_context();
@@ -481,6 +397,9 @@ load_configuration(int options, bool show_banner)
 
     if (show_banner)
         Console::print(banner);
+
+    config.at("log_level").compute_config().set_context();
+    config.at("verbose").compute_config();
 
     config.at("root_prefix").compute_config().set_context();
     config.at("target_prefix").compute_config().set_context();

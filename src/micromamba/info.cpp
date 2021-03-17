@@ -9,6 +9,7 @@
 
 #include "mamba/configuration.hpp"
 #include "mamba/environment.hpp"
+#include "mamba/install.hpp"
 #include "mamba/util.hpp"
 #include "mamba/version.hpp"
 #include "mamba/virtual_packages.hpp"
@@ -30,6 +31,7 @@ set_info_command(CLI::App* subcom)
     subcom->callback([&]() {
         load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
                            | MAMBA_ALLOW_EXISTING_PREFIX);
+        using namespace detail;
 
         auto& ctx = Context::instance();
         std::vector<std::tuple<std::string, std::vector<std::string>>> items;

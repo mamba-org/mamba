@@ -77,14 +77,21 @@ message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 # ============
 
 set(MAMBA_SOURCES
+    ${MAMBA_SOURCE_DIR}/c_api/mambac.cpp
+    ${MAMBA_SOURCE_DIR}/c_api/set_option.cpp
     ${MAMBA_SOURCE_DIR}/activation.cpp
     ${MAMBA_SOURCE_DIR}/channel.cpp
     ${MAMBA_SOURCE_DIR}/configuration.cpp
+    ${MAMBA_SOURCE_DIR}/config.cpp
     ${MAMBA_SOURCE_DIR}/context.cpp
+    ${MAMBA_SOURCE_DIR}/create.cpp
     ${MAMBA_SOURCE_DIR}/environments_manager.cpp
     ${MAMBA_SOURCE_DIR}/fetch.cpp
+    ${MAMBA_SOURCE_DIR}/info.cpp
+    ${MAMBA_SOURCE_DIR}/install.cpp
     ${MAMBA_SOURCE_DIR}/transaction_context.cpp
     ${MAMBA_SOURCE_DIR}/link.cpp
+    ${MAMBA_SOURCE_DIR}/list.cpp
     ${MAMBA_SOURCE_DIR}/history.cpp
     ${MAMBA_SOURCE_DIR}/match_spec.cpp
     ${MAMBA_SOURCE_DIR}/url.cpp
@@ -98,11 +105,13 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/package_paths.cpp
     ${MAMBA_SOURCE_DIR}/query.cpp
     ${MAMBA_SOURCE_DIR}/repo.cpp
+    ${MAMBA_SOURCE_DIR}/shell.cpp
     ${MAMBA_SOURCE_DIR}/shell_init.cpp
     ${MAMBA_SOURCE_DIR}/solver.cpp
     ${MAMBA_SOURCE_DIR}/subdirdata.cpp
     ${MAMBA_SOURCE_DIR}/thread_utils.cpp
     ${MAMBA_SOURCE_DIR}/transaction.cpp
+    ${MAMBA_SOURCE_DIR}/update.cpp
     ${MAMBA_SOURCE_DIR}/util.cpp
     ${MAMBA_SOURCE_DIR}/validate.cpp
     ${MAMBA_SOURCE_DIR}/version.cpp
@@ -111,17 +120,23 @@ set(MAMBA_SOURCES
 )
 
 set(MAMBA_HEADERS
+    ${MAMBA_INCLUDE_DIR}/mamba/c_api/mambac.h
     ${MAMBA_INCLUDE_DIR}/mamba/activation.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/channel.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/configuration.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/config.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/create.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/environment.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/environments_manager.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/fetch.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/fsutil.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/graph_util.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/history.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/info.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/install.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/link.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/list.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/mamba_fs.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/match_spec.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/output.hpp
@@ -134,12 +149,14 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/pinning.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/query.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/repo.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/shell.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/shell_init.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/solver.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/subdirdata.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/thread_utils.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/transaction.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/transaction_context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/update.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/url.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/util.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp

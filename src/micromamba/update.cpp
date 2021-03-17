@@ -9,6 +9,7 @@
 #include "common_options.hpp"
 
 #include "mamba/configuration.hpp"
+#include "mamba/install.hpp"
 #include "mamba/virtual_packages.hpp"
 
 
@@ -62,8 +63,7 @@ set_update_command(CLI::App* subcom)
 
         if (!update_specs.empty())
         {
-            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                | MAMBA_ALLOW_EXISTING_PREFIX);
+            using namespace detail;
             install_specs(update_specs, false, SOLVER_UPDATE);
         }
         else

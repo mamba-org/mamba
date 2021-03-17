@@ -655,10 +655,10 @@ namespace mamba
         return pos != std::string::npos ? file.substr(pos + 1, std::string::npos) : file;
     }
 
-    MessageLogger::MessageLogger(const char* file, int line, LogSeverity severity)
+    MessageLogger::MessageLogger(const char* file, int line, LogLevel severity)
         : m_file(strip_file_prefix(file))
         , m_line(line)
-        , m_severity(severity)
+        , m_level(severity)
         , m_stream()
     {
 #ifdef MAMBA_DEVELOPMENT
@@ -668,32 +668,36 @@ namespace mamba
 
     MessageLogger::~MessageLogger()
     {
-        if (m_severity < global_log_severity())
+        if (m_level > global_log_level())
         {
             return;
         }
 
-        switch (m_severity)
+        switch (m_level)
         {
-            case LogSeverity::kFatal:
+            case LogLevel::kFatal:
                 std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset
                           << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
-            case LogSeverity::kError:
+            case LogLevel::kError:
                 std::cerr << termcolor::red << "ERROR   " << termcolor::reset
                           << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
-            case LogSeverity::kWarning:
+            case LogLevel::kWarning:
                 std::cerr << termcolor::yellow << "WARNING " << termcolor::reset
                           << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
-            case LogSeverity::kInfo:
+            case LogLevel::kInfo:
                 std::cerr << "INFO    " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
                           << std::endl;
                 break;
-            case LogSeverity::kDebug:
-                std::cerr << "DEBUG   " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
-                          << std::endl;
+            case LogLevel::kDebug:
+                std::cerr << termcolor::cyan << "DEBUG   " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                break;
+            case LogLevel::kTrace:
+                std::cerr << termcolor::blue << "TRACE   " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             default:
                 std::cerr << "UNKOWN  " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
@@ -701,7 +705,7 @@ namespace mamba
                 break;
         }
 
-        if (m_severity == LogSeverity::kFatal)
+        if (m_level == LogLevel::kFatal)
         {
             std::abort();
         }
@@ -712,9 +716,9 @@ namespace mamba
         return m_stream;
     }
 
-    LogSeverity& MessageLogger::global_log_severity()
+    LogLevel& MessageLogger::global_log_level()
     {
-        static LogSeverity sev = LogSeverity::kWarning;
+        static LogLevel sev = LogLevel::kWarning;
         return sev;
     }
 

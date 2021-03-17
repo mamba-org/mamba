@@ -96,9 +96,16 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
                     print("  Currently installed: {}".format(el))
                     exit(1)
 
-        final_spec = loosen_spec(s.conda_build_form())
-        pinned_specs_info += f"  - {final_spec}"
-        solver.add_pin(final_spec)
+        try:
+            final_spec = loosen_spec(s.conda_build_form())
+            pinned_specs_info += f"  - {final_spec}"
+            solver.add_pin(final_spec)
+        except AssertionError:
+            print(
+                f"\nERROR: could not add pinned spec {s}. Make sure pin"
+                "is of the format\n"
+                "libname VERSION BUILD, for example libblas=*=*mkl\n"
+            )
 
     if pinned_specs_info:
         print(f"\n  Pinned packages:\n\n{pinned_specs_info}\n")

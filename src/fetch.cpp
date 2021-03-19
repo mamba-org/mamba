@@ -19,31 +19,36 @@ namespace mamba
      * DownloadTarget implementation *
      *********************************/
 
+    std::string unc_url(const std::string& url)
+    {
+        // Replicate UNC behaviour of url_to_path from conda.common.path
+        // We cannot use URLHandler for this since CURL returns an error when asked to parse
+        // a url of type file://hostname/path
+        // Colon character is excluded to make sure we do not match file URLs with absoulute
+        // paths to a windows drive.
+        static const std::regex file_host(R"(file://([^:/]*)(/.*)?)");
+        std::smatch match;
+        if (std::regex_match(url, match, file_host))
+        {
+            if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
+                && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
+            {
+                return "file:////" + std::string(match[1].first, url.cend());
+            }
+        }
+        return url;
+    }
+
     DownloadTarget::DownloadTarget(const std::string& name,
                                    const std::string& url,
                                    const std::string& filename)
         : m_name(name)
         , m_filename(filename)
-        , m_url(url)
+        , m_url(unc_url(url))
     {
         LOG_INFO << "Downloading to filename: " << m_filename;
         m_handle = curl_easy_init();
 
-        {
-            // Replicate UNC behaviour of url_to_path from conda.common.path
-            // We cannot use URLHandler for this since CURL returns an error when asked to parse
-            // a url of type file://hostname/path
-            static const std::regex file_host(R"(file://([^/]*)(/.*)?)");
-            std::smatch match;
-            if (std::regex_match(m_url, match, file_host))
-            {
-                if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
-                    && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
-                {
-                    m_url = "file:////" + std::string(match[1].first, m_url.cend());
-                }
-            }
-        }
         init_curl_target(m_url);
     }
 

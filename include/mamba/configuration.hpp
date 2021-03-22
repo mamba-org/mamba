@@ -207,6 +207,28 @@ namespace mamba
 
 
         template <>
+        struct cli_config<std::vector<std::string>>
+        {
+            using value_type = std::vector<std::string>;
+            using storage_type = value_type;
+
+            cli_config(const storage_type& value)
+                : m_value(value){};
+
+            bool defined()
+            {
+                return !m_value.empty();
+            };
+            value_type value()
+            {
+                return m_value;
+            };
+
+            storage_type m_value = {};
+        };
+
+
+        template <>
         struct cli_config<std::string>
         {
             using storage_type = std::string;
@@ -429,8 +451,8 @@ namespace mamba
     enum class ConfigurationLevel
     {
         kNone = 0,
-        kEnvVar = 1,
-        kCli = 2,
+        kCli = 1,
+        kEnvVar = 2,
         kFile = 3
     };
 
@@ -596,7 +618,7 @@ namespace mamba
     template <class T>
     bool Configurable<T>::rc_configured() const
     {
-        return m_rc_configured;
+        return m_rc_configured && !Context::instance().no_rc;
     };
 
     template <class T>
@@ -614,7 +636,7 @@ namespace mamba
     template <class T>
     bool Configurable<T>::env_var_configured() const
     {
-        return !m_env_var.empty() && !env::get(m_env_var).empty();
+        return !m_env_var.empty() && !Context::instance().no_env && !env::get(m_env_var).empty();
     };
 
     template <class T>
@@ -636,14 +658,9 @@ namespace mamba
     auto Configurable<T>::compute_config(const ConfigurationLevel& level, bool hook_enabled)
         -> self_type&
     {
+        auto& ctx = Context::instance();
         m_sources.clear();
         m_values.clear();
-
-        if (env_var_configured() && (level >= ConfigurationLevel::kEnvVar))
-        {
-            m_sources.push_back(m_env_var);
-            m_values.insert({ m_env_var, detail::Source<T>::convert_env_var(m_env_var) });
-        }
 
         if (cli_configured() && (level >= ConfigurationLevel::kCli))
         {
@@ -651,7 +668,13 @@ namespace mamba
             m_values.insert({ "CLI", p_cli_config->value() });
         }
 
-        if (rc_configured() && (level >= ConfigurationLevel::kFile))
+        if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
+        {
+            m_sources.push_back(m_env_var);
+            m_values.insert({ m_env_var, detail::Source<T>::convert_env_var(m_env_var) });
+        }
+
+        if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
         {
             m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
             m_values.insert(m_rc_values.begin(), m_rc_values.end());
@@ -993,9 +1016,10 @@ namespace mamba
             p_impl->add_rc_values(values, sources);
         };
 
-        void set_context()
+        ConfigurableInterface& set_context()
         {
             p_impl->set_context();
+            return *this;
         };
 
         void set_env_var_name(const std::string& name = "MAMBA_")

@@ -71,8 +71,8 @@ class TestConfigSources:
     @pytest.mark.parametrize("rc_file", ["", "dummy.yaml", ".mambarc"])
     @pytest.mark.parametrize("norc", [False, True])
     def test_sources(self, quiet_flag, rc_file, norc):
-        rc_dir = os.path.expanduser(os.path.join("~", random_string()))
-        os.mkdir(rc_dir)
+        rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", random_string()))
+        os.makedirs(rc_dir)
 
         if rc_file:
             rc_path = os.path.join(rc_dir, rc_file)
@@ -154,7 +154,7 @@ class TestConfigList:
     @pytest.mark.parametrize("rc_flag", ["--no-rc", "--rc-file="])
     def test_list(self, rc_file, rc_flag):
         expected = {
-            "--no-rc": "Configuration files disabled by --no-rc flag\n",
+            "--no-rc": "\n",
             "--rc-file=" + str(rc_file): "channels:\n  - channel1\n  - channel2\n",
         }
         if rc_flag == "--rc-file=":
@@ -200,3 +200,82 @@ class TestConfigList:
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
+
+    def test_env_vars(self):
+        os.environ["MAMBA_OFFLINE"] = "true"
+        assert (
+            config("list", "offline", "--no-rc", "-s").splitlines()
+            == "offline: true  # 'MAMBA_OFFLINE'".splitlines()
+        )
+
+        os.environ["MAMBA_OFFLINE"] = "false"
+        assert (
+            config("list", "offline", "--no-rc", "-s").splitlines()
+            == "offline: false  # 'MAMBA_OFFLINE'".splitlines()
+        )
+        os.environ.pop("MAMBA_OFFLINE")
+
+    def test_no_env(self):
+
+        os.environ["MAMBA_OFFLINE"] = "false"
+
+        assert (
+            config(
+                "list", "offline", "--no-rc", "--no-env", "-s", "--offline"
+            ).splitlines()
+            == "offline: true  # 'CLI'".splitlines()
+        )
+
+        os.environ.pop("MAMBA_OFFLINE")
+
+    def test_precedence(self):
+        rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", random_string()))
+        os.makedirs(rc_dir)
+        rc_file = os.path.join(rc_dir, ".mambarc")
+        short_rc_file = rc_file.replace(os.path.expanduser("~"), "~")
+
+        with open(rc_file, "w") as f:
+            f.write("offline: true")
+
+        try:
+            assert (
+                config("list", "offline", f"--rc-file={rc_file}", "-s").splitlines()
+                == f"offline: true  # '{short_rc_file}'".splitlines()
+            )
+
+            os.environ["MAMBA_OFFLINE"] = "false"
+            assert (
+                config("list", "offline", "--no-rc", "-s").splitlines()
+                == f"offline: false  # 'MAMBA_OFFLINE'".splitlines()
+            )
+            assert (
+                config("list", "offline", f"--rc-file={rc_file}", "-s").splitlines()
+                == f"offline: false  # 'MAMBA_OFFLINE' > '{short_rc_file}'".splitlines()
+            )
+
+            assert (
+                config(
+                    "list", "offline", f"--rc-file={rc_file}", "-s", "--offline"
+                ).splitlines()
+                == f"offline: true  # 'CLI' > 'MAMBA_OFFLINE' > '{short_rc_file}'".splitlines()
+            )
+            assert (
+                config(
+                    "list",
+                    "offline",
+                    f"--rc-file={rc_file}",
+                    "--no-env",
+                    "-s",
+                    "--offline",
+                ).splitlines()
+                == f"offline: true  # 'CLI' > '{short_rc_file}'".splitlines()
+            )
+            assert (
+                config(
+                    "list", "offline", "--no-rc", "--no-env", "-s", "--offline",
+                ).splitlines()
+                == "offline: true  # 'CLI'".splitlines()
+            )
+        finally:
+            os.environ.pop("MAMBA_OFFLINE")
+            shutil.rmtree(os.path.expanduser(os.path.join("~", "test_mamba")))

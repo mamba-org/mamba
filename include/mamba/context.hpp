@@ -98,6 +98,9 @@ namespace mamba
         std::string ssl_verify = "";
         bool ssl_no_revoke = false;
 
+        bool no_rc = false;
+        bool no_env = false;
+
         // Conda compat
         bool add_pip_as_python_dependency = true;
 

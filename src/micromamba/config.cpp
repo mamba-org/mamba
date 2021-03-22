@@ -103,25 +103,18 @@ set_config_list_command(CLI::App* subcom)
         load_configuration(false);
 
         auto& config = Configuration::instance();
-        auto& no_rc = config.at("no_rc").value<bool>();
 
-        if (no_rc)
-        {
-            std::cout << "Configuration files disabled by --no-rc flag" << std::endl;
-        }
-        else
-        {
-            auto& show_sources = config.at("config_show_sources").value<bool>();
-            auto& show_all = config.at("config_show_all").value<bool>();
-            auto& show_groups = config.at("config_show_groups").value<bool>();
-            auto& show_desc = config.at("config_show_descriptions").value<bool>();
-            auto& show_long_desc = config.at("config_show_long_descriptions").value<bool>();
-            auto& specs = config.at("config_specs").value<std::vector<std::string>>();
+        auto& show_sources = config.at("config_show_sources").value<bool>();
+        auto& show_all = config.at("config_show_all").value<bool>();
+        auto& show_groups = config.at("config_show_groups").value<bool>();
+        auto& show_desc = config.at("config_show_descriptions").value<bool>();
+        auto& show_long_desc = config.at("config_show_long_descriptions").value<bool>();
+        auto& specs = config.at("config_specs").value<std::vector<std::string>>();
 
-            std::cout << config.dump(
-                true, show_sources, show_all, show_groups, show_desc, show_long_desc, specs)
-                      << std::endl;
-        }
+        std::cout << config.dump(
+            true, show_sources, show_all, show_groups, show_desc, show_long_desc, specs)
+                  << std::endl;
+
         return 0;
     });
 }

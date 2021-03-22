@@ -32,8 +32,8 @@ set_list_command(CLI::App* subcom)
 
     subcom->callback([]() {
         load_configuration(false);
-        check_target_prefix(true, true, true, true);
-
+        check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                            | MAMBA_ALLOW_EXISTING_PREFIX);
         auto& config = Configuration::instance();
         auto& regex = config.at("list_regex").value<std::string>();
 

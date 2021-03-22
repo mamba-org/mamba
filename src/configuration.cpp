@@ -493,6 +493,7 @@ namespace mamba
     {
         bool first_config = true;
         YAML::Emitter out;
+        // out.SetNullFormat(YAML::EMITTER_MANIP::LowerNull); // TODO: switch from ~ to null
 
         for (auto& group_it : get_grouped_config())
         {
@@ -508,7 +509,7 @@ namespace mamba
                     continue;
                 }
 
-                if (c->rc_configurable() && (c->configured() || show_defaults || is_required))
+                if ((c->rc_configurable() && c->configured()) || is_required || show_defaults)
                 {
                     if (show_desc || long_desc)
                     {
@@ -630,7 +631,9 @@ namespace mamba
             }
             else
             {
-                out << "~";
+                out << YAML::_Null();
+                if (show_source)
+                    out << YAML::Comment("'default'");
             }
         }
 

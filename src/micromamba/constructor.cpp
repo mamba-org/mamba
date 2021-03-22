@@ -19,6 +19,13 @@ init_constructor_parser(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
 
+    auto& prefix = config.insert(Configurable("constructor_prefix", fs::path(""))
+                                     .group("cli")
+                                     .rc_configurable(false)
+                                     .description("Extract the conda pkgs in <prefix>/pkgs"));
+
+    subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description());
+
     auto& extract_conda_pkgs
         = config.insert(Configurable("constructor_extract_conda_pkgs", false)
                             .group("cli")
@@ -33,7 +40,7 @@ init_constructor_parser(CLI::App* subcom)
                                               .rc_configurable(false)
                                               .description("Extract given tarball into prefix"));
     subcom->add_flag(
-        "--extract-tarballs", extract_tarball.set_cli_config(0), extract_tarball.description());
+        "--extract-tarball", extract_tarball.set_cli_config(0), extract_tarball.description());
 }
 
 void
@@ -45,7 +52,7 @@ set_constructor_command(CLI::App* subcom)
         load_configuration(false);
 
         auto& config = Configuration::instance();
-        fs::path prefix = config.at("target_prefix").value<std::string>();
+        fs::path prefix = config.at("constructor_prefix").value<fs::path>();
         auto& extract_conda_pkgs = config.at("constructor_extract_conda_pkgs").value<bool>();
         auto& extract_tarball = config.at("constructor_extract_tarball").value<bool>();
 

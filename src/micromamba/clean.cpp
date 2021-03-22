@@ -69,14 +69,14 @@ set_clean_command(CLI::App* subcom)
             return;
         }
 
-        LOG_INFO << "Collect information...";
+        Console::print("Collect information..");
 
         std::vector<fs::path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs);
         if (!ctx.dry_run && (clean_index || clean_all))
         {
-            LOG_INFO << "Cleaning index cache...";
+            Console::print("Cleaning index cache..");
 
             for (auto* pkg_cache : caches.writable_caches())
                 if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
@@ -173,13 +173,14 @@ set_clean_command(CLI::App* subcom)
             auto to_be_removed = collect_tarballs();
             if (!ctx.dry_run)
             {
+                Console::print("Cleaning tarballs..");
+
                 if (to_be_removed.size() == 0)
                 {
                     LOG_INFO << "No cached tarballs found";
                 }
                 else if (!ctx.dry_run && Console::prompt("\nRemove tarballs", 'y'))
                 {
-                    LOG_INFO << "Cleaning tarballs...";
                     for (auto& tbr : to_be_removed)
                     {
                         fs::remove(tbr);
@@ -248,6 +249,8 @@ set_clean_command(CLI::App* subcom)
             auto to_be_removed = collect_package_folders();
             if (!ctx.dry_run)
             {
+                Console::print("Cleaning packages..");
+
                 if (to_be_removed.size() == 0)
                 {
                     LOG_INFO << "No cached packages found";
@@ -260,7 +263,6 @@ set_clean_command(CLI::App* subcom)
 
                     if (Console::prompt("\nRemove unused packages", 'y'))
                     {
-                        LOG_INFO << "Cleaning packages...";
                         for (auto& tbr : to_be_removed)
                         {
                             fs::remove_all(tbr);

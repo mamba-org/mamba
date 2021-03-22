@@ -26,7 +26,7 @@ set_create_command(CLI::App* subcom)
 
         if (!specs.empty())
         {
-            check_target_prefix(false, false, true, false);
+            check_target_prefix(0);
             install_specs(specs, true);
         }
         else

@@ -29,7 +29,8 @@ set_info_command(CLI::App* subcom)
 
     subcom->callback([&]() {
         load_configuration();
-        check_target_prefix(true, true, false, true);
+        check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                            | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& ctx = Context::instance();
         std::vector<std::tuple<std::string, std::vector<std::string>>> items;

@@ -97,7 +97,8 @@ set_install_command(CLI::App* subcom)
 
         if (!specs.empty())
         {
-            check_target_prefix(true, true, true, true);
+            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                                | MAMBA_ALLOW_EXISTING_PREFIX);
             install_specs(specs, false);
         }
         else
@@ -149,6 +150,11 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     catch (...)
     {
         throw std::runtime_error("Could not create `pkgs/cache/` dirs");
+    }
+
+    if (ctx.channels.empty() && !ctx.offline)
+    {
+        LOG_WARNING << "No 'channels' specified";
     }
 
     std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
@@ -273,7 +279,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     bool success = solver.solve();
     if (!success)
     {
-        LOG_ERROR << solver.problems_to_str();
+        std::cout << solver.problems_to_str() << std::endl;
         if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
         {
             ctx.local_repodata_ttl = 2;
@@ -295,6 +301,8 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     {
         repo_ptrs.push_back(&r);
     }
+
+    std::cout << std::endl;
 
     bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
     if (!yes)
@@ -416,7 +424,7 @@ parse_file_options()
                                                             file_contents.end());
 
                     load_configuration();
-                    check_target_prefix(false, false, true, false);
+                    check_target_prefix(0);
                     install_explicit_specs(explicit_specs);
                     exit(0);
                 }

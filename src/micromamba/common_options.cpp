@@ -19,24 +19,31 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 init_rc_options(CLI::App* subcom)
 {
+    auto& ctx = Context::instance();
     auto& config = Configuration::instance();
-    std::string cli_group = "Configuration files options";
+    std::string cli_group = "Configuration options";
 
     auto& rc_file = config.insert(Configurable("rc_file", std::string(""))
                                       .group("cli")
                                       .rc_configurable(false)
                                       .set_env_var_name()
                                       .description("Path to the unique configuration file to use"));
+    subcom->add_option("--rc-file", rc_file.set_cli_config(""), rc_file.description())
+        ->group(cli_group);
 
-    auto& no_rc = config.insert(Configurable("no_rc", false)
+    auto& no_rc = config.insert(Configurable("no_rc", &ctx.no_rc)
                                     .group("cli")
                                     .rc_configurable(false)
                                     .set_env_var_name()
                                     .description("Disable the use of configuration files"));
-
-    subcom->add_option("--rc-file", rc_file.set_cli_config(""), rc_file.description())
-        ->group(cli_group);
     subcom->add_flag("--no-rc", no_rc.set_cli_config(0), no_rc.description())->group(cli_group);
+
+    auto& no_env = config.insert(Configurable("no_env", &ctx.no_env)
+                                     .group("cli")
+                                     .rc_configurable(false)
+                                     .set_env_var_name()
+                                     .description("Disable the use of environment variables"));
+    subcom->add_flag("--no-env", no_env.set_cli_config(0), no_env.description())->group(cli_group);
 }
 
 
@@ -55,42 +62,46 @@ init_general_options(CLI::App* subcom)
             .rc_configurable(false)
             .set_env_var_name()
             .description("Set verbosity (higher verbosity with multiple -v, e.g. -vvv)"));
+    subcom->add_flag("-v,--verbose", verbosity.set_cli_config(0), verbosity.description())
+        ->group(cli_group);
+
     auto& quiet = config.insert(Configurable("quiet", &ctx.quiet)
                                     .group("cli")
                                     .rc_configurable(false)
                                     .set_env_var_name()
                                     .description("Set quiet mode (print less output)"));
+    subcom->add_flag("-q,--quiet", quiet.set_cli_config(false), quiet.description())
+        ->group(cli_group);
+
     auto& always_yes
         = config.insert(Configurable("always_yes", &ctx.always_yes)
                             .group("cli")
                             .rc_configurable(false)
                             .set_env_var_name()
                             .description("Automatically answer yes on prompted questions"));
+    subcom->add_flag("-y,--yes", always_yes.set_cli_config(false), always_yes.description())
+        ->group(cli_group);
+
     auto& json = config.insert(Configurable("json", &ctx.json)
                                    .group("cli")
                                    .rc_configurable(false)
                                    .set_env_var_name()
                                    .description("Report all output as json"));
+    subcom->add_flag("--json", json.set_cli_config(false), json.description())->group(cli_group);
+
     auto& offline = config.insert(Configurable("offline", &ctx.offline)
                                       .group("cli")
                                       .rc_configurable(false)
                                       .set_env_var_name()
                                       .description("Force use cached repodata"));
+    subcom->add_flag("--offline", offline.set_cli_config(false), offline.description())
+        ->group(cli_group);
+
     auto& dry_run = config.insert(Configurable("dry_run", &ctx.dry_run)
                                       .group("cli")
                                       .rc_configurable(false)
                                       .set_env_var_name()
                                       .description("Only display what would have been done"));
-
-    subcom->add_flag("-v,--verbose", verbosity.set_cli_config(0), verbosity.description())
-        ->group(cli_group);
-    subcom->add_flag("-q,--quiet", quiet.set_cli_config(false), quiet.description())
-        ->group(cli_group);
-    subcom->add_flag("-y,--yes", always_yes.set_cli_config(false), always_yes.description())
-        ->group(cli_group);
-    subcom->add_flag("--json", json.set_cli_config(false), json.description())->group(cli_group);
-    subcom->add_flag("--offline", offline.set_cli_config(false), offline.description())
-        ->group(cli_group);
     subcom->add_flag("--dry-run", dry_run.set_cli_config(false), dry_run.description())
         ->group(cli_group);
 }
@@ -389,15 +400,12 @@ root_prefix_hook(fs::path& prefix)
 
 
 void
-check_target_prefix(bool allow_root_prefix,
-                    bool allow_fallback,
-                    bool check_existing,
-                    bool allow_existing)
+check_target_prefix(int options)
 {
     auto& ctx = Context::instance();
     auto& prefix = ctx.target_prefix;
 
-    if (prefix.empty() && allow_fallback)
+    if (prefix.empty() && (options & MAMBA_ALLOW_FALLBACK_PREFIX))
     {
         prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
     }
@@ -408,13 +416,15 @@ check_target_prefix(bool allow_root_prefix,
         exit(1);
     }
 
-    if (!allow_root_prefix && (prefix == ctx.root_prefix))
+    if (!(options & MAMBA_ALLOW_ROOT_PREFIX) && (prefix == ctx.root_prefix))
     {
         LOG_ERROR << "'root_prefix' not accepted as 'target_prefix'";
         exit(1);
     }
 
-    if (check_existing && fs::exists(prefix))
+    bool allow_existing = options & MAMBA_ALLOW_EXISTING_PREFIX;
+
+    if (!allow_existing && fs::exists(prefix))
     {
         if (fs::exists(prefix / "conda-meta") || (prefix == ctx.root_prefix))
         {
@@ -446,6 +456,10 @@ load_configuration(bool show_banner)
     auto& ctx = Context::instance();
     auto& config = Configuration::instance();
 
+    config.at("no_env").compute_config().set_context();
+    auto& no_rc = config.at("no_rc").compute_config().set_context().value<bool>();
+    auto& rc_file = config.at("rc_file").compute_config().value<std::string>();
+
     ctx.set_verbosity(config.at("verbosity").compute_config().value<int>());
     config.at("quiet").compute_config().set_context();
     config.at("json").compute_config().set_context();
@@ -458,8 +472,6 @@ load_configuration(bool show_banner)
 
     config.at("root_prefix").compute_config().set_context();
     config.at("target_prefix").compute_config().set_context();
-    auto& rc_file = config.at("rc_file").compute_config().value<std::string>();
-    auto& no_rc = config.at("no_rc").compute_config().value<bool>();
 
     if (no_rc)
     {

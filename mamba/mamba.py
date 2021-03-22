@@ -51,13 +51,7 @@ from conda.models.match_spec import MatchSpec
 import mamba
 import mamba.mamba_api as api
 from mamba import repoquery as repoquery_api
-from mamba.utils import (
-    get_installed_jsonfile,
-    init_api_context,
-    load_channels,
-    loosen_spec,
-    to_txn,
-)
+from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
@@ -398,7 +392,7 @@ def install(args, parser, command="install"):
             )
             return
 
-        specs.extend([MatchSpec(loosen_spec(s)) for s in file_specs])
+        specs.extend([MatchSpec(s) for s in file_specs])
 
     specs.extend(specs_from_args(args_packages, json=context.json))
 
@@ -562,7 +556,7 @@ def install(args, parser, command="install"):
                         exit(1)
 
             try:
-                final_spec = loosen_spec(s.conda_build_form())
+                final_spec = s.conda_build_form()
                 pinned_specs_info += f"  - {final_spec}"
                 solver.add_pin(final_spec)
             except AssertionError:

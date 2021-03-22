@@ -333,9 +333,12 @@ namespace mamba
                           << termcolor::reset;
 
         // TODO do we need binary or not?
-        std::string rc_content = read_contents(file_path, std::ios::in);
-        std::string original_content = rc_content;
-        std::string conda_init_content;
+        std::string conda_init_content, rc_content;
+        if (fs::exists(file_path))
+        {
+            rc_content = read_contents(file_path, std::ios::in);
+        }
+
         if (shell == "xonsh")
         {
             conda_init_content = xonsh_content(conda_prefix, shell, mamba_exe);

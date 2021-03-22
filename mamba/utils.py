@@ -5,7 +5,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 import os
-import re
 import tempfile
 
 from conda._vendor.boltons.setutils import IndexedSet
@@ -277,21 +276,3 @@ def to_txn(
 
     conda_transaction = UnlinkLinkTransaction(pref_setup)
     return conda_transaction
-
-
-def loosen_spec(spec_str):
-    splitted = spec_str.split()
-    if len(splitted) == 1:
-        return spec_str
-
-    if re.search(r"[^0-9\.]+", splitted[1]) is not None:
-        return spec_str
-
-    dot_c = splitted[1].count(".")
-
-    app = "*" if dot_c >= 2 else ".*"
-
-    if len(splitted) == 3:
-        return f"{splitted[0]} {splitted[1]}{app} {splitted[2]}"
-    else:
-        return f"{splitted[0]} {splitted[1]}{app}"

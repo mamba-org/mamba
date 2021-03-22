@@ -15,13 +15,7 @@ from conda.models.match_spec import MatchSpec
 from conda_env.installers import conda
 
 import mamba.mamba_api as api
-from mamba.utils import (
-    get_installed_jsonfile,
-    init_api_context,
-    load_channels,
-    loosen_spec,
-    to_txn,
-)
+from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 
 def mamba_install(prefix, specs, args, env, *_, **kwargs):
@@ -97,7 +91,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
                     exit(1)
 
         try:
-            final_spec = loosen_spec(s.conda_build_form())
+            final_spec = s.conda_build_form()
             pinned_specs_info += f"  - {final_spec}"
             solver.add_pin(final_spec)
         except AssertionError:

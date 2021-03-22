@@ -253,7 +253,7 @@ channels_hook(std::vector<std::string>& channels)
     // Workaround to silent the hook warning
     // TODO: resolve configurable deps/workflow to compute only once
     auto verbosity = MessageLogger::global_log_severity();
-    MessageLogger::global_log_severity() = mamba::LogSeverity::error;
+    MessageLogger::global_log_severity() = mamba::LogSeverity::kError;
     auto& override_channels = config.at("override_channels").compute_config().value<bool>();
     MessageLogger::global_log_severity() = verbosity;
 

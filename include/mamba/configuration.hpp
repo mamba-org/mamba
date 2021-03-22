@@ -66,7 +66,8 @@ namespace YAML
             }
             else
             {
-                throw std::runtime_error("'VerificationLevel' wrong value");
+                throw std::runtime_error(
+                    "Invalid 'VerificationLevel', should be in {'enabled', 'warn', 'disabled'}");
             }
 
             return true;
@@ -193,11 +194,12 @@ namespace mamba
                 {
                     return true;
                 }
-                else
+                else if (m_value == -1)
                 {
                     return false;
                 }
-                throw std::runtime_error("Should not happen!");
+                throw std::runtime_error(
+                    "Invalid boolean storage, should be {'-1': false, '0': undefined, '1': true}");
             };
 
             int m_value = 0;

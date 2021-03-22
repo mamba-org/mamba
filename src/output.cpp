@@ -675,23 +675,23 @@ namespace mamba
 
         switch (m_severity)
         {
-            case LogSeverity::fatal:
+            case LogSeverity::kFatal:
                 std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset
                           << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
-            case LogSeverity::error:
+            case LogSeverity::kError:
                 std::cerr << termcolor::red << "ERROR   " << termcolor::reset
                           << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
-            case LogSeverity::warning:
+            case LogSeverity::kWarning:
                 std::cerr << termcolor::yellow << "WARNING " << termcolor::reset
                           << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
-            case LogSeverity::info:
+            case LogSeverity::kInfo:
                 std::cerr << "INFO    " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
                           << std::endl;
                 break;
-            case LogSeverity::debug:
+            case LogSeverity::kDebug:
                 std::cerr << "DEBUG   " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
                           << std::endl;
                 break;
@@ -701,7 +701,7 @@ namespace mamba
                 break;
         }
 
-        if (m_severity == LogSeverity::fatal)
+        if (m_severity == LogSeverity::kFatal)
         {
             std::abort();
         }
@@ -714,7 +714,7 @@ namespace mamba
 
     LogSeverity& MessageLogger::global_log_severity()
     {
-        static LogSeverity sev = LogSeverity::warning;
+        static LogSeverity sev = LogSeverity::kWarning;
         return sev;
     }
 

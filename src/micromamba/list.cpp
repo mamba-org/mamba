@@ -1,7 +1,8 @@
 #include "list.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
 #include "mamba/channel.hpp"
+#include "mamba/configuration.hpp"
 #include "mamba/prefix_data.hpp"
 
 
@@ -13,17 +14,16 @@ init_list_parser(CLI::App* subcom)
     init_general_options(subcom);
     init_prefix_options(subcom);
 
-    subcom->add_option(
-        "regex", list_options.regex, "List only packages matching a regular expression");
+    auto& config = Configuration::instance();
+
+    auto& regex
+        = config.insert(Configurable("list_regex", std::string(""))
+                            .group("cli")
+                            .rc_configurable(false)
+                            .description("List only packages matching a regular expression"));
+    subcom->add_option("regex", regex.set_cli_config(""), regex.description());
 }
 
-void
-load_list_options(Context& ctx)
-{
-    load_general_options(ctx);
-    load_prefix_options(ctx);
-    load_rc_options(ctx);
-}
 
 void
 set_list_command(CLI::App* subcom)
@@ -31,9 +31,13 @@ set_list_command(CLI::App* subcom)
     init_list_parser(subcom);
 
     subcom->callback([]() {
-        load_list_options(Context::instance());
+        load_configuration(false);
+        check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                            | MAMBA_ALLOW_EXISTING_PREFIX);
+        auto& config = Configuration::instance();
+        auto& regex = config.at("list_regex").value<std::string>();
 
-        list_packages(list_options.regex);
+        list_packages(regex);
     });
 }
 
@@ -47,7 +51,6 @@ void
 list_packages(std::string regex)
 {
     auto& ctx = Context::instance();
-    load_general_options(ctx);
 
     PrefixData prefix_data(ctx.target_prefix);
     prefix_data.load();

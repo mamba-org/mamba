@@ -5,7 +5,7 @@ include_directories(${GTEST_INCLUDE_DIR})
 
 set(TEST_SRCS
     test_channel.cpp
-    test_config.cpp
+    test_configuration.cpp
     test_cpp.cpp
     test_url.cpp
     history_test/test_history.cpp

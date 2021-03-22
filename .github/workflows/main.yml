@@ -253,7 +253,7 @@ jobs:
         run: |
           conda activate mamba-tests
           cd cmake_build
-          .\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+          .\micromamba.exe shell hook --no-auto-activate-base -s powershell | Out-String | Invoke-Expression
           cd \
           micromamba create -n testenv python=3.8 wheel -c conda-forge
           micromamba activate testenv
@@ -263,7 +263,7 @@ jobs:
         run: |
           call conda activate mamba-tests
           cd cmake_build
-          .\micromamba shell hook -s cmd.exe
+          .\micromamba shell hook --no-auto-activate-base -s cmd.exe
           CALL %userprofile%\micromamba\condabin\mamba_hook.bat
           cd %userprofile%
           micromamba create -n testenv2 python=3.8 wheel -c conda-forge

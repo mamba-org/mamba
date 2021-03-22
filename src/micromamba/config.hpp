@@ -18,15 +18,16 @@
 
 void
 init_config_parser(CLI::App* subcom);
+
 void
 init_config_list_parser(CLI::App* subcom);
-void
-load_config_options(mamba::Context& ctx);
 
 void
 set_config_list_command(CLI::App* subcom);
+
 void
 set_config_sources_command(CLI::App* subcom);
+
 void
 set_config_command(CLI::App* subcom);
 

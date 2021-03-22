@@ -6,9 +6,8 @@ set(MAMBA_EXE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/info.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/install.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/list.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/options.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/common_options.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/parsers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/remove.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/shell.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/umamba.cpp
@@ -23,8 +22,7 @@ set(MAMBA_EXE_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/info.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/install.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/list.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/options.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/parsers.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/common_options.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/remove.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/shell.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/umamba.hpp

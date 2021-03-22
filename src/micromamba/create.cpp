@@ -6,9 +6,9 @@
 
 #include "create.hpp"
 #include "install.hpp"
-#include "options.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
+#include "mamba/configuration.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -18,28 +18,16 @@ set_create_command(CLI::App* subcom)
     init_install_parser(subcom);
 
     subcom->callback([&]() {
-        auto& ctx = Context::instance();
-
         parse_file_options();
-        load_install_options(ctx);
+        load_configuration();
 
-        if (!create_options.specs.empty() && !ctx.target_prefix.empty())
+        auto& configuration = Configuration::instance();
+        auto& specs = configuration.at("specs").value<std::vector<std::string>>();
+
+        if (!specs.empty())
         {
-            if (ctx.target_prefix == ctx.root_prefix)
-            {
-                if (Console::prompt(
-                        "It's not possible to overwrite 'base' env. Install in 'base' instead?",
-                        'n'))
-                {
-                    install_specs(create_options.specs, false);
-                }
-                else
-                {
-                    exit(1);
-                }
-            }
-            catch_existing_target_prefix(ctx);
-            install_specs(create_options.specs, true);
+            check_target_prefix(0);
+            install_specs(specs, true);
         }
         else
         {

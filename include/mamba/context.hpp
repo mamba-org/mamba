@@ -19,10 +19,19 @@ namespace mamba
 {
     enum class VerificationLevel
     {
-        DISABLED,
-        WARN,
-        ENABLED
+        kDisabled,
+        kWarn,
+        kEnabled
     };
+
+
+    enum class ChannelPriority
+    {
+        kDisabled,
+        kFlexible,
+        kStrict
+    };
+
 
     std::string env_name(const fs::path& prefix);
     fs::path locate_prefix_by_name(const std::string& name);
@@ -35,7 +44,7 @@ namespace mamba
         std::string current_command = "mamba";
         bool is_micromamba = false;
 
-        fs::path target_prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
+        fs::path target_prefix = "";
         // Need to prevent circular imports here (otherwise using env::get())
         fs::path root_prefix
             = std::getenv("MAMBA_ROOT_PREFIX") ? std::getenv("MAMBA_ROOT_PREFIX") : "";
@@ -50,7 +59,7 @@ namespace mamba
         bool offline = false;
         bool quiet = false;
         bool json = false;
-        bool strict_channel_priority = false;
+        ChannelPriority channel_priority = ChannelPriority::kFlexible;
         bool auto_activate_base = false;
 
         long max_parallel_downloads = 5;
@@ -66,7 +75,7 @@ namespace mamba
         bool always_copy = false;
         bool always_softlink = false;
 
-        VerificationLevel safety_checks = VerificationLevel::WARN;
+        VerificationLevel safety_checks = VerificationLevel::kWarn;
         bool extra_safety_checks = false;
 
         // debug helpers
@@ -89,18 +98,29 @@ namespace mamba
         std::string ssl_verify = "";
         bool ssl_no_revoke = false;
 
+        bool no_rc = false;
+        bool no_env = false;
+
         // Conda compat
         bool add_pip_as_python_dependency = true;
 
         void set_verbosity(int lvl);
 
-        void load_config();
-
         static std::string platform();
         static std::vector<std::string> platforms();
 
         std::vector<std::string> channels = {};
-        std::string channel_alias = "";
+        std::vector<std::string> default_channels = {
+#ifdef _WIN32
+            "https://repo.anaconda.com/pkgs/main",
+            "https://repo.anaconda.com/pkgs/r",
+            "https://repo.anaconda.com/pkgs/msys2"
+#else
+            "https://repo.anaconda.com/pkgs/main", "https://repo.anaconda.com/pkgs/r"
+#endif
+        };
+
+        std::string channel_alias = "https://conda.anaconda.org";
         bool override_channels_enabled = true;
 
         std::vector<std::string> pinned_packages = {};

@@ -440,7 +440,6 @@ namespace mamba
             if (!Console::prompt("Prefix at " + root_prefix.string()
                                  + " already exists, use as root prefix?"))
             {
-                Console::print("OK, exiting.");
                 exit(0);
             }
         }

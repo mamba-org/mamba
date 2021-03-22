@@ -6,9 +6,9 @@
 
 #include "update.hpp"
 #include "install.hpp"
-#include "options.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
+#include "mamba/configuration.hpp"
 #include "mamba/virtual_packages.hpp"
 
 
@@ -17,11 +17,17 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 init_update_parser(CLI::App* subcom)
 {
+    auto& config = Configuration::instance();
+
     init_install_parser(subcom);
 
+    auto& update_all = config.insert(Configurable("update_all", false)
+                                         .group("cli")
+                                         .rc_configurable(false)
+                                         .description("Update all packages in the environment"));
+
     subcom->get_option("specs")->description("Specs to update in the environment");
-    subcom->add_flag(
-        "-a, --all", update_options.update_all, "Update all packages in the environment");
+    subcom->add_flag("-a, --all", update_all.set_cli_config({}), update_all.description());
 }
 
 
@@ -31,18 +37,15 @@ set_update_command(CLI::App* subcom)
     init_update_parser(subcom);
 
     subcom->callback([&]() {
+        load_configuration();
+
         auto& ctx = Context::instance();
-        load_install_options(ctx);
+        auto& config = Configuration::instance();
+        auto update_specs = config.at("specs").value<std::vector<std::string>>();
+        auto& update_all = config.at("update_all").value<bool>();
 
-        if (update_options.update_all)
+        if (update_all)
         {
-            auto& ctx = Context::instance();
-            if (ctx.target_prefix.empty())
-            {
-                throw std::runtime_error(
-                    "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
-            }
-
             PrefixData prefix_data(ctx.target_prefix);
             prefix_data.load();
 
@@ -51,14 +54,14 @@ set_update_command(CLI::App* subcom)
                 auto name = package.second.name;
                 if (name != "python")
                 {
-                    create_options.specs.push_back(name);
+                    update_specs.push_back(name);
                 }
             }
         }
 
-        if (!create_options.specs.empty())
+        if (!update_specs.empty())
         {
-            install_specs(create_options.specs, false, SOLVER_UPDATE);
+            install_specs(update_specs, false, SOLVER_UPDATE);
         }
         else
         {

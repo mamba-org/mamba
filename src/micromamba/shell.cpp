@@ -5,10 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "shell.hpp"
-#include "parsers.hpp"
-#include "options.hpp"
+#include "common_options.hpp"
 
 #include "mamba/activation.hpp"
+#include "mamba/configuration.hpp"
 #include "mamba/shell_init.hpp"
 
 #include "../thirdparty/termcolor.hpp"
@@ -19,25 +19,53 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 init_shell_parser(CLI::App* subcom)
 {
-    subcom->add_option("-s,--shell",
-                       shell_options.shell_type,
-                       "A shell type (bash, fish, posix, powershell, xonsh)");
-    subcom->add_option("--stack",
-                       shell_options.stack,
-                       "Stack the environment being activated on top of the "
-                       "previous active environment, "
-                       "rather replacing the current active environment with a "
-                       "new one. Currently, "
-                       "only the PATH environment variable is stacked. "
-                       "This may be enabled implicitly by the 'auto_stack' "
-                       "configuration variable.");
+    init_general_options(subcom);
 
-    subcom->add_option("action", shell_options.action, "activate, deactivate or hook");
-    // TODO add custom validator here!
-    subcom->add_option("-p,--prefix",
-                       shell_options.prefix,
-                       "The root prefix to configure (for init and hook), and the prefix "
-                       "to activate for activate, either by name or by path");
+    auto& config = Configuration::instance();
+
+    auto& shell_type = config.insert(Configurable("shell_type", std::string(""))
+                                         .group("cli")
+                                         .rc_configurable(false)
+                                         .description("A shell type"));
+    subcom->add_set("-s,--shell",
+                    shell_type.set_cli_config(""),
+                    { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh" },
+                    shell_type.description());
+
+    auto& stack = config.insert(Configurable("shell_stack", false)
+                                    .group("cli")
+                                    .rc_configurable(false)
+                                    .description("Stack the environment being activated")
+                                    .long_description(unindent(R"(
+                       Stack the environment being activated on top of the
+                       previous active environment, rather replacing the
+                       current active environment with a new one.
+                       Currently, only the PATH environment variable is stacked.
+                       This may be enabled implicitly by the 'auto_stack'
+                       configuration variable.)")));
+    subcom->add_option("--stack", stack.set_cli_config(false), stack.description());
+
+    auto& action = config.insert(Configurable("shell_action", std::string(""))
+                                     .group("cli")
+                                     .rc_configurable(false)
+                                     .description("The action to complete"));
+    subcom->add_set("action",
+                    action.set_cli_config(""),
+                    { "init", "activate", "deactivate", "hook", "reactivate", "deactivate" },
+                    action.description());
+
+    auto& prefix = config.insert(
+        Configurable("shell_prefix", std::string(""))
+            .group("cli")
+            .rc_configurable(false)
+            .description("The root prefix to configure (for init and hook), and the prefix "
+                         "to activate for activate, either by name or by path"));
+    subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description());
+
+    auto& auto_activate_base = config.at("auto_activate_base").get_wrapped<bool>();
+    subcom->add_flag("--auto-activate-base,!--no-auto-activate-base",
+                     auto_activate_base.set_cli_config(0),
+                     auto_activate_base.description());
 }
 
 
@@ -47,11 +75,22 @@ set_shell_command(CLI::App* subcom)
     init_shell_parser(subcom);
 
     subcom->callback([&]() {
-        std::unique_ptr<Activator> activator;
-        check_root_prefix(true);
+        auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
 
-        if (shell_options.shell_type.empty())
+        load_configuration(false);
+
+        std::unique_ptr<Activator> activator;
+        auto& shell_type = config.at("shell_type").value<std::string>();
+        auto& action = config.at("shell_action").value<std::string>();
+        std::string prefix = config.at("shell_prefix").value<std::string>();
+        auto& stack = config.at("shell_stack").value<bool>();
+
+        if (shell_type.empty())
         {
+            std::cout << "Please provide a shell type." << std::endl;
+            std::cout << "Run with --help for more information." << std::endl;
+            return;
             // Doesnt work yet.
             // std::string guessed_shell = guess_shell();
             // if (!guessed_shell.empty())
@@ -62,65 +101,58 @@ set_shell_command(CLI::App* subcom)
             // }
         }
 
-        if (shell_options.shell_type == "bash" || shell_options.shell_type == "zsh"
-            || shell_options.shell_type == "posix")
+        if (shell_type == "bash" || shell_type == "zsh" || shell_type == "posix")
         {
             activator = std::make_unique<mamba::PosixActivator>();
         }
-        else if (shell_options.shell_type == "cmd.exe")
+        else if (shell_type == "cmd.exe")
         {
             activator = std::make_unique<mamba::CmdExeActivator>();
         }
-        else if (shell_options.shell_type == "powershell")
+        else if (shell_type == "powershell")
         {
             activator = std::make_unique<mamba::PowerShellActivator>();
         }
-        else if (shell_options.shell_type == "xonsh")
+        else if (shell_type == "xonsh")
         {
             activator = std::make_unique<mamba::XonshActivator>();
         }
         else
         {
-            throw std::runtime_error(
-                "Currently allowed values are: posix, bash, xonsh, zsh, cmd.exe & powershell");
+            throw std::runtime_error("Not handled 'shell_type'");
         }
-        if (shell_options.action == "init")
+
+        if (action == "init")
         {
-            if (shell_options.prefix == "base")
+            if (prefix == "base")
             {
-                shell_options.prefix = Context::instance().root_prefix;
+                prefix = ctx.root_prefix;
             }
-            init_shell(shell_options.shell_type, shell_options.prefix);
+            init_shell(shell_type, prefix);
         }
-        else if (shell_options.action == "hook")
+        else if (action == "hook")
         {
             // TODO do we need to do something wtih `prefix -> root_prefix?`?
             std::cout << activator->hook();
         }
-        else if (shell_options.action == "activate")
+        else if (action == "activate")
         {
-            if (shell_options.prefix == "base" || shell_options.prefix.empty())
+            if (prefix == "base" || prefix.empty())
             {
-                shell_options.prefix = Context::instance().root_prefix;
+                prefix = ctx.root_prefix;
             }
-            // checking wether we have a path or a name
-            if (shell_options.prefix.find_first_of("/\\") == std::string::npos)
+            if (prefix.find_first_of("/\\") == std::string::npos)
             {
-                shell_options.prefix
-                    = Context::instance().root_prefix / "envs" / shell_options.prefix;
+                prefix = ctx.root_prefix / "envs" / prefix;
             }
-            if (!fs::exists(shell_options.prefix))
-            {
-                throw std::runtime_error(
-                    "Cannot activate, environment does not exist: " + shell_options.prefix + "\n");
-            }
-            std::cout << activator->activate(shell_options.prefix, shell_options.stack);
+
+            std::cout << activator->activate(prefix, stack);
         }
-        else if (shell_options.action == "reactivate")
+        else if (action == "reactivate")
         {
             std::cout << activator->reactivate();
         }
-        else if (shell_options.action == "deactivate")
+        else if (action == "deactivate")
         {
             std::cout << activator->deactivate();
         }

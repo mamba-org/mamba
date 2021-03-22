@@ -22,7 +22,4 @@ init_clean_parser(CLI::App* subcom);
 void
 set_clean_command(CLI::App* subcom);
 
-void
-load_clean_options(mamba::Context& ctx);
-
 #endif

@@ -4,10 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef UMAMBA_PARSERS_HPP
-#define UMAMBA_PARSERS_HPP
-
-#include "options.hpp"
+#ifndef UMAMBA_COMMON_OPTIONS_HPP
+#define UMAMBA_COMMON_OPTIONS_HPP
 
 #include "mamba/context.hpp"
 
@@ -26,25 +24,22 @@ void
 init_rc_options(CLI::App* subcom);
 
 void
-load_rc_options(mamba::Context& ctx);
-
-void
 init_general_options(CLI::App* subcom);
-
-void
-load_general_options(mamba::Context& ctx);
 
 void
 init_prefix_options(CLI::App* subcom);
 
 void
-load_prefix_options(mamba::Context& ctx);
+target_prefix_hook(fs::path& prefix);
 
 void
 init_network_parser(CLI::App* subcom);
 
 void
-load_network_options(mamba::Context& ctx);
+strict_channel_priority_hook(bool& value);
+
+void
+no_channel_priority_hook(bool& value);
 
 void
 init_channel_parser(CLI::App* subcom);
@@ -53,9 +48,22 @@ void
 load_channel_options(mamba::Context& ctx);
 
 void
-catch_existing_target_prefix(mamba::Context& ctx);
+channels_hook(std::vector<std::string>& channels);
 
 void
-check_root_prefix(bool silent = false);
+override_channels_hook(bool& override_channels);
+
+int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 0;
+int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
+int const MAMBA_ALLOW_FALLBACK_PREFIX = 1 << 2;
+
+void
+check_target_prefix(int options);
+
+void
+root_prefix_hook(fs::path& prefix);
+
+void
+load_configuration(bool show_banner = true);
 
 #endif

@@ -25,9 +25,6 @@ void
 set_install_command(CLI::App* subcom);
 
 void
-load_install_options(mamba::Context& ctx);
-
-void
 install_specs(const std::vector<std::string>& specs,
               bool create_env = false,
               int solver_flag = SOLVER_INSTALL,

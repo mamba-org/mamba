@@ -326,11 +326,11 @@ namespace mamba
 
     enum class LogSeverity
     {
-        debug,
-        info,
-        warning,
-        error,
-        fatal
+        kDebug,
+        kInfo,
+        kWarning,
+        kError,
+        kFatal
     };
 
     class MessageLogger
@@ -382,10 +382,10 @@ namespace mamba
 #undef FATAL
 
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
-#define LOG_DEBUG LOG(mamba::LogSeverity::debug)
-#define LOG_INFO LOG(mamba::LogSeverity::info)
-#define LOG_WARNING LOG(mamba::LogSeverity::warning)
-#define LOG_ERROR LOG(mamba::LogSeverity::error)
-#define LOG_FATAL LOG(mamba::LogSeverity::fatal)
+#define LOG_DEBUG LOG(mamba::LogSeverity::kDebug)
+#define LOG_INFO LOG(mamba::LogSeverity::kInfo)
+#define LOG_WARNING LOG(mamba::LogSeverity::kWarning)
+#define LOG_ERROR LOG(mamba::LogSeverity::kError)
+#define LOG_FATAL LOG(mamba::LogSeverity::kFatal)
 
 #endif  // MAMBA_OUTPUT_HPP

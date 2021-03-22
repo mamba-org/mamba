@@ -36,9 +36,6 @@ void
 set_info_command(CLI::App* subcom);
 
 void
-load_info_options(mamba::Context& ctx);
-
-void
 info_pretty_print(std::vector<std::tuple<std::string, std::vector<std::string>>> map);
 
 std::string

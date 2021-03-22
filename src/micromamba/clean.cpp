@@ -5,9 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "clean.hpp"
-#include "parsers.hpp"
-#include "options.hpp"
+#include "common_options.hpp"
 
+#include "mamba/configuration.hpp"
 #include "mamba/output.hpp"
 #include "mamba/package_cache.hpp"
 
@@ -19,24 +19,32 @@ init_clean_parser(CLI::App* subcom)
 {
     init_general_options(subcom);
 
-    subcom->add_flag("-a,--all",
-                     clean_options.all,
-                     "Remove index cache, lock files, unused cache packages, and tarballs.");
-    subcom->add_flag("-i,--index-cache", clean_options.index_cache, "Remove index cache.");
-    subcom->add_flag("-p,--packages",
-                     clean_options.packages,
-                     "Remove unused packages from writable package caches.\n"
-                     "WARNING: This does not check for packages installed using\n"
-                     "symlinks back to the package cache.");
-    subcom->add_flag("-t,--tarballs", clean_options.tarballs, "Remove cached package tarballs.");
-}
+    auto& config = Configuration::instance();
 
-void
-load_clean_options(Context& ctx)
-{
-    load_general_options(ctx);
-    load_prefix_options(ctx);
-    load_rc_options(ctx);
+    auto& clean_all = config.insert(
+        Configurable("clean_all", false)
+            .group("cli")
+            .rc_configurable(false)
+            .description("Remove index cache, lock files, unused cache packages, and tarballs"));
+    auto& clean_index = config.insert(Configurable("clean_index_cache", false)
+                                          .group("cli")
+                                          .rc_configurable(false)
+                                          .description("Remove index cache"));
+    auto& clean_pkgs
+        = config.insert(Configurable("clean_packages", false)
+                            .group("cli")
+                            .rc_configurable(false)
+                            .description("Remove unused packages from writable package caches"));
+    auto& clean_tarballs = config.insert(Configurable("clean_tarballs", false)
+                                             .group("cli")
+                                             .rc_configurable(false)
+                                             .description("Remove cached package tarballs"));
+
+    subcom->add_flag("-a,--all", clean_all.set_cli_config(0), clean_all.description());
+    subcom->add_flag("-i,--index-cache", clean_index.set_cli_config(0), clean_index.description());
+    subcom->add_flag("-p,--packages", clean_pkgs.set_cli_config(0), clean_pkgs.description());
+    subcom->add_flag(
+        "-t,--tarballs", clean_tarballs.set_cli_config(0), clean_tarballs.description());
 }
 
 void
@@ -45,17 +53,31 @@ set_clean_command(CLI::App* subcom)
     init_clean_parser(subcom);
 
     subcom->callback([&]() {
+        load_configuration();
+
         auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
 
-        load_clean_options(ctx);
+        auto& clean_all = config.at("clean_all").value<bool>();
+        auto& clean_index = config.at("clean_index_cache").value<bool>();
+        auto& clean_pkgs = config.at("clean_packages").value<bool>();
+        auto& clean_tarballs = config.at("clean_tarballs").value<bool>();
 
-        Console::print("Cleaning up ... ");
+        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs))
+        {
+            std::cout << "Nothing to do." << std::endl;
+            return;
+        }
+
+        Console::print("Collect information..");
 
         std::vector<fs::path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs);
-        if (!ctx.dry_run && (clean_options.index_cache || clean_options.all))
+        if (!ctx.dry_run && (clean_index || clean_all))
         {
+            Console::print("Cleaning index cache..");
+
             for (auto* pkg_cache : caches.writable_caches())
                 if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
                 {
@@ -81,7 +103,7 @@ set_clean_command(CLI::App* subcom)
             {
                 if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
                 {
-                    LOG_INFO << "Found environment: " << p.path();
+                    LOG_DEBUG << "Found environment: " << p.path();
                     envs.push_back(p);
                 }
             }
@@ -146,20 +168,24 @@ set_clean_command(CLI::App* subcom)
             return res;
         };
 
-        if (clean_options.all || clean_options.tarballs)
+        if (clean_all || clean_tarballs)
         {
             auto to_be_removed = collect_tarballs();
-            if (to_be_removed.size() == 0)
+            if (!ctx.dry_run)
             {
-                Console::print("No cached tarballs found");
-            }
-            else if (!ctx.dry_run && Console::prompt("\n\nRemove tarballs", 'y'))
-            {
-                for (auto& tbr : to_be_removed)
+                Console::print("Cleaning tarballs..");
+
+                if (to_be_removed.size() == 0)
                 {
-                    fs::remove(tbr);
+                    LOG_INFO << "No cached tarballs found";
                 }
-                Console::print("\n\n");
+                else if (!ctx.dry_run && Console::prompt("\nRemove tarballs", 'y'))
+                {
+                    for (auto& tbr : to_be_removed)
+                    {
+                        fs::remove(tbr);
+                    }
+                }
             }
         }
 
@@ -218,18 +244,30 @@ set_clean_command(CLI::App* subcom)
             return res;
         };
 
-        if (clean_options.all || clean_options.packages)
+        if (clean_all || clean_pkgs)
         {
             auto to_be_removed = collect_package_folders();
-            if (to_be_removed.size() == 0)
+            if (!ctx.dry_run)
             {
-                Console::print("No cached tarballs found");
-            }
-            else if (!ctx.dry_run && Console::prompt("\n\nRemove unused packages", 'y'))
-            {
-                for (auto& tbr : to_be_removed)
+                Console::print("Cleaning packages..");
+
+                if (to_be_removed.size() == 0)
                 {
-                    fs::remove_all(tbr);
+                    LOG_INFO << "No cached packages found";
+                }
+                else
+                {
+                    LOG_WARNING << unindent(R"(
+                            This does not check for packages installed using
+                            symlinks back to the package cache.)");
+
+                    if (Console::prompt("\nRemove unused packages", 'y'))
+                    {
+                        for (auto& tbr : to_be_removed)
+                        {
+                            fs::remove_all(tbr);
+                        }
+                    }
                 }
             }
         }

@@ -19,9 +19,6 @@ void
 set_list_command(CLI::App* subcom);
 
 void
-load_list_options(mamba::Context& ctx);
-
-void
 list_packages(std::string regex);
 
 struct formatted_pkg

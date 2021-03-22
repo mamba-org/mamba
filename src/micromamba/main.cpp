@@ -6,7 +6,7 @@
 
 #include "umamba.hpp"
 #include "info.hpp"
-#include "parsers.hpp"
+#include "common_options.hpp"
 
 #include "mamba/context.hpp"
 #include "mamba/output.hpp"
@@ -60,7 +60,7 @@ main(int argc, char** argv)
 
     ctx.is_micromamba = true;
 
-    CLI::App app{ std::string(banner) + "\nVersion: " + version() + "\n" };
+    CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app);
 
     try
@@ -76,14 +76,12 @@ main(int argc, char** argv)
 
     if (app.get_subcommands().size() == 0)
     {
-        auto& ctx = Context::instance();
-        load_general_options(ctx);
+        load_configuration();
         Console::print(app.help());
     }
     if (app.got_subcommand("config") && app.get_subcommand("config")->get_subcommands().size() == 0)
     {
-        auto& ctx = Context::instance();
-        load_general_options(ctx);
+        load_configuration();
         Console::print(app.get_subcommand("config")->help());
     }
 

@@ -79,7 +79,7 @@ message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/activation.cpp
     ${MAMBA_SOURCE_DIR}/channel.cpp
-    ${MAMBA_SOURCE_DIR}/config.cpp
+    ${MAMBA_SOURCE_DIR}/configuration.cpp
     ${MAMBA_SOURCE_DIR}/context.cpp
     ${MAMBA_SOURCE_DIR}/environments_manager.cpp
     ${MAMBA_SOURCE_DIR}/fetch.cpp
@@ -113,6 +113,7 @@ set(MAMBA_SOURCES
 set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/activation.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/channel.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/configuration.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/context.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/environment.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/environments_manager.hpp

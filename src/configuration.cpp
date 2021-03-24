@@ -30,7 +30,7 @@ namespace mamba
             }
             else
             {
-                if ((value == "true") || (value == "1") || (value == "<true>"))
+                if (value.empty() || (value == "true") || (value == "1") || (value == "<true>"))
                 {
                     if (on_linux)
                     {

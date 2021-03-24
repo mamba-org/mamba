@@ -377,7 +377,13 @@ namespace mamba
 
         TEST_F(Configuration, ssl_verify)
         {
-            std::string rc = "ssl_verify: true";
+            // Default empty string value
+            ctx.ssl_verify = "";
+            std::string rc = "";
+            load_test_config(rc);
+            EXPECT_CA_EQUAL(ctx.ssl_verify);
+
+            rc = "ssl_verify: true";
             load_test_config(rc);
             EXPECT_CA_EQUAL(ctx.ssl_verify);
 

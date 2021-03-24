@@ -120,10 +120,10 @@ class TestConfigSources:
                 tmpfiles.append((file, tmp_file))
 
         if not Path(TestConfigSources.target_prefix).exists():
-            os.mkdir(TestConfigSources.target_prefix)
+            os.makedirs(TestConfigSources.target_prefix)
 
         if rc_file.endswith(".d"):
-            os.mkdir(rc_file)
+            os.makedirs(rc_file)
             rc_file = os.path.join(rc_file, "test.yaml")
 
         with open(os.path.expanduser(rc_file), "w") as f:
@@ -277,5 +277,6 @@ class TestConfigList:
                 == "offline: true  # 'CLI'".splitlines()
             )
         finally:
-            os.environ.pop("MAMBA_OFFLINE")
+            if "MAMBA_OFFLINE" in os.environ:
+                os.environ.pop("MAMBA_OFFLINE")
             shutil.rmtree(os.path.expanduser(os.path.join("~", "test_mamba")))

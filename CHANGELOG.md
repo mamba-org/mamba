@@ -1,3 +1,15 @@
+0.9.0 (Mar 25, 2021)
+====================
+
+- [micromamba] use strict channels priority by default
+- [micromamba] change config precedence order: API>CLI>ENV>RC
+- [micromamba] `config list` sub command optional display of sources, defaults, short/long descriptions and groups
+- [micromamba] prevent crashes when no bashrc or zshrc file found (thanks @wolfv)
+- add support for UNC file:// urls (thanks @adament)
+- add support for use_only_tar_bz2 (thanks @tl-hbk @wolfv)
+- add pinned specs for env update (thanks @wolfv)
+- properly adhere to run_constrains (thanks @wolfv)
+
 0.8.2 (Mar 12, 2021)
 ====================
 

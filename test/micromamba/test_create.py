@@ -30,7 +30,7 @@ class TestCreate:
 
         if root_prefix:
             abs_root_prefix = os.path.expanduser(os.path.join("~", root_prefix))
-            os.makedirs(abs_root_prefix)
+            os.makedirs(abs_root_prefix, exist_ok=True)
             os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = abs_root_prefix
             if default_root_prefix_not_mamba:
                 with open(os.path.join(abs_root_prefix, "some_file"), "w") as f:

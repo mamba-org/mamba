@@ -69,7 +69,7 @@ class TestInstall:
         env = "installenv" + random_string()
         current_root_prefix = os.environ.pop("MAMBA_ROOT_PREFIX")
         if default_root_prefix_not_mamba:
-            os.makedirs(root_prefix)
+            os.makedirs(root_prefix, exist_ok=True)
             with open(os.path.join(root_prefix, "some_file"), "w") as f:
                 f.write("abc")
 
@@ -106,7 +106,7 @@ class TestInstall:
         current_root_prefix = os.environ.pop("MAMBA_ROOT_PREFIX")
         os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = ""
         if default_root_prefix_not_mamba:
-            os.makedirs(root_prefix)
+            os.makedirs(root_prefix, exist_ok=True)
             with open(os.path.join(root_prefix, "some_file"), "w") as f:
                 f.write("abc")
 

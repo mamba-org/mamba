@@ -72,7 +72,7 @@ class TestConfigSources:
     @pytest.mark.parametrize("norc", [False, True])
     def test_sources(self, quiet_flag, rc_file, norc):
         rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", random_string()))
-        os.makedirs(rc_dir)
+        os.makedirs(rc_dir, exist_ok=True)
 
         if rc_file:
             rc_path = os.path.join(rc_dir, rc_file)
@@ -109,7 +109,7 @@ class TestConfigSources:
             folder, f = file.rsplit(os.path.sep, 1)
 
             if not Path(folder).exists():
-                os.makedirs(folder)
+                os.makedirs(folder, exist_ok=True)
 
             if Path(file).exists():
                 tmp_file = os.path.join(folder, "tmp_" + f)
@@ -123,10 +123,10 @@ class TestConfigSources:
                 tmpfiles.append((file, tmp_file))
 
         if not Path(TestConfigSources.target_prefix).exists():
-            os.makedirs(TestConfigSources.target_prefix)
+            os.makedirs(TestConfigSources.target_prefix, exist_ok=True)
 
         if rc_file.endswith(".d"):
-            os.makedirs(rc_file)
+            os.makedirs(rc_file, exist_ok=True)
             rc_file = os.path.join(rc_file, "test.yaml")
 
         with open(os.path.expanduser(rc_file), "w") as f:
@@ -233,7 +233,7 @@ class TestConfigList:
 
     def test_precedence(self):
         rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", random_string()))
-        os.makedirs(rc_dir)
+        os.makedirs(rc_dir, exist_ok=True)
         rc_file = os.path.join(rc_dir, ".mambarc")
         short_rc_file = rc_file.replace(os.path.expanduser("~"), "~")
 

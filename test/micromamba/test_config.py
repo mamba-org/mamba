@@ -108,6 +108,9 @@ class TestConfigSources:
         for file in TestConfigSources.rc_files:
             folder, f = file.rsplit(os.path.sep, 1)
 
+            if not Path(folder).exists():
+                os.makedirs(folder)
+
             if Path(file).exists():
                 tmp_file = os.path.join(folder, "tmp_" + f)
                 if Path(tmp_file).exists():

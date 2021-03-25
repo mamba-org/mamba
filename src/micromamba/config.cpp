@@ -100,11 +100,11 @@ set_config_list_command(CLI::App* subcom)
     init_config_list_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX,
-                           false);
-
         auto& config = Configuration::instance();
+
+        config.at("show_banner").get_wrapped<bool>().set_value(false);
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& show_sources = config.at("config_show_sources").value<bool>();
         auto& show_all = config.at("config_show_all").value<bool>();
@@ -127,30 +127,30 @@ set_config_sources_command(CLI::App* subcom)
     init_config_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX,
-                           false);
-
         auto& config = Configuration::instance();
+
+        config.at("show_banner").get_wrapped<bool>().set_value(false);
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
+
+        std::cout << "Configuration files (by precedence order):" << std::endl;
+
+        auto srcs = config.sources();
+        auto valid_srcs = config.valid_sources();
         auto& no_rc = config.at("no_rc").value<bool>();
 
-        if (no_rc)
+        for (auto s : srcs)
         {
-            std::cout << "Configuration files disabled by --no-rc flag" << std::endl;
-        }
-        else
-        {
-            std::cout << "Configuration files (by precedence order):" << std::endl;
-
-            auto srcs = config.sources();
-            auto valid_srcs = config.valid_sources();
-
-            for (auto s : srcs)
+            if (no_rc)
+            {
+                std::cout << env::shrink_user(s).string() + " (not checked)" << std::endl;
+            }
+            else
             {
                 auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
                 if (found_s != valid_srcs.end())
                 {
-                    std::cout << env::shrink_user(s).string() << std::endl;
+                    std::cout << env::shrink_user(s).string() + " (valid)" << std::endl;
                 }
                 else
                 {
@@ -158,7 +158,6 @@ set_config_sources_command(CLI::App* subcom)
                 }
             }
         }
-        return 0;
     });
 }
 
@@ -168,11 +167,12 @@ set_config_describe_command(CLI::App* subcom)
     init_config_describe_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX,
-                           false);
-
         Configuration& config = Configuration::instance();
+
+        config.at("show_banner").get_wrapped<bool>().set_value(false);
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
+
         auto& show_groups = config.at("config_show_groups").value<bool>();
         auto& show_long_desc = config.at("config_show_long_descriptions").value<bool>();
         auto& specs = config.at("config_specs").value<std::vector<std::string>>();

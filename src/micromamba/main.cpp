@@ -8,9 +8,11 @@
 #include "info.hpp"
 #include "common_options.hpp"
 
+#include "mamba/configuration.hpp"
 #include "mamba/context.hpp"
 #include "mamba/output.hpp"
 #include "mamba/thread_utils.hpp"
+#include "mamba/info.hpp"
 
 #ifdef VENDORED_CLI11
 #include "mamba/CLI.hpp"
@@ -59,8 +61,9 @@ main(int argc, char** argv)
     auto& ctx = Context::instance();
 
     ctx.is_micromamba = true;
+    ctx.custom_banner = umamba_banner;
 
-    CLI::App app{ "Version: " + version() + "\n" };
+    CLI::App app{ "Version: " + mamba::version() + "\n" };
     set_umamba_command(&app);
 
     try
@@ -76,14 +79,16 @@ main(int argc, char** argv)
 
     if (app.get_subcommands().size() == 0)
     {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+        auto& config = Configuration::instance();
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
         Console::print(app.help());
     }
     if (app.got_subcommand("config") && app.get_subcommand("config")->get_subcommands().size() == 0)
     {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+        auto& config = Configuration::instance();
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
         Console::print(app.get_subcommand("config")->help());
     }
 

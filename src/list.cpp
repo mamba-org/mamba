@@ -9,16 +9,16 @@ namespace mamba
 {
     void list(const std::string& regex, const fs::path& prefix)
     {
-        auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
 
         if (!prefix.empty())
-            ctx.target_prefix = prefix;
+            config.at("target_prefix").set_value(prefix);
 
-        using namespace detail;
+        config.at("show_banner").get_wrapped<bool>().set_value(false);
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
 
-        if (!check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                 | MAMBA_ALLOW_EXISTING_PREFIX))
-            list_packages(regex);
+        detail::list_packages(regex);
     }
 
     namespace detail

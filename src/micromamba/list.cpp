@@ -31,13 +31,9 @@ set_list_command(CLI::App* subcom)
     init_list_parser(subcom);
 
     subcom->callback([]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX,
-                           false);
         auto& config = Configuration::instance();
         auto& regex = config.at("list_regex").value<std::string>();
 
-        using namespace detail;
-        list_packages(regex);
+        list(regex);
     });
 }

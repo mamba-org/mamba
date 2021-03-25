@@ -8,6 +8,7 @@
 #define MAMBA_INFO_HPP
 
 #include "mamba/mamba_fs.hpp"
+#include "mamba/util.hpp"
 
 #include <string>
 #include <vector>
@@ -17,6 +18,16 @@ namespace mamba
 {
     void info(const fs::path& prefix = "");
     std::string version();
+    std::string banner();
+
+    const std::string mamba_banner = std::string(strip(R"MAMBARAW(
+                                        __
+            _____ ___  ____ _____ ___  / /_  ____ _
+            / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
+           / / / / / / /_/ / / / / / / /_/ / /_/ /
+          /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
+    )MAMBARAW",
+                                                       "\n"));
 
     namespace detail
     {

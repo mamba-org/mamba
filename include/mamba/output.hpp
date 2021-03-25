@@ -43,16 +43,6 @@
 
 #define PREFIX_LENGTH 25
 
-namespace mamba
-{
-    const char banner[] =
-        R"MAMBARAW(                                        __
-            _____ ___  ____ _____ ___  / /_  ____ _
-            / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
-           / / / / / / /_/ / / / / / / /_/ / /_/ /
-          /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
-    )MAMBARAW";
-}
 
 namespace cursor
 {

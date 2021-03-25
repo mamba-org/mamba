@@ -5,9 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/configuration.hpp"
+#include "mamba/environment.hpp"
+#include "mamba/fetch.hpp"
+#include "mamba/info.hpp"
 
 #include <algorithm>
 #include <stdexcept>
+
 
 namespace mamba
 {
@@ -196,6 +200,64 @@ namespace mamba
                     // Make it appears like set with the CLI
                     // TODO: find a better way than passing by YAML to convert to string?
                     log_level.set_cli_config(YAML::Node(ctx.verbosity).as<std::string>());
+                }
+            }
+        }
+
+        void check_target_prefix(int options)
+        {
+            auto& ctx = Context::instance();
+            auto& prefix = ctx.target_prefix;
+
+            if (prefix.empty() && (options & MAMBA_ALLOW_FALLBACK_PREFIX))
+            {
+                prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
+            }
+
+            if (prefix.empty())
+            {
+                if ((options & MAMBA_ALLOW_MISSING_PREFIX))
+                {
+                    return;
+                }
+                else
+                {
+                    LOG_ERROR << "No target prefix specified";
+                    throw std::runtime_error("Aborting.");
+                }
+            }
+
+            if ((prefix == ctx.root_prefix) && !(options & MAMBA_ALLOW_ROOT_PREFIX))
+            {
+                LOG_ERROR << "'root_prefix' not accepted as 'target_prefix'";
+                throw std::runtime_error("Aborting.");
+            }
+
+            bool allow_existing = options & MAMBA_ALLOW_EXISTING_PREFIX;
+
+            if (fs::exists(prefix) && !allow_existing)
+            {
+                if (prefix == ctx.root_prefix)
+                {
+                    LOG_ERROR << "Overwriting root prefix is not permitted";
+                    throw std::runtime_error("Aborting.");
+                }
+                else if (fs::exists(prefix / "conda-meta"))
+                {
+                    if (Console::prompt(
+                            "Found conda-prefix at '" + prefix.string() + "'. Overwrite?", 'n'))
+                    {
+                        fs::remove_all(prefix);
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Aborting.");
+                    }
+                }
+                else
+                {
+                    LOG_ERROR << "Non-conda folder exists at prefix";
+                    throw std::runtime_error("Aborting.");
                 }
             }
         }
@@ -421,6 +483,11 @@ namespace mamba
                    .set_env_var_name()
                    .description("Report all output as json"));
 
+        insert(Configurable("show_banner", true)
+                   .group("Output, Prompt and Flow Control")
+                   .rc_configurable(false)
+                   .description("Show the banner"));
+
         insert(Configurable("quiet", &ctx.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_env_var_name()
@@ -545,48 +612,92 @@ namespace mamba
         m_sources = sources;
     }
 
-    void Configuration::load()
+    void Configuration::load(int target_prefix_checks)
     {
-        set_possible_sources();
-        update_sources();
-        clear_rc_config();
-        load_config_files();
-        for (auto& c : m_config)
+        if (at("rc_file").configured())
         {
-            c.second.compute_config();
-            c.second.set_context();
+            load(at("rc_file").compute_config().value<std::string>(), target_prefix_checks);
+            return;
         }
+        pre_load_impl(target_prefix_checks);
+        set_possible_sources();
+        post_load_impl();
     }
 
-    void Configuration::load(fs::path unique_source)
+    void Configuration::load(fs::path unique_source, int target_prefix_checks)
     {
+        unique_source = env::expand_user(unique_source);
+        pre_load_impl(target_prefix_checks);
+
+        if (at("no_rc").configured())
+        {
+            LOG_ERROR << "'no_rc' and 'rc_file' are exclusive";
+            throw std::runtime_error("Aborting.");
+        }
         if (!fs::exists(unique_source))
         {
-            LOG_ERROR << "Unique RC file specified does not exist: " << unique_source.string();
-            exit(1);
+            LOG_ERROR << "'rc_file' specified does not exist: " << unique_source.string();
+            throw std::runtime_error("Aborting.");
         }
+
         set_possible_sources(unique_source);
-        update_sources();
-        clear_rc_config();
-        load_config_files();
-        for (auto& c : m_config)
-        {
-            c.second.compute_config();
-            c.second.set_context();
-        }
+        post_load_impl();
     }
 
-    void Configuration::load(std::vector<fs::path> sources)
+    void Configuration::load(std::vector<fs::path> sources, int target_prefix_checks)
     {
+        pre_load_impl(target_prefix_checks);
+        if (at("no_rc").configured())
+        {
+            LOG_ERROR << "'no_rc' is set, operation not permitted";
+            throw std::runtime_error("Aborting.");
+        }
+
         set_possible_sources(sources);
+        post_load_impl();
+    }
+
+    void Configuration::pre_load_impl(int target_prefix_checks)
+    {
+        at("no_env").compute_config().set_context();
+        at("no_rc").compute_config().set_context();
+
+        at("quiet").compute_config().set_context();
+        at("json").compute_config().set_context();
+        at("always_yes").compute_config().set_context();
+        at("offline").compute_config().set_context();
+        at("dry_run").compute_config().set_context();
+
+        if (at("show_banner").compute_config().value<bool>())
+            Console::print(banner());
+
+        at("log_level").compute_config().set_context();
+        at("verbose").compute_config();
+
+        at("root_prefix").compute_config().set_context();
+        at("target_prefix").compute_config().set_context();
+
+        detail::check_target_prefix(target_prefix_checks);
+    }
+
+    void Configuration::post_load_impl()
+    {
         update_sources();
         clear_rc_config();
-        load_config_files();
+
+        if (!at("no_rc").value<bool>())
+        {
+            load_config_files();
+        }
+
+        // TODO: load once each Configurable (will prevent target_prefix to be overriden)
         for (auto& c : m_config)
         {
-            c.second.compute_config();
-            c.second.set_context();
+            if (c.first != "target_prefix")
+                c.second.compute_config().set_context();
         }
+
+        init_curl_ssl();
     }
 
     void Configuration::clear_rc_config()

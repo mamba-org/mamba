@@ -3,12 +3,7 @@
 #include "common_options.hpp"
 
 #include "mamba/configuration.hpp"
-#include "mamba/context.hpp"
 #include "mamba/install.hpp"
-
-#include "../thirdparty/termcolor.hpp"
-
-#include <yaml-cpp/yaml.h>
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -75,21 +70,10 @@ set_install_command(CLI::App* subcom)
     init_install_parser(subcom);
 
     subcom->callback([&]() {
-        auto& configuration = Configuration::instance();
+        detail::parse_file_specs();
 
-        using namespace detail;
-        parse_file_options();
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX);
-
-        auto& specs = configuration.at("specs").value<std::vector<std::string>>();
-        if (!specs.empty())
-        {
-            install_specs(specs, false);
-        }
-        else
-        {
-            Console::print("Nothing to do.");
-        }
+        auto& config = Configuration::instance();
+        auto& specs = config.at("specs").value<std::vector<std::string>>();
+        install(specs);
     });
 }

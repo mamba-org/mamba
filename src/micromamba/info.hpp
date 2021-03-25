@@ -7,7 +7,7 @@
 #ifndef UMAMBA_INFO_HPP
 #define UMAMBA_INFO_HPP
 
-#include "mamba/context.hpp"
+#include "mamba/util.hpp"
 
 #ifdef VENDORED_CLI11
 #include "mamba/CLI.hpp"
@@ -20,16 +20,17 @@
 #include <vector>
 
 
-namespace umamba
+namespace mamba
 {
-    const char banner[] =
-        R"MAMBARAW(                                           __
+    const std::string umamba_banner = std::string(strip(R"UMAMBARAW(
+                                           __
           __  ______ ___  ____ _____ ___  / /_  ____ _
          / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
         / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
        / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
       /_/
-)MAMBARAW";
+    )UMAMBARAW",
+                                                        "\n"));
 }
 
 void
@@ -37,11 +38,5 @@ init_info_parser(CLI::App* subcom);
 
 void
 set_info_command(CLI::App* subcom);
-
-void
-info_pretty_print(std::vector<std::tuple<std::string, std::vector<std::string>>> map);
-
-std::string
-version();
 
 #endif

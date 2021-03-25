@@ -53,11 +53,12 @@ set_clean_command(CLI::App* subcom)
     init_clean_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX);
-
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
+
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
+
 
         auto& clean_all = config.at("clean_all").value<bool>();
         auto& clean_index = config.at("clean_index_cache").value<bool>();

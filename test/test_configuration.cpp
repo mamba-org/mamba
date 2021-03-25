@@ -13,7 +13,10 @@ namespace mamba
         class Configuration : public ::testing::Test
         {
         protected:
-            void load_test_config(std::string rc)
+            void load_test_config(std::string rc,
+                                  int target_prefix_checks
+                                  = MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX)
             {
                 std::string unique_location = tempfile_ptr->path();
                 std::ofstream out_file(unique_location, std::ofstream::out | std::ofstream::trunc);
@@ -21,10 +24,14 @@ namespace mamba
                 out_file.close();
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance().load(fs::path(unique_location));
+                mamba::Configuration::instance().load(fs::path(unique_location),
+                                                      target_prefix_checks);
             }
 
-            void load_test_config(std::vector<std::string> rcs)
+            void load_test_config(std::vector<std::string> rcs,
+                                  int target_prefix_checks
+                                  = MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX)
             {
                 std::vector<std::unique_ptr<TemporaryFile>> tempfiles;
                 std::vector<fs::path> sources;
@@ -42,7 +49,7 @@ namespace mamba
                 }
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance().load(sources);
+                mamba::Configuration::instance().load(sources, target_prefix_checks);
             }
 
             std::unique_ptr<TemporaryFile> tempfile_ptr

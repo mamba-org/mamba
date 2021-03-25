@@ -50,18 +50,4 @@ channels_hook(std::vector<std::string>& channels);
 void
 override_channels_hook(bool& override_channels);
 
-int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 0;
-int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
-int const MAMBA_ALLOW_FALLBACK_PREFIX = 1 << 2;
-int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 3;
-
-void
-check_target_prefix(int options);
-
-void
-root_prefix_hook(fs::path& prefix);
-
-void
-load_configuration(int options, bool show_banner = true);
-
 #endif

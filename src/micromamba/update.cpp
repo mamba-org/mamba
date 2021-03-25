@@ -9,8 +9,7 @@
 #include "common_options.hpp"
 
 #include "mamba/configuration.hpp"
-#include "mamba/install.hpp"
-#include "mamba/virtual_packages.hpp"
+#include "mamba/update.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -38,37 +37,11 @@ set_update_command(CLI::App* subcom)
     init_update_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX);
-
-        auto& ctx = Context::instance();
         auto& config = Configuration::instance();
-        auto update_specs = config.at("specs").value<std::vector<std::string>>();
-        auto& update_all = config.at("update_all").value<bool>();
 
-        if (update_all)
-        {
-            PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
+        auto update_specs = config.at("specs").compute_config().value<std::vector<std::string>>();
+        auto& update_all = config.at("update_all").compute_config().value<bool>();
 
-            for (const auto& package : prefix_data.m_package_records)
-            {
-                auto name = package.second.name;
-                if (name != "python")
-                {
-                    update_specs.push_back(name);
-                }
-            }
-        }
-
-        if (!update_specs.empty())
-        {
-            using namespace detail;
-            install_specs(update_specs, false, SOLVER_UPDATE);
-        }
-        else
-        {
-            Console::print("Nothing to do.");
-        }
+        mamba::update(update_specs, update_all);
     });
 }

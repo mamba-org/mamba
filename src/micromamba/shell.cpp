@@ -78,9 +78,9 @@ set_shell_command(CLI::App* subcom)
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX,
-                           false);
+        config.at("show_banner").get_wrapped<bool>().set_value(false);
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
 
         std::unique_ptr<Activator> activator;
         auto& shell_type = config.at("shell_type").value<std::string>();

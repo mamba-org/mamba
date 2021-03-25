@@ -1345,6 +1345,16 @@ namespace mamba
         };
     };
 
+    int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 0;
+    int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
+    int const MAMBA_ALLOW_FALLBACK_PREFIX = 1 << 2;
+    int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 3;
+
+    namespace detail
+    {
+        void check_target_prefix(int options);
+    }
+
     /*****************
      * Configuration *
      * ***************/
@@ -1362,9 +1372,9 @@ namespace mamba
         std::vector<fs::path> sources();
         std::vector<fs::path> valid_sources();
 
-        void load();
-        void load(fs::path source);
-        void load(std::vector<fs::path> sources);
+        void load(int target_prefix_checks);
+        void load(fs::path source, int target_prefix_checks);
+        void load(std::vector<fs::path> sources, int target_prefix_checks);
 
         void clear_rc_config();
 
@@ -1390,6 +1400,9 @@ namespace mamba
         ~Configuration() = default;
 
         void set_configurables();
+
+        void pre_load_impl(int target_prefix_checks);
+        void post_load_impl();
 
         static YAML::Node load_rc_file(const fs::path& file);
 

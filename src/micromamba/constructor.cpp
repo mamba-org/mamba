@@ -49,11 +49,12 @@ set_constructor_command(CLI::App* subcom)
     init_constructor_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX,
-                           false);
-
         auto& config = Configuration::instance();
+
+        config.at("show_banner").get_wrapped<bool>().set_value(false);
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
+
         fs::path prefix = config.at("constructor_prefix").value<fs::path>();
         auto& extract_conda_pkgs = config.at("constructor_extract_conda_pkgs").value<bool>();
         auto& extract_tarball = config.at("constructor_extract_tarball").value<bool>();

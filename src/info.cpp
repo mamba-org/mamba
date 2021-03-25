@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/configuration.hpp"
+#include "mamba/context.hpp"
 #include "mamba/environment.hpp"
 #include "mamba/info.hpp"
 #include "mamba/install.hpp"
@@ -17,25 +18,26 @@ namespace mamba
 {
     void info(const fs::path& prefix)
     {
-        auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
 
         if (!prefix.empty())
-            ctx.target_prefix = prefix;
+            config.at("target_prefix").set_value(prefix);
 
-        using namespace detail;
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
 
-        if (check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                | MAMBA_ALLOW_EXISTING_PREFIX))
-        {
-            return;
-        }
-
-        print_info();
+        detail::print_info();
     }
 
     std::string version()
     {
         return mamba_version;
+    }
+
+    std::string banner()
+    {
+        auto& ctx = Context::instance();
+        return ctx.custom_banner.empty() ? mamba_banner : ctx.custom_banner;
     }
 
     namespace detail

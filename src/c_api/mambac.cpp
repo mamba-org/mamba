@@ -82,57 +82,6 @@ mamba_config_list()
 }
 
 void
-mamba_load_config(int show_banner)
-{
-    auto& config = Configuration::instance();
-
-    config.at("no_env").compute_config().set_context();
-    auto& no_rc = config.at("no_rc").compute_config().set_context().value<bool>();
-    auto& rc_file = config.at("rc_file").compute_config().value<std::string>();
-
-    config.at("quiet").compute_config().set_context();
-    config.at("json").compute_config().set_context();
-    config.at("always_yes").compute_config().set_context();
-    config.at("offline").compute_config().set_context();
-    config.at("dry_run").compute_config().set_context();
-
-    if (show_banner)
-        Console::print(banner);
-
-    config.at("log_level").compute_config().set_context();
-    config.at("verbose").compute_config();
-
-    config.at("root_prefix").compute_config().set_context();
-    config.at("target_prefix").compute_config().set_context();
-
-    if (no_rc)
-    {
-        if (rc_file.empty())
-        {
-            Configuration::instance().load(std::vector<fs::path>({}));
-        }
-        else
-        {
-            LOG_ERROR << "'--no-rc' and '--rc-file' are exclusive";
-            exit(1);
-        }
-    }
-    else
-    {
-        if (rc_file.empty())
-        {
-            Configuration::instance().load();
-        }
-        else
-        {
-            Configuration::instance().load(rc_file);
-        }
-    }
-
-    init_curl_ssl();
-}
-
-void
 mamba_set_config(const char* name, const char* value)
 {
     try

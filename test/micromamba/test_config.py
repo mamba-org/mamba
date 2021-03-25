@@ -87,16 +87,11 @@ class TestConfigSources:
                 rc_path_short = rc_path.replace(os.path.expanduser("~"), "~")
                 assert (
                     res.strip().splitlines()
-                    == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
+                    == f"Configuration files (by precedence order):\n{rc_path_short} (valid)".splitlines()
                 )
         else:
-
-            if norc:
-                res = config("sources", quiet_flag, "--no-rc")
-                assert res.strip() == "Configuration files disabled by --no-rc flag"
-            else:
-                res = config("sources", quiet_flag)
-                assert res.startswith("Configuration files (by precedence order):")
+            res = config("sources", quiet_flag)
+            assert res.startswith("Configuration files (by precedence order):")
 
         shutil.rmtree(rc_dir)
 
@@ -135,31 +130,30 @@ class TestConfigSources:
         with open(os.path.expanduser(rc_file), "w") as f:
             f.write("override_channels_enabled: true")
 
-        srcs = (
-            config(
-                "sources",
-                "-r",
-                TestConfigSources.root_prefix,
-                "-p",
-                TestConfigSources.target_prefix,
+        try:
+            srcs = (
+                config(
+                    "sources",
+                    "-r",
+                    TestConfigSources.root_prefix,
+                    "-p",
+                    TestConfigSources.target_prefix,
+                )
+                .strip()
+                .splitlines()
             )
-            .strip()
-            .splitlines()
-        )
-        short_name = rc_file.replace(os.path.expanduser("~"), "~")
-        expected_srcs = (
-            f"Configuration files (by precedence order):\n{short_name}".splitlines()
-        )
-        assert srcs == expected_srcs
+            short_name = rc_file.replace(os.path.expanduser("~"), "~")
+            expected_srcs = f"Configuration files (by precedence order):\n{short_name} (valid)".splitlines()
+            assert srcs == expected_srcs
+        finally:
+            if rc_file.endswith(".d"):
+                shutil.rmtree(rc_file)
+            else:
+                os.remove(rc_file)
 
-        if rc_file.endswith(".d"):
-            shutil.rmtree(rc_file)
-        else:
-            os.remove(rc_file)
-
-        for (file, tmp_file) in tmpfiles:
-            os.rename(tmp_file, file)
-        shutil.rmtree(TestConfigSources.target_prefix)
+            for (file, tmp_file) in tmpfiles:
+                os.rename(tmp_file, file)
+            shutil.rmtree(TestConfigSources.target_prefix)
 
 
 class TestConfigList:

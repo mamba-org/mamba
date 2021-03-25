@@ -24,18 +24,17 @@ namespace mamba
 {
     void install(const std::vector<std::string>& specs, const fs::path& prefix)
     {
-        auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
 
         if (!prefix.empty())
-            ctx.target_prefix = prefix;
+            config.at("target_prefix").set_value(prefix);
+
+        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                    | MAMBA_ALLOW_EXISTING_PREFIX);
 
         if (!specs.empty())
         {
-            using namespace detail;
-
-            if (!check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                     | MAMBA_ALLOW_EXISTING_PREFIX))
-                install_specs(specs, false);
+            detail::install_specs(specs, false);
         }
         else
         {
@@ -48,8 +47,10 @@ namespace mamba
         int RETRY_SUBDIR_FETCH = 1 << 0;
         int RETRY_SOLVE_ERROR = 1 << 1;
 
-        void
-        install_specs(const std::vector<std::string>& specs, bool create_env, int solver_flag, int is_retry)
+        void install_specs(const std::vector<std::string>& specs,
+                           bool create_env,
+                           int solver_flag,
+                           int is_retry)
         {
             auto& ctx = Context::instance();
             auto& config = Configuration::instance();
@@ -106,9 +107,10 @@ namespace mamba
                 auto& channel = make_channel(url);
                 std::string full_url = concat(channel.url(true), "/repodata.json");
 
-                auto sdir = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
-                                                        full_url,
-                                                        cache_dir / cache_fn_url(full_url));
+                auto sdir
+                    = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
+                                                    full_url,
+                                                    cache_dir / cache_fn_url(full_url));
 
                 sdir->load();
                 multi_dl.add(sdir->target());
@@ -124,7 +126,8 @@ namespace mamba
                         max_prio--;
                         prev_channel_name = channel.name();
                     }
-                    priorities.push_back(std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
+                    priorities.push_back(
+                        std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
                 }
             }
             if (!ctx.offline)
@@ -175,13 +178,15 @@ namespace mamba
                     if (is_retry & RETRY_SUBDIR_FETCH)
                     {
                         std::stringstream ss;
-                        ss << "Could not load repodata.json for " << subdir->name() << " after retry."
-                        << "Please check repodata source. Exiting." << std::endl;
+                        ss << "Could not load repodata.json for " << subdir->name()
+                           << " after retry."
+                           << "Please check repodata source. Exiting." << std::endl;
                         throw std::runtime_error(ss.str());
                     }
 
-                    std::cout << termcolor::yellow << "Could not load repodata.json for " << subdir->name()
-                            << ". Deleting cache, and retrying." << termcolor::reset << std::endl;
+                    std::cout << termcolor::yellow << "Could not load repodata.json for "
+                              << subdir->name() << ". Deleting cache, and retrying."
+                              << termcolor::reset << std::endl;
                     subdir->clear_cache();
                     loading_failed = true;
                 }
@@ -192,7 +197,8 @@ namespace mamba
                 if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
                 {
                     LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
+                    return install_specs(
+                        specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
                 }
                 throw std::runtime_error("Could not load repodata. Cache corrupted?");
             }
@@ -219,7 +225,8 @@ namespace mamba
                 if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
                 {
                     ctx.local_repodata_ttl = 2;
-                    return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
+                    return install_specs(
+                        specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
                 }
                 throw std::runtime_error("Could not solve for environment specs");
             }
@@ -253,8 +260,7 @@ namespace mamba
             trans.execute(prefix_data, pkgs_dirs);
         }
 
-        void
-        parse_file_options()
+        void parse_file_specs()
         {
             auto& configuration = Configuration::instance();
             auto& file_specs
@@ -299,8 +305,8 @@ namespace mamba
                         }
                         catch (YAML::Exception& e)
                         {
-                            throw std::runtime_error(
-                                mamba::concat("Could not read 'channels' as list of strings from ", file));
+                            throw std::runtime_error(mamba::concat(
+                                "Could not read 'channels' as list of strings from ", file));
                         }
 
                         channels.add_rc_value(yaml_channels, file);
@@ -324,7 +330,8 @@ namespace mamba
                     }
                     else
                     {
-                        throw std::runtime_error(concat("No 'dependencies' specified in file: ", file));
+                        throw std::runtime_error(
+                            concat("No 'dependencies' specified in file: ", file));
                     }
                 }
                 else
@@ -359,7 +366,7 @@ namespace mamba
                             std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                                     file_contents.end());
 
-                            load_configuration(0);
+                            configuration.load(0);
                             install_explicit_specs(explicit_specs);
                             exit(0);
                         }
@@ -378,8 +385,7 @@ namespace mamba
             }
         }
 
-        MRepo
-        create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
+        MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -400,8 +406,7 @@ namespace mamba
         }
 
 
-        void
-        install_explicit_specs(std::vector<std::string>& specs)
+        void install_explicit_specs(std::vector<std::string>& specs)
         {
             std::vector<mamba::MatchSpec> match_specs;
             std::vector<mamba::PackageInfo> pkg_infos;
@@ -456,8 +461,7 @@ namespace mamba
         }
 
 
-        bool
-        download_explicit(const std::vector<PackageInfo>& pkgs)
+        bool download_explicit(const std::vector<PackageInfo>& pkgs)
         {
             fs::path cache_path(Context::instance().root_prefix / "pkgs");
             // TODO better error handling for checking that cache path is
@@ -504,58 +508,6 @@ namespace mamba
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             return !is_sig_interrupted() && downloaded;
-        }
-
-        int check_target_prefix(int options)
-        {
-            auto& ctx = Context::instance();
-            auto& prefix = ctx.target_prefix;
-
-            if (prefix.empty() && (options & MAMBA_ALLOW_FALLBACK_PREFIX))
-            {
-                prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
-            }
-
-            if (prefix.empty())
-            {
-                LOG_ERROR << "No target prefix specified";
-                return 1;
-            }
-
-            if ((prefix == ctx.root_prefix) && !(options & MAMBA_ALLOW_ROOT_PREFIX))
-            {
-                LOG_ERROR << "'root_prefix' not accepted as 'target_prefix'";
-                return 1;
-            }
-
-            bool allow_existing = options & MAMBA_ALLOW_EXISTING_PREFIX;
-
-            if (!allow_existing && fs::exists(prefix))
-            {
-                if (fs::exists(prefix / "conda-meta") || (prefix == ctx.root_prefix))
-                {
-                    if (!allow_existing)
-                    {
-                        if (Console::prompt("Found conda-prefix at '" + prefix.string()
-                                                + "'.\nOverwrite?",
-                                            'n'))
-                        {
-                            fs::remove_all(prefix);
-                        }
-                        else
-                        {
-                            return 1;
-                        }
-                    }
-                }
-                else
-                {
-                    LOG_ERROR << "Non-conda folder exists at prefix";
-                    return 1;
-                }
-            }
-
-            return 0;
         }
     }  // detail
 }  // mamba

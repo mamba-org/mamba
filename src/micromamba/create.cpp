@@ -9,7 +9,9 @@
 #include "common_options.hpp"
 
 #include "mamba/configuration.hpp"
+#include "mamba/create.hpp"
 #include "mamba/install.hpp"
+
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -19,21 +21,10 @@ set_create_command(CLI::App* subcom)
     init_install_parser(subcom);
 
     subcom->callback([&]() {
-        using namespace detail;
-        
-        parse_file_options();
-        load_configuration(0);
+        detail::parse_file_specs();
 
-        auto& configuration = Configuration::instance();
-        auto& specs = configuration.at("specs").value<std::vector<std::string>>();
-
-        if (!specs.empty())
-        {
-            install_specs(specs, true);
-        }
-        else
-        {
-            Console::print("Nothing to do.");
-        }
+        auto& config = Configuration::instance();
+        auto& specs = config.at("specs").value<std::vector<std::string>>();
+        mamba::create(specs);
     });
 }

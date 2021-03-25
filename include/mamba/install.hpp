@@ -29,19 +29,13 @@ namespace mamba
                            int solver_flag = SOLVER_INSTALL,
                            int is_retry = 0);
 
-        void parse_file_options();
+        void parse_file_specs();
 
         MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
 
         void install_explicit_specs(std::vector<std::string>& specs);
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs);
-
-        int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 0;
-        int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
-        int const MAMBA_ALLOW_FALLBACK_PREFIX = 1 << 2;
-
-        int check_target_prefix(int options);
     }
 }
 

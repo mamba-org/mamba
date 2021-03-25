@@ -26,8 +26,6 @@ extern "C"
 
     void mamba_config_list();
 
-    void mamba_load_config(int show_banner = 1);
-
     void mamba_set_config(const char* name, const char* value);
 
     void mamba_clear_config(const char* name);

@@ -3,10 +3,11 @@ import os
 import platform
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
-from .helpers import create, get_env, random_string, shell
+from .helpers import create, get_env, info, random_string, shell
 
 
 class TestShell:
@@ -14,7 +15,13 @@ class TestShell:
         "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh"]
     )
     def test_hook(self, shell_type):
+        root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+        clean_root = not Path(root_prefix).exists()
+
         assert shell("hook", "-s", shell_type)
+
+        if Path(root_prefix).exists() and clean_root:
+            shutil.rmtree(root_prefix)
 
     @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("env_name", ["base", "activate_env"])
@@ -34,13 +41,18 @@ class TestShell:
             pytest.skip("Incompatible shell/OS")
 
         root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+        clean_root = not Path(root_prefix).exists()
+
         if env_name != "base" and env_exists:
             create("xtensor", "-n", env_name)
 
+        # TODO: improve this test
         assert shell("activate", "-s", shell_type, "-p", env_name)
 
         if env_name != "base" and env_exists:
             shutil.rmtree(get_env(env_name))
+        if Path(root_prefix).exists() and clean_root:
+            shutil.rmtree(root_prefix)
 
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
     @pytest.mark.parametrize(
@@ -63,14 +75,26 @@ class TestShell:
             pytest.skip("Incompatible shell/OS")
 
         current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+        clean_root = not Path(current_root_prefix).exists()
 
         if prefix:
-            assert shell("-y", "init", "-s", shell_type, "-p", prefix)
+            shell("-y", "init", "-s", shell_type, "-p", prefix)
         else:
-            assert shell("-y", "init", "-s", shell_type)
+            shell("-y", "init", "-s", shell_type)
+
+        assert Path(prefix).exists()
+        assert Path(prefix).is_dir()
+        assert (
+            Path(os.path.join(prefix, "condabin")).is_dir()
+            or Path(os.path.join(prefix, "etc", "profile.d")).is_dir()
+        )
 
         if prefix and prefix != current_root_prefix:
             shutil.rmtree(prefix)
 
         # clean-up
-        shell("init", "-y", "-s", shell_type, "-p", current_root_prefix)
+        if clean_root:
+            if Path(current_root_prefix).exists():
+                shutil.rmtree(current_root_prefix)
+        else:
+            shell("init", "-y", "-s", shell_type, "-p", current_root_prefix)

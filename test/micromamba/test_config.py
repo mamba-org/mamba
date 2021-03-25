@@ -40,8 +40,8 @@ class TestConfig:
 
 class TestConfigSources:
 
-    root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    target_prefix = os.path.join(os.environ["MAMBA_ROOT_PREFIX"], "envs", "source_env")
+    root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"]).__str__()
+    target_prefix = os.path.join(root_prefix, "envs", "source_env")
     home_dir = os.path.expanduser("~")
     rc_files = [
         # "/etc/conda/.condarc",
@@ -56,9 +56,9 @@ class TestConfigSources:
         os.path.join(root_prefix, "condarc"),
         os.path.join(root_prefix, "condarc.d"),
         os.path.join(root_prefix, ".mambarc"),
-        os.path.join(home_dir, ".conda/.condarc"),
-        os.path.join(home_dir, ".conda/condarc"),
-        os.path.join(home_dir, ".conda/condarc.d"),
+        os.path.join(home_dir, ".conda", ".condarc"),
+        os.path.join(home_dir, ".conda", "condarc"),
+        os.path.join(home_dir, ".conda", "condarc.d"),
         os.path.join(home_dir, ".condarc"),
         os.path.join(home_dir, ".mambarc"),
         os.path.join(target_prefix, ".condarc"),
@@ -86,8 +86,8 @@ class TestConfigSources:
                 res = config("sources", quiet_flag, "--rc-file", rc_path)
                 rc_path_short = rc_path.replace(os.path.expanduser("~"), "~")
                 assert (
-                    res.strip()
-                    == f"Configuration files (by precedence order):\n{rc_path_short}"
+                    res.strip().splitlines()
+                    == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
                 )
         else:
 
@@ -96,7 +96,7 @@ class TestConfigSources:
                 assert res.strip() == "Configuration files disabled by --no-rc flag"
             else:
                 res = config("sources", quiet_flag)
-                assert res.startswith("Configuration files (by precedence order):\n")
+                assert res.startswith("Configuration files (by precedence order):")
 
         shutil.rmtree(rc_dir)
 
@@ -111,7 +111,10 @@ class TestConfigSources:
             if not Path(folder).exists():
                 os.makedirs(folder, exist_ok=True)
 
-            if Path(file).exists():
+            if file.endswith(".d") and Path(file).exists() and Path(file).is_dir():
+                file = os.path.join(file, "test.yaml")
+
+            if Path(file).exists() and Path(file).is_file():
                 tmp_file = os.path.join(folder, "tmp_" + f)
                 if Path(tmp_file).exists():
                     if Path(tmp_file).is_dir():
@@ -132,15 +135,21 @@ class TestConfigSources:
         with open(os.path.expanduser(rc_file), "w") as f:
             f.write("override_channels_enabled: true")
 
-        srcs = config(
-            "sources",
-            "-r",
-            TestConfigSources.root_prefix,
-            "-p",
-            TestConfigSources.target_prefix,
+        srcs = (
+            config(
+                "sources",
+                "-r",
+                TestConfigSources.root_prefix,
+                "-p",
+                TestConfigSources.target_prefix,
+            )
+            .strip()
+            .splitlines()
         )
         short_name = rc_file.replace(os.path.expanduser("~"), "~")
-        expected_srcs = f"Configuration files (by precedence order):\n{short_name}\n"
+        expected_srcs = (
+            f"Configuration files (by precedence order):\n{short_name}".splitlines()
+        )
         assert srcs == expected_srcs
 
         if rc_file.endswith(".d"):

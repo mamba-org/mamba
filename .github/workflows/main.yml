@@ -9,109 +9,7 @@ on:
     - master
 
 jobs:
-  test_cpp_micromamba:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: install micromamba
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
-          else
-            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
-            mv bin/micromamba ./micromamba
-          fi
-          ./micromamba shell init -s bash -p ~/mambaroot
-      - name: install deps
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: build tests
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba activate ~/build_env
-          mkdir -p ~/.conda
-          touch ~/.conda/environments.txt
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
-          make test -j2
-      - name: run new micromamba
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          cd build
-          make -j2
-          ./micromamba --version
-          ./micromamba create -p ~/explicit_env -f ../test/explicit_env.txt
-      - name: run new micromamba yaml env
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          cd build
-          ./micromamba create -f ../test/yaml_env.yml
-      - name: run new micromamba spec files
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          cd build
-          ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
-          ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
-          # test noarch packages
-          $MAMBA_ROOT_PREFIX/envs/testenv_two_files/bin/wheel --help
-      - name: micromamba prefix replacement / pkgconfig check
-        shell: bash -l -eo pipefail {0}
-        run: |
-          cd build
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
-
-          micromamba create -n pkgconf pkg-config=0.29.2 eigen -c conda-forge
-          micromamba activate pkgconf
-          IDIR=$(pkg-config eigen3 --cflags-only-I)
-          if [[ "${IDIR}" != "-I$CONDA_PREFIX/include/eigen3" ]];
-          then
-            exit 1;
-          fi
-      - name: micromamba python based tests
-        shell: bash -l -eo pipefail {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/build/micromamba
-          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
-
-          micromamba activate
-          micromamba install python=3.8 pytest -c conda-forge
-
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba
-          pytest test/micromamba -s
-
-
-  build_unix:
+  mamba_python_tests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -168,7 +66,155 @@ jobs:
           cd test
           sh testserver.sh
 
-  build_win:
+  libmamba_cpp_tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+      - name: install micromamba
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
+          else
+            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
+            mv bin/micromamba ./micromamba
+          fi
+          ./micromamba shell init -s bash -p ~/mambaroot
+      - name: install deps
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: build tests
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba activate ~/build_env
+          mkdir -p ~/.conda
+          touch ~/.conda/environments.txt
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
+          make test -j2
+
+  umamba_tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+      - name: install micromamba
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
+          else
+            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
+            mv bin/micromamba ./micromamba
+          fi
+          ./micromamba shell init -s bash -p ~/mambaroot
+      - name: install deps
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: build micromamba
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
+          micromamba activate ~/build_env
+          mkdir -p ~/.conda
+          touch ~/.conda/environments.txt
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=OFF -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
+          make -j2
+      - name: run new micromamba
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          cd build
+          ./micromamba --version
+          ./micromamba create -p ~/explicit_env -f ../test/explicit_env.txt
+      - name: run new micromamba yaml env
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          cd build
+          ./micromamba create -f ../test/yaml_env.yml
+      - name: run new micromamba spec files
+        shell: bash -l {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          cd build
+          ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
+          ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
+          # test noarch packages
+          $MAMBA_ROOT_PREFIX/envs/testenv_two_files/bin/wheel --help
+      - name: micromamba prefix replacement / pkgconfig check
+        shell: bash -l -eo pipefail {0}
+        run: |
+          cd build
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/micromamba
+          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
+
+          micromamba create -n pkgconf pkg-config=0.29.2 eigen -c conda-forge
+          micromamba activate pkgconf
+          IDIR=$(pkg-config eigen3 --cflags-only-I)
+          if [[ "${IDIR}" != "-I$CONDA_PREFIX/include/eigen3" ]];
+          then
+            exit 1;
+          fi
+      - name: micromamba python based tests
+        shell: bash -l -eo pipefail {0}
+        run: |
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_EXE=$(pwd)/build/micromamba
+          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
+
+          micromamba activate
+          micromamba install python=3.8 pytest -c conda-forge
+
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba
+          pytest test/micromamba -s
+
+  mamba_python_tests_win:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -204,7 +250,7 @@ jobs:
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
 
-  build_win_micromamba:
+  libmamba_cpp_tests_win:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -224,48 +270,81 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          conda activate mamba-tests
-          python --version
-          python -m pip install ".[test]"
       - name: Run C++ tests Windows
         shell: cmd
         run: |
           call conda activate mamba-tests
-          mkdir cmake_build
-          cd cmake_build
+          mkdir build
+          cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON -G "Ninja"
           ninja test
+
+  umamba_tests_win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        run: conda info
+      - name: Create the conda environment
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Build micromamba on Windows
         shell: cmd
         run: |
           call conda activate mamba-tests
-          cd cmake_build
+          mkdir build
+          cd build
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
           ninja
           .\micromamba.exe --help
+      - name: micromamba python based tests with cmd
+        shell: cmd
+        run: |
+          call conda activate mamba-tests
+
+          set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+
+          pytest test/micromamba -s
+      - name: micromamba python based tests with pwsh
+        shell: powershell
+        run: |
+          conda activate mamba-tests
+
+          $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+
+          pytest test/micromamba -s
+      - name: micromamba python based tests with bash
+        shell: bash -l -eo pipefail {0}
+        run: |
+          conda activate mamba-tests
+
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+
+          pytest test/micromamba -s
       - name: Install "wheel" in micromamba default env
         shell: powershell
         run: |
           conda activate mamba-tests
-          cd cmake_build
+          cd build
           .\micromamba.exe shell hook --no-auto-activate-base -s powershell | Out-String | Invoke-Expression
           cd \
           micromamba create -n testenv python=3.8 wheel -c conda-forge
-          micromamba activate testenv
-          wheel --help
-      - name: Test activation on cmd.bat
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
-          cd cmake_build
-          .\micromamba shell hook --no-auto-activate-base -s cmd.exe
-          CALL %userprofile%\micromamba\condabin\mamba_hook.bat
-          cd %userprofile%
-          micromamba create -n testenv2 python=3.8 wheel -c conda-forge
           micromamba activate testenv
           wheel --help

@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -13,7 +14,7 @@ class TestInfo:
         "prefix_opt,prefix", [("-p", os.environ["MAMBA_ROOT_PREFIX"]), ("-n", "base")]
     )
     def test_base(self, prefix_opt, prefix):
-        root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+        root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"]).__str__()
         location = root_prefix
         user_config = os.path.expanduser(os.path.join("~", ".mambarc"))
 
@@ -34,7 +35,7 @@ class TestInfo:
         env = "infoenv"
         res = create("xtensor", "-n", env, "--json")
 
-        root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+        root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"]).__str__()
         location = os.path.join(root_prefix, "envs", env)
         user_config = os.path.expanduser(os.path.join("~", ".mambarc"))
 

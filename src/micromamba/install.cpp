@@ -193,7 +193,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
     }
     if (!ctx.offline)
     {
-        LockFile f(cache_dir / "mamba.lock");
+        LockFile lockf(cache_dir / "mamba.lock");
         multi_dl.download(true);
     }
 
@@ -310,7 +310,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
         exit(0);
 
     {
-        LockFile f(package_caches.first_writable().get_pkgs_dir() / "mamba.lock");
+        LockFile lockf(package_caches.first_writable().get_pkgs_dir() / "mamba.lock");
         if (create_env && !Context::instance().dry_run)
         {
             fs::create_directories(ctx.target_prefix / "conda-meta");
@@ -549,7 +549,7 @@ download_explicit(const std::vector<PackageInfo>& pkgs)
 
     bool downloaded;
     {
-        LockFile f(pkg_cache.first_writable().get_pkgs_dir() / "mamba.lock");
+        LockFile lockf(pkg_cache.first_writable().get_pkgs_dir() / "mamba.lock");
         downloaded = multi_dl.download(true);
     }
 

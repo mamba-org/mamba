@@ -89,10 +89,10 @@ class TestInstall:
         assert not res["dry_run"]
         if already_installed:
             keys = {"dry_run", "success", "prefix", "message"}
-            assert keys == set(res.keys())
+            assert keys.issubset(set(res.keys()))
         else:
             keys = {"success", "prefix", "actions", "dry_run"}
-            assert keys == set(res.keys())
+            assert keys.issubset(set(res.keys()))
 
             action_keys = {"LINK", "PREFIX"}
             assert action_keys == set(res["actions"].keys())

@@ -73,10 +73,10 @@ class TestCreate:
         assert not res["dry_run"]
 
         keys = {"success", "prefix", "actions", "dry_run"}
-        assert keys == set(res.keys())
+        assert keys.issubset(set(res.keys()))
 
         action_keys = {"LINK", "PREFIX"}
-        assert action_keys == set(res["actions"].keys())
+        assert action_keys.issubset(set(res["actions"].keys()))
 
         packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         expected_packages = {"xtensor", "xtl"}

@@ -1,3 +1,9 @@
+0.9.1 (Mar 26, 2021)
+====================
+
+- [micromamba] fix remove command target_prefix selection
+- [micromamba] improve target_prefix fallback for CLI, add tests (thanks @adriendelsalle)
+
 0.9.0 (Mar 25, 2021)
 ====================
 

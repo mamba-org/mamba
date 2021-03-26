@@ -412,8 +412,15 @@ check_target_prefix(int options)
 
     if (prefix.empty())
     {
-        LOG_ERROR << "No target prefix specified";
-        exit(1);
+        if ((options & MAMBA_ALLOW_MISSING_PREFIX))
+        {
+            return;
+        }
+        else
+        {
+            LOG_ERROR << "No target prefix specified";
+            exit(1);
+        }
     }
 
     if (!(options & MAMBA_ALLOW_ROOT_PREFIX) && (prefix == ctx.root_prefix))
@@ -426,7 +433,12 @@ check_target_prefix(int options)
 
     if (!allow_existing && fs::exists(prefix))
     {
-        if (fs::exists(prefix / "conda-meta") || (prefix == ctx.root_prefix))
+        if (prefix == ctx.root_prefix)
+        {
+            LOG_ERROR << "Overwriting root prefix is not permitted";
+            throw std::runtime_error("Aborting.");
+        }
+        else if (fs::exists(prefix / "conda-meta"))
         {
             if (!allow_existing)
             {
@@ -451,7 +463,7 @@ check_target_prefix(int options)
 
 
 void
-load_configuration(bool show_banner)
+load_configuration(int options, bool show_banner)
 {
     auto& ctx = Context::instance();
     auto& config = Configuration::instance();
@@ -472,6 +484,8 @@ load_configuration(bool show_banner)
 
     config.at("root_prefix").compute_config().set_context();
     config.at("target_prefix").compute_config().set_context();
+
+    check_target_prefix(options);
 
     if (no_rc)
     {
@@ -496,6 +510,9 @@ load_configuration(bool show_banner)
             Configuration::instance().load(rc_file);
         }
     }
+    // Workaroud to rewrite correct target_prefix after loading..
+    // TODO: fix this
+    check_target_prefix(options);
 
     init_curl_ssl();
 }

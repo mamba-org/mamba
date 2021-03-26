@@ -37,7 +37,8 @@ set_update_command(CLI::App* subcom)
     init_update_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration();
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                           | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
@@ -61,6 +62,8 @@ set_update_command(CLI::App* subcom)
 
         if (!update_specs.empty())
         {
+            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                                | MAMBA_ALLOW_EXISTING_PREFIX);
             install_specs(update_specs, false, SOLVER_UPDATE);
         }
         else

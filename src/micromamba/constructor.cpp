@@ -49,7 +49,9 @@ set_constructor_command(CLI::App* subcom)
     init_constructor_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(false);
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                               | MAMBA_ALLOW_EXISTING_PREFIX,
+                           false);
 
         auto& config = Configuration::instance();
         fs::path prefix = config.at("constructor_prefix").value<fs::path>();

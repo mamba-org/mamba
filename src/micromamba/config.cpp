@@ -100,7 +100,9 @@ set_config_list_command(CLI::App* subcom)
     init_config_list_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(false);
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                               | MAMBA_ALLOW_EXISTING_PREFIX,
+                           false);
 
         auto& config = Configuration::instance();
 
@@ -125,7 +127,9 @@ set_config_sources_command(CLI::App* subcom)
     init_config_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(false);
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                               | MAMBA_ALLOW_EXISTING_PREFIX,
+                           false);
 
         auto& config = Configuration::instance();
         auto& no_rc = config.at("no_rc").value<bool>();
@@ -164,7 +168,9 @@ set_config_describe_command(CLI::App* subcom)
     init_config_describe_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(false);
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                               | MAMBA_ALLOW_EXISTING_PREFIX,
+                           false);
 
         Configuration& config = Configuration::instance();
         auto& show_groups = config.at("config_show_groups").value<bool>();

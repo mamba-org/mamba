@@ -10,6 +10,14 @@ use_offline = False
 channel = ["-c", "conda-forge"]
 
 
+if platform.system() == "Windows":
+    xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
+    xsimd_hpp = "Library/include/xsimd/xsimd.hpp"
+else:
+    xtensor_hpp = "include/xtensor/xtensor.hpp"
+    xsimd_hpp = "include/xsimd/xsimd.hpp"
+
+
 def get_umamba():
     if os.getenv("TEST_MAMBA_EXE"):
         umamba = os.getenv("TEST_MAMBA_EXE")
@@ -59,7 +67,7 @@ def info(*args):
 
 def install(*args):
     umamba = get_umamba()
-    cmd = [umamba, "install"] + [arg for arg in args if arg] + channel
+    cmd = [umamba, "install", "-y", "--no-rc"] + [arg for arg in args if arg] + channel
     if use_offline:
         cmd += ["--offline"]
     res = subprocess.check_output(cmd)
@@ -143,6 +151,19 @@ def update(*args):
     except subprocess.CalledProcessError as e:
         print(f"Error when executing '{' '.join(cmd)}'")
         raise (e)
+
+
+def umamba_list(*args):
+    umamba = get_umamba()
+
+    cmd = [umamba, "list"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+
+    if "--json" in args:
+        j = json.loads(res)
+        return j
+
+    return res.decode()
 
 
 def get_concrete_pkg(t, needle):

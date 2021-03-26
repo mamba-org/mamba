@@ -12,37 +12,39 @@ from .helpers import *
 
 
 class TestRemove:
-    @pytest.mark.parametrize("use_prefix", [False, True])
-    @pytest.mark.parametrize("env_name", ["", random_string()])
-    def test_remove(self, env_name, use_prefix):
-        if env_name:
-            env = env_name
+    env_name = random_string()
+    root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_prefix = os.environ["CONDA_PREFIX"]
+    prefix = Path(os.path.join(root_prefix, "envs", env_name)).__str__()
+
+    @classmethod
+    def setup_class(cls):
+        create("xtensor", "-n", TestRemove.env_name)
+        os.environ["CONDA_PREFIX"] = TestRemove.prefix
+
+    @classmethod
+    def setup(cls):
+        install("xtensor", "-n", TestRemove.env_name)
+        res = umamba_list("xtensor", "-n", TestRemove.env_name, "--json")
+        assert len(res) == 1
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ["CONDA_PREFIX"] = TestRemove.current_prefix
+        shutil.rmtree(get_env(TestRemove.env_name))
+
+    @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
+    def test_remove(self, env_selector):
+        if env_selector == "prefix":
+            res = remove("xtensor", "-p", TestRemove.prefix, "--dry-run", "--json")
+        elif env_selector == "name":
+            res = remove("xtensor", "-n", TestRemove.env_name, "--dry-run", "--json")
         else:
-            env = random_string()
+            res = remove("xtensor", "--dry-run", "--json")
 
-        root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-        current_prefix = os.environ["CONDA_PREFIX"]
-        prefix = os.path.join(root_prefix, "envs", env)
-        os.environ["CONDA_PREFIX"] = prefix
-
-        try:
-            if env_name:
-                if use_prefix:
-                    create("-n", env, "xtensor")
-                    res = remove("xtensor", "-p", prefix, "--dry-run", "--json")
-                else:
-                    create("-n", env, "xtensor")
-                    res = remove("xtensor", "-n", env, "--dry-run", "--json")
-            else:
-                create("-n", env, "xtensor")
-                res = remove("xtensor", "--dry-run", "--json")
-
-            keys = {"dry_run", "success", "prefix", "actions"}
-            assert keys.issubset(set(res.keys()))
-            assert res["success"]
-            assert len(res["actions"]["UNLINK"]) == 1
-            assert res["actions"]["UNLINK"][0]["name"] == "xtensor"
-            assert res["actions"]["PREFIX"] == Path(prefix).__str__()
-        finally:
-            os.environ["CONDA_PREFIX"] = current_prefix
-            shutil.rmtree(get_env(env))
+        keys = {"dry_run", "success", "prefix", "actions"}
+        assert keys.issubset(set(res.keys()))
+        assert res["success"]
+        assert len(res["actions"]["UNLINK"]) == 1
+        assert res["actions"]["UNLINK"][0]["name"] == "xtensor"
+        assert res["actions"]["PREFIX"] == TestRemove.prefix

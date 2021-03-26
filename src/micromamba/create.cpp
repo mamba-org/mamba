@@ -19,7 +19,7 @@ set_create_command(CLI::App* subcom)
 
     subcom->callback([&]() {
         parse_file_options();
-        load_configuration();
+        load_configuration(0);
 
         auto& configuration = Configuration::instance();
         auto& specs = configuration.at("specs").value<std::vector<std::string>>();

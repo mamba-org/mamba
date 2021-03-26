@@ -91,14 +91,12 @@ set_install_command(CLI::App* subcom)
         auto& configuration = Configuration::instance();
 
         parse_file_options();
-        load_configuration();
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                           | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& specs = configuration.at("specs").value<std::vector<std::string>>();
-
         if (!specs.empty())
         {
-            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                | MAMBA_ALLOW_EXISTING_PREFIX);
             install_specs(specs, false);
         }
         else
@@ -133,8 +131,7 @@ install_specs(const std::vector<std::string>& specs, bool create_env, int solver
 
     if (ctx.target_prefix.empty())
     {
-        throw std::runtime_error(
-            "No active target prefix.\n\nRun $ micromamba activate <PATH_TO_MY_ENV>\nto activate an environment.\n");
+        throw std::runtime_error("No active target prefix");
     }
     if (!fs::exists(ctx.target_prefix) && create_env == false)
     {
@@ -423,8 +420,7 @@ parse_file_options()
                     std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                             file_contents.end());
 
-                    load_configuration();
-                    check_target_prefix(0);
+                    load_configuration(0);
                     install_explicit_specs(explicit_specs);
                     exit(0);
                 }

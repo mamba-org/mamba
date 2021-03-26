@@ -41,15 +41,14 @@ set_remove_command(CLI::App* subcom)
     init_remove_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration();
+        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                           | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& config = Configuration::instance();
         auto& specs = config.at("remove_specs").value<std::vector<std::string>>();
 
         if (!specs.empty())
         {
-            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                | MAMBA_ALLOW_EXISTING_PREFIX);
             remove_specs(specs);
         }
         else
@@ -67,7 +66,7 @@ remove_specs(const std::vector<std::string>& specs)
     if (ctx.target_prefix.empty())
     {
         LOG_ERROR << "No active target prefix.";
-        exit(1);
+        throw std::runtime_error("Aborted.");
     }
 
     std::vector<MRepo> repos;

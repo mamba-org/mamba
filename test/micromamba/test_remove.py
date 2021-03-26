@@ -42,7 +42,7 @@ class TestRemove:
             assert res["success"]
             assert len(res["actions"]["UNLINK"]) == 1
             assert res["actions"]["UNLINK"][0]["name"] == "xtensor"
-            assert res["actions"]["PREFIX"] == prefix
+            assert res["actions"]["PREFIX"] == Path(prefix).__str__()
         finally:
             os.environ["CONDA_PREFIX"] = current_prefix
             shutil.rmtree(get_env(env))

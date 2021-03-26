@@ -73,6 +73,20 @@ def install(*args):
     return res.decode()
 
 
+def remove(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "remove"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+    if "--json" in args:
+        try:
+            j = json.loads(res)
+            return j
+        except:
+            print(res.decode())
+            return
+    return res.decode()
+
+
 def create(*args):
     umamba = get_umamba()
     cmd = [umamba, "create", "-y"] + [arg for arg in args if arg] + channel

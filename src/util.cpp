@@ -15,7 +15,11 @@
 #endif
 
 #ifdef _WIN32
-#include <io.h>
+extern "C" {
+    #include <io.h>
+    #include <sys/locking.h>
+    #include <fcntl.h>
+}
 
 #include <cassert>
 #endif

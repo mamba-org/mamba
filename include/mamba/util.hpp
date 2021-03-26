@@ -139,10 +139,7 @@ namespace mamba
     private:
         fs::path m_path;
         int m_fd;
-
-#if defined(__APPLE__) or defined(__linux__)
         pid_t m_pid;
-#endif
     };
 
     /*************************

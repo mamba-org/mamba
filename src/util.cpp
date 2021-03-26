@@ -17,6 +17,7 @@
 #ifdef _WIN32
 extern "C" {
     #include <io.h>
+    #include <process.h>
     #include <sys/locking.h>
     #include <fcntl.h>
 }

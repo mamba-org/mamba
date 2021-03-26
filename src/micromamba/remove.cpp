@@ -48,6 +48,8 @@ set_remove_command(CLI::App* subcom)
 
         if (!specs.empty())
         {
+            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                                | MAMBA_ALLOW_EXISTING_PREFIX);
             remove_specs(specs);
         }
         else

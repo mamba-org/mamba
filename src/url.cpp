@@ -150,7 +150,8 @@ namespace mamba
         {
             CURLUcode uc;
             auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
-            uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), curl_flags);
+            std::string c_url = unc_url(url);
+            uc = curl_url_set(m_handle, CURLUPART_URL, c_url.c_str(), curl_flags);
             if (uc)
             {
                 throw std::runtime_error("Could not set URL (code: " + std::to_string(uc)

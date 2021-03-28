@@ -12,6 +12,7 @@
 #include "mamba/context.hpp"
 #include "mamba/thread_utils.hpp"
 #include "mamba/util.hpp"
+#include "mamba/url.hpp"
 
 namespace mamba
 {
@@ -89,26 +90,6 @@ namespace mamba
     /*********************************
      * DownloadTarget implementation *
      *********************************/
-
-    std::string unc_url(const std::string& url)
-    {
-        // Replicate UNC behaviour of url_to_path from conda.common.path
-        // We cannot use URLHandler for this since CURL returns an error when asked to parse
-        // a url of type file://hostname/path
-        // Colon character is excluded to make sure we do not match file URLs with absoulute
-        // paths to a windows drive.
-        static const std::regex file_host(R"(file://([^:/]*)(/.*)?)");
-        std::smatch match;
-        if (std::regex_match(url, match, file_host))
-        {
-            if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
-                && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
-            {
-                return "file:////" + std::string(match[1].first, url.cend());
-            }
-        }
-        return url;
-    }
 
     DownloadTarget::DownloadTarget(const std::string& name,
                                    const std::string& url,

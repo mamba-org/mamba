@@ -236,6 +236,10 @@ init_channel_parser(CLI::App* subcom)
                     { "strict", "disabled" },
                     channel_priority.description());
 
+    auto& channel_alias = config.at("channel_alias").get_wrapped<std::string>();
+    subcom->add_option(
+        "--channel-alias", channel_alias.set_cli_config(""), channel_alias.description());
+
     auto& strict_channel_priority
         = config.insert(Configurable("strict_channel_priority", false)
                             .group("cli")

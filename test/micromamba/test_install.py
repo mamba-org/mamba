@@ -106,3 +106,24 @@ class TestInstall:
                 pkg_name, xtensor_hpp, TestInstall.current_root_prefix
             )
             assert orig_file_path.exists()
+
+    @pytest.mark.parametrize(
+        "alias",
+        [
+            "",
+            "https://conda.anaconda.org/",
+            "https://repo.mamba.pm/",
+            "https://repo.mamba.pm",
+        ],
+    )
+    def test_channel_alias(self, alias):
+        if alias:
+            res = install("xtensor", "--json", "--dry-run", "--channel-alias", alias)
+            ca = alias.rstrip("/")
+        else:
+            res = install("xtensor", "--json", "--dry-run")
+            ca = "https://conda.anaconda.org"
+
+        for l in res["actions"]["LINK"]:
+            assert l["channel"].startswith(f"{ca}/conda-forge/")
+            assert l["url"].startswith(f"{ca}/conda-forge/")

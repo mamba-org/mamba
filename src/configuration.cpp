@@ -299,6 +299,11 @@ namespace mamba
                    .rc_configurable(false)
                    .description("Name of the target prefix"));
 
+        insert(Configurable("specs", std::vector<std::string>({}))
+                   .group("Basic")
+                   .rc_configurable(false)
+                   .description("Packages specification"));
+
         // Channels
         insert(Configurable("channels", &ctx.channels)
                    .group("Channels")

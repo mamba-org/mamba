@@ -19,10 +19,7 @@ init_install_parser(CLI::App* subcom)
 
     auto& config = Configuration::instance();
 
-    auto& specs = config.insert(Configurable("specs", std::vector<std::string>({}))
-                                    .group("cli")
-                                    .rc_configurable(false)
-                                    .description("Specs to install into the environment"));
+    auto& specs = config.at("specs").get_wrapped<std::vector<std::string>>();
     subcom->add_option("specs", specs.set_cli_config({}), specs.description());
 
     auto& file_specs = config.at("file_specs").get_wrapped<std::vector<std::string>>();

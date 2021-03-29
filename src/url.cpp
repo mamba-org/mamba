@@ -116,6 +116,26 @@ namespace mamba
         return file_scheme + abs_path;
     }
 
+    std::string unc_url(const std::string& url)
+    {
+        // Replicate UNC behaviour of url_to_path from conda.common.path
+        // We cannot use URLHandler for this since CURL returns an error when asked to parse
+        // a url of type file://hostname/path
+        // Colon character is excluded to make sure we do not match file URLs with absoulute
+        // paths to a windows drive.
+        static const std::regex file_host(R"(file://([^:/]*)(/.*)?)");
+        std::smatch match;
+        if (std::regex_match(url, match, file_host))
+        {
+            if (match[1] != "" && match[1] != "localhost" && match[1] != "127.0.0.1"
+                && match[1] != "::1" && !starts_with(match[1].str(), R"(\\))"))
+            {
+                return "file:////" + std::string(match[1].first, url.cend());
+            }
+        }
+        return url;
+    }
+
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
         , m_has_scheme(has_scheme(url))
@@ -130,7 +150,8 @@ namespace mamba
         {
             CURLUcode uc;
             auto curl_flags = m_has_scheme ? CURLU_NON_SUPPORT_SCHEME : CURLU_DEFAULT_SCHEME;
-            uc = curl_url_set(m_handle, CURLUPART_URL, url.c_str(), curl_flags);
+            std::string c_url = unc_url(url);
+            uc = curl_url_set(m_handle, CURLUPART_URL, c_url.c_str(), curl_flags);
             if (uc)
             {
                 throw std::runtime_error("Could not set URL (code: " + std::to_string(uc)

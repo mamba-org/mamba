@@ -63,6 +63,8 @@ namespace mamba
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
+    std::string unc_url(const std::string& url);
+
     class URLHandler
     {
     public:

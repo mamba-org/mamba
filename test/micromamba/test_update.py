@@ -64,3 +64,32 @@ class TestUpdate:
         assert update_res["message"] == "All requested packages already installed"
         assert update_res["success"] == True
         assert "action" not in update_res
+
+    @pytest.mark.parametrize(
+        "alias",
+        [
+            "",
+            "https://conda.anaconda.org/",
+            "https://repo.mamba.pm/",
+            "https://repo.mamba.pm",
+        ],
+    )
+    def test_channel_alias(self, alias):
+        if alias:
+            res = update(
+                "-n",
+                TestUpdate.env_name,
+                "xtensor",
+                "--json",
+                "--dry-run",
+                "--channel-alias",
+                alias,
+            )
+            ca = alias.rstrip("/")
+        else:
+            res = update("-n", TestUpdate.env_name, "xtensor", "--json", "--dry-run")
+            ca = "https://conda.anaconda.org"
+
+        for l in res["actions"]["LINK"]:
+            assert l["channel"].startswith(f"{ca}/conda-forge/")
+            assert l["url"].startswith(f"{ca}/conda-forge/")

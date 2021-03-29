@@ -98,3 +98,32 @@ class TestCreate:
                 create("-p", TestCreate.root_prefix, "xtensor")
             elif env_selector == "name":
                 create("-n", "base", "xtensor")
+
+    @pytest.mark.parametrize(
+        "alias",
+        [
+            "",
+            "https://conda.anaconda.org/",
+            "https://repo.mamba.pm/",
+            "https://repo.mamba.pm",
+        ],
+    )
+    def test_channel_alias(self, alias):
+        if alias:
+            res = create(
+                "-n",
+                TestCreate.env_name,
+                "xtensor",
+                "--json",
+                "--dry-run",
+                "--channel-alias",
+                alias,
+            )
+            ca = alias.rstrip("/")
+        else:
+            res = create("-n", TestCreate.env_name, "xtensor", "--json", "--dry-run")
+            ca = "https://conda.anaconda.org"
+
+        for l in res["actions"]["LINK"]:
+            assert l["channel"].startswith(f"{ca}/conda-forge/")
+            assert l["url"].startswith(f"{ca}/conda-forge/")

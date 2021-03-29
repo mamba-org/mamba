@@ -25,10 +25,7 @@ init_install_parser(CLI::App* subcom)
                                     .description("Specs to install into the environment"));
     subcom->add_option("specs", specs.set_cli_config({}), specs.description());
 
-    auto& file_specs = config.insert(Configurable("file_specs", std::vector<std::string>({}))
-                                         .group("cli")
-                                         .rc_configurable(false)
-                                         .description("File (yaml, explicit or plain)"));
+    auto& file_specs = config.at("file_specs").get_wrapped<std::vector<std::string>>();
     subcom->add_option("-f,--file", file_specs.set_cli_config({}), file_specs.description())
         ->type_size(1)
         ->allow_extra_args(false);
@@ -69,11 +66,5 @@ set_install_command(CLI::App* subcom)
 {
     init_install_parser(subcom);
 
-    subcom->callback([&]() {
-        detail::parse_file_specs();
-
-        auto& config = Configuration::instance();
-        auto& specs = config.at("specs").value<std::vector<std::string>>();
-        install(specs);
-    });
+    subcom->callback([&]() { install(); });
 }

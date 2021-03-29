@@ -15,7 +15,7 @@
 
 namespace mamba
 {
-    void create(const std::vector<std::string>& specs, const fs::path& prefix = "");
+    void create(const std::vector<std::string>& specs = {}, const fs::path& prefix = "");
 }
 
 #endif

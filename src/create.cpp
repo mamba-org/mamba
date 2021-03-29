@@ -20,9 +20,13 @@ namespace mamba
         config.load(!MAMBA_ALLOW_ROOT_PREFIX & !MAMBA_ALLOW_FALLBACK_PREFIX
                     & !MAMBA_ALLOW_EXISTING_PREFIX);
 
-        if (!specs.empty())
+        std::vector<std::string> create_specs = specs;
+        if (specs.empty())
+            create_specs = config.at("specs").value<std::vector<std::string>>();
+
+        if (!create_specs.empty())
         {
-            detail::install_specs(specs, true);
+            detail::install_specs(create_specs, true);
         }
         else
         {

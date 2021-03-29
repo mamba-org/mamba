@@ -12,7 +12,7 @@
 
 namespace mamba
 {
-    void update(std::vector<std::string>& specs, bool update_all, const fs::path& prefix)
+    void update(const std::vector<std::string>& specs, bool update_all, const fs::path& prefix)
     {
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
@@ -22,6 +22,10 @@ namespace mamba
 
         config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
                     | MAMBA_ALLOW_EXISTING_PREFIX);
+
+        std::vector<std::string> update_specs = specs;
+        if (update_specs.empty())
+            update_specs = config.at("specs").value<std::vector<std::string>>();
 
         if (update_all)
         {
@@ -33,14 +37,14 @@ namespace mamba
                 auto name = package.second.name;
                 if (name != "python")
                 {
-                    specs.push_back(name);
+                    update_specs.push_back(name);
                 }
             }
         }
 
-        if (!specs.empty())
+        if (!update_specs.empty())
         {
-            detail::install_specs(specs, false, SOLVER_UPDATE);
+            detail::install_specs(update_specs, false, SOLVER_UPDATE);
         }
         else
         {

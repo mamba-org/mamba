@@ -20,11 +20,5 @@ set_create_command(CLI::App* subcom)
 {
     init_install_parser(subcom);
 
-    subcom->callback([&]() {
-        detail::parse_file_specs();
-
-        auto& config = Configuration::instance();
-        auto& specs = config.at("specs").value<std::vector<std::string>>();
-        mamba::create(specs);
-    });
+    subcom->callback([&]() { mamba::create(); });
 }

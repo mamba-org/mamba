@@ -8,6 +8,7 @@
 #include "mamba/environment.hpp"
 #include "mamba/fetch.hpp"
 #include "mamba/info.hpp"
+#include "mamba/install.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -386,6 +387,12 @@ namespace mamba
                     previous versions of conda, this parameter was configured as either
                     True or False. True is now an alias to 'flexible'.)")));
 
+        insert(Configurable("file_specs", std::vector<std::string>({}))
+                   .group("Solver")
+                   .rc_configurable(false)
+                   .set_post_build_hook(detail::file_specs_hook)
+                   .description("File (yaml, explicit or plain)"));
+
         insert(Configurable("pinned_packages", &ctx.pinned_packages)
                    .group("Solver")
                    .set_env_var_name()
@@ -659,6 +666,8 @@ namespace mamba
 
     void Configuration::pre_load_impl(int target_prefix_checks)
     {
+        clear_rc_config();
+
         at("no_env").compute_config().set_context();
         at("no_rc").compute_config().set_context();
 
@@ -674,6 +683,7 @@ namespace mamba
         at("log_level").compute_config().set_context();
         at("verbose").compute_config();
 
+        at("file_specs").compute_config();
         at("root_prefix").compute_config().set_context();
         at("target_prefix").compute_config().set_context();
 
@@ -683,7 +693,6 @@ namespace mamba
     void Configuration::post_load_impl()
     {
         update_sources();
-        clear_rc_config();
 
         if (!at("no_rc").value<bool>())
         {

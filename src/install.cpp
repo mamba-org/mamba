@@ -32,9 +32,13 @@ namespace mamba
         config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
                     | MAMBA_ALLOW_EXISTING_PREFIX);
 
-        if (!specs.empty())
+        std::vector<std::string> install_specs = specs;
+        if (install_specs.empty())
+            install_specs = config.at("specs").value<std::vector<std::string>>();
+
+        if (!install_specs.empty())
         {
-            detail::install_specs(specs, false);
+            detail::install_specs(install_specs, false);
         }
         else
         {
@@ -260,14 +264,12 @@ namespace mamba
             trans.execute(prefix_data, pkgs_dirs);
         }
 
-        void parse_file_specs()
+        void file_specs_hook(std::vector<std::string>& file_specs)
         {
-            auto& configuration = Configuration::instance();
-            auto& file_specs
-                = configuration.at("file_specs").compute_config().value<std::vector<std::string>>();
-            auto& env_name = configuration.at("env_name");
-            auto& specs = configuration.at("specs");
-            auto& channels = configuration.at("channels");
+            auto& cfg = Configuration::instance();
+            auto& env_name = cfg.at("env_name");
+            auto& specs = cfg.at("specs");
+            auto& channels = cfg.at("channels");
 
             if (file_specs.size() == 0)
                 return;
@@ -366,7 +368,7 @@ namespace mamba
                             std::vector<std::string> explicit_specs(file_contents.begin() + i + 1,
                                                                     file_contents.end());
 
-                            configuration.load(0);
+                            cfg.load(0);
                             install_explicit_specs(explicit_specs);
                             exit(0);
                         }
@@ -380,7 +382,7 @@ namespace mamba
                             f_specs.push_back(line);
                         }
                     }
-                    configuration.at("specs").add_rc_value(YAML::Node(f_specs), file);
+                    cfg.at("specs").add_rc_value(YAML::Node(f_specs), file);
                 }
             }
         }

@@ -30,7 +30,7 @@ extern "C"
 
     void mamba_clear_config(const char* name);
 
-    void set_opt(int option, int value);
+    void mamba_set_opt(int option, int value);
 
     int const MAMBA_USE_INDEX_CACHE = 1;
     int const MAMBA_OFFLINE = 2;

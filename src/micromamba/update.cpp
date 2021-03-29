@@ -39,9 +39,8 @@ set_update_command(CLI::App* subcom)
     subcom->callback([&]() {
         auto& config = Configuration::instance();
 
-        auto update_specs = config.at("specs").compute_config().value<std::vector<std::string>>();
         auto& update_all = config.at("update_all").compute_config().value<bool>();
 
-        mamba::update(update_specs, update_all);
+        mamba::update(std::vector<std::string>(), update_all);
     });
 }

@@ -12,7 +12,7 @@ using namespace mamba;
 
 
 void
-set_opt(int option, int value)
+mamba_set_opt(int option, int value)
 {
     auto& ctx = Context::instance();
 

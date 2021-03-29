@@ -15,7 +15,7 @@
 
 namespace mamba
 {
-    void update(std::vector<std::string>& specs,
+    void update(const std::vector<std::string>& specs = {},
                 bool update_all = false,
                 const fs::path& prefix = "");
 }

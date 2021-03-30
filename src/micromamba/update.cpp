@@ -37,6 +37,7 @@ set_update_command(CLI::App* subcom)
     init_update_parser(subcom);
 
     subcom->callback([&]() {
+        parse_file_options();
         load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
                            | MAMBA_ALLOW_EXISTING_PREFIX);
 

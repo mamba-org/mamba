@@ -1,0 +1,19 @@
+name: mamba-dev
+channels:
+  - conda-forge
+dependencies:
+  - cmake
+  - make
+  - ninja
+  - nlohmann_json
+  - pybind11
+  - libsolv
+  - libarchive
+  - libcurl
+  - cxx-compiler
+  - gtest
+  - cpp-filesystem
+  - reproc-cpp
+  - yaml-cpp
+  - cli11
+  - pytest

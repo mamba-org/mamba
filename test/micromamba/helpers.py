@@ -8,6 +8,11 @@ from pathlib import Path
 
 use_offline = False
 channel = ["-c", "conda-forge"]
+dry_run_tests = (
+    True
+    if "MAMBA_DRY_RUN_TESTS" in os.environ and os.environ["MAMBA_DRY_RUN_TESTS"] == "ON"
+    else False
+)
 
 
 if platform.system() == "Windows":
@@ -65,7 +70,7 @@ def info(*args):
     return res.decode()
 
 
-def install(*args, default_channel=True, no_rc=True):
+def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "install", "-y"] + [arg for arg in args if arg]
     if default_channel:
@@ -74,6 +79,9 @@ def install(*args, default_channel=True, no_rc=True):
         cmd += ["--no-rc"]
     if use_offline:
         cmd += ["--offline"]
+    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+        cmd += ["--dry-run"]
+
     res = subprocess.check_output(cmd)
     if "--json" in args:
         try:
@@ -99,7 +107,7 @@ def remove(*args):
     return res.decode()
 
 
-def create(*args, default_channel=True, no_rc=True):
+def create(*args, default_channel=True, no_rc=True, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "create", "-y"] + [arg for arg in args if arg]
     if default_channel:
@@ -108,6 +116,8 @@ def create(*args, default_channel=True, no_rc=True):
         cmd += ["--no-rc"]
     if use_offline:
         cmd += ["--offline"]
+    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+        cmd += ["--dry-run"]
 
     try:
         res = subprocess.check_output(cmd)
@@ -121,9 +131,11 @@ def create(*args, default_channel=True, no_rc=True):
         raise (e)
 
 
-def remove(*args):
+def remove(*args, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
+    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+        cmd += ["--dry-run"]
 
     try:
         res = subprocess.check_output(cmd)
@@ -137,7 +149,7 @@ def remove(*args):
         raise (e)
 
 
-def update(*args, default_channel=True, no_rc=True):
+def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]
     if use_offline:
@@ -146,6 +158,8 @@ def update(*args, default_channel=True, no_rc=True):
         cmd += ["--no-rc"]
     if default_channel:
         cmd += channel
+    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+        cmd += ["--dry-run"]
 
     try:
         res = subprocess.check_output(cmd)

@@ -19,26 +19,28 @@ class TestRemove:
 
     @classmethod
     def setup_class(cls):
-        create("xtensor", "-n", TestRemove.env_name)
+        create("xtensor", "-n", TestRemove.env_name, no_dry_run=True)
         os.environ["CONDA_PREFIX"] = TestRemove.prefix
 
     @classmethod
     def setup(cls):
-        install("xtensor", "-n", TestRemove.env_name)
+        if not dry_run_tests:
+            install("xtensor", "-n", TestRemove.env_name)
         res = umamba_list("xtensor", "-n", TestRemove.env_name, "--json")
         assert len(res) == 1
 
     @classmethod
     def teardown_class(cls):
         os.environ["CONDA_PREFIX"] = TestRemove.current_prefix
-        shutil.rmtree(get_env(TestRemove.env_name))
+        if not dry_run_tests:
+            shutil.rmtree(get_env(TestRemove.env_name))
 
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
     def test_remove(self, env_selector):
         if env_selector == "prefix":
-            res = remove("xtensor", "-p", TestRemove.prefix, "--dry-run", "--json")
+            res = remove("xtensor", "-p", TestRemove.prefix, "--json")
         elif env_selector == "name":
-            res = remove("xtensor", "-n", TestRemove.env_name, "--dry-run", "--json")
+            res = remove("xtensor", "-n", TestRemove.env_name, "--json")
         else:
             res = remove("xtensor", "--dry-run", "--json")
 

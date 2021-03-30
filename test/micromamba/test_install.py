@@ -31,10 +31,10 @@ class TestInstall:
         os.environ["CONDA_PKGS_DIRS"] = TestInstall.cache
 
         os.makedirs(TestInstall.root_prefix, exist_ok=False)
-        install("xtensor", "-n", "base")
-        create("xtensor", "-n", TestInstall.env_name)
-        remove("xtensor", "xtl", "-n", "base")
-        remove("xtensor", "xtl", "-n", TestInstall.env_name)
+        install("xtensor", "-n", "base", no_dry_run=True)
+        create("xtensor", "-n", TestInstall.env_name, no_dry_run=True)
+        remove("xtensor", "xtl", "-n", "base", no_dry_run=True)
+        remove("xtensor", "xtl", "-n", TestInstall.env_name, no_dry_run=True)
 
     @classmethod
     def teardown_class(cls):
@@ -45,8 +45,16 @@ class TestInstall:
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
-        remove("xtensor", "xtl", "xsimd", "xframe", "-n", "base")
-        remove("xtensor", "xtl", "xsimd", "xframe", "-n", TestInstall.env_name)
+        remove("xtensor", "xtl", "xsimd", "xframe", "-n", "base", no_dry_run=True)
+        remove(
+            "xtensor",
+            "xtl",
+            "xsimd",
+            "xframe",
+            "-n",
+            TestInstall.env_name,
+            no_dry_run=True,
+        )
 
         res = umamba_list("xtensor", "-n", TestInstall.env_name, "--json")
         assert len(res) == 0
@@ -78,7 +86,7 @@ class TestInstall:
             cmd = "xtensor", "--json"
 
         if already_installed:
-            install("xtensor")
+            install("xtensor", no_dry_run=True)
 
         if env_selector == "prefix":
             res = install("-p", p, *cmd)
@@ -88,7 +96,7 @@ class TestInstall:
             res = install(*cmd)
 
         assert res["success"]
-        assert not res["dry_run"]
+        assert res["dry_run"] == dry_run_tests
         if already_installed:
             keys = {"dry_run", "success", "prefix", "message"}
             assert keys.issubset(set(res.keys()))
@@ -171,7 +179,7 @@ class TestInstall:
             keys = {"success", "prefix", "actions", "dry_run"}
             assert keys.issubset(set(res.keys()))
             assert res["success"]
-            assert not res["dry_run"]
+            assert res["dry_run"] == dry_run_tests
             assert res["prefix"] == TestInstall.prefix
 
             action_keys = {"LINK", "PREFIX"}

@@ -27,13 +27,13 @@ class TestInfo:
     @pytest.mark.parametrize(
         "prefix_opt,prefix",
         [
-            ("-p", os.path.join(os.environ["MAMBA_ROOT_PREFIX"], "envs", "infoenv")),
-            ("-n", "infoenv"),
+            ("-p", os.path.join(os.environ["MAMBA_ROOT_PREFIX"], "envs", "info_env")),
+            ("-n", "info_env"),
         ],
     )
     def test_env(self, prefix_opt, prefix):
-        env = "infoenv"
-        res = create("xtensor", "-n", env, "--json")
+        env = "info_env"
+        res = create("xtensor", "-n", env, "-q", "--json", no_dry_run=True)
 
         root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"]).__str__()
         location = os.path.join(root_prefix, "envs", env)

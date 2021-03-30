@@ -292,12 +292,75 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: create empty mamba-test env
+        shell: bash -l -eo pipefail {0}
+        run: |
+          cat > environment-test.yml <<EOL
+          name: empty-env
+          dependencies: ~
+          channels:
+            - conda-forge
+          EOL
+      - name: bootstrap test env with micromamba
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: environment-test.yml
+      - name: finalize test env
+        shell: powershell
+        run: |
+          micromamba -n mamba-test create vs2017_win-64 python=$PYTHON_VERSION -f environment-dev.yml
+          micromamba shell init -s cmd.exe -y -p $HOME\micromamba
+      - name: mamba info
+        shell: powershell
+        run: micromamba info
+      - name: Build micromamba on Windows
+        shell: cmd
+        run: |
+          call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate mamba-test
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
+          ninja
+          .\micromamba.exe --help
+      - name: Install "wheel" in micromamba default env
+        shell: powershell
+        run: |
+          micromamba activate mamba-test
+          cd build
+          .\micromamba.exe shell hook --no-auto-activate-base -s powershell | Out-String | Invoke-Expression
+          cd \
+          micromamba create -n testenv python=3.8 wheel -c conda-forge
+          micromamba activate testenv
+          wheel --help
+      - name: 'Tar files'
+        run: tar -cvf umamba.tar build/micromamba.exe
+      - uses: actions/upload-artifact@v2
+        with:
+          name: micromamba_binary
+          path: umamba.tar
+
+  umamba_tests_win_cmd:
+    needs: [umamba_tests_win]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      - name: Conda info
-        run: conda info
+      - uses: actions/download-artifact@v2
+        with:
+          name: micromamba_binary
+      - name: Untar binary
+        shell: bash -l -eo pipefail {0}
+        run: |
+          tar -xvf umamba.tar
       - name: Create the conda environment
         run: |
           conda config --add channels conda-forge
@@ -305,16 +368,7 @@ jobs:
           conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Build micromamba on Windows
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
-          mkdir build
-          cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
-          ninja
-          .\micromamba.exe --help
-      - name: micromamba python based tests with cmd
+      - name: micromamba python based tests
         shell: cmd
         run: |
           call conda activate mamba-tests
@@ -322,6 +376,36 @@ jobs:
           set MAMBA_ROOT_PREFIX=%cd%\mambaroot
 
           pytest test/micromamba -s
+
+  umamba_tests_win_pwsh:
+    needs: [umamba_tests_win]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v2
+        with:
+          name: micromamba_binary
+      - name: Untar binary
+        shell: bash -l -eo pipefail {0}
+        run: |
+          tar -xvf umamba.tar
+      - name: Create the conda environment
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests with pwsh
         shell: powershell
         run: |
@@ -330,7 +414,37 @@ jobs:
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
 
           pytest test/micromamba -s
-      - name: micromamba python based tests with bash
+
+  umamba_tests_win_bash:
+    needs: [umamba_tests_win]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
+        python-version: [ '3.7' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v2
+        with:
+          name: micromamba_binary
+      - name: Untar binary
+        shell: bash -l -eo pipefail {0}
+        run: |
+          tar -xvf umamba.tar
+      - name: Create the conda environment
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |
           conda activate mamba-tests
@@ -338,13 +452,3 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/mambaroot
 
           pytest test/micromamba -s
-      - name: Install "wheel" in micromamba default env
-        shell: powershell
-        run: |
-          conda activate mamba-tests
-          cd build
-          .\micromamba.exe shell hook --no-auto-activate-base -s powershell | Out-String | Invoke-Expression
-          cd \
-          micromamba create -n testenv python=3.8 wheel -c conda-forge
-          micromamba activate testenv
-          wheel --help

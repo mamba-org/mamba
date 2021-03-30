@@ -5,6 +5,7 @@ import random
 import shutil
 import string
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -127,3 +128,65 @@ class TestCreate:
         for l in res["actions"]["LINK"]:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
+
+    @pytest.mark.parametrize("channels", [None, "both", "CLI_only", "file_only"])
+    @pytest.mark.parametrize("env_name", [None, "both", "CLI_only", "file_only"])
+    @pytest.mark.parametrize("specs", ["both", "CLI_only", "file_only"])
+    def test_yaml_spec_file(self, channels, env_name, specs):
+        spec_file_content = []
+        if env_name not in ("CLI_only", None):
+            spec_file_content += ["name: yaml_testenv"]
+        if channels not in ("CLI_only", None):
+            spec_file_content += ["channels:", "  - https://repo.mamba.pm/conda-forge"]
+        if specs != "CLI_only":
+            spec_file_content += ["dependencies:", "  - xtensor", "  - xsimd"]
+
+        yaml_spec_file = os.path.join(TestCreate.root_prefix, "yaml_env.yml")
+        with open(yaml_spec_file, "w") as f:
+            f.write("\n".join(spec_file_content))
+
+        cmd = []
+
+        if specs != "file_only":
+            cmd += ["xframe"]
+
+        if env_name not in ("file_only", None):
+            cmd += [
+                "-n",
+                TestCreate.env_name,
+            ]
+
+        if channels not in ("file_only", None):
+            cmd += ["-c", "https://conda.anaconda.org/conda-forge"]
+
+        cmd += ["-f", yaml_spec_file, "--json"]
+
+        if env_name in ("both", None) or specs == "CLI_only" or channels is None:
+            with pytest.raises(subprocess.CalledProcessError):
+                create(*cmd, default_channel=False)
+        else:
+            res = create(*cmd, default_channel=False)
+
+            assert res["success"]
+            assert not res["dry_run"]
+
+            keys = {"success", "prefix", "actions", "dry_run"}
+            assert keys.issubset(set(res.keys()))
+
+            action_keys = {"LINK", "PREFIX"}
+            assert action_keys.issubset(set(res["actions"].keys()))
+
+            packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+            expected_packages = ["xtensor", "xtl", "xsimd"]
+            if specs != "file_only":
+                expected_packages.append("xframe")
+            assert set(expected_packages).issubset(packages)
+
+            if channels == "file_only":
+                expected_channel = "https://repo.mamba.pm/conda-forge"
+            else:
+                expected_channel = "https://conda.anaconda.org/conda-forge"
+
+            for l in res["actions"]["LINK"]:
+                assert l["channel"].startswith(expected_channel)
+                assert l["url"].startswith(expected_channel)

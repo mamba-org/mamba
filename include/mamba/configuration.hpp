@@ -481,6 +481,8 @@ namespace mamba
 
         const T& value();
 
+        T cli_value();
+
         const std::vector<T>& values();
 
         YAML::Node yaml_value() const;
@@ -516,7 +518,9 @@ namespace mamba
 
         self_type& set_post_build_hook(hook_type hook);
 
-        void set_context() const;
+        self_type& set_context();
+
+        self_type& set_cli_value(const cli_config_storage_type& value);
 
         cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
 
@@ -592,6 +596,15 @@ namespace mamba
     };
 
     template <class T>
+    T Configurable<T>::cli_value()
+    {
+        if (!cli_configured())
+            throw std::runtime_error("Trying to get unset CLI value of '" + m_name + "'");
+
+        return p_cli_config->value();
+    };
+
+    template <class T>
     const std::vector<T>& Configurable<T>::values()
     {
         return m_values;
@@ -646,12 +659,25 @@ namespace mamba
     };
 
     template <class T>
-    void Configurable<T>::set_context() const
+    auto Configurable<T>::set_context() -> self_type&
     {
         if (p_context != NULL)
         {
             *p_context = m_value;
         }
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::set_cli_value(const cli_config_storage_type& value) -> self_type&
+    {
+        if (p_cli_config == NULL)
+        {
+            throw std::runtime_error("Configurable '" + m_name + "' does not have CLI set.");
+        }
+        p_cli_config->m_value = value;
+
+        return *this;
     };
 
     template <class T>
@@ -794,9 +820,17 @@ namespace mamba
 
             virtual YAML::Node yaml_value() const = 0;
 
+            virtual YAML::Node cli_yaml_value() const = 0;
+
             virtual YAML::Node source() const = 0;
 
             virtual bool configured() const = 0;
+
+            virtual bool rc_configured() const = 0;
+
+            virtual bool env_var_configured() const = 0;
+
+            virtual bool cli_configured() const = 0;
 
             virtual bool rc_configurable() const = 0;
 
@@ -805,6 +839,8 @@ namespace mamba
             virtual void add_rc_values(const std::map<std::string, YAML::Node>& values,
                                        const std::vector<std::string>& sources)
                 = 0;
+
+            virtual void set_cli_value(const YAML::Node& value) = 0;
 
             virtual void set_context() = 0;
 
@@ -824,6 +860,7 @@ namespace mamba
         {
         public:
             using wrapped_type = Configurable<T>;
+            using cli_config_storage_type = typename detail::cli_config<T>::storage_type;
 
             Wrapper(std::unique_ptr<wrapped_type> config)
             {
@@ -852,6 +889,11 @@ namespace mamba
                 return p_wrapped->yaml_value();
             };
 
+            YAML::Node cli_yaml_value() const
+            {
+                return YAML::Node(p_wrapped->cli_value());
+            };
+
             YAML::Node source() const
             {
                 return YAML::Node(p_wrapped->source());
@@ -870,6 +912,21 @@ namespace mamba
             bool configured() const
             {
                 return p_wrapped->configured();
+            };
+
+            bool rc_configured() const
+            {
+                return p_wrapped->rc_configured();
+            };
+
+            bool env_var_configured() const
+            {
+                return p_wrapped->env_var_configured();
+            };
+
+            bool cli_configured() const
+            {
+                return p_wrapped->cli_configured();
             };
 
             bool rc_configurable() const
@@ -899,6 +956,11 @@ namespace mamba
                     converted_values.insert({ y.first, y.second.as<T>() });
                 }
                 p_wrapped->add_rc_values(converted_values, sources);
+            };
+
+            void set_cli_value(const YAML::Node& value)
+            {
+                p_wrapped->set_cli_value(value.as<cli_config_storage_type>());
             };
 
             void set_context()
@@ -990,6 +1052,11 @@ namespace mamba
             return p_impl->yaml_value();
         };
 
+        YAML::Node cli_yaml_value() const
+        {
+            return p_impl->cli_yaml_value();
+        };
+
         YAML::Node source() const
         {
             return p_impl->source();
@@ -998,6 +1065,21 @@ namespace mamba
         bool configured() const
         {
             return p_impl->configured();
+        };
+
+        bool rc_configured() const
+        {
+            return p_impl->rc_configured();
+        };
+
+        bool env_var_configured() const
+        {
+            return p_impl->env_var_configured();
+        };
+
+        bool cli_configured() const
+        {
+            return p_impl->cli_configured();
         };
 
         bool rc_configurable() const
@@ -1014,6 +1096,11 @@ namespace mamba
                            const std::vector<std::string>& sources)
         {
             p_impl->add_rc_values(values, sources);
+        };
+
+        void set_cli_value(const YAML::Node& value)
+        {
+            p_impl->set_cli_value(value);
         };
 
         ConfigurableInterface& set_context()

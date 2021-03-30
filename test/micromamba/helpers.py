@@ -65,9 +65,13 @@ def info(*args):
     return res.decode()
 
 
-def install(*args):
+def install(*args, default_channel=True, no_rc=True):
     umamba = get_umamba()
-    cmd = [umamba, "install", "-y", "--no-rc"] + [arg for arg in args if arg] + channel
+    cmd = [umamba, "install", "-y"] + [arg for arg in args if arg]
+    if default_channel:
+        cmd += channel
+    if no_rc:
+        cmd += ["--no-rc"]
     if use_offline:
         cmd += ["--offline"]
     res = subprocess.check_output(cmd)
@@ -95,9 +99,13 @@ def remove(*args):
     return res.decode()
 
 
-def create(*args):
+def create(*args, default_channel=True, no_rc=True):
     umamba = get_umamba()
-    cmd = [umamba, "create", "-y"] + [arg for arg in args if arg] + channel
+    cmd = [umamba, "create", "-y"] + [arg for arg in args if arg]
+    if default_channel:
+        cmd += channel
+    if no_rc:
+        cmd += ["--no-rc"]
     if use_offline:
         cmd += ["--offline"]
 
@@ -129,12 +137,15 @@ def remove(*args):
         raise (e)
 
 
-def update(*args):
+def update(*args, default_channel=True, no_rc=True):
     umamba = get_umamba()
-    cmd = [umamba, "update", "-y", "--no-rc"] + [arg for arg in args if arg] + channel
+    cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]
     if use_offline:
         cmd += ["--offline"]
-
+    if no_rc:
+        cmd += ["--no-rc"]
+    if default_channel:
+        cmd += channel
     try:
         res = subprocess.check_output(cmd)
         if "--json" in args:

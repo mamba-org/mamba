@@ -353,10 +353,10 @@ parse_file_options()
 
             if (config["channels"])
             {
-                YAML::Node yaml_channels;
+                std::vector<std::string> yaml_channels;
                 try
                 {
-                    yaml_channels = config["channels"];
+                    yaml_channels = config["channels"].as<std::vector<std::string>>();
                 }
                 catch (YAML::Exception& e)
                 {
@@ -364,7 +364,16 @@ parse_file_options()
                         mamba::concat("Could not read 'channels' as list of strings from ", file));
                 }
 
-                channels.add_rc_value(yaml_channels, file);
+                YAML::Node updated_channels;
+                if (channels.cli_configured())
+                {
+                    updated_channels = channels.cli_yaml_value();
+                }
+                for (auto& c : yaml_channels)
+                {
+                    updated_channels.push_back(c);
+                }
+                channels.set_cli_value(updated_channels);
             }
             else
             {
@@ -373,7 +382,12 @@ parse_file_options()
 
             if (config["name"])
             {
-                env_name.add_rc_value(config["name"], file);
+                if (env_name.cli_configured())
+                {
+                    throw std::runtime_error(
+                        "Cannot configure environment name in both CLI and file spec");
+                }
+                env_name.set_cli_value(config["name"]);
             }
             {
                 LOG_DEBUG << "No env 'name' specified in file: " << file;
@@ -381,7 +395,27 @@ parse_file_options()
 
             if (config["dependencies"])
             {
-                specs.add_rc_value(config["dependencies"], file);
+                std::vector<std::string> yaml_specs;
+                try
+                {
+                    yaml_specs = config["dependencies"].as<std::vector<std::string>>();
+                }
+                catch (YAML::Exception& e)
+                {
+                    throw std::runtime_error(mamba::concat(
+                        "Could not read 'dependencies' as list of strings from ", file));
+                }
+
+                YAML::Node updated_specs;
+                if (specs.cli_configured())
+                {
+                    updated_specs = specs.cli_yaml_value();
+                }
+                for (auto& s : yaml_specs)
+                {
+                    updated_specs.push_back(s);
+                }
+                specs.set_cli_value(updated_specs);
             }
             else
             {

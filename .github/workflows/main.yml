@@ -296,8 +296,9 @@ jobs:
         shell: bash -l -eo pipefail {0}
         run: |
           cat > environment-test.yml <<EOL
-          name: empty-env
-          dependencies: ~
+          name: mamba-test
+          dependencies:
+            - python
           channels:
             - conda-forge
           EOL
@@ -308,7 +309,7 @@ jobs:
       - name: finalize test env
         shell: powershell
         run: |
-          micromamba -n mamba-test create vs2017_win-64 python=$PYTHON_VERSION -f environment-dev.yml
+          micromamba -n mamba-test install vs2017_win-64 python=$PYTHON_VERSION -f environment-dev.yml
           micromamba shell init -s cmd.exe -y -p $HOME\micromamba
       - name: mamba info
         shell: powershell

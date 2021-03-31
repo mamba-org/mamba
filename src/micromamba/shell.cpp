@@ -4,14 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "shell.hpp"
 #include "common_options.hpp"
 
-#include "mamba/core/activation.hpp"
-#include "mamba/core/configuration.hpp"
-#include "mamba/core/shell_init.hpp"
-
-#include "../thirdparty/termcolor.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/shell.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -75,92 +71,13 @@ set_shell_command(CLI::App* subcom)
     init_shell_parser(subcom);
 
     subcom->callback([&]() {
-        auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX,
-                           false);
+        auto& action = config.at("shell_action").compute().value<std::string>();
+        auto& prefix = config.at("shell_prefix").compute().value<std::string>();
+        auto& type = config.at("shell_type").compute().value<std::string>();
+        auto& stack = config.at("shell_stack").compute().value<bool>();
 
-        std::unique_ptr<Activator> activator;
-        auto& shell_type = config.at("shell_type").value<std::string>();
-        auto& action = config.at("shell_action").value<std::string>();
-        std::string prefix = config.at("shell_prefix").value<std::string>();
-        auto& stack = config.at("shell_stack").value<bool>();
-
-        if (shell_type.empty())
-        {
-            std::cout << "Please provide a shell type." << std::endl;
-            std::cout << "Run with --help for more information." << std::endl;
-            return;
-            // Doesnt work yet.
-            // std::string guessed_shell = guess_shell();
-            // if (!guessed_shell.empty())
-            // {
-            //     // std::cout << "Guessing shell " << termcolor::green << guessed_shell <<
-            //     // termcolor::reset << std::endl;
-            //     shell_options.shell_type = guessed_shell;
-            // }
-        }
-
-        if (shell_type == "bash" || shell_type == "zsh" || shell_type == "posix")
-        {
-            activator = std::make_unique<mamba::PosixActivator>();
-        }
-        else if (shell_type == "cmd.exe")
-        {
-            activator = std::make_unique<mamba::CmdExeActivator>();
-        }
-        else if (shell_type == "powershell")
-        {
-            activator = std::make_unique<mamba::PowerShellActivator>();
-        }
-        else if (shell_type == "xonsh")
-        {
-            activator = std::make_unique<mamba::XonshActivator>();
-        }
-        else
-        {
-            throw std::runtime_error("Not handled 'shell_type'");
-        }
-
-        if (action == "init")
-        {
-            if (prefix == "base")
-            {
-                prefix = ctx.root_prefix;
-            }
-            init_shell(shell_type, prefix);
-        }
-        else if (action == "hook")
-        {
-            // TODO do we need to do something wtih `prefix -> root_prefix?`?
-            std::cout << activator->hook();
-        }
-        else if (action == "activate")
-        {
-            if (prefix == "base" || prefix.empty())
-            {
-                prefix = ctx.root_prefix;
-            }
-            if (prefix.find_first_of("/\\") == std::string::npos)
-            {
-                prefix = ctx.root_prefix / "envs" / prefix;
-            }
-
-            std::cout << activator->activate(prefix, stack);
-        }
-        else if (action == "reactivate")
-        {
-            std::cout << activator->reactivate();
-        }
-        else if (action == "deactivate")
-        {
-            std::cout << activator->deactivate();
-        }
-        else
-        {
-            throw std::runtime_error("Need an action (activate, deactivate or hook)");
-        }
+        shell(action, type, prefix, stack);
     });
 }

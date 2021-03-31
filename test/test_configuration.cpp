@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "mamba/core/configuration.hpp"
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 
 #include <cstdio>
@@ -21,7 +21,14 @@ namespace mamba
                 out_file.close();
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance().load(fs::path(unique_location));
+                mamba::Configuration::instance()
+                    .at("show_banner")
+                    .get_wrapped<bool>()
+                    .set_value(false);
+                mamba::Configuration::instance().load(
+                    fs::path(unique_location),
+                    MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                        | MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
             }
 
             void load_test_config(std::vector<std::string> rcs)
@@ -42,7 +49,14 @@ namespace mamba
                 }
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance().load(sources);
+                mamba::Configuration::instance()
+                    .at("show_banner")
+                    .get_wrapped<bool>()
+                    .set_value(false);
+                mamba::Configuration::instance().load(
+                    sources,
+                    MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
+                        | MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
             }
 
             std::unique_ptr<TemporaryFile> tempfile_ptr
@@ -455,9 +469,9 @@ namespace mamba
 
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
-                                ssl_verify: /env/ca/baz  # ')"
-                                + src + R"('
                                 cacert_path: /env/ca/baz  # 'MAMBA_CACERT_PATH' > ')"
+                                + src + R"('
+                                ssl_verify: /env/ca/baz  # ')"
                                 + src + "'")
                                    .c_str()));
 

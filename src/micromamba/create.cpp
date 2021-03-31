@@ -4,38 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "create.hpp"
-#include "install.hpp"
 #include "common_options.hpp"
 
-#include "mamba/core/configuration.hpp"
+#include "mamba/api/create.hpp"
+
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
 set_create_command(CLI::App* subcom)
 {
-    init_install_parser(subcom);
+    init_install_options(subcom);
 
-    subcom->callback([&]() {
-        parse_file_options();
-        load_configuration(0);
-
-        auto& configuration = Configuration::instance();
-        auto& specs = configuration.at("specs").value<std::vector<std::string>>();
-
-        CONTEXT_DEBUGGING_SNIPPET
-
-        if (!specs.empty())
-        {
-            check_target_prefix(0);
-            install_specs(specs, true);
-        }
-        else
-        {
-            Console::print("Nothing to do.");
-        }
-
-        return 0;
-    });
+    subcom->callback([&]() { create(); });
 }

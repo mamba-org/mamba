@@ -4,10 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/configuration.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/info.hpp"
+#include "mamba/api/install.hpp"
+
+#include "mamba/core/environment.hpp"
+#include "mamba/core/fetch.hpp"
 
 #include <algorithm>
 #include <stdexcept>
+
 
 namespace mamba
 {
@@ -68,16 +74,214 @@ namespace mamba
         {
             auto& config = Configuration::instance();
             auto& always_softlink = config.at("always_softlink")
-                                        .compute_config(ConfigurationLevel::kFile, false)
+                                        .compute(ConfigurationLevel::kFile, false)
                                         .value<bool>();
-            auto& always_copy = config.at("always_copy")
-                                    .compute_config(ConfigurationLevel::kFile, false)
-                                    .value<bool>();
+            auto& always_copy
+                = config.at("always_copy").compute(ConfigurationLevel::kFile, false).value<bool>();
 
             if (always_softlink && always_copy)
             {
                 throw std::runtime_error(
                     "'always-softlink' and 'always-copy' options are exclusive.");
+            }
+        }
+
+        void target_prefix_hook(fs::path& prefix)
+        {
+            auto& config = Configuration::instance();
+            auto& root_prefix = config.at("root_prefix").compute().value<fs::path>();
+            auto& env_name = config.at("env_name").compute();
+            auto& name = config.at("env_name").value<std::string>();
+
+            if (env_name.configured() && !name.empty() && config.at("target_prefix").configured()
+                && !prefix.empty())
+            {
+                LOG_ERROR << "Cannot set both prefix and env name";
+                throw std::runtime_error("Aborting.");
+            }
+
+            if (env_name.configured() && !name.empty())
+            {
+                if (name == "base")
+                {
+                    prefix = root_prefix;
+                }
+                else
+                {
+                    prefix = root_prefix / "envs" / name;
+                }
+            }
+
+            if (!prefix.empty())
+            {
+                if (prefix.string().find_first_of("/\\") == std::string::npos)
+                {
+                    std::string old_prefix = prefix.string();
+                    prefix = root_prefix / "envs" / prefix;
+                    LOG_WARNING << unindent((R"(
+                                    ')" + old_prefix
+                                             + R"(' does not contain any filesystem separator.
+                                    It will be handled as env name, resulting to the following
+                                    'target_prefix': ')"
+                                             + prefix.string() + R"('
+                                    If 'target_prefix' is expressed as a relative directory to
+                                    the current working directory, use './some_prefix')")
+                                                .c_str());
+                }
+                prefix = fs::absolute(prefix);
+            }
+        }
+
+        void root_prefix_hook(fs::path& prefix)
+        {
+            if (prefix.empty())
+            {
+                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
+                {
+                    prefix = env::home_directory() / "micromamba";
+                    LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
+                }
+                else
+                {
+                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
+                    LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
+                    LOG_WARNING << unindent(R"(
+                                    'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
+                                    Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                }
+
+                if (fs::exists(prefix) && !fs::is_empty(prefix))
+                {
+                    if (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")))
+                    {
+                        LOG_ERROR << "Could not use default 'root_prefix' :" << prefix.string();
+                        LOG_ERROR << "Directory exists, is not empty and not a conda prefix.";
+                        exit(1);
+                    }
+                }
+
+                LOG_INFO << unindent(R"(
+                            You have not set the 'root_prefix' environment variable.
+                            To permanently modify the root prefix location, either:
+                            - set the 'MAMBA_ROOT_PREFIX' environment variable
+                            - use the '-r,--root-prefix' CLI option
+                            - use 'micromamba shell init ...' to initialize your shell
+                                (then restart or source the contents of the shell init script))");
+            }
+
+            auto& ctx = Context::instance();
+            ctx.envs_dirs = { prefix / "envs" };
+            ctx.pkgs_dirs = { prefix / "pkgs" };
+        }
+        /*
+                void log_level_hook(LogLevel& lvl)
+                {
+                    MessageLogger::global_log_level() = lvl;
+                }
+        */
+        void verbose_hook(std::uint8_t& lvl)
+        {
+            auto& ctx = Context::instance();
+            /*
+            auto& config = Configuration::instance();
+            auto& log_level = config.at("log_level").get_wrapped<LogLevel>();
+
+            if (config.at("verbose").configured()
+                && (config.at("verbose").value<std::uint8_t>() > 0))
+            {
+                if (log_level.cli_configured() || log_level.api_configured()
+                    || log_level.env_var_configured())
+                {
+                    LOG_ERROR << "'verbose' can't override 'log_level' (skipped)";
+                    config.at("verbose")
+                        .clear_values();  // Avoid the error message appears multiple times
+                }
+                else
+                {
+                    ctx.set_verbosity(lvl);
+                    // Make it appears like set with the CLI
+                    // TODO: find a better way than passing by YAML to convert to string?
+                    log_level.set_cli_config(YAML::Node(ctx.verbosity).as<std::string>());
+                }
+            }
+            */
+            ctx.set_verbosity(lvl);
+        }
+
+        void check_target_prefix(int options)
+        {
+            auto& ctx = Context::instance();
+            auto& prefix = ctx.target_prefix;
+
+            bool allow_fallback = options & MAMBA_ALLOW_FALLBACK_PREFIX;
+            bool allow_missing = options & MAMBA_ALLOW_MISSING_PREFIX;
+            bool allow_root = options & MAMBA_ALLOW_ROOT_PREFIX;
+            bool allow_not_env = options & MAMBA_ALLOW_NOT_ENV_PREFIX;
+            bool allow_existing = options & MAMBA_ALLOW_EXISTING_PREFIX;
+            bool expect_existing = options & MAMBA_EXPECT_EXISTING_PREFIX;
+
+            if (prefix.empty() && allow_fallback)
+            {
+                prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
+            }
+
+            if (prefix.empty())
+            {
+                if (allow_missing)
+                {
+                    return;
+                }
+                else
+                {
+                    LOG_ERROR << "No target prefix specified";
+                    throw std::runtime_error("Aborting.");
+                }
+            }
+
+            if ((prefix == ctx.root_prefix) && !allow_root)
+            {
+                LOG_ERROR << "'root_prefix' not accepted as 'target_prefix'";
+                throw std::runtime_error("Aborting.");
+            }
+
+            if (fs::exists(prefix))
+            {
+                if (!allow_existing)
+                {
+                    if (prefix == ctx.root_prefix)
+                    {
+                        LOG_ERROR << "Overwriting root prefix is not permitted";
+                        throw std::runtime_error("Aborting.");
+                    }
+                    else if (fs::exists(prefix / "conda-meta"))
+                    {
+                        if (Console::prompt(
+                                "Found conda-prefix at '" + prefix.string() + "'. Overwrite?", 'n'))
+                        {
+                            fs::remove_all(prefix);
+                        }
+                        else
+                        {
+                            throw std::runtime_error("Aborting.");
+                        }
+                    }
+                    else
+                    {
+                        LOG_ERROR << "Non-conda folder exists at prefix";
+                        throw std::runtime_error("Aborting.");
+                    }
+                }
+                else if (!(fs::exists(prefix / "conda-meta") || (prefix == ctx.root_prefix))
+                         && !allow_not_env)
+                {
+                    LOG_ERROR << "No environment prefix found at: " << prefix.string();
+                    throw std::runtime_error("Aborting.");
+                }
+            }
+            else if (expect_existing)
+            {
+                LOG_ERROR << "No prefix found at: " << prefix.string();
+                throw std::runtime_error("Aborting.");
             }
         }
     }
@@ -97,14 +301,39 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
+        // Basic
+        insert(Configurable("root_prefix", &ctx.root_prefix)
+                   .group("Basic")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Path to the root prefix")
+                   .set_post_build_hook(detail::root_prefix_hook));
+
+        insert(Configurable("target_prefix", &ctx.target_prefix)
+                   .group("Basic")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Path to the target prefix")
+                   .set_post_build_hook(detail::target_prefix_hook));
+
+        insert(Configurable("env_name", std::string(""))
+                   .group("Basic")
+                   .rc_configurable(false)
+                   .description("Name of the target prefix"));
+
+        insert(Configurable("specs", std::vector<std::string>({}))
+                   .group("Basic")
+                   .rc_configurable(false)
+                   .description("Packages specification"));
+
         // Channels
         insert(Configurable("channels", &ctx.channels)
                    .group("Channels")
                    .set_env_var_name("CONDA_CHANNELS")
                    .description("Define the list of channels")
                    .long_description(unindent(R"(
-                    The list of channels where the packages will be searched for.
-                    See also 'channel_priority'.)")));
+                        The list of channels where the packages will be searched for.
+                        See also 'channel_priority'.)")));
 
         insert(Configurable("channel_alias", &ctx.channel_alias)
                    .group("Channels")
@@ -116,8 +345,8 @@ namespace mamba
                    .set_env_var_name()
                    .description("Default channels used")
                    .long_description(unindent(R"(
-                    The list of channel names and/or urls used for the 'defaults'
-                    multichannel.)")));
+                        The list of channel names and/or urls used for the 'defaults'
+                        multichannel.)")));
 
         insert(Configurable("override_channels_enabled", &ctx.override_channels_enabled)
                    .group("Channels")
@@ -125,6 +354,16 @@ namespace mamba
                    .description("Permit use of the --overide-channels command-line flag"));
 
         // Network
+        insert(Configurable("cacert_path", std::string(""))
+                   .group("Network")
+                   .set_env_var_name()
+                   .description("Path (file or directory) SSL certificate(s)")
+                   .long_description(unindent(R"(
+                        Path (file or directory) SSL certificate(s) to use whe
+                        'ssl_verify' in turned on but not set with path to certs.
+                        WARNING: overrides 'ssl_verify' if provided and 'ssl_verify'
+                        also contains a path to SSL certificates.)")));
+
         insert(Configurable("local_repodata_ttl", &ctx.local_repodata_ttl)
                    .group("Network")
                    .description("Repodata time-to-live")
@@ -136,6 +375,20 @@ namespace mamba
                         locally cache repodata before checking the remote server for
                         an update.)")));
 
+        insert(Configurable("offline", &ctx.offline)
+                   .group("Network")
+                   .set_env_var_name()
+                   .description("Force use cached repodata"));
+
+        insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
+                   .group("Network")
+                   .set_env_var_name()
+                   .description("SSL certificate revocation checks")
+                   .long_description(unindent(R"(
+                        This option tells curl to disable certificate revocation checks.
+                        It's only working for Windows back-end.
+                        WARNING: this option loosens the SSL security.)")));
+
         insert(Configurable("ssl_verify", &ctx.ssl_verify)
                    .group("Network")
                    .set_env_var_name()
@@ -146,43 +399,48 @@ namespace mamba
                         a directory with cert files, or a cert file..)"))
                    .set_post_build_hook(detail::ssl_verify_hook));
 
-        insert(Configurable("cacert_path", std::string(""))
-                   .group("Network")
-                   .set_env_var_name()
-                   .description("Path (file or directory) SSL certificate(s)")
-                   .long_description(unindent(R"(
-                        Path (file or directory) SSL certificate(s) to use whe
-                        'ssl_verify' in turned on but not set with path to certs.
-                        WARNING: overrides 'ssl_verify' if provided and 'ssl_verify'
-                        also contains a path to SSL certificates.)")));
-
-        insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
-                   .group("Network")
-                   .set_env_var_name()
-                   .description("SSL certificate revocation checks")
-                   .long_description(unindent(R"(
-                        This option tells curl to disable certificate revocation checks.
-                        It's only working for Windows back-end.
-                        WARNING: this option loosens the SSL security.)")));
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)
                    .group("Solver")
                    .set_env_var_name()
                    .description("Define the channel priority ('strict' or 'disabled')")
                    .long_description(unindent(R"(
-                    Accepts values of 'strict' and 'disabled'. The default
-                    value is 'strict'. With strict channel priority, packages in lower
-                    priority channels are not considered if a package with the same name
-                    appears in a higher priority channel.
-                    With channel priority disabled, package version takes precedence, and the
-                    configured priority of channels is used only to break ties. In
-                    previous versions of conda, this parameter was configured as either
-                    True or False. True is now an alias to 'flexible'.)")));
+                        Accepts values of 'strict' and 'disabled'. The default
+                        value is 'strict'. With strict channel priority, packages in lower
+                        priority channels are not considered if a package with the same name
+                        appears in a higher priority channel.
+                        With channel priority disabled, package version takes precedence, and the
+                        configured priority of channels is used only to break ties. In
+                        previous versions of conda, this parameter was configured as either
+                        True or False. True is now an alias to 'flexible'.)")));
+
+        insert(Configurable("explicit_install", false)
+                   .group("Solver")
+                   .rc_configurable(false)
+                   .description("Use explicit install instead of solving environment"));
+
+        insert(Configurable("file_specs", std::vector<std::string>({}))
+                   .group("Solver")
+                   .rc_configurable(false)
+                   .set_post_build_hook(detail::file_specs_hook)
+                   .description("File (yaml, explicit or plain)"));
+
+        insert(Configurable("no_pin", false)
+                   .group("Solver")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Ignore pinned packages"));
 
         insert(Configurable("pinned_packages", &ctx.pinned_packages)
                    .group("Solver")
                    .set_env_var_name()
                    .description("A list of package specs to pin for every environment resolution"));
+
+        insert(Configurable("retry_clean_cache", false)
+                   .group("Solver")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("If solve fails, try to fetch updated repodata"));
 
         // Link & Install
         insert(Configurable("allow_softlinks", &ctx.allow_softlinks)
@@ -190,9 +448,9 @@ namespace mamba
                    .set_env_var_name()
                    .description("Allow to use soft-links when hard-links are not possible")
                    .long_description(unindent(R"(
-                    Allow to use soft-links (symlinks) when hard-links are not possible,
-                    such as when installing on a different filesystem than the one that
-                    the package cache is on.)")));
+                        Allow to use soft-links (symlinks) when hard-links are not possible,
+                        such as when installing on a different filesystem than the one that
+                        the package cache is on.)")));
 
         insert(Configurable("always_copy", &ctx.always_copy)
                    .group("Link & Install")
@@ -200,44 +458,110 @@ namespace mamba
                    .set_post_build_hook(detail::always_link_hook)
                    .description("Use copy instead of hard-link")
                    .long_description(unindent(R"(
-                    Register a preference that files be copied into a prefix during
-                    install rather than hard-linked.)")));
+                        Register a preference that files be copied into a prefix during
+                        install rather than hard-linked.)")));
 
         insert(Configurable("always_softlink", &ctx.always_softlink)
                    .group("Link & Install")
                    .set_env_var_name()
                    .description("Use soft-link instead of hard-link")
                    .long_description(unindent(R"(
-                    Register a preference that files be soft-linked (symlinked) into a
-                    prefix during install rather than hard-linked. The link source is the
-                    package cache from where the package is being linked.
-                    !WARNING: Using this option can result in corruption of long-lived
-                    environments due to broken links (deleted cache).)")));
+                        Register a preference that files be soft-linked (symlinked) into a
+                        prefix during install rather than hard-linked. The link source is the
+                        package cache from where the package is being linked.
+                        !WARNING: Using this option can result in corruption of long-lived
+                        environments due to broken links (deleted cache).)")));
 
         insert(Configurable("safety_checks", &ctx.safety_checks)
                    .group("Link & Install")
                    .set_env_var_name()
                    .description("Safety checks policy ('enabled', 'warn', or 'disabled')")
                    .long_description(unindent(R"(
-                    Enforce available safety guarantees during package installation. The
-                    value must be one of 'enabled', 'warn', or 'disabled'.)")));
+                        Enforce available safety guarantees during package installation. The
+                        value must be one of 'enabled', 'warn', or 'disabled'.)")));
 
         insert(Configurable("extra_safety_checks", &ctx.extra_safety_checks)
                    .group("Link & Install")
                    .set_env_var_name()
                    .description("Run extra verifications on packages")
                    .long_description(unindent(R"(
-                    Spend extra time validating package contents. Currently, runs sha256
-                    verification on every file within each package during installation.)")));
+                        Spend extra time validating package contents. Currently, runs sha256
+                        verification on every file within each package during installation.)")));
 
         // Output, Prompt and Flow
+        insert(Configurable("always_yes", &ctx.always_yes)
+                   .group("Output, Prompt and Flow Control")
+                   .set_env_var_name()
+                   .description("Automatically answer yes on prompted questions"));
+
         insert(Configurable("auto_activate_base", &ctx.auto_activate_base)
                    .group("Output, Prompt and Flow Control")
                    .set_env_var_name()
                    .description("Automatically activate the base env")
                    .long_description(unindent(R"(
-                    Automatically activate the base environment during shell
-                    initialization.)")));
+                        Automatically activate the base environment during shell
+                        initialization.)")));
+
+        insert(Configurable("dry_run", &ctx.dry_run)
+                   .group("cli")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Only display what would have been done"));
+        /*
+                insert(Configurable("log_level", &ctx.verbosity)
+                           .group("Output, Prompt and Flow Control")
+                           .set_env_var_name()
+                           .description("Set the log level")
+                           .long_description(unindent(R"(
+                            Set the log level. Log level can be one of {'off', 'fatal',
+                            'error', 'warning', 'info', 'debug', 'trace'}.)"))
+                           .set_post_build_hook(detail::log_level_hook));
+        */
+        insert(Configurable("json", &ctx.json)
+                   .group("Output, Prompt and Flow Control")
+                   .set_env_var_name()
+                   .description("Report all output as json"));
+
+        insert(Configurable("show_banner", true)
+                   .group("Output, Prompt and Flow Control")
+                   .rc_configurable(false)
+                   .description("Show the banner"));
+
+        insert(Configurable("quiet", &ctx.quiet)
+                   .group("Output, Prompt and Flow Control")
+                   .set_env_var_name()
+                   .description("Set quiet mode (print less output)"));
+
+        insert(Configurable("verbose", std::uint8_t(0))
+                   .group("Output, Prompt and Flow Control")
+                   .rc_configurable(false)
+                   .set_post_build_hook(detail::verbose_hook)
+                   .description("Set higher verbosity")
+                   .long_description(unindent(R"(
+                    Set a higher log verbosity than the default one.
+                    This configurable has a similar effect as 'log_level',
+                    except it can only increase the log level. If you need
+                    fine-grained control, prefer 'log_level'.
+                    'verbose' and 'log_level' are exclusive.)")));
+
+        // Config
+        insert(Configurable("rc_file", std::string(""))
+                   .group("Config sources")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Path to the unique configuration file to use"));
+
+        insert(Configurable("no_rc", &ctx.no_rc)
+                   .group("Config sources")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Disable the use of configuration files"));
+
+        insert(Configurable("no_env", &ctx.no_env)
+                   .group("Config sources")
+                   .rc_configurable(false)
+                   .set_env_var_name()
+                   .description("Disable the use of environment variables"));
     }
 
     void Configuration::reset_configurables()
@@ -327,44 +651,101 @@ namespace mamba
         m_sources = sources;
     }
 
-    void Configuration::load()
+    void Configuration::load(int target_prefix_checks)
     {
-        set_possible_sources();
-        update_sources();
-        load_config_files();
-        for (auto& c : m_config)
+        if (at("rc_file").configured())
         {
-            c.second.compute_config();
-            c.second.set_context();
+            load(at("rc_file").compute().value<std::string>(), target_prefix_checks);
+            return;
         }
+        pre_load_impl(target_prefix_checks);
+        set_possible_sources();
+        post_load_impl();
     }
 
-    void Configuration::load(fs::path unique_source)
+    void Configuration::load(fs::path unique_source, int target_prefix_checks)
     {
+        unique_source = env::expand_user(unique_source);
+        pre_load_impl(target_prefix_checks);
+
+        if (at("no_rc").configured())
+        {
+            LOG_ERROR << "'no_rc' and 'rc_file' are exclusive";
+            throw std::runtime_error("Aborting.");
+        }
         if (!fs::exists(unique_source))
         {
-            LOG_ERROR << "Unique RC file specified does not exist: " << unique_source.string();
-            exit(1);
+            LOG_ERROR << "'rc_file' specified does not exist: " << unique_source.string();
+            throw std::runtime_error("Aborting.");
         }
+
         set_possible_sources(unique_source);
-        update_sources();
-        load_config_files();
-        for (auto& c : m_config)
-        {
-            c.second.compute_config();
-            c.second.set_context();
-        }
+        post_load_impl();
     }
 
-    void Configuration::load(std::vector<fs::path> sources)
+    void Configuration::load(std::vector<fs::path> sources, int target_prefix_checks)
     {
+        pre_load_impl(target_prefix_checks);
+        if (at("no_rc").configured())
+        {
+            LOG_ERROR << "'no_rc' is set, operation not permitted";
+            throw std::runtime_error("Aborting.");
+        }
+
         set_possible_sources(sources);
+        post_load_impl();
+    }
+
+    void Configuration::pre_load_impl(int target_prefix_checks)
+    {
+        clear_rc_values();
+
+        at("no_env").compute().set_context();
+        at("no_rc").compute().set_context();
+
+        at("quiet").compute().set_context();
+        at("json").compute().set_context();
+        at("always_yes").compute().set_context();
+        at("offline").compute().set_context();
+        at("dry_run").compute().set_context();
+
+        if (at("show_banner").compute().value<bool>())
+            Console::print(banner());
+
+        // at("log_level").compute().set_context();
+        at("verbose").compute();
+
+        at("file_specs").compute();
+        at("root_prefix").compute().set_context();
+        at("target_prefix").compute().set_context();
+
+        detail::check_target_prefix(target_prefix_checks);
+    }
+
+    void Configuration::post_load_impl()
+    {
         update_sources();
-        load_config_files();
+
+        if (!at("no_rc").value<bool>())
+        {
+            load_config_files();
+        }
+
+        // TODO: load once each Configurable (will prevent target_prefix to be overriden)
         for (auto& c : m_config)
         {
-            c.second.compute_config();
-            c.second.set_context();
+            if (c.first != "target_prefix")
+                c.second.compute().set_context();
+        }
+
+        init_curl_ssl();
+    }
+
+    void Configuration::clear_rc_values()
+    {
+        for (auto& c : m_config)
+        {
+            c.second.clear_rc_values();
         }
     }
 
@@ -391,7 +772,7 @@ namespace mamba
         }
         catch (const std::out_of_range& e)
         {
-            LOG_FATAL << "Configurable '" << name << "' does not exists";
+            LOG_ERROR << "Configurable '" << name << "' does not exists";
             throw e;
         }
     }
@@ -435,13 +816,16 @@ namespace mamba
                 auto& key = it.first;
                 auto& c = it.second;
 
+                if (!c.rc_configurable())
+                    continue;
+
                 for (auto s : rc_yaml_values)
                 {
                     if (!(*s)[key] || (*s)[key].IsNull())
                     {
                         continue;
                     }
-                    c.add_rc_value((*s)[key], sources_map.at(s));
+                    c.set_rc_value((*s)[key], sources_map.at(s));
                 }
             }
         }

@@ -64,7 +64,7 @@ if (USE_VENDORED_CLI11)
     add_definitions(-DVENDORED_CLI11=1)
 endif()
 
-if (BUILD_EXE)
+if (BUILD_EXE OR ENABLE_TESTS)
     add_definitions(-DUMAMBA_ONLY)
 endif()
 
@@ -84,9 +84,9 @@ message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 # ============
 
 set(MAMBA_SOURCES
+    # Core API (low-level)
     ${MAMBA_SOURCE_DIR}/core/activation.cpp
     ${MAMBA_SOURCE_DIR}/core/channel.cpp
-    ${MAMBA_SOURCE_DIR}/core/configuration.cpp
     ${MAMBA_SOURCE_DIR}/core/context.cpp
     ${MAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${MAMBA_SOURCE_DIR}/core/fetch.cpp
@@ -114,6 +114,18 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/core/validate.cpp
     ${MAMBA_SOURCE_DIR}/core/version.cpp
     ${MAMBA_SOURCE_DIR}/core/virtual_packages.cpp
+    # API (high-level)
+    ${MAMBA_SOURCE_DIR}/api/clean.cpp
+    ${MAMBA_SOURCE_DIR}/api/config.cpp
+    ${MAMBA_SOURCE_DIR}/api/configuration.cpp
+    ${MAMBA_SOURCE_DIR}/api/construct.cpp
+    ${MAMBA_SOURCE_DIR}/api/create.cpp
+    ${MAMBA_SOURCE_DIR}/api/info.cpp
+    ${MAMBA_SOURCE_DIR}/api/install.cpp
+    ${MAMBA_SOURCE_DIR}/api/list.cpp
+    ${MAMBA_SOURCE_DIR}/api/remove.cpp
+    ${MAMBA_SOURCE_DIR}/api/shell.cpp
+    ${MAMBA_SOURCE_DIR}/api/update.cpp
 )
 
 set(MAMBA_THIRD_PARTIES
@@ -122,9 +134,9 @@ set(MAMBA_THIRD_PARTIES
 )
 
 set(MAMBA_HEADERS
+    # Core API (low-level)
     ${MAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/core/configuration.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/environment.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
@@ -156,6 +168,18 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/version.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
+    # API (high-level)
+    ${MAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/config.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/construct.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/create.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/info.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/install.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/list.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/remove.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/shell.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )
 
 # Targets and link
@@ -296,8 +320,12 @@ if (NOT (BUILD_EXE AND STATIC_DEPENDENCIES))
             EXPORT ${PROJECT_NAME}-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mamba)
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    install(DIRECTORY "${MAMBA_INCLUDE_DIR}/"
+            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+            FILES_MATCHING
+            PATTERN "*.hpp")
 
     # Makes the project importable from the build directory
     export(EXPORT ${PROJECT_NAME}-targets

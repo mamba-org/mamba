@@ -4,12 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "constructor.hpp"
 #include "common_options.hpp"
 
-#include "mamba/core/configuration.hpp"
-#include "mamba/core/package_handling.hpp"
-#include "mamba/core/util.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/construct.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -49,60 +47,12 @@ set_constructor_command(CLI::App* subcom)
     init_constructor_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                               | MAMBA_ALLOW_EXISTING_PREFIX,
-                           false);
+        auto& c = Configuration::instance();
 
-        auto& config = Configuration::instance();
-        fs::path prefix = config.at("constructor_prefix").value<fs::path>();
-        auto& extract_conda_pkgs = config.at("constructor_extract_conda_pkgs").value<bool>();
-        auto& extract_tarball = config.at("constructor_extract_tarball").value<bool>();
+        auto& prefix = c.at("constructor_prefix").compute().value<fs::path>();
+        auto& extract_conda_pkgs = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
+        auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
 
-        if (extract_conda_pkgs)
-        {
-            fs::path pkgs_dir = prefix / "pkgs";
-            fs::path filename;
-            for (const auto& entry : fs::directory_iterator(pkgs_dir))
-            {
-                filename = entry.path().filename();
-                if (ends_with(filename.string(), ".tar.bz2")
-                    || ends_with(filename.string(), ".conda"))
-                {
-                    extract(entry.path());
-                }
-            }
-        }
-        if (extract_tarball)
-        {
-            fs::path extract_tarball_path = prefix / "_tmp.tar.bz2";
-            read_binary_from_stdin_and_write_to_file(extract_tarball_path);
-            extract_archive(extract_tarball_path, prefix);
-            fs::remove(extract_tarball_path);
-        }
-        return 0;
+        construct(prefix, extract_conda_pkgs, extract_tarball);
     });
-}
-
-void
-read_binary_from_stdin_and_write_to_file(fs::path& filename)
-{
-    std::ofstream out_stream(filename.string().c_str(), std::ofstream::binary);
-    // Need to reopen stdin as binary
-    std::freopen(nullptr, "rb", stdin);
-    if (std::ferror(stdin))
-    {
-        throw std::runtime_error("Re-opening stdin as binary failed.");
-    }
-    std::size_t len;
-    std::array<char, 1024> buffer;
-
-    while ((len = std::fread(buffer.data(), sizeof(char), buffer.size(), stdin)) > 0)
-    {
-        if (std::ferror(stdin) && !std::feof(stdin))
-        {
-            throw std::runtime_error("Reading from stdin failed.");
-        }
-        out_stream.write(buffer.data(), len);
-    }
-    out_stream.close();
 }

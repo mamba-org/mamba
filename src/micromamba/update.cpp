@@ -4,12 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "update.hpp"
-#include "install.hpp"
 #include "common_options.hpp"
 
-#include "mamba/core/configuration.hpp"
-#include "mamba/core/virtual_packages.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/update.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -19,7 +17,7 @@ init_update_parser(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
 
-    init_install_parser(subcom);
+    init_install_options(subcom);
 
     auto& update_all = config.insert(Configurable("update_all", false)
                                          .group("cli")
@@ -37,41 +35,7 @@ set_update_command(CLI::App* subcom)
     init_update_parser(subcom);
 
     subcom->callback([&]() {
-        parse_file_options();
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX);
-
-        auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
-        auto update_specs = config.at("specs").value<std::vector<std::string>>();
-        auto& update_all = config.at("update_all").value<bool>();
-
-        CONTEXT_DEBUGGING_SNIPPET
-
-        if (update_all)
-        {
-            PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
-
-            for (const auto& package : prefix_data.m_package_records)
-            {
-                auto name = package.second.name;
-                if (name != "python")
-                {
-                    update_specs.push_back(name);
-                }
-            }
-        }
-
-        if (!update_specs.empty())
-        {
-            check_target_prefix(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                                | MAMBA_ALLOW_EXISTING_PREFIX);
-            install_specs(update_specs, false, SOLVER_UPDATE);
-        }
-        else
-        {
-            Console::print("Nothing to do.");
-        }
+        auto& update_all = Configuration::instance().at("update_all").compute().value<bool>();
+        update(update_all);
     });
 }

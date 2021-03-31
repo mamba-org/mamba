@@ -4,17 +4,18 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef UMAMBA_CREATE_HPP
-#define UMAMBA_CREATE_HPP
+#ifndef MAMBA_API_UPDATE_HPP
+#define MAMBA_API_UPDATE_HPP
 
-#ifdef VENDORED_CLI11
-#include "mamba/core/CLI.hpp"
-#else
-#include <CLI/CLI.hpp>
-#endif
+#include "mamba/core/mamba_fs.hpp"
+
+#include <string>
+#include <vector>
 
 
-void
-set_create_command(CLI::App* subcom);
+namespace mamba
+{
+    void update(bool update_all = false);
+}
 
 #endif

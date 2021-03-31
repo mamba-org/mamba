@@ -14,10 +14,46 @@
 #endif
 
 
+const char banner[] = R"MAMBARAW(
+                                           __
+          __  ______ ___  ____ _____ ___  / /_  ____ _
+         / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
+        / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
+       / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
+      /_/
+)MAMBARAW";
+
 void
-init_umamba_parser(CLI::App* com);
+set_clean_command(CLI::App* subcom);
+
+void
+set_config_command(CLI::App* subcom);
+
+void
+set_constructor_command(CLI::App* subcom);
+
+void
+set_create_command(CLI::App* subcom);
+
+void
+set_info_command(CLI::App* subcom);
+
+void
+set_install_command(CLI::App* subcom);
+
+void
+set_list_command(CLI::App* subcom);
+
+void
+set_remove_command(CLI::App* subcom);
+
+void
+set_shell_command(CLI::App* subcom);
 
 void
 set_umamba_command(CLI::App* com);
+
+void
+set_update_command(CLI::App* subcom);
 
 #endif

@@ -4,17 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "remove.hpp"
-#include "info.hpp"
 #include "common_options.hpp"
 
-#include "mamba/core/configuration.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/prefix_data.hpp"
-#include "mamba/core/repo.hpp"
-#include "mamba/core/solver.hpp"
-#include "mamba/core/transaction.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/remove.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -27,11 +20,14 @@ init_remove_parser(CLI::App* subcom)
 
     auto& config = Configuration::instance();
 
-    auto& specs = config.insert(Configurable("remove_specs", std::vector<std::string>({}))
-                                    .group("cli")
-                                    .rc_configurable(false)
-                                    .description("Specs to remove from the environment"));
-    subcom->add_option("specs", specs.set_cli_config({}), specs.description());
+    auto& specs = config.at("specs").get_wrapped<std::vector<std::string>>();
+    subcom->add_option("specs", specs.set_cli_config({}), "Specs to remove from the environment");
+
+    auto& remove_all = config.insert(Configurable("remove_all", false)
+                                         .group("cli")
+                                         .rc_configurable(false)
+                                         .description("Remove all packages in the environment"));
+    subcom->add_flag("-a, --all", remove_all.set_cli_config(0), remove_all.description());
 }
 
 
@@ -41,63 +37,7 @@ set_remove_command(CLI::App* subcom)
     init_remove_parser(subcom);
 
     subcom->callback([&]() {
-        load_configuration(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                           | MAMBA_ALLOW_EXISTING_PREFIX);
-
-        auto& config = Configuration::instance();
-        auto& specs = config.at("remove_specs").value<std::vector<std::string>>();
-
-        if (!specs.empty())
-        {
-            remove_specs(specs);
-        }
-        else
-        {
-            Console::print("Nothing to do.");
-        }
+        auto& remove_all = Configuration::instance().at("remove_all").compute().value<bool>();
+        remove(remove_all);
     });
-}
-
-void
-remove_specs(const std::vector<std::string>& specs)
-{
-    auto& ctx = Context::instance();
-
-    if (ctx.target_prefix.empty())
-    {
-        LOG_ERROR << "No active target prefix.";
-        throw std::runtime_error("Aborted.");
-    }
-
-    std::vector<MRepo> repos;
-    MPool pool;
-    PrefixData prefix_data(ctx.target_prefix);
-    prefix_data.load();
-    auto repo = MRepo(pool, prefix_data);
-    repos.push_back(repo);
-
-    MSolver solver(pool,
-                   { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 }, { SOLVER_FLAG_ALLOW_UNINSTALL, 1 } });
-    solver.add_jobs(specs, SOLVER_ERASE);
-    solver.solve();
-
-    MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
-    MTransaction trans(solver, package_caches);
-
-    if (ctx.json)
-    {
-        trans.log_json();
-    }
-    // TODO this is not so great
-    std::vector<MRepo*> repo_ptrs;
-    for (auto& r : repos)
-    {
-        repo_ptrs.push_back(&r);
-    }
-
-    bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
-    if (!yes)
-        exit(0);
-
-    trans.execute(prefix_data, ctx.root_prefix / "pkgs");
 }

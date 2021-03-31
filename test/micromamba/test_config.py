@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import get_umamba, random_string
+from .helpers import create, get_umamba, random_string
 
 
 def config(*args):
@@ -40,8 +40,14 @@ class TestConfig:
 
 class TestConfigSources:
 
-    root_prefix = Path(os.environ["MAMBA_ROOT_PREFIX"]).__str__()
-    target_prefix = os.path.join(root_prefix, "envs", "source_env")
+    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_prefix = os.environ["CONDA_PREFIX"]
+    cache = os.path.join(current_root_prefix, "pkgs")
+
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
+
     home_dir = os.path.expanduser("~")
     rc_files = [
         # "/etc/conda/.condarc",
@@ -61,21 +67,34 @@ class TestConfigSources:
         os.path.join(home_dir, ".conda", "condarc.d"),
         os.path.join(home_dir, ".condarc"),
         os.path.join(home_dir, ".mambarc"),
-        os.path.join(target_prefix, ".condarc"),
-        os.path.join(target_prefix, "condarc"),
-        os.path.join(target_prefix, "condarc.d"),
-        os.path.join(target_prefix, ".mambarc"),
+        os.path.join(prefix, ".condarc"),
+        os.path.join(prefix, "condarc"),
+        os.path.join(prefix, "condarc.d"),
+        os.path.join(prefix, ".mambarc"),
     ]
+
+    @classmethod
+    def setup_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigSources.root_prefix
+        os.environ["CONDA_PREFIX"] = TestConfigSources.prefix
+
+        os.makedirs(TestConfigSources.root_prefix, exist_ok=False)
+        create(
+            "-n", TestConfigSources.env_name, "--json", "--offline", no_dry_run=True,
+        )
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigSources.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestConfigSources.current_prefix
+        shutil.rmtree(TestConfigSources.root_prefix)
 
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
     @pytest.mark.parametrize("rc_file", ["", "dummy.yaml", ".mambarc"])
     @pytest.mark.parametrize("norc", [False, True])
     def test_sources(self, quiet_flag, rc_file, norc):
-        rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", random_string()))
-        os.makedirs(rc_dir, exist_ok=True)
-
         if rc_file:
-            rc_path = os.path.join(rc_dir, rc_file)
+            rc_path = os.path.join(TestConfigSources.prefix, rc_file)
             with open(rc_path, "w") as f:
                 f.write("override_channels_enabled: true")
 
@@ -90,15 +109,12 @@ class TestConfigSources:
                     == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
                 )
         else:
-
             if norc:
                 res = config("sources", quiet_flag, "--no-rc")
                 assert res.strip() == "Configuration files disabled by --no-rc flag"
             else:
                 res = config("sources", quiet_flag)
                 assert res.startswith("Configuration files (by precedence order):")
-
-        shutil.rmtree(rc_dir)
 
     # TODO: test OS specific sources
     # TODO: test system located sources?
@@ -125,9 +141,6 @@ class TestConfigSources:
                 os.rename(file, tmp_file)
                 tmpfiles.append((file, tmp_file))
 
-        if not Path(TestConfigSources.target_prefix).exists():
-            os.makedirs(TestConfigSources.target_prefix, exist_ok=True)
-
         if rc_file.endswith(".d"):
             os.makedirs(rc_file, exist_ok=True)
             rc_file = os.path.join(rc_file, "test.yaml")
@@ -135,17 +148,7 @@ class TestConfigSources:
         with open(os.path.expanduser(rc_file), "w") as f:
             f.write("override_channels_enabled: true")
 
-        srcs = (
-            config(
-                "sources",
-                "-r",
-                TestConfigSources.root_prefix,
-                "-p",
-                TestConfigSources.target_prefix,
-            )
-            .strip()
-            .splitlines()
-        )
+        srcs = config("sources", "-n", TestConfigSources.env_name,).strip().splitlines()
         short_name = rc_file.replace(os.path.expanduser("~"), "~")
         expected_srcs = (
             f"Configuration files (by precedence order):\n{short_name}".splitlines()
@@ -159,7 +162,6 @@ class TestConfigSources:
 
         for (file, tmp_file) in tmpfiles:
             os.rename(tmp_file, file)
-        shutil.rmtree(TestConfigSources.target_prefix)
 
 
 class TestConfigList:

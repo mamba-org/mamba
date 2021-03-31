@@ -24,6 +24,8 @@ set_create_command(CLI::App* subcom)
         auto& configuration = Configuration::instance();
         auto& specs = configuration.at("specs").value<std::vector<std::string>>();
 
+        CONTEXT_DEBUGGING_SNIPPET
+
         if (!specs.empty())
         {
             check_target_prefix(0);

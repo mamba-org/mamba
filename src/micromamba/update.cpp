@@ -46,6 +46,8 @@ set_update_command(CLI::App* subcom)
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
         auto& update_all = config.at("update_all").value<bool>();
 
+        CONTEXT_DEBUGGING_SNIPPET
+
         if (update_all)
         {
             PrefixData prefix_data(ctx.target_prefix);

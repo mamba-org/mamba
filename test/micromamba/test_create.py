@@ -135,7 +135,7 @@ class TestCreate:
     def test_yaml_spec_file(self, channels, env_name, specs):
         spec_file_content = []
         if env_name not in ("CLI_only", None):
-            spec_file_content += ["name: yaml_testenv"]
+            spec_file_content += [f"name: {TestCreate.env_name}"]
         if channels not in ("CLI_only", None):
             spec_file_content += ["channels:", "  - https://repo.mamba.pm/conda-forge"]
         if specs != "CLI_only":
@@ -151,27 +151,29 @@ class TestCreate:
             cmd += ["xframe"]
 
         if env_name not in ("file_only", None):
-            cmd += [
-                "-n",
-                TestCreate.env_name,
-            ]
+            cmd += ["-n", "override_name"]
 
         if channels not in ("file_only", None):
             cmd += ["-c", "https://conda.anaconda.org/conda-forge"]
 
         cmd += ["-f", yaml_spec_file, "--json"]
 
-        if env_name in ("both", None) or specs == "CLI_only" or channels is None:
+        if env_name is None or specs == "CLI_only" or channels is None:
             with pytest.raises(subprocess.CalledProcessError):
                 create(*cmd, default_channel=False)
         else:
             res = create(*cmd, default_channel=False)
 
-            assert res["success"]
-            assert not res["dry_run"]
-
             keys = {"success", "prefix", "actions", "dry_run"}
             assert keys.issubset(set(res.keys()))
+            assert res["success"]
+            assert not res["dry_run"]
+            if env_name == "file_only":
+                assert res["prefix"] == TestCreate.prefix
+            else:
+                assert res["prefix"] == os.path.join(
+                    TestCreate.root_prefix, "envs", "override_name"
+                )
 
             action_keys = {"LINK", "PREFIX"}
             assert action_keys.issubset(set(res["actions"].keys()))

@@ -93,6 +93,13 @@ set_install_command(CLI::App* subcom)
         parse_file_options();
         load_configuration();
 
+
+        if (true)
+        {
+            Context::instance().debug_print();
+            exit(0);
+        }
+
         auto& specs = configuration.at("specs").value<std::vector<std::string>>();
 
         if (!specs.empty())

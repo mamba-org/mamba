@@ -135,6 +135,8 @@ namespace mamba
         Context(Context&&) = delete;
         Context& operator=(Context&&) = delete;
 
+        const void debug_print();
+
     private:
         Context();
         ~Context() = default;

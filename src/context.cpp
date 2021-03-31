@@ -164,4 +164,47 @@ namespace mamba
 
         throw std::runtime_error("Environment name not found " + name);
     }
+
+    const void Context::debug_print()
+    {
+#define PRINT_CTX(xname) \
+        << #xname ": " << xname << "\n"
+
+#define PRINT_CTX_VEC(xname) \
+        << #xname ": [" << join(", ", xname) << "]" << "\n"
+
+        std::cout << std::boolalpha 
+                  << ">>> MAMBA CONTEXT <<< \n"
+                  PRINT_CTX(target_prefix)
+                  PRINT_CTX(root_prefix)
+                  PRINT_CTX(dry_run)
+                  PRINT_CTX(always_yes)
+                  PRINT_CTX(allow_softlinks)
+                  PRINT_CTX(offline)
+                  PRINT_CTX(quiet)
+                  PRINT_CTX(no_rc)
+                  PRINT_CTX(no_env)
+                  PRINT_CTX(ssl_no_revoke)
+                  PRINT_CTX(ssl_verify)
+                  PRINT_CTX(retry_timeout)
+                  PRINT_CTX(retry_backoff)
+                  PRINT_CTX(max_retries)
+                  PRINT_CTX(connect_timeout_secs)
+                  PRINT_CTX(add_pip_as_python_dependency)
+                  PRINT_CTX(override_channels_enabled)
+                  PRINT_CTX(use_only_tar_bz2)
+                  PRINT_CTX(auto_activate_base)
+                  PRINT_CTX(extra_safety_checks)
+                  PRINT_CTX(max_parallel_downloads)
+                  PRINT_CTX(verbosity)
+                  PRINT_CTX(channel_alias)
+                  << "channel_priority: " << (int)channel_priority << "\n"
+                  PRINT_CTX_VEC(default_channels)
+                  PRINT_CTX_VEC(channels)
+                  PRINT_CTX_VEC(pinned_packages)
+                  << "platform: " << platform() << "\n"
+                  << ">>> END MAMBA CONTEXT <<< \n"
+                  << std::endl;
+#undef PRINT_CTX
+    }
 }  // namespace mamba

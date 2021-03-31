@@ -180,7 +180,7 @@ init_network_parser(CLI::App* subcom)
 
     auto& ssl_no_revoke = config.at("ssl_no_revoke").get_wrapped<bool>();
     subcom
-        ->add_option(
+        ->add_flag(
             "--ssl-no-revoke", ssl_no_revoke.set_cli_config(0), ssl_no_revoke.description())
         ->group(cli_group);
 

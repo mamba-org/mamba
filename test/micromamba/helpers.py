@@ -146,6 +146,7 @@ def update(*args, default_channel=True, no_rc=True):
         cmd += ["--no-rc"]
     if default_channel:
         cmd += channel
+
     try:
         res = subprocess.check_output(cmd)
         if "--json" in args:

@@ -382,12 +382,10 @@ parse_file_options()
 
             if (config["name"])
             {
-                if (env_name.cli_configured())
+                if (!env_name.cli_configured())
                 {
-                    throw std::runtime_error(
-                        "Cannot configure environment name in both CLI and file spec");
+                    env_name.set_cli_value(config["name"]);
                 }
-                env_name.set_cli_value(config["name"]);
             }
             {
                 LOG_DEBUG << "No env 'name' specified in file: " << file;

@@ -162,17 +162,17 @@ class TestInstall:
 
         cmd += ["-f", yaml_spec_file, "--json"]
 
-        if env_name == "both" or specs == "CLI_only" or channels is None:
+        if specs == "CLI_only" or channels is None:
             with pytest.raises(subprocess.CalledProcessError):
                 install(*cmd, default_channel=False)
         else:
             res = install(*cmd, default_channel=False)
 
-            assert res["success"]
-            assert not res["dry_run"]
-
             keys = {"success", "prefix", "actions", "dry_run"}
             assert keys.issubset(set(res.keys()))
+            assert res["success"]
+            assert not res["dry_run"]
+            assert res["prefix"] == TestInstall.prefix
 
             action_keys = {"LINK", "PREFIX"}
             assert action_keys.issubset(set(res["actions"].keys()))

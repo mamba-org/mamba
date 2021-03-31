@@ -104,6 +104,15 @@ init_general_options(CLI::App* subcom)
                                       .description("Only display what would have been done"));
     subcom->add_flag("--dry-run", dry_run.set_cli_config(false), dry_run.description())
         ->group(cli_group);
+
+#ifdef ENABLE_CONTEXT_DEBUGGING
+    static bool debug_context = false;
+    auto& print_context_only = config.insert(Configurable("print_context_only", &debug_context));
+    subcom
+        ->add_flag(
+            "--print-context-only", print_context_only.set_cli_config(false), "Debug context")
+        ->group(cli_group);
+#endif
 }
 
 void
@@ -180,8 +189,7 @@ init_network_parser(CLI::App* subcom)
 
     auto& ssl_no_revoke = config.at("ssl_no_revoke").get_wrapped<bool>();
     subcom
-        ->add_flag(
-            "--ssl-no-revoke", ssl_no_revoke.set_cli_config(0), ssl_no_revoke.description())
+        ->add_flag("--ssl-no-revoke", ssl_no_revoke.set_cli_config(0), ssl_no_revoke.description())
         ->group(cli_group);
 
     auto& cacert_path = config.at("cacert_path").get_wrapped<std::string>();

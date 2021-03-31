@@ -165,15 +165,17 @@ namespace mamba
         throw std::runtime_error("Environment name not found " + name);
     }
 
+#ifdef ENABLE_CONTEXT_DEBUG_PRINT
     const void Context::debug_print()
     {
-#define PRINT_CTX(xname) \
-        << #xname ": " << xname << "\n"
+#define PRINT_CTX(xname) << #xname ": " << xname << "\n"
 
-#define PRINT_CTX_VEC(xname) \
-        << #xname ": [" << join(", ", xname) << "]" << "\n"
+#define PRINT_CTX_VEC(xname)                                                                       \
+    << #xname ": [" << join(", ", xname) << "]"                                                    \
+    << "\n"
 
-        std::cout << std::boolalpha 
+        // clang-format off
+        std::cout << std::boolalpha
                   << ">>> MAMBA CONTEXT <<< \n"
                   PRINT_CTX(target_prefix)
                   PRINT_CTX(root_prefix)
@@ -198,13 +200,15 @@ namespace mamba
                   PRINT_CTX(max_parallel_downloads)
                   PRINT_CTX(verbosity)
                   PRINT_CTX(channel_alias)
-                  << "channel_priority: " << (int)channel_priority << "\n"
+                  << "channel_priority: " << (int) channel_priority << "\n"
                   PRINT_CTX_VEC(default_channels)
                   PRINT_CTX_VEC(channels)
                   PRINT_CTX_VEC(pinned_packages)
                   << "platform: " << platform() << "\n"
                   << ">>> END MAMBA CONTEXT <<< \n"
                   << std::endl;
+        // clang-format on
 #undef PRINT_CTX
     }
+#endif
 }  // namespace mamba

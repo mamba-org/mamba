@@ -15,7 +15,6 @@
 #include <CLI/CLI.hpp>
 #endif
 
-
 void
 init_config_parser(CLI::App* subcom);
 

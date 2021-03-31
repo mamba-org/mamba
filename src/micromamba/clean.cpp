@@ -7,9 +7,9 @@
 #include "clean.hpp"
 #include "common_options.hpp"
 
-#include "mamba/configuration.hpp"
-#include "mamba/output.hpp"
-#include "mamba/package_cache.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/package_cache.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

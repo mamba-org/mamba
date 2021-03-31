@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "mamba/configuration.hpp"
-#include "mamba/context.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/context.hpp"
 
 #include <cstdio>
 

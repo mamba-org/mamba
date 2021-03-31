@@ -7,9 +7,9 @@
 #include "shell.hpp"
 #include "common_options.hpp"
 
-#include "mamba/activation.hpp"
-#include "mamba/configuration.hpp"
-#include "mamba/shell_init.hpp"
+#include "mamba/core/activation.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/shell_init.hpp"
 
 #include "../thirdparty/termcolor.hpp"
 

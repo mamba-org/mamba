@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "mamba/pinning.hpp"
+#include "mamba/core/pinning.hpp"
 
 
 namespace mamba

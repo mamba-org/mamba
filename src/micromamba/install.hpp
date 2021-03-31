@@ -1,15 +1,15 @@
 #ifndef UMAMBA_INSTALL_HPP
 #define UMAMBA_INSTALL_HPP
 
-#include "mamba/context.hpp"
-#include "mamba/mamba_fs.hpp"
-#include "mamba/package_info.hpp"
-#include "mamba/pool.hpp"
-#include "mamba/repo.hpp"
-#include "mamba/solver.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/repo.hpp"
+#include "mamba/core/solver.hpp"
 
 #ifdef VENDORED_CLI11
-#include "mamba/CLI.hpp"
+#include "mamba/core/CLI.hpp"
 #else
 #include <CLI/CLI.hpp>
 #endif

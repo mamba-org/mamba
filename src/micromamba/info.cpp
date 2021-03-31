@@ -7,11 +7,11 @@
 #include "info.hpp"
 #include "common_options.hpp"
 
-#include "mamba/configuration.hpp"
-#include "mamba/environment.hpp"
-#include "mamba/util.hpp"
-#include "mamba/version.hpp"
-#include "mamba/virtual_packages.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/environment.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/version.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "mamba/channel.hpp"
-#include "mamba/mamba_fs.hpp"
-#include "mamba/url.hpp"
-#include "mamba/util.hpp"
+#include "mamba/core/channel.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {

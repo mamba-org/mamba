@@ -18,7 +18,7 @@
 #include "shell.hpp"
 #include "update.hpp"
 
-#include "mamba/context.hpp"
+#include "mamba/core/context.hpp"
 
 #include "../thirdparty/termcolor.hpp"
 

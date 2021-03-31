@@ -7,7 +7,7 @@
 #include "config.hpp"
 #include "common_options.hpp"
 
-#include "mamba/configuration.hpp"
+#include "mamba/core/configuration.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

@@ -7,10 +7,10 @@
 #ifndef UMAMBA_CONSTRUCTOR_HPP
 #define UMAMBA_CONSTRUCTOR_HPP
 
-#include "mamba/mamba_fs.hpp"
+#include "mamba/core/mamba_fs.hpp"
 
 #ifdef VENDORED_CLI11
-#include "mamba/CLI.hpp"
+#include "mamba/core/CLI.hpp"
 #else
 #include <CLI/CLI.hpp>
 #endif

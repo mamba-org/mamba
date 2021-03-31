@@ -8,13 +8,13 @@
 #include "info.hpp"
 #include "common_options.hpp"
 
-#include "mamba/configuration.hpp"
-#include "mamba/output.hpp"
-#include "mamba/package_cache.hpp"
-#include "mamba/prefix_data.hpp"
-#include "mamba/repo.hpp"
-#include "mamba/solver.hpp"
-#include "mamba/transaction.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/repo.hpp"
+#include "mamba/core/solver.hpp"
+#include "mamba/core/transaction.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

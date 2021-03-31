@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "mamba/environment.hpp"
-#include "mamba/shell_init.hpp"
-#include "mamba/util.hpp"
+#include "mamba/core/environment.hpp"
+#include "mamba/core/shell_init.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {

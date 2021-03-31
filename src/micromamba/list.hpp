@@ -1,10 +1,10 @@
 #ifndef UMAMBA_LIST_HPP
 #define UMAMBA_LIST_HPP
 
-#include "mamba/context.hpp"
+#include "mamba/core/context.hpp"
 
 #ifdef VENDORED_CLI11
-#include "mamba/CLI.hpp"
+#include "mamba/core/CLI.hpp"
 #else
 #include <CLI/CLI.hpp>
 #endif

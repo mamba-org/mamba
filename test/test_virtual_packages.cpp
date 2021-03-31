@@ -1,6 +1,6 @@
-#include "mamba/environment.hpp"
-#include "mamba/util.hpp"
-#include "mamba/virtual_packages.hpp"
+#include "mamba/core/environment.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 #include <gtest/gtest.h>
 

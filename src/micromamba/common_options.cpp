@@ -7,9 +7,9 @@
 #include "common_options.hpp"
 #include "info.hpp"
 
-#include "mamba/environment.hpp"
-#include "mamba/fetch.hpp"
-#include "mamba/configuration.hpp"
+#include "mamba/core/environment.hpp"
+#include "mamba/core/fetch.hpp"
+#include "mamba/core/configuration.hpp"
 
 #include "../thirdparty/termcolor.hpp"
 

@@ -8,8 +8,8 @@
 #include "install.hpp"
 #include "common_options.hpp"
 
-#include "mamba/configuration.hpp"
-#include "mamba/virtual_packages.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

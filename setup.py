@@ -21,7 +21,7 @@ with open(os.path.join(here, "mamba", "_version.py")) as f:
 
 __version__ = version_ns["__version__"]
 
-with open("include/mamba/version.hpp.in", "r") as fi:
+with open("include/mamba/core/version.hpp.in", "r") as fi:
     cpp_version_template = fi.read()
 
 v = version_ns["version_info"]
@@ -31,7 +31,7 @@ cpp_version_template = (
     .replace("@MAMBA_VERSION_PATCH@", str(v[2]))
 )
 
-with open("include/mamba/version.hpp", "w") as fo:
+with open("include/mamba/core/version.hpp", "w") as fo:
     fo.write(cpp_version_template)
 
 
@@ -89,39 +89,40 @@ ext_modules = [
     Extension(
         "mamba.mamba_api",
         [
-            "src/py_interface.cpp",
-            "src/activation.cpp",
-            "src/channel.cpp",
-            "src/context.cpp",
-            "src/fetch.cpp",
-            "src/history.cpp",
-            "src/match_spec.cpp",
-            "src/output.cpp",
-            "src/package_handling.cpp",
-            "src/package_cache.cpp",
-            "src/package_paths.cpp",
-            "src/prefix_data.cpp",
-            "src/package_info.cpp",
-            "src/pool.cpp",
-            "src/query.cpp",
-            "src/repo.cpp",
-            "src/solver.cpp",
-            "src/shell_init.cpp",
-            "src/subdirdata.cpp",
-            "src/thread_utils.cpp",
-            "src/transaction.cpp",
-            "src/transaction_context.cpp",
-            "src/url.cpp",
-            "src/util.cpp",
-            "src/validate.cpp",
-            "src/version.cpp",
-            "src/link.cpp",
+            "src/mamba/py_interface.cpp",
+            "src/core/activation.cpp",
+            "src/core/channel.cpp",
+            "src/core/context.cpp",
+            "src/core/fetch.cpp",
+            "src/core/history.cpp",
+            "src/core/match_spec.cpp",
+            "src/core/output.cpp",
+            "src/core/package_handling.cpp",
+            "src/core/package_cache.cpp",
+            "src/core/package_paths.cpp",
+            "src/core/prefix_data.cpp",
+            "src/core/package_info.cpp",
+            "src/core/pool.cpp",
+            "src/core/query.cpp",
+            "src/core/repo.cpp",
+            "src/core/solver.cpp",
+            "src/core/shell_init.cpp",
+            "src/core/subdirdata.cpp",
+            "src/core/thread_utils.cpp",
+            "src/core/transaction.cpp",
+            "src/core/transaction_context.cpp",
+            "src/core/url.cpp",
+            "src/core/util.cpp",
+            "src/core/validate.cpp",
+            "src/core/version.cpp",
+            "src/core/link.cpp",
         ],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
             os.path.join(libsolv_prefix, "include"),
             "include/",
+            "src/",
         ],
         library_dirs=library_dir,
         extra_link_args=extra_link_args,

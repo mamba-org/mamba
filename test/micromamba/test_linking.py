@@ -19,7 +19,7 @@ else:
 
 class TestLinking:
     def test_link(self):
-        res = create("xtensor", "-n", "x1", "--json")
+        res = create("xtensor", "-n", "x1", "--json", no_dry_run=True)
         xf = get_env("x1", xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -35,7 +35,7 @@ class TestLinking:
 
     def test_copy(self):
         env = "x2"
-        res = create("xtensor", "-n", env, "--json", "--always-copy")
+        res = create("xtensor", "-n", env, "--json", "--always-copy", no_dry_run=True)
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -56,7 +56,9 @@ class TestLinking:
     )
     def test_always_softlink(self):
         env = "x3"
-        res = create("xtensor", "-n", env, "--json", "--always-softlink")
+        res = create(
+            "xtensor", "-n", env, "--json", "--always-softlink", no_dry_run=True
+        )
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -98,10 +100,10 @@ class TestLinking:
 
         create_args = ["xtensor", "-p", "/tmp/testenv", "--json"]
         if allow_softlinks:
-            create_args.append("--allow-softlinks")
+            create_args.append("--allow-softlinks", no_dry_run=True)
         if always_copy:
-            create_args.append("--always-copy")
-        res = create(*create_args)
+            create_args.append("--always-copy", no_dry_run=True)
+        res = create(*create_args, no_dry_run=True)
 
         xf = Path(env) / xtensor_hpp
         assert xf.exists()

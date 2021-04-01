@@ -20,7 +20,7 @@ else:
 class TestPkgCache:
     def test_extracted_file_deleted(self):
         ref_env = "x"
-        res = create("xtensor", "-n", ref_env, "--json")
+        res = create("xtensor", "-n", ref_env, "--json", no_dry_run=True)
         xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -34,7 +34,7 @@ class TestPkgCache:
         os.remove(orig_file_path)
 
         env = "x1"
-        res = create("xtensor", "-n", env, "--json")
+        res = create("xtensor", "-n", env, "--json", no_dry_run=True)
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -48,7 +48,13 @@ class TestPkgCache:
     def test_extracted_file_corrupted(self, safety_checks):
         ref_env = "x"
         res = create(
-            "xtensor", "-n", ref_env, "--json", "--safety-checks", safety_checks
+            "xtensor",
+            "-n",
+            ref_env,
+            "--json",
+            "--safety-checks",
+            safety_checks,
+            no_dry_run=True,
         )
         xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
@@ -64,7 +70,15 @@ class TestPkgCache:
             f.write("//corruption")
 
         env = "x1"
-        res = create("xtensor", "-n", env, "--json", "--safety-checks", safety_checks)
+        res = create(
+            "xtensor",
+            "-n",
+            env,
+            "--json",
+            "--safety-checks",
+            safety_checks,
+            no_dry_run=True,
+        )
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -86,7 +100,7 @@ class TestPkgCache:
 
     def test_tarball_deleted(self):
         ref_env = "x"
-        res = create("xtensor", "-n", ref_env, "--json")
+        res = create("xtensor", "-n", ref_env, "--json", no_dry_run=True)
         xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -100,7 +114,7 @@ class TestPkgCache:
         os.remove(get_tarball(pkg_name))
 
         env = "x1"
-        res = create("xtensor", "-n", env, "--json")
+        res = create("xtensor", "-n", env, "--json", no_dry_run=True)
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -114,7 +128,7 @@ class TestPkgCache:
 
     def test_tarball_and_extracted_file_deleted(self):
         ref_env = "x"
-        res = create("xtensor", "-n", ref_env, "--json")
+        res = create("xtensor", "-n", ref_env, "--json", no_dry_run=True)
         xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -130,7 +144,7 @@ class TestPkgCache:
         os.remove(get_tarball(pkg_name))
 
         env = "x1"
-        res = create("xtensor", "-n", env, "--json")
+        res = create("xtensor", "-n", env, "--json", no_dry_run=True)
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -144,7 +158,7 @@ class TestPkgCache:
 
     def test_tarball_corrupted_and_extracted_file_deleted(self):
         ref_env = "x"
-        res = create("xtensor", "-n", ref_env, "--json")
+        res = create("xtensor", "-n", ref_env, "--json", no_dry_run=True)
         xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -162,7 +176,7 @@ class TestPkgCache:
             f.write("")
 
         env = "x1"
-        res = create("xtensor", "-n", env, "--json")
+        res = create("xtensor", "-n", env, "--json", no_dry_run=True)
         xf = get_env(env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -176,7 +190,7 @@ class TestPkgCache:
 
     def test_extracted_file_corrupted_no_perm(self):
         ref_env = "x"
-        res = create("xtensor", "-n", ref_env, "--json")
+        res = create("xtensor", "-n", ref_env, "--json", no_dry_run=True)
         xf = get_env(ref_env, xtensor_hpp)
         assert xf.exists()
         stat_xf = xf.stat()
@@ -193,7 +207,7 @@ class TestPkgCache:
 
         env = "x1"
 
-        create("xtensor", "-n", env, "--json")
+        create("xtensor", "-n", env, "--json", no_dry_run=True)
 
         os.chmod(get_pkg(pkg_name), 0o755)
         os.remove(orig_file_path)

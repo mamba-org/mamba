@@ -44,7 +44,7 @@ class TestShell:
         clean_root = not Path(root_prefix).exists()
 
         if env_name != "base" and env_exists:
-            create("xtensor", "-n", env_name)
+            create("xtensor", "-n", env_name, no_dry_run=True)
 
         # TODO: improve this test
         assert shell("activate", "-s", shell_type, "-p", env_name)

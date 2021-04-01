@@ -71,7 +71,7 @@ class TestCreate:
             res = create("-n", TestCreate.env_name, *cmd)
 
         assert res["success"]
-        assert not res["dry_run"]
+        assert res["dry_run"] == dry_run_tests
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -83,9 +83,12 @@ class TestCreate:
         expected_packages = {"xtensor", "xtl"}
         assert expected_packages.issubset(packages)
 
-        pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, xtensor_hpp, TestCreate.current_root_prefix)
-        assert orig_file_path.exists()
+        if not dry_run_tests:
+            pkg_name = get_concrete_pkg(res, "xtensor")
+            orig_file_path = get_pkg(
+                pkg_name, xtensor_hpp, TestCreate.current_root_prefix
+            )
+            assert orig_file_path.exists()
 
     @pytest.mark.parametrize("env_selector", ["prefix", "name"])
     @pytest.mark.parametrize("root_non_empty", [False, True])
@@ -167,7 +170,7 @@ class TestCreate:
             keys = {"success", "prefix", "actions", "dry_run"}
             assert keys.issubset(set(res.keys()))
             assert res["success"]
-            assert not res["dry_run"]
+            assert res["dry_run"] == dry_run_tests
             if env_name == "file_only":
                 assert res["prefix"] == TestCreate.prefix
             else:

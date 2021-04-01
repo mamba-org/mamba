@@ -25,7 +25,11 @@ class TestUpdate:
         os.environ["CONDA_PREFIX"] = TestUpdate.prefix
 
         res = create(
-            f"xtensor={TestUpdate.old_version}", "-n", TestUpdate.env_name, "--json"
+            f"xtensor={TestUpdate.old_version}",
+            "-n",
+            TestUpdate.env_name,
+            "--json",
+            no_dry_run=True,
         )
 
         pkg = get_concrete_pkg(res, "xtensor")
@@ -35,9 +39,14 @@ class TestUpdate:
 
     @classmethod
     def setup(cls):
-        install(
-            f"xtensor={TestUpdate.old_version}", "-n", TestUpdate.env_name, "--json"
-        )
+        if not dry_run_tests:
+            install(
+                f"xtensor={TestUpdate.old_version}",
+                "-n",
+                TestUpdate.env_name,
+                "--json",
+                no_dry_run=True,
+            )
         res = umamba_list("xtensor", "-n", TestUpdate.env_name, "--json")
         assert len(res) == 1
         assert res[0]["version"].startswith(TestUpdate.old_version)
@@ -58,11 +67,17 @@ class TestUpdate:
         else:
             update_res = update("xtensor", "--json")
 
-        pkg = get_concrete_pkg(update_res, "xtensor")
-        pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
-        version = pkg_info["version"]
+        xtensor_link = [
+            l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
+        ][0]
+        assert TestUpdate.old_version != xtensor_link["version"]
 
-        assert TestUpdate.old_version != version
+        if not dry_run_tests:
+            pkg = get_concrete_pkg(update_res, "xtensor")
+            pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
+            version = pkg_info["version"]
+
+            assert TestUpdate.old_version != version
 
         # This should do nothing since python is not installed!
         update_res = update("python", "-n", TestUpdate.env_name, "--json")
@@ -140,7 +155,7 @@ class TestUpdate:
             res = update(*cmd, default_channel=False)
 
             assert res["success"]
-            assert not res["dry_run"]
+            assert res["dry_run"] == dry_run_tests
             assert res["prefix"] == TestUpdate.prefix
 
             if channels is None:
@@ -155,11 +170,16 @@ class TestUpdate:
                 action_keys = {"LINK", "PREFIX"}
                 assert action_keys.issubset(set(res["actions"].keys()))
 
-                pkg = get_concrete_pkg(res, "xtensor")
-                pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
-                version = pkg_info["version"]
+                xtensor_link = [
+                    l for l in res["actions"]["LINK"] if l["name"] == "xtensor"
+                ][0]
+                assert TestUpdate.old_version != xtensor_link["version"]
 
-                assert TestUpdate.old_version != version
+                if not dry_run_tests:
+                    pkg = get_concrete_pkg(res, "xtensor")
+                    pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
+                    version = pkg_info["version"]
+                    assert TestUpdate.old_version != version
 
                 if channels == "file_only":
                     expected_channel = "https://repo.mamba.pm/conda-forge"

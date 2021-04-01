@@ -1,3 +1,12 @@
+0.9.2 (Apr 1, 2021)
+====================
+
+- [micromamba] fix unc url support (thanks @adament)
+- [micromamba] add --channel-alias as cli option to micromamba (thanks @adriendelsalle)
+- [micromamba] fix --no-rc and environment yaml files (thanks @adriendelsalle)
+- [micromamba] handle spec files in update and install subcommands (thanks @adriendelsalle)
+- add simple context debugging, dry run tests and other test framework improvements
+
 0.9.1 (Mar 26, 2021)
 ====================
 

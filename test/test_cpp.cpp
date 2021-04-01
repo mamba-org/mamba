@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "mamba/context.hpp"
-#include "mamba/fsutil.hpp"
-#include "mamba/history.hpp"
-#include "mamba/link.hpp"
-#include "mamba/match_spec.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/fsutil.hpp"
+#include "mamba/core/history.hpp"
+#include "mamba/core/link.hpp"
+#include "mamba/core/match_spec.hpp"
 
 namespace mamba
 {

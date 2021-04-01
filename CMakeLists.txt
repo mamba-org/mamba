@@ -35,7 +35,7 @@ message("--> mamba version: ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMB
 # Binary version
 # See the following URL for explanations about the binary versionning
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html#Updating-version-info
-file(STRINGS "${MAMBA_INCLUDE_DIR}/mamba/version.hpp.in" mamba_version_defines
+file(STRINGS "${MAMBA_INCLUDE_DIR}/mamba/core/version.hpp.in" mamba_version_defines
     REGEX "#define MAMBA_BINARY_(CURRENT|REVISION|AGE)")
 foreach(ver ${mamba_version_defines})
     if(ver MATCHES "#define MAMBA_BINARY_(CURRENT|REVISION|AGE) +([^ ]+)$")
@@ -45,8 +45,8 @@ endforeach()
 set(MAMBA_BINARY_VERSION
     ${MAMBA_BINARY_CURRENT}.${MAMBA_BINARY_REVISION}.${MAMBA_BINARY_AGE})
 message(STATUS "mamba binary version: v${MAMBA_BINARY_VERSION}")
-configure_file(${MAMBA_INCLUDE_DIR}/mamba/version.hpp.in
-    ${CMAKE_SOURCE_DIR}/include/mamba/version.hpp @ONLY)
+configure_file(${MAMBA_INCLUDE_DIR}/mamba/core/version.hpp.in
+    ${CMAKE_SOURCE_DIR}/include/mamba/core/version.hpp @ONLY)
 
 # Build options
 # =============
@@ -84,74 +84,78 @@ message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 # ============
 
 set(MAMBA_SOURCES
-    ${MAMBA_SOURCE_DIR}/activation.cpp
-    ${MAMBA_SOURCE_DIR}/channel.cpp
-    ${MAMBA_SOURCE_DIR}/configuration.cpp
-    ${MAMBA_SOURCE_DIR}/context.cpp
-    ${MAMBA_SOURCE_DIR}/environments_manager.cpp
-    ${MAMBA_SOURCE_DIR}/fetch.cpp
-    ${MAMBA_SOURCE_DIR}/transaction_context.cpp
-    ${MAMBA_SOURCE_DIR}/link.cpp
-    ${MAMBA_SOURCE_DIR}/history.cpp
-    ${MAMBA_SOURCE_DIR}/match_spec.cpp
-    ${MAMBA_SOURCE_DIR}/url.cpp
-    ${MAMBA_SOURCE_DIR}/output.cpp
-    ${MAMBA_SOURCE_DIR}/package_handling.cpp
-    ${MAMBA_SOURCE_DIR}/package_cache.cpp
-    ${MAMBA_SOURCE_DIR}/pool.cpp
-    ${MAMBA_SOURCE_DIR}/prefix_data.cpp
-    ${MAMBA_SOURCE_DIR}/pinning.cpp
-    ${MAMBA_SOURCE_DIR}/package_info.cpp
-    ${MAMBA_SOURCE_DIR}/package_paths.cpp
-    ${MAMBA_SOURCE_DIR}/query.cpp
-    ${MAMBA_SOURCE_DIR}/repo.cpp
-    ${MAMBA_SOURCE_DIR}/shell_init.cpp
-    ${MAMBA_SOURCE_DIR}/solver.cpp
-    ${MAMBA_SOURCE_DIR}/subdirdata.cpp
-    ${MAMBA_SOURCE_DIR}/thread_utils.cpp
-    ${MAMBA_SOURCE_DIR}/transaction.cpp
-    ${MAMBA_SOURCE_DIR}/util.cpp
-    ${MAMBA_SOURCE_DIR}/validate.cpp
-    ${MAMBA_SOURCE_DIR}/version.cpp
-    ${MAMBA_SOURCE_DIR}/virtual_packages.cpp
+    ${MAMBA_SOURCE_DIR}/core/activation.cpp
+    ${MAMBA_SOURCE_DIR}/core/channel.cpp
+    ${MAMBA_SOURCE_DIR}/core/configuration.cpp
+    ${MAMBA_SOURCE_DIR}/core/context.cpp
+    ${MAMBA_SOURCE_DIR}/core/environments_manager.cpp
+    ${MAMBA_SOURCE_DIR}/core/fetch.cpp
+    ${MAMBA_SOURCE_DIR}/core/transaction_context.cpp
+    ${MAMBA_SOURCE_DIR}/core/link.cpp
+    ${MAMBA_SOURCE_DIR}/core/history.cpp
+    ${MAMBA_SOURCE_DIR}/core/match_spec.cpp
+    ${MAMBA_SOURCE_DIR}/core/url.cpp
+    ${MAMBA_SOURCE_DIR}/core/output.cpp
+    ${MAMBA_SOURCE_DIR}/core/package_handling.cpp
+    ${MAMBA_SOURCE_DIR}/core/package_cache.cpp
+    ${MAMBA_SOURCE_DIR}/core/pool.cpp
+    ${MAMBA_SOURCE_DIR}/core/prefix_data.cpp
+    ${MAMBA_SOURCE_DIR}/core/pinning.cpp
+    ${MAMBA_SOURCE_DIR}/core/package_info.cpp
+    ${MAMBA_SOURCE_DIR}/core/package_paths.cpp
+    ${MAMBA_SOURCE_DIR}/core/query.cpp
+    ${MAMBA_SOURCE_DIR}/core/repo.cpp
+    ${MAMBA_SOURCE_DIR}/core/shell_init.cpp
+    ${MAMBA_SOURCE_DIR}/core/solver.cpp
+    ${MAMBA_SOURCE_DIR}/core/subdirdata.cpp
+    ${MAMBA_SOURCE_DIR}/core/thread_utils.cpp
+    ${MAMBA_SOURCE_DIR}/core/transaction.cpp
+    ${MAMBA_SOURCE_DIR}/core/util.cpp
+    ${MAMBA_SOURCE_DIR}/core/validate.cpp
+    ${MAMBA_SOURCE_DIR}/core/version.cpp
+    ${MAMBA_SOURCE_DIR}/core/virtual_packages.cpp
+)
+
+set(MAMBA_THIRD_PARTIES
     ${MAMBA_SOURCE_DIR}/thirdparty/WinReg.hpp
+    ${MAMBA_SOURCE_DIR}/thirdparty/termcolor.hpp
 )
 
 set(MAMBA_HEADERS
-    ${MAMBA_INCLUDE_DIR}/mamba/activation.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/channel.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/configuration.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/context.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/environment.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/environments_manager.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/fetch.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/fsutil.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/graph_util.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/history.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/link.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/mamba_fs.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/match_spec.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/output.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/package_cache.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/package_handling.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/package_info.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/package_paths.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/pool.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/prefix_data.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/pinning.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/query.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/repo.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/shell_init.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/solver.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/subdirdata.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/thread_utils.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/transaction.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/transaction_context.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/url.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/util.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/validate.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/version.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/virtual_packages.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/channel.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/configuration.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/environment.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/fetch.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/graph_util.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/history.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/link.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/mamba_fs.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/match_spec.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/output.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/package_info.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/query.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/url.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/util.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/version.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
 )
 
 # Targets and link
@@ -210,6 +214,11 @@ macro(mamba_create_target target_name linkage output_name)
             $<INSTALL_INTERFACE:include>
     )
 
+    target_include_directories(
+        ${target_name}
+        PRIVATE ${MAMBA_SOURCE_DIR}
+    )
+
     set_target_properties(
         ${target_name}
         PROPERTIES
@@ -254,7 +263,7 @@ if (BUILD_BINDINGS)
     find_package(pybind11 REQUIRED)
 
     pybind11_add_module(mamba_api
-        src/py_interface.cpp
+        src/mamba/py_interface.cpp
     )
     target_link_libraries(mamba_api PUBLIC pybind11::pybind11 mamba-static)
     set_property(TARGET mamba_api PROPERTY CXX_STANDARD 17)

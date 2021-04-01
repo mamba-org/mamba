@@ -7,9 +7,9 @@
 #include "constructor.hpp"
 #include "common_options.hpp"
 
-#include "mamba/configuration.hpp"
-#include "mamba/package_handling.hpp"
-#include "mamba/util.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/package_handling.hpp"
+#include "mamba/core/util.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

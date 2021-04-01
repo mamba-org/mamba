@@ -8,12 +8,12 @@
 #include "info.hpp"
 #include "common_options.hpp"
 
-#include "mamba/context.hpp"
-#include "mamba/output.hpp"
-#include "mamba/thread_utils.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/thread_utils.hpp"
 
 #ifdef VENDORED_CLI11
-#include "mamba/CLI.hpp"
+#include "mamba/core/CLI.hpp"
 #else
 #include <CLI/CLI.hpp>
 #endif

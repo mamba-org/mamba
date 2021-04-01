@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 
-#include "mamba/history.hpp"
+#include "mamba/core/history.hpp"
 
 namespace mamba
 {

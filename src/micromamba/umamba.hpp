@@ -8,7 +8,7 @@
 #define UMAMBA_UMAMBA_HPP
 
 #ifdef VENDORED_CLI11
-#include "mamba/CLI.hpp"
+#include "mamba/core/CLI.hpp"
 #else
 #include <CLI/CLI.hpp>
 #endif

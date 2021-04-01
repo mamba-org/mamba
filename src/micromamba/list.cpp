@@ -1,9 +1,9 @@
 #include "list.hpp"
 #include "common_options.hpp"
 
-#include "mamba/channel.hpp"
-#include "mamba/configuration.hpp"
-#include "mamba/prefix_data.hpp"
+#include "mamba/core/channel.hpp"
+#include "mamba/core/configuration.hpp"
+#include "mamba/core/prefix_data.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

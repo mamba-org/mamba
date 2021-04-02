@@ -33,7 +33,7 @@ class TestCreate:
 
     @classmethod
     def setup(cls):
-        os.makedirs(TestCreate.root_prefix, exist_ok=False)
+        os.makedirs(TestCreate.root_prefix, exist_ok=True)
 
     @classmethod
     def teardown_class(cls):
@@ -44,7 +44,9 @@ class TestCreate:
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestCreate.root_prefix
         os.environ["CONDA_PREFIX"] = TestCreate.prefix
-        shutil.rmtree(TestCreate.root_prefix)
+
+        if Path(TestCreate.prefix).exists():
+            shutil.rmtree(TestCreate.prefix)
         if Path(TestCreate.other_prefix).exists():
             shutil.rmtree(TestCreate.other_prefix)
 
@@ -89,6 +91,26 @@ class TestCreate:
                 pkg_name, xtensor_hpp, TestCreate.current_root_prefix
             )
             assert orig_file_path.exists()
+
+    @pytest.mark.parametrize("prefix_selector", [None, "prefix", "name"])
+    def test_create_empty(self, prefix_selector):
+
+        if prefix_selector == "name":
+            cmd = ("-n", TestCreate.env_name, "--json")
+        elif prefix_selector == "prefix":
+            cmd = ("-p", TestCreate.prefix, "--json")
+        else:
+            with pytest.raises(subprocess.CalledProcessError):
+                create("--json")
+            return
+
+        res = create(*cmd)
+
+        keys = {"success"}
+        assert keys.issubset(set(res.keys()))
+        assert res["success"]
+
+        assert Path(os.path.join(TestCreate.prefix, "conda-meta", "history")).exists()
 
     @pytest.mark.parametrize("env_selector", ["prefix", "name"])
     @pytest.mark.parametrize("root_non_empty", [False, True])

@@ -4,10 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/install.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/create.hpp"
+#include "mamba/api/update.hpp"
 
 #include "mamba/core/context.hpp"
-#include "mamba/api/configuration.hpp"
 #include "mamba/core/virtual_packages.hpp"
 
 

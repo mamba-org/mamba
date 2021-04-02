@@ -49,6 +49,44 @@ namespace mamba
             return std::string(strip(out));
         }
 
+        std::string linux_version()
+        {
+            if (!env::get("CONDA_OVERRIDE_LINUX").empty())
+            {
+                return env::get("CONDA_OVERRIDE_LINUX");
+            }
+            if (!on_linux)
+            {
+                return "";
+            }
+
+            std::string out, err;
+            std::vector<std::string> args = { "uname", "-r" };
+            auto [status, ec] = reproc::run(
+                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+            if (ec)
+            {
+                LOG_INFO << "Could not find linux version by calling 'uname -r' (skipped)";
+                return "";
+            }
+
+            std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)-.*");
+            std::smatch m;
+
+            if (std::regex_search(out, m, re))
+            {
+                if (m.size() == 2)
+                {
+                    std::ssub_match linux_version = m[1];
+                    LOG_DEBUG << "linux version found: " << linux_version;
+                    return linux_version.str();
+                }
+            }
+
+            return "";
+        }
+
         std::string glibc_version()
         {
             if (!env::get("CONDA_OVERRIDE_GLIBC").empty())
@@ -193,6 +231,16 @@ namespace mamba
             if (os == "linux")
             {
                 res.push_back(make_virtual_package("__unix"));
+
+                std::string linux_ver = detail::linux_version();
+                if (!linux_ver.empty())
+                {
+                    res.push_back(make_virtual_package("__linux", linux_ver));
+                }
+                else
+                {
+                    LOG_WARNING << "linux version not found (virtual package skipped)";
+                }
 
                 std::string libc_ver = detail::glibc_version();
                 if (!libc_ver.empty())

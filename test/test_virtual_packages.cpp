@@ -34,9 +34,10 @@ namespace mamba
             }
             if (on_linux)
             {
-                ASSERT_EQ(pkgs.size(), 3);
+                ASSERT_EQ(pkgs.size(), 4);
                 EXPECT_EQ(pkgs[0].name, "__unix");
-                EXPECT_EQ(pkgs[1].name, "__glibc");
+                EXPECT_EQ(pkgs[1].name, "__linux");
+                EXPECT_EQ(pkgs[2].name, "__glibc");
             }
             if (on_mac)
             {
@@ -61,15 +62,19 @@ namespace mamba
 
             env::set("CONDA_OVERRIDE_OSX", "");
             env::set("CONDA_SUBDIR", "linux-32");
+            env::set("CONDA_OVERRIDE_LINUX", "5.7");
             env::set("CONDA_OVERRIDE_GLIBC", "2.15");
             pkgs = detail::dist_packages();
-            ASSERT_EQ(pkgs.size(), 3);
+            ASSERT_EQ(pkgs.size(), 4);
             EXPECT_EQ(pkgs[0].name, "__unix");
-            EXPECT_EQ(pkgs[1].name, "__glibc");
-            EXPECT_EQ(pkgs[1].version, "2.15");
-            EXPECT_EQ(pkgs[2].name, "__archspec");
-            EXPECT_EQ(pkgs[2].build_string, "x86");
+            EXPECT_EQ(pkgs[1].name, "__linux");
+            EXPECT_EQ(pkgs[1].version, "5.7");
+            EXPECT_EQ(pkgs[2].name, "__glibc");
+            EXPECT_EQ(pkgs[2].version, "2.15");
+            EXPECT_EQ(pkgs[3].name, "__archspec");
+            EXPECT_EQ(pkgs[3].build_string, "x86");
             env::set("CONDA_OVERRIDE_GLIBC", "");
+            env::set("CONDA_OVERRIDE_LINUX", "");
 
             env::set("CONDA_SUBDIR", "lin-850");
             pkgs = detail::dist_packages();
@@ -97,7 +102,7 @@ namespace mamba
             }
             if (on_linux)
             {
-                pkgs_count = 3;
+                pkgs_count = 4;
             }
             if (on_mac)
             {

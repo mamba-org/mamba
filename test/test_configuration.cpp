@@ -316,6 +316,25 @@ namespace mamba
                                   - c12  # ')"
                                 + src1 + "'")
                                    .c_str()));
+
+            config.at("channels")
+                .set_value("https://my.channel, https://my2.channel")
+                .compute()
+                .set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      unindent((R"(
+                                channels:
+                                  - https://my.channel  # 'API'
+                                  - https://my2.channel  # 'API'
+                                  - c90  # 'CONDA_CHANNELS'
+                                  - c101  # 'CONDA_CHANNELS'
+                                  - c11  # ')"
+                                + src1 + R"('
+                                  - c12  # ')"
+                                + src1 + "'")
+                                   .c_str()));
+            EXPECT_EQ(ctx.channels, config.at("channels").value<std::vector<std::string>>());
+
             env::set("CONDA_CHANNELS", "");
         }
 
@@ -367,6 +386,26 @@ namespace mamba
                                   - c12  # ')"
                                 + src1 + "'")
                                    .c_str()));
+
+            config.at("default_channels")
+                .set_value("https://my.channel, https://my2.channel")
+                .compute()
+                .set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      unindent((R"(
+                                default_channels:
+                                  - https://my.channel  # 'API'
+                                  - https://my2.channel  # 'API'
+                                  - c91  # 'MAMBA_DEFAULT_CHANNELS'
+                                  - c100  # 'MAMBA_DEFAULT_CHANNELS'
+                                  - c11  # ')"
+                                + src1 + R"('
+                                  - c12  # ')"
+                                + src1 + "'")
+                                   .c_str()));
+            EXPECT_EQ(ctx.default_channels,
+                      config.at("default_channels").value<std::vector<std::string>>());
+
             env::set("MAMBA_DEFAULT_CHANNELS", "");
         }
 
@@ -392,6 +431,12 @@ namespace mamba
 
             EXPECT_EQ(config.dump(true, true),
                       "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'");
+
+            config.at("channel_alias").set_value("https://my.channel").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '"
+                          + src1 + "'");
+            EXPECT_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
 
             env::set("MAMBA_CHANNEL_ALIAS", "");
         }
@@ -465,6 +510,11 @@ namespace mamba
 
             EXPECT_EQ(config.dump(true, true),
                       "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
+
+            config.at("ssl_verify").set_value("/new/test").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
+
             env::set("MAMBA_SSL_VERIFY", "");
         }
 #undef EXPECT_CA_EQUAL
@@ -491,24 +541,47 @@ namespace mamba
                                 ssl_verify: /env/ca/baz  # ')"
                                 + src + "'")
                                    .c_str()));
+            EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
+
+            config.at("cacert_path").set_value("/new/test").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      unindent((R"(
+                                cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
+                                + src + R"('
+                                ssl_verify: /env/ca/baz  # ')"
+                                + src + "'")
+                                   .c_str()));
+            EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
+
+            config.at("ssl_verify").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      unindent((R"(
+                                cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
+                                + src + R"('
+                                ssl_verify: /new/test  # ')"
+                                + src + "'")
+                                   .c_str()));
+            EXPECT_EQ(ctx.ssl_verify, "/new/test");
 
             env::set("MAMBA_CACERT_PATH", "");
-            load_test_config("ssl_verify: true\ncacert_path:");  // reset ssl verify to default
+            load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
         }
 
-#define TEST_BOOL_CONFIGURABLE(NAME)                                                               \
+#define TEST_BOOL_CONFIGURABLE(NAME, CTX)                                                          \
     TEST_F(Configuration, NAME)                                                                    \
     {                                                                                              \
         std::string rc1 = std::string(#NAME) + ": true";                                           \
         std::string rc2 = std::string(#NAME) + ": false";                                          \
+        if (config.at(#NAME).rc_configurable())                                                    \
+        {                                                                                          \
+            load_test_config({ rc1, rc2 });                                                        \
+            EXPECT_TRUE(config.at(#NAME).value<bool>());                                           \
+            EXPECT_TRUE(CTX);                                                                      \
                                                                                                    \
-        load_test_config({ rc1, rc2 });                                                            \
-        EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
-        EXPECT_TRUE(ctx.NAME);                                                                     \
-                                                                                                   \
-        load_test_config({ rc2, rc1 });                                                            \
-        EXPECT_FALSE(config.at(#NAME).value<bool>());                                              \
-        EXPECT_FALSE(ctx.NAME);                                                                    \
+            load_test_config({ rc2, rc1 });                                                        \
+            EXPECT_FALSE(config.at(#NAME).value<bool>());                                          \
+            EXPECT_FALSE(CTX);                                                                     \
+        }                                                                                          \
                                                                                                    \
         std::string env_name = "MAMBA_" + to_upper(#NAME);                                         \
         env::set(env_name, "true");                                                                \
@@ -518,10 +591,32 @@ namespace mamba
         ASSERT_EQ(config.valid_sources().size(), 1);                                               \
         std::string src = config.valid_sources()[0];                                               \
                                                                                                    \
-        EXPECT_EQ((config.dump(true, true)),                                                       \
-                  std::string(#NAME) + ": true  # '" + env_name + "' > '" + src + "'");            \
+        std::string expected;                                                                      \
+        if (config.at(#NAME).rc_configurable())                                                    \
+        {                                                                                          \
+            expected = std::string(#NAME) + ": true  # '" + env_name + "' > '" + src + "'";        \
+        }                                                                                          \
+        else                                                                                       \
+        {                                                                                          \
+            expected = std::string(#NAME) + ": true  # '" + env_name + "'";                        \
+        }                                                                                          \
+        EXPECT_EQ((config.dump(true, true, false, false, false, false, { #NAME })), expected);     \
         EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
-        EXPECT_TRUE(ctx.NAME);                                                                     \
+        EXPECT_TRUE(CTX);                                                                          \
+                                                                                                   \
+        if (config.at(#NAME).rc_configurable())                                                    \
+        {                                                                                          \
+            expected                                                                               \
+                = std::string(#NAME) + ": true  # 'API' > '" + env_name + "' > '" + src + "'";     \
+        }                                                                                          \
+        else                                                                                       \
+        {                                                                                          \
+            expected = std::string(#NAME) + ": true  # 'API' > '" + env_name + "'";                \
+        }                                                                                          \
+        config.at(#NAME).set_value("true").compute().set_context();                                \
+        EXPECT_EQ((config.dump(true, true, false, false, false, false, { #NAME })), expected);     \
+        EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
+        EXPECT_TRUE(CTX);                                                                          \
                                                                                                    \
         env::set(env_name, "yeap");                                                                \
         ASSERT_THROW(load_test_config(rc2), YAML::Exception);                                      \
@@ -530,11 +625,11 @@ namespace mamba
         load_test_config(rc2);                                                                     \
     }
 
-        TEST_BOOL_CONFIGURABLE(ssl_no_revoke);
+        TEST_BOOL_CONFIGURABLE(ssl_no_revoke, ctx.ssl_no_revoke);
 
-        TEST_BOOL_CONFIGURABLE(override_channels_enabled);
+        TEST_BOOL_CONFIGURABLE(override_channels_enabled, ctx.override_channels_enabled);
 
-        TEST_BOOL_CONFIGURABLE(auto_activate_base);
+        TEST_BOOL_CONFIGURABLE(auto_activate_base, ctx.auto_activate_base);
 
         TEST_F(Configuration, channel_priority)
         {
@@ -569,6 +664,14 @@ namespace mamba
             EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
                       ChannelPriority::kStrict);
             EXPECT_EQ(ctx.channel_priority, ChannelPriority::kStrict);
+
+            config.at("channel_priority").set_value("flexible").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src
+                          + "'");
+            EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
+                      ChannelPriority::kFlexible);
+            EXPECT_EQ(ctx.channel_priority, ChannelPriority::kFlexible);
 
             env::set("MAMBA_CHANNEL_PRIORITY", "stric");
             ASSERT_THROW(load_test_config(rc3), YAML::Exception);
@@ -634,14 +737,36 @@ namespace mamba
             EXPECT_EQ(
                 ctx.pinned_packages,
                 std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
+
+            config.at("pinned_packages").set_value("pytest").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      unindent((R"(
+                                pinned_packages:
+                                  - pytest  # 'API'
+                                  - mpl=10.2  # 'MAMBA_PINNED_PACKAGES'
+                                  - xtensor  # 'MAMBA_PINNED_PACKAGES'
+                                  - jupyterlab=3  # ')"
+                                + src1 + R"('
+                                  - numpy=1.19  # ')"
+                                + src1 + "'")
+                                   .c_str()));
+            EXPECT_EQ(ctx.pinned_packages,
+                      std::vector<std::string>(
+                          { "pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
+
             env::set("MAMBA_PINNED_PACKAGES", "");
         }
 
-        TEST_BOOL_CONFIGURABLE(allow_softlinks);
 
-        TEST_BOOL_CONFIGURABLE(always_softlink);
+        TEST_BOOL_CONFIGURABLE(no_pin, config.at("no_pin").value<bool>());
 
-        TEST_BOOL_CONFIGURABLE(always_copy);
+        TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
+
+        TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.allow_softlinks);
+
+        TEST_BOOL_CONFIGURABLE(always_softlink, ctx.always_softlink);
+
+        TEST_BOOL_CONFIGURABLE(always_copy, ctx.always_copy);
 
         TEST_F(Configuration, always_softlink_and_copy)
         {
@@ -690,6 +815,13 @@ namespace mamba
                       VerificationLevel::kWarn);
             EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
+            config.at("safety_checks").set_value("disabled").compute().set_context();
+            EXPECT_EQ(config.dump(true, true),
+                      "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
+            EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
+                      VerificationLevel::kDisabled);
+            EXPECT_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
+
             env::set("MAMBA_SAFETY_CHECKS", "yeap");
             ASSERT_THROW(load_test_config(rc2), std::runtime_error);
 
@@ -697,7 +829,7 @@ namespace mamba
             load_test_config(rc2);
         }
 
-        TEST_BOOL_CONFIGURABLE(extra_safety_checks);
+        TEST_BOOL_CONFIGURABLE(extra_safety_checks, ctx.extra_safety_checks);
 
 #undef TEST_BOOL_CONFIGURABLE
 

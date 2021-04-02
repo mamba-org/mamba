@@ -11,22 +11,48 @@ from .helpers import create, get_env, info, random_string, shell
 
 
 class TestShell:
+
+    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_prefix = os.environ["CONDA_PREFIX"]
+
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
+
+    @classmethod
+    def setup_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestShell.current_root_prefix
+
+    @classmethod
+    def setup(cls):
+        os.makedirs(TestShell.root_prefix, exist_ok=False)
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestShell.current_root_prefix
+
+    @classmethod
+    def teardown(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
+        shutil.rmtree(TestShell.root_prefix)
+
     @pytest.mark.parametrize(
         "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh"]
     )
     def test_hook(self, shell_type):
-        root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-        clean_root = not Path(root_prefix).exists()
-
-        assert shell("hook", "-s", shell_type)
-
-        if Path(root_prefix).exists() and clean_root:
-            shutil.rmtree(root_prefix)
+        res = shell("hook", "-s", shell_type)
+        assert res
 
     @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
-    @pytest.mark.parametrize("env_name", ["base", "activate_env"])
+    @pytest.mark.parametrize("root", [False, True])
     @pytest.mark.parametrize("env_exists", [False, True])
-    def test_activate(self, shell_type, env_name, env_exists):
+    @pytest.mark.parametrize("expanded_home", [False, True])
+    @pytest.mark.parametrize("prefix_type", ["prefix", "name"])
+    def test_activate(self, shell_type, root, env_exists, prefix_type, expanded_home):
         if (
             (platform.system() == "Linux" and shell_type not in ("bash", "posix"))
             or (
@@ -40,30 +66,36 @@ class TestShell:
         ):
             pytest.skip("Incompatible shell/OS")
 
-        root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-        clean_root = not Path(root_prefix).exists()
+        if not root and env_exists:
+            create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
 
-        if env_name != "base" and env_exists:
-            create("xtensor", "-n", env_name, no_dry_run=True)
+        if prefix_type == "prefix":
+            if expanded_home:
+                cmd = ("activate", "-s", shell_type, "-p", TestShell.prefix)
+            else:
+                cmd = (
+                    "activate",
+                    "-s",
+                    shell_type,
+                    "-p",
+                    TestShell.prefix.replace(os.path.expanduser("~"), "~"),
+                )
+        else:
+            cmd = ("activate", "-s", shell_type, "-p", TestShell.env_name)
+
+        res = shell(*cmd)
 
         # TODO: improve this test
-        assert shell("activate", "-s", shell_type, "-p", env_name)
+        assert res
 
-        if env_name != "base" and env_exists:
-            shutil.rmtree(get_env(env_name))
-        if Path(root_prefix).exists() and clean_root:
-            shutil.rmtree(root_prefix)
+        if shell_type == "bash":
+            assert f"export CONDA_PREFIX='{TestShell.prefix}'" in res
+            assert f"export CONDA_DEFAULT_ENV='{TestShell.env_name}'" in res
+            assert f"export CONDA_PROMPT_MODIFIER='({TestShell.env_name}) '" in res
 
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
-    @pytest.mark.parametrize(
-        "prefix",
-        [
-            "",
-            os.environ["MAMBA_ROOT_PREFIX"],
-            os.path.expanduser(os.path.join("~", "tmproot" + random_string())),
-        ],
-    )
-    def test_init(self, shell_type, prefix):
+    @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
+    def test_init(self, shell_type, prefix_selector):
         if (
             (platform.system() == "Linux" and shell_type != "bash")
             or (
@@ -74,27 +106,17 @@ class TestShell:
         ):
             pytest.skip("Incompatible shell/OS")
 
-        current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-        clean_root = not Path(current_root_prefix).exists()
-
-        if prefix:
-            shell("-y", "init", "-s", shell_type, "-p", prefix)
+        if prefix_selector:
+            shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
         else:
-            shell("-y", "init", "-s", shell_type)
+            cwd = os.getcwd()
+            os.chdir(TestShell.root_prefix)
+            shell("-y", "init", "-s", shell_type, cwd=cwd)
+            os.chdir(cwd)
 
-        assert Path(prefix).exists()
-        assert Path(prefix).is_dir()
         assert (
-            Path(os.path.join(prefix, "condabin")).is_dir()
-            or Path(os.path.join(prefix, "etc", "profile.d")).is_dir()
+            Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
+            or Path(os.path.join(TestShell.root_prefix, "etc", "profile.d")).is_dir()
         )
 
-        if prefix and prefix != current_root_prefix:
-            shutil.rmtree(prefix)
-
-        # clean-up
-        if clean_root:
-            if Path(current_root_prefix).exists():
-                shutil.rmtree(current_root_prefix)
-        else:
-            shell("init", "-y", "-s", shell_type, "-p", current_root_prefix)
+        shell("init", "-y", "-s", shell_type, "-p", TestShell.current_root_prefix)

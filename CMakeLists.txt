@@ -118,7 +118,6 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/api/clean.cpp
     ${MAMBA_SOURCE_DIR}/api/config.cpp
     ${MAMBA_SOURCE_DIR}/api/configuration.cpp
-    ${MAMBA_SOURCE_DIR}/api/construct.cpp
     ${MAMBA_SOURCE_DIR}/api/create.cpp
     ${MAMBA_SOURCE_DIR}/api/info.cpp
     ${MAMBA_SOURCE_DIR}/api/install.cpp
@@ -172,7 +171,6 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/config.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
-    ${MAMBA_INCLUDE_DIR}/mamba/api/construct.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/create.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/info.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/install.hpp

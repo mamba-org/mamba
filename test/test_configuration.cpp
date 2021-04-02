@@ -66,6 +66,23 @@ namespace mamba
             mamba::Context& ctx = mamba::Context::instance();
         };
 
+        TEST_F(Configuration, target_prefix_options)
+        {
+            EXPECT_EQ(!MAMBA_ALLOW_ROOT_PREFIX, 0);
+            EXPECT_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, 0);
+            EXPECT_EQ(!MAMBA_ALLOW_FALLBACK_PREFIX, 0);
+            EXPECT_EQ(!MAMBA_ALLOW_MISSING_PREFIX, 0);
+            EXPECT_EQ(!MAMBA_ALLOW_NOT_ENV_PREFIX, 0);
+            EXPECT_EQ(!MAMBA_EXPECT_EXISTING_PREFIX, 0);
+
+            EXPECT_EQ(!MAMBA_ALLOW_ROOT_PREFIX, MAMBA_NOT_ALLOW_ROOT_PREFIX);
+
+            EXPECT_EQ(MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
+                          | MAMBA_NOT_ALLOW_FALLBACK_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                          | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX,
+                      0);
+        }
+
         TEST_F(Configuration, load_rc_file)
         {
             std::string rc = unindent(R"(

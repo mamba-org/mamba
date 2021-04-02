@@ -14,19 +14,23 @@ namespace mamba
     {
         auto& config = Configuration::instance();
 
-        config.load(!MAMBA_ALLOW_ROOT_PREFIX & !MAMBA_ALLOW_FALLBACK_PREFIX
-                    & !MAMBA_ALLOW_EXISTING_PREFIX);
+        int target_prefix_checks = MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
+                                   | MAMBA_NOT_ALLOW_FALLBACK_PREFIX
+                                   | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+                                   | MAMBA_NOT_EXPECT_EXISTING_PREFIX;
+
+        config.load(target_prefix_checks);
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
         if (use_explicit)
         {
-            detail::install_explicit_specs(create_specs);
+            install_explicit_specs(create_specs);
         }
         else
         {
-            detail::install_specs(create_specs, true);
+            install_specs(create_specs, true);
         }
     }
 }

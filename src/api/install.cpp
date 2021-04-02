@@ -28,7 +28,8 @@ namespace mamba
         auto& config = Configuration::instance();
 
         config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX);
+                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                    | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
 
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
@@ -37,11 +38,11 @@ namespace mamba
         {
             if (use_explicit)
             {
-                detail::install_explicit_specs(install_specs);
+                install_explicit_specs(install_specs);
             }
             else
             {
-                detail::install_specs(install_specs, false);
+                mamba::install_specs(install_specs, false);
             }
         }
         else
@@ -50,224 +51,275 @@ namespace mamba
         }
     }
 
-    namespace detail
+    int RETRY_SUBDIR_FETCH = 1 << 0;
+    int RETRY_SOLVE_ERROR = 1 << 1;
+
+    void install_specs(const std::vector<std::string>& specs,
+                       bool create_env,
+                       int solver_flag,
+                       int is_retry)
     {
-        int RETRY_SUBDIR_FETCH = 1 << 0;
-        int RETRY_SOLVE_ERROR = 1 << 1;
+        auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
 
-        void install_specs(const std::vector<std::string>& specs,
-                           bool create_env,
-                           int solver_flag,
-                           int is_retry)
+        auto& no_pin = config.at("no_pin").value<bool>();
+        auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
+
+        fs::path pkgs_dirs;
+
+        if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
         {
-            auto& ctx = Context::instance();
-            auto& config = Configuration::instance();
-
-            auto& no_pin = config.at("no_pin").value<bool>();
-            auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
-
-            fs::path pkgs_dirs;
-
-            if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
-            {
-                pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
-            }
-            else
-            {
-                pkgs_dirs = ctx.root_prefix / "pkgs";
-            }
-
-            if (ctx.target_prefix.empty())
-            {
-                throw std::runtime_error("No active target prefix");
-            }
-            if (!fs::exists(ctx.target_prefix) && create_env == false)
-            {
-                LOG_ERROR << "Prefix does not exist at: " << ctx.target_prefix;
-                exit(1);
-            }
-
-            fs::path cache_dir = pkgs_dirs / "cache";
-            try
-            {
-                fs::create_directories(cache_dir);
-            }
-            catch (...)
-            {
-                throw std::runtime_error("Could not create `pkgs/cache/` dirs");
-            }
-
-            if (ctx.channels.empty() && !ctx.offline)
-            {
-                LOG_WARNING << "No 'channels' specified";
-            }
-
-            std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
-
-            std::vector<std::shared_ptr<MSubdirData>> subdirs;
-            MultiDownloadTarget multi_dl;
-
-            std::vector<std::pair<int, int>> priorities;
-            int max_prio = static_cast<int>(channel_urls.size());
-            std::string prev_channel_name;
-            for (auto& url : channel_urls)
-            {
-                auto& channel = make_channel(url);
-                std::string full_url = concat(channel.url(true), "/repodata.json");
-
-                auto sdir
-                    = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
-                                                    full_url,
-                                                    cache_dir / cache_fn_url(full_url));
-
-                sdir->load();
-                multi_dl.add(sdir->target());
-                subdirs.push_back(sdir);
-                if (ctx.channel_priority == ChannelPriority::kDisabled)
-                {
-                    priorities.push_back(std::make_pair(0, max_prio--));
-                }
-                else  // Consider 'flexible' and 'strict' the same way
-                {
-                    if (channel.name() != prev_channel_name)
-                    {
-                        max_prio--;
-                        prev_channel_name = channel.name();
-                    }
-                    priorities.push_back(
-                        std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
-                }
-            }
-            if (!ctx.offline)
-            {
-                multi_dl.download(true);
-            }
-
-            std::vector<MRepo> repos;
-            MPool pool;
-            if (ctx.offline)
-            {
-                LOG_INFO << "Creating repo from pkgs_dir for offline";
-                repos.push_back(create_repo_from_pkgs_dir(pool, pkgs_dirs));
-            }
-            PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
-            prefix_data.add_virtual_packages(get_virtual_packages());
-
-            auto repo = MRepo(pool, prefix_data);
-            repos.push_back(repo);
-
-            std::string prev_channel;
-            bool loading_failed = false;
-            for (std::size_t i = 0; i < subdirs.size(); ++i)
-            {
-                auto& subdir = subdirs[i];
-                if (!subdir->loaded())
-                {
-                    if (ctx.offline || mamba::ends_with(subdir->name(), "/noarch"))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Subdir " + subdir->name() + " not loaded!");
-                    }
-                }
-
-                auto& prio = priorities[i];
-                try
-                {
-                    MRepo repo = subdir->create_repo(pool);
-                    repo.set_priority(prio.first, prio.second);
-                    repos.push_back(repo);
-                }
-                catch (std::runtime_error& e)
-                {
-                    if (is_retry & RETRY_SUBDIR_FETCH)
-                    {
-                        std::stringstream ss;
-                        ss << "Could not load repodata.json for " << subdir->name()
-                           << " after retry."
-                           << "Please check repodata source. Exiting." << std::endl;
-                        throw std::runtime_error(ss.str());
-                    }
-
-                    std::cout << termcolor::yellow << "Could not load repodata.json for "
-                              << subdir->name() << ". Deleting cache, and retrying."
-                              << termcolor::reset << std::endl;
-                    subdir->clear_cache();
-                    loading_failed = true;
-                }
-            }
-
-            if (loading_failed)
-            {
-                if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
-                {
-                    LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    return install_specs(
-                        specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
-                }
-                throw std::runtime_error("Could not load repodata. Cache corrupted?");
-            }
-
-            MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
-            solver.add_jobs(specs, solver_flag);
-
-            if (!no_pin)
-            {
-                solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
-                solver.add_pins(ctx.pinned_packages);
-            }
-
-            auto py_pin = python_pin(prefix_data, specs);
-            if (!py_pin.empty())
-            {
-                solver.add_pin(py_pin);
-            }
-
-            bool success = solver.solve();
-            if (!success)
-            {
-                std::cout << solver.problems_to_str() << std::endl;
-                if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
-                {
-                    ctx.local_repodata_ttl = 2;
-                    return install_specs(
-                        specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
-                }
-                throw std::runtime_error("Could not solve for environment specs");
-            }
-
-            MultiPackageCache package_caches({ pkgs_dirs });
-            MTransaction trans(solver, package_caches);
-
-            if (ctx.json)
-            {
-                trans.log_json();
-            }
-            // TODO this is not so great
-            std::vector<MRepo*> repo_ptrs;
-            for (auto& r : repos)
-            {
-                repo_ptrs.push_back(&r);
-            }
-
-            std::cout << std::endl;
-
-            bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
-            if (!yes)
-                exit(0);
-
-            if (create_env && !Context::instance().dry_run)
-            {
-                fs::create_directories(ctx.target_prefix / "conda-meta");
-                fs::create_directories(ctx.target_prefix / "pkgs");
-            }
-
-            trans.execute(prefix_data, pkgs_dirs);
+            pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
+        }
+        else
+        {
+            pkgs_dirs = ctx.root_prefix / "pkgs";
         }
 
+        if (ctx.target_prefix.empty())
+        {
+            throw std::runtime_error("No active target prefix");
+        }
+        if (!fs::exists(ctx.target_prefix) && create_env == false)
+        {
+            LOG_ERROR << "Prefix does not exist at: " << ctx.target_prefix;
+            exit(1);
+        }
+
+        fs::path cache_dir = pkgs_dirs / "cache";
+        try
+        {
+            fs::create_directories(cache_dir);
+        }
+        catch (...)
+        {
+            throw std::runtime_error("Could not create `pkgs/cache/` dirs");
+        }
+
+        if (ctx.channels.empty() && !ctx.offline)
+        {
+            LOG_WARNING << "No 'channels' specified";
+        }
+
+        std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
+
+        std::vector<std::shared_ptr<MSubdirData>> subdirs;
+        MultiDownloadTarget multi_dl;
+
+        std::vector<std::pair<int, int>> priorities;
+        int max_prio = static_cast<int>(channel_urls.size());
+        std::string prev_channel_name;
+        for (auto& url : channel_urls)
+        {
+            auto& channel = make_channel(url);
+            std::string full_url = concat(channel.url(true), "/repodata.json");
+
+            auto sdir
+                = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
+                                                full_url,
+                                                cache_dir / cache_fn_url(full_url));
+
+            sdir->load();
+            multi_dl.add(sdir->target());
+            subdirs.push_back(sdir);
+            if (ctx.channel_priority == ChannelPriority::kDisabled)
+            {
+                priorities.push_back(std::make_pair(0, max_prio--));
+            }
+            else  // Consider 'flexible' and 'strict' the same way
+            {
+                if (channel.name() != prev_channel_name)
+                {
+                    max_prio--;
+                    prev_channel_name = channel.name();
+                }
+                priorities.push_back(
+                    std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
+            }
+        }
+        if (!ctx.offline)
+        {
+            multi_dl.download(true);
+        }
+
+        std::vector<MRepo> repos;
+        MPool pool;
+        if (ctx.offline)
+        {
+            LOG_INFO << "Creating repo from pkgs_dir for offline";
+            repos.push_back(detail::create_repo_from_pkgs_dir(pool, pkgs_dirs));
+        }
+        PrefixData prefix_data(ctx.target_prefix);
+        prefix_data.load();
+        prefix_data.add_virtual_packages(get_virtual_packages());
+
+        auto repo = MRepo(pool, prefix_data);
+        repos.push_back(repo);
+
+        std::string prev_channel;
+        bool loading_failed = false;
+        for (std::size_t i = 0; i < subdirs.size(); ++i)
+        {
+            auto& subdir = subdirs[i];
+            if (!subdir->loaded())
+            {
+                if (ctx.offline || mamba::ends_with(subdir->name(), "/noarch"))
+                {
+                    continue;
+                }
+                else
+                {
+                    throw std::runtime_error("Subdir " + subdir->name() + " not loaded!");
+                }
+            }
+
+            auto& prio = priorities[i];
+            try
+            {
+                MRepo repo = subdir->create_repo(pool);
+                repo.set_priority(prio.first, prio.second);
+                repos.push_back(repo);
+            }
+            catch (std::runtime_error& e)
+            {
+                if (is_retry & RETRY_SUBDIR_FETCH)
+                {
+                    std::stringstream ss;
+                    ss << "Could not load repodata.json for " << subdir->name() << " after retry."
+                       << "Please check repodata source. Exiting." << std::endl;
+                    throw std::runtime_error(ss.str());
+                }
+
+                std::cout << termcolor::yellow << "Could not load repodata.json for "
+                          << subdir->name() << ". Deleting cache, and retrying." << termcolor::reset
+                          << std::endl;
+                subdir->clear_cache();
+                loading_failed = true;
+            }
+        }
+
+        if (loading_failed)
+        {
+            if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
+            {
+                LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
+                return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
+            }
+            throw std::runtime_error("Could not load repodata. Cache corrupted?");
+        }
+
+        MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+        solver.add_jobs(specs, solver_flag);
+
+        if (!no_pin)
+        {
+            solver.add_pins(file_pins(prefix_data.path() / "conda-meta" / "pinned"));
+            solver.add_pins(ctx.pinned_packages);
+        }
+
+        auto py_pin = python_pin(prefix_data, specs);
+        if (!py_pin.empty())
+        {
+            solver.add_pin(py_pin);
+        }
+
+        bool success = solver.solve();
+        if (!success)
+        {
+            std::cout << solver.problems_to_str() << std::endl;
+            if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
+            {
+                ctx.local_repodata_ttl = 2;
+                return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
+            }
+            throw std::runtime_error("Could not solve for environment specs");
+        }
+
+        MultiPackageCache package_caches({ pkgs_dirs });
+        MTransaction trans(solver, package_caches);
+
+        if (ctx.json)
+        {
+            trans.log_json();
+        }
+        // TODO this is not so great
+        std::vector<MRepo*> repo_ptrs;
+        for (auto& r : repos)
+        {
+            repo_ptrs.push_back(&r);
+        }
+
+        std::cout << std::endl;
+
+        bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
+        if (!yes)
+            exit(0);
+
+        if (create_env && !Context::instance().dry_run)
+        {
+            fs::create_directories(ctx.target_prefix / "conda-meta");
+            fs::create_directories(ctx.target_prefix / "pkgs");
+        }
+
+        trans.execute(prefix_data, pkgs_dirs);
+    }
+
+    void install_explicit_specs(const std::vector<std::string>& specs)
+    {
+        std::vector<mamba::MatchSpec> match_specs;
+        std::vector<mamba::PackageInfo> pkg_infos;
+        mamba::History hist(Context::instance().target_prefix);
+        auto hist_entry = History::UserRequest::prefilled();
+        std::string python_version;  // for pyc compilation
+        // TODO unify this
+        for (auto& spec : specs)
+        {
+            if (strip(spec).size() == 0)
+                continue;
+            std::size_t hash = spec.find_first_of('#');
+            match_specs.emplace_back(spec.substr(0, hash));
+            auto& ms = match_specs.back();
+            PackageInfo p(ms.name);
+            p.url = ms.url;
+            p.build_string = ms.build;
+            p.version = ms.version;
+            p.channel = ms.channel;
+            p.fn = ms.fn;
+
+            if (hash != std::string::npos)
+            {
+                ms.brackets["md5"] = spec.substr(hash + 1);
+                p.md5 = spec.substr(hash + 1);
+            }
+            hist_entry.update.push_back(ms.str());
+            pkg_infos.push_back(p);
+
+            if (ms.name == "python")
+            {
+                python_version = ms.version;
+            }
+        }
+        if (detail::download_explicit(pkg_infos))
+        {
+            auto& ctx = Context::instance();
+            // pkgs can now be linked
+            fs::create_directories(ctx.target_prefix / "conda-meta");
+
+            TransactionContext tctx(ctx.target_prefix, python_version);
+            for (auto& pkg : pkg_infos)
+            {
+                LinkPackage lp(pkg, ctx.root_prefix / "pkgs", &tctx);
+                std::cout << "Linking " << pkg.str() << "\n";
+                hist_entry.link_dists.push_back(pkg.long_str());
+                lp.execute();
+            }
+
+            hist.add_entry(hist_entry);
+        }
+    }
+
+    namespace detail
+    {
         void file_specs_hook(std::vector<std::string>& file_specs)
         {
             auto& config = Configuration::instance();
@@ -451,62 +503,6 @@ namespace mamba
             }
             return MRepo(pool, prefix_data);
         }
-
-
-        void install_explicit_specs(const std::vector<std::string>& specs)
-        {
-            std::vector<mamba::MatchSpec> match_specs;
-            std::vector<mamba::PackageInfo> pkg_infos;
-            mamba::History hist(Context::instance().target_prefix);
-            auto hist_entry = History::UserRequest::prefilled();
-            std::string python_version;  // for pyc compilation
-            // TODO unify this
-            for (auto& spec : specs)
-            {
-                if (strip(spec).size() == 0)
-                    continue;
-                std::size_t hash = spec.find_first_of('#');
-                match_specs.emplace_back(spec.substr(0, hash));
-                auto& ms = match_specs.back();
-                PackageInfo p(ms.name);
-                p.url = ms.url;
-                p.build_string = ms.build;
-                p.version = ms.version;
-                p.channel = ms.channel;
-                p.fn = ms.fn;
-
-                if (hash != std::string::npos)
-                {
-                    ms.brackets["md5"] = spec.substr(hash + 1);
-                    p.md5 = spec.substr(hash + 1);
-                }
-                hist_entry.update.push_back(ms.str());
-                pkg_infos.push_back(p);
-
-                if (ms.name == "python")
-                {
-                    python_version = ms.version;
-                }
-            }
-            if (download_explicit(pkg_infos))
-            {
-                auto& ctx = Context::instance();
-                // pkgs can now be linked
-                fs::create_directories(ctx.target_prefix / "conda-meta");
-
-                TransactionContext tctx(ctx.target_prefix, python_version);
-                for (auto& pkg : pkg_infos)
-                {
-                    LinkPackage lp(pkg, ctx.root_prefix / "pkgs", &tctx);
-                    std::cout << "Linking " << pkg.str() << "\n";
-                    hist_entry.link_dists.push_back(pkg.long_str());
-                    lp.execute();
-                }
-
-                hist.add_entry(hist_entry);
-            }
-        }
-
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs)
         {

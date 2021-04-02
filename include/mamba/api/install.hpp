@@ -22,18 +22,18 @@ namespace mamba
 {
     void install();
 
+    void install_specs(const std::vector<std::string>& specs,
+                       bool create_env = false,
+                       int solver_flag = SOLVER_INSTALL,
+                       int is_retry = 0);
+
+    void install_explicit_specs(const std::vector<std::string>& specs);
+
     namespace detail
     {
-        void install_specs(const std::vector<std::string>& specs,
-                           bool create_env = false,
-                           int solver_flag = SOLVER_INSTALL,
-                           int is_retry = 0);
-
         void file_specs_hook(std::vector<std::string>& file_specs);
 
         MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
-
-        void install_explicit_specs(const std::vector<std::string>& specs);
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs);
     }

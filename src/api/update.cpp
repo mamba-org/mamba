@@ -40,7 +40,7 @@ namespace mamba
 
         if (!update_specs.empty())
         {
-            detail::install_specs(update_specs, false, SOLVER_UPDATE);
+            install_specs(update_specs, false, SOLVER_UPDATE);
         }
         else
         {

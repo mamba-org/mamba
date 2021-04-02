@@ -470,6 +470,13 @@ namespace mamba
     int const MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 4;
     int const MAMBA_EXPECT_EXISTING_PREFIX = 1 << 5;
 
+    int const MAMBA_NOT_ALLOW_ROOT_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_EXISTING_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_FALLBACK_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_MISSING_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_NOT_ENV_PREFIX = 0;
+    int const MAMBA_NOT_EXPECT_EXISTING_PREFIX = 0;
+
     template <class T>
     class Configurable
     {

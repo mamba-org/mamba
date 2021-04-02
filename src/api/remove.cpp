@@ -87,10 +87,8 @@ namespace mamba
             }
 
             bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
-            if (!yes)
-                exit(0);
-
-            trans.execute(prefix_data, ctx.root_prefix / "pkgs");
+            if (yes)
+                trans.execute(prefix_data, ctx.root_prefix / "pkgs");
         }
     }
 }  // mamba

@@ -64,7 +64,7 @@ if (USE_VENDORED_CLI11)
     add_definitions(-DVENDORED_CLI11=1)
 endif()
 
-if (BUILD_EXE OR ENABLE_TESTS)
+if (BUILD_EXE OR ENABLE_TESTS OR BUILD_SHARED)
     add_definitions(-DUMAMBA_ONLY)
 endif()
 
@@ -115,6 +115,7 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/core/version.cpp
     ${MAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     # API (high-level)
+    ${MAMBA_SOURCE_DIR}/api/c_api.cpp
     ${MAMBA_SOURCE_DIR}/api/clean.cpp
     ${MAMBA_SOURCE_DIR}/api/config.cpp
     ${MAMBA_SOURCE_DIR}/api/configuration.cpp
@@ -168,6 +169,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/core/version.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     # API (high-level)
+    ${MAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${MAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/config.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
@@ -323,7 +325,8 @@ if (NOT (BUILD_EXE AND STATIC_DEPENDENCIES))
     install(DIRECTORY "${MAMBA_INCLUDE_DIR}/"
             DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
             FILES_MATCHING
-            PATTERN "*.hpp")
+            PATTERN "*.hpp"
+            PATTERN "*.h")
 
     # Makes the project importable from the build directory
     export(EXPORT ${PROJECT_NAME}-targets

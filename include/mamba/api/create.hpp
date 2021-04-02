@@ -4,16 +4,18 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef UMAMBA_CONSTRUCTOR_HPP
-#define UMAMBA_CONSTRUCTOR_HPP
+#ifndef MAMBA_API_CREATE_HPP
+#define MAMBA_API_CREATE_HPP
 
 #include "mamba/core/mamba_fs.hpp"
 
+#include <string>
+#include <vector>
 
-void
-construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball);
 
-void
-read_binary_from_stdin_and_write_to_file(fs::path& filename);
+namespace mamba
+{
+    void create();
+}
 
 #endif

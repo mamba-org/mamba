@@ -4,21 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "common_options.hpp"
 #include "umamba.hpp"
 
-#include "clean.hpp"
-#include "config.hpp"
-#include "constructor.hpp"
-#include "create.hpp"
-#include "info.hpp"
-#include "install.hpp"
-#include "list.hpp"
-#include "common_options.hpp"
-#include "remove.hpp"
-#include "shell.hpp"
-#include "update.hpp"
-
 #include "mamba/core/context.hpp"
+#include "mamba/core/version.hpp"
 
 #include "../thirdparty/termcolor.hpp"
 
@@ -26,7 +16,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_umamba_parser(CLI::App* subcom)
+init_umamba_options(CLI::App* subcom)
 {
     init_general_options(subcom);
     init_prefix_options(subcom);
@@ -35,7 +25,7 @@ init_umamba_parser(CLI::App* subcom)
 void
 set_umamba_command(CLI::App* com)
 {
-    init_umamba_parser(com);
+    init_umamba_options(com);
 
     auto print_version = [](int count) {
         std::cout << version() << std::endl;

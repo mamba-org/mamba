@@ -32,9 +32,8 @@ class TestInstall:
 
         os.makedirs(TestInstall.root_prefix, exist_ok=False)
         install("xtensor", "-n", "base", no_dry_run=True)
-        create("xtensor", "-n", TestInstall.env_name, no_dry_run=True)
-        remove("xtensor", "xtl", "-n", "base", no_dry_run=True)
-        remove("xtensor", "xtl", "-n", TestInstall.env_name, no_dry_run=True)
+        create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
+        remove("-n", "base", "-a", no_dry_run=True)
 
     @classmethod
     def teardown_class(cls):
@@ -45,15 +44,9 @@ class TestInstall:
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
-        remove("xtensor", "xtl", "xsimd", "xframe", "-n", "base", no_dry_run=True)
+        remove("-n", "base", "-a", no_dry_run=True)
         remove(
-            "xtensor",
-            "xtl",
-            "xsimd",
-            "xframe",
-            "-n",
-            TestInstall.env_name,
-            no_dry_run=True,
+            "-n", TestInstall.env_name, "-a", no_dry_run=True,
         )
 
         res = umamba_list("xtensor", "-n", TestInstall.env_name, "--json")
@@ -199,3 +192,32 @@ class TestInstall:
             for l in res["actions"]["LINK"]:
                 assert l["channel"].startswith(expected_channel)
                 assert l["url"].startswith(expected_channel)
+
+    @pytest.mark.parametrize("valid", [False, True])
+    def test_explicit_file(self, valid):
+        spec_file_content = [
+            "@EXPLICIT",
+            "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+        ]
+        if not valid:
+            spec_file_content += ["https://conda.anaconda.org/conda-forge/linux-64/xtl"]
+
+        spec_file = os.path.join(TestInstall.root_prefix, "explicit_specs.txt")
+        with open(spec_file, "w") as f:
+            f.write("\n".join(spec_file_content))
+
+        cmd = ("-p", TestInstall.prefix, "-q", "-f", spec_file)
+
+        if valid:
+            res = install(*cmd, default_channel=False)
+            assert res.splitlines() == ["Linking xtensor-0.21.5-hc9558a2_0"]
+
+            list_res = umamba_list("-p", TestInstall.prefix, "--json")
+            assert len(list_res) == 1
+            pkg = list_res[0]
+            assert pkg["name"] == "xtensor"
+            assert pkg["version"] == "0.21.5"
+            assert pkg["build_string"] == "hc9558a2_0"
+        else:
+            with pytest.raises(subprocess.CalledProcessError):
+                install(*cmd, default_channel=False)

@@ -15,18 +15,8 @@ set(MAMBA_EXE
 )
 
 set(MAMBA_EXE_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/clean.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/config.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/constructor.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/create.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/info.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/install.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/list.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/common_options.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/remove.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/shell.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/umamba.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/update.hpp
 )
 
 add_executable(micromamba ${MAMBA_EXE} ${MAMBA_EXE_HEADERS})

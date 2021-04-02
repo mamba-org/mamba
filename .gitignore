@@ -1,4 +1,4 @@
-include/mamba/version.hpp
+include/mamba/core/version.hpp
 
 .cache
 

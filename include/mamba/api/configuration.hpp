@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_CONFIGURATION_HPP
-#define MAMBA_CORE_CONFIGURATION_HPP
+#ifndef MAMBA_API_CONFIGURATION_HPP
+#define MAMBA_API_CONFIGURATION_HPP
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
@@ -368,7 +368,7 @@ namespace mamba
                               T& value,
                               std::vector<std::string>& source);
 
-            static T convert_env_var(const std::string& name);
+            static T deserialize(const std::string& value);
         };
 
         template <class T>
@@ -384,7 +384,7 @@ namespace mamba
                               std::vector<T>& value,
                               std::vector<std::string>& source);
 
-            static std::vector<T> convert_env_var(const std::string& name);
+            static std::vector<T> deserialize(const std::string& value);
         };
 
         template <class T>
@@ -410,9 +410,16 @@ namespace mamba
         }
 
         template <class T>
-        T Source<T>::convert_env_var(const std::string& name)
+        T Source<T>::deserialize(const std::string& value)
         {
-            return YAML::Load(env::get(name)).as<T>();
+            if (value.empty())
+            {
+                return YAML::Node("").as<T>();
+            }
+            else
+            {
+                return YAML::Load(value).as<T>();
+            }
         }
 
         template <class T>
@@ -441,21 +448,34 @@ namespace mamba
         }
 
         template <class T>
-        std::vector<T> Source<std::vector<T>>::convert_env_var(const std::string& name)
+        std::vector<T> Source<std::vector<T>>::deserialize(const std::string& value)
         {
-            return YAML::Load("[" + env::get(name) + "]").as<std::vector<T>>();
+            return YAML::Load("[" + value + "]").as<std::vector<T>>();
         }
     }
 
 
     enum class ConfigurationLevel
     {
-        kNone = 0,
+        kApi = 0,
         kCli = 1,
         kEnvVar = 2,
         kFile = 3
     };
 
+    int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 0;
+    int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
+    int const MAMBA_ALLOW_FALLBACK_PREFIX = 1 << 2;
+    int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 3;
+    int const MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 4;
+    int const MAMBA_EXPECT_EXISTING_PREFIX = 1 << 5;
+
+    int const MAMBA_NOT_ALLOW_ROOT_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_EXISTING_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_FALLBACK_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_MISSING_PREFIX = 0;
+    int const MAMBA_NOT_ALLOW_NOT_ENV_PREFIX = 0;
+    int const MAMBA_NOT_EXPECT_EXISTING_PREFIX = 0;
 
     template <class T>
     class Configurable
@@ -491,22 +511,36 @@ namespace mamba
 
         const std::vector<std::string>& sources();
 
-        bool rc_configured() const;
-
         bool rc_configurable() const;
 
-        bool cli_configured() const;
+        bool rc_configured() const;
 
         bool env_var_configured() const;
 
+        bool cli_configured() const;
+
+        bool api_configured() const;
+
         bool configured() const;
 
-        self_type& add_rc_value(const T& value, const std::string& source);
+        self_type& set_rc_value(const T& value, const std::string& source);
 
-        self_type& add_rc_values(const std::map<std::string, T>& mapped_values,
+        self_type& set_rc_values(const std::map<std::string, T>& mapped_values,
                                  const std::vector<std::string>& sources);
 
-        self_type& set_env_var_name(const std::string& name = "MAMBA_");
+        self_type& set_value(const T& value);
+
+        self_type& clear_rc_values();
+
+        self_type& clear_env_value();
+
+        self_type& clear_cli_value();
+
+        self_type& clear_api_value();
+
+        self_type& clear_values();
+
+        self_type& set_env_var_name(const std::string& name = "");
 
         self_type& group(const std::string& group);
 
@@ -524,8 +558,8 @@ namespace mamba
 
         cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
 
-        self_type& compute_config(const ConfigurationLevel& level = ConfigurationLevel::kFile,
-                                  bool hook_enabled = true);
+        self_type& compute(const ConfigurationLevel& level = ConfigurationLevel::kFile,
+                           bool hook_enabled = true);
 
     private:
         std::string m_name;
@@ -536,6 +570,7 @@ namespace mamba
 
         bool m_rc_configurable = true;
         bool m_rc_configured = false;
+        bool m_api_configured = false;
 
         std::map<std::string, T> m_rc_values, m_values;
         std::vector<std::string> m_rc_sources, m_sources;
@@ -629,21 +664,15 @@ namespace mamba
     };
 
     template <class T>
-    bool Configurable<T>::rc_configured() const
-    {
-        return m_rc_configured && !Context::instance().no_rc;
-    };
-
-    template <class T>
     bool Configurable<T>::rc_configurable() const
     {
         return m_rc_configurable;
     };
 
     template <class T>
-    bool Configurable<T>::cli_configured() const
+    bool Configurable<T>::rc_configured() const
     {
-        return (p_cli_config != NULL) && p_cli_config->defined();
+        return m_rc_configured && !Context::instance().no_rc;
     };
 
     template <class T>
@@ -653,9 +682,21 @@ namespace mamba
     };
 
     template <class T>
+    bool Configurable<T>::cli_configured() const
+    {
+        return (p_cli_config != NULL) && p_cli_config->defined();
+    };
+
+    template <class T>
+    bool Configurable<T>::api_configured() const
+    {
+        return m_api_configured;
+    };
+
+    template <class T>
     bool Configurable<T>::configured() const
     {
-        return rc_configured() || cli_configured() || env_var_configured();
+        return rc_configured() || env_var_configured() || cli_configured() || api_configured();
     };
 
     template <class T>
@@ -665,6 +706,26 @@ namespace mamba
         {
             *p_context = m_value;
         }
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::set_rc_value(const T& value, const std::string& source) -> self_type&
+    {
+        m_rc_sources.push_back(source);
+        m_rc_values[source] = value;
+        m_rc_configured = true;
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::set_rc_values(const std::map<std::string, T>& mapped_values,
+                                        const std::vector<std::string>& sources) -> self_type&
+    {
+        assert(mapped_values.size() == sources.size());
+        m_rc_sources.insert(m_rc_sources.end(), sources.begin(), sources.end());
+        m_rc_values.insert(mapped_values.begin(), mapped_values.end());
+        m_rc_configured = true;
         return *this;
     };
 
@@ -681,12 +742,25 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::compute_config(const ConfigurationLevel& level, bool hook_enabled)
-        -> self_type&
+    auto Configurable<T>::set_value(const T& value) -> self_type&
+    {
+        m_value = value;
+        m_api_configured = true;
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::compute(const ConfigurationLevel& level, bool hook_enabled) -> self_type&
     {
         auto& ctx = Context::instance();
         m_sources.clear();
         m_values.clear();
+
+        if (api_configured() && (level >= ConfigurationLevel::kApi))
+        {
+            m_sources.push_back("API");
+            m_values.insert({ "API", m_value });
+        }
 
         if (cli_configured() && (level >= ConfigurationLevel::kCli))
         {
@@ -697,7 +771,7 @@ namespace mamba
         if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
         {
             m_sources.push_back(m_env_var);
-            m_values.insert({ m_env_var, detail::Source<T>::convert_env_var(m_env_var) });
+            m_values.insert({ m_env_var, detail::Source<T>::deserialize(env::get(m_env_var)) });
         }
 
         if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
@@ -718,7 +792,7 @@ namespace mamba
     template <class T>
     auto Configurable<T>::set_env_var_name(const std::string& name) -> self_type&
     {
-        if (name.compare("MAMBA_") == 0)
+        if (name.empty())
         {
             m_env_var = "MAMBA_" + to_upper(m_name);
         }
@@ -728,6 +802,47 @@ namespace mamba
         }
         return *this;
     }
+
+    template <class T>
+    auto Configurable<T>::clear_rc_values() -> self_type&
+    {
+        m_rc_sources.clear();
+        m_rc_values.clear();
+        m_rc_configured = false;
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::clear_env_value() -> self_type&
+    {
+        if (env_var_configured())
+            env::set(m_env_var, "");
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::clear_cli_value() -> self_type&
+    {
+        p_cli_config = nullptr;
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::clear_api_value() -> self_type&
+    {
+        m_api_configured = false;
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::clear_values() -> self_type&
+    {
+        clear_rc_values();
+        clear_env_value();
+        clear_cli_value();
+        clear_api_value();
+        return *this;
+    };
 
     template <class T>
     auto Configurable<T>::group(const std::string& group) -> self_type&
@@ -754,26 +869,6 @@ namespace mamba
     auto Configurable<T>::long_description(const std::string& desc) -> self_type&
     {
         m_long_description = desc;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::add_rc_value(const T& value, const std::string& source) -> self_type&
-    {
-        m_rc_sources.push_back(source);
-        m_rc_values[source] = value;
-        m_rc_configured = true;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::add_rc_values(const std::map<std::string, T>& mapped_values,
-                                        const std::vector<std::string>& sources) -> self_type&
-    {
-        assert(mapped_values.size() == sources.size());
-        m_rc_sources.insert(m_rc_sources.end(), sources.begin(), sources.end());
-        m_rc_values.insert(mapped_values.begin(), mapped_values.end());
-        m_rc_configured = true;
         return *this;
     };
 
@@ -834,13 +929,25 @@ namespace mamba
 
             virtual bool rc_configurable() const = 0;
 
-            virtual void add_rc_value(const YAML::Node& value, const std::string& source) = 0;
+            virtual void set_rc_value(const YAML::Node& value, const std::string& source) = 0;
 
-            virtual void add_rc_values(const std::map<std::string, YAML::Node>& values,
+            virtual void set_rc_values(const std::map<std::string, YAML::Node>& values,
                                        const std::vector<std::string>& sources)
                 = 0;
 
             virtual void set_cli_value(const YAML::Node& value) = 0;
+
+            virtual void set_value(const std::string& value) = 0;
+
+            virtual void clear_rc_values() = 0;
+
+            virtual void clear_env_value() = 0;
+
+            virtual void clear_cli_value() = 0;
+
+            virtual void clear_api_value() = 0;
+
+            virtual void clear_values() = 0;
 
             virtual void set_context() = 0;
 
@@ -852,7 +959,7 @@ namespace mamba
 
             virtual void long_description(const std::string& desc) = 0;
 
-            virtual void compute_config(const ConfigurationLevel& level, bool hook_enabled) = 0;
+            virtual void compute(const ConfigurationLevel& level, bool hook_enabled) = 0;
         };
 
         template <class T>
@@ -934,11 +1041,11 @@ namespace mamba
                 return p_wrapped->rc_configurable();
             };
 
-            void add_rc_value(const YAML::Node& value, const std::string& source)
+            void set_rc_value(const YAML::Node& value, const std::string& source)
             {
                 try
                 {
-                    p_wrapped->add_rc_value(value.as<T>(), source);
+                    p_wrapped->set_rc_value(value.as<T>(), source);
                 }
                 catch (const YAML::Exception& e)
                 {
@@ -947,7 +1054,7 @@ namespace mamba
                 }
             };
 
-            void add_rc_values(const std::map<std::string, YAML::Node>& values,
+            void set_rc_values(const std::map<std::string, YAML::Node>& values,
                                const std::vector<std::string>& sources)
             {
                 std::map<std::string, T> converted_values;
@@ -955,12 +1062,42 @@ namespace mamba
                 {
                     converted_values.insert({ y.first, y.second.as<T>() });
                 }
-                p_wrapped->add_rc_values(converted_values, sources);
+                p_wrapped->set_rc_values(converted_values, sources);
             };
 
             void set_cli_value(const YAML::Node& value)
             {
                 p_wrapped->set_cli_value(value.as<cli_config_storage_type>());
+            };
+
+            void set_value(const std::string& value)
+            {
+                p_wrapped->set_value(detail::Source<T>::deserialize(value));
+            };
+
+            void clear_rc_values()
+            {
+                p_wrapped->clear_rc_values();
+            };
+
+            void clear_env_value()
+            {
+                p_wrapped->clear_env_value();
+            };
+
+            void clear_cli_value()
+            {
+                p_wrapped->clear_cli_value();
+            };
+
+            void clear_api_value()
+            {
+                p_wrapped->clear_api_value();
+            };
+
+            void clear_values()
+            {
+                p_wrapped->clear_values();
             };
 
             void set_context()
@@ -988,9 +1125,9 @@ namespace mamba
                 p_wrapped->long_description(desc);
             };
 
-            void compute_config(const ConfigurationLevel& level, bool hook_enabled)
+            void compute(const ConfigurationLevel& level, bool hook_enabled)
             {
-                p_wrapped->compute_config(level, hook_enabled);
+                p_wrapped->compute(level, hook_enabled);
             };
 
         private:
@@ -1016,6 +1153,13 @@ namespace mamba
 
         template <class T>
         Configurable<T>& get_wrapped()
+        {
+            auto& derived = dynamic_cast<Wrapper<T>&>(*p_impl);
+            return derived.get_wrapped();
+        };
+
+        template <class T>
+        Configurable<T>& as()
         {
             auto& derived = dynamic_cast<Wrapper<T>&>(*p_impl);
             return derived.get_wrapped();
@@ -1087,20 +1231,59 @@ namespace mamba
             return p_impl->rc_configurable();
         };
 
-        void add_rc_value(const YAML::Node& value, const std::string& source)
+        ConfigurableInterface& set_rc_value(const YAML::Node& value, const std::string& source)
         {
-            p_impl->add_rc_value(value, source);
+            p_impl->set_rc_value(value, source);
+            return *this;
         };
 
-        void add_rc_values(const std::map<std::string, YAML::Node>& values,
-                           const std::vector<std::string>& sources)
+        ConfigurableInterface& set_rc_values(const std::map<std::string, YAML::Node>& values,
+                                             const std::vector<std::string>& sources)
         {
-            p_impl->add_rc_values(values, sources);
+            p_impl->set_rc_values(values, sources);
+            return *this;
         };
 
-        void set_cli_value(const YAML::Node& value)
+        ConfigurableInterface& set_cli_value(const YAML::Node& value)
         {
             p_impl->set_cli_value(value);
+            return *this;
+        };
+
+        ConfigurableInterface& set_value(const std::string& value)
+        {
+            p_impl->set_value(value);
+            return *this;
+        };
+
+        ConfigurableInterface& clear_rc_values()
+        {
+            p_impl->clear_rc_values();
+            return *this;
+        };
+
+        ConfigurableInterface& clear_env_value()
+        {
+            p_impl->clear_env_value();
+            return *this;
+        };
+
+        ConfigurableInterface& clear_cli_value()
+        {
+            p_impl->clear_cli_value();
+            return *this;
+        };
+
+        ConfigurableInterface& clear_api_value()
+        {
+            p_impl->clear_api_value();
+            return *this;
+        };
+
+        ConfigurableInterface& clear_values()
+        {
+            p_impl->clear_values();
+            return *this;
         };
 
         ConfigurableInterface& set_context()
@@ -1109,9 +1292,10 @@ namespace mamba
             return *this;
         };
 
-        void set_env_var_name(const std::string& name = "MAMBA_")
+        ConfigurableInterface& set_env_var_name(const std::string& name = "")
         {
             p_impl->set_env_var_name(name);
+            return *this;
         };
 
         ConfigurableInterface& group(const std::string& name)
@@ -1132,14 +1316,18 @@ namespace mamba
             return *this;
         };
 
-        ConfigurableInterface& compute_config(const ConfigurationLevel& level
-                                              = ConfigurationLevel::kFile,
-                                              bool hook_enabled = true)
+        ConfigurableInterface& compute(const ConfigurationLevel& level = ConfigurationLevel::kFile,
+                                       bool hook_enabled = true)
         {
-            p_impl->compute_config(level, hook_enabled);
+            p_impl->compute(level, hook_enabled);
             return *this;
         };
     };
+
+    namespace detail
+    {
+        void check_target_prefix(int options);
+    }
 
     /*****************
      * Configuration *
@@ -1158,9 +1346,11 @@ namespace mamba
         std::vector<fs::path> sources();
         std::vector<fs::path> valid_sources();
 
-        void load();
-        void load(fs::path source);
-        void load(std::vector<fs::path> sources);
+        void load(int target_prefix_checks);
+        void load(fs::path source, int target_prefix_checks);
+        void load(std::vector<fs::path> sources, int target_prefix_checks);
+
+        void clear_rc_values();
 
         std::string dump(bool show_values = true,
                          bool show_sources = false,
@@ -1184,6 +1374,9 @@ namespace mamba
         ~Configuration() = default;
 
         void set_configurables();
+
+        void pre_load_impl(int target_prefix_checks);
+        void post_load_impl();
 
         static YAML::Node load_rc_file(const fs::path& file);
 

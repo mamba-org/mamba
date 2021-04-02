@@ -132,17 +132,21 @@ class TestCreate:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
 
-    @pytest.mark.parametrize("channels", [None, "both", "CLI_only", "file_only"])
+    @pytest.mark.parametrize(
+        "channels", [None, "both", "CLI_only", "file_only", "file_empty"]
+    )
     @pytest.mark.parametrize("env_name", [None, "both", "CLI_only", "file_only"])
-    @pytest.mark.parametrize("specs", ["both", "CLI_only", "file_only"])
+    @pytest.mark.parametrize("specs", [None, "both", "CLI_only", "file_only"])
     def test_yaml_spec_file(self, channels, env_name, specs):
         spec_file_content = []
-        if env_name not in ("CLI_only", None):
+        if env_name in ("both", "file_only"):
             spec_file_content += [f"name: {TestCreate.env_name}"]
-        if channels not in ("CLI_only", None):
+        if channels in ("both", "file_only"):
             spec_file_content += ["channels:", "  - https://repo.mamba.pm/conda-forge"]
-        if specs != "CLI_only":
+        if specs in ("both", "file_only"):
             spec_file_content += ["dependencies:", "  - xtensor", "  - xsimd"]
+        if specs == "file_empty":
+            spec_file_content += ["dependencies: ~"]
 
         yaml_spec_file = os.path.join(TestCreate.root_prefix, "yaml_env.yml")
         with open(yaml_spec_file, "w") as f:
@@ -150,7 +154,7 @@ class TestCreate:
 
         cmd = []
 
-        if specs != "file_only":
+        if specs not in ("file_only", None):
             cmd += ["xframe"]
 
         if env_name not in ("file_only", None):
@@ -161,7 +165,7 @@ class TestCreate:
 
         cmd += ["-f", yaml_spec_file, "--json"]
 
-        if env_name is None or specs == "CLI_only" or channels is None:
+        if specs is None or env_name is None or specs == "CLI_only" or channels is None:
             with pytest.raises(subprocess.CalledProcessError):
                 create(*cmd, default_channel=False)
         else:
@@ -171,6 +175,7 @@ class TestCreate:
             assert keys.issubset(set(res.keys()))
             assert res["success"]
             assert res["dry_run"] == dry_run_tests
+
             if env_name == "file_only":
                 assert res["prefix"] == TestCreate.prefix
             else:
@@ -183,7 +188,7 @@ class TestCreate:
 
             packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
             expected_packages = ["xtensor", "xtl", "xsimd"]
-            if specs != "file_only":
+            if specs not in ("file_only", None):
                 expected_packages.append("xframe")
             assert set(expected_packages).issubset(packages)
 
@@ -195,3 +200,32 @@ class TestCreate:
             for l in res["actions"]["LINK"]:
                 assert l["channel"].startswith(expected_channel)
                 assert l["url"].startswith(expected_channel)
+
+    @pytest.mark.parametrize("valid", [False, True])
+    def test_explicit_file(self, valid):
+        spec_file_content = [
+            "@EXPLICIT",
+            "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+        ]
+        if not valid:
+            spec_file_content += ["https://conda.anaconda.org/conda-forge/linux-64/xtl"]
+
+        spec_file = os.path.join(TestCreate.root_prefix, "explicit_specs.txt")
+        with open(spec_file, "w") as f:
+            f.write("\n".join(spec_file_content))
+
+        cmd = ("-p", TestCreate.prefix, "-q", "-f", spec_file)
+
+        if valid:
+            res = create(*cmd, default_channel=False)
+            assert res.splitlines() == ["Linking xtensor-0.21.5-hc9558a2_0"]
+
+            list_res = umamba_list("-p", TestCreate.prefix, "--json")
+            assert len(list_res) == 1
+            pkg = list_res[0]
+            assert pkg["name"] == "xtensor"
+            assert pkg["version"] == "0.21.5"
+            assert pkg["build_string"] == "hc9558a2_0"
+        else:
+            with pytest.raises(subprocess.CalledProcessError):
+                create(*cmd, default_channel=False)

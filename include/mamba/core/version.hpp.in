@@ -4,6 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifndef MAMBA_CORE_VERSION_HPP
+#define MAMBA_CORE_VERSION_HPP
+
+#include <string>
+
 #define MAMBA_VERSION_MAJOR @MAMBA_VERSION_MAJOR@
 #define MAMBA_VERSION_MINOR @MAMBA_VERSION_MINOR@
 #define MAMBA_VERSION_PATCH @MAMBA_VERSION_PATCH@
@@ -21,3 +26,7 @@ extern const char mamba_version[];
 extern int mamba_version_major;
 extern int mamba_version_minor;
 extern int mamba_version_patch;
+
+std::string version();
+
+#endif

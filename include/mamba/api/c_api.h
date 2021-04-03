@@ -1,0 +1,37 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#ifndef MAMBA_API_C_API_H
+#define MAMBA_API_C_API_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    void mamba_create();
+
+    void mamba_install();
+
+    void mamba_update(int update_all = 0);
+
+    void mamba_remove(int remove_all = 0);
+
+    void mamba_list(const char* regex = "");
+
+    void mamba_info();
+
+    void mamba_config_list();
+
+    void mamba_set_config(const char* name, const char* value);
+
+    void mamba_clear_config(const char* name);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

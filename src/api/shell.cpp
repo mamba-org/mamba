@@ -4,11 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
 
 #include "mamba/core/activation.hpp"
-#include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/shell_init.hpp"
 
@@ -27,7 +28,7 @@ namespace mamba
         config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
                     | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
 
-        std::string shell_prefix = prefix;
+        std::string shell_prefix = env::expand_user(prefix);
         std::unique_ptr<Activator> activator;
 
         if (shell_type.empty())

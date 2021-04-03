@@ -23,11 +23,10 @@ else:
     xsimd_hpp = "include/xsimd/xsimd.hpp"
 
 
-def get_umamba():
+def get_umamba(cwd=os.getcwd()):
     if os.getenv("TEST_MAMBA_EXE"):
         umamba = os.getenv("TEST_MAMBA_EXE")
     else:
-        cwd = os.getcwd()
         if platform.system() == "Windows":
             umamba_bin = "micromamba.exe"
         else:
@@ -42,8 +41,8 @@ def random_string(N=10):
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 
-def shell(*args):
-    umamba = get_umamba()
+def shell(*args, cwd=os.getcwd()):
+    umamba = get_umamba(cwd=cwd)
     cmd = [umamba, "shell"] + [arg for arg in args if arg]
     res = subprocess.check_output(cmd)
     if "--json" in args:

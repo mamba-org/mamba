@@ -22,7 +22,8 @@ namespace mamba
         auto& config = Configuration::instance();
 
         config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                    | MAMBA_ALLOW_NOT_ENV_PREFIX);
 
         detail::print_info();
     }
@@ -45,16 +46,38 @@ namespace mamba
             auto& ctx = Context::instance();
             std::vector<std::tuple<std::string, std::vector<std::string>>> items;
 
+            std::string name, location;
             if (!ctx.target_prefix.empty())
             {
-                auto split_prefix = rsplit(ctx.target_prefix.string(), "/", 1);
-                items.push_back({ "active environment", { env_name(ctx.target_prefix) } });
-                items.push_back({ "active env location", { ctx.target_prefix.string() } });
+                name = env_name(ctx.target_prefix);
+                location = ctx.target_prefix.string();
             }
             else
             {
-                items.push_back({ "active environment", { "None" } });
+                name = "None";
+                location = "-";
             }
+
+            if (std::getenv("CONDA_PREFIX") && (std::getenv("CONDA_PREFIX") == ctx.target_prefix))
+            {
+                name += " (active)";
+            }
+            else if (fs::exists(ctx.target_prefix))
+            {
+                if (!(fs::exists(ctx.target_prefix / "conda-meta")
+                      || (ctx.target_prefix == ctx.root_prefix)))
+                {
+                    name += " (not env)";
+                }
+            }
+            else
+            {
+                name += " (not found)";
+            }
+
+            items.push_back({ "environment", { name } });
+            items.push_back({ "env location", { location } });
+
             // items.insert( { "shell level", { 1 } });
             items.push_back({ "user config files", { env::home_directory() / ".mambarc" } });
 

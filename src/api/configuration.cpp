@@ -169,6 +169,17 @@ namespace mamba
                                 (then restart or source the contents of the shell init script))");
             }
 
+            if (!fs::exists(prefix))
+            {
+                fs::create_directories(prefix / "conda-meta");
+                fs::create_directories(prefix / "envs");
+                fs::create_directories(prefix / "pkgs");
+                std::fstream history;
+                history.open(prefix / "conda-meta" / "history", std::fstream::out);
+                history.close();
+            }
+            prefix = fs::weakly_canonical(prefix);
+
             auto& ctx = Context::instance();
             ctx.envs_dirs = { prefix / "envs" };
             ctx.pkgs_dirs = { prefix / "pkgs" };
@@ -215,7 +226,6 @@ namespace mamba
 
             bool allow_fallback = options & MAMBA_ALLOW_FALLBACK_PREFIX;
             bool allow_missing = options & MAMBA_ALLOW_MISSING_PREFIX;
-            bool allow_root = options & MAMBA_ALLOW_ROOT_PREFIX;
             bool allow_not_env = options & MAMBA_ALLOW_NOT_ENV_PREFIX;
             bool allow_existing = options & MAMBA_ALLOW_EXISTING_PREFIX;
             bool expect_existing = options & MAMBA_EXPECT_EXISTING_PREFIX;
@@ -237,12 +247,7 @@ namespace mamba
                     throw std::runtime_error("Aborting.");
                 }
             }
-
-            if ((prefix == ctx.root_prefix) && !allow_root)
-            {
-                LOG_ERROR << "'root_prefix' not accepted as 'target_prefix'";
-                throw std::runtime_error("Aborting.");
-            }
+            prefix = fs::weakly_canonical(prefix);
 
             if (fs::exists(prefix))
             {

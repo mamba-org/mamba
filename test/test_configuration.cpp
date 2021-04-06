@@ -25,10 +25,10 @@ namespace mamba
                     .at("show_banner")
                     .get_wrapped<bool>()
                     .set_value(false);
-                mamba::Configuration::instance().load(
-                    fs::path(unique_location),
-                    MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                        | MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+                mamba::Configuration::instance().load(fs::path(unique_location),
+                                                      MAMBA_ALLOW_EXISTING_PREFIX
+                                                          | MAMBA_ALLOW_FALLBACK_PREFIX
+                                                          | MAMBA_ALLOW_MISSING_PREFIX);
             }
 
             void load_test_config(std::vector<std::string> rcs)
@@ -53,10 +53,10 @@ namespace mamba
                     .at("show_banner")
                     .get_wrapped<bool>()
                     .set_value(false);
-                mamba::Configuration::instance().load(
-                    sources,
-                    MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                        | MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+                mamba::Configuration::instance().load(sources,
+                                                      MAMBA_ALLOW_EXISTING_PREFIX
+                                                          | MAMBA_ALLOW_FALLBACK_PREFIX
+                                                          | MAMBA_ALLOW_MISSING_PREFIX);
             }
 
             std::unique_ptr<TemporaryFile> tempfile_ptr
@@ -68,18 +68,17 @@ namespace mamba
 
         TEST_F(Configuration, target_prefix_options)
         {
-            EXPECT_EQ(!MAMBA_ALLOW_ROOT_PREFIX, 0);
             EXPECT_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, 0);
             EXPECT_EQ(!MAMBA_ALLOW_FALLBACK_PREFIX, 0);
             EXPECT_EQ(!MAMBA_ALLOW_MISSING_PREFIX, 0);
             EXPECT_EQ(!MAMBA_ALLOW_NOT_ENV_PREFIX, 0);
             EXPECT_EQ(!MAMBA_EXPECT_EXISTING_PREFIX, 0);
 
-            EXPECT_EQ(!MAMBA_ALLOW_ROOT_PREFIX, MAMBA_NOT_ALLOW_ROOT_PREFIX);
+            EXPECT_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, MAMBA_NOT_ALLOW_EXISTING_PREFIX);
 
-            EXPECT_EQ(MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
-                          | MAMBA_NOT_ALLOW_FALLBACK_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                          | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX,
+            EXPECT_EQ(MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_FALLBACK_PREFIX
+                          | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+                          | MAMBA_NOT_EXPECT_EXISTING_PREFIX,
                       0);
         }
 

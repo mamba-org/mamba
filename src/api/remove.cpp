@@ -22,8 +22,7 @@ namespace mamba
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
-        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto remove_specs = config.at("specs").value<std::vector<std::string>>();
 

@@ -21,9 +21,8 @@ namespace mamba
     {
         auto& config = Configuration::instance();
 
-        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                    | MAMBA_ALLOW_NOT_ENV_PREFIX);
+        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
+                    | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX);
 
         detail::print_info();
     }

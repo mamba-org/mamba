@@ -65,7 +65,7 @@ mamba_config_list()
 void
 mamba_set_config(const char* name, const char* value)
 {
-    Configuration::instance().at(name).set_value(value);
+    Configuration::instance().at(name).set_yaml_value(value);
 }
 
 void

@@ -46,14 +46,12 @@ main(int argc, char** argv)
 
     if (app.get_subcommands().size() == 0)
     {
-        Configuration::instance().load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                                       | MAMBA_ALLOW_MISSING_PREFIX);
+        Configuration::instance().load();
         Console::print(app.help());
     }
     if (app.got_subcommand("config") && app.get_subcommand("config")->get_subcommands().size() == 0)
     {
-        Configuration::instance().load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                                       | MAMBA_ALLOW_MISSING_PREFIX);
+        Configuration::instance().load();
         Console::print(app.get_subcommand("config")->help());
     }
 

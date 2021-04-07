@@ -22,7 +22,6 @@ init_constructor_parser(CLI::App* subcom)
 
     auto& prefix = config.insert(Configurable("constructor_prefix", fs::path(""))
                                      .group("cli")
-                                     .rc_configurable(false)
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
 
     subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description());
@@ -30,7 +29,6 @@ init_constructor_parser(CLI::App* subcom)
     auto& extract_conda_pkgs
         = config.insert(Configurable("constructor_extract_conda_pkgs", false)
                             .group("cli")
-                            .rc_configurable(false)
                             .description("Extract the conda pkgs in <prefix>/pkgs"));
     subcom->add_flag("--extract-conda-pkgs",
                      extract_conda_pkgs.set_cli_config(0),
@@ -38,7 +36,6 @@ init_constructor_parser(CLI::App* subcom)
 
     auto& extract_tarball = config.insert(Configurable("constructor_extract_tarball", false)
                                               .group("cli")
-                                              .rc_configurable(false)
                                               .description("Extract given tarball into prefix"));
     subcom->add_flag(
         "--extract-tarball", extract_tarball.set_cli_config(0), extract_tarball.description());
@@ -66,9 +63,12 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
     auto& config = Configuration::instance();
 
-    config.at("show_banner").get_wrapped<bool>().set_value(false);
-    config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                | MAMBA_ALLOW_MISSING_PREFIX);
+    config.at("show_banner").set_value(false);
+    config.at("use_target_prefix_fallback").set_value(true);
+    config.at("target_prefix_checks")
+        .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
+                   | MAMBA_ALLOW_MISSING_PREFIX);
+    config.load();
 
     if (extract_conda_pkgs)
     {

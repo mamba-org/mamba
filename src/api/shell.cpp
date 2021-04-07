@@ -24,9 +24,12 @@ namespace mamba
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
-        config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                    | MAMBA_ALLOW_MISSING_PREFIX);
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
+                       | MAMBA_ALLOW_MISSING_PREFIX);
+        config.load();
 
         std::string shell_prefix = env::expand_user(prefix);
         std::unique_ptr<Activator> activator;

@@ -463,17 +463,22 @@ namespace mamba
         kFile = 3
     };
 
-    int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 0;
-    int const MAMBA_ALLOW_FALLBACK_PREFIX = 1 << 1;
-    int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 2;
-    int const MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 3;
-    int const MAMBA_EXPECT_EXISTING_PREFIX = 1 << 4;
+    int const MAMBA_NO_PREFIX_CHECK = 1 << 0;
+    int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 1;
+    int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 2;
+    int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 3;
+    int const MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 4;
+    int const MAMBA_EXPECT_EXISTING_PREFIX = 1 << 5;
 
+    int const MAMBA_NOT_ALLOW_ROOT_PREFIX = 0;
     int const MAMBA_NOT_ALLOW_EXISTING_PREFIX = 0;
-    int const MAMBA_NOT_ALLOW_FALLBACK_PREFIX = 0;
     int const MAMBA_NOT_ALLOW_MISSING_PREFIX = 0;
     int const MAMBA_NOT_ALLOW_NOT_ENV_PREFIX = 0;
     int const MAMBA_NOT_EXPECT_EXISTING_PREFIX = 0;
+
+    int const MAMBA_CONF_FORCE_COMPUTE = 1 << 0;
+    int const MAMBA_CONF_DISABLE_HOOK = 1 << 1;
+
 
     template <class T>
     class Configurable
@@ -509,6 +514,10 @@ namespace mamba
 
         const std::vector<std::string>& sources();
 
+        const std::set<std::string>& needed() const;
+
+        const std::set<std::string>& implied() const;
+
         bool rc_configurable() const;
 
         bool rc_configured() const;
@@ -542,7 +551,11 @@ namespace mamba
 
         self_type& group(const std::string& group);
 
-        self_type& rc_configurable(bool value);
+        self_type& needs(const std::set<std::string>& names);
+
+        self_type& implies(const std::set<std::string>& names);
+
+        self_type& set_rc_configurable();
 
         self_type& description(const std::string& desc);
 
@@ -556,8 +569,16 @@ namespace mamba
 
         cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
 
-        self_type& compute(const ConfigurationLevel& level = ConfigurationLevel::kFile,
-                           bool hook_enabled = true);
+        self_type& compute(const int options = 0,
+                           const ConfigurationLevel& level = ConfigurationLevel::kFile);
+
+        void reset_compute_counter();
+
+        void lock();
+
+        void free();
+
+        bool locked();
 
     private:
         std::string m_name;
@@ -566,9 +587,14 @@ namespace mamba
         std::string m_long_description = "";
         std::string m_env_var = "";
 
-        bool m_rc_configurable = true;
+        bool m_rc_configurable = false;
         bool m_rc_configured = false;
         bool m_api_configured = false;
+
+        bool m_lock = false;
+        int m_compute_counter = 0;
+
+        std::set<std::string> m_needed_configs, m_implied_configs;
 
         std::map<std::string, T> m_rc_values, m_values;
         std::vector<std::string> m_rc_sources, m_sources;
@@ -620,12 +646,6 @@ namespace mamba
     const std::string& Configurable<T>::long_description() const
     {
         return m_long_description.empty() ? m_description : m_long_description;
-    };
-
-    template <class T>
-    const T& Configurable<T>::value()
-    {
-        return m_value;
     };
 
     template <class T>
@@ -748,43 +768,27 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::compute(const ConfigurationLevel& level, bool hook_enabled) -> self_type&
+    void Configurable<T>::reset_compute_counter()
     {
-        auto& ctx = Context::instance();
-        m_sources.clear();
-        m_values.clear();
+        m_compute_counter = 0;
+    }
 
-        if (api_configured() && (level >= ConfigurationLevel::kApi))
-        {
-            m_sources.push_back("API");
-            m_values.insert({ "API", m_value });
-        }
+    template <class T>
+    void Configurable<T>::lock()
+    {
+        m_lock = true;
+    }
 
-        if (cli_configured() && (level >= ConfigurationLevel::kCli))
-        {
-            m_sources.push_back("CLI");
-            m_values.insert({ "CLI", p_cli_config->value() });
-        }
+    template <class T>
+    void Configurable<T>::free()
+    {
+        m_lock = false;
+    }
 
-        if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
-        {
-            m_sources.push_back(m_env_var);
-            m_values.insert({ m_env_var, detail::Source<T>::deserialize(env::get(m_env_var)) });
-        }
-
-        if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
-        {
-            m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
-            m_values.insert(m_rc_values.begin(), m_rc_values.end());
-        }
-
-        if (!m_sources.empty())
-            detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
-
-        if (hook_enabled && (p_hook != NULL))
-            p_hook(m_value);
-
-        return *this;
+    template <class T>
+    bool Configurable<T>::locked()
+    {
+        return m_lock;
     }
 
     template <class T>
@@ -798,6 +802,8 @@ namespace mamba
         {
             m_env_var = name;
         }
+        m_needed_configs.insert("no_env");
+
         return *this;
     }
 
@@ -850,9 +856,10 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::rc_configurable(bool value) -> self_type&
+    auto Configurable<T>::set_rc_configurable() -> self_type&
     {
-        m_rc_configurable = value;
+        m_rc_configurable = true;
+        m_needed_configs.insert("rc_file");
         return *this;
     };
 
@@ -861,6 +868,32 @@ namespace mamba
     {
         m_description = desc;
         return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::needs(const std::set<std::string>& names) -> self_type&
+    {
+        m_needed_configs.insert(names.cbegin(), names.cend());
+        return *this;
+    };
+
+    template <class T>
+    auto Configurable<T>::implies(const std::set<std::string>& names) -> self_type&
+    {
+        m_implied_configs.insert(names.cbegin(), names.cend());
+        return *this;
+    };
+
+    template <class T>
+    const std::set<std::string>& Configurable<T>::needed() const
+    {
+        return m_needed_configs;
+    };
+
+    template <class T>
+    const std::set<std::string>& Configurable<T>::implied() const
+    {
+        return m_implied_configs;
     };
 
     template <class T>
@@ -927,15 +960,31 @@ namespace mamba
 
             virtual bool rc_configurable() const = 0;
 
-            virtual void set_rc_value(const YAML::Node& value, const std::string& source) = 0;
+            virtual const std::set<std::string>& needed() const = 0;
 
-            virtual void set_rc_values(const std::map<std::string, YAML::Node>& values,
-                                       const std::vector<std::string>& sources)
+            virtual const std::set<std::string>& implied() const = 0;
+
+            virtual bool locked() = 0;
+
+            virtual void reset_compute_counter() = 0;
+
+            virtual void lock() = 0;
+
+            virtual void free() = 0;
+
+            virtual void set_rc_yaml_value(const YAML::Node& value, const std::string& source) = 0;
+
+            virtual void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                            const std::vector<std::string>& sources)
                 = 0;
 
-            virtual void set_cli_value(const YAML::Node& value) = 0;
+            virtual void set_cli_yaml_value(const YAML::Node& value) = 0;
 
-            virtual void set_value(const std::string& value) = 0;
+            virtual void set_cli_yaml_value(const std::string& value) = 0;
+
+            virtual void set_yaml_value(const YAML::Node& value) = 0;
+
+            virtual void set_yaml_value(const std::string& value) = 0;
 
             virtual void clear_rc_values() = 0;
 
@@ -957,7 +1006,7 @@ namespace mamba
 
             virtual void long_description(const std::string& desc) = 0;
 
-            virtual void compute(const ConfigurationLevel& level, bool hook_enabled) = 0;
+            virtual void compute(const int options, const ConfigurationLevel& level) = 0;
         };
 
         template <class T>
@@ -1039,7 +1088,37 @@ namespace mamba
                 return p_wrapped->rc_configurable();
             };
 
-            void set_rc_value(const YAML::Node& value, const std::string& source)
+            const std::set<std::string>& needed() const
+            {
+                return p_wrapped->needed();
+            }
+
+            const std::set<std::string>& implied() const
+            {
+                return p_wrapped->implied();
+            }
+
+            bool locked()
+            {
+                return p_wrapped->locked();
+            }
+
+            void reset_compute_counter()
+            {
+                p_wrapped->reset_compute_counter();
+            }
+
+            void lock()
+            {
+                p_wrapped->lock();
+            }
+
+            void free()
+            {
+                p_wrapped->free();
+            }
+
+            void set_rc_yaml_value(const YAML::Node& value, const std::string& source)
             {
                 try
                 {
@@ -1052,8 +1131,8 @@ namespace mamba
                 }
             };
 
-            void set_rc_values(const std::map<std::string, YAML::Node>& values,
-                               const std::vector<std::string>& sources)
+            void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                    const std::vector<std::string>& sources)
             {
                 std::map<std::string, T> converted_values;
                 for (auto& y : values)
@@ -1063,12 +1142,23 @@ namespace mamba
                 p_wrapped->set_rc_values(converted_values, sources);
             };
 
-            void set_cli_value(const YAML::Node& value)
+            void set_cli_yaml_value(const YAML::Node& value)
             {
                 p_wrapped->set_cli_value(value.as<cli_config_storage_type>());
             };
 
-            void set_value(const std::string& value)
+            void set_cli_yaml_value(const std::string& value)
+            {
+                p_wrapped->set_cli_value(
+                    detail::Source<cli_config_storage_type>::deserialize(value));
+            };
+
+            void set_yaml_value(const YAML::Node& value)
+            {
+                p_wrapped->set_value(value.as<T>());
+            };
+
+            void set_yaml_value(const std::string& value)
             {
                 p_wrapped->set_value(detail::Source<T>::deserialize(value));
             };
@@ -1123,9 +1213,9 @@ namespace mamba
                 p_wrapped->long_description(desc);
             };
 
-            void compute(const ConfigurationLevel& level, bool hook_enabled)
+            void compute(const int options, const ConfigurationLevel& level)
             {
-                p_wrapped->compute(level, hook_enabled);
+                p_wrapped->compute(options, level);
             };
 
         private:
@@ -1135,6 +1225,8 @@ namespace mamba
         std::unique_ptr<WrapperBase> p_impl;
 
     public:
+        using self_type = ConfigurableInterface;
+
         template <class T>
         ConfigurableInterface(Configurable<T> configurable)
             : p_impl(
@@ -1152,15 +1244,22 @@ namespace mamba
         template <class T>
         Configurable<T>& get_wrapped()
         {
-            auto& derived = dynamic_cast<Wrapper<T>&>(*p_impl);
-            return derived.get_wrapped();
+            try
+            {
+                auto& derived = dynamic_cast<Wrapper<T>&>(*p_impl);
+                return derived.get_wrapped();
+            }
+            catch (const std::bad_cast& e)
+            {
+                LOG_FATAL << "Bad cast of Configurable '" << name() << "'";
+                throw e;
+            }
         };
 
         template <class T>
         Configurable<T>& as()
         {
-            auto& derived = dynamic_cast<Wrapper<T>&>(*p_impl);
-            return derived.get_wrapped();
+            return get_wrapped<T>();
         };
 
         const std::string& name() const
@@ -1192,6 +1291,12 @@ namespace mamba
         YAML::Node yaml_value() const
         {
             return p_impl->yaml_value();
+        };
+
+        template <class T>
+        T cli_value()
+        {
+            return get_wrapped<T>().cli_value();
         };
 
         YAML::Node cli_yaml_value() const
@@ -1229,95 +1334,150 @@ namespace mamba
             return p_impl->rc_configurable();
         };
 
-        ConfigurableInterface& set_rc_value(const YAML::Node& value, const std::string& source)
+        const std::set<std::string>& needed() const
         {
-            p_impl->set_rc_value(value, source);
+            return p_impl->needed();
+        }
+
+        const std::set<std::string>& implied() const
+        {
+            return p_impl->implied();
+        }
+        void reset_compute_counter()
+        {
+            p_impl->reset_compute_counter();
+        }
+
+        void lock()
+        {
+            p_impl->lock();
+        }
+
+        void free()
+        {
+            p_impl->free();
+        }
+
+        bool locked()
+        {
+            return p_impl->locked();
+        }
+
+        self_type& set_rc_yaml_value(const YAML::Node& value, const std::string& source)
+        {
+            p_impl->set_rc_yaml_value(value, source);
             return *this;
         };
 
-        ConfigurableInterface& set_rc_values(const std::map<std::string, YAML::Node>& values,
-                                             const std::vector<std::string>& sources)
+        self_type& set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                      const std::vector<std::string>& sources)
         {
-            p_impl->set_rc_values(values, sources);
+            p_impl->set_rc_yaml_values(values, sources);
             return *this;
         };
 
-        ConfigurableInterface& set_cli_value(const YAML::Node& value)
+        self_type& set_cli_yaml_value(const YAML::Node& value)
         {
-            p_impl->set_cli_value(value);
+            p_impl->set_cli_yaml_value(value);
             return *this;
         };
 
-        ConfigurableInterface& set_value(const std::string& value)
+        self_type& set_cli_yaml_value(const std::string& value)
         {
-            p_impl->set_value(value);
+            p_impl->set_cli_yaml_value(value);
             return *this;
         };
 
-        ConfigurableInterface& clear_rc_values()
+        template <class T>
+        self_type& set_cli_value(const typename detail::cli_config<T>::storage_type& value)
+        {
+            get_wrapped<T>().set_cli_value(value);
+            return *this;
+        };
+
+        self_type& set_yaml_value(const YAML::Node& value)
+        {
+            p_impl->set_yaml_value(value);
+            return *this;
+        };
+
+        self_type& set_yaml_value(const std::string& value)
+        {
+            p_impl->set_yaml_value(value);
+            return *this;
+        };
+
+        template <class T>
+        self_type& set_value(const T& value)
+        {
+            get_wrapped<T>().set_value(value);
+            return *this;
+        };
+
+        self_type& clear_rc_values()
         {
             p_impl->clear_rc_values();
             return *this;
         };
 
-        ConfigurableInterface& clear_env_value()
+        self_type& clear_env_value()
         {
             p_impl->clear_env_value();
             return *this;
         };
 
-        ConfigurableInterface& clear_cli_value()
+        self_type& clear_cli_value()
         {
             p_impl->clear_cli_value();
             return *this;
         };
 
-        ConfigurableInterface& clear_api_value()
+        self_type& clear_api_value()
         {
             p_impl->clear_api_value();
             return *this;
         };
 
-        ConfigurableInterface& clear_values()
+        self_type& clear_values()
         {
             p_impl->clear_values();
             return *this;
         };
 
-        ConfigurableInterface& set_context()
+        self_type& set_context()
         {
             p_impl->set_context();
             return *this;
         };
 
-        ConfigurableInterface& set_env_var_name(const std::string& name = "")
+        self_type& set_env_var_name(const std::string& name = "")
         {
             p_impl->set_env_var_name(name);
             return *this;
         };
 
-        ConfigurableInterface& group(const std::string& name)
+        self_type& group(const std::string& name)
         {
             p_impl->group(name);
             return *this;
         };
 
-        ConfigurableInterface& description(const std::string& desc)
+        self_type& description(const std::string& desc)
         {
             p_impl->description(desc);
             return *this;
         };
 
-        ConfigurableInterface& long_description(const std::string& desc)
+        self_type& long_description(const std::string& desc)
         {
             p_impl->long_description(desc);
             return *this;
         };
 
-        ConfigurableInterface& compute(const ConfigurationLevel& level = ConfigurationLevel::kFile,
-                                       bool hook_enabled = true)
+        self_type& compute(const int options = 0,
+                           const ConfigurationLevel& level = ConfigurationLevel::kFile)
         {
-            p_impl->compute(level, hook_enabled);
+            p_impl->compute(options, level);
             return *this;
         };
     };
@@ -1344,9 +1504,14 @@ namespace mamba
         std::vector<fs::path> sources();
         std::vector<fs::path> valid_sources();
 
-        void load(int target_prefix_checks);
-        void load(fs::path source, int target_prefix_checks);
-        void load(std::vector<fs::path> sources, int target_prefix_checks);
+        void set_possible_rc_sources();
+        void set_possible_rc_sources(const std::vector<fs::path>& sources);
+
+        void load_rc_files();
+
+        void load();
+
+        bool is_loading();
 
         void clear_rc_values();
 
@@ -1363,7 +1528,7 @@ namespace mamba
             const std::string& name, const typename detail::cli_config<T>::storage_type& init);
 
         template <class T>
-        Configurable<T>& insert(Configurable<T> configurable);
+        Configurable<T>& insert(Configurable<T> configurable, bool allow_redefinition = false);
 
         void reset_configurables();
 
@@ -1373,26 +1538,27 @@ namespace mamba
 
         void set_configurables();
 
-        void pre_load_impl(int target_prefix_checks);
-        void post_load_impl();
+        void reset_compute_counters();
+
+        void compute_loading_sequence();
+
+        void add_to_loading_sequence(std::vector<std::string>& seq, const std::string& name);
 
         static YAML::Node load_rc_file(const fs::path& file);
 
-        void set_possible_sources();
-        void set_possible_sources(fs::path source);
-        void set_possible_sources(std::vector<fs::path> sources);
         void update_sources();
-        void load_config_files();
 
         std::vector<fs::path> m_sources;
         std::vector<fs::path> m_valid_sources;
 
+        bool m_load_lock = false;
+
         std::map<std::string, ConfigurableInterface> m_config;
-        std::vector<std::string> m_config_order;
+        std::vector<std::string> m_config_order, m_loading_sequence;
     };
 
     template <class T>
-    Configurable<T>& Configuration::insert(Configurable<T> configurable)
+    Configurable<T>& Configuration::insert(Configurable<T> configurable, bool allow_redefinition)
     {
         std::string name = configurable.name();
         if (m_config.count(name) == 0)
@@ -1402,11 +1568,71 @@ namespace mamba
         }
         else
         {
-            LOG_DEBUG << "Redefinition of '" << name << "' skipped";
+            if (!allow_redefinition)
+            {
+                throw std::runtime_error("Redefinition of configurable '" + name
+                                         + "' not allowed.");
+            }
         }
 
         return m_config.at(name).get_wrapped<T>();
     }
+
+    template <class T>
+    auto Configurable<T>::compute(const int options, const ConfigurationLevel& level) -> self_type&
+    {
+        bool hook_disabled = options & MAMBA_CONF_DISABLE_HOOK;
+        bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;
+
+        if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
+            throw std::runtime_error("Multiple computation of '" + m_name
+                                     + "' detected during loading sequence.");
+
+        auto& ctx = Context::instance();
+        m_sources.clear();
+        m_values.clear();
+
+        if (api_configured() && (level >= ConfigurationLevel::kApi))
+        {
+            m_sources.push_back("API");
+            m_values.insert({ "API", m_value });
+        }
+
+        if (cli_configured() && (level >= ConfigurationLevel::kCli))
+        {
+            m_sources.push_back("CLI");
+            m_values.insert({ "CLI", p_cli_config->value() });
+        }
+
+        if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
+        {
+            m_sources.push_back(m_env_var);
+            m_values.insert({ m_env_var, detail::Source<T>::deserialize(env::get(m_env_var)) });
+        }
+
+        if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
+        {
+            m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
+            m_values.insert(m_rc_values.begin(), m_rc_values.end());
+        }
+
+        if (!m_sources.empty())
+            detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
+
+        if (!hook_disabled && (p_hook != NULL))
+            p_hook(m_value);
+
+        ++m_compute_counter;
+        return *this;
+    }
+
+    template <class T>
+    const T& Configurable<T>::value()
+    {
+        if (Configuration::instance().is_loading() && m_compute_counter == 0)
+            throw std::runtime_error("Using '" + m_name + "' value without previous computation.");
+        return m_value;
+    };
 
     template <class T>
     auto Configuration::link_cli_option(const std::string& name,

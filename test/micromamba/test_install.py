@@ -237,3 +237,38 @@ class TestInstall:
         else:
             with pytest.raises(subprocess.CalledProcessError):
                 install(*cmd, default_channel=False)
+
+    @pytest.mark.parametrize("f_count", [1, 2])
+    def test_spec_file(self, f_count):
+        file_content = [
+            "xtensor >=0.20",
+            "xsimd",
+        ]
+        spec_file = os.path.join(TestInstall.prefix, "file1.txt")
+        with open(spec_file, "w") as f:
+            f.write("\n".join(file_content))
+
+        file_cmd = ["-f", spec_file]
+
+        if f_count == 2:
+            file_content = [
+                "python=3.7.*",
+                "wheel",
+            ]
+            spec_file = os.path.join(TestInstall.prefix, "file2.txt")
+            with open(spec_file, "w") as f:
+                f.write("\n".join(file_content))
+            file_cmd += ["-f", spec_file]
+
+        cmd = ["-p", TestInstall.prefix, "-q"] + file_cmd
+
+        res = install(*cmd, "--json", default_channel=True)
+
+        assert res["success"]
+        assert res["dry_run"] == dry_run_tests
+
+        packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        expected_packages = ["xtensor", "xtl", "xsimd"]
+        if f_count == 2:
+            expected_packages += ["python", "wheel"]
+        assert set(expected_packages).issubset(packages)

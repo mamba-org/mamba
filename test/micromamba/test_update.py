@@ -189,3 +189,39 @@ class TestUpdate:
                 for l in res["actions"]["LINK"]:
                     assert l["channel"].startswith(expected_channel)
                     assert l["url"].startswith(expected_channel)
+
+    @pytest.mark.parametrize("f_count", [1, 2])
+    def test_spec_file(self, f_count):
+        file_content = [
+            "xtensor >=0.20",
+            "xsimd",
+        ]
+        spec_file = os.path.join(TestUpdate.prefix, "file1.txt")
+        with open(spec_file, "w") as f:
+            f.write("\n".join(file_content))
+
+        file_cmd = ["-f", spec_file]
+
+        if f_count == 2:
+            file_content = [
+                "python=3.7.*",
+                "wheel",
+            ]
+            spec_file = os.path.join(TestUpdate.prefix, "file2.txt")
+            with open(spec_file, "w") as f:
+                f.write("\n".join(file_content))
+            file_cmd += ["-f", spec_file]
+
+        cmd = ["-p", TestUpdate.prefix, "-q"] + file_cmd
+
+        res = install(*cmd, "--json", default_channel=True)
+
+        assert res["success"]
+        assert res["dry_run"] == dry_run_tests
+
+        packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        expected_packages = ["xtensor", "xtl"]
+        assert set(expected_packages).issubset(packages)
+
+        packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
+        assert set(expected_packages).issubset(packages)

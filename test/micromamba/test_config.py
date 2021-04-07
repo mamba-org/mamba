@@ -252,6 +252,9 @@ class TestConfigList:
             f.write("offline: true")
 
         try:
+            if "MAMBA_OFFLINE" in os.environ:
+                os.environ.pop("MAMBA_OFFLINE")
+
             assert (
                 config("list", "offline", f"--rc-file={rc_file}", "-s").splitlines()
                 == f"offline: true  # '{short_rc_file}'".splitlines()

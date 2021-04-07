@@ -27,9 +27,12 @@ namespace mamba
     {
         auto& config = Configuration::instance();
 
-        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                    | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-                    | MAMBA_EXPECT_EXISTING_PREFIX);
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
+                       | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+                       | MAMBA_EXPECT_EXISTING_PREFIX);
+        config.load();
 
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
@@ -396,7 +399,7 @@ namespace mamba
                         {
                             updated_channels.push_back(c);
                         }
-                        channels.set_cli_value(updated_channels);
+                        channels.set_cli_yaml_value(updated_channels);
                     }
                     else
                     {
@@ -407,7 +410,7 @@ namespace mamba
                     {
                         if (!env_name.cli_configured())
                         {
-                            env_name.set_cli_value(f["name"]);
+                            env_name.set_cli_yaml_value(f["name"]);
                         }
                     }
                     {
@@ -436,7 +439,7 @@ namespace mamba
                         {
                             updated_specs.push_back(s);
                         }
-                        specs.set_cli_value(updated_specs);
+                        specs.set_cli_yaml_value(updated_specs);
                     }
                     else
                     {
@@ -482,10 +485,8 @@ namespace mamba
                             }
 
                             specs.clear_values();
-                            specs.get_wrapped<std::vector<std::string>>()
-                                .set_value(explicit_specs)
-                                .compute();
-                            config.at("explicit_install").as<bool>().set_value(true);
+                            specs.set_value(explicit_specs);
+                            config.at("explicit_install").set_value(true);
 
                             return;
                         }
@@ -499,7 +500,18 @@ namespace mamba
                             f_specs.push_back(line);
                         }
                     }
-                    config.at("specs").set_rc_value(YAML::Node(f_specs), file);
+
+                    auto& s = specs.as<std::vector<std::string>>();
+                    if (specs.cli_configured())
+                    {
+                        auto current_specs = s.cli_value();
+                        current_specs.insert(current_specs.end(), f_specs.cbegin(), f_specs.cend());
+                        s.set_cli_value(current_specs);
+                    }
+                    else
+                    {
+                        s.set_cli_config(f_specs);
+                    }
                 }
             }
         }

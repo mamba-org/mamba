@@ -25,10 +25,11 @@ namespace mamba
                     .at("show_banner")
                     .get_wrapped<bool>()
                     .set_value(false);
-                mamba::Configuration::instance().load(fs::path(unique_location),
-                                                      MAMBA_ALLOW_EXISTING_PREFIX
-                                                          | MAMBA_ALLOW_FALLBACK_PREFIX
-                                                          | MAMBA_ALLOW_MISSING_PREFIX);
+                mamba::Configuration::instance()
+                    .at("rc_file")
+                    .get_wrapped<std::vector<fs::path>>()
+                    .set_value({ fs::path(unique_location) });
+                mamba::Configuration::instance().load();
             }
 
             void load_test_config(std::vector<std::string> rcs)
@@ -53,10 +54,11 @@ namespace mamba
                     .at("show_banner")
                     .get_wrapped<bool>()
                     .set_value(false);
-                mamba::Configuration::instance().load(sources,
-                                                      MAMBA_ALLOW_EXISTING_PREFIX
-                                                          | MAMBA_ALLOW_FALLBACK_PREFIX
-                                                          | MAMBA_ALLOW_MISSING_PREFIX);
+                mamba::Configuration::instance()
+                    .at("rc_file")
+                    .get_wrapped<std::vector<fs::path>>()
+                    .set_value(sources);
+                mamba::Configuration::instance().load();
             }
 
             std::unique_ptr<TemporaryFile> tempfile_ptr
@@ -69,14 +71,13 @@ namespace mamba
         TEST_F(Configuration, target_prefix_options)
         {
             EXPECT_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, 0);
-            EXPECT_EQ(!MAMBA_ALLOW_FALLBACK_PREFIX, 0);
             EXPECT_EQ(!MAMBA_ALLOW_MISSING_PREFIX, 0);
             EXPECT_EQ(!MAMBA_ALLOW_NOT_ENV_PREFIX, 0);
             EXPECT_EQ(!MAMBA_EXPECT_EXISTING_PREFIX, 0);
 
             EXPECT_EQ(!MAMBA_ALLOW_EXISTING_PREFIX, MAMBA_NOT_ALLOW_EXISTING_PREFIX);
 
-            EXPECT_EQ(MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_FALLBACK_PREFIX
+            EXPECT_EQ(MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
                           | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
                           | MAMBA_NOT_EXPECT_EXISTING_PREFIX,
                       0);
@@ -317,7 +318,7 @@ namespace mamba
                                    .c_str()));
 
             config.at("channels")
-                .set_value("https://my.channel, https://my2.channel")
+                .set_yaml_value("https://my.channel, https://my2.channel")
                 .compute()
                 .set_context();
             EXPECT_EQ(config.dump(true, true),
@@ -387,7 +388,7 @@ namespace mamba
                                    .c_str()));
 
             config.at("default_channels")
-                .set_value("https://my.channel, https://my2.channel")
+                .set_yaml_value("https://my.channel, https://my2.channel")
                 .compute()
                 .set_context();
             EXPECT_EQ(config.dump(true, true),
@@ -431,7 +432,7 @@ namespace mamba
             EXPECT_EQ(config.dump(true, true),
                       "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'");
 
-            config.at("channel_alias").set_value("https://my.channel").compute().set_context();
+            config.at("channel_alias").set_yaml_value("https://my.channel").compute().set_context();
             EXPECT_EQ(config.dump(true, true),
                       "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '"
                           + src1 + "'");
@@ -510,7 +511,7 @@ namespace mamba
             EXPECT_EQ(config.dump(true, true),
                       "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
-            config.at("ssl_verify").set_value("/new/test").compute().set_context();
+            config.at("ssl_verify").set_yaml_value("/new/test").compute().set_context();
             EXPECT_EQ(config.dump(true, true),
                       "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
@@ -542,7 +543,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
 
-            config.at("cacert_path").set_value("/new/test").compute().set_context();
+            config.at("cacert_path").set_yaml_value("/new/test").compute().set_context();
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
                                 cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
@@ -612,7 +613,7 @@ namespace mamba
         {                                                                                          \
             expected = std::string(#NAME) + ": true  # 'API' > '" + env_name + "'";                \
         }                                                                                          \
-        config.at(#NAME).set_value("true").compute().set_context();                                \
+        config.at(#NAME).set_yaml_value("true").compute().set_context();                           \
         EXPECT_EQ((config.dump(true, true, false, false, false, false, { #NAME })), expected);     \
         EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
         EXPECT_TRUE(CTX);                                                                          \
@@ -664,7 +665,7 @@ namespace mamba
                       ChannelPriority::kStrict);
             EXPECT_EQ(ctx.channel_priority, ChannelPriority::kStrict);
 
-            config.at("channel_priority").set_value("flexible").compute().set_context();
+            config.at("channel_priority").set_yaml_value("flexible").compute().set_context();
             EXPECT_EQ(config.dump(true, true),
                       "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src
                           + "'");
@@ -737,7 +738,7 @@ namespace mamba
                 ctx.pinned_packages,
                 std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
 
-            config.at("pinned_packages").set_value("pytest").compute().set_context();
+            config.at("pinned_packages").set_yaml_value("pytest").compute().set_context();
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
                                 pinned_packages:
@@ -814,7 +815,7 @@ namespace mamba
                       VerificationLevel::kWarn);
             EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
-            config.at("safety_checks").set_value("disabled").compute().set_context();
+            config.at("safety_checks").set_yaml_value("disabled").compute().set_context();
             EXPECT_EQ(config.dump(true, true),
                       "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
             EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),

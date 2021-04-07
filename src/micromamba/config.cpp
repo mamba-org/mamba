@@ -9,6 +9,7 @@
 #include "mamba/api/config.hpp"
 #include "mamba/api/configuration.hpp"
 
+#include <yaml-cpp/yaml.h>
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -89,6 +90,38 @@ set_config_describe_command(CLI::App* subcom)
 }
 
 void
+set_config_set_command(CLI::App* subcom)
+{
+}
+
+
+void
+set_config_get_command(CLI::App* subcom)
+{
+    auto& config = Configuration::instance();
+
+    auto& key = config.insert(
+    Configurable("key", std::string("")).group("Output, Prompt and Flow Control").description("A shell type"));
+
+    subcom->add_option("key", key.set_cli_config(""), key.description());
+
+    subcom->callback([&]() {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        YAML::Emitter out;
+
+        std::cout << config.dump(MAMBA_SHOW_CONFIG_VALUES, { key.value() });
+
+        config.operation_teardown();
+    });
+}
+
+void
 set_config_command(CLI::App* subcom)
 {
     init_config_options(subcom);
@@ -102,4 +135,12 @@ set_config_command(CLI::App* subcom)
     auto describe_subcom
         = subcom->add_subcommand("describe", "Describe given configuration parameters");
     set_config_describe_command(describe_subcom);
+
+    auto set_subcom
+        = subcom->add_subcommand("set", "Set a configuration value");
+    set_config_set_command(set_subcom);
+
+    auto get_subcom
+        = subcom->add_subcommand("get", "Get a configuration value");
+    set_config_get_command(get_subcom);
 }

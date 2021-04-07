@@ -297,3 +297,13 @@ class TestConfigList:
             if "MAMBA_OFFLINE" in os.environ:
                 os.environ.pop("MAMBA_OFFLINE")
             shutil.rmtree(os.path.expanduser(os.path.join("~", "test_mamba")))
+
+class TestConfigModifiers:
+    @pytest.mark.parametrize("rc_file", ["json: true"])
+    def test_get(self, rc_file):
+        assert (
+            config(
+                "get", "json"
+            ).splitlines()
+            == "true".splitlines()
+        )

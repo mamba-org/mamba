@@ -16,7 +16,7 @@
 namespace mamba
 {
     void shell(const std::string& action,
-               const std::string& shell_type,
+               std::string& shell_type,
                const std::string& prefix = "",
                bool stack = false);
 }

@@ -17,7 +17,7 @@
 namespace mamba
 {
     void shell(const std::string& action,
-               const std::string& shell_type,
+               std::string& shell_type,
                const std::string& prefix,
                bool stack)
     {
@@ -31,23 +31,27 @@ namespace mamba
                        | MAMBA_ALLOW_MISSING_PREFIX);
         config.load();
 
-        std::string shell_prefix = env::expand_user(prefix);
-        std::unique_ptr<Activator> activator;
-
         if (shell_type.empty())
         {
-            std::cout << "Please provide a shell type." << std::endl;
-            std::cout << "Run with --help for more information." << std::endl;
-            return;
-            // TODO: doesn't work yet
-            // std::string guessed_shell = guess_shell();
-            // if (!guessed_shell.empty())
-            // {
-            //     // std::cout << "Guessing shell " << termcolor::green << guessed_shell <<
-            //     // termcolor::reset << std::endl;
-            //     shell_options.shell_type = guessed_shell;
-            // }
+            LOG_DEBUG << "No shell type provided";
+
+            std::string guessed_shell = guess_shell();
+            if (!guessed_shell.empty())
+            {
+                LOG_DEBUG << "Guessed shell: '" << guessed_shell << "'";
+                shell_type = guessed_shell;
+            }
+
+            if (shell_type.empty())
+            {
+                std::cout << "Please provide a shell type." << std::endl;
+                std::cout << "Run with --help for more information." << std::endl;
+                return;
+            }
         }
+
+        std::string shell_prefix = env::expand_user(prefix);
+        std::unique_ptr<Activator> activator;
 
         if (shell_type == "bash" || shell_type == "zsh" || shell_type == "posix")
         {
@@ -67,7 +71,8 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Not handled 'shell_type'");
+            LOG_ERROR << "Not handled 'shell_type': " << shell_type;
+            return;
         }
 
         if (action == "init")
@@ -81,7 +86,21 @@ namespace mamba
         else if (action == "hook")
         {
             // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
-            std::cout << activator->hook();
+            if (ctx.json)
+            {
+                JsonLogger::instance().json_write(
+                    { { "success", true },
+                      { "operation", "shell_hook" },
+                      { "context", { { "shell_type", shell_type } } },
+                      { "actions", { { "print", { activator->hook() } } } } });
+                if (Context::instance().json)
+                    Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4),
+                                              true);
+            }
+            else
+            {
+                std::cout << activator->hook();
+            }
         }
         else if (action == "activate")
         {

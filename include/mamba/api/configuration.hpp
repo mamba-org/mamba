@@ -529,7 +529,9 @@ namespace mamba
 
         const std::string& long_description() const;
 
-        const T& value();
+        const T& value() const;
+
+        T& value();
 
         T cli_value();
 
@@ -1310,7 +1312,13 @@ namespace mamba
         };
 
         template <class T>
-        const T& value()
+        const T& value() const
+        {
+            return get_wrapped<T>().value();
+        };
+
+        template <class T>
+        T& value()
         {
             return get_wrapped<T>().value();
         };
@@ -1654,7 +1662,15 @@ namespace mamba
     }
 
     template <class T>
-    const T& Configurable<T>::value()
+    const T& Configurable<T>::value() const
+    {
+        if (Configuration::instance().is_loading() && m_compute_counter == 0)
+            throw std::runtime_error("Using '" + m_name + "' value without previous computation.");
+        return m_value;
+    };
+
+    template <class T>
+    T& Configurable<T>::value()
     {
         if (Configuration::instance().is_loading() && m_compute_counter == 0)
             throw std::runtime_error("Using '" + m_name + "' value without previous computation.");

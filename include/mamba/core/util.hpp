@@ -136,6 +136,7 @@ namespace mamba
 
     bool starts_with(const std::string_view& str, const std::string_view& prefix);
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
+    bool contains(const std::string_view& str, const std::string_view& sub_str);
 
     std::string_view strip(const std::string_view& input);
     std::string_view lstrip(const std::string_view& input);

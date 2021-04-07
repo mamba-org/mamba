@@ -197,6 +197,11 @@ namespace mamba
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
     }
 
+    bool contains(const std::string_view& str, const std::string_view& sub_str)
+    {
+        return str.find(sub_str) != std::string::npos;
+    }
+
     std::string_view strip(const std::string_view& input)
     {
         return strip(input, WHITESPACES);

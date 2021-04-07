@@ -384,6 +384,7 @@ jobs:
           call conda activate mamba-tests
 
           set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+          set MAMBA_TEST_SHELL_TYPE=cmd.exe
 
           pytest test/micromamba
 
@@ -422,6 +423,7 @@ jobs:
           conda activate mamba-tests
 
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+          $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
           pytest test/micromamba
 
@@ -460,5 +462,6 @@ jobs:
           conda activate mamba-tests
 
           export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_TEST_SHELL_TYPE=bash
 
           pytest test/micromamba

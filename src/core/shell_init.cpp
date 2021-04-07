@@ -19,6 +19,7 @@
 #ifndef _WIN32
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
+#include <libProc.h>
 #endif
 #include <inttypes.h>
 #if defined(__linux__)
@@ -29,6 +30,7 @@
 #else
 #include <windows.h>
 #include <intrin.h>
+#include <tlhelp32.h>
 #include "thirdparty/WinReg.hpp"
 #endif
 
@@ -68,39 +70,115 @@ namespace mamba
                                                 "#endregion(?:\n|\r\n)?");
     }
 
+
+#ifdef _WIN32
+    DWORD getppid()
+    {
+        HANDLE hSnapshot;
+        PROCESSENTRY32 pe32;
+        DWORD ppid = 0, pid = GetCurrentProcessId();
+
+        hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        __try
+        {
+            if (hSnapshot == INVALID_HANDLE_VALUE)
+                __leave;
+
+            ZeroMemory(&pe32, sizeof(pe32));
+            pe32.dwSize = sizeof(pe32);
+            if (!Process32First(hSnapshot, &pe32))
+                __leave;
+
+            do
+            {
+                if (pe32.th32ProcessID == pid)
+                {
+                    ppid = pe32.th32ParentProcessID;
+                    break;
+                }
+            } while (Process32Next(hSnapshot, &pe32));
+        }
+        __finally
+        {
+            if (hSnapshot != INVALID_HANDLE_VALUE)
+                CloseHandle(hSnapshot);
+        }
+        return ppid;
+    }
+
+    std::string get_process_name_by_pid(DWORD processId)
+    {
+        std::string ret;
+        HANDLE handle = OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            FALSE,
+            processId /* This is the PID, you can find one from windows task manager */
+        );
+        if (handle)
+        {
+            DWORD buffSize = 1024;
+            CHAR buffer[1024];
+            if (QueryFullProcessImageNameA(handle, 0, buffer, &buffSize))
+            {
+                ret = buffer;
+            }
+            else
+            {
+                printf("Error GetModuleBaseNameA : %lu", GetLastError());
+            }
+            CloseHandle(handle);
+        }
+        else
+        {
+            printf("Error OpenProcess : %lu", GetLastError());
+        }
+        return ret;
+    }
+#elif defined(__APPLE__)
+    std::string get_process_name_by_pid(const int pid)
+    {
+        std::string ret;
+        char name[1024];
+        proc_name(pid, name, sizeof(name));
+        ret = name;
+
+        return ret;
+    }
+#elif defined(__linux__)
+    std::string get_process_name_by_pid(const int pid)
+    {
+        std::ifstream f(concat("/proc/", std::to_string(pid), "/status"));
+        if (f.good())
+        {
+            std::string l;
+            std::getline(f, l);
+            return l;
+        }
+        return "";
+    }
+#endif
+
     std::string guess_shell()
     {
-        auto shell = env::get("shell");
-        // auto penv = [](const char* x) {
-        //     std::cout << x << ": " << (std::getenv(x)  ? std::getenv(x) : "") << std::endl;
-        // };
-        // penv("BASH_VERSION");
-        // penv("XONSH_VERSION") ;
-        // penv("CMDEXTVERSION");
-        // penv("PSModulePath");
+        std::string parent_process_name = get_process_name_by_pid(getppid());
 
-        auto bash_version = env::get("BASH_VERSION");
-        if (!bash_version.empty() || shell == "bash")
+        if (contains(parent_process_name, "bash"))
         {
             return "bash";
         }
-        auto zsh_version = env::get("ZSH_VERSION");
-        if (!zsh_version.empty() || shell == "zsh")
+        if (contains(parent_process_name, "zsh"))
         {
             return "zsh";
         }
-        auto xonsh_version = env::get("XONSH_VERSION");
-        if (!xonsh_version.empty())
+        if (contains(parent_process_name, "xonsh"))
         {
             return "xonsh";
         }
-        auto cmd_exe_version = env::get("CMDEXTVERSION");
-        if (!cmd_exe_version.empty())
+        if (contains(parent_process_name, "cmd.exe"))
         {
             return "cmd.exe";
         }
-        auto psmodule_path = env::get("PSModulePath");
-        if (!psmodule_path.empty())
+        if (contains(parent_process_name, "powershell"))
         {
             return "powershell";
         }
@@ -396,12 +474,11 @@ namespace mamba
         else if (shell == "cmd.exe")
         {
             init_root_prefix_cmdexe(Context::instance().root_prefix);
-            std::cout
-                << termcolor::red << "Hook installed, now 'manually' execute:\n\n"
-                << termcolor::reset << "       CALL "
+            LOG_WARNING << "Hook installed, now 'manually' execute:";
+            LOG_WARNING
+                << "       CALL "
                 << std::quoted(
-                       (Context::instance().root_prefix / "condabin" / "mamba_hook.bat").string())
-                << std::endl;
+                       (Context::instance().root_prefix / "condabin" / "mamba_hook.bat").string());
         }
         return "";
     }

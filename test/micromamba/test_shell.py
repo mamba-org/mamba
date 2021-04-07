@@ -29,7 +29,7 @@ class TestShell:
 
     @classmethod
     def setup(cls):
-        os.makedirs(TestShell.root_prefix, exist_ok=False)
+        os.makedirs(TestShell.root_prefix, exist_ok=True)
 
     @classmethod
     def teardown_class(cls):
@@ -38,7 +38,7 @@ class TestShell:
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
-        shutil.rmtree(TestShell.root_prefix)
+        # shutil.rmtree(TestShell.root_prefix)
 
     @pytest.mark.parametrize(
         "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh"]
@@ -59,7 +59,85 @@ class TestShell:
         elif shell_type == "xonsh":
             assert res.count(mamba_exe) == 8
         elif shell_type == "cmd.exe":
-            assert res
+            assert res == ""
+
+        res = shell("hook", "-s", shell_type, "--json")
+        expected_keys = {"success", "operation", "context", "actions"}
+        assert set(res.keys()) == expected_keys
+
+        assert res["success"]
+        assert res["operation"] == "shell_hook"
+        assert res["context"]["shell_type"] == shell_type
+        assert set(res["actions"].keys()) == {"print"}
+
+        if shell_type != "cmd.exe":
+            assert res["actions"]["print"]
+
+    def test_auto_detection(self):
+        def decode_json_output(res):
+            try:
+                j = json.loads(res)
+                return j
+            except json.decoder.JSONDecodeError as e:
+                print(f"Error when loading JSON output from {res}")
+                raise (e)
+
+        def custom_shell(shell):
+            umamba = get_umamba(cwd=os.getcwd())
+            f_name = os.path.join(
+                TestShell.root_prefix, "shell_script_" + random_string()
+            )
+            if shell == "cmd.exe":
+                f_name += ".bat"
+                cmd = [shell, "/c", f_name]
+                with open(f_name, "w") as f:
+                    f.write(f"@Echo off\r\n{umamba} shell hook --json")
+            elif shell == "powershell":
+                f_name += ".ps1"
+                cmd = [shell, f_name]
+                with open(f_name, "w") as f:
+                    if "CI" in os.environ:
+                        f.write(
+                            f"conda activate {TestShell.current_prefix} | out-null\n"
+                        )
+                    f.write(f"& {umamba} shell hook --json")
+            else:
+                cmd = [shell, f_name]
+                if platform.system() == "Windows":  # bash on Windows
+                    with open(f_name, "w") as f:
+                        f.write("build/micromamba.exe shell hook --json")
+                else:
+                    with open(f_name, "w") as f:
+                        f.write(f"{umamba} shell hook --json")
+
+            return decode_json_output(subprocess.check_output(cmd))
+
+        if platform.system() == "Windows":
+            if "MAMBA_TEST_SHELL_TYPE" not in os.environ:
+                pytest.skip(
+                    "'MAMBA_TEST_SHELL_TYPE' env variable needs to be defined to run this test"
+                )
+            shell_type = os.environ["MAMBA_TEST_SHELL_TYPE"]
+        elif platform.system() in ("Linux", "Darwin"):
+            shell_type = "bash"
+        else:
+            pytest.skip("Unsupported platform")
+
+        res = custom_shell(shell_type)
+
+        expected_keys = {"success", "operation", "context", "actions"}
+        assert set(res.keys()) == expected_keys
+
+        assert res["success"]
+        assert res["operation"] == "shell_hook"
+        assert res["context"]["shell_type"] == shell_type
+        assert set(res["actions"].keys()) == {"print"}
+        assert res["actions"]["print"]
+
+        if shell_type != "cmd.exe":
+            assert res["actions"]["print"][0]
+        else:
+            assert res["actions"]["print"][0] == ""
 
     @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("root", [False, True])

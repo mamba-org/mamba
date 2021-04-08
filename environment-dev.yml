@@ -7,7 +7,7 @@ dependencies:
   - ninja
   - nlohmann_json
   - pybind11
-  - libsolv
+  - libsolv >=0.7.18
   - libarchive
   - libcurl
   - cxx-compiler

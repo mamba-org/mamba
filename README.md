@@ -138,9 +138,9 @@ For more instructions (including OS X) check out https://gist.github.com/wolfv/f
 
 ### Development installation
 
-Make sure to have the following requirements in your conda environment:
+Make sure you install mamba's requirements in your conda environment:
 
-`mamba install cmake compilers pybind11 libsolv libarchive libcurl nlohmann_json pip cpp-filesystem yaml-cpp reproc-cpp -c conda-forge`
+`mamba env update --name <conda_env> --file environment-dev.yml`
 
 If you build mamba in a different environment than base, you must also install conda in
 that environment:

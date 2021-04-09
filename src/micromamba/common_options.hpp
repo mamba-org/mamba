@@ -15,20 +15,6 @@
 #include <CLI/CLI.hpp>
 #endif
 
-#ifdef ENABLE_CONTEXT_DEBUG_PRINT
-#define CONTEXT_DEBUGGING_SNIPPET                                                                  \
-    if (configuration.at("print_context_only").value<bool>())                                      \
-    {                                                                                              \
-        Context::instance().debug_print();                                                         \
-        exit(0);                                                                                   \
-    }
-#else
-#define CONTEXT_DEBUGGING_SNIPPET
-#endif
-
-#define SET_BOOLEAN_FLAG(NAME)                                                                     \
-    ctx.NAME = create_options.NAME ? ((create_options.NAME == 1) ? true : false) : ctx.NAME;
-
 
 void
 init_rc_options(CLI::App* subcom);

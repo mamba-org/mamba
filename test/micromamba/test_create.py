@@ -12,6 +12,7 @@ import pytest
 from .helpers import *
 
 
+@pytest.mark.skipif(dry_run_tests == DryRun.ULTRA_DRY, reason="Running ultra dry tests")
 class TestCreate:
 
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
@@ -73,7 +74,7 @@ class TestCreate:
             res = create("-n", TestCreate.env_name, *cmd)
 
         assert res["success"]
-        assert res["dry_run"] == dry_run_tests
+        assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
 
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
@@ -85,7 +86,7 @@ class TestCreate:
         expected_packages = {"xtensor", "xtl"}
         assert expected_packages.issubset(packages)
 
-        if not dry_run_tests:
+        if dry_run_tests == DryRun.OFF:
             pkg_name = get_concrete_pkg(res, "xtensor")
             orig_file_path = get_pkg(
                 pkg_name, xtensor_hpp, TestCreate.current_root_prefix
@@ -143,7 +144,7 @@ class TestCreate:
             )
 
         assert res["success"]
-        assert res["dry_run"] == dry_run_tests
+        assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
 
     @pytest.mark.parametrize(
         "env_selector,similar_but_not_same,similar_append",
@@ -278,7 +279,7 @@ class TestCreate:
             keys = {"success", "prefix", "actions", "dry_run"}
             assert keys.issubset(set(res.keys()))
             assert res["success"]
-            assert res["dry_run"] == dry_run_tests
+            assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
 
             if env_name == "file_only":
                 assert res["prefix"] == TestCreate.prefix
@@ -361,10 +362,276 @@ class TestCreate:
         res = create(*cmd, "--json", default_channel=True)
 
         assert res["success"]
-        assert res["dry_run"] == dry_run_tests
+        assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
 
         packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         expected_packages = ["xtensor", "xtl", "xsimd"]
         if f_count == 2:
             expected_packages += ["python", "wheel"]
         assert set(expected_packages).issubset(packages)
+
+
+class TestCreateConfig:
+
+    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_prefix = os.environ["CONDA_PREFIX"]
+
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
+
+    @classmethod
+    def setup(cls):
+        os.makedirs(TestCreate.root_prefix, exist_ok=False)
+
+    @classmethod
+    def setup_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestCreateConfig.root_prefix
+        os.environ["CONDA_PREFIX"] = TestCreateConfig.prefix
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestCreateConfig.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestCreateConfig.current_prefix
+
+    @classmethod
+    def setup(cls):
+        os.makedirs(
+            os.path.join(TestCreateConfig.root_prefix, "conda-meta"), exist_ok=False
+        )
+
+    @classmethod
+    def teardown(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestCreateConfig.root_prefix
+        os.environ["CONDA_PREFIX"] = TestCreateConfig.prefix
+
+        for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
+            if v in os.environ:
+                os.environ.pop(v)
+
+        shutil.rmtree(TestCreateConfig.root_prefix)
+
+    @classmethod
+    def common_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
+        assert res["root_prefix"] == root_prefix
+        assert res["target_prefix"] == target_prefix
+        assert not res["use_target_prefix_fallback"]
+        checks = (
+            MAMBA_NOT_ALLOW_ROOT_PREFIX
+            | MAMBA_NOT_ALLOW_EXISTING_PREFIX
+            | MAMBA_NOT_ALLOW_MISSING_PREFIX
+            | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+            | MAMBA_NOT_EXPECT_EXISTING_PREFIX
+        )
+        assert res["target_prefix_checks"] == checks
+
+    @pytest.mark.parametrize(
+        "source,file_type",
+        [
+            ("cli_only", None),
+            ("spec_file_only", "classic"),
+            ("spec_file_only", "explicit"),
+            ("spec_file_only", "yaml"),
+            ("both", "classic"),
+            ("both", "explicit"),
+            ("both", "yaml"),
+        ],
+    )
+    def test_specs(self, source, file_type):
+        cmd = ["-p", TestCreateConfig.prefix]
+        specs = []
+
+        if source in ("cli_only", "both"):
+            specs = ["xframe", "xtl"]
+            cmd += specs
+
+        if source in ("spec_file_only", "both"):
+            f_name = random_string()
+            spec_file = os.path.join(TestCreateConfig.root_prefix, f_name)
+
+            if file_type == "classic":
+                file_content = ["xtensor >0.20", "xsimd"]
+                specs += file_content
+            elif file_type == "explicit":
+                explicit_specs = [
+                    "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+                    "https://conda.anaconda.org/conda-forge/linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
+                ]
+                file_content = ["@EXPLICIT"] + explicit_specs
+                specs = explicit_specs
+            else:  # yaml
+                spec_file += ".yaml"
+                file_content = ["dependencies:", "  - xtensor >0.20", "  - xsimd"]
+                specs += ["xtensor >0.20", "xsimd"]
+
+            with open(spec_file, "w") as f:
+                f.write("\n".join(file_content))
+
+            cmd += ["-f", spec_file]
+
+        res = create(*cmd, "--print-config-only")
+
+        TestCreateConfig.common_tests(res)
+        assert res["env_name"] == ""
+        assert res["specs"] == specs
+
+    @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
+    @pytest.mark.parametrize("target_is_root", (False, True))
+    @pytest.mark.parametrize("cli_prefix", (False, True))
+    @pytest.mark.parametrize("cli_env_name", (False, True))
+    @pytest.mark.parametrize("yaml", (False, True))
+    @pytest.mark.parametrize("env_var", (False, True))
+    @pytest.mark.parametrize("fallback", (False, True))
+    def test_target_prefix(
+        self,
+        root_prefix,
+        target_is_root,
+        cli_prefix,
+        cli_env_name,
+        yaml,
+        env_var,
+        fallback,
+    ):
+        cmd = []
+
+        if root_prefix in (None, "cli"):
+            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop(
+                "MAMBA_ROOT_PREFIX"
+            )
+
+        if root_prefix == "cli":
+            cmd += ["-r", TestCreateConfig.root_prefix]
+
+        r = TestCreateConfig.root_prefix
+
+        if target_is_root:
+            p = r
+            n = "base"
+        else:
+            p = TestCreateConfig.prefix
+            n = TestCreateConfig.env_name
+
+        if cli_prefix:
+            cmd += ["-p", p]
+
+        if cli_env_name:
+            cmd += ["-n", n]
+
+        if yaml:
+            f_name = random_string() + ".yaml"
+            spec_file = os.path.join(TestCreateConfig.root_prefix, f_name)
+
+            file_content = [
+                f"name: {n}",
+                "dependencies: [xtensor]",
+            ]
+            with open(spec_file, "w") as f:
+                f.write("\n".join(file_content))
+
+            cmd += ["-f", spec_file]
+
+        if env_var:
+            os.environ["MAMBA_TARGET_PREFIX"] = p
+
+        if not fallback:
+            os.environ.pop("CONDA_PREFIX")
+        else:
+            os.environ["CONDA_PREFIX"] = p
+
+        if (
+            ((cli_prefix or env_var) and (cli_env_name or yaml))
+            or not (cli_prefix or cli_env_name or yaml or env_var)
+            or target_is_root
+        ):
+            with pytest.raises(subprocess.CalledProcessError):
+                create(*cmd, "--print-config-only")
+        else:
+            res = create(*cmd, "--print-config-only")
+            TestCreateConfig.common_tests(res, root_prefix=r, target_prefix=p)
+
+    @pytest.mark.parametrize("cli", (False, True))
+    @pytest.mark.parametrize("yaml", (False, True))
+    @pytest.mark.parametrize("env_var", (False, True))
+    @pytest.mark.parametrize("rc_file", (False, True))
+    def test_channels(self, cli, yaml, env_var, rc_file):
+        cmd = ["-p", TestCreateConfig.prefix]
+        expected_channels = []
+
+        if cli:
+            cmd += ["-c", "cli"]
+            expected_channels += ["cli"]
+
+        if yaml:
+            f_name = random_string() + ".yaml"
+            spec_file = os.path.join(TestCreateConfig.root_prefix, f_name)
+
+            file_content = [
+                "channels: [yaml]",
+                "dependencies: [xtensor]",
+            ]
+            with open(spec_file, "w") as f:
+                f.write("\n".join(file_content))
+
+            cmd += ["-f", spec_file]
+            expected_channels += ["yaml"]
+
+        if env_var:
+            os.environ["CONDA_CHANNELS"] = "env_var"
+            expected_channels += ["env_var"]
+
+        if rc_file:
+            f_name = random_string() + ".yaml"
+            rc_file = os.path.join(TestCreateConfig.root_prefix, f_name)
+
+            file_content = ["channels: [rc]"]
+            with open(rc_file, "w") as f:
+                f.write("\n".join(file_content))
+
+            cmd += ["--rc-file", rc_file]
+            expected_channels += ["rc"]
+
+        res = create(
+            *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
+        )
+        TestCreateConfig.common_tests(res)
+        if expected_channels:
+            assert res["channels"] == expected_channels
+        else:
+            assert res["channels"] is None
+
+    @pytest.mark.parametrize("type", ("yaml", "classic", "explicit"))
+    def test_multiple_spec_files(self, type):
+        cmd = ["-p", TestCreateConfig.prefix]
+        specs = ["xtensor", "xsimd"]
+        explicit_specs = [
+            "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
+            "https://conda.anaconda.org/conda-forge/linux-64/xsimd-7.4.8-hc9558a2_0.tar.bz2#32d5b7ad7d6511f1faacf87e53a63e5f",
+        ]
+
+        for i in range(2):
+            f_name = random_string()
+            file = os.path.join(TestCreateConfig.root_prefix, f_name)
+
+            if type == "yaml":
+                file += ".yaml"
+                file_content = [f"dependencies: [{specs[i]}]"]
+            elif type == "classic":
+                file_content = [specs[i]]
+                expected_specs = specs
+            else:  # explicit
+                file_content = ["@EXPLICIT", explicit_specs[i]]
+
+            with open(file, "w") as f:
+                f.write("\n".join(file_content))
+
+            cmd += ["-f", file]
+
+        if type == "yaml":
+            with pytest.raises(subprocess.CalledProcessError):
+                create(*cmd, "--print-config-only")
+        else:
+            res = create(*cmd, "--print-config-only")
+            if type == "classic":
+                assert res["specs"] == specs
+            else:  # explicit
+                assert res["specs"] == [explicit_specs[0]]

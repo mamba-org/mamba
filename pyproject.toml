@@ -1,0 +1,6 @@
+[build-system]
+build-backend = 'setuptools.build_meta'
+requires = [
+    'setuptools >= 49.2.1',
+    'pybind11 >= 2.2',
+]

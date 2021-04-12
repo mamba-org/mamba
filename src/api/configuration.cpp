@@ -10,6 +10,7 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fetch.hpp"
+#include "mamba/core/fsutil.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -171,12 +172,9 @@ namespace mamba
 
             if (!fs::exists(prefix))
             {
-                fs::create_directories(prefix / "conda-meta");
+                path::touch(prefix / "conda-meta" / "history", true);
                 fs::create_directories(prefix / "envs");
                 fs::create_directories(prefix / "pkgs");
-                std::fstream history;
-                history.open(prefix / "conda-meta" / "history", std::fstream::out);
-                history.close();
             }
             prefix = fs::weakly_canonical(prefix);
 

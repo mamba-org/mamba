@@ -5,13 +5,17 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/create.hpp"
 #include "mamba/api/install.hpp"
+
+#include "mamba/core/context.hpp"
 
 
 namespace mamba
 {
     void create()
     {
+        auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
         int target_prefix_checks = MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
@@ -24,13 +28,20 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        if (use_explicit)
+        if (!create_specs.empty())
         {
-            install_explicit_specs(create_specs);
+            if (use_explicit)
+            {
+                install_explicit_specs(create_specs);
+            }
+            else
+            {
+                install_specs(create_specs, true);
+            }
         }
         else
         {
-            install_specs(create_specs, true);
+            detail::create_empty_target(ctx.target_prefix);
         }
     }
 }

@@ -4,12 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 
 #include "mamba/core/channel.hpp"
-#include "mamba/api/configuration.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
@@ -19,7 +20,6 @@
 #include "mamba/core/virtual_packages.hpp"
 
 #include "thirdparty/termcolor.hpp"
-
 
 namespace mamba
 {
@@ -66,7 +66,6 @@ namespace mamba
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
         fs::path pkgs_dirs;
-
         if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
         {
             pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
@@ -252,17 +251,16 @@ namespace mamba
         std::cout << std::endl;
 
         bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
-        if (!yes)
-            exit(0);
-
-        if (create_env && !Context::instance().dry_run)
+        if (yes)
         {
-            fs::create_directories(ctx.target_prefix / "conda-meta");
-            fs::create_directories(ctx.target_prefix / "pkgs");
+            if (create_env && !Context::instance().dry_run)
+            {
+                detail::create_target_directory(ctx.target_prefix);
+            }
+            trans.execute(prefix_data, pkgs_dirs);
         }
-
-        trans.execute(prefix_data, pkgs_dirs);
     }
+
 
     void install_explicit_specs(const std::vector<std::string>& specs)
     {
@@ -320,6 +318,28 @@ namespace mamba
 
     namespace detail
     {
+        void create_empty_target(const fs::path& prefix)
+        {
+            detail::create_target_directory(prefix);
+
+            Console::print(join(
+                "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix })));
+            JsonLogger::instance().json_write({ { "success", true } });
+
+            if (Context::instance().json)
+                Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4),
+                                          true);
+        }
+
+        void create_target_directory(const fs::path prefix)
+        {
+            fs::create_directories(prefix / "conda-meta");
+            fs::create_directories(prefix / "pkgs");
+            std::fstream history;
+            history.open(prefix / "conda-meta" / "history", std::fstream::out);
+            history.close();
+        }
+
         void file_specs_hook(std::vector<std::string>& file_specs)
         {
             auto& config = Configuration::instance();

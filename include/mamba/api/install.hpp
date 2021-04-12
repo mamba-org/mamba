@@ -31,6 +31,10 @@ namespace mamba
 
     namespace detail
     {
+        void create_target_directory(const fs::path prefix);
+
+        void create_empty_target(const fs::path& prefix);
+
         void file_specs_hook(std::vector<std::string>& file_specs);
 
         MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);

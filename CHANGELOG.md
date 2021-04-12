@@ -1,3 +1,24 @@
+0.10.0 (Apr 1x, 2021)
+====================
+
+- [micromamba] allow creation of empty env (without specs) #824 #827
+- [micromamba] automatically create empy `base` env at new root prefix #836
+- [micromamba] add remove all CLI flags `-a,--all` #824
+- [micromamba] add dry-run and ultra-dry-run tests to increase coverage and speed-up CI #813 #845
+- [micromamba] allow CLI to override spec file env name (create, install and update) #816
+- [libmamba] split low-level and high-level API #821 #824
+- [libmamba] add a C high-level API #826
+- [micromamba] support `__linux` virtual package #829
+- [micromamba] improve the display of solver problems #822
+- [micromamba] improve info sub-command with target prefix status (active, not found, etc.) #825
+- [mamba] Change pybind11 to a build dependency (thanks @maresb) #846
+- [micromamba] add shell detection for shell sub-command #839
+- [micromamba] expand user in shell prefix sub-command #831
+- [micromamba] refactor explicit specs install #824
+- [micromamba] improve configuration (refactor API, create a loading sequence) #840
+- [libmamba] support cpp-filesystem breaking changes on Windows fs #849
+- fix CI C++ tests (unix/libmamba) and Python tests (win/mamba) wrongly successful #853
+
 0.9.2 (Apr 1, 2021)
 ====================
 

@@ -102,8 +102,7 @@ set_config_list_command(CLI::App* subcom)
         auto& config = Configuration::instance();
 
         config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& show_sources = config.at("config_show_sources").value<bool>();
         auto& show_all = config.at("config_show_all").value<bool>();
@@ -129,8 +128,7 @@ set_config_sources_command(CLI::App* subcom)
         auto& config = Configuration::instance();
 
         config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
         auto& no_rc = config.at("no_rc").value<bool>();
 
         if (no_rc)
@@ -170,8 +168,7 @@ set_config_describe_command(CLI::App* subcom)
         auto& config = Configuration::instance();
 
         config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX
-                    | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
 
         auto& show_groups = config.at("config_show_groups").value<bool>();
         auto& show_long_desc = config.at("config_show_long_descriptions").value<bool>();

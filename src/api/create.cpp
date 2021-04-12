@@ -18,8 +18,7 @@ namespace mamba
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
-        int target_prefix_checks = MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
-                                   | MAMBA_NOT_ALLOW_FALLBACK_PREFIX
+        int target_prefix_checks = MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_FALLBACK_PREFIX
                                    | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
                                    | MAMBA_NOT_EXPECT_EXISTING_PREFIX;
 

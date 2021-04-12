@@ -31,9 +31,7 @@ class TestInstall:
         os.environ["CONDA_PKGS_DIRS"] = TestInstall.cache
 
         os.makedirs(TestInstall.root_prefix, exist_ok=False)
-        install("xtensor", "-n", "base", no_dry_run=True)
         create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
-        remove("-n", "base", "-a", no_dry_run=True)
 
     @classmethod
     def teardown_class(cls):
@@ -44,10 +42,18 @@ class TestInstall:
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
-        remove("-n", "base", "-a", no_dry_run=True)
-        remove(
-            "-n", TestInstall.env_name, "-a", no_dry_run=True,
-        )
+
+        if not Path(TestInstall.root_prefix).exists():
+            os.makedirs(TestInstall.root_prefix, exist_ok=False)
+        else:
+            remove("-n", "base", "-a", no_dry_run=True)
+
+        if not Path(TestInstall.prefix).exists():
+            create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
+        else:
+            remove(
+                "-n", TestInstall.env_name, "-a", no_dry_run=True,
+            )
 
         res = umamba_list("xtensor", "-n", TestInstall.env_name, "--json")
         assert len(res) == 0
@@ -59,12 +65,21 @@ class TestInstall:
 
     @pytest.mark.parametrize("already_installed", [False, True])
     @pytest.mark.parametrize("root_prefix_env_var", [False, True])
-    @pytest.mark.parametrize("target_is_root", [False, True])
+    @pytest.mark.parametrize(
+        "target_is_root,existing_root", [(False, None), (True, False), (True, True)]
+    )
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
     def test_install(
-        self, target_is_root, root_prefix_env_var, already_installed, env_selector
+        self,
+        target_is_root,
+        existing_root,
+        root_prefix_env_var,
+        already_installed,
+        env_selector,
     ):
         if target_is_root:
+            if not existing_root and env_selector:
+                shutil.rmtree(TestInstall.root_prefix)
             p = TestInstall.root_prefix
             n = "base"
             os.environ["CONDA_PREFIX"] = TestInstall.root_prefix
@@ -79,7 +94,7 @@ class TestInstall:
             cmd = "xtensor", "--json"
 
         if already_installed:
-            install("xtensor", no_dry_run=True)
+            install("xtensor", "-r", TestInstall.root_prefix, "-n", n, no_dry_run=True)
 
         if env_selector == "prefix":
             res = install("-p", p, *cmd)
@@ -104,11 +119,12 @@ class TestInstall:
             expected_packages = {"xtensor", "xtl"}
             assert expected_packages.issubset(packages)
 
-            pkg_name = get_concrete_pkg(res, "xtensor")
-            orig_file_path = get_pkg(
-                pkg_name, xtensor_hpp, TestInstall.current_root_prefix
-            )
-            assert orig_file_path.exists()
+            if not dry_run_tests:
+                pkg_name = get_concrete_pkg(res, "xtensor")
+                orig_file_path = get_pkg(
+                    pkg_name, xtensor_hpp, TestInstall.current_root_prefix
+                )
+                assert orig_file_path.exists()
 
     @pytest.mark.parametrize(
         "alias",

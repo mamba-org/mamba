@@ -45,8 +45,8 @@ class TestCreate:
         os.environ["MAMBA_ROOT_PREFIX"] = TestCreate.root_prefix
         os.environ["CONDA_PREFIX"] = TestCreate.prefix
 
-        if Path(TestCreate.prefix).exists():
-            shutil.rmtree(TestCreate.prefix)
+        if Path(TestCreate.root_prefix).exists():
+            shutil.rmtree(TestCreate.root_prefix)
         if Path(TestCreate.other_prefix).exists():
             shutil.rmtree(TestCreate.other_prefix)
 
@@ -112,18 +112,67 @@ class TestCreate:
 
         assert Path(os.path.join(TestCreate.prefix, "conda-meta", "history")).exists()
 
-    @pytest.mark.parametrize("env_selector", ["prefix", "name"])
-    @pytest.mark.parametrize("root_non_empty", [False, True])
-    def test_create_base(self, root_non_empty, env_selector):
+    @pytest.mark.parametrize(
+        "env_selector,similar_but_not_same,similar_append",
+        [
+            ("prefix", None, None),
+            ("prefix", "root", False),
+            ("prefix", "root", True),
+            ("prefix", "prefix", False),
+            ("prefix", "prefix", True),
+            ("name", None, None),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "root_exists,root_is_conda_env", [(False, False), (True, False), (True, True)]
+    )
+    def test_create_base(
+        self,
+        root_exists,
+        root_is_conda_env,
+        similar_but_not_same,
+        similar_append,
+        env_selector,
+    ):
+        if not root_exists:
+            shutil.rmtree(TestCreate.root_prefix)
+        else:
+            if root_is_conda_env:
+                os.makedirs(
+                    os.path.join(TestCreate.root_prefix, "conda-meta"), exist_ok=False
+                )
 
-        with open(os.path.join(TestCreate.root_prefix, "some_file"), "w") as f:
-            f.write("abc")
+        cmd = ["xtensor"]
+        if env_selector == "prefix":
+            if similar_append:
+                similar_prefix = os.path.join(TestCreate.root_prefix, ".")
+            else:
+                similar_prefix = os.path.join(
+                    os.path.expanduser("~"),
+                    ".",
+                    os.path.relpath(TestCreate.root_prefix, os.path.expanduser("~")),
+                )
+            if similar_but_not_same == "root":
+                cmd += [
+                    "-r",
+                    similar_prefix,
+                    "-p",
+                    TestCreate.root_prefix,
+                ]
+            elif similar_but_not_same == "prefix":
+                cmd += [
+                    "-p",
+                    similar_prefix,
+                    "-r",
+                    TestCreate.root_prefix,
+                ]
+            else:
+                cmd += ["-r", TestCreate.root_prefix, "-p", TestCreate.root_prefix]
+        elif env_selector == "name":
+            cmd += ["-n", "base"]
 
         with pytest.raises(subprocess.CalledProcessError):
-            if env_selector == "prefix":
-                create("-p", TestCreate.root_prefix, "xtensor")
-            elif env_selector == "name":
-                create("-n", "base", "xtensor")
+            create(*cmd)
 
     @pytest.mark.parametrize(
         "alias",

@@ -67,7 +67,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
     auto& config = Configuration::instance();
 
     config.at("show_banner").get_wrapped<bool>().set_value(false);
-    config.load(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
+    config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
                 | MAMBA_ALLOW_MISSING_PREFIX);
 
     if (extract_conda_pkgs)

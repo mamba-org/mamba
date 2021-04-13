@@ -111,7 +111,7 @@ jobs:
           touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF &&
           make test -j2
 
   umamba_tests:
@@ -234,20 +234,29 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+          conda install -n base -q -y vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          conda activate mamba-tests
+          conda activate base
           python --version
           python -m pip install ".[test]"
-      - name: Run tests on Windows
+      - name: Run pytests on Windows
         run: |
-          conda activate mamba-tests
-          pytest test
+          conda activate base
+          pytest test --ignore=test/micromamba
+      - name: Run create command
+        run: |
+          conda activate base
           mamba create -n test_env xtensor -c conda-forge -y
+      - name: Run env create command
+        run: |
+          conda activate base
           mamba env create -f test/test_env.yml
+      - name: Run env update command
+        run: |
+          conda activate base
           mamba env update -f test/update_env.yml
 
   libmamba_cpp_tests_win:

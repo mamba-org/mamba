@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.1)
 
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIR})
+if(WIN32)
+    find_package(GTest)
+else()
+    add_library(GTest::GTest INTERFACE IMPORTED)
+    target_link_libraries(GTest::GTest INTERFACE gtest)
+    add_library(GTest::Main INTERFACE IMPORTED)
+    target_link_libraries(GTest::Main INTERFACE gtest_main)
+endif()
+
+include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 
 set(TEST_SRCS
     test_channel.cpp
@@ -29,7 +37,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
     ${CMAKE_CURRENT_BINARY_DIR}/config_test/.condarc COPYONLY)
 
-target_link_libraries(test_mamba PRIVATE ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_mamba PRIVATE GTest::GTest GTest::Main ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(test_mamba PUBLIC mamba-static)
 set_property(TARGET test_mamba PROPERTY CXX_STANDARD 17)
 

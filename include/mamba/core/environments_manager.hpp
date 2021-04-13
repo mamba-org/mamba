@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "environment.hpp"
+#include "fsutil.hpp"
 #include "output.hpp"
 #include "util.hpp"
 
@@ -34,11 +35,11 @@ namespace mamba
             fs::path final_location = fs::absolute(location);
             fs::path folder = final_location.parent_path();
 
-            if (!fs::exists(env_txt_file.parent_path()))
+            if (!fs::exists(env_txt_file))
             {
                 try
                 {
-                    fs::create_directories(env_txt_file.parent_path());
+                    path::touch(env_txt_file, true);
                 }
                 catch (...)
                 {

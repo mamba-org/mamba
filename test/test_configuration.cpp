@@ -61,6 +61,10 @@ namespace mamba
                 mamba::Configuration::instance().load();
             }
 
+            std::string shrink_source(std::size_t position)
+            {
+                return env::shrink_user(config.valid_sources()[position]).string();
+            }
             std::unique_ptr<TemporaryFile> tempfile_ptr
                 = std::make_unique<TemporaryFile>("mambarc", ".yaml");
 
@@ -90,7 +94,7 @@ namespace mamba
                     - test1)");
 
             load_test_config(rc);
-            std::string src = tempfile_ptr->path();
+            std::string src = env::shrink_user(tempfile_ptr->path());
 
             EXPECT_EQ(config.sources().size(), 1);
             EXPECT_EQ(config.valid_sources().size(), 1);
@@ -129,8 +133,8 @@ namespace mamba
             ASSERT_EQ(config.sources().size(), 2);
             ASSERT_EQ(config.valid_sources().size(), 2);
 
-            std::string src1 = config.valid_sources()[0];
-            std::string src2 = config.valid_sources()[1];
+            std::string src1 = shrink_source(0);
+            std::string src2 = shrink_source(1);
             EXPECT_EQ(config.dump(), unindent(R"(
                                     channels:
                                       - test1
@@ -160,9 +164,9 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 3);
 
             // tmp files changed
-            src1 = config.valid_sources()[0];
-            src2 = config.valid_sources()[1];
-            std::string src3 = config.valid_sources()[2];
+            src1 = shrink_source(0);
+            src2 = shrink_source(1);
+            std::string src3 = shrink_source(2);
             EXPECT_EQ(config.dump(), unindent(R"(
                                     channels:
                                       - test1
@@ -194,9 +198,9 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 3);
 
             // tmp files changed
-            src1 = config.valid_sources()[0];
-            src2 = config.valid_sources()[1];
-            src3 = config.valid_sources()[2];
+            src1 = shrink_source(0);
+            src2 = shrink_source(1);
+            src3 = shrink_source(2);
             EXPECT_EQ(config.dump(), unindent(R"(
                                     channels:
                                       - test1
@@ -238,8 +242,8 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 2);
             ASSERT_EQ(config.valid_sources().size(), 2);
-            std::string src1 = config.valid_sources()[0];
-            std::string src2 = config.valid_sources()[1];
+            std::string src1 = shrink_source(0);
+            std::string src2 = env::shrink_user(shrink_source(1)).string();
 
             std::string res = config.dump();
             // Unexpected/handled keys are dropped
@@ -304,7 +308,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src1 = config.valid_sources()[0];
+            std::string src1 = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
@@ -374,7 +378,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src1 = config.valid_sources()[0];
+            std::string src1 = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
@@ -427,7 +431,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src1 = config.valid_sources()[0];
+            std::string src1 = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'");
@@ -506,7 +510,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src1 = config.valid_sources()[0];
+            std::string src1 = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
@@ -532,7 +536,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src = config.valid_sources()[0];
+            std::string src = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
@@ -589,7 +593,7 @@ namespace mamba
                                                                                                    \
         ASSERT_EQ(config.sources().size(), 1);                                                     \
         ASSERT_EQ(config.valid_sources().size(), 1);                                               \
-        std::string src = config.valid_sources()[0];                                               \
+        std::string src = shrink_source(0);                                                        \
                                                                                                    \
         std::string expected;                                                                      \
         if (config.at(#NAME).rc_configurable())                                                    \
@@ -657,7 +661,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src = config.valid_sources()[0];
+            std::string src = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'");
@@ -722,7 +726,7 @@ namespace mamba
             load_test_config(rc1);
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src1 = config.valid_sources()[0];
+            std::string src1 = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       unindent((R"(
@@ -807,7 +811,7 @@ namespace mamba
 
             ASSERT_EQ(config.sources().size(), 1);
             ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src = config.valid_sources()[0];
+            std::string src = shrink_source(0);
 
             EXPECT_EQ(config.dump(true, true),
                       "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'");

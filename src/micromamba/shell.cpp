@@ -19,10 +19,8 @@ init_shell_parser(CLI::App* subcom)
 
     auto& config = Configuration::instance();
 
-    auto& shell_type = config.insert(Configurable("shell_type", std::string(""))
-                                         .group("cli")
-                                         .rc_configurable(false)
-                                         .description("A shell type"));
+    auto& shell_type = config.insert(
+        Configurable("shell_type", std::string("")).group("cli").description("A shell type"));
     subcom->add_set("-s,--shell",
                     shell_type.set_cli_config(""),
                     { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh" },
@@ -30,7 +28,6 @@ init_shell_parser(CLI::App* subcom)
 
     auto& stack = config.insert(Configurable("shell_stack", false)
                                     .group("cli")
-                                    .rc_configurable(false)
                                     .description("Stack the environment being activated")
                                     .long_description(unindent(R"(
                        Stack the environment being activated on top of the
@@ -43,7 +40,6 @@ init_shell_parser(CLI::App* subcom)
 
     auto& action = config.insert(Configurable("shell_action", std::string(""))
                                      .group("cli")
-                                     .rc_configurable(false)
                                      .description("The action to complete"));
     subcom->add_set("action",
                     action.set_cli_config(""),
@@ -53,7 +49,6 @@ init_shell_parser(CLI::App* subcom)
     auto& prefix = config.insert(
         Configurable("shell_prefix", std::string(""))
             .group("cli")
-            .rc_configurable(false)
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
     subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description());

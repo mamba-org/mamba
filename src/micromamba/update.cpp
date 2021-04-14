@@ -21,7 +21,6 @@ init_update_parser(CLI::App* subcom)
 
     auto& update_all = config.insert(Configurable("update_all", false)
                                          .group("cli")
-                                         .rc_configurable(false)
                                          .description("Update all packages in the environment"));
 
     subcom->get_option("specs")->description("Specs to update in the environment");

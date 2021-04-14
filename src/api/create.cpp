@@ -18,11 +18,12 @@ namespace mamba
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
-        int target_prefix_checks = MAMBA_NOT_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_FALLBACK_PREFIX
-                                   | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-                                   | MAMBA_NOT_EXPECT_EXISTING_PREFIX;
-
-        config.load(target_prefix_checks);
+        config.at("use_target_prefix_fallback").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
+                       | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
+                       | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();

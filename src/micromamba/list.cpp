@@ -23,7 +23,6 @@ init_list_parser(CLI::App* subcom)
     auto& regex
         = config.insert(Configurable("list_regex", std::string(""))
                             .group("cli")
-                            .rc_configurable(false)
                             .description("List only packages matching a regular expression"));
     subcom->add_option("regex", regex.set_cli_config(""), regex.description());
 }
@@ -35,7 +34,7 @@ set_list_command(CLI::App* subcom)
 
     subcom->callback([]() {
         auto& config = Configuration::instance();
-        auto& regex = config.at("list_regex").value<std::string>();
+        auto& regex = config.at("list_regex").compute().value<std::string>();
 
         list(regex);
     });

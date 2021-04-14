@@ -112,6 +112,39 @@ class TestCreate:
 
         assert Path(os.path.join(TestCreate.prefix, "conda-meta", "history")).exists()
 
+    @pytest.mark.parametrize("source", ["cli", "env_var", "rc_file"])
+    def test_always_yes(self, source):
+        create("-n", TestCreate.env_name, "xtensor", no_dry_run=True)
+
+        if source == "cli":
+            res = create(
+                "-n", TestCreate.env_name, "xtensor", "--json", always_yes=True
+            )
+        elif source == "env_var":
+            try:
+                os.environ["MAMBA_ALWAYS_YES"] = "true"
+                res = create(
+                    "-n", TestCreate.env_name, "xtensor", "--json", always_yes=False
+                )
+            finally:
+                os.environ.pop("MAMBA_ALWAYS_YES")
+        else:  # rc_file
+            rc_file = os.path.join(TestCreate.root_prefix, random_string() + ".yaml")
+            with open(rc_file, "w") as f:
+                f.write("always_yes: true")
+            res = create(
+                "-n",
+                TestCreate.env_name,
+                "xtensor",
+                f"--rc-file={rc_file}",
+                "--json",
+                always_yes=False,
+                no_rc=False,
+            )
+
+        assert res["success"]
+        assert res["dry_run"] == dry_run_tests
+
     @pytest.mark.parametrize(
         "env_selector,similar_but_not_same,similar_append",
         [
@@ -273,7 +306,7 @@ class TestCreate:
                 assert l["url"].startswith(expected_channel)
 
     @pytest.mark.parametrize("valid", [False, True])
-    def test_explicit_file(self, valid):
+    def test_explicit_spec_file(self, valid):
         spec_file_content = [
             "@EXPLICIT",
             "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
@@ -300,3 +333,38 @@ class TestCreate:
         else:
             with pytest.raises(subprocess.CalledProcessError):
                 create(*cmd, default_channel=False)
+
+    @pytest.mark.parametrize("f_count", [1, 2])
+    def test_spec_file(self, f_count):
+        file_content = [
+            "xtensor >=0.20",
+            "xsimd",
+        ]
+        spec_file = os.path.join(TestCreate.root_prefix, "file1.txt")
+        with open(spec_file, "w") as f:
+            f.write("\n".join(file_content))
+
+        file_cmd = ["-f", spec_file]
+
+        if f_count == 2:
+            file_content = [
+                "python=3.7.*",
+                "wheel",
+            ]
+            spec_file = os.path.join(TestCreate.root_prefix, "file2.txt")
+            with open(spec_file, "w") as f:
+                f.write("\n".join(file_content))
+            file_cmd += ["-f", spec_file]
+
+        cmd = ["-p", TestCreate.prefix, "-q"] + file_cmd
+
+        res = create(*cmd, "--json", default_channel=True)
+
+        assert res["success"]
+        assert res["dry_run"] == dry_run_tests
+
+        packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        expected_packages = ["xtensor", "xtl", "xsimd"]
+        if f_count == 2:
+            expected_packages += ["python", "wheel"]
+        assert set(expected_packages).issubset(packages)

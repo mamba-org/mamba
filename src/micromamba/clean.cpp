@@ -22,20 +22,15 @@ init_clean_parser(CLI::App* subcom)
     auto& clean_all = config.insert(
         Configurable("clean_all", false)
             .group("cli")
-            .rc_configurable(false)
             .description("Remove index cache, lock files, unused cache packages, and tarballs"));
-    auto& clean_index = config.insert(Configurable("clean_index_cache", false)
-                                          .group("cli")
-                                          .rc_configurable(false)
-                                          .description("Remove index cache"));
+    auto& clean_index = config.insert(
+        Configurable("clean_index_cache", false).group("cli").description("Remove index cache"));
     auto& clean_pkgs
         = config.insert(Configurable("clean_packages", false)
                             .group("cli")
-                            .rc_configurable(false)
                             .description("Remove unused packages from writable package caches"));
     auto& clean_tarballs = config.insert(Configurable("clean_tarballs", false)
                                              .group("cli")
-                                             .rc_configurable(false)
                                              .description("Remove cached package tarballs"));
 
     subcom->add_flag("-a,--all", clean_all.set_cli_config(0), clean_all.description());

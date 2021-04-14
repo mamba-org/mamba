@@ -25,7 +25,6 @@ init_remove_parser(CLI::App* subcom)
 
     auto& remove_all = config.insert(Configurable("remove_all", false)
                                          .group("cli")
-                                         .rc_configurable(false)
                                          .description("Remove all packages in the environment"));
     subcom->add_flag("-a, --all", remove_all.set_cli_config(0), remove_all.description());
 }

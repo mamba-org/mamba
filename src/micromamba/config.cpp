@@ -21,18 +21,18 @@ init_config_options(CLI::App* subcom)
 
     config.insert(Configurable("config_specs", std::vector<std::string>({}))
                       .group("cli")
-                      .rc_configurable(false)
-                      .description("Configurables show"));
+                      .description("Configurables show"),
+                  true);
 
     config.insert(Configurable("config_show_long_descriptions", false)
                       .group("cli")
-                      .rc_configurable(false)
-                      .description("Display configurables long descriptions"));
+                      .description("Display configurables long descriptions"),
+                  true);
 
     config.insert(Configurable("config_show_groups", false)
                       .group("cli")
-                      .rc_configurable(false)
-                      .description("Display configurables groups"));
+                      .description("Display configurables groups"),
+                  true);
 }
 
 void
@@ -48,20 +48,17 @@ init_config_list_options(CLI::App* subcom)
     auto& show_sources
         = config.insert(Configurable("config_show_sources", false)
                             .group("cli")
-                            .rc_configurable(false)
                             .description("Display all identified configuration sources"));
     subcom->add_flag("-s,--sources", show_sources.set_cli_config(0), show_sources.description());
 
     auto& show_all
         = config.insert(Configurable("config_show_all", false)
                             .group("cli")
-                            .rc_configurable(false)
                             .description("Display all configuration values, including defaults"));
     subcom->add_flag("-a,--all", show_all.set_cli_config(0), show_all.description());
 
     auto& show_description = config.insert(Configurable("config_show_descriptions", false)
                                                .group("cli")
-                                               .rc_configurable(false)
                                                .description("Display configurables descriptions"));
     subcom->add_flag(
         "-d,--descriptions", show_description.set_cli_config(0), show_description.description());
@@ -101,8 +98,11 @@ set_config_list_command(CLI::App* subcom)
     subcom->callback([&]() {
         auto& config = Configuration::instance();
 
-        config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load();
 
         auto& show_sources = config.at("config_show_sources").value<bool>();
         auto& show_all = config.at("config_show_all").value<bool>();
@@ -127,8 +127,12 @@ set_config_sources_command(CLI::App* subcom)
     subcom->callback([&]() {
         auto& config = Configuration::instance();
 
-        config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load();
+
         auto& no_rc = config.at("no_rc").value<bool>();
 
         if (no_rc)
@@ -167,8 +171,11 @@ set_config_describe_command(CLI::App* subcom)
     subcom->callback([&]() {
         auto& config = Configuration::instance();
 
-        config.at("show_banner").get_wrapped<bool>().set_value(false);
-        config.load(MAMBA_ALLOW_FALLBACK_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.load();
 
         auto& show_groups = config.at("config_show_groups").value<bool>();
         auto& show_long_desc = config.at("config_show_long_descriptions").value<bool>();

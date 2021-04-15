@@ -72,6 +72,9 @@ if (ENABLE_CONTEXT_DEBUG_PRINT)
     add_definitions(-DENABLE_CONTEXT_DEBUG_PRINT)
 endif()
 
+add_definitions(-DGHC_WIN_DISABLE_WSTRING_STORAGE_TYPE)
+add_definitions(-DGHC_WIN_DISABLE_AUTO_PREFIXES)
+
 # Dependencies
 # ============
 

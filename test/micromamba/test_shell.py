@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import create, get_env, info, random_string, shell
+from .helpers import create, get_env, get_umamba, info, random_string, shell
 
 
 class TestShell:
@@ -45,7 +45,21 @@ class TestShell:
     )
     def test_hook(self, shell_type):
         res = shell("hook", "-s", shell_type)
-        assert res
+
+        mamba_exe = get_umamba()
+        # suspend long path support on Windows
+        # if platform.system() == "Windows":
+        # mamba_exe = f"\\\\?\\{mamba_exe}"
+
+        if shell_type == "powershell":
+            umamba = get_umamba()
+            assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
+        elif shell_type in ("zsh", "bash", "posix"):
+            assert res.count(mamba_exe) == 5
+        elif shell_type == "xonsh":
+            assert res.count(mamba_exe) == 8
+        elif shell_type == "cmd.exe":
+            assert res
 
     @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("root", [False, True])

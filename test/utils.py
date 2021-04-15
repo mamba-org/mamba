@@ -1,6 +1,8 @@
 import os
+import platform
 import shutil
 import subprocess
+import time
 import uuid
 
 
@@ -8,62 +10,96 @@ def get_lines(std_pipe):
     """Generator that yields lines from a standard pipe as they are printed."""
     for line in iter(std_pipe.readline, ""):
         yield line
-    # std_pipe.close()
 
 
 class Shell:
-    def __init__(self):
+    def __init__(self, shell_type):
         self.process = subprocess.Popen(
-            ["bash"],
+            [shell_type],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             universal_newlines=True,
         )
         self.sentinel = "__command_done__"
-        self.echo_sentinel = "echo " + self.sentinel + "\n"
+        self.echo_sentinel = "echo " + self.sentinel
+
+        if platform.system() == "Windows":
+            if shell_type == "cmd.exe":
+                self.execute("@ECHO OFF")
+                self.execute("set CONDA_SHLVL=0")
+            elif shell_type == "powershell":
+                self.execute(
+                    "conda shell.powershell hook | Out-String | Invoke-Expression"
+                )
+                self.execute("$env:CONDA_SHLVL=0")
+        else:
+            self.execute("export CONDA_SHLVL=0")
+            self.execute("CONDA_BASE=$(conda info --base)")
+            self.execute("source $CONDA_BASE/etc/profile.d/conda.sh")
 
     def execute(self, commands):
         if type(commands) == str:
-            commands = [commands]
+            commands = [commands, self.echo_sentinel]
+        else:
+            commands = list(commands)
+            commands.append(self.echo_sentinel)
+
         for cmd in commands:
             if not cmd.endswith("\n"):
                 cmd += "\n"
             self.process.stdin.write(cmd)
             self.process.stdin.flush()
-        self.process.stdin.write(self.echo_sentinel)
-        self.process.stdin.flush()
 
         out = []
-        for line in get_lines(self.process.stdout):
-            if not self.sentinel in line:
-                print(line, end="")
-                out.append(line[:-1])
-            else:
+        start = time.time()
+        wait_for_sentinel = True
+        while wait_for_sentinel:
+            for line in get_lines(self.process.stdout):
+                if self.sentinel != line[:-1]:
+                    if all([c not in line[:-1] for c in commands]) and line[:-1]:
+                        print(line, end="")
+                        out.append(line[:-1])
+                else:
+                    wait_for_sentinel = False
+                    break
+
+            if (time.time() - start) > 5:
                 break
 
         return out
+
+    def conda(self, command):
+        return self.execute(" ".join(("conda", command)))
+
+    def mamba(self, command):
+        return self.execute(" ".join(("mamba", command)))
 
     def exit(self):
         self.process.kill()
 
 
 class Environment:
-    def __init__(self):
-        self.shell = Shell()
+    def __init__(self, shell_type):
+        self.shell = Shell(shell_type)
         self.name = "env_" + str(uuid.uuid1())
-        self.shell.execute("MAMBA=$CONDA_PREFIX/bin/mamba")
-        self.shell.execute("conda create -q -y -n " + self.name)
-        self.shell.execute("CONDA_BASE=$(conda info --base)")
-        self.shell.execute("source $CONDA_BASE/etc/profile.d/conda.sh")
-        self.shell.execute("conda activate " + self.name)
+
+        self.shell.conda("create -q -y -n " + self.name)
+        self.shell.conda(f"activate {self.name}")
 
     def __enter__(self):
         return self.shell
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.shell.execute("conda deactivate")
-        self.shell.execute(f"conda remove -q -y --name {self.name} --all")
+        self.shell.conda(f"deactivate")
+        self.shell.conda(f"remove -q -y --name {self.name} --all")
         self.shell.exit()
+
+
+def platform_shells():
+    if platform.system() == "Windows":
+        return ["powershell", "cmd.exe"]
+    else:
+        return ["bash"]
 
 
 def get_glibc_version():
@@ -87,7 +123,7 @@ def run(exe, channels, package):
         "--dry-run",
     ]
     for channel in channels:
-        cmd += ["-c", channel]
+        cmd += ["-c", os.path.abspath(os.path.join(*channel))]
     cmd.append(package)
     subprocess.run(cmd, check=True)
 

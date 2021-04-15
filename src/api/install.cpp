@@ -238,7 +238,7 @@ namespace mamba
         }
 
         MultiPackageCache package_caches({ pkgs_dirs });
-        MTransaction trans(solver, package_caches);
+        MTransaction trans(solver, package_caches, pkgs_dirs);
 
         if (ctx.json)
         {
@@ -253,14 +253,14 @@ namespace mamba
 
         std::cout << std::endl;
 
-        bool yes = trans.prompt(pkgs_dirs, repo_ptrs);
+        bool yes = trans.prompt(repo_ptrs);
         if (yes)
         {
             if (create_env && !Context::instance().dry_run)
             {
                 detail::create_target_directory(ctx.target_prefix);
             }
-            trans.execute(prefix_data, pkgs_dirs);
+            trans.execute(prefix_data);
         }
     }
 

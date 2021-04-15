@@ -247,10 +247,10 @@ def remove(args, parser):
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
-        downloaded = transaction.prompt(
-            PackageCacheData.first_writable().pkgs_dir, repos
+        transaction = api.Transaction(
+            solver, package_cache, PackageCacheData.first_writable().pkgs_dir
         )
+        downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
 
@@ -576,7 +576,9 @@ def install(args, parser, command="install"):
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
+        transaction = api.Transaction(
+            solver, package_cache, PackageCacheData.first_writable().pkgs_dir
+        )
         mmb_specs, to_link, to_unlink = transaction.to_conda()
 
         specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
@@ -584,9 +586,7 @@ def install(args, parser, command="install"):
 
         transaction.log_json()
 
-        downloaded = transaction.prompt(
-            PackageCacheData.first_writable().pkgs_dir, repos
-        )
+        downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
         PackageCacheData.first_writable().reload()
@@ -596,7 +596,7 @@ def install(args, parser, command="install"):
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
 
-        transaction.execute(prefix_data, PackageCacheData.first_writable().pkgs_dir)
+        transaction.execute(prefix_data)
     else:
         conda_transaction = to_txn(
             specs_to_add,

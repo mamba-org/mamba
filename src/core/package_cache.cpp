@@ -57,6 +57,11 @@ namespace mamba
         return m_pkgs_dir;
     }
 
+    void PackageCacheData::clear_query_cache(const PackageInfo& s)
+    {
+        m_valid_cache.erase(s.str());
+    }
+
     PackageCacheData PackageCacheData::first_writable(const std::vector<fs::path>* pkgs_dirs)
     {
         const std::vector<fs::path>* dirs = pkgs_dirs ? pkgs_dirs : &Context::instance().pkgs_dirs;
@@ -288,13 +293,44 @@ namespace mamba
         return res;
     }
 
-    bool MultiPackageCache::query(const PackageInfo& s)
+    fs::path MultiPackageCache::query(const PackageInfo& s)
     {
         for (auto& c : m_caches)
         {
             if (c.query(s))
-                return true;
+                return c.get_pkgs_dir();
         }
-        return false;
+        return {};
+    }
+
+    fs::path MultiPackageCache::first_cache_path(const PackageInfo& s, bool return_empty)
+    {
+        const std::string pkg(s.str());
+        const auto cache_iter(m_path_cache.find(pkg));
+        if (cache_iter != m_path_cache.end())
+        {
+            return cache_iter->second;
+        }
+        for (auto& c : m_caches)
+        {
+            const fs::path cache_path(c.get_pkgs_dir());
+            if (c.query(s) && fs::exists(cache_path / strip_package_extension(s.fn)))
+            {
+                m_path_cache[pkg] = cache_path;
+                return cache_path;
+            }
+        }
+        if (return_empty)
+            return {};
+        else
+            throw std::runtime_error("Cannot find cache for " + s.fn);
+    }
+
+    void MultiPackageCache::clear_query_cache(const PackageInfo& s)
+    {
+        for (auto& c : m_caches)
+        {
+            c.clear_query_cache(s);
+        }
     }
 }  // namespace mamba

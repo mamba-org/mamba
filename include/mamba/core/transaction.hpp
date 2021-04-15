@@ -100,7 +100,7 @@ namespace mamba
             ignore
         };
 
-        MTransaction(MSolver& solver, MultiPackageCache& cache);
+        MTransaction(MSolver& solver, MultiPackageCache& cache, const std::string& cache_dir);
         ~MTransaction();
 
         MTransaction(const MTransaction&) = delete;
@@ -116,11 +116,11 @@ namespace mamba
         void init();
         to_conda_type to_conda();
         void log_json();
-        bool fetch_extract_packages(const std::string& cache_dir, std::vector<MRepo*>& repos);
+        bool fetch_extract_packages(std::vector<MRepo*>& repos);
         bool empty();
-        bool prompt(const std::string& cache_dir, std::vector<MRepo*>& repos);
+        bool prompt(std::vector<MRepo*>& repos);
         void print();
-        bool execute(PrefixData& prefix, const fs::path& cache_dir);
+        bool execute(PrefixData& prefix);
         bool filter(Solvable* s);
 
         std::string find_python_version();
@@ -131,6 +131,7 @@ namespace mamba
 
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
+        const fs::path m_cache_path;
         std::vector<Solvable*> m_to_install, m_to_remove;
         History::UserRequest m_history_entry;
         Transaction* m_transaction;

@@ -4,16 +4,38 @@ import platform
 import random
 import string
 import subprocess
+from enum import Enum
 from pathlib import Path
+
+import yaml
+
+
+class DryRun(Enum):
+    OFF = "OFF"
+    DRY = "DRY"
+    ULTRA_DRY = "ULTRA_DRY"
+
 
 use_offline = False
 channel = ["-c", "conda-forge"]
-dry_run_tests = (
-    True
-    if "MAMBA_DRY_RUN_TESTS" in os.environ and os.environ["MAMBA_DRY_RUN_TESTS"] == "ON"
-    else False
+dry_run_tests = DryRun(
+    os.environ["MAMBA_DRY_RUN_TESTS"]
+    if ("MAMBA_DRY_RUN_TESTS" in os.environ)
+    else "OFF"
 )
 
+MAMBA_NO_PREFIX_CHECK = 1 << 0
+MAMBA_ALLOW_ROOT_PREFIX = 1 << 1
+MAMBA_ALLOW_EXISTING_PREFIX = 1 << 2
+MAMBA_ALLOW_MISSING_PREFIX = 1 << 3
+MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 4
+MAMBA_EXPECT_EXISTING_PREFIX = 1 << 5
+
+MAMBA_NOT_ALLOW_ROOT_PREFIX = 0
+MAMBA_NOT_ALLOW_EXISTING_PREFIX = 0
+MAMBA_NOT_ALLOW_MISSING_PREFIX = 0
+MAMBA_NOT_ALLOW_NOT_ENV_PREFIX = 0
+MAMBA_NOT_EXPECT_EXISTING_PREFIX = 0
 
 if platform.system() == "Windows":
     xtensor_hpp = "Library/include/xtensor/xtensor.hpp"
@@ -78,7 +100,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--no-rc"]
     if use_offline:
         cmd += ["--offline"]
-    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+    if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
     res = subprocess.check_output(cmd)
@@ -89,20 +111,8 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
         except:
             print(res.decode())
             return
-    return res.decode()
-
-
-def remove(*args):
-    umamba = get_umamba()
-    cmd = [umamba, "remove"] + [arg for arg in args if arg]
-    res = subprocess.check_output(cmd)
-    if "--json" in args:
-        try:
-            j = json.loads(res)
-            return j
-        except:
-            print(res.decode())
-            return
+    if "--print-config-only" in args:
+        return yaml.load(res, Loader=yaml.FullLoader)
     return res.decode()
 
 
@@ -117,7 +127,7 @@ def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes
         cmd += ["--no-rc"]
     if use_offline:
         cmd += ["--offline"]
-    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+    if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
     try:
@@ -125,8 +135,9 @@ def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes
         if "--json" in args:
             j = json.loads(res)
             return j
+        if "--print-config-only" in args:
+            return yaml.load(res, Loader=yaml.FullLoader)
         return res.decode()
-
     except subprocess.CalledProcessError as e:
         print(f"Error when executing '{' '.join(cmd)}'")
         raise (e)
@@ -135,7 +146,7 @@ def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes
 def remove(*args, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
-    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+    if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
     try:
@@ -143,8 +154,9 @@ def remove(*args, no_dry_run=False):
         if "--json" in args:
             j = json.loads(res)
             return j
+        if "--print-config-only" in args:
+            return yaml.load(res, Loader=yaml.FullLoader)
         return res.decode()
-
     except subprocess.CalledProcessError as e:
         print(f"Error when executing '{' '.join(cmd)}'")
         raise (e)
@@ -159,7 +171,7 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--no-rc"]
     if default_channel:
         cmd += channel
-    if dry_run_tests and "--dry-run" not in args and not no_dry_run:
+    if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
     try:

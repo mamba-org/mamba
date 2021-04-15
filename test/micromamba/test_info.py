@@ -29,7 +29,7 @@ class TestInfo:
         os.environ["CONDA_PKGS_DIRS"] = TestInfo.cache
 
         os.makedirs(TestInfo.root_prefix, exist_ok=False)
-        create("xtensor", "-n", TestInfo.env_name, "--offline", no_dry_run=True)
+        create("-n", TestInfo.env_name, "--offline", no_dry_run=True)
 
     @classmethod
     def teardown_class(cls):

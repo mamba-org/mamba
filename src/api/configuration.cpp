@@ -731,6 +731,7 @@ namespace mamba
 
     void Configuration::load()
     {
+        DEBUG_QUIET;
         compute_loading_sequence();
         reset_compute_counters();
 
@@ -742,6 +743,7 @@ namespace mamba
         m_load_lock = false;
 
         init_curl_ssl();
+        CONFIG_DEBUGGING;
     }
 
     bool Configuration::is_loading()

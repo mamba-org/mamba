@@ -15,5 +15,6 @@ dependencies:
   - cpp-filesystem
   - reproc-cpp
   - yaml-cpp
+  - pyyaml
   - cli11
   - pytest

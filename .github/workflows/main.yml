@@ -145,7 +145,7 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
+          micromamba create -y -p ~/build_env pybind11 libsolv libarchive libcurl nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp pyyaml cli11 -c conda-forge
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: build micromamba
@@ -159,7 +159,7 @@ jobs:
           touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=OFF -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=OFF -DBUILD_EXE=ON -DENABLE_CONTEXT_DEBUG_PRINT=ON -DBUILD_BINDINGS=OFF
           make -j2
       - name: run new micromamba
         shell: bash -l {0}
@@ -209,10 +209,10 @@ jobs:
           eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
 
           micromamba activate
-          micromamba install python=3.8 pytest -c conda-forge
+          micromamba install python=3.8 pytest pyyaml -c conda-forge
 
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba
-          pytest test/micromamba -s
+          pytest test/micromamba
 
   mamba_python_tests_win:
     runs-on: ${{ matrix.os }}
@@ -329,7 +329,7 @@ jobs:
           call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate mamba-test
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -DENABLE_CONTEXT_DEBUG_PRINT=ON -G "Ninja"
           ninja
           .\micromamba.exe --help
       - name: Install "wheel" in micromamba default env
@@ -375,7 +375,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests
@@ -385,7 +385,7 @@ jobs:
 
           set MAMBA_ROOT_PREFIX=%cd%\mambaroot
 
-          pytest test/micromamba -s
+          pytest test/micromamba
 
   umamba_tests_win_pwsh:
     needs: [umamba_tests_win]
@@ -413,7 +413,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests with pwsh
@@ -423,7 +423,7 @@ jobs:
 
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
 
-          pytest test/micromamba -s
+          pytest test/micromamba
 
   umamba_tests_win_bash:
     needs: [umamba_tests_win]
@@ -451,7 +451,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive libcurl nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests
@@ -461,4 +461,4 @@ jobs:
 
           export MAMBA_ROOT_PREFIX=~/mambaroot
 
-          pytest test/micromamba -s
+          pytest test/micromamba

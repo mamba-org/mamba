@@ -62,12 +62,15 @@ init_general_options(CLI::App* subcom)
     subcom->add_flag("--dry-run", dry_run.set_cli_config(0), dry_run.description())
         ->group(cli_group);
 
-#ifdef ENABLE_CONTEXT_DEBUGGING
-    static bool debug_context = false;
-    auto& print_context_only = config.insert(Configurable("print_context_only", &debug_context));
+#ifdef ENABLE_CONTEXT_DEBUG_PRINT
+    auto& print_context_only = config.insert(Configurable("print_context_only", false), true);
     subcom
         ->add_flag(
             "--print-context-only", print_context_only.set_cli_config(false), "Debug context")
+        ->group(cli_group);
+
+    auto& print_config_only = config.insert(Configurable("print_config_only", false), true);
+    subcom->add_flag("--print-config-only", print_config_only.set_cli_config(false), "Debug config")
         ->group(cli_group);
 #endif
 }

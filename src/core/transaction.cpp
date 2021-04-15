@@ -576,11 +576,13 @@ namespace mamba
                     Console::stream()
                         << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
-                    const fs::path ul_cache_path(m_multi_cache.first_cache_path(p_unlink, false));
+                    const fs::path ul_cache_path(m_multi_cache.first_cache_path(p_unlink));
                     PackageInfo p_link(s2);
                     const fs::path l_cache_path(m_multi_cache.first_cache_path(p_link, false));
 
-                    UnlinkPackage up(p_unlink, ul_cache_path, &m_transaction_context);
+                    UnlinkPackage up(p_unlink,
+                                     ul_cache_path.empty() ? m_cache_path : ul_cache_path,
+                                     &m_transaction_context);
                     up.execute();
                     rollback.record(up);
 
@@ -596,9 +598,10 @@ namespace mamba
                 case SOLVER_TRANSACTION_ERASE:
                 {
                     PackageInfo p(s);
-                    const fs::path cache_path(m_multi_cache.first_cache_path(p, false));
                     Console::stream() << "Unlinking " << p.str();
-                    UnlinkPackage up(p, cache_path, &m_transaction_context);
+                    const fs::path cache_path(m_multi_cache.first_cache_path(p));
+                    UnlinkPackage up(
+                        p, cache_path.empty() ? m_cache_path : cache_path, &m_transaction_context);
                     up.execute();
                     rollback.record(up);
                     m_history_entry.unlink_dists.push_back(p.long_str());
@@ -607,8 +610,8 @@ namespace mamba
                 case SOLVER_TRANSACTION_INSTALL:
                 {
                     PackageInfo p(s);
-                    const fs::path cache_path(m_multi_cache.first_cache_path(p, false));
                     Console::stream() << "Linking " << p.str();
+                    const fs::path cache_path(m_multi_cache.first_cache_path(p, false));
                     LinkPackage lp(p, cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);

@@ -47,8 +47,9 @@ class TestShell:
         res = shell("hook", "-s", shell_type)
 
         mamba_exe = get_umamba()
-        if platform.system() == "Windows":
-            mamba_exe = f"\\\\?\\{mamba_exe}"
+        # suspend long path support on Windows
+        # if platform.system() == "Windows":
+        # mamba_exe = f"\\\\?\\{mamba_exe}"
 
         if shell_type == "powershell":
             umamba = get_umamba()

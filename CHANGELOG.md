@@ -15,8 +15,10 @@
 - [micromamba] add shell detection for shell sub-command #839
 - [micromamba] expand user in shell prefix sub-command #831
 - [micromamba] refactor explicit specs install #824
-- [micromamba] improve configuration (refactor API, create a loading sequence) #840
+- [libmamba] improve configuration (refactor API, create a loading sequence) #840
 - [libmamba] support cpp-filesystem breaking changes on Windows fs #849
+- [libmamba] add a simple context debugging (thanks @wolf) #820
+- [libmamba] improve C++ test suite #830
 - fix CI C++ tests (unix/libmamba) and Python tests (win/mamba) wrongly successful #853
 
 0.9.2 (Apr 1, 2021)

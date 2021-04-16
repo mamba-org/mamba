@@ -1,4 +1,4 @@
-0.10.0 (Apr 1x, 2021)
+0.10.0 (Apr 16, 2021)
 ====================
 
 - [micromamba] allow creation of empty env (without specs) #824 #827

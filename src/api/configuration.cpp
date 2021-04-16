@@ -125,7 +125,6 @@ namespace mamba
                                     the current working directory, use './some_prefix')")
                                                 .c_str());
                 }
-                prefix = fs::absolute(prefix);
             }
             else
             {
@@ -133,6 +132,14 @@ namespace mamba
                 if (use_fallback)
                     prefix = std::getenv("CONDA_PREFIX") ? std::getenv("CONDA_PREFIX") : "";
             }
+
+#ifdef _WIN32
+            std::string sep = "\\";
+#else
+            std::string sep = "/";
+#endif
+            if (!prefix.empty())
+                prefix = rstrip(fs::weakly_canonical(prefix).string(), sep);
         }
 
         void root_prefix_hook(fs::path& prefix)
@@ -245,7 +252,6 @@ namespace mamba
                     throw std::runtime_error("Aborting.");
                 }
             }
-            prefix = fs::weakly_canonical(prefix);
 
             if (fs::exists(prefix))
             {

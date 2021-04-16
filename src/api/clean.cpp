@@ -19,8 +19,7 @@ namespace mamba
         auto& config = Configuration::instance();
 
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("target_prefix_checks").set_value(MAMBA_ALLOW_EXISTING_PREFIX);
         config.load();
 
         bool clean_all = options & MAMBA_CLEAN_ALL;

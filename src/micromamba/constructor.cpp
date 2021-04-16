@@ -66,8 +66,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
     config.at("show_banner").set_value(false);
     config.at("use_target_prefix_fallback").set_value(true);
     config.at("target_prefix_checks")
-        .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                   | MAMBA_ALLOW_MISSING_PREFIX);
+        .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
     config.load();
 
     if (extract_conda_pkgs)

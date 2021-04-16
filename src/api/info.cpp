@@ -23,8 +23,8 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                       | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX);
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX);
         config.load();
 
         detail::print_info();

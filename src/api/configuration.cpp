@@ -179,12 +179,10 @@ namespace mamba
                                 (then restart or source the contents of the shell init script))");
             }
 
-            if (!fs::exists(prefix))
-            {
-                path::touch(prefix / "conda-meta" / "history", true);
-                fs::create_directories(prefix / "envs");
-                fs::create_directories(prefix / "pkgs");
-            }
+            path::touch(prefix / "conda-meta" / "history", true);
+            fs::create_directories(prefix / "envs");
+            fs::create_directories(prefix / "pkgs");
+
             prefix = fs::weakly_canonical(prefix);
 
             auto& ctx = Context::instance();
@@ -257,33 +255,13 @@ namespace mamba
             {
                 if (!allow_existing)
                 {
-                    if (prefix == ctx.root_prefix)
-                    {
-                        LOG_ERROR << "Overwriting root prefix is not permitted";
-                        throw std::runtime_error("Aborting.");
-                    }
-                    else if (fs::exists(prefix / "conda-meta"))
-                    {
-                        if (Console::prompt(
-                                "Found conda-prefix at '" + prefix.string() + "'. Overwrite?", 'n'))
-                        {
-                            fs::remove_all(prefix);
-                        }
-                        else
-                        {
-                            throw std::runtime_error("Aborting.");
-                        }
-                    }
-                    else
-                    {
-                        LOG_ERROR << "Non-conda folder exists at prefix";
-                        throw std::runtime_error("Aborting.");
-                    }
+                    LOG_ERROR << "Not allowed pre-existing prefix: " << prefix.string();
+                    throw std::runtime_error("Aborting.");
                 }
-                else if (!(fs::exists(prefix / "conda-meta") || (prefix == ctx.root_prefix))
-                         && !allow_not_env)
+
+                if (!fs::exists(prefix / "conda-meta") && !allow_not_env)
                 {
-                    LOG_ERROR << "No environment prefix found at: " << prefix.string();
+                    LOG_ERROR << "Expected environment not found at prefix: " << prefix.string();
                     throw std::runtime_error("Aborting.");
                 }
             }

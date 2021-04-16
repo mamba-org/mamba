@@ -438,7 +438,11 @@ namespace mamba
             for (auto& p : paths_data)
             {
                 fs::path full_path = pkg_folder / p.path;
-                if (!fs::exists(full_path))
+                // "exists" follows symlink so if the symlink doesn't link to existing target it
+                // will return false. There is such symlink in _openmp_mutex package. So if the file
+                // is a symlink we don't want to follow the symlink. The "paths_data" should include
+                // path of all the files and we shound't need to follow symlink.
+                if (!(fs::exists(full_path) || fs::is_symlink(full_path)))
                 {
                     if (is_warn || is_fail)
                     {

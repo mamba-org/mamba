@@ -332,6 +332,12 @@ namespace mamba
                 config.at("json").compute(MAMBA_CONF_FORCE_COMPUTE).set_context();
             }
         }
+
+        void experimental_hook(bool& value)
+        {
+            if (value)
+                LOG_WARNING << "Experimental mode enabled";
+        }
     }
 
     Configuration::Configuration()
@@ -387,6 +393,16 @@ namespace mamba
                    .group("Basic")
                    .needs({ "file_specs" })  // explicit file specs overwrite current specs
                    .description("Packages specification"));
+
+        insert(Configurable("experimental", &ctx.experimental)
+                   .group("Basic")
+                   .description("Enable experimental features")
+                   .set_rc_configurable()
+                   .set_env_var_name()
+                   .long_description(unindent(R"(
+                        Enable experimental features that may be still.
+                        under active development and not stable yet.)"))
+                   .set_post_build_hook(detail::experimental_hook));
 
         // Channels
         insert(Configurable("channels", &ctx.channels)

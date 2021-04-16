@@ -44,6 +44,7 @@ namespace mamba
         std::string current_command = "mamba";
         std::string custom_banner = "";
         bool is_micromamba = false;
+        bool experimental = false;
 
         fs::path target_prefix = "";
         // Need to prevent circular imports here (otherwise using env::get())

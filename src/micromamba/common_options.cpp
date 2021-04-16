@@ -62,6 +62,10 @@ init_general_options(CLI::App* subcom)
     subcom->add_flag("--dry-run", dry_run.set_cli_config(0), dry_run.description())
         ->group(cli_group);
 
+    auto& experimental = config.at("experimental").get_wrapped<bool>();
+    subcom->add_flag("--experimental", experimental.set_cli_config(0), experimental.description())
+        ->group(cli_group);
+
 #ifdef ENABLE_CONTEXT_DEBUG_PRINT
     auto& print_context_only = config.insert(Configurable("print_context_only", false), true);
     subcom

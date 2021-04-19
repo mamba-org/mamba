@@ -75,8 +75,9 @@ namespace mamba
             solver.add_jobs(specs, SOLVER_ERASE);
             solver.solve();
 
-            MultiPackageCache package_caches({ ctx.root_prefix / "pkgs" });
-            MTransaction trans(solver, package_caches);
+            const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
+            MultiPackageCache package_caches({ pkgs_dirs });
+            MTransaction trans(solver, package_caches, pkgs_dirs);
 
             if (ctx.json)
             {
@@ -89,9 +90,9 @@ namespace mamba
                 repo_ptrs.push_back(&r);
             }
 
-            bool yes = trans.prompt(ctx.root_prefix / "pkgs", repo_ptrs);
+            bool yes = trans.prompt(repo_ptrs);
             if (yes)
-                trans.execute(prefix_data, ctx.root_prefix / "pkgs");
+                trans.execute(prefix_data);
         }
     }
 }  // mamba

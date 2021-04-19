@@ -65,15 +65,15 @@ PYBIND11_MODULE(mamba_api, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&, MultiPackageCache&>())
+        .def(py::init<MSolver&, MultiPackageCache&, const std::string&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
-        .def("execute",
-             [](MTransaction& self, PrefixData& target_prefix, const std::string& cache_dir)
-                 -> bool { return self.execute(target_prefix, cache_dir); });
+        .def("execute", [](MTransaction& self, PrefixData& target_prefix) -> bool {
+            return self.execute(target_prefix);
+        });
 
     py::class_<MSolver>(m, "Solver")
         .def(py::init<MPool&, std::vector<std::pair<int, int>>>())

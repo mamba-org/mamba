@@ -40,6 +40,7 @@ namespace mamba
         void set_writable(Writable writable);
         Writable is_writable();
         fs::path get_pkgs_dir() const;
+        void clear_query_cache(const PackageInfo& s);
 
         bool query(const PackageInfo& s);
 
@@ -59,11 +60,15 @@ namespace mamba
         MultiPackageCache(const std::vector<fs::path>& pkgs_dirs);
         PackageCacheData& first_writable();
 
-        bool query(const PackageInfo& s);
+        fs::path query(const PackageInfo& s);
+        fs::path first_cache_path(const PackageInfo& s, bool return_empty = true);
         std::vector<PackageCacheData*> writable_caches();
+
+        void clear_query_cache(const PackageInfo& s);
 
     private:
         std::vector<PackageCacheData> m_caches;
+        std::map<std::string, std::string> m_path_cache;
     };
 }  // namespace mamba
 

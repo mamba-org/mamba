@@ -13,6 +13,21 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/thread_utils.hpp"
 
+namespace
+{
+    bool need_pkg_download(const mamba::PackageInfo& pkg_info,
+                           mamba::MultiPackageCache& cache,
+                           const fs::path& cache_path)
+    {
+        // See PackageDownloadExtractTarget::target() for note about when we need to download
+        // the package.
+        bool need_download(cache.first_cache_path(pkg_info).empty());
+        if (need_download)
+            need_download = cache.query(pkg_info) != cache_path;
+        return need_download;
+    }
+}  // anonymouse namspace
+
 namespace mamba
 {
     nlohmann::json solvable_to_json(Solvable* s)
@@ -223,41 +238,44 @@ namespace mamba
     DownloadTarget* PackageDownloadExtractTarget::target(const fs::path& cache_path,
                                                          MultiPackageCache& cache)
     {
-        m_cache_path = cache_path;
-        m_tarball_path = cache_path / m_filename;
-
-        bool valid = cache.query(m_package_info);
-
-        fs::path dest_dir = strip_package_extension(m_tarball_path);
-        bool dest_dir_exists = fs::exists(dest_dir);
-
-        if (valid && !dest_dir_exists)
-        {
-            m_progress_proxy = Console::instance().add_progress_bar(m_name);
-            m_validation_result = VALIDATION_RESULT::VALID;
-            thread v(&PackageDownloadExtractTarget::extract_from_cache, this);
-            v.detach();
-            return nullptr;
-        }
-
+        //
         // tarball can be removed, it's fine if only the correct dest dir exists
-        if (!valid)
+        // 1. If there is extracted cache, use it, otherwise next.
+        // 2. If there is tarball in `cache_path` (writable), extract it, otherwise next.
+        // 3. Run the full download pipeline.
+        //
+        m_cache_path = cache_path;
+        fs::path pkg_cache_path(cache.first_cache_path(m_package_info));
+        if (pkg_cache_path.empty())
         {
-            // need to download this file
-            LOG_INFO << "Adding " << m_name << " with " << m_url;
+            pkg_cache_path = cache.query(m_package_info);
+            if (cache_path == pkg_cache_path)
+            {
+                m_tarball_path = pkg_cache_path / m_filename;
+                m_progress_proxy = Console::instance().add_progress_bar(m_name);
+                m_validation_result = VALIDATION_RESULT::VALID;
+                thread v(&PackageDownloadExtractTarget::extract_from_cache, this);
+                v.detach();
+            }
+            else
+            {
+                m_tarball_path = cache_path / m_filename;
+                cache.clear_query_cache(m_package_info);
+                // need to download this file
+                LOG_INFO << "Adding " << m_name << " with " << m_url;
 
-            m_progress_proxy = Console::instance().add_progress_bar(m_name);
-            m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
-            m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
-            m_target->set_expected_size(m_expected_size);
-            m_target->set_progress_bar(m_progress_proxy);
+                m_progress_proxy = Console::instance().add_progress_bar(m_name);
+                m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
+                m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback,
+                                                this);
+                m_target->set_expected_size(m_expected_size);
+                m_target->set_progress_bar(m_progress_proxy);
+                return m_target.get();
+            }
         }
-        else
-        {
-            LOG_INFO << "Using cache " << m_name;
-            m_finished = true;
-        }
-        return m_target.get();
+        LOG_INFO << "Using cache " << m_name;
+        m_finished = true;
+        return nullptr;
     }
 
     /*******************************
@@ -280,8 +298,11 @@ namespace mamba
         }
     }
 
-    MTransaction::MTransaction(MSolver& solver, MultiPackageCache& cache)
+    MTransaction::MTransaction(MSolver& solver,
+                               MultiPackageCache& cache,
+                               const std::string& cache_dir)
         : m_multi_cache(cache)
+        , m_cache_path(cache_dir)
     {
         if (!solver.is_solved())
         {
@@ -498,7 +519,7 @@ namespace mamba
         std::stack<LinkPackage> m_link_stack;
     };
 
-    bool MTransaction::execute(PrefixData& prefix, const fs::path& cache_dir)
+    bool MTransaction::execute(PrefixData& prefix)
     {
         auto& ctx = Context::instance();
 
@@ -555,13 +576,17 @@ namespace mamba
                     Console::stream()
                         << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
                     PackageInfo p_unlink(s);
+                    const fs::path ul_cache_path(m_multi_cache.first_cache_path(p_unlink));
                     PackageInfo p_link(s2);
+                    const fs::path l_cache_path(m_multi_cache.first_cache_path(p_link, false));
 
-                    UnlinkPackage up(p_unlink, fs::path(cache_dir), &m_transaction_context);
+                    UnlinkPackage up(p_unlink,
+                                     ul_cache_path.empty() ? m_cache_path : ul_cache_path,
+                                     &m_transaction_context);
                     up.execute();
                     rollback.record(up);
 
-                    LinkPackage lp(p_link, fs::path(cache_dir), &m_transaction_context);
+                    LinkPackage lp(p_link, l_cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);
 
@@ -573,8 +598,10 @@ namespace mamba
                 case SOLVER_TRANSACTION_ERASE:
                 {
                     PackageInfo p(s);
-                    Console::stream() << "Unlinking " << PackageInfo(s).str();
-                    UnlinkPackage up(p, fs::path(cache_dir), &m_transaction_context);
+                    Console::stream() << "Unlinking " << p.str();
+                    const fs::path cache_path(m_multi_cache.first_cache_path(p));
+                    UnlinkPackage up(
+                        p, cache_path.empty() ? m_cache_path : cache_path, &m_transaction_context);
                     up.execute();
                     rollback.record(up);
                     m_history_entry.unlink_dists.push_back(p.long_str());
@@ -584,7 +611,8 @@ namespace mamba
                 {
                     PackageInfo p(s);
                     Console::stream() << "Linking " << p.str();
-                    LinkPackage lp(p, fs::path(cache_dir), &m_transaction_context);
+                    const fs::path cache_path(m_multi_cache.first_cache_path(p, false));
+                    LinkPackage lp(p, cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);
                     m_history_entry.link_dists.push_back(p.long_str());
@@ -657,7 +685,7 @@ namespace mamba
 
         for (Solvable* s : m_to_install)
         {
-            if (this->m_multi_cache.query(s))
+            if (!need_pkg_download(s, m_multi_cache, m_cache_path))
             {
                 to_link.push_back(solvable_to_json(s));
             }
@@ -690,10 +718,8 @@ namespace mamba
         add_json(to_unlink, "UNLINK");
     }
 
-    bool MTransaction::fetch_extract_packages(const std::string& cache_dir,
-                                              std::vector<MRepo*>& repos)
+    bool MTransaction::fetch_extract_packages(std::vector<MRepo*>& repos)
     {
-        fs::path cache_path(cache_dir);
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
         MultiDownloadTarget multi_dl;
 
@@ -721,7 +747,7 @@ namespace mamba
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
-            multi_dl.add(targets[targets.size() - 1]->target(cache_path, m_multi_cache));
+            multi_dl.add(targets[targets.size() - 1]->target(m_cache_path, m_multi_cache));
         }
 
         interruption_guard g([]() { Console::instance().init_multi_progress(); });
@@ -773,7 +799,7 @@ namespace mamba
         return m_to_install.size() == 0 && m_to_remove.size() == 0;
     }
 
-    bool MTransaction::prompt(const std::string& cache_dir, std::vector<MRepo*>& repos)
+    bool MTransaction::prompt(std::vector<MRepo*>& repos)
     {
         print();
         if (Context::instance().dry_run || empty())
@@ -784,7 +810,7 @@ namespace mamba
         bool res = Console::prompt("Confirm changes", 'y');
         if (res)
         {
-            return fetch_extract_packages(cache_dir, repos);
+            return fetch_extract_packages(repos);
         }
         return res;
     }
@@ -862,21 +888,24 @@ namespace mamba
                 {
                     dlsize_s.s = "Ignored";
                 }
-                else if (this->m_multi_cache.query(s))
-                {
-                    dlsize_s.s = "Cached";
-                    dlsize_s.flag = printers::format::green;
-                }
                 else
                 {
-                    std::stringstream s;
-                    to_human_readable_filesize(s, dlsize);
-                    dlsize_s.s = s.str();
-                    // Hacky hacky
-                    if (static_cast<std::size_t>(flag)
-                        & static_cast<std::size_t>(printers::format::green))
+                    if (!need_pkg_download(s, m_multi_cache, m_cache_path))
                     {
-                        total_size += dlsize;
+                        dlsize_s.s = "Cached";
+                        dlsize_s.flag = printers::format::green;
+                    }
+                    else
+                    {
+                        std::stringstream s;
+                        to_human_readable_filesize(s, dlsize);
+                        dlsize_s.s = s.str();
+                        // Hacky hacky
+                        if (static_cast<std::size_t>(flag)
+                            & static_cast<std::size_t>(printers::format::green))
+                        {
+                            total_size += dlsize;
+                        }
                     }
                 }
             }

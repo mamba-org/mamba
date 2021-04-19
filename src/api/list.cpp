@@ -26,6 +26,8 @@ namespace mamba
         config.load();
 
         detail::list_packages(regex);
+
+        config.operation_teardown();
     }
 
     namespace detail

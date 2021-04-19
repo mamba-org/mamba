@@ -557,6 +557,8 @@ namespace mamba
 
         bool configured() const;
 
+        bool has_single_op_lifetime() const;
+
         self_type& set_rc_value(const T& value, const std::string& source);
 
         self_type& set_rc_values(const std::map<std::string, T>& mapped_values,
@@ -573,6 +575,8 @@ namespace mamba
         self_type& clear_api_value();
 
         self_type& clear_values();
+
+        self_type& set_single_op_lifetime();
 
         self_type& set_env_var_name(const std::string& name = "");
 
@@ -621,12 +625,14 @@ namespace mamba
         bool m_lock = false;
         int m_compute_counter = 0;
 
+        bool m_single_op_lifetime = false;
+
         std::set<std::string> m_needed_configs, m_implied_configs;
 
         std::map<std::string, T> m_rc_values, m_values;
         std::vector<std::string> m_rc_sources, m_sources;
 
-        T m_value;
+        T m_value, m_default_value;
         std::vector<std::string> m_source;
 
         std::shared_ptr<cli_config_type> p_cli_config = 0;
@@ -642,6 +648,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, T* context)
         : m_name(name)
         , m_value(*context)
+        , m_default_value(*context)
         , m_source(detail::Source<T>::default_value(*context))
         , p_context(context){};
 
@@ -649,6 +656,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, const T& init)
         : m_name(name)
         , m_value(init)
+        , m_default_value(init)
         , m_source(detail::Source<T>::default_value(init)){};
 
     template <class T>
@@ -745,6 +753,12 @@ namespace mamba
     };
 
     template <class T>
+    bool Configurable<T>::has_single_op_lifetime() const
+    {
+        return m_single_op_lifetime;
+    };
+
+    template <class T>
     auto Configurable<T>::set_context() -> self_type&
     {
         if (p_context != NULL)
@@ -779,9 +793,12 @@ namespace mamba
     {
         if (p_cli_config == NULL)
         {
-            throw std::runtime_error("Configurable '" + m_name + "' does not have CLI set.");
+            p_cli_config = std::make_shared<cli_config_type>(value);
         }
-        p_cli_config->m_value = value;
+        else
+        {
+            p_cli_config->m_value = value;
+        }
 
         return *this;
     };
@@ -798,6 +815,13 @@ namespace mamba
     void Configurable<T>::reset_compute_counter()
     {
         m_compute_counter = 0;
+    }
+
+    template <class T>
+    auto Configurable<T>::set_single_op_lifetime() -> self_type&
+    {
+        m_single_op_lifetime = true;
+        return *this;
     }
 
     template <class T>
@@ -872,6 +896,8 @@ namespace mamba
         clear_env_value();
         clear_cli_value();
         clear_api_value();
+        m_value = m_default_value;
+
         return *this;
     };
 
@@ -990,6 +1016,8 @@ namespace mamba
             virtual const std::set<std::string>& needed() const = 0;
 
             virtual const std::set<std::string>& implied() const = 0;
+
+            virtual bool has_single_op_lifetime() const = 0;
 
             virtual bool locked() = 0;
 
@@ -1125,6 +1153,11 @@ namespace mamba
                 return p_wrapped->implied();
             }
 
+            bool has_single_op_lifetime() const
+            {
+                return p_wrapped->has_single_op_lifetime();
+            }
+
             bool locked()
             {
                 return p_wrapped->locked();
@@ -1187,7 +1220,15 @@ namespace mamba
 
             void set_yaml_value(const std::string& value)
             {
-                p_wrapped->set_value(detail::Source<T>::deserialize(value));
+                try
+                {
+                    p_wrapped->set_value(detail::Source<T>::deserialize(value));
+                }
+                catch (const YAML::Exception& e)
+                {
+                    LOG_ERROR << "Bad conversion of configurable '" << name() << "'";
+                    throw e;
+                }
             };
 
             void clear_rc_values()
@@ -1391,6 +1432,11 @@ namespace mamba
             p_impl->free();
         }
 
+        bool has_single_op_lifetime() const
+        {
+            return p_impl->has_single_op_lifetime();
+        }
+
         bool locked()
         {
             return p_impl->locked();
@@ -1548,6 +1594,18 @@ namespace mamba
 
         void clear_rc_values();
 
+        void clear_cli_values();
+
+        /**
+         * Pop values that should have a single operation lifetime to avoid memroy effect
+         * between multiple operations.
+         * It corresponds to CLI values in most of the cases, but may also include API
+         * values if the `Configurable::has_single_op_lifetime` method returns true.
+         * RC files and environment variables are always overriden when loading the
+         * configuration.
+         */
+        void operation_teardown();
+
         std::string dump(bool show_values = true,
                          bool show_sources = false,
                          bool show_defaults = false,
@@ -1648,6 +1706,8 @@ namespace mamba
             m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
             m_values.insert(m_rc_values.begin(), m_rc_values.end());
         }
+
+        m_value = m_default_value;
 
         if (!m_sources.empty())
             detail::Source<T>::merge(m_values, m_sources, m_value, m_source);

@@ -355,6 +355,7 @@ namespace mamba
                             "use_target_prefix_fallback",
                             "verbose",
                             "always_yes" })
+                   .set_single_op_lifetime()
                    .description("Path to the target prefix")
                    .set_post_build_hook(detail::target_prefix_hook));
 
@@ -371,6 +372,7 @@ namespace mamba
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
                    .needs({ "file_specs" })
+                   .set_single_op_lifetime()
                    .description("Name of the target prefix"));
 
         insert(Configurable("specs", std::vector<std::string>({}))
@@ -604,6 +606,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .needs({ "quiet", "json" })
                    .set_post_build_hook(detail::show_banner_hook)
+                   .set_single_op_lifetime()
                    .description("Show the banner"));
 
         insert(Configurable("quiet", &ctx.quiet)
@@ -812,6 +815,29 @@ namespace mamba
         for (auto& c : m_config)
         {
             c.second.clear_rc_values();
+        }
+    }
+
+    void Configuration::clear_cli_values()
+    {
+        for (auto& c : m_config)
+        {
+            c.second.clear_cli_value();
+        }
+    }
+
+    void Configuration::operation_teardown()
+    {
+        for (auto& c : m_config)
+        {
+            if (c.second.has_single_op_lifetime())
+            {
+                c.second.clear_values();
+            }
+            else
+            {
+                c.second.clear_cli_value();
+            }
         }
     }
 

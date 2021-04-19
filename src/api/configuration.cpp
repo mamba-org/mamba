@@ -620,6 +620,30 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Show the banner"));
 
+        insert(Configurable("show_all_configs", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display all configurables, including not rc configurable"));
+
+        insert(Configurable("show_config_descriptions", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display configurables descriptions"));
+
+        insert(Configurable("show_config_groups", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display configurables groups"));
+
+        insert(Configurable("show_config_long_descriptions", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display configurables long descriptions"));
+
+        insert(Configurable("show_config_sources", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display all identified configuration sources"));
+
+        insert(Configurable("show_config_values", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display configurables values"));
+
         insert(Configurable("quiet", &ctx.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
@@ -970,14 +994,15 @@ namespace mamba
         m_sources = sources;
     }
 
-    std::string Configuration::dump(bool show_values,
-                                    bool show_source,
-                                    bool show_defaults,
-                                    bool show_sections,
-                                    bool show_desc,
-                                    bool long_desc,
-                                    std::vector<std::string> names)
+    std::string Configuration::dump(int opts, std::vector<std::string> names)
     {
+        bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
+        bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
+        bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
+        bool show_long_descs = opts & MAMBA_SHOW_CONFIG_LONG_DESCS;
+        bool show_groups = opts & MAMBA_SHOW_CONFIG_GROUPS;
+        bool show_all = opts & MAMBA_SHOW_ALL_CONFIGS;
+
         bool first_config = true;
         YAML::Emitter out;
         // out.SetNullFormat(YAML::EMITTER_MANIP::LowerNull); // TODO: switch from ~ to null
@@ -996,22 +1021,22 @@ namespace mamba
                     continue;
                 }
 
-                if ((c->rc_configurable() && c->configured()) || is_required || show_defaults)
+                if ((c->rc_configurable() && c->configured()) || is_required || show_all)
                 {
-                    if (show_desc || long_desc)
+                    if (show_descs || show_long_descs)
                     {
-                        if (show_sections && first_group_config)
+                        if (show_groups && first_group_config)
                         {
                             if (!first_config)
                                 out << YAML::Newline << YAML::Newline;
                             detail::print_group_title(out, group_name);
                         }
 
-                        if (!first_config || (first_config && show_sections))
+                        if (!first_config || (first_config && show_groups))
                             out << YAML::Newline << YAML::Newline;
 
                         out << YAML::Comment(c->name()) << YAML::Newline;
-                        if (long_desc)
+                        if (show_long_descs)
                         {
                             out << YAML::Comment(prepend(c->long_description(), "  ", "  "));
                         }
@@ -1027,7 +1052,7 @@ namespace mamba
                             out << YAML::BeginMap;
                         out << YAML::Key << c->name();
                         out << YAML::Value;
-                        detail::print_configurable(out, *c, show_source);
+                        detail::print_configurable(out, *c, show_sources);
                     }
 
                     first_config = false;

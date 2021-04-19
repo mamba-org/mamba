@@ -29,7 +29,9 @@
     if (Configuration::instance().at("print_config_only").value<bool>())                           \
     {                                                                                              \
         Configuration::instance().at("quiet").set_value(true);                                     \
-        std::cout << Configuration::instance().dump(true, true, true) << std::endl;                \
+        int dump_opts                                                                              \
+            = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS;          \
+        std::cout << Configuration::instance().dump(dump_opts) << std::endl;                       \
         exit(0);                                                                                   \
     }
 #define DEBUG_QUIET                                                                                \
@@ -1566,6 +1568,15 @@ namespace mamba
         void check_target_prefix(int options);
     }
 
+
+    int const MAMBA_SHOW_CONFIG_VALUES = 1 << 0;
+    int const MAMBA_SHOW_CONFIG_SRCS = 1 << 1;
+    int const MAMBA_SHOW_CONFIG_DESCS = 1 << 2;
+    int const MAMBA_SHOW_CONFIG_LONG_DESCS = 1 << 3;
+    int const MAMBA_SHOW_CONFIG_GROUPS = 1 << 4;
+    int const MAMBA_SHOW_ALL_CONFIGS = 1 << 5;
+
+
     /*****************
      * Configuration *
      * ***************/
@@ -1606,13 +1617,7 @@ namespace mamba
          */
         void operation_teardown();
 
-        std::string dump(bool show_values = true,
-                         bool show_sources = false,
-                         bool show_defaults = false,
-                         bool show_sections = false,
-                         bool show_desc = false,
-                         bool long_desc = false,
-                         std::vector<std::string> names = {});
+        std::string dump(int opts = MAMBA_SHOW_CONFIG_VALUES, std::vector<std::string> names = {});
 
         template <class T>
         typename detail::cli_config<T>::storage_type& link_cli_option(

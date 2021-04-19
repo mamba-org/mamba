@@ -10,7 +10,11 @@
 
 namespace mamba
 {
+    void config_describe();
+
     void config_list();
+
+    void config_sources();
 }
 
 #endif

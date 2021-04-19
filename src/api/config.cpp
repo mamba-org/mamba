@@ -9,22 +9,98 @@
 
 namespace mamba
 {
+    void config_describe()
+    {
+        auto& config = Configuration::instance();
+
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        auto show_group
+            = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
+        auto show_long_desc = config.at("show_config_long_descriptions").value<bool>()
+                                  ? MAMBA_SHOW_CONFIG_LONG_DESCS
+                                  : 0;
+        auto specs = config.at("specs").value<std::vector<std::string>>();
+        int dump_opts = MAMBA_SHOW_CONFIG_DESCS | show_long_desc | show_group;
+
+        std::cout << config.dump(dump_opts, specs) << std::endl;
+
+        config.operation_teardown();
+    }
+
     void config_list()
     {
-        // load_configuration(false);
-
         auto& config = Configuration::instance();
-        /*
-                auto& show_sources = config.at("config_show_sources").value<bool>();
-                auto& show_all = config.at("config_show_all").value<bool>();
-                auto& show_groups = config.at("config_show_groups").value<bool>();
-                auto& show_desc = config.at("config_show_descriptions").value<bool>();
-                auto& show_long_desc = config.at("config_show_long_descriptions").value<bool>();
-                auto& specs = config.at("config_specs").value<std::vector<std::string>>();
-                std::cout << config.dump(
-                    true, show_sources, show_all, show_groups, show_desc, show_long_desc, specs)
-                            << std::endl;
-        */
-        std::cout << config.dump(true, true, false, false, false, false, {}) << std::endl;
+
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        auto show_sources
+            = config.at("show_config_sources").value<bool>() ? MAMBA_SHOW_CONFIG_SRCS : 0;
+        auto show_all = config.at("show_all_configs").value<bool>() ? MAMBA_SHOW_ALL_CONFIGS : 0;
+        auto show_group
+            = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
+        auto show_desc
+            = config.at("show_config_descriptions").value<bool>() ? MAMBA_SHOW_CONFIG_DESCS : 0;
+        auto show_long_desc = config.at("show_config_long_descriptions").value<bool>()
+                                  ? MAMBA_SHOW_CONFIG_LONG_DESCS
+                                  : 0;
+        auto specs = config.at("specs").value<std::vector<std::string>>();
+        int dump_opts = MAMBA_SHOW_CONFIG_VALUES | show_sources | show_desc | show_long_desc
+                        | show_group | show_all;
+
+        std::cout << config.dump(dump_opts, specs) << std::endl;
+
+        config.operation_teardown();
+    }
+
+    void config_sources()
+    {
+        auto& config = Configuration::instance();
+
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        auto& no_rc = config.at("no_rc").value<bool>();
+
+        if (no_rc)
+        {
+            std::cout << "Configuration files disabled by --no-rc flag" << std::endl;
+        }
+        else
+        {
+            std::cout << "Configuration files (by precedence order):" << std::endl;
+
+            auto srcs = config.sources();
+            auto valid_srcs = config.valid_sources();
+
+            for (auto s : srcs)
+            {
+                auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
+                if (found_s != valid_srcs.end())
+                {
+                    std::cout << env::shrink_user(s).string() << std::endl;
+                }
+                else
+                {
+                    std::cout << env::shrink_user(s).string() + " (invalid)" << std::endl;
+                }
+            }
+        }
+
+        config.operation_teardown();
     }
 }

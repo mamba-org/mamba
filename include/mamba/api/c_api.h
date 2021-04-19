@@ -12,23 +12,23 @@ extern "C"
 {
 #endif
 
-    void mamba_create();
+    int mamba_create();
 
-    void mamba_install();
+    int mamba_install();
 
-    void mamba_update(int update_all = 0);
+    int mamba_update(int update_all = 0);
 
-    void mamba_remove(int remove_all = 0);
+    int mamba_remove(int remove_all = 0);
 
-    void mamba_list(const char* regex = "");
+    int mamba_list(const char* regex = "");
 
-    void mamba_info();
+    int mamba_info();
 
-    void mamba_config_list();
+    int mamba_config_list();
 
-    void mamba_set_config(const char* name, const char* value);
+    int mamba_set_config(const char* name, const char* value);
 
-    void mamba_clear_config(const char* name);
+    int mamba_clear_config(const char* name);
 
 #ifdef __cplusplus
 }

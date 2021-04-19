@@ -98,7 +98,8 @@ namespace mamba
             EXPECT_EQ(config.sources().size(), 1);
             EXPECT_EQ(config.valid_sources().size(), 1);
             EXPECT_EQ(config.dump(), "channels:\n  - test1");
-            EXPECT_EQ(config.dump(true, true), "channels:\n  - test1  # '" + src + "'");
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      "channels:\n  - test1  # '" + src + "'");
 
             // Hill-formed config file
             rc = unindent(R"(
@@ -111,7 +112,7 @@ namespace mamba
             EXPECT_EQ(config.sources().size(), 1);
             EXPECT_EQ(config.valid_sources().size(), 0);
             EXPECT_EQ(config.dump(), "");
-            EXPECT_EQ(config.dump(true, true), "");
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS), "");
         }
 
         TEST_F(Configuration, load_rc_files)
@@ -139,7 +140,7 @@ namespace mamba
                                       - test1
                                       - test2
                                     ssl_verify: <false>)"));
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                     channels:
                                       - test1  # ')"
@@ -172,7 +173,7 @@ namespace mamba
                                       - test2
                                       - test3
                                     ssl_verify: <false>)"));
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                     channels:
                                       - test1  # ')"
@@ -206,7 +207,7 @@ namespace mamba
                                       - test2
                                       - test3
                                     ssl_verify: <false>)"));
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                     channels:
                                       - test1  # ')"
@@ -254,7 +255,7 @@ namespace mamba
                                 override_channels_enabled: true
                                 allow_softlinks: true)"));
 
-            res = config.dump(true, true);
+            res = config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS);
             EXPECT_EQ(res,
                       unindent((R"(
                                 channels:
@@ -309,7 +310,7 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src1 = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 channels:
                                   - c90  # 'CONDA_CHANNELS'
@@ -324,7 +325,7 @@ namespace mamba
                 .set_yaml_value("https://my.channel, https://my2.channel")
                 .compute()
                 .set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 channels:
                                   - https://my.channel  # 'API'
@@ -379,7 +380,7 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src1 = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 default_channels:
                                   - c91  # 'MAMBA_DEFAULT_CHANNELS'
@@ -394,7 +395,7 @@ namespace mamba
                 .set_yaml_value("https://my.channel, https://my2.channel")
                 .compute()
                 .set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 default_channels:
                                   - https://my.channel  # 'API'
@@ -432,11 +433,11 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src1 = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'");
 
             config.at("channel_alias").set_yaml_value("https://my.channel").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '"
                           + src1 + "'");
             EXPECT_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
@@ -511,11 +512,11 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src1 = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
             config.at("ssl_verify").set_yaml_value("/new/test").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
             env::set("MAMBA_SSL_VERIFY", "");
@@ -537,7 +538,7 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 cacert_path: /env/ca/baz  # 'MAMBA_CACERT_PATH' > ')"
                                 + src + R"('
@@ -547,7 +548,7 @@ namespace mamba
             EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
 
             config.at("cacert_path").set_yaml_value("/new/test").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
                                 + src + R"('
@@ -557,7 +558,7 @@ namespace mamba
             EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
 
             config.at("ssl_verify").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
                                 + src + R"('
@@ -603,7 +604,8 @@ namespace mamba
         {                                                                                          \
             expected = std::string(#NAME) + ": true  # '" + env_name + "'";                        \
         }                                                                                          \
-        EXPECT_EQ((config.dump(true, true, false, false, false, false, { #NAME })), expected);     \
+        int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS;                         \
+        EXPECT_EQ((config.dump(dump_opts, { #NAME })), expected);                                  \
         EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
         EXPECT_TRUE(CTX);                                                                          \
                                                                                                    \
@@ -617,7 +619,7 @@ namespace mamba
             expected = std::string(#NAME) + ": true  # 'API' > '" + env_name + "'";                \
         }                                                                                          \
         config.at(#NAME).set_yaml_value("true").compute().set_context();                           \
-        EXPECT_EQ((config.dump(true, true, false, false, false, false, { #NAME })), expected);     \
+        EXPECT_EQ((config.dump(dump_opts, { #NAME })), expected);                                  \
         EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
         EXPECT_TRUE(CTX);                                                                          \
                                                                                                    \
@@ -662,14 +664,14 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'");
             EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
                       ChannelPriority::kStrict);
             EXPECT_EQ(ctx.channel_priority, ChannelPriority::kStrict);
 
             config.at("channel_priority").set_yaml_value("flexible").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src
                           + "'");
             EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
@@ -727,7 +729,7 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src1 = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 pinned_packages:
                                   - mpl=10.2  # 'MAMBA_PINNED_PACKAGES'
@@ -742,7 +744,7 @@ namespace mamba
                 std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
 
             config.at("pinned_packages").set_yaml_value("pytest").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 pinned_packages:
                                   - pytest  # 'API'
@@ -812,14 +814,14 @@ namespace mamba
             ASSERT_EQ(config.valid_sources().size(), 1);
             std::string src = shrink_source(0);
 
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
             EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
                       VerificationLevel::kWarn);
             EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
             config.at("safety_checks").set_yaml_value("disabled").compute().set_context();
-            EXPECT_EQ(config.dump(true, true),
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
             EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
                       VerificationLevel::kDisabled);

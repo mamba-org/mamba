@@ -9,7 +9,7 @@ dependencies:
   - pybind11
   - libsolv >=0.7.18
   - libarchive
-  - libcurl
+  - libcurl 7.76.1 *_0
   - cxx-compiler
   - gtest
   - cpp-filesystem

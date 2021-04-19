@@ -126,6 +126,7 @@ namespace mamba
         {
             throw std::runtime_error("Need an action (activate, deactivate or hook)");
         }
-    }
 
+        config.operation_teardown();
+    }
 }  // mamba

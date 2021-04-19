@@ -69,5 +69,7 @@ namespace mamba
         {
             detail::create_empty_target(ctx.target_prefix);
         }
+
+        config.operation_teardown();
     }
 }

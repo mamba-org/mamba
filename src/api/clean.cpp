@@ -235,5 +235,7 @@ namespace mamba
                 }
             }
         }
+
+        config.operation_teardown();
     }
 }  // mamba

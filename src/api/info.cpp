@@ -28,6 +28,8 @@ namespace mamba
         config.load();
 
         detail::print_info();
+
+        config.operation_teardown();
     }
 
     std::string version()

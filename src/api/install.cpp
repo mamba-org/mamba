@@ -51,6 +51,8 @@ namespace mamba
         {
             Console::print("Nothing to do.");
         }
+
+        config.operation_teardown();
     }
 
     int RETRY_SUBDIR_FETCH = 1 << 0;

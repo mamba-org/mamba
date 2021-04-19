@@ -20,56 +20,128 @@
 using namespace mamba;
 
 
-void
+int
 mamba_create()
 {
-    create();
+    try
+    {
+        create();
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_install()
 {
-    install();
+    try
+    {
+        install();
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_update(int update_all)
 {
-    update(update_all);
+    try
+    {
+        update(update_all);
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_remove(int remove_all)
 {
-    remove(remove_all);
+    try
+    {
+        remove(remove_all);
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_list(const char* regex)
 {
-    list(regex);
+    try
+    {
+        list(regex);
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_info()
 {
-    info();
+    try
+    {
+        info();
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_config_list()
 {
-    config_list();
+    try
+    {
+        config_list();
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_set_config(const char* name, const char* value)
 {
-    Configuration::instance().at(name).set_yaml_value(value);
+    try
+    {
+        Configuration::instance().at(name).set_yaml_value(value);
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }
 
-void
+int
 mamba_clear_config(const char* name)
 {
-    Configuration::instance().at(name).clear_values();
+    try
+    {
+        Configuration::instance().at(name).clear_values();
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
 }

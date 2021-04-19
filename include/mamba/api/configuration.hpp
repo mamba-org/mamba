@@ -491,13 +491,11 @@ namespace mamba
     };
 
     int const MAMBA_NO_PREFIX_CHECK = 1 << 0;
-    int const MAMBA_ALLOW_ROOT_PREFIX = 1 << 1;
-    int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 2;
-    int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 3;
-    int const MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 4;
-    int const MAMBA_EXPECT_EXISTING_PREFIX = 1 << 5;
+    int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
+    int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 2;
+    int const MAMBA_ALLOW_NOT_ENV_PREFIX = 1 << 3;
+    int const MAMBA_EXPECT_EXISTING_PREFIX = 1 << 4;
 
-    int const MAMBA_NOT_ALLOW_ROOT_PREFIX = 0;
     int const MAMBA_NOT_ALLOW_EXISTING_PREFIX = 0;
     int const MAMBA_NOT_ALLOW_MISSING_PREFIX = 0;
     int const MAMBA_NOT_ALLOW_NOT_ENV_PREFIX = 0;

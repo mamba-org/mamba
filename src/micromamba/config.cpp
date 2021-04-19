@@ -100,8 +100,7 @@ set_config_list_command(CLI::App* subcom)
 
         config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("target_prefix_checks").set_value(MAMBA_ALLOW_EXISTING_PREFIX);
         config.load();
 
         auto& show_sources = config.at("config_show_sources").value<bool>();
@@ -129,8 +128,7 @@ set_config_sources_command(CLI::App* subcom)
 
         config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("target_prefix_checks").set_value(MAMBA_ALLOW_EXISTING_PREFIX);
         config.load();
 
         auto& no_rc = config.at("no_rc").value<bool>();
@@ -173,8 +171,7 @@ set_config_describe_command(CLI::App* subcom)
 
         config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX);
+        config.at("target_prefix_checks").set_value(MAMBA_ALLOW_EXISTING_PREFIX);
         config.load();
 
         auto& show_groups = config.at("config_show_groups").value<bool>();

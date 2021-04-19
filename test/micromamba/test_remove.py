@@ -13,15 +13,23 @@ from .helpers import *
 
 @pytest.mark.skipif(dry_run_tests == DryRun.ULTRA_DRY, reason="Running ultra dry tests")
 class TestRemove:
-    env_name = random_string()
-    root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
-    prefix = Path(os.path.join(root_prefix, "envs", env_name)).__str__()
+    cache = os.path.join(current_root_prefix, "pkgs")
+
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
 
     @classmethod
     def setup_class(cls):
-        create("xtensor", "-n", TestRemove.env_name, no_dry_run=True)
+        os.environ["MAMBA_ROOT_PREFIX"] = TestRemove.root_prefix
         os.environ["CONDA_PREFIX"] = TestRemove.prefix
+
+        # speed-up the tests
+        os.environ["CONDA_PKGS_DIRS"] = TestRemove.cache
+
+        create("xtensor", "-n", TestRemove.env_name, no_dry_run=True)
 
     @classmethod
     def setup(cls):
@@ -32,9 +40,9 @@ class TestRemove:
 
     @classmethod
     def teardown_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestRemove.current_root_prefix
         os.environ["CONDA_PREFIX"] = TestRemove.current_prefix
-        if dry_run_tests == DryRun.OFF:
-            shutil.rmtree(get_env(TestRemove.env_name))
+        shutil.rmtree(TestRemove.root_prefix)
 
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
     def test_remove(self, env_selector):
@@ -70,11 +78,6 @@ class TestRemoveConfig:
         os.makedirs(TestRemoveConfig.root_prefix, exist_ok=False)
         create("-n", TestRemoveConfig.env_name, "--offline", no_dry_run=True)
 
-        # TODO: remove that when https://github.com/mamba-org/mamba/pull/836 will be merge
-        os.makedirs(
-            os.path.join(TestRemoveConfig.root_prefix, "conda-meta"), exist_ok=False
-        )
-
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.root_prefix
@@ -97,8 +100,7 @@ class TestRemoveConfig:
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
         checks = (
-            MAMBA_ALLOW_ROOT_PREFIX
-            | MAMBA_ALLOW_EXISTING_PREFIX
+            MAMBA_ALLOW_EXISTING_PREFIX
             | MAMBA_NOT_ALLOW_MISSING_PREFIX
             | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
             | MAMBA_EXPECT_EXISTING_PREFIX

@@ -25,6 +25,9 @@ class TestUpdate:
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdate.prefix
 
+        # speed-up the tests
+        os.environ["CONDA_PKGS_DIRS"] = TestUpdate.cache
+
         res = create(
             f"xtensor={TestUpdate.old_version}",
             "-n",
@@ -56,17 +59,12 @@ class TestUpdate:
     def teardown_class(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.current_root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdate.current_prefix
+        os.environ.pop("CONDA_PKGS_DIRS")
         shutil.rmtree(TestUpdate.root_prefix)
 
-    @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
-    def test_update(self, env_selector):
+    def test_classic_spec(self):
 
-        if env_selector == "prefix":
-            update_res = update("xtensor", "-p", TestUpdate.prefix, "--json")
-        elif env_selector == "name":
-            update_res = update("xtensor", "-n", TestUpdate.env_name, "--json")
-        else:
-            update_res = update("xtensor", "--json")
+        update_res = update("xtensor", "--json")
 
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
@@ -91,7 +89,7 @@ class TestUpdate:
     @pytest.mark.parametrize(
         "alias",
         [
-            "",
+            None,
             "https://conda.anaconda.org/",
             "https://repo.mamba.pm/",
             "https://repo.mamba.pm",
@@ -117,116 +115,6 @@ class TestUpdate:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
 
-    @pytest.mark.parametrize("channels", [None, "both", "CLI_only", "file_only"])
-    @pytest.mark.parametrize("env_name", [None, "both", "CLI_only", "file_only"])
-    @pytest.mark.parametrize("specs", ["both", "CLI_only", "file_only"])
-    def test_yaml_spec_file(self, channels, env_name, specs):
-        spec_file_content = []
-        if env_name not in ("CLI_only", None):
-            spec_file_content += ["name: not_existing_env"]
-        if channels not in ("CLI_only", None):
-            spec_file_content += ["channels:", "  - https://repo.mamba.pm/conda-forge"]
-        if specs != "CLI_only":
-            spec_file_content += ["dependencies:", "  - xtensor"]
-
-        yaml_spec_file = os.path.join(TestUpdate.prefix, "yaml_env.yml")
-        with open(yaml_spec_file, "w") as f:
-            f.write("\n".join(spec_file_content))
-
-        cmd = []
-
-        if specs != "file_only":
-            cmd += ["xtl"]
-
-        if env_name not in ("file_only", None):
-            cmd += [
-                "-n",
-                TestUpdate.env_name,
-            ]
-
-        if channels not in ("file_only", None):
-            cmd += ["-c", "https://conda.anaconda.org/conda-forge"]
-
-        cmd += ["-f", yaml_spec_file, "--json"]
-
-        if specs == "CLI_only" or env_name == "file_only":
-            with pytest.raises(subprocess.CalledProcessError):
-                update(*cmd, default_channel=False)
-        else:
-            res = update(*cmd, default_channel=False)
-
-            assert res["success"]
-            assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
-            assert res["prefix"] == TestUpdate.prefix
-
-            if channels is None:
-                # No channels currently only warn on update sub command
-                keys = {"success", "prefix", "message", "dry_run"}
-                assert keys.issubset(set(res.keys()))
-                assert res["message"] == "All requested packages already installed"
-            else:
-                keys = {"success", "prefix", "actions", "dry_run"}
-                assert keys.issubset(set(res.keys()))
-
-                action_keys = {"LINK", "PREFIX"}
-                assert action_keys.issubset(set(res["actions"].keys()))
-
-                xtensor_link = [
-                    l for l in res["actions"]["LINK"] if l["name"] == "xtensor"
-                ][0]
-                assert TestUpdate.old_version != xtensor_link["version"]
-
-                if dry_run_tests == DryRun.OFF:
-                    pkg = get_concrete_pkg(res, "xtensor")
-                    pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
-                    version = pkg_info["version"]
-                    assert TestUpdate.old_version != version
-
-                if channels == "file_only":
-                    expected_channel = "https://repo.mamba.pm/conda-forge"
-                else:
-                    expected_channel = "https://conda.anaconda.org/conda-forge"
-
-                for l in res["actions"]["LINK"]:
-                    assert l["channel"].startswith(expected_channel)
-                    assert l["url"].startswith(expected_channel)
-
-    @pytest.mark.parametrize("f_count", [1, 2])
-    def test_spec_file(self, f_count):
-        file_content = [
-            "xtensor >=0.20",
-            "xsimd",
-        ]
-        spec_file = os.path.join(TestUpdate.prefix, "file1.txt")
-        with open(spec_file, "w") as f:
-            f.write("\n".join(file_content))
-
-        file_cmd = ["-f", spec_file]
-
-        if f_count == 2:
-            file_content = [
-                "python=3.7.*",
-                "wheel",
-            ]
-            spec_file = os.path.join(TestUpdate.prefix, "file2.txt")
-            with open(spec_file, "w") as f:
-                f.write("\n".join(file_content))
-            file_cmd += ["-f", spec_file]
-
-        cmd = ["-p", TestUpdate.prefix, "-q"] + file_cmd
-
-        res = install(*cmd, "--json", default_channel=True)
-
-        assert res["success"]
-        assert res["dry_run"] == (dry_run_tests == DryRun.DRY)
-
-        packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        expected_packages = ["xtensor", "xtl"]
-        assert set(expected_packages).issubset(packages)
-
-        packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        assert set(expected_packages).issubset(packages)
-
 
 class TestUpdateConfig:
 
@@ -245,11 +133,6 @@ class TestUpdateConfig:
         os.makedirs(TestUpdateConfig.root_prefix, exist_ok=False)
         create("-n", TestUpdateConfig.env_name, "--offline", no_dry_run=True)
 
-        # TODO: remove that when https://github.com/mamba-org/mamba/pull/836 will be merge
-        os.makedirs(
-            os.path.join(TestUpdateConfig.root_prefix, "conda-meta"), exist_ok=False
-        )
-
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.root_prefix
@@ -267,13 +150,12 @@ class TestUpdateConfig:
         shutil.rmtree(TestUpdateConfig.root_prefix)
 
     @classmethod
-    def common_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
+    def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert res["use_target_prefix_fallback"]
         checks = (
-            MAMBA_ALLOW_ROOT_PREFIX
-            | MAMBA_ALLOW_EXISTING_PREFIX
+            MAMBA_ALLOW_EXISTING_PREFIX
             | MAMBA_NOT_ALLOW_MISSING_PREFIX
             | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
             | MAMBA_EXPECT_EXISTING_PREFIX
@@ -326,7 +208,7 @@ class TestUpdateConfig:
 
         res = install(*cmd, "--print-config-only")
 
-        TestUpdateConfig.common_tests(res)
+        TestUpdateConfig.config_tests(res)
         assert res["env_name"] == ""
         assert res["specs"] == specs
 
@@ -400,7 +282,7 @@ class TestUpdateConfig:
                 install(*cmd, "--print-config-only")
         else:
             res = install(*cmd, "--print-config-only")
-            TestUpdateConfig.common_tests(res, root_prefix=r, target_prefix=p)
+            TestUpdateConfig.config_tests(res, root_prefix=r, target_prefix=p)
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))
@@ -446,7 +328,7 @@ class TestUpdateConfig:
         res = install(
             *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
         )
-        TestUpdateConfig.common_tests(res)
+        TestUpdateConfig.config_tests(res)
         if expected_channels:
             assert res["channels"] == expected_channels
         else:

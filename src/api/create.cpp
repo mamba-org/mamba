@@ -20,9 +20,8 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_NOT_ALLOW_ROOT_PREFIX | MAMBA_NOT_ALLOW_EXISTING_PREFIX
-                       | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-                       | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
+                       | MAMBA_NOT_ALLOW_MISSING_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
@@ -30,6 +29,33 @@ namespace mamba
 
         if (!create_specs.empty())
         {
+            if (ctx.target_prefix == ctx.root_prefix)
+            {
+                LOG_ERROR << "Overwriting root prefix is not permitted";
+                throw std::runtime_error("Aborting.");
+            }
+            else if (fs::exists(ctx.target_prefix))
+            {
+                if (fs::exists(ctx.target_prefix / "conda-meta"))
+                {
+                    if (Console::prompt("Found conda-prefix at '" + ctx.target_prefix.string()
+                                            + "'. Overwrite?",
+                                        'n'))
+                    {
+                        fs::remove_all(ctx.target_prefix);
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Aborting.");
+                    }
+                }
+                else
+                {
+                    LOG_ERROR << "Non-conda folder exists at prefix";
+                    throw std::runtime_error("Aborting.");
+                }
+            }
+
             if (use_explicit)
             {
                 install_explicit_specs(create_specs);

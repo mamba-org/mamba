@@ -21,9 +21,8 @@ namespace mamba
         config.at("show_banner").set_value(false);
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_ROOT_PREFIX | MAMBA_ALLOW_EXISTING_PREFIX
-                       | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX
-                       | MAMBA_EXPECT_EXISTING_PREFIX);
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
         config.load();
 
         detail::list_packages(regex);

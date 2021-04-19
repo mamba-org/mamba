@@ -600,6 +600,17 @@ namespace mamba
                    .set_env_var_name()
                    .description("Report all output as json"));
 
+#ifdef ENABLE_CONTEXT_DEBUG_PRINT
+        insert(Configurable("print_config_only", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Print the config after loading. Allow ultra-dry runs"));
+
+        insert(
+            Configurable("print_context_only", false)
+                .group("Output, Prompt and Flow Control")
+                .description("Print the context after loading the config. Allow ultra-dry runs"));
+#endif
+
         insert(Configurable("show_banner", true)
                    .group("Output, Prompt and Flow Control")
                    .needs({ "quiet", "json" })

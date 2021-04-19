@@ -67,13 +67,13 @@ init_general_options(CLI::App* subcom)
         ->group(cli_group);
 
 #ifdef ENABLE_CONTEXT_DEBUG_PRINT
-    auto& print_context_only = config.insert(Configurable("print_context_only", false), true);
+    auto& print_context_only = config.at("print_context_only").get_wrapped<bool>();
     subcom
         ->add_flag(
             "--print-context-only", print_context_only.set_cli_config(false), "Debug context")
         ->group(cli_group);
 
-    auto& print_config_only = config.insert(Configurable("print_config_only", false), true);
+    auto& print_config_only = config.at("print_config_only").get_wrapped<bool>();
     subcom->add_flag("--print-config-only", print_config_only.set_cli_config(false), "Debug config")
         ->group(cli_group);
 #endif

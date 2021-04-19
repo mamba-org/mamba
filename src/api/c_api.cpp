@@ -119,6 +119,20 @@ mamba_config_list()
 }
 
 int
+mamba_set_cli_config(const char* name, const char* value)
+{
+    try
+    {
+        Configuration::instance().at(name).set_cli_yaml_value(value);
+        return 0;
+    }
+    catch (...)
+    {
+        return 1;
+    }
+}
+
+int
 mamba_set_config(const char* name, const char* value)
 {
     try

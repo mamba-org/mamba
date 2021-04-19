@@ -378,6 +378,7 @@ namespace mamba
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")
                    .needs({ "file_specs" })  // explicit file specs overwrite current specs
+                   .set_single_op_lifetime()
                    .description("Packages specification"));
 
         insert(Configurable("experimental", &ctx.experimental)

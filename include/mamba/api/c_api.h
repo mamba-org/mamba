@@ -26,6 +26,8 @@ extern "C"
 
     int mamba_config_list();
 
+    int mamba_set_cli_config(const char* name, const char* value);
+
     int mamba_set_config(const char* name, const char* value);
 
     int mamba_clear_config(const char* name);

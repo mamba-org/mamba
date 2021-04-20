@@ -512,14 +512,6 @@ namespace mamba
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix)
     {
         Context::instance().root_prefix = root_prefix;
-        if (fs::exists(root_prefix))
-        {
-            if (!Console::prompt("Prefix at " + root_prefix.string()
-                                 + " already exists, use as root prefix?"))
-            {
-                exit(0);
-            }
-        }
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {

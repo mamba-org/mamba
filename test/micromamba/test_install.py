@@ -281,6 +281,40 @@ class TestInstall:
             else:  # explicit
                 assert res["specs"] == [explicit_specs[0]]
 
+    @pytest.mark.parametrize("priority", (None, "disabled", "flexible", "strict"))
+    @pytest.mark.parametrize("no_priority", (None, True))
+    @pytest.mark.parametrize("strict_priority", (None, True))
+    def test_channel_priority(self, priority, no_priority, strict_priority):
+        cmd = ["-p", TestInstall.prefix, "xtensor"]
+        expected_priority = "flexible"
+
+        if priority:
+            cmd += ["--channel-priority", priority]
+            expected_priority = priority
+        if no_priority:
+            cmd += ["--no-channel-priority"]
+            expected_priority = "disabled"
+        if strict_priority:
+            cmd += ["--strict-channel-priority"]
+            expected_priority = "strict"
+
+        if (
+            (priority == "flexible")
+            or (
+                (priority is not None)
+                and (
+                    (no_priority and priority != "disabled")
+                    or (strict_priority and priority != "strict")
+                )
+            )
+            or (no_priority and strict_priority)
+        ):
+            with pytest.raises(subprocess.CalledProcessError):
+                install(*cmd, "--print-config-only")
+        else:
+            res = install(*cmd, "--print-config-only")
+            assert res["channel_priority"] == expected_priority
+
     def test_empty_specs(self):
         assert "Nothing to do." in install().strip()
 

@@ -183,6 +183,8 @@ init_channel_parser(CLI::App* subcom)
     subcom->add_flag("--no-channel-priority",
                      no_channel_priority.set_cli_config(0),
                      no_channel_priority.description());
+
+    channel_priority.needs({ "strict_channel_priority", "no_channel_priority" });
 }
 
 void
@@ -223,7 +225,7 @@ strict_channel_priority_hook(bool& value)
     if (strict_channel_priority.configured())
     {
         if ((channel_priority.cli_configured() || channel_priority.env_var_configured())
-            && (channel_priority.compute().value() != ChannelPriority::kStrict))
+            && (channel_priority.cli_value() != ChannelPriority::kStrict))
         {
             throw std::runtime_error(
                 "Cannot set both 'strict_channel_priority' and 'channel_priority'.");
@@ -238,8 +240,6 @@ strict_channel_priority_hook(bool& value)
             // Override 'channel_priority' CLI value
             channel_priority.set_cli_config("strict");
         }
-
-        channel_priority.compute().set_context();
     }
 }
 
@@ -254,7 +254,7 @@ no_channel_priority_hook(bool& value)
     if (no_channel_priority.configured())
     {
         if ((channel_priority.cli_configured() || channel_priority.env_var_configured())
-            && (channel_priority.compute().value() != ChannelPriority::kDisabled))
+            && (channel_priority.cli_value() != ChannelPriority::kDisabled))
         {
             throw std::runtime_error(
                 "Cannot set both 'no_channel_priority' and 'channel_priority'.");
@@ -269,8 +269,6 @@ no_channel_priority_hook(bool& value)
             // Override 'channel_priority' CLI value
             channel_priority.set_cli_config("disabled");
         }
-
-        channel_priority.compute().set_context();
     }
 }
 

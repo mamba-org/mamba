@@ -83,22 +83,45 @@ namespace mamba
             }
         }
 
-        void target_prefix_hook(fs::path& prefix)
+        void file_spec_env_name_hook(std::string& name)
         {
+            if (name.find_first_of("/\\") != std::string::npos)
+            {
+                throw std::runtime_error(
+                    "An unexpected file-system separator was found in environment name: '" + name
+                    + "'");
+            }
+        }
+
+        void env_name_hook(std::string& name)
+        {
+            file_spec_env_name_hook(name);
+
             auto& config = Configuration::instance();
             auto& root_prefix = config.at("root_prefix").value<fs::path>();
-            auto& env_name = config.at("env_name");
-            auto& name = env_name.value<std::string>();
 
-            if (env_name.configured() && !name.empty() && config.at("target_prefix").configured()
-                && !prefix.empty())
+            auto& env_name = config.at("env_name");
+
+            auto& spec_file_env_name = config.at("spec_file_env_name");
+            auto& spec_file_name = spec_file_env_name.value<std::string>();
+
+            // Allow spec file environment name to be overriden by target prefix
+            if (env_name.cli_configured() && config.at("target_prefix").cli_configured())
             {
                 LOG_ERROR << "Cannot set both prefix and env name";
                 throw std::runtime_error("Aborting.");
             }
 
-            if (env_name.configured() && !name.empty())
+            // Consider file spec environment name as env_name specified at CLI level
+            if (!env_name.configured() && spec_file_env_name.configured())
             {
+                name = spec_file_name;
+                env_name.set_cli_value<std::string>(spec_file_name);
+            }
+
+            if (!name.empty())
+            {
+                fs::path prefix;
                 if (name == "base")
                 {
                     prefix = root_prefix;
@@ -107,7 +130,21 @@ namespace mamba
                 {
                     prefix = root_prefix / "envs" / name;
                 }
+
+                if (!config.at("target_prefix").cli_configured()
+                    && config.at("env_name").cli_configured())
+                    config.at("target_prefix").set_cli_value<fs::path>(prefix);
+
+                if (!config.at("target_prefix").api_configured()
+                    && config.at("env_name").api_configured())
+                    config.at("target_prefix").set_value(prefix);
             }
+        }
+
+        void target_prefix_hook(fs::path& prefix)
+        {
+            auto& config = Configuration::instance();
+            auto& root_prefix = config.at("root_prefix").value<fs::path>();
 
             if (!prefix.empty())
             {
@@ -352,6 +389,7 @@ namespace mamba
                    .set_env_var_name()
                    .needs({ "root_prefix",
                             "env_name",
+                            "spec_file_env_name",
                             "use_target_prefix_fallback",
                             "verbose",
                             "always_yes" })
@@ -371,9 +409,17 @@ namespace mamba
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
-                   .needs({ "file_specs" })
+                   .needs({ "root_prefix", "spec_file_env_name" })
                    .set_single_op_lifetime()
+                   .set_post_build_hook(detail::env_name_hook)
                    .description("Name of the target prefix"));
+
+        insert(Configurable("spec_file_env_name", std::string(""))
+                   .group("Basic")
+                   .needs({ "file_specs", "root_prefix" })
+                   .set_single_op_lifetime()
+                   .set_post_build_hook(detail::file_spec_env_name_hook)
+                   .description("Name of the target prefix, specified in a YAML spec file"));
 
         insert(Configurable("specs", std::vector<std::string>({}))
                    .group("Basic")

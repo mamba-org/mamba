@@ -159,7 +159,7 @@ class TestRemoveConfig:
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if ((cli_prefix or env_var) and cli_env_name) or not (
+        if (cli_prefix and cli_env_name) or not (
             cli_prefix or cli_env_name or env_var or fallback
         ):
             with pytest.raises(subprocess.CalledProcessError):

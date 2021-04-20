@@ -1,4 +1,4 @@
-0.10.1 (Apr 20, 2021)
+0.11.0 (Apr 20, 2021)
 ====================
 
 - [libmamba] add experimental mode that unlock edge features #858
@@ -7,7 +7,7 @@
 - [libmamba] fix computation of weakly canonical target prefix #859
 - update libsolv dependency in env-dev.yml file, update documentation (thanks @Aratz) #843
 - [libmamba] handle package cache in secondary locations, fix symlink errors (thanks wenjuno) #856
-- [libmamba] fix cURL SSL error on macos due to Darwin backend remove from conda-forge build (thanks @wolfv) #865
+- [libmamba] fix CI cURL SSL error on macos with Darwin backend (thanks @wolfv) #865
 - [libmamba] improve error handling in C-API by catching and returning an error code #862
 - [libmamba] handle configuration lifetime (single operation configs) #863
 - [libmamba] enable ultra-dry C++ tests #868

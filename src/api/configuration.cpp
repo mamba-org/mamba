@@ -176,7 +176,7 @@ namespace mamba
             std::string sep = "/";
 #endif
             if (!prefix.empty())
-                prefix = rstrip(fs::weakly_canonical(prefix).string(), sep);
+                prefix = rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
         }
 
         void root_prefix_hook(fs::path& prefix)
@@ -223,7 +223,7 @@ namespace mamba
                 fs::create_directories(prefix / "pkgs");
             }
 
-            prefix = fs::weakly_canonical(prefix);
+            prefix = fs::weakly_canonical(env::expand_user(prefix));
 
             auto& ctx = Context::instance();
             ctx.envs_dirs = { prefix / "envs" };

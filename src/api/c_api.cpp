@@ -30,6 +30,7 @@ mamba_create()
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -44,6 +45,7 @@ mamba_install()
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -58,6 +60,7 @@ mamba_update(int update_all)
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -72,6 +75,7 @@ mamba_remove(int remove_all)
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -86,6 +90,7 @@ mamba_list(const char* regex)
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -100,6 +105,7 @@ mamba_info()
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -114,6 +120,7 @@ mamba_config_list()
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -128,6 +135,7 @@ mamba_set_cli_config(const char* name, const char* value)
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -142,6 +150,7 @@ mamba_set_config(const char* name, const char* value)
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }
@@ -156,6 +165,7 @@ mamba_clear_config(const char* name)
     }
     catch (...)
     {
+        Configuration::instance().operation_teardown();
         return 1;
     }
 }

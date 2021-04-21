@@ -1,3 +1,16 @@
+0.11.2 (Apr 21, 2021)
+====================
+
+- [libmamba] create "base" env only for install operation #875
+- [libmamba] remove confirmation prompt of root_prefix in shell init #874
+- [libmamba] improve overrides between target_prefix and env_name #873
+- [micromamba] fix use of `-p,--prefix` and spec file env name #873
+
+0.11.1 (Apr 20, 2021)
+====================
+
+- [libmamba] fix channel_priority computation #872
+
 0.11.0 (Apr 20, 2021)
 ====================
 

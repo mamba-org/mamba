@@ -16,59 +16,6 @@
 
 namespace mamba
 {
-    namespace
-    {
-// Linux
-#if defined(__linux__)
-#if __x86_64__
-        static const char MAMBA_PLATFORM[] = "linux-64";
-#elif defined(i386)
-        static const char MAMBA_PLATFORM[] = "linux-32";
-// armv6l and armv7l
-#elif defined(__arm__) || defined(__thumb__)
-#ifdef ___ARM_ARCH_6__
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif __ARM_ARCH_7__
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
-#else
-#error "Unknown Linux arm platform"
-#endif
-#elif _M_ARM == 6
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif _M_ARM == 7
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
-// aarch64
-#elif defined(__aarch64__)
-        static const char MAMBA_PLATFORM[] = "linux-aarch64";
-#elif defined(__ppc64__) || defined(__powerpc64__)
-#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        static const char MAMBA_PLATFORM[] = "linux-ppc64";
-#else
-        static const char MAMBA_PLATFORM[] = "linux-ppc64le";
-#endif
-#elif defined(__s390x__)
-        static const char MAMBA_PLATFORM[] = "linux-s390x";
-#else
-#error "Unknown Linux platform"
-#endif
-// OSX
-#elif defined(__APPLE__) || defined(__MACH__)
-#if __x86_64__
-        static const char MAMBA_PLATFORM[] = "osx-64";
-#elif __arm64__
-        static const char MAMBA_PLATFORM[] = "osx-arm64";
-#else
-#error "Unknown OSX platform"
-#endif
-// Windows
-#elif defined(_WIN64)
-        static const char MAMBA_PLATFORM[] = "win-64";
-#elif defined(_WIN32)
-        static const char MAMBA_PLATFORM[] = "win-32";
-#else
-#error "Unknown platform"
-#endif
-    }  // namespace
     Context::Context()
     {
         set_verbosity(0);
@@ -101,22 +48,9 @@ namespace mamba
         this->verbosity = lvl;
     }
 
-    std::string Context::platform()
-    {
-        std::string platform = env::get("CONDA_SUBDIR");
-        if (platform.empty())
-        {
-            return MAMBA_PLATFORM;
-        }
-        else
-        {
-            return platform;
-        }
-    }
-
     std::vector<std::string> Context::platforms()
     {
-        return { platform(), "noarch" };
+        return { platform, "noarch" };
     }
 
     std::string env_name(const fs::path& prefix)
@@ -204,7 +138,7 @@ namespace mamba
                   PRINT_CTX_VEC(default_channels)
                   PRINT_CTX_VEC(channels)
                   PRINT_CTX_VEC(pinned_packages)
-                  << "platform: " << platform() << "\n"
+                  << "platform: " << platform << "\n"
                   << ">>> END MAMBA CONTEXT <<< \n"
                   << std::endl;
         // clang-format on

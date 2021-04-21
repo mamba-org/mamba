@@ -424,6 +424,16 @@ namespace mamba
                    .set_post_build_hook(detail::env_name_hook)
                    .description("Name of the target prefix"));
 
+        insert(Configurable("platform", &ctx.platform)
+                   .group("Basic")
+                   .set_rc_configurable()
+                   .set_env_var_name("CONDA_SUBDIR")
+                   .description("The platform description")
+                   .long_description(unindent(R"(
+                        The plaftorm description points what channels
+                        subdir(s) have to fetched for package solving.
+                        This can be 'linux-64' or similar.)")));
+
         insert(Configurable("spec_file_env_name", std::string(""))
                    .group("Basic")
                    .needs({ "file_specs", "root_prefix" })

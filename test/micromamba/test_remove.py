@@ -29,6 +29,7 @@ class TestRemove:
         # speed-up the tests
         os.environ["CONDA_PKGS_DIRS"] = TestRemove.cache
 
+        create("-n", "base", no_dry_run=True)
         create("xtensor", "-n", TestRemove.env_name, no_dry_run=True)
 
     @classmethod
@@ -75,7 +76,7 @@ class TestRemoveConfig:
         os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.root_prefix
         os.environ["CONDA_PREFIX"] = TestRemoveConfig.prefix
 
-        os.makedirs(TestRemoveConfig.root_prefix, exist_ok=False)
+        create("-n", "base", no_dry_run=True)
         create("-n", TestRemoveConfig.env_name, "--offline", no_dry_run=True)
 
     @classmethod

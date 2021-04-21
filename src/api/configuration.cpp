@@ -201,7 +201,7 @@ namespace mamba
                 {
                     if (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")))
                     {
-                        LOG_ERROR << "Could not use default 'root_prefix' :" << prefix.string();
+                        LOG_ERROR << "Could not use default 'root_prefix': " << prefix.string();
                         LOG_ERROR << "Directory exists, is not empty and not a conda prefix.";
                         exit(1);
                     }
@@ -216,9 +216,12 @@ namespace mamba
                                 (then restart or source the contents of the shell init script))");
             }
 
-            path::touch(prefix / "conda-meta" / "history", true);
-            fs::create_directories(prefix / "envs");
-            fs::create_directories(prefix / "pkgs");
+            if (Configuration::instance().at("create_base").value<bool>())
+            {
+                path::touch(prefix / "conda-meta" / "history", true);
+                fs::create_directories(prefix / "envs");
+                fs::create_directories(prefix / "pkgs");
+            }
 
             prefix = fs::weakly_canonical(prefix);
 
@@ -380,9 +383,14 @@ namespace mamba
         insert(Configurable("root_prefix", &ctx.root_prefix)
                    .group("Basic")
                    .set_env_var_name()
-                   .needs({ "verbose" })
+                   .needs({ "verbose", "create_base" })
                    .description("Path to the root prefix")
                    .set_post_build_hook(detail::root_prefix_hook));
+
+        insert(Configurable("create_base", false)
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description("Define if base environment will be initialized empty"));
 
         insert(Configurable("target_prefix", &ctx.target_prefix)
                    .group("Basic")

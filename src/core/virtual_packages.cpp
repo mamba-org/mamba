@@ -204,7 +204,7 @@ namespace mamba
             res.build_string = build_string.size() ? build_string : "0";
             res.build_number = 0;
             res.channel = "@";
-            res.subdir = Context::instance().platform();
+            res.subdir = Context::instance().platform;
             res.md5 = "12345678901234567890123456789012";
             res.fn = name;
             return res;
@@ -213,12 +213,12 @@ namespace mamba
         std::vector<PackageInfo> dist_packages()
         {
             std::vector<PackageInfo> res;
-            auto platform = Context::instance().platform();
+            auto platform = Context::instance().platform;
             auto split_platform = split(platform, "-", 1);
 
             if (split_platform.size() != 2)
             {
-                LOG_ERROR << "'CONDA_SUBDIR' is ill-formed, expected <os>-<arch>";
+                LOG_ERROR << "Platform is ill-formed, expected <os>-<arch> in: '" + platform + "'";
                 return res;
             }
             std::string os = split_platform[0];

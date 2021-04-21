@@ -104,7 +104,7 @@ namespace mamba
 
             items.push_back({ "base environment", { ctx.root_prefix.string() } });
 
-            items.push_back({ "platform", { ctx.platform() } });
+            items.push_back({ "platform", { ctx.platform } });
 
             info_pretty_print(items);
         }

@@ -571,6 +571,36 @@ namespace mamba
             load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
         }
 
+        TEST_F(Configuration, platform)
+        {
+            EXPECT_EQ(ctx.platform, ctx.host_platform);
+
+            std::string rc = "platform: mylinux-128";
+            load_test_config(rc);
+            std::string src = shrink_source(0);
+            EXPECT_EQ(config.at("platform").value<std::string>(), "mylinux-128");
+            EXPECT_EQ(ctx.platform, "mylinux-128");
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      unindent((R"(
+                                platform: mylinux-128  # ')"
+                                + src + "'")
+                                   .c_str()));
+
+            env::set("CONDA_SUBDIR", "win-32");
+            load_test_config(rc);
+            src = shrink_source(0);
+            EXPECT_EQ(config.at("platform").value<std::string>(), "win-32");
+            EXPECT_EQ(ctx.platform, "win-32");
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      unindent((R"(
+                                platform: win-32  # 'CONDA_SUBDIR' > ')"
+                                + src + "'")
+                                   .c_str()));
+
+            config.at("platform").clear_values();
+            ctx.platform = ctx.host_platform;
+        }
+
 #define TEST_BOOL_CONFIGURABLE(NAME, CTX)                                                          \
     TEST_F(Configuration, NAME)                                                                    \
     {                                                                                              \

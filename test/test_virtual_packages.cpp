@@ -1,3 +1,4 @@
+#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
@@ -26,6 +27,7 @@ namespace mamba
         TEST(virtual_packages, dist_packages)
         {
             auto pkgs = detail::dist_packages();
+            auto& ctx = Context::instance();
 
             if (on_win)
             {
@@ -50,7 +52,7 @@ namespace mamba
             EXPECT_EQ(pkgs.back().build_string, "x86_64");
 #endif
 
-            env::set("CONDA_SUBDIR", "osx-arm");
+            ctx.platform = "osx-arm";
             env::set("CONDA_OVERRIDE_OSX", "12.1");
             pkgs = detail::dist_packages();
             ASSERT_EQ(pkgs.size(), 3);
@@ -61,7 +63,7 @@ namespace mamba
             EXPECT_EQ(pkgs[2].build_string, "arm");
 
             env::set("CONDA_OVERRIDE_OSX", "");
-            env::set("CONDA_SUBDIR", "linux-32");
+            ctx.platform = "linux-32";
             env::set("CONDA_OVERRIDE_LINUX", "5.7");
             env::set("CONDA_OVERRIDE_GLIBC", "2.15");
             pkgs = detail::dist_packages();
@@ -76,17 +78,18 @@ namespace mamba
             env::set("CONDA_OVERRIDE_GLIBC", "");
             env::set("CONDA_OVERRIDE_LINUX", "");
 
-            env::set("CONDA_SUBDIR", "lin-850");
+            ctx.platform = "lin-850";
             pkgs = detail::dist_packages();
             ASSERT_EQ(pkgs.size(), 1);
             EXPECT_EQ(pkgs[0].name, "__archspec");
             EXPECT_EQ(pkgs[0].build_string, "850");
             env::set("CONDA_SUBDIR", "");
 
-            env::set("CONDA_SUBDIR", "linux");
+            ctx.platform = "linux";
             pkgs = detail::dist_packages();
             ASSERT_EQ(pkgs.size(), 0);
-            env::set("CONDA_SUBDIR", "");
+
+            ctx.platform = ctx.host_platform;
         }
 
         TEST(virtual_packages, get_virtual_packages)

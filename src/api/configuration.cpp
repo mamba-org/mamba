@@ -407,6 +407,7 @@ namespace mamba
 
         insert(Configurable("use_target_prefix_fallback", true)
                    .group("Basic")
+                   .set_single_op_lifetime()
                    .description("Fallback to the current target prefix or not"));
 
         insert(Configurable("target_prefix_checks", MAMBA_NO_PREFIX_CHECK)

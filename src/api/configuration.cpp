@@ -413,6 +413,7 @@ namespace mamba
                    .group("Basic")
                    .needs({ "target_prefix", "rc_file" })
                    .description("The type of checks performed on the target prefix")
+                   .set_single_op_lifetime()
                    .set_post_build_hook(detail::target_prefix_checks_hook));
 
         insert(Configurable("env_name", std::string(""))

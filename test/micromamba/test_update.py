@@ -216,7 +216,7 @@ class TestUpdateConfig:
     @pytest.mark.parametrize("target_is_root", (False, True))
     @pytest.mark.parametrize("cli_prefix", (False, True))
     @pytest.mark.parametrize("cli_env_name", (False, True))
-    @pytest.mark.parametrize("yaml", (False, True))
+    @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("fallback", (False, True))
     def test_target_prefix(
@@ -225,7 +225,7 @@ class TestUpdateConfig:
         target_is_root,
         cli_prefix,
         cli_env_name,
-        yaml,
+        yaml_name,
         env_var,
         fallback,
     ):
@@ -248,18 +248,29 @@ class TestUpdateConfig:
             p = TestUpdateConfig.prefix
             n = TestUpdateConfig.env_name
 
+        expected_p = p
+
         if cli_prefix:
             cmd += ["-p", p]
 
         if cli_env_name:
             cmd += ["-n", n]
 
-        if yaml:
+        if yaml_name:
             f_name = random_string() + ".yaml"
             spec_file = os.path.join(TestUpdateConfig.prefix, f_name)
 
+            if yaml_name == "prefix":
+                yaml_n = p
+            else:
+                yaml_n = n
+                if not (cli_prefix or cli_env_name or target_is_root):
+                    expected_p = os.path.join(
+                        TestUpdateConfig.root_prefix, "envs", yaml_n
+                    )
+
             file_content = [
-                f"name: {n}",
+                f"name: {yaml_n}",
                 "dependencies: [xtensor]",
             ]
             with open(spec_file, "w") as f:
@@ -275,14 +286,16 @@ class TestUpdateConfig:
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if ((cli_prefix or env_var) and (cli_env_name or yaml)) or not (
-            cli_prefix or cli_env_name or yaml or env_var or fallback
+        if (
+            (cli_prefix and cli_env_name)
+            or (yaml_name == "prefix")
+            or not (cli_prefix or cli_env_name or yaml_name or env_var or fallback)
         ):
             with pytest.raises(subprocess.CalledProcessError):
                 install(*cmd, "--print-config-only")
         else:
             res = install(*cmd, "--print-config-only")
-            TestUpdateConfig.config_tests(res, root_prefix=r, target_prefix=p)
+            TestUpdateConfig.config_tests(res, root_prefix=r, target_prefix=expected_p)
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))

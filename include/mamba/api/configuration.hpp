@@ -1013,6 +1013,8 @@ namespace mamba
 
             virtual bool cli_configured() const = 0;
 
+            virtual bool api_configured() const = 0;
+
             virtual bool rc_configurable() const = 0;
 
             virtual const std::set<std::string>& needed() const = 0;
@@ -1138,6 +1140,11 @@ namespace mamba
             bool cli_configured() const
             {
                 return p_wrapped->cli_configured();
+            };
+
+            bool api_configured() const
+            {
+                return p_wrapped->api_configured();
             };
 
             bool rc_configurable() const
@@ -1403,6 +1410,11 @@ namespace mamba
         bool cli_configured() const
         {
             return p_impl->cli_configured();
+        };
+
+        bool api_configured() const
+        {
+            return p_impl->api_configured();
         };
 
         bool rc_configurable() const

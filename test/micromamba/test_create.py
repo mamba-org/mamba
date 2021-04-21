@@ -127,7 +127,7 @@ class TestCreate:
     @pytest.mark.parametrize("target_is_root", (False, True))
     @pytest.mark.parametrize("cli_prefix", (False, True))
     @pytest.mark.parametrize("cli_env_name", (False, True))
-    @pytest.mark.parametrize("yaml", (False, True))
+    @pytest.mark.parametrize("yaml_name", (False, True, "prefix"))
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("fallback", (False, True))
     @pytest.mark.parametrize(
@@ -140,7 +140,7 @@ class TestCreate:
         target_is_root,
         cli_prefix,
         cli_env_name,
-        yaml,
+        yaml_name,
         env_var,
         fallback,
         similar_non_canonical,
@@ -165,7 +165,7 @@ class TestCreate:
             p = TestCreate.prefix
             n = TestCreate.env_name
 
-        canonical_p = os.path.realpath(p)
+        expected_p = os.path.realpath(p)
         if similar_non_canonical:
             if non_canonical_position == "append":
                 p = os.path.join(p, ".")
@@ -179,12 +179,19 @@ class TestCreate:
         if cli_env_name:
             cmd += ["-n", n]
 
-        if yaml:
+        if yaml_name:
             f_name = random_string() + ".yaml"
             spec_file = os.path.join(TestCreate.spec_files_location, f_name)
 
+            if yaml_name == "prefix":
+                yaml_n = p
+            else:
+                yaml_n = "yaml_name"
+                if not (cli_prefix or cli_env_name):
+                    expected_p = os.path.join(TestCreate.root_prefix, "envs", yaml_n)
+
             file_content = [
-                f"name: {n}",
+                f"name: {yaml_n}",
                 "dependencies: [xtensor]",
             ]
             with open(spec_file, "w") as f:
@@ -199,14 +206,16 @@ class TestCreate:
         else:
             os.environ["CONDA_PREFIX"] = p
 
-        if ((cli_prefix or env_var) and (cli_env_name or yaml)) or not (
-            cli_prefix or cli_env_name or yaml or env_var
+        if (
+            (cli_prefix and cli_env_name)
+            or (yaml_name == "prefix")
+            or not (cli_prefix or cli_env_name or yaml_name or env_var)
         ):
             with pytest.raises(subprocess.CalledProcessError):
                 create(*cmd, "--print-config-only")
         else:
             res = create(*cmd, "--print-config-only")
-            TestCreate.config_tests(res, root_prefix=r, target_prefix=canonical_p)
+            TestCreate.config_tests(res, root_prefix=r, target_prefix=expected_p)
 
     @pytest.mark.parametrize("cli", (False, True))
     @pytest.mark.parametrize("yaml", (False, True))

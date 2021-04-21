@@ -343,7 +343,7 @@ namespace mamba
         void file_specs_hook(std::vector<std::string>& file_specs)
         {
             auto& config = Configuration::instance();
-            auto& env_name = config.at("env_name");
+            auto& env_name = config.at("spec_file_env_name");
             auto& specs = config.at("specs");
             auto& channels = config.at("channels");
 
@@ -405,10 +405,7 @@ namespace mamba
 
                     if (f["name"])
                     {
-                        if (!env_name.cli_configured())
-                        {
-                            env_name.set_cli_yaml_value(f["name"]);
-                        }
+                        env_name.set_cli_yaml_value(f["name"]);
                     }
                     {
                         LOG_DEBUG << "No env 'name' specified in file: " << file;

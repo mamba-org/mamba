@@ -49,13 +49,13 @@ set_clean_command(CLI::App* subcom)
         auto& config = Configuration::instance();
         int options = 0;
 
-        if (config.at("clean_all").value<bool>())
+        if (config.at("clean_all").compute().value<bool>())
             options = options | MAMBA_CLEAN_ALL;
-        if (config.at("clean_index_cache").value<bool>())
+        if (config.at("clean_index_cache").compute().value<bool>())
             options = options | MAMBA_CLEAN_INDEX;
-        if (config.at("clean_packages").value<bool>())
+        if (config.at("clean_packages").compute().value<bool>())
             options = options | MAMBA_CLEAN_PKGS;
-        if (config.at("clean_tarballs").value<bool>())
+        if (config.at("clean_tarballs").compute().value<bool>())
             options = options | MAMBA_CLEAN_TARBALLS;
 
         clean(options);

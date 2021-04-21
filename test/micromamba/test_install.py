@@ -326,6 +326,32 @@ class TestInstall:
             res = install(*cmd, "--print-config-only")
             assert res["channel_priority"] == expected_priority
 
+    def test_quotes(self):
+        cmd = ["-p", f"{TestInstall.prefix}", "xtensor", "--print-config-only"]
+        res = install(*cmd)
+        assert res["target_prefix"] == TestInstall.prefix
+
+    @pytest.mark.parametrize("prefix", ("target", "root"))
+    def test_expand_user(self, prefix):
+        if prefix == "target":
+            r = TestInstall.root_prefix
+            p = TestInstall.prefix.replace(os.path.expanduser("~"), "~")
+        else:
+            r = TestInstall.root_prefix.replace(os.path.expanduser("~"), "~")
+            p = TestInstall.prefix
+
+        cmd = [
+            "-r",
+            r,
+            "-p",
+            p,
+            "xtensor",
+            "--print-config-only",
+        ]
+        res = install(*cmd)
+        assert res["target_prefix"] == TestInstall.prefix
+        assert res["root_prefix"] == TestInstall.root_prefix
+
     def test_empty_specs(self):
         assert "Nothing to do." in install().strip()
 

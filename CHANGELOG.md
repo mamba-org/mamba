@@ -1,3 +1,13 @@
+0.11.3 (Apr 21, 2021)
+====================
+
+- [libmamba] make platform rc configurable #883
+- [libmamba] expand user home in target and root prefixes #882
+- [libmamba] avoid memory effect between operations on target_prefix #881
+- [libmamba] fix unnecessary throwing target_prefix check in `clean` operation #880
+- [micromamba] fix `clean` flags handling #880
+- [libmamba] C-API teardown on error #879
+
 0.11.2 (Apr 21, 2021)
 ====================
 

@@ -69,18 +69,18 @@ namespace mamba
         };
 
         const auto& ctx = Context::instance();
-        if (starts_with(ctx.platform(), "win"))
+        if (starts_with(ctx.platform, "win"))
         {
             vals["win"] = true;
         }
         else
         {
             vals["unix"] = true;
-            if (starts_with(ctx.platform(), "linux"))
+            if (starts_with(ctx.platform, "linux"))
             {
                 vals["linux"] = true;
             }
-            else if (starts_with(ctx.platform(), "osx"))
+            else if (starts_with(ctx.platform, "osx"))
             {
                 vals["osx"] = true;
             }

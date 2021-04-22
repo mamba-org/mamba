@@ -17,6 +17,7 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/url.hpp"
 #include "mamba/core/virtual_packages.hpp"
 
 #include "thirdparty/termcolor.hpp"
@@ -286,6 +287,12 @@ namespace mamba
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());
         std::string prev_channel_name;
+
+        if (config.at("experimental").value<bool>())
+        {
+            load_tokens();
+        }
+
         for (auto& url : channel_urls)
         {
             auto& channel = make_channel(url);

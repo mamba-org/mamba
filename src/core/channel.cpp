@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/url.hpp"
@@ -61,6 +62,11 @@ namespace mamba
         , m_package_filename(package_filename)
         , m_canonical_name(multi_name)
     {
+    }
+
+    void Channel::set_token(const std::string& token)
+    {
+        m_token = token;
     }
 
     const std::string& Channel::scheme() const
@@ -131,7 +137,7 @@ namespace mamba
         }
         else
         {
-            return scheme() + "://" + join_url(location(), name());
+            return concat(scheme(), "://", join_url(location(), name()));
         }
     }
 
@@ -139,11 +145,11 @@ namespace mamba
     {
         if (with_credential && auth() != "")
         {
-            return scheme() + "://" + auth() + "@" + base;
+            return concat(scheme(), "://", auth(), "@", base);
         }
         else
         {
-            return scheme() + "://" + base;
+            return concat(scheme(), "://", base);
         }
     }
 
@@ -235,7 +241,7 @@ namespace mamba
             }
             else
             {
-                std::string full_url = scheme + "://" + location;
+                std::string full_url = concat(scheme, "://", location);
                 URLHandler parser(full_url);
                 location = rstrip(
                     URLHandler().set_host(parser.host()).set_port(parser.port()).url(), "/");
@@ -251,7 +257,16 @@ namespace mamba
         auto res = get_cache().find(value);
         if (res == get_cache().end())
         {
-            res = get_cache().insert(std::make_pair(value, Channel::from_value(value))).first;
+            auto& ctx = Context::instance();
+
+            auto chan = Channel::from_value(value);
+            auto token_base = concat(chan.scheme(), "://", chan.location());
+            if (chan.token().empty()
+                && ctx.channel_tokens.find(token_base) != ctx.channel_tokens.end())
+            {
+                chan.set_token(ctx.channel_tokens[token_base]);
+            }
+            res = get_cache().insert(std::make_pair(value, std::move(chan))).first;
         }
         return res->second;
     }
@@ -690,4 +705,46 @@ namespace mamba
                 ch.first, Channel::make_simple_channel(m_channel_alias, ch.second, ch.first));
         }
     }
+
+    void load_tokens()
+    {
+        auto& ctx = Context::instance();
+        std::vector<fs::path> found_tokens;
+
+        for (const auto& loc : ctx.token_locations)
+        {
+            auto px = env::expand_user(loc);
+            if (!fs::exists(px) || !fs::is_directory(px))
+            {
+                continue;
+            }
+            for (const auto& entry : fs::directory_iterator(px))
+            {
+                if (ends_with(entry.path().filename().string(), ".token"))
+                {
+                    found_tokens.push_back(entry.path());
+                    std::string token_url = decode_url(entry.path().filename());
+
+                    // anaconda client writes out a token for https://api.anaconda.org...
+                    // but we need the token for https://conda.anaconda.org
+                    // conda does the same
+                    std::size_t api_pos = token_url.find("://api.");
+                    if (api_pos != std::string::npos)
+                    {
+                        token_url.replace(api_pos, 7, "://conda.");
+                    }
+
+                    // cut ".token" ending
+                    token_url = token_url.substr(0, token_url.size() - 6);
+
+                    std::cout << "Replace token URL: " << token_url << std::endl;
+                    std::string token_content = read_contents(entry.path());
+                    ctx.channel_tokens[token_url] = token_content;
+                    LOG_WARNING << "Found token for " << token_url;
+                    LOG_DEBUG << "Token content: " << token_content;
+                }
+            }
+        }
+    }
+
 }  // namespace mamba

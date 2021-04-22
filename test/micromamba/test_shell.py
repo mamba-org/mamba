@@ -158,7 +158,7 @@ class TestShell:
     def test_activate(self, shell_type, root, env_exists, prefix_type, expanded_home):
         skip_if_shell_incompat(shell_type)
 
-        if not root and env_exists:
+        if not root and not env_exists:
             create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
 
         if prefix_type == "prefix":

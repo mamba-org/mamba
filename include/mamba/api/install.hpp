@@ -29,8 +29,6 @@ namespace mamba
 
     void install_explicit_specs(const std::vector<std::string>& specs);
 
-    bool eval_selector(const std::string& selector);
-
     namespace detail
     {
         void create_target_directory(const fs::path prefix);
@@ -42,6 +40,17 @@ namespace mamba
         MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs);
+
+        struct yaml_file_contents
+        {
+            std::string name;
+            std::vector<std::string> dependencies, channels;
+            std::vector<std::tuple<std::string, std::vector<std::string>>> other_pkg_mgr_specs;
+        };
+
+        bool eval_selector(const std::string& selector);
+
+        yaml_file_contents read_yaml_file(fs::path yaml_file);
     }
 }
 

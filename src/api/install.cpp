@@ -88,110 +88,113 @@ namespace mamba
         return vals;
     }
 
-    bool eval_selector(const std::string& selector)
+    namespace detail
     {
-        if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
+        bool eval_selector(const std::string& selector)
         {
-            throw std::runtime_error(
-                "Couldn't parse selector. Needs to start with sel( and end with )");
-        }
-        std::string expr = selector.substr(4, selector.size() - 5);
-        return truthy_values()[expr];
-    }
-
-    struct yaml_file_contents
-    {
-        std::string name;
-        std::vector<std::string> dependencies, channels;
-        std::vector<std::tuple<std::string, std::vector<std::string>>> other_pkg_mgr_specs;
-    };
-
-    auto read_yaml_file(fs::path yaml_file)
-    {
-        yaml_file_contents result;
-        YAML::Node f;
-        try
-        {
-            f = YAML::LoadFile(yaml_file);
-        }
-        catch (YAML::Exception& e)
-        {
-            LOG_ERROR << "Error in spec file: " << yaml_file;
-        }
-
-        YAML::Node deps = f["dependencies"];
-        YAML::Node final_deps;
-
-        std::vector<std::string> pip_deps;
-        for (auto it = deps.begin(); it != deps.end(); ++it)
-        {
-            if (it->IsScalar())
+            if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
             {
-                final_deps.push_back(*it);
+                throw std::runtime_error(
+                    "Couldn't parse selector. Needs to start with sel( and end with )");
             }
-            else if (it->IsMap())
+            std::string expr = selector.substr(4, selector.size() - 5);
+
+            if (truthy_values().find(expr) == truthy_values().end())
             {
-                // we merge a map to the upper level if the selector works
-                for (const auto& map_el : *it)
-                {
-                    std::string key = map_el.first.as<std::string>();
-                    if (starts_with(key, "sel("))
-                    {
-                        bool selected = eval_selector(key);
-                        if (selected)
-                        {
-                            const YAML::Node& rest = map_el.second;
-                            if (rest.IsScalar())
-                            {
-                                final_deps.push_back(rest);
-                            }
-                            else
-                            {
-                                throw std::runtime_error(
-                                    "Complicated selection merge not implemented yet.");
-                            }
-                        }
-                    }
-                    else if (key == "pip")
-                    {
-                        result.other_pkg_mgr_specs.push_back(std::make_tuple(
-                            std::string("pip"), map_el.second.as<std::vector<std::string>>()));
-                        pip_deps = map_el.second.as<std::vector<std::string>>();
-                    }
-                }
+                throw std::runtime_error("Couldn't parse selector. Value not in [unix, linux, "
+                                         "osx, win] or additional whitespaces found.");
             }
+
+            return truthy_values()[expr];
         }
 
-        std::vector<std::string> dependencies = final_deps.as<std::vector<std::string>>();
-        result.dependencies = dependencies;
-
-        if (f["channels"])
+        yaml_file_contents read_yaml_file(fs::path yaml_file)
         {
+            yaml_file_contents result;
+            YAML::Node f;
             try
             {
-                result.channels = f["channels"].as<std::vector<std::string>>();
+                f = YAML::LoadFile(yaml_file);
             }
             catch (YAML::Exception& e)
             {
-                throw std::runtime_error(mamba::concat(
-                    "Could not read 'channels' as list of strings from ", yaml_file.string()));
+                LOG_ERROR << "Error in spec file: " << yaml_file;
             }
-        }
-        else
-        {
-            LOG_DEBUG << "No 'channels' specified in file: " << yaml_file;
+
+            YAML::Node deps = f["dependencies"];
+            YAML::Node final_deps;
+
+            std::vector<std::string> pip_deps;
+            for (auto it = deps.begin(); it != deps.end(); ++it)
+            {
+                if (it->IsScalar())
+                {
+                    final_deps.push_back(*it);
+                }
+                else if (it->IsMap())
+                {
+                    // we merge a map to the upper level if the selector works
+                    for (const auto& map_el : *it)
+                    {
+                        std::string key = map_el.first.as<std::string>();
+                        if (starts_with(key, "sel("))
+                        {
+                            bool selected = detail::eval_selector(key);
+                            if (selected)
+                            {
+                                const YAML::Node& rest = map_el.second;
+                                if (rest.IsScalar())
+                                {
+                                    final_deps.push_back(rest);
+                                }
+                                else
+                                {
+                                    throw std::runtime_error(
+                                        "Complicated selection merge not implemented yet.");
+                                }
+                            }
+                        }
+                        else if (key == "pip")
+                        {
+                            result.other_pkg_mgr_specs.push_back(std::make_tuple(
+                                std::string("pip"), map_el.second.as<std::vector<std::string>>()));
+                            pip_deps = map_el.second.as<std::vector<std::string>>();
+                        }
+                    }
+                }
+            }
+
+            std::vector<std::string> dependencies = final_deps.as<std::vector<std::string>>();
+            result.dependencies = dependencies;
+
+            if (f["channels"])
+            {
+                try
+                {
+                    result.channels = f["channels"].as<std::vector<std::string>>();
+                }
+                catch (YAML::Exception& e)
+                {
+                    throw std::runtime_error(mamba::concat(
+                        "Could not read 'channels' as list of strings from ", yaml_file.string()));
+                }
+            }
+            else
+            {
+                LOG_DEBUG << "No 'channels' specified in file: " << yaml_file;
+            }
+
+            if (f["name"])
+            {
+                result.name = f["name"].as<std::string>();
+            }
+            {
+                LOG_DEBUG << "No env 'name' specified in file: " << yaml_file;
+            }
+            return result;
         }
 
-        if (f["name"])
-        {
-            result.name = f["name"].as<std::string>();
-        }
-        {
-            LOG_DEBUG << "No env 'name' specified in file: " << yaml_file;
-        }
-        return result;
     }
-
 
     void install()
     {

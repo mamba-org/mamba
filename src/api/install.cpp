@@ -23,6 +23,179 @@
 
 namespace mamba
 {
+    static std::vector<std::tuple<std::string, std::vector<std::string>>> other_pkg_mgr_specs;
+    static std::map<std::string, std::string> other_pkg_mgr_install_instructions
+        = { { "pip", "pip install {0} --no-input" } };
+
+    auto install_for_other_pkgmgr(const std::string& pkg_mgr, const std::vector<std::string>& deps)
+    {
+        std::string install_instructions = other_pkg_mgr_install_instructions[pkg_mgr];
+
+        replace_all(install_instructions, "{0}", join(" ", deps));
+
+        const auto& ctx = Context::instance();
+
+        std::vector<std::string> install_args = split(install_instructions, " ");
+
+        install_args[0]
+            = (ctx.target_prefix / get_bin_directory_short_path() / install_args[0]).string();
+        auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_args);
+
+        reproc::options options;
+        options.redirect.parent = true;
+        std::string cwd = ctx.target_prefix;
+        options.working_directory = cwd.c_str();
+
+        std::cout << "\n"
+                  << termcolor::cyan << "Installing " << pkg_mgr << " packages: " << join(" ", deps)
+                  << termcolor::reset << std::endl;
+        LOG_INFO << "Calling: " << join(" ", install_args);
+
+        auto [_, ec] = reproc::run(wrapped_command, options);
+
+        if (ec)
+        {
+            throw std::runtime_error(ec.message());
+        }
+    }
+
+    auto& truthy_values()
+    {
+        static std::map<std::string, int> vals{
+            { "win", 0 },
+            { "unix", 0 },
+            { "osx", 0 },
+            { "linux", 0 },
+        };
+
+        const auto& ctx = Context::instance();
+        if (starts_with(ctx.platform, "win"))
+        {
+            vals["win"] = true;
+        }
+        else
+        {
+            vals["unix"] = true;
+            if (starts_with(ctx.platform, "linux"))
+            {
+                vals["linux"] = true;
+            }
+            else if (starts_with(ctx.platform, "osx"))
+            {
+                vals["osx"] = true;
+            }
+        }
+        return vals;
+    }
+
+    namespace detail
+    {
+        bool eval_selector(const std::string& selector)
+        {
+            if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
+            {
+                throw std::runtime_error(
+                    "Couldn't parse selector. Needs to start with sel( and end with )");
+            }
+            std::string expr = selector.substr(4, selector.size() - 5);
+
+            if (truthy_values().find(expr) == truthy_values().end())
+            {
+                throw std::runtime_error("Couldn't parse selector. Value not in [unix, linux, "
+                                         "osx, win] or additional whitespaces found.");
+            }
+
+            return truthy_values()[expr];
+        }
+
+        yaml_file_contents read_yaml_file(fs::path yaml_file)
+        {
+            yaml_file_contents result;
+            YAML::Node f;
+            try
+            {
+                f = YAML::LoadFile(yaml_file);
+            }
+            catch (YAML::Exception& e)
+            {
+                LOG_ERROR << "Error in spec file: " << yaml_file;
+            }
+
+            YAML::Node deps = f["dependencies"];
+            YAML::Node final_deps;
+
+            std::vector<std::string> pip_deps;
+            for (auto it = deps.begin(); it != deps.end(); ++it)
+            {
+                if (it->IsScalar())
+                {
+                    final_deps.push_back(*it);
+                }
+                else if (it->IsMap())
+                {
+                    // we merge a map to the upper level if the selector works
+                    for (const auto& map_el : *it)
+                    {
+                        std::string key = map_el.first.as<std::string>();
+                        if (starts_with(key, "sel("))
+                        {
+                            bool selected = detail::eval_selector(key);
+                            if (selected)
+                            {
+                                const YAML::Node& rest = map_el.second;
+                                if (rest.IsScalar())
+                                {
+                                    final_deps.push_back(rest);
+                                }
+                                else
+                                {
+                                    throw std::runtime_error(
+                                        "Complicated selection merge not implemented yet.");
+                                }
+                            }
+                        }
+                        else if (key == "pip")
+                        {
+                            result.other_pkg_mgr_specs.push_back(std::make_tuple(
+                                std::string("pip"), map_el.second.as<std::vector<std::string>>()));
+                            pip_deps = map_el.second.as<std::vector<std::string>>();
+                        }
+                    }
+                }
+            }
+
+            std::vector<std::string> dependencies = final_deps.as<std::vector<std::string>>();
+            result.dependencies = dependencies;
+
+            if (f["channels"])
+            {
+                try
+                {
+                    result.channels = f["channels"].as<std::vector<std::string>>();
+                }
+                catch (YAML::Exception& e)
+                {
+                    throw std::runtime_error(mamba::concat(
+                        "Could not read 'channels' as list of strings from ", yaml_file.string()));
+                }
+            }
+            else
+            {
+                LOG_DEBUG << "No 'channels' specified in file: " << yaml_file;
+            }
+
+            if (f["name"])
+            {
+                result.name = f["name"].as<std::string>();
+            }
+            {
+                LOG_DEBUG << "No env 'name' specified in file: " << yaml_file;
+            }
+            return result;
+        }
+
+    }
+
     void install()
     {
         auto& config = Configuration::instance();
@@ -263,6 +436,11 @@ namespace mamba
                 detail::create_target_directory(ctx.target_prefix);
             }
             trans.execute(prefix_data);
+
+            for (const auto& [pkg_mgr, deps] : other_pkg_mgr_specs)
+            {
+                mamba::install_for_other_pkgmgr(pkg_mgr, deps);
+            }
         }
     }
 
@@ -364,82 +542,44 @@ namespace mamba
                 // read specs from file :)
                 if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
                 {
-                    YAML::Node f;
-                    try
-                    {
-                        f = YAML::LoadFile(file);
-                    }
-                    catch (YAML::Exception& e)
-                    {
-                        LOG_ERROR << "Error in spec file: " << file;
-                        continue;
-                    }
+                    auto parse_result = read_yaml_file(file);
 
-                    if (f["channels"])
+                    if (parse_result.channels.size() != 0)
                     {
-                        std::vector<std::string> yaml_channels;
-                        try
-                        {
-                            yaml_channels = f["channels"].as<std::vector<std::string>>();
-                        }
-                        catch (YAML::Exception& e)
-                        {
-                            throw std::runtime_error(mamba::concat(
-                                "Could not read 'channels' as list of strings from ", file));
-                        }
-
                         YAML::Node updated_channels;
                         if (channels.cli_configured())
                         {
                             updated_channels = channels.cli_yaml_value();
                         }
-                        for (auto& c : yaml_channels)
+                        for (auto& c : parse_result.channels)
                         {
                             updated_channels.push_back(c);
                         }
                         channels.set_cli_yaml_value(updated_channels);
                     }
-                    else
+
+                    if (parse_result.name.size() != 0)
                     {
-                        LOG_DEBUG << "No 'channels' specified in file: " << file;
+                        env_name.set_cli_yaml_value(parse_result.name);
                     }
 
-                    if (f["name"])
+                    if (parse_result.dependencies.size() != 0)
                     {
-                        env_name.set_cli_yaml_value(f["name"]);
-                    }
-                    {
-                        LOG_DEBUG << "No env 'name' specified in file: " << file;
-                    }
-
-                    if (f["dependencies"])
-                    {
-                        std::vector<std::string> yaml_specs;
-                        try
-                        {
-                            yaml_specs = f["dependencies"].as<std::vector<std::string>>();
-                        }
-                        catch (YAML::Exception& e)
-                        {
-                            throw std::runtime_error(mamba::concat(
-                                "Could not read 'dependencies' as list of strings from ", file));
-                        }
-
                         YAML::Node updated_specs;
                         if (specs.cli_configured())
                         {
                             updated_specs = specs.cli_yaml_value();
                         }
-                        for (auto& s : yaml_specs)
+                        for (auto& s : parse_result.dependencies)
                         {
                             updated_specs.push_back(s);
                         }
                         specs.set_cli_yaml_value(updated_specs);
                     }
-                    else
+
+                    if (parse_result.other_pkg_mgr_specs.size())
                     {
-                        throw std::runtime_error(
-                            concat("No 'dependencies' specified in file: ", file));
+                        other_pkg_mgr_specs = parse_result.other_pkg_mgr_specs;
                     }
                 }
                 else

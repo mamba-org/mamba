@@ -1,5 +1,5 @@
 include/mamba/core/version.hpp
-
+.DS_Store
 .cache
 
 *build

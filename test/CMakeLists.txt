@@ -26,16 +26,22 @@ set(TEST_SRCS
     test_graph.cpp
     test_pinning.cpp
     test_virtual_packages.cpp
+    test_env_file_reading.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/history
-    ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/history COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
-    ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/aux_file COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
-    ${CMAKE_CURRENT_BINARY_DIR}/config_test/.condarc COPYONLY)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/history
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/config_test/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/config_test/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_file_test
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+
 
 target_link_libraries(test_mamba PRIVATE GTest::GTest GTest::Main ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(test_mamba PUBLIC mamba-static)

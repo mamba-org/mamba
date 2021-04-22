@@ -474,7 +474,8 @@ namespace mamba
         return tf;
     }
 
-    auto prepare_wrapped_call(const fs::path& prefix, const std::vector<std::string>& cmd)
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+        const fs::path& prefix, const std::vector<std::string>& cmd)
     {
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
@@ -884,9 +885,18 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
+                reproc::options options;
+                if (Context::instance().verbosity <= 1)
+                {
+                    reproc::redirect silence;
+                    silence.type = reproc::redirect::discard;
+                    options.redirect.out = silence;
+                    options.redirect.err = silence;
+                }
+
                 std::vector<std::string> cmd
                     = { "/usr/bin/codesign", "-s", "-", "-f", dst.string() };
-                auto [status, ec] = reproc::run(cmd, reproc::options{});
+                auto [status, ec] = reproc::run(cmd, options);
                 if (ec)
                 {
                     throw std::runtime_error(std::string("Could not codesign executable")

@@ -64,6 +64,8 @@ namespace mamba
     std::string join_url(const S& s, const Args&... args);
 
     std::string unc_url(const std::string& url);
+    std::string encode_url(const std::string& url);
+    std::string decode_url(const std::string& url);
 
     class URLHandler
     {

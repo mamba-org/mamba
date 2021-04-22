@@ -13,6 +13,8 @@
 
 namespace mamba
 {
+    void load_tokens();
+
     class Channel
     {
     public:
@@ -25,6 +27,7 @@ namespace mamba
                 const std::string& package_filename = "",
                 const std::string& multi_name = "");
 
+        void set_token(const std::string& token);
         const std::string& scheme() const;
         const std::string& auth() const;
         const std::string& location() const;

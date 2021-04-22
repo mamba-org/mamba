@@ -178,6 +178,8 @@ namespace mamba
         };
 
         std::string channel_alias = "https://conda.anaconda.org";
+        std::map<std::string, std::string> channel_tokens;
+        std::vector<fs::path> token_locations{ "~/.continuum/anaconda-client/tokens" };
         bool override_channels_enabled = true;
 
         std::vector<std::string> pinned_packages = {};

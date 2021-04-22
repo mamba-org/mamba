@@ -31,6 +31,8 @@ namespace mamba
 
     namespace detail
     {
+        void load_tokens();
+
         void create_target_directory(const fs::path prefix);
 
         void create_empty_target(const fs::path& prefix);

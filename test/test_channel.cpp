@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+
+#include "mamba/api/install.hpp"
 
 namespace mamba
 {
@@ -175,5 +178,33 @@ namespace mamba
         EXPECT_EQ(local_res[1], current_dir + "channel_b/noarch");
         EXPECT_EQ(local_res[2], current_dir + "channel_a/" + platform);
         EXPECT_EQ(local_res[3], current_dir + "channel_a/noarch");
+    }
+
+    TEST(Channel, add_token)
+    {
+        auto& ctx = Context::instance();
+        ctx.channel_tokens["https://conda.anaconda.org"] = "my-12345-token";
+
+        Channel::clear_cache();
+
+        auto& chan = make_channel("conda-forge");
+        EXPECT_EQ(chan.token(), "my-12345-token");
+        EXPECT_EQ(chan.url(true), "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch");
+        EXPECT_EQ(chan.url(false), "https://conda.anaconda.org/conda-forge/noarch");
+    }
+
+    TEST(Channel, load_tokens)
+    {
+        // touch(env::home_directory() / ".continuum" / "anaconda")
+        // auto& ctx = Context::instance();
+        // ctx.channel_tokens["https://conda.anaconda.org"] = "my-12345-token";
+
+        // Channel::clear_cache();
+
+        // auto& chan = make_channel("conda-forge");
+        // EXPECT_EQ(chan.token(), "my-12345-token");
+        // EXPECT_EQ(chan.url(true),
+        // "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch");
+        // EXPECT_EQ(chan.url(false), "https://conda.anaconda.org/conda-forge/noarch");
     }
 }  // namespace mamba

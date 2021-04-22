@@ -136,6 +136,42 @@ namespace mamba
         return url;
     }
 
+    std::string encode_url(const std::string& url)
+    {
+        CURL* curl = curl_easy_init();
+        if (curl)
+        {
+            char* output = curl_easy_escape(curl, url.c_str(), url.size());
+            if (output)
+            {
+                std::string result(output);
+                curl_free(output);
+                curl_easy_cleanup(curl);
+                return result;
+            }
+        }
+        throw std::runtime_error("Could not url-escape string.");
+    }
+
+    std::string decode_url(const std::string& url)
+    {
+        CURL* curl = curl_easy_init();
+        if (curl)
+        {
+            int out_length;
+            char* output = curl_easy_unescape(curl, url.c_str(), url.size(), &out_length);
+            if (output)
+            {
+                std::string result(output, out_length);
+                curl_free(output);
+                curl_easy_cleanup(curl);
+                return result;
+            }
+        }
+        throw std::runtime_error("Could not url-unescape string.");
+    }
+
+
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)
         , m_has_scheme(has_scheme(url))

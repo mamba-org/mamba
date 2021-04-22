@@ -12,16 +12,11 @@ from .helpers import create, get_env, get_umamba, info, random_string, shell
 
 def skip_if_shell_incompat(shell_type):
     """Skip test if ``shell_type`` is incompatible with the platform"""
+    plat_system = platform.system()
     if (
-        (platform.system() == "Linux" and shell_type not in ("bash", "posix"))
-        or (
-            platform.system() == "Windows"
-            and shell_type not in ("cmd.exe", "powershell")
-        )
-        or (
-            platform.system() == "Darwin"
-            and shell_type not in ("zsh", "bash", "posix")
-        )
+        (plat_system == "Linux" and shell_type not in ("bash", "posix"))
+        or (plat_system == "Windows" and shell_type not in ("cmd.exe", "powershell"))
+        or (plat_system == "Darwin" and shell_type not in ("zsh", "bash", "posix"))
     ):
         pytest.skip("Incompatible shell/OS")
 

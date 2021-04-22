@@ -88,7 +88,7 @@ namespace mamba
         return vals;
     }
 
-    bool eval_selector(std::string& selector)
+    bool eval_selector(const std::string& selector)
     {
         if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
         {

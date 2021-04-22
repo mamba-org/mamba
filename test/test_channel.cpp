@@ -11,8 +11,10 @@ namespace mamba
 
 #ifdef __linux__
     std::string platform("linux-64");
-#elif __APPLE__
+#elif __APPLE__ && __x86_64__
     std::string platform("osx-64");
+#elif __APPLE__ && __arm64__
+    std::string platform("osx-arm64");
 #elif _WIN32
     std::string platform("win-64");
 #endif

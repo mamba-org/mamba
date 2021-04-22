@@ -29,6 +29,8 @@ namespace mamba
 
     void install_explicit_specs(const std::vector<std::string>& specs);
 
+    bool eval_selector(const std::string& selector);
+
     namespace detail
     {
         void create_target_directory(const fs::path prefix);

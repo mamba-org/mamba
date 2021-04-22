@@ -10,6 +10,22 @@ import pytest
 from .helpers import create, get_env, get_umamba, info, random_string, shell
 
 
+def skip_if_shell_incompat(shell_type):
+    """Skip test if ``shell_type`` is incompatible with the platform"""
+    if (
+        (platform.system() == "Linux" and shell_type not in ("bash", "posix"))
+        or (
+            platform.system() == "Windows"
+            and shell_type not in ("cmd.exe", "powershell")
+        )
+        or (
+            platform.system() == "Darwin"
+            and shell_type not in ("zsh", "bash", "posix")
+        )
+    ):
+        pytest.skip("Incompatible shell/OS")
+
+
 class TestShell:
 
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
@@ -145,18 +161,7 @@ class TestShell:
     @pytest.mark.parametrize("expanded_home", [False, True])
     @pytest.mark.parametrize("prefix_type", ["prefix", "name"])
     def test_activate(self, shell_type, root, env_exists, prefix_type, expanded_home):
-        if (
-            (platform.system() == "Linux" and shell_type not in ("bash", "posix"))
-            or (
-                platform.system() == "Windows"
-                and shell_type not in ("cmd.exe", "powershell")
-            )
-            or (
-                platform.system() == "Darwin"
-                and shell_type not in ("zsh", "bash", "posix")
-            )
-        ):
-            pytest.skip("Incompatible shell/OS")
+        skip_if_shell_incompat(shell_type)
 
         if not root and env_exists:
             create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
@@ -185,18 +190,18 @@ class TestShell:
             assert f"export CONDA_DEFAULT_ENV='{TestShell.env_name}'" in res
             assert f"export CONDA_PROMPT_MODIFIER='({TestShell.env_name}) '" in res
 
+    @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
+    def test_activate_non_existent(self, shell_type):
+        skip_if_shell_incompat(shell_type)
+
+        cmd = ("activate", "-s", shell_type, "-p", "this-env-does-not-exist")
+        with pytest.raises(subprocess.CalledProcessError):
+            shell(*cmd)
+
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
     def test_init(self, shell_type, prefix_selector):
-        if (
-            (platform.system() == "Linux" and shell_type != "bash")
-            or (
-                platform.system() == "Windows"
-                and shell_type not in ("cmd.exe", "powershell")
-            )
-            or (platform.system() == "Darwin" and shell_type not in ("zsh", "bash"))
-        ):
-            pytest.skip("Incompatible shell/OS")
+        skip_if_shell_incompat(shell_type)
 
         if prefix_selector:
             shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)

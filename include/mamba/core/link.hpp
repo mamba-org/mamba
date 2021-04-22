@@ -24,6 +24,8 @@
 namespace mamba
 {
     std::string replace_long_shebang(const std::string& shebang);
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+        const fs::path& prefix, const std::vector<std::string>& cmd);
 
     struct python_entry_point_parsed
     {

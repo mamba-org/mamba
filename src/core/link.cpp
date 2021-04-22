@@ -474,7 +474,8 @@ namespace mamba
         return tf;
     }
 
-    auto prepare_wrapped_call(const fs::path& prefix, const std::vector<std::string>& cmd)
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+        const fs::path& prefix, const std::vector<std::string>& cmd)
     {
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;

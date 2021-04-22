@@ -37,7 +37,8 @@ namespace mamba
 
         std::vector<std::string> install_args = split(install_instructions, " ");
 
-        install_args[0] = (ctx.target_prefix / get_bin_directory_short_path() / install_args[0]).string();
+        install_args[0]
+            = (ctx.target_prefix / get_bin_directory_short_path() / install_args[0]).string();
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_args);
 
         reproc::options options;
@@ -45,7 +46,9 @@ namespace mamba
         std::string cwd = ctx.target_prefix;
         options.working_directory = cwd.c_str();
 
-        std::cout << "\n" << termcolor::cyan << "Installing " << pkg_mgr << " packages: " << join(" ", deps) << termcolor::reset << std::endl;
+        std::cout << "\n"
+                  << termcolor::cyan << "Installing " << pkg_mgr << " packages: " << join(" ", deps)
+                  << termcolor::reset << std::endl;
         LOG_INFO << "Calling: " << join(" ", install_args);
 
         auto [_, ec] = reproc::run(wrapped_command, options);

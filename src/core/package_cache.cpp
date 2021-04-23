@@ -233,7 +233,7 @@ namespace mamba
                 }
                 catch (const std::runtime_error& e)
                 {
-#ifdef UMAMBA_ONLY
+#ifndef MAMBA_ONLY
                     throw e;
 #endif
                 }

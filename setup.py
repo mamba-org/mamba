@@ -177,6 +177,7 @@ class BuildExt(build_ext):
         if sys.platform == "win32":
             self.compiler.macros.append(("REPROCXX_SHARED", 1))
             self.compiler.macros.append(("GHC_WIN_DISABLE_WSTRING_STORAGE_TYPE", 1))
+        self.compiler.macros.append(("MAMBA_ONLY", 1))
 
         for ext in self.extensions:
             ext.extra_compile_args = opts

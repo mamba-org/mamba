@@ -79,7 +79,9 @@ namespace mamba
                 }
             }
 
+#ifdef UMAMBA_STATIC
             init_curl_ssl();
+#endif
         };
 
         void always_softlink_hook(bool& value)

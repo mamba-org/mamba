@@ -31,7 +31,6 @@ namespace mamba
         }
     }
 
-#ifdef UMAMBA_ONLY
     void PrefixData::add_virtual_packages(const std::vector<PackageInfo>& packages)
     {
         for (const auto& pkg : packages)
@@ -41,7 +40,6 @@ namespace mamba
             m_package_records.insert({ pkg.name, std::move(pkg) });
         }
     }
-#endif
 
     const PrefixData::package_map& PrefixData::records() const
     {

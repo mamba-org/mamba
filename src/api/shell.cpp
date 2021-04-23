@@ -116,6 +116,11 @@ namespace mamba
             {
                 shell_prefix = ctx.root_prefix / "envs" / shell_prefix;
             }
+            if (!fs::exists(shell_prefix))
+            {
+                throw std::runtime_error(
+                    "Cannot activate, environment does not exist: " + shell_prefix + "\n");
+            }
 
             std::cout << activator->activate(shell_prefix, stack);
         }

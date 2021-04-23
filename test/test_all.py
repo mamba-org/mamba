@@ -50,6 +50,40 @@ def test_update(shell_type):
 
 
 @pytest.mark.parametrize("shell_type", platform_shells())
+def test_env_update(shell_type, tmpdir):
+    # check updating a package when a newer version
+    with Environment(shell_type) as env:
+        # first install an older version
+        version = "1.25.11"
+        config_a = tmpdir / "a.yml"
+        config_a.write(
+            f"""
+            dependencies:
+             - python
+             - urllib3={version}
+            """
+        )
+        env.mamba(f"env update -q -f {config_a}")
+        out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
+
+        # check that the installed version is the old one
+        assert out[-1] == version
+
+        # then release the pin
+        config_b = tmpdir / "b.yml"
+        config_b.write(
+            """
+            dependencies:
+             - urllib3
+            """
+        )
+        env.mamba(f"env update -q -f {config_b}")
+        out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
+        # check that the installed version is newer
+        assert StrictVersion(out[-1]) > StrictVersion(version)
+
+
+@pytest.mark.parametrize("shell_type", platform_shells())
 def test_track_features(shell_type):
     with Environment(shell_type) as env:
         # should install CPython since PyPy has track features

@@ -80,6 +80,11 @@ namespace mamba
             {
                 shell_prefix = ctx.root_prefix;
             }
+            if (shell_prefix.empty())
+            {
+                LOG_ERROR << "Empty prefix";
+                throw std::runtime_error("Calling shell init with empty prefix");
+            }
             init_shell(shell_type, shell_prefix);
         }
         else if (action == "hook")

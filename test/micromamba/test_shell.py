@@ -158,7 +158,8 @@ class TestShell:
     def test_activate(self, shell_type, root, env_exists, prefix_type, expanded_home):
         skip_if_shell_incompat(shell_type)
 
-        if not root and not env_exists:
+        if not root and env_exists:
+            # Create the environment for this test, so that it exists
             create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
 
         if prefix_type == "prefix":
@@ -175,7 +176,12 @@ class TestShell:
         else:
             cmd = ("activate", "-s", shell_type, "-p", TestShell.env_name)
 
-        res = shell(*cmd)
+        if env_exists:
+            res = shell(*cmd)
+        else:
+            with pytest.raises(subprocess.CalledProcessError):
+                shell(*cmd)
+            return
 
         # TODO: improve this test
         assert res
@@ -184,14 +190,6 @@ class TestShell:
             assert f"export CONDA_PREFIX='{TestShell.prefix}'" in res
             assert f"export CONDA_DEFAULT_ENV='{TestShell.env_name}'" in res
             assert f"export CONDA_PROMPT_MODIFIER='({TestShell.env_name}) '" in res
-
-    @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
-    def test_activate_non_existent(self, shell_type):
-        skip_if_shell_incompat(shell_type)
-
-        cmd = ("activate", "-s", shell_type, "-p", "this-env-does-not-exist")
-        with pytest.raises(subprocess.CalledProcessError):
-            shell(*cmd)
 
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("prefix_selector", [None, "prefix"])

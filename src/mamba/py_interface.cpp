@@ -45,9 +45,9 @@ PYBIND11_MODULE(mamba_api, m)
     py::implicitly_convertible<std::string, fs::path>();
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
-    
+
     py::add_ostream_redirect(m, "ostream_redirect");
-    
+
     py::class_<MPool>(m, "Pool")
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)

@@ -40,7 +40,7 @@ class TestShell:
 
     @classmethod
     def setup(cls):
-        os.makedirs(TestShell.root_prefix, exist_ok=True)
+        os.makedirs(TestShell.root_prefix, exist_ok=False)
 
     @classmethod
     def teardown_class(cls):
@@ -49,7 +49,8 @@ class TestShell:
     @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
-        # shutil.rmtree(TestShell.root_prefix)
+        if Path(TestShell.root_prefix).exists():
+            shutil.rmtree(TestShell.root_prefix)
 
     @pytest.mark.parametrize(
         "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh"]
@@ -158,23 +159,32 @@ class TestShell:
     def test_activate(self, shell_type, root, env_exists, prefix_type, expanded_home):
         skip_if_shell_incompat(shell_type)
 
-        if not root and env_exists:
+        if env_exists:
             # Create the environment for this test, so that it exists
             create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
+        else:
+            shutil.rmtree(TestShell.root_prefix)
+
+        if root:
+            p = TestShell.root_prefix
+            n = "base"
+        else:
+            p = TestShell.prefix
+            n = TestShell.env_name
 
         if prefix_type == "prefix":
             if expanded_home:
-                cmd = ("activate", "-s", shell_type, "-p", TestShell.prefix)
+                cmd = ("activate", "-s", shell_type, "-p", p)
             else:
                 cmd = (
                     "activate",
                     "-s",
                     shell_type,
                     "-p",
-                    TestShell.prefix.replace(os.path.expanduser("~"), "~"),
+                    p.replace(os.path.expanduser("~"), "~"),
                 )
         else:
-            cmd = ("activate", "-s", shell_type, "-p", TestShell.env_name)
+            cmd = ("activate", "-s", shell_type, "-p", p)
 
         if env_exists:
             res = shell(*cmd)
@@ -187,9 +197,9 @@ class TestShell:
         assert res
 
         if shell_type == "bash":
-            assert f"export CONDA_PREFIX='{TestShell.prefix}'" in res
-            assert f"export CONDA_DEFAULT_ENV='{TestShell.env_name}'" in res
-            assert f"export CONDA_PROMPT_MODIFIER='({TestShell.env_name}) '" in res
+            assert f"export CONDA_PREFIX='{p}'" in res
+            assert f"export CONDA_DEFAULT_ENV='{n}'" in res
+            assert f"export CONDA_PROMPT_MODIFIER='({n}) '" in res
 
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
@@ -198,13 +208,14 @@ class TestShell:
 
         if prefix_selector:
             shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+            assert (
+                Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
+                or Path(
+                    os.path.join(TestShell.root_prefix, "etc", "profile.d")
+                ).is_dir()
+            )
         else:
             with pytest.raises(subprocess.CalledProcessError):
                 shell("-y", "init", "-s", shell_type)
-
-        assert (
-            Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
-            or Path(os.path.join(TestShell.root_prefix, "etc", "profile.d")).is_dir()
-        )
 
         shell("init", "-y", "-s", shell_type, "-p", TestShell.current_root_prefix)

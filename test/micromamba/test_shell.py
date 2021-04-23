@@ -201,10 +201,8 @@ class TestShell:
         if prefix_selector:
             shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
         else:
-            cwd = os.getcwd()
-            os.chdir(TestShell.root_prefix)
-            shell("-y", "init", "-s", shell_type, cwd=cwd)
-            os.chdir(cwd)
+            with pytest.raises(subprocess.CalledProcessError):
+                shell("-y", "init", "-s", shell_type)
 
         assert (
             Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()

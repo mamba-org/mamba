@@ -13,6 +13,8 @@
 
 #include "mamba/api/configuration.hpp"
 
+#include "completer.cpp"
+
 #ifdef VENDORED_CLI11
 #include "mamba/core/CLI.hpp"
 #else
@@ -32,6 +34,12 @@ main(int argc, char** argv)
 
     CLI::App app{ "Version: " + version() + "\n" };
     set_umamba_command(&app);
+
+    if (argc >= 2 && strcmp(argv[1], "completer") == 0)
+    {
+        get_completions(argc, argv);
+        exit(0);
+    }
 
     try
     {

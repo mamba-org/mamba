@@ -190,29 +190,41 @@ namespace mamba
 #endif
             if (!prefix.empty())
                 prefix = rstrip(fs::weakly_canonical(env::expand_user(prefix)).string(), sep);
+
+            if ((prefix == root_prefix)
+                && Configuration::instance().at("create_base").value<bool>())
+            {
+                path::touch(root_prefix / "conda-meta" / "history", true);
+            }
         }
 
         void root_prefix_hook(fs::path& prefix)
         {
+            auto& env_name = Configuration::instance().at("env_name");
+
             if (prefix.empty())
             {
                 if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
                 {
                     prefix = env::home_directory() / "micromamba";
-                    LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
                 }
                 else
                 {
                     prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
-                    LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
                     LOG_WARNING << unindent(R"(
                                     'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
                                     Consider using 'MAMBA_ROOT_PREFIX' instead)");
                 }
 
+                if (env_name.configured())
+                {
+                    LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
+                }
+
                 if (fs::exists(prefix) && !fs::is_empty(prefix))
                 {
-                    if (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")))
+                    if (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
+                          || fs::exists(prefix / "envs")))
                     {
                         LOG_ERROR << "Could not use default 'root_prefix': " << prefix.string();
                         LOG_ERROR << "Directory exists, is not empty and not a conda prefix.";
@@ -220,20 +232,16 @@ namespace mamba
                     }
                 }
 
-                LOG_INFO << unindent(R"(
+                if (env_name.configured())
+                {
+                    LOG_INFO << unindent(R"(
                             You have not set the 'root_prefix' environment variable.
                             To permanently modify the root prefix location, either:
                             - set the 'MAMBA_ROOT_PREFIX' environment variable
                             - use the '-r,--root-prefix' CLI option
                             - use 'micromamba shell init ...' to initialize your shell
                                 (then restart or source the contents of the shell init script))");
-            }
-
-            if (Configuration::instance().at("create_base").value<bool>())
-            {
-                path::touch(prefix / "conda-meta" / "history", true);
-                fs::create_directories(prefix / "envs");
-                fs::create_directories(prefix / "pkgs");
+                }
             }
 
             prefix = fs::weakly_canonical(env::expand_user(prefix));

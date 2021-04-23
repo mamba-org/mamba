@@ -46,7 +46,7 @@ class TestInstall:
             if v in os.environ:
                 os.environ.pop(v)
 
-        if Path(TestInstall.root_prefix).exists():
+        if Path(os.path.join(TestInstall.root_prefix, "conda-meta")).exists():
             remove("-n", "base", "-a", no_dry_run=True)
 
         if not Path(TestInstall.prefix).exists():

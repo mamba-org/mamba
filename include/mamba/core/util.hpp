@@ -123,6 +123,30 @@ namespace mamba
         fs::path m_path;
     };
 
+    class LockFile
+    {
+    public:
+        LockFile(const fs::path& path);
+        ~LockFile();
+
+        LockFile(const LockFile&) = delete;
+        LockFile& operator=(const LockFile&) = delete;
+        LockFile& operator=(LockFile&&) = default;
+
+        fs::path& path();
+        operator fs::path();
+
+    private:
+        fs::path m_path;
+        int m_fd;
+
+#if defined(__APPLE__) or defined(__linux__)
+        pid_t m_pid;
+#else
+        int m_pid;
+#endif
+    };
+
     /*************************
      * utils for std::string *
      *************************/

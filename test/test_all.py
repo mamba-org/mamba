@@ -55,12 +55,14 @@ def test_env_update(shell_type, tmpdir):
     with Environment(shell_type) as env:
         # first install an older version
         version = "1.25.11"
-        config_a = tmpdir / 'a.yml'
-        config_a.write(f"""
-        dependencies:
-         - python
-         - urllib3={version}
-        """)
+        config_a = tmpdir / "a.yml"
+        config_a.write(
+            f"""
+            dependencies:
+             - python
+             - urllib3={version}
+            """
+        )
         env.mamba(f"env update -q -f {config_a}")
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
 
@@ -68,11 +70,13 @@ def test_env_update(shell_type, tmpdir):
         assert out[-1] == version
 
         # then release the pin
-        config_b = tmpdir / 'b.yml'
-        config_b.write("""
-        dependencies:
-         - urllib3
-        """)
+        config_b = tmpdir / "b.yml"
+        config_b.write(
+            """
+            dependencies:
+             - urllib3
+            """
+        )
         env.mamba(f"env update -q -f {config_b}")
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')
         # check that the installed version is newer

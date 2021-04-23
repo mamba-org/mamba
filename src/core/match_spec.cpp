@@ -448,4 +448,9 @@ namespace mamba
         }
         return res.str();
     }
+
+    bool MatchSpec::is_simple() const
+    {
+        return version.empty() && build.empty() && build_number.empty();
+    }
 }  // namespace mamba

@@ -197,6 +197,30 @@ namespace mamba
         }
     }
 
+    TEST(match_spec, is_simple)
+    {
+        {
+            MatchSpec ms("libblas");
+            EXPECT_TRUE(ms.is_simple());
+        }
+        {
+            MatchSpec ms("libblas=12.9=abcdef");
+            EXPECT_FALSE(ms.is_simple());
+        }
+        {
+            MatchSpec ms("libblas=0.15*");
+            EXPECT_FALSE(ms.is_simple());
+        }
+        {
+            MatchSpec ms("libblas[version=12.2]");
+            EXPECT_FALSE(ms.is_simple());
+        }
+        {
+            MatchSpec ms("xtensor =0.15*");
+            EXPECT_FALSE(ms.is_simple());
+        }
+    }
+
     TEST(history, user_request)
     {
         auto u = History::UserRequest::prefilled();

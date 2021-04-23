@@ -134,9 +134,20 @@ namespace mamba
         {
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
+            MatchSpec ms(job);
             if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
             {
                 // ignoring update specs here for now
+                if (!ms.is_simple())
+                {
+                    Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
+                                                      ms.conda_build_form().c_str());
+                    queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+                }
+                Id update_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
+                                                  ms.name.c_str());
+                queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
+                continue;
             }
             else if (job_flag & SOLVER_INSTALL)
             {
@@ -146,7 +157,6 @@ namespace mamba
             {
                 m_remove_specs.emplace_back(job);
             }
-            MatchSpec ms(job);
             if (!ms.channel.empty())
             {
                 if (job_flag & SOLVER_ERASE)

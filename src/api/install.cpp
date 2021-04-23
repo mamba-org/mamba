@@ -283,6 +283,11 @@ namespace mamba
 
         std::vector<std::shared_ptr<MSubdirData>> subdirs;
         MultiDownloadTarget multi_dl;
+        std::unique_ptr<LockFile> subdir_download_lock;
+        if (!ctx.offline)
+        {
+            subdir_download_lock = std::make_unique<LockFile>(cache_dir / "mamba.lock");
+        }
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());
@@ -324,6 +329,7 @@ namespace mamba
         if (!ctx.offline)
         {
             multi_dl.download(true);
+            subdir_download_lock.reset();
         }
 
         std::vector<MRepo> repos;
@@ -347,7 +353,7 @@ namespace mamba
             auto& subdir = subdirs[i];
             if (!subdir->loaded())
             {
-                if (ctx.offline || mamba::ends_with(subdir->name(), "/noarch"))
+                if (ctx.offline || !mamba::ends_with(subdir->name(), "/noarch"))
                 {
                     continue;
                 }
@@ -442,8 +448,10 @@ namespace mamba
             {
                 detail::create_target_directory(ctx.target_prefix);
             }
-            trans.execute(prefix_data);
-
+            {
+                LockFile(pkgs_dirs / "mamba.lock");
+                trans.execute(prefix_data);
+            }
             for (const auto& [pkg_mgr, deps] : other_pkg_mgr_specs)
             {
                 mamba::install_for_other_pkgmgr(pkg_mgr, deps);
@@ -680,13 +688,26 @@ namespace mamba
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs)
         {
-            fs::path cache_path(Context::instance().root_prefix / "pkgs");
+            fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
+            // fs::path pkgs_dirs;
+            // if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
+            // {
+            //     pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
+            // }
+            // else
+            // {
+            //     pkgs_dirs = ctx.root_prefix / "pkgs";
+            // }
+
             // TODO better error handling for checking that cache path is
             // directory and writable etc.
-            if (!fs::exists(cache_path))
+            if (!fs::exists(pkgs_dirs))
             {
-                fs::create_directories(cache_path);
+                fs::create_directories(pkgs_dirs);
             }
+
+            LockFile(pkgs_dirs / "mamba.lock");
+
             std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
             MultiDownloadTarget multi_dl;
             MultiPackageCache pkg_cache({ Context::instance().root_prefix / "pkgs" });
@@ -694,7 +715,7 @@ namespace mamba
             for (auto& pkg : pkgs)
             {
                 targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(pkg));
-                multi_dl.add(targets[targets.size() - 1]->target(cache_path, pkg_cache));
+                multi_dl.add(targets[targets.size() - 1]->target(pkgs_dirs, pkg_cache));
             }
 
             interruption_guard g([]() { Console::instance().init_multi_progress(); });

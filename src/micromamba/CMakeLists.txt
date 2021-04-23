@@ -31,6 +31,7 @@ target_link_libraries(micromamba PRIVATE mamba-static)
 message("Using static dependencies for micromamba: ${STATIC_DEPENDENCIES}")
 
 if (STATIC_DEPENDENCIES AND UNIX)
+
     set(MAMBA_DEPENDENCIES_LIBS
         libcurl.a
         libssh2.a

@@ -64,12 +64,12 @@ if (USE_VENDORED_CLI11)
     add_definitions(-DVENDORED_CLI11=1)
 endif()
 
-if (BUILD_EXE OR ENABLE_TESTS OR BUILD_SHARED)
-    add_definitions(-DUMAMBA_ONLY)
-endif()
-
 if (ENABLE_CONTEXT_DEBUG_PRINT)
     add_definitions(-DENABLE_CONTEXT_DEBUG_PRINT)
+endif()
+
+if (STATIC_DEPENDENCIES)
+    add_definitions(-DUMAMBA_STATIC)
 endif()
 
 add_definitions(-DGHC_WIN_DISABLE_WSTRING_STORAGE_TYPE)

@@ -58,7 +58,8 @@ def test_env_update(shell_type, tmpdir):
         config_a = tmpdir / 'a.yml'
         config_a.write(f"""
         dependencies:
-         - urllib3=={version}
+         - python
+         - urllib3={version}
         """)
         env.mamba(f"env update -q -f {config_a}")
         out = env.execute('python -c "import urllib3; print(urllib3.__version__)"')

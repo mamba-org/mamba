@@ -22,6 +22,13 @@ namespace mamba
     {
         void ssl_verify_hook(std::string& value)
         {
+            bool& offline = Configuration::instance().at("offline").value<bool>();
+            if (offline)
+            {
+                LOG_DEBUG << "SSL verification disabled by offline mode";
+                value = "<false>";
+                return;
+            }
             if ((value == "false") || (value == "0") || (value == "<false>"))
             {
                 value = "<false>";
@@ -49,26 +56,30 @@ namespace mamba
                             "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
                             "/etc/ssl/cert.pem",                                  // Alpine Linux
                         };
+                        bool found = false;
 
                         for (const auto& loc : cert_locations)
                         {
                             if (fs::exists(loc))
                             {
                                 value = loc;
-                                return;
+                                found = true;
                             }
                         }
-
-                        LOG_ERROR << "ssl_verify is enabled but no ca certificates found";
-                        exit(1);
+                        if (!found)
+                        {
+                            LOG_ERROR << "ssl_verify is enabled but no ca certificates found";
+                            throw std::runtime_error("No CA certificates found.");
+                        }
                     }
                     else
                     {
                         value = "<system>";
-                        return;
                     }
                 }
             }
+
+            init_curl_ssl();
         };
 
         void always_softlink_hook(bool& value)
@@ -538,6 +549,7 @@ namespace mamba
                         'ssl_verify' can be either an empty string (regular SSL verification),
                         the string "<false>" to indicate no SSL verification, or a path to
                         a directory with cert files, or a cert file..)"))
+                   .needs({ "cacert_path", "offline" })
                    .set_post_build_hook(detail::ssl_verify_hook));
 
         // Solver
@@ -846,8 +858,6 @@ namespace mamba
             at(c).compute().set_context();
         }
         m_load_lock = false;
-
-        init_curl_ssl();
         CONFIG_DEBUGGING;
     }
 

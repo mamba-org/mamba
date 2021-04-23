@@ -68,6 +68,10 @@ if (ENABLE_CONTEXT_DEBUG_PRINT)
     add_definitions(-DENABLE_CONTEXT_DEBUG_PRINT)
 endif()
 
+if (STATIC_DEPENDENCIES)
+    add_definitions(-DUMAMBA_STATIC)
+endif()
+
 add_definitions(-DGHC_WIN_DISABLE_WSTRING_STORAGE_TYPE)
 add_definitions(-DGHC_WIN_DISABLE_AUTO_PREFIXES)
 

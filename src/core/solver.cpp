@@ -144,8 +144,8 @@ namespace mamba
                                                       ms.conda_build_form().c_str());
                     queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
                 }
-                Id update_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
-                                                  ms.name.c_str());
+                Id update_id
+                    = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.name.c_str());
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
                 continue;
             }

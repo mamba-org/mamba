@@ -73,14 +73,14 @@ class TestUpdate:
         assert xtensor_link["version"].startswith(self.medium_old_version)
 
     def test_further_constrained_update(self):
-        update_res = update("xtensor==0.19.0=*_0", "--json")
+        update_res = update("xtensor==0.21.1=*_0", "--json")
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
         ][0]
         print(xtensor_link)
         print(update_res)
 
-        assert xtensor_link["version"] == "0.19.0"
+        assert xtensor_link["version"] == "0.21.1"
         assert xtensor_link["build_number"] == 0
 
     def test_classic_spec(self):

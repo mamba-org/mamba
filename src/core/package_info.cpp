@@ -114,15 +114,15 @@ namespace mamba
         Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
         if (solvable_lookup_str(s, real_repo_key))
         {
-            channel = solvable_lookup_str(s, real_repo_key);
+            url = solvable_lookup_str(s, real_repo_key);
         }
         else
         {
             channel = s->repo->name;  // note this can and should be <unknown> when e.g.
                                       // installing from a tarball
+            url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
         }
 
-        url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
         subdir = check_char(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
         fn = check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
         str = check_char(solvable_lookup_str(s, SOLVABLE_LICENSE));

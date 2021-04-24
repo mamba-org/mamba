@@ -68,6 +68,15 @@ namespace mamba
                 data, handle, SOLVABLE_BUILDFLAVOR, record.build_string.c_str());
             s->name = pool_str2id(pool, record.name.c_str(), 1);
             s->evr = pool_str2id(pool, record.version.c_str(), 1);
+            repodata_set_num(data, handle, SOLVABLE_DOWNLOADSIZE, record.size);
+            repodata_set_checksum(
+                data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, record.md5.c_str());
+
+            Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+            solvable_set_str(s, real_repo_key, record.url.c_str());
+
+            repodata_set_checksum(
+                data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, record.sha256.c_str());
 
             repodata_set_location(data, handle, 0, record.subdir.c_str(), record.fn.c_str());
 

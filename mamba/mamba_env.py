@@ -97,7 +97,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
             solver.add_pin(final_spec)
         except AssertionError:
             print(
-                f"\nERROR: could not add pinned spec {s}. Make sure pin"
+                f"\nERROR: could not add pinned spec {s}. Make sure pin "
                 "is of the format\n"
                 "libname VERSION BUILD, for example libblas=*=*mkl\n"
             )

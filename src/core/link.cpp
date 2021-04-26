@@ -1020,10 +1020,22 @@ namespace mamba
         {
             LOG_INFO << "noarch pyc compilation failed (cross-compiling?). " << ec.message();
             LOG_INFO << err;
-            return {};
         }
 
-        return pyc_files;
+        std::vector<fs::path> final_pyc_files;
+        for (auto& f : pyc_files)
+        {
+            if (!fs::exists(m_context->target_prefix / f))
+            {
+                LOG_INFO << "Python file couldn't be compiled to pyc: " << f;
+            }
+            else
+            {
+                final_pyc_files.push_back(f);
+            }
+        }
+
+        return final_pyc_files;
     }
 
     enum class NoarchType

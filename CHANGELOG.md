@@ -7,6 +7,7 @@ New features
 - [libmamba] add experimental pip support in spec files (@wolfv) #885
 
 Bug fixes
+- [libmamba] ignore failing pyc compilation for noarch packages (@wolfv) #904 #905
 - [libmamba] fix string wrapping in error message (@bdice) #902
 - [libmamba] fix cache error during remove operation (@adriendelsalle) #901
 - [libmamba] add constraint with pinning during update operation (@wolfv) #892
@@ -15,6 +16,7 @@ Bug fixes
 - [mamba] fix `env update` command (@ScottWales) #891
 
 General improvements
+- [libmamba] use lockfile, fix channel not loaded logic (@wolfv) #903
 - [libmamba] make root_prefix warnings more selective (@adriendelsalle) #899
 - [libmamba] house-keeping in python tests (@adriendelsalle) #898
 - [libmamba] modify mamba/micromamba specific guards (@adriendelsalle) #895

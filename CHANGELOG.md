@@ -1,3 +1,26 @@
+unreleased
+==========
+
+New features
+- [libmamba] add experimental shell autocompletion (@wolfv) #900
+- [libmamba] add token handling (@wolfv) #886
+- [libmamba] add experimental pip support in spec files (@wolfv) #885
+
+Bug fixes
+- [libmamba] fix string wrapping in error message (@bdice) #902
+- [libmamba] fix cache error during remove operation (@adriendelsalle) #901
+- [libmamba] add constraint with pinning during update operation (@wolfv) #892
+- [libmamba] fix shell activate prefix check (@ashwinvis) #889
+- [libmamba] make prefix mandatory for shell init (@adriendelsalle) #896
+- [mamba] fix `env update` command (@ScottWales) #891
+
+General improvements
+- [libmamba] make root_prefix warnings more selective (@adriendelsalle) #899
+- [libmamba] house-keeping in python tests (@adriendelsalle) #898
+- [libmamba] modify mamba/micromamba specific guards (@adriendelsalle) #895
+- [libmamba] add simple lockfile mechanism (@wolfv) #894
+- [libmamba] deactivate ca-certificates search when using offline mode (@adriendelsalle) #893
+
 0.11.3 (Apr 21, 2021)
 ====================
 

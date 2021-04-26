@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <pybind11/iostream.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -44,6 +45,8 @@ PYBIND11_MODULE(mamba_api, m)
     py::implicitly_convertible<std::string, fs::path>();
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
+
+    py::add_ostream_redirect(m, "ostream_redirect");
 
     py::class_<MPool>(m, "Pool")
         .def(py::init<>())

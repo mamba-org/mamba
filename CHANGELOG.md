@@ -1,4 +1,4 @@
-unreleased
+0.12.0 (Apr 26, 2021)
 ==========
 
 New features

@@ -161,7 +161,7 @@ class TestShell:
     @pytest.mark.parametrize("prefix_is_root", [False, True])
     @pytest.mark.parametrize("prefix_exists", [False, True])
     @pytest.mark.parametrize(
-        "prefix_type", ["shrinked_prefix", "expanded_prefix" "name"]
+        "prefix_type", ["shrinked_prefix", "expanded_prefix", "name"]
     )
     def test_activate(self, shell_type, prefix_is_root, prefix_exists, prefix_type):
         skip_if_shell_incompat(shell_type)

@@ -25,9 +25,8 @@ namespace mamba
         auto& config = Configuration::instance();
 
         config.at("show_banner").set_value(false);
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX);
+        config.at("use_target_prefix_fallback").set_value(false);
+        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
         config.load();
 
         if (shell_type.empty())
@@ -118,8 +117,8 @@ namespace mamba
             }
             if (!fs::exists(shell_prefix))
             {
-                throw std::runtime_error(
-                    "Cannot activate, environment does not exist: " + shell_prefix + "\n");
+                throw std::runtime_error("Cannot activate, prefix does not exist at: "
+                                         + shell_prefix);
             }
 
             std::cout << activator->activate(shell_prefix, stack);

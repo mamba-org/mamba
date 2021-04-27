@@ -72,6 +72,8 @@ def shell(*args, cwd=os.getcwd()):
         except json.decoder.JSONDecodeError as e:
             print(f"Error when loading JSON output from {res}")
             raise (e)
+    if "--print-config-only" in args:
+        return yaml.load(res, Loader=yaml.FullLoader)
     return res.decode()
 
 

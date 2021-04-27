@@ -7,7 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import create, get_env, get_umamba, info, random_string, shell
+from .helpers import (
+    MAMBA_NO_PREFIX_CHECK,
+    create,
+    get_env,
+    get_umamba,
+    info,
+    random_string,
+    shell,
+)
 
 
 def skip_if_shell_incompat(shell_type):
@@ -43,12 +51,10 @@ class TestShell:
         os.makedirs(TestShell.root_prefix, exist_ok=False)
 
     @classmethod
-    def teardown_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestShell.current_root_prefix
-
-    @classmethod
     def teardown(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
+        os.environ["CONDA_PREFIX"] = TestShell.current_prefix
+
         if Path(TestShell.root_prefix).exists():
             shutil.rmtree(TestShell.root_prefix)
 
@@ -152,41 +158,37 @@ class TestShell:
             assert res["actions"]["print"][0] == ""
 
     @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
-    @pytest.mark.parametrize("root", [False, True])
-    @pytest.mark.parametrize("env_exists", [False, True])
-    @pytest.mark.parametrize("expanded_home", [False, True])
-    @pytest.mark.parametrize("prefix_type", ["prefix", "name"])
-    def test_activate(self, shell_type, root, env_exists, prefix_type, expanded_home):
+    @pytest.mark.parametrize("prefix_is_root", [False, True])
+    @pytest.mark.parametrize("prefix_exists", [False, True])
+    @pytest.mark.parametrize(
+        "prefix_type", ["shrinked_prefix", "expanded_prefix", "name"]
+    )
+    def test_activate(self, shell_type, prefix_is_root, prefix_exists, prefix_type):
         skip_if_shell_incompat(shell_type)
 
-        if env_exists:
+        if prefix_exists:
             # Create the environment for this test, so that it exists
             create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
         else:
-            shutil.rmtree(TestShell.root_prefix)
+            if prefix_is_root:
+                shutil.rmtree(TestShell.root_prefix)
 
-        if root:
+        if prefix_is_root:
             p = TestShell.root_prefix
             n = "base"
         else:
             p = TestShell.prefix
             n = TestShell.env_name
 
-        if prefix_type == "prefix":
-            if expanded_home:
-                cmd = ("activate", "-s", shell_type, "-p", p)
-            else:
-                cmd = (
-                    "activate",
-                    "-s",
-                    shell_type,
-                    "-p",
-                    p.replace(os.path.expanduser("~"), "~"),
-                )
+        cmd = ["activate", "-s", shell_type, "-p"]
+        if prefix_type == "expanded_prefix":
+            cmd.append(p)
+        elif prefix_type == "shrinked_prefix":
+            cmd.append(p.replace(os.path.expanduser("~"), "~"))
         else:
-            cmd = ("activate", "-s", shell_type, "-p", p)
+            cmd.append(n)
 
-        if env_exists:
+        if prefix_exists:
             res = shell(*cmd)
         else:
             with pytest.raises(subprocess.CalledProcessError):
@@ -201,21 +203,31 @@ class TestShell:
             assert f"export CONDA_DEFAULT_ENV='{n}'" in res
             assert f"export CONDA_PROMPT_MODIFIER='({n}) '" in res
 
+    def test_activate_target_prefix_checks(self):
+        """Shell operations have their own 'shel_prefix' Configurable
+        and doesn't use 'target_prefix'."""
+
+        res = shell("activate", "-p", TestShell.root_prefix, "--print-config-only")
+        assert res["target_prefix_checks"] == MAMBA_NO_PREFIX_CHECK
+        assert not res["use_target_prefix_fallback"]
+
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
     def test_init(self, shell_type, prefix_selector):
         skip_if_shell_incompat(shell_type)
 
-        if prefix_selector:
-            shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
-            assert (
-                Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
-                or Path(
-                    os.path.join(TestShell.root_prefix, "etc", "profile.d")
-                ).is_dir()
-            )
-        else:
+        if prefix_selector is None:
             with pytest.raises(subprocess.CalledProcessError):
                 shell("-y", "init", "-s", shell_type)
+            return
+
+        shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+
+        if shell_type == "bash":
+            assert Path(
+                os.path.join(TestShell.root_prefix, "etc", "profile.d")
+            ).is_dir()
+        else:
+            assert Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
 
         shell("init", "-y", "-s", shell_type, "-p", TestShell.current_root_prefix)

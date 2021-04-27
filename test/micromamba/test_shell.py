@@ -160,18 +160,18 @@ class TestShell:
     @pytest.mark.parametrize("shell_type", ["bash", "posix", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("prefix_is_root", [False, True])
     @pytest.mark.parametrize("prefix_exists", [False, True])
-    @pytest.mark.parametrize("expanded_home", [False, True])
-    @pytest.mark.parametrize("prefix_type", ["prefix", "name"])
-    def test_activate(
-        self, shell_type, prefix_is_root, prefix_exists, prefix_type, expanded_home
-    ):
+    @pytest.mark.parametrize(
+        "prefix_type", ["shrinked_prefix", "expanded_prefix" "name"]
+    )
+    def test_activate(self, shell_type, prefix_is_root, prefix_exists, prefix_type):
         skip_if_shell_incompat(shell_type)
 
         if prefix_exists:
             # Create the environment for this test, so that it exists
             create("-n", TestShell.env_name, "-q", "--offline", no_dry_run=True)
         else:
-            shutil.rmtree(TestShell.root_prefix)
+            if prefix_is_root:
+                shutil.rmtree(TestShell.root_prefix)
 
         if prefix_is_root:
             p = TestShell.root_prefix
@@ -180,19 +180,13 @@ class TestShell:
             p = TestShell.prefix
             n = TestShell.env_name
 
-        if prefix_type == "prefix":
-            if expanded_home:
-                cmd = ("activate", "-s", shell_type, "-p", p)
-            else:
-                cmd = (
-                    "activate",
-                    "-s",
-                    shell_type,
-                    "-p",
-                    p.replace(os.path.expanduser("~"), "~"),
-                )
+        cmd = ["activate", "-s", shell_type, "-p"]
+        if prefix_type == "expanded_prefix":
+            cmd.append(p)
+        elif prefix_type == "shrinked_prefix":
+            cmd.append(p.replace(os.path.expanduser("~"), "~"))
         else:
-            cmd = ("activate", "-s", shell_type, "-p", n)
+            cmd.append(n)
 
         if prefix_exists:
             res = shell(*cmd)

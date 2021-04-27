@@ -140,6 +140,7 @@ namespace mamba
 
         bool change_ps1 = true;
 
+        bool curl_initialized = false;
         int connect_timeout_secs = 10;
         // int read_timeout_secs = 60;
         int retry_timeout = 2;  // seconds

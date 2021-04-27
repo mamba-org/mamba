@@ -18,72 +18,111 @@ namespace mamba
 {
     void init_curl_ssl()
     {
-        CURLsslset sslset_res;
-        const curl_ssl_backend** available_backends;
+        auto& ctx = Context::instance();
 
-        if (on_linux)
+        if (!ctx.curl_initialized)
         {
-            sslset_res = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
-        }
-        else if (on_mac)
-        {
-            sslset_res
-                = curl_global_sslset(CURLSSLBACKEND_SECURETRANSPORT, nullptr, &available_backends);
-        }
-        else if (on_win)
-        {
-            sslset_res = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
-        }
-
-        if (sslset_res == CURLSSLSET_TOO_LATE)
-        {
-            LOG_ERROR << "cURL SSL init called too late, that is a bug.";
-        }
-        else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND || sslset_res == CURLSSLSET_NO_BACKENDS)
-        {
-            LOG_WARNING
-                << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
-                << std::endl;
-            LOG_WARNING << "Please check the cURL library configuration that you are using."
-                        << std::endl;
-        }
-
-        CURL* handle = curl_easy_init();
-        if (handle)
-        {
-            const struct curl_tlssessioninfo* info = NULL;
-            CURLcode res = curl_easy_getinfo(handle, CURLINFO_TLS_SSL_PTR, &info);
-            if (info && !res)
+            if (ctx.ssl_verify == "<false>")
             {
-                if (info->backend == CURLSSLBACKEND_OPENSSL)
-                {
-                    LOG_INFO << "Using OpenSSL backend";
-                }
-                else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
-                {
-                    LOG_INFO << "Using macOS SecureTransport backend";
-                }
-                else if (info->backend == CURLSSLBACKEND_SCHANNEL)
-                {
-                    LOG_INFO << "Using Windows Schannel backend";
-                }
-                else if (info->backend != CURLSSLBACKEND_NONE)
-                {
-                    LOG_INFO << "Using an unknown (to mamba) SSL backend";
-                }
-                else if (info->backend == CURLSSLBACKEND_NONE)
-                {
-                    LOG_WARNING
-                        << "No SSL backend found! Please check how your cURL library is configured.";
-                }
+                LOG_DEBUG << "'ssl_verify' not activated, skipping cURL SSL init";
+                ctx.curl_initialized = true;
+                return;
             }
 
-            if (Context::instance().ssl_verify == "<system>" && (on_mac || on_win))
+            CURLsslset sslset_res;
+            const curl_ssl_backend** available_backends;
+
+            if (on_linux)
             {
-                curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+                sslset_res
+                    = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
+            }
+            else if (on_mac)
+            {
+                sslset_res = curl_global_sslset(
+                    CURLSSLBACKEND_SECURETRANSPORT, nullptr, &available_backends);
+            }
+            else if (on_win)
+            {
+                sslset_res
+                    = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
             }
 
-            curl_easy_cleanup(handle);
+            if (sslset_res == CURLSSLSET_TOO_LATE)
+            {
+                LOG_ERROR << "cURL SSL init called too late, that is a bug.";
+            }
+            else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND
+                     || sslset_res == CURLSSLSET_NO_BACKENDS)
+            {
+                LOG_WARNING
+                    << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
+                    << std::endl;
+                LOG_WARNING << "Please check the cURL library configuration that you are using."
+                            << std::endl;
+            }
+
+            CURL* handle = curl_easy_init();
+            if (handle)
+            {
+                const struct curl_tlssessioninfo* info = NULL;
+                CURLcode res = curl_easy_getinfo(handle, CURLINFO_TLS_SSL_PTR, &info);
+                if (info && !res)
+                {
+                    if (info->backend == CURLSSLBACKEND_OPENSSL)
+                    {
+                        LOG_INFO << "Using OpenSSL backend";
+                    }
+                    else if (info->backend == CURLSSLBACKEND_SECURETRANSPORT)
+                    {
+                        LOG_INFO << "Using macOS SecureTransport backend";
+                    }
+                    else if (info->backend == CURLSSLBACKEND_SCHANNEL)
+                    {
+                        LOG_INFO << "Using Windows Schannel backend";
+                    }
+                    else if (info->backend != CURLSSLBACKEND_NONE)
+                    {
+                        LOG_INFO << "Using an unknown (to mamba) SSL backend";
+                    }
+                    else if (info->backend == CURLSSLBACKEND_NONE)
+                    {
+                        LOG_WARNING
+                            << "No SSL backend found! Please check how your cURL library is configured.";
+                    }
+                }
+
+                if (ctx.ssl_verify == "<system>" && on_linux)
+                {
+                    std::array<std::string, 6> cert_locations{
+                        "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
+                        "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
+                        "/etc/ssl/ca-bundle.pem",              // OpenSUSE
+                        "/etc/pki/tls/cacert.pem",             // OpenELEC
+                        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+                        "/etc/ssl/cert.pem",                                  // Alpine Linux
+                    };
+                    bool found = false;
+
+                    for (const auto& loc : cert_locations)
+                    {
+                        if (fs::exists(loc))
+                        {
+                            ctx.ssl_verify = loc;
+                            found = true;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        LOG_ERROR << "No CA certificates found on system";
+                        throw std::runtime_error("Aborting.");
+                    }
+                }
+
+                curl_easy_cleanup(handle);
+                ctx.curl_initialized = true;
+            }
         }
     }
 
@@ -101,6 +140,7 @@ namespace mamba
         LOG_INFO << "Downloading to filename: " << m_filename;
         m_handle = curl_easy_init();
 
+        init_curl_ssl();
         init_curl_target(m_url);
     }
 

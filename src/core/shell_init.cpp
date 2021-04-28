@@ -213,13 +213,12 @@ namespace mamba
             std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
             std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
                                    std::regex_constants::icase);
-            prev_value = std::regex_replace(
+            std::wstring replaced_value = std::regex_replace(
                 prev_value, hook_regex, replace_str, std::regex_constants::format_first_only);
 
-            replace_all(prev_value, replace_str, hook_string);
-            std::wstring new_value = prev_value;
+            std::wstring new_value = replaced_value;
 
-            if (new_value.find(hook_string) == new_value.npos)
+            if (replaced_value.find(replace_str) == new_value.npos)
             {
                 if (!new_value.empty())
                 {
@@ -230,6 +229,11 @@ namespace mamba
                     new_value = hook_string;
                 }
             }
+            else
+            {
+                replace_all(new_value, replace_str, hook_string);
+            }
+
             if (new_value != prev_value)
             {
                 std::cout << "Adding to cmd.exe AUTORUN: " << termcolor::green;

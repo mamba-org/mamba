@@ -213,7 +213,10 @@ class TestShell:
 
     @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
     @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
-    def test_init(self, shell_type, prefix_selector):
+    @pytest.mark.parametrize(
+        "multiple_time,same_prefix", ((False, None), (True, False), (True, True))
+    )
+    def test_init(self, shell_type, prefix_selector, multiple_time, same_prefix):
         skip_if_shell_incompat(shell_type)
 
         if prefix_selector is None:
@@ -221,7 +224,24 @@ class TestShell:
                 shell("-y", "init", "-s", shell_type)
             return
 
-        shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+        res = shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+        assert res
+
+        if multiple_time:
+            if same_prefix and shell_type == "cmd.exe":
+                assert (
+                    shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+                    == ""
+                )
+            else:
+                assert shell(
+                    "-y",
+                    "init",
+                    "-s",
+                    shell_type,
+                    "-p",
+                    os.path.join(TestShell.root_prefix, random_string()),
+                )
 
         if shell_type == "bash":
             assert Path(

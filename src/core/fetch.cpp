@@ -201,24 +201,27 @@ namespace mamba
         }
 
         std::string& ssl_verify = Context::instance().ssl_verify;
-        if (ssl_verify == "<false>")
+        if (ssl_verify.size())
         {
-            curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-            curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
-        }
-        else if (ssl_verify == "<system>")
-        {
-            curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
-        }
-        else
-        {
-            if (!fs::exists(ssl_verify))
+            if (ssl_verify == "<false>")
             {
-                throw std::runtime_error("ssl_verify does not contain a valid file path.");
+                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+            }
+            else if (ssl_verify == "<system>")
+            {
+                curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
             }
             else
             {
-                curl_easy_setopt(m_handle, CURLOPT_CAINFO, ssl_verify.c_str());
+                if (!fs::exists(ssl_verify))
+                {
+                    throw std::runtime_error("ssl_verify does not contain a valid file path.");
+                }
+                else
+                {
+                    curl_easy_setopt(m_handle, CURLOPT_CAINFO, ssl_verify.c_str());
+                }
             }
         }
     }

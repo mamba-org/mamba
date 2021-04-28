@@ -68,6 +68,9 @@ set_umamba_command(CLI::App* com)
         = com->add_subcommand("constructor", "Commands to support using micromamba in constructor");
     set_constructor_command(constructor_subcom);
 
+    CLI::App* env_subcom = com->add_subcommand("env", "List environments");
+    set_env_command(env_subcom);
+
     std::stringstream footer;  // just for the help text
 
     footer

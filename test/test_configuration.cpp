@@ -445,35 +445,25 @@ namespace mamba
             env::set("MAMBA_CHANNEL_ALIAS", "");
         }
 
-#define EXPECT_CA_EQUAL(CA)                                                                        \
-    if (on_linux)                                                                                  \
-    {                                                                                              \
-        EXPECT_TRUE(starts_with(CA, "/etc/"));                                                     \
-    }                                                                                              \
-    else                                                                                           \
-    {                                                                                              \
-        EXPECT_EQ(CA, "<system>");                                                                 \
-    }
-
         TEST_F(Configuration, ssl_verify)
         {
             // Default empty string value
             ctx.ssl_verify = "";
             std::string rc = "";
             load_test_config(rc);
-            EXPECT_CA_EQUAL(ctx.ssl_verify);
+            EXPECT_EQ(ctx.ssl_verify, "<system>");
 
             rc = "ssl_verify: true";
             load_test_config(rc);
-            EXPECT_CA_EQUAL(ctx.ssl_verify);
+            EXPECT_EQ(ctx.ssl_verify, "<system>");
 
             rc = "ssl_verify: <true>";
             load_test_config(rc);
-            EXPECT_CA_EQUAL(ctx.ssl_verify);
+            EXPECT_EQ(ctx.ssl_verify, "<system>");
 
             rc = "ssl_verify: 1";
             load_test_config(rc);
-            EXPECT_CA_EQUAL(ctx.ssl_verify);
+            EXPECT_EQ(ctx.ssl_verify, "<system>");
 
             rc = "ssl_verify: 10";
             load_test_config(rc);
@@ -498,8 +488,8 @@ namespace mamba
             std::string rc1 = "ssl_verify: true";
             std::string rc2 = "ssl_verify: false";
             load_test_config({ rc1, rc2 });
-            EXPECT_CA_EQUAL(config.at("ssl_verify").value<std::string>());
-            EXPECT_CA_EQUAL(ctx.ssl_verify);
+            EXPECT_EQ(config.at("ssl_verify").value<std::string>(), "<system>");
+            EXPECT_EQ(ctx.ssl_verify, "<system>");
 
             load_test_config({ rc2, rc1 });
             EXPECT_EQ(config.at("ssl_verify").value<std::string>(), "<false>");

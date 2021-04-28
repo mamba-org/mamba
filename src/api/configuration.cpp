@@ -46,42 +46,9 @@ namespace mamba
             {
                 if (value.empty() || (value == "true") || (value == "1") || (value == "<true>"))
                 {
-                    if (on_linux)
-                    {
-                        std::array<std::string, 6> cert_locations{
-                            "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
-                            "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
-                            "/etc/ssl/ca-bundle.pem",              // OpenSUSE
-                            "/etc/pki/tls/cacert.pem",             // OpenELEC
-                            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
-                            "/etc/ssl/cert.pem",                                  // Alpine Linux
-                        };
-                        bool found = false;
-
-                        for (const auto& loc : cert_locations)
-                        {
-                            if (fs::exists(loc))
-                            {
-                                value = loc;
-                                found = true;
-                            }
-                        }
-                        if (!found)
-                        {
-                            LOG_ERROR << "ssl_verify is enabled but no ca certificates found";
-                            throw std::runtime_error("No CA certificates found.");
-                        }
-                    }
-                    else
-                    {
-                        value = "<system>";
-                    }
+                    value = "<system>";
                 }
             }
-
-#ifdef UMAMBA_STATIC
-            init_curl_ssl();
-#endif
         };
 
         void always_softlink_hook(bool& value)

@@ -12,6 +12,7 @@ set(MAMBA_EXE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/shell.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/umamba.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/update.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/env.cpp
 )
 
 set(MAMBA_EXE_HEADERS

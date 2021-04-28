@@ -29,6 +29,7 @@ namespace mamba
                 return;
             }
 
+#ifdef UMAMBA_STATIC
             CURLsslset sslset_res;
             const curl_ssl_backend** available_backends;
 
@@ -91,38 +92,44 @@ namespace mamba
                             << "No SSL backend found! Please check how your cURL library is configured.";
                     }
                 }
+                curl_easy_cleanup(handle);
+            }
+#endif
 
-                if (ctx.ssl_verify == "<system>" && on_linux)
+            if (!ctx.ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
+            {
+                ctx.ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
+                LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ctx.ssl_verify;
+            }
+            else if (ctx.ssl_verify == "<system>" && on_linux)
+            {
+                std::array<std::string, 6> cert_locations{
+                    "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
+                    "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
+                    "/etc/ssl/ca-bundle.pem",              // OpenSUSE
+                    "/etc/pki/tls/cacert.pem",             // OpenELEC
+                    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+                    "/etc/ssl/cert.pem",                                  // Alpine Linux
+                };
+                bool found = false;
+
+                for (const auto& loc : cert_locations)
                 {
-                    std::array<std::string, 6> cert_locations{
-                        "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
-                        "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
-                        "/etc/ssl/ca-bundle.pem",              // OpenSUSE
-                        "/etc/pki/tls/cacert.pem",             // OpenELEC
-                        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
-                        "/etc/ssl/cert.pem",                                  // Alpine Linux
-                    };
-                    bool found = false;
-
-                    for (const auto& loc : cert_locations)
+                    if (fs::exists(loc))
                     {
-                        if (fs::exists(loc))
-                        {
-                            ctx.ssl_verify = loc;
-                            found = true;
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        LOG_ERROR << "No CA certificates found on system";
-                        throw std::runtime_error("Aborting.");
+                        ctx.ssl_verify = loc;
+                        found = true;
                     }
                 }
 
-                curl_easy_cleanup(handle);
-                ctx.curl_initialized = true;
+                if (!found)
+                {
+                    LOG_ERROR << "No CA certificates found on system";
+                    throw std::runtime_error("Aborting.");
+                }
             }
+
+            ctx.curl_initialized = true;
         }
     }
 
@@ -194,34 +201,24 @@ namespace mamba
         }
 
         std::string& ssl_verify = Context::instance().ssl_verify;
-
-        if (!ssl_verify.size() && std::getenv("REQUESTS_CA_BUNDLE") != nullptr)
+        if (ssl_verify == "<false>")
         {
-            ssl_verify = std::getenv("REQUESTS_CA_BUNDLE");
-            LOG_INFO << "Using REQUESTS_CA_BUNDLE " << ssl_verify;
+            curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+            curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
         }
-
-        if (ssl_verify.size())
+        else if (ssl_verify == "<system>")
         {
-            if (ssl_verify == "<false>")
+            curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
+        }
+        else
+        {
+            if (!fs::exists(ssl_verify))
             {
-                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
-            }
-            else if (ssl_verify == "<system>")
-            {
-                curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
+                throw std::runtime_error("ssl_verify does not contain a valid file path.");
             }
             else
             {
-                if (!fs::exists(ssl_verify))
-                {
-                    throw std::runtime_error("ssl_verify does not contain a valid file path.");
-                }
-                else
-                {
-                    curl_easy_setopt(m_handle, CURLOPT_CAINFO, ssl_verify.c_str());
-                }
+                curl_easy_setopt(m_handle, CURLOPT_CAINFO, ssl_verify.c_str());
             }
         }
     }

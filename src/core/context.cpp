@@ -99,7 +99,6 @@ namespace mamba
         throw std::runtime_error("Environment name not found " + name);
     }
 
-#ifdef ENABLE_CONTEXT_DEBUG_PRINT
     const void Context::debug_print()
     {
 #define PRINT_CTX(xname) << #xname ": " << xname << "\n"
@@ -144,5 +143,4 @@ namespace mamba
         // clang-format on
 #undef PRINT_CTX
     }
-#endif
 }  // namespace mamba

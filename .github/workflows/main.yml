@@ -159,7 +159,7 @@ jobs:
           touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=OFF -DBUILD_EXE=ON -DENABLE_CONTEXT_DEBUG_PRINT=ON -DBUILD_BINDINGS=OFF
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=OFF -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF
           make -j2
       - name: run new micromamba
         shell: bash -l {0}
@@ -329,7 +329,7 @@ jobs:
           call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate mamba-test
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -DENABLE_CONTEXT_DEBUG_PRINT=ON -G "Ninja"
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja"
           ninja
           .\micromamba.exe --help
       - name: Install "wheel" in micromamba default env

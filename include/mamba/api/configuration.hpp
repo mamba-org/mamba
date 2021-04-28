@@ -18,7 +18,6 @@
 #include <functional>
 
 
-#ifdef ENABLE_CONTEXT_DEBUG_PRINT
 #define CONTEXT_DEBUGGING                                                                          \
     if (Configuration::instance().at("print_context_only").value<bool>())                          \
     {                                                                                              \
@@ -34,18 +33,6 @@
         std::cout << Configuration::instance().dump(dump_opts) << std::endl;                       \
         exit(0);                                                                                   \
     }
-#define DEBUG_QUIET                                                                                \
-    if (Configuration::instance().at("print_context_only").compute().value<bool>()                 \
-        || Configuration::instance().at("print_config_only").compute().value<bool>())              \
-    {                                                                                              \
-        Configuration::instance().at("quiet").set_value(true);                                     \
-    }
-#else
-#define CONTEXT_DEBUGGING
-#define CONFIG_DEBUGGING
-#define DEBUG_QUIET
-#endif
-
 
 namespace YAML
 {

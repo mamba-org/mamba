@@ -383,6 +383,38 @@ namespace mamba
             if (value)
                 LOG_WARNING << "Experimental mode enabled";
         }
+
+        void debug_hook(bool& value)
+        {
+            if (value)
+                LOG_WARNING << "Debug mode enabled";
+        }
+
+        void print_config_only_hook(bool& value)
+        {
+            if (value)
+            {
+                if (!Configuration::instance().at("debug").value<bool>())
+                {
+                    LOG_ERROR << "Debug mode required to use 'print_config_only'";
+                    throw std::runtime_error("Aborting.");
+                }
+                Configuration::instance().at("quiet").set_value(true);
+            }
+        }
+
+        void print_context_only_hook(bool& value)
+        {
+            if (value)
+            {
+                if (!Configuration::instance().at("debug").value<bool>())
+                {
+                    LOG_ERROR << "Debug mode required to use 'print_context_only'";
+                    throw std::runtime_error("Aborting.");
+                }
+                Configuration::instance().at("quiet").set_value(true);
+            }
+        }
     }
 
     Configuration::Configuration()
@@ -477,6 +509,17 @@ namespace mamba
                         Enable experimental features that may be still.
                         under active development and not stable yet.)"))
                    .set_post_build_hook(detail::experimental_hook));
+
+        insert(Configurable("debug", &ctx.debug)
+                   .group("Basic")
+                   .set_env_var_name()
+                   .description("Turn on the debug mode")
+                   .long_description(unindent(R"(
+                        Turn on the debug mode that allow introspection
+                        in intermediate steps of the operation called.
+                        Debug features may/will interrupt the operation,
+                        if you only need further logs refer to 'verbose'.)"))
+                   .set_post_build_hook(detail::debug_hook));
 
         // Channels
         insert(Configurable("channels", &ctx.channels)
@@ -691,16 +734,18 @@ namespace mamba
                    .set_env_var_name()
                    .description("Report all output as json"));
 
-#ifdef ENABLE_CONTEXT_DEBUG_PRINT
         insert(Configurable("print_config_only", false)
                    .group("Output, Prompt and Flow Control")
+                   .needs({ "debug" })
+                   .set_post_build_hook(detail::print_config_only_hook)
                    .description("Print the config after loading. Allow ultra-dry runs"));
 
         insert(
             Configurable("print_context_only", false)
                 .group("Output, Prompt and Flow Control")
+                .needs({ "debug" })
+                .set_post_build_hook(detail::print_context_only_hook)
                 .description("Print the context after loading the config. Allow ultra-dry runs"));
-#endif
 
         insert(Configurable("show_banner", true)
                    .group("Output, Prompt and Flow Control")
@@ -858,7 +903,6 @@ namespace mamba
 
     void Configuration::load()
     {
-        DEBUG_QUIET;
         compute_loading_sequence();
         reset_compute_counters();
 
@@ -883,7 +927,9 @@ namespace mamba
         // target_prefix -> always_yes (rc configurable) -> rc_file -> target_prefix
         // hack to eventually display the banner before log messages. Needs to recompute those
         // rc configurable configs in rc_file_hook if any rc file is used
-        m_loading_sequence = { "no_env", "always_yes", "quiet", "json", "show_banner" };
+        m_loading_sequence
+            = { "no_env", "always_yes", "debug",      "print_context_only", "print_config_only",
+                "quiet",  "json",       "show_banner" };
 
         for (auto& c : m_config_order)
         {

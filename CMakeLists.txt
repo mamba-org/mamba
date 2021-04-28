@@ -58,14 +58,9 @@ option(BUILD_BINDINGS "" ON)
 option(STATIC_DEPENDENCIES "" OFF)
 option(USE_VENDORED_CLI11 "" OFF)
 option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
-option(ENABLE_CONTEXT_DEBUG_PRINT "Enable printing the context for debug purposes" OFF)
 
 if (USE_VENDORED_CLI11)
     add_definitions(-DVENDORED_CLI11=1)
-endif()
-
-if (ENABLE_CONTEXT_DEBUG_PRINT)
-    add_definitions(-DENABLE_CONTEXT_DEBUG_PRINT)
 endif()
 
 if (STATIC_DEPENDENCIES)

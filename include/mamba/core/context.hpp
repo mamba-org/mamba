@@ -99,6 +99,7 @@ namespace mamba
         std::string custom_banner = "";
         bool is_micromamba = false;
         bool experimental = false;
+        bool debug = false;
 
         fs::path target_prefix = "";
         // Need to prevent circular imports here (otherwise using env::get())
@@ -194,9 +195,7 @@ namespace mamba
         Context(Context&&) = delete;
         Context& operator=(Context&&) = delete;
 
-#ifdef ENABLE_CONTEXT_DEBUG_PRINT
         const void debug_print();
-#endif
 
     private:
         Context();

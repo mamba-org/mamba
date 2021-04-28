@@ -64,6 +64,10 @@ def random_string(N=10):
 def shell(*args, cwd=os.getcwd()):
     umamba = get_umamba(cwd=cwd)
     cmd = [umamba, "shell"] + [arg for arg in args if arg]
+
+    if "--print-config-only" in args:
+        cmd += ["--debug"]
+
     res = subprocess.check_output(cmd)
     if "--json" in args:
         try:
@@ -94,6 +98,9 @@ def info(*args):
 def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "install", "-y"] + [arg for arg in args if arg]
+
+    if "--print-config-only" in args:
+        cmd += ["--debug"]
     if default_channel:
         cmd += channel
     if no_rc:
@@ -119,6 +126,9 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
 def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes=True):
     umamba = get_umamba()
     cmd = [umamba, "create"] + [arg for arg in args if arg]
+
+    if "--print-config-only" in args:
+        cmd += ["--debug"]
     if always_yes:
         cmd += ["-y"]
     if default_channel:
@@ -146,6 +156,9 @@ def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes
 def remove(*args, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
+
+    if "--print-config-only" in args:
+        cmd += ["--debug"]
     if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 

@@ -191,6 +191,7 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
         print(f"Error when executing '{' '.join(cmd)}'")
         raise (e)
 
+
 def run_env(*args, f=None):
     umamba = get_umamba()
     cmd = [umamba, "env"] + [arg for arg in args if arg]
@@ -202,6 +203,7 @@ def run_env(*args, f=None):
         return j
 
     return res.decode()
+
 
 def umamba_list(*args):
     umamba = get_umamba()

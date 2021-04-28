@@ -5,7 +5,8 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-std::string get_env_name(const fs::path& px)
+std::string
+get_env_name(const fs::path& px)
 {
     const auto& ctx = Context::instance();
     auto& ed = ctx.envs_dirs[0];
@@ -52,9 +53,8 @@ set_env_command(CLI::App* com)
 
         // format and print table
         printers::Table t({ "Name", "Active", "Path" });
-        t.set_alignment({ printers::alignment::left,
-                          printers::alignment::left,
-                          printers::alignment::left });
+        t.set_alignment(
+            { printers::alignment::left, printers::alignment::left, printers::alignment::left });
         t.set_padding({ 2, 2, 2 });
 
         for (auto& env : env_manager.list_all_known_prefixes())

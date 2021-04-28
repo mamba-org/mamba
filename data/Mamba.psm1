@@ -90,13 +90,13 @@ function Enter-MambaEnvironment {
             $Name = "base";
         }
         If ($Stack) {
-            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell --stack --prefix $Name | Out-String);
+            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell --stack $Name | Out-String);
         } Else {
-            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell --prefix $Name | Out-String);
+            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Name | Out-String);
         }
         $Env:PATH = $OldPath;
 
-        Write-Verbose "[micromamba shell activate --shell powershell --prefix $Name]`n$activateCommand";
+        Write-Verbose "[micromamba shell activate --shell powershell $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }
 

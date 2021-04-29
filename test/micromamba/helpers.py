@@ -8,7 +8,6 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
-import winreg
 
 
 class DryRun(Enum):
@@ -267,6 +266,8 @@ def get_concrete_pkg_info(env, pkg_name):
 
 
 def read_windows_registry(target_path):  # pragma: no cover
+    import winreg
+
     # HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor\AutoRun
     # HKEY_CURRENT_USER\Software\Microsoft\Command Processor\AutoRun
     # returns value_value, value_type  -or-  None, None if target does not exist
@@ -297,6 +298,8 @@ def read_windows_registry(target_path):  # pragma: no cover
 
 
 def write_windows_registry(target_path, value_value, value_type):  # pragma: no cover
+    import winreg
+
     main_key, the_rest = target_path.split('\\', 1)
     subkey_str, value_name = the_rest.rsplit('\\', 1)
     main_key = getattr(winreg, main_key)

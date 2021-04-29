@@ -78,24 +78,10 @@ function Add-Sys-Prefix-To-Path() {
         in a non-standard location.
 #>
 function Enter-MambaEnvironment {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$false)][switch]$Stack,
-        [Parameter(Position=0)][string]$Name
-    );
-
     begin {
         $OldPath = Add-Sys-Prefix-To-Path;
-        If (-Not $Name) {
-            $Name = "base";
-        }
-        If ($Stack) {
-            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell --stack $Name | Out-String);
-        } Else {
-            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Name | Out-String);
-        }
+        $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Args | Out-String);
         $Env:PATH = $OldPath;
-
         Write-Verbose "[micromamba shell activate --shell powershell $Name]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }

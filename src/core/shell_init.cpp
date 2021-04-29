@@ -570,32 +570,29 @@ namespace mamba
             profile_original_content = profile_content;
         }
 
+        std::string conda_init_content = powershell_contents(conda_prefix);
+        bool found_mamba_initialize = profile_content.find("#region mamba initialize") != profile_content.npos;
+
         if (reverse)
         {
             profile_content = std::regex_replace(profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, "");
         }
         else
         {
-            // # Find what content we need to add.
-            std::string conda_init_content = powershell_contents(conda_prefix);
-            std::cout << "Adding: \n" << conda_init_content << std::endl;
-
+            // Find what content we need to add.
             Console::stream() << "Adding (or replacing) the following in your " << profile_path
                               << " file\n"
                               << termcolor::colorize << termcolor::green << conda_init_content
                               << termcolor::reset;
 
-            if (profile_content.find("#region mamba initialize") == profile_content.npos)
-            {
-                profile_content += "\n" + conda_init_content + "\n";
-            }
-            else
+            if (found_mamba_initialize)
             {
                 profile_content = std::regex_replace(
                     profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
             }
         }
-        if (profile_content != profile_original_content)
+
+        if (profile_content != profile_original_content || !found_mamba_initialize)
         {
             if (!Context::instance().dry_run)
             {
@@ -603,8 +600,18 @@ namespace mamba
                 {
                     fs::create_directories(profile_path.parent_path());
                 }
-                std::ofstream out(profile_path);
-                out << profile_content;
+
+                if (!found_mamba_initialize)
+                {
+                    std::ofstream out(profile_path, std::ios::app | std::ios::binary);
+                    out << std::endl << conda_init_content;
+                }
+                else
+                {
+                    std::ofstream out(profile_path, std::ios::out | std::ios::binary);
+                    out << profile_content;
+                }
+
                 return true;
             }
         }

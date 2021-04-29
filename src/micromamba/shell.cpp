@@ -51,7 +51,7 @@ init_shell_parser(CLI::App* subcom)
             .group("cli")
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
-    subcom->add_option("prefix", prefix.set_cli_config(""), prefix.description());
+    subcom->add_option("prefix,-p,--prefix", prefix.set_cli_config(""), prefix.description());
 
     auto& auto_activate_base = config.at("auto_activate_base").get_wrapped<bool>();
     subcom->add_flag("--auto-activate-base,!--no-auto-activate-base",

@@ -42,7 +42,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/config_test/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_file_test
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/validation_data
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 
 target_link_libraries(test_mamba PRIVATE GTest::GTest GTest::Main ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(test_mamba PUBLIC mamba-static)

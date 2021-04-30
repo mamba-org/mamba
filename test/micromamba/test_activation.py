@@ -68,9 +68,7 @@ def emit_check(cond):
 
 
 enable_on_os = {
-    # "win": {"powershell", "cmdexe"},
-    "win": {"cmdexe"},
-    # "win": {"powershell"},
+    "win": {"powershell", "cmdexe"},
     # 'unix': {'bash', 'zsh', 'xonsh'},
     "unix": {"bash", "zsh"},
 }
@@ -128,6 +126,9 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interactive and interpreter == "powershell":
         # "Get-Content -Path $PROFILE.CurrentUserAllHosts | Invoke-Expression"
         s = [". $PROFILE.CurrentUserAllHosts"] + s
+    if interactive and interpreter == "bash" and plat == "linux":
+        s = ["source ~/.bashrc"] + s
+
     if interpreter == "cmdexe":
         mods = []
         for x in s:
@@ -149,7 +150,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
     else:
         args = [interpreter, f]
-        if interactive and interpreter == "zsh":
+        if interactive:
             args.insert(1, "-i")
         if interactive and interpreter == "bash":
             args.insert(1, "-l")

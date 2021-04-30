@@ -1,9 +1,9 @@
 import os
 import platform
 import shutil
+import string
 import subprocess
 import sys
-import string
 
 import pytest
 
@@ -23,7 +23,9 @@ elif platform.system() == "Windows":
 
 
 clean_env = os.environ.copy()
-clean_env = {k: v for k, v in clean_env.items() if not (k.startswith(('CONDA', 'MAMBA')))}
+clean_env = {
+    k: v for k, v in clean_env.items() if not (k.startswith(("CONDA", "MAMBA")))
+}
 
 path = clean_env.get("PATH")
 elems = path.split(os.pathsep)
@@ -44,13 +46,14 @@ paths = {
     "linux": {"zsh": "~/.zshrc", "bash": "~/.bashrc"},
 }
 
-if plat == 'win':
+if plat == "win":
     # find powershell profile path
     args = ["powershell", "-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts"]
     res = subprocess.run(
         args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
     )
-    paths["win"]["powershell"] = res.stdout.decode('utf-8').strip()
+    paths["win"]["powershell"] = res.stdout.decode("utf-8").strip()
+
 
 def write_script(interpreter, lines, path):
     fname = os.path.join(path, "script" + suffixes[interpreter])
@@ -77,11 +80,12 @@ shell_files = [
     for x in ["~/.bashrc", "~/.bash_profile", "~/.zshrc", "~/.zsh_profile"]
 ]
 
-if plat == 'win':
-    shell_files.append(Path(paths['win']['powershell']))
+if plat == "win":
+    shell_files.append(Path(paths["win"]["powershell"]))
 
 regkey = "HKEY_CURRENT_USER\\Software\\Microsoft\\Command Processor\\AutoRun"
 bkup_winreg_value = None
+
 
 @pytest.fixture
 def clean_shell_files():
@@ -95,7 +99,7 @@ def clean_shell_files():
             f.rename(f_bkup)
             f.touch()
 
-    if plat == 'win':
+    if plat == "win":
         regvalue = read_windows_registry(regkey)
         bkup_winreg_value = regvalue
         write_windows_registry(regkey, "", regvalue[1])
@@ -108,25 +112,29 @@ def clean_shell_files():
             if f.exists():
                 f.unlink()
             f_bkup.rename(str(f_bkup)[: -len(".mamba_test_backup")])
-        if plat == 'win':
+        if plat == "win":
             write_windows_registry(regkey, regvalue[0], regvalue[1])
+
 
 def find_path_in_str(p, s):
     if p in s:
         return True
-    if p.replace('\\', '\\\\') in s:
+    if p.replace("\\", "\\\\") in s:
         return True
     return False
 
+
 def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
-    if interactive and interpreter == 'powershell':
+    if interactive and interpreter == "powershell":
         # "Get-Content -Path $PROFILE.CurrentUserAllHosts | Invoke-Expression"
         s = [". $PROFILE.CurrentUserAllHosts"] + s
-    if interpreter == 'cmdexe':
+    if interpreter == "cmdexe":
         mods = []
         for x in s:
-            if x.startswith('micromamba activate') or x.startswith('micromamba deactivate'):
-                mods.append('call ' + x)
+            if x.startswith("micromamba activate") or x.startswith(
+                "micromamba deactivate"
+            ):
+                mods.append("call " + x)
             else:
                 mods.append(x)
         s = mods
@@ -141,10 +149,10 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
     else:
         args = [interpreter, f]
-        if interactive:
+        if interactive and interpreter == "zsh":
             args.insert(1, "-i")
         if interactive and interpreter == "bash":
-            args.insert(1, "--login")
+            args.insert(1, "-l")
 
     res = subprocess.run(
         args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, env=env
@@ -153,7 +161,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     stderr = res.stderr.decode("utf-8").strip()
 
     if interpreter == "cmdexe":
-        if stdout.startswith('\'') and stdout.endswith('\''):
+        if stdout.startswith("'") and stdout.endswith("'"):
             stdout = stdout[1:-1]
 
     return stdout, stderr
@@ -162,12 +170,13 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
 def get_interpreters(exclude=[]):
     return [x for x in enable_on_os[running_os] if x not in exclude]
 
+
 def shvar(v, interpreter):
-    if interpreter in ['bash', 'zsh']:
+    if interpreter in ["bash", "zsh"]:
         return f"${v}"
-    elif interpreter == 'powershell':
+    elif interpreter == "powershell":
         return f"$Env:{v}"
-    elif interpreter == 'cmdexe':
+    elif interpreter == "cmdexe":
         return f"%{v}%"
 
 
@@ -212,7 +221,7 @@ class TestActivation:
         env = {"MAMBA_ROOT_PREFIX": self.root_prefix}
         call = lambda s: call_interpreter(s, tmp_path, interpreter)
 
-        rpv = shvar('MAMBA_ROOT_PREFIX', interpreter)
+        rpv = shvar("MAMBA_ROOT_PREFIX", interpreter)
         s = [f"echo {rpv}"]
         stdout, stderr = call(s)
         assert stdout == self.root_prefix
@@ -221,7 +230,7 @@ class TestActivation:
         s = [f"{umamba} shell init -p {rpv}"]
         stdout, stderr = call(s)
 
-        if interpreter == 'cmdexe':
+        if interpreter == "cmdexe":
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
             assert find_path_in_str(self.root_prefix, value[0])
@@ -237,7 +246,7 @@ class TestActivation:
         s = [f"{umamba} shell init -p {rpv}"]
         stdout, stderr = call(s)
 
-        if interpreter == 'cmdexe':
+        if interpreter == "cmdexe":
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
             assert find_path_in_str(self.root_prefix, value[0])
@@ -249,7 +258,7 @@ class TestActivation:
                 assert "mamba" in x
                 assert prev_text == x
 
-        if interpreter == 'cmdexe':
+        if interpreter == "cmdexe":
             write_windows_registry(regkey, "echo 'test'", bkup_winreg_value[1])
             s = [f"{umamba} shell init -p {rpv}"]
             stdout, stderr = call(s)
@@ -260,7 +269,7 @@ class TestActivation:
             assert value[0].startswith("echo 'test' & ")
             assert "&" in value[0]
 
-        if interpreter != 'cmdexe':
+        if interpreter != "cmdexe":
             with open(path) as fi:
                 prevlines = fi.readlines()
 
@@ -282,7 +291,7 @@ class TestActivation:
         s = [f"{umamba} shell init -p {self.other_root_prefix}"]
         stdout, stderr = call(s)
 
-        if interpreter == 'cmdexe':
+        if interpreter == "cmdexe":
             x = read_windows_registry(regkey)[0]
             # CURRENTLY FAILING!
             # assert "mamba" in x
@@ -323,7 +332,7 @@ class TestActivation:
         if interpreter == "cmdexe":
             x = read_windows_registry(regkey)
             fp = Path(x[0][1:-1])
-            assert(fp.exists())
+            assert fp.exists()
 
         if interpreter in ["bash", "zsh", "powershell", "cmdexe"]:
             stdout, stderr = call(evars)
@@ -342,7 +351,7 @@ class TestActivation:
 
             # throw with non-existent
             s = [f"micromamba activate nonexistent"]
-            if not interpreter == 'powershell':
+            if not interpreter == "powershell":
                 with pytest.raises(subprocess.CalledProcessError):
                     stdout, stderr = call(s)
 

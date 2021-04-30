@@ -571,7 +571,8 @@ namespace mamba
         }
 
         std::string conda_init_content = powershell_contents(conda_prefix);
-        bool found_mamba_initialize = profile_content.find("#region mamba initialize") != profile_content.npos;
+        bool found_mamba_initialize
+            = profile_content.find("#region mamba initialize") != profile_content.npos;
 
         if (reverse)
         {

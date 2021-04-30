@@ -1,5 +1,18 @@
+0.12.1 (Apr 30, 2021)
+=====================
+
+New features
+- [micromamba] env list subcommand
+
+Bug fixes
+- [micromamba] fix multiple shell init with cmd.exe
+- [micromamba] fix activate with --stack option
+- [libmamba] only try loading ssl certificates when needed
+- [micromamba] remove target_prefix checks when activating
+- [micromamba] allow 'ultra-dry' config checks in final build
+
 0.12.0 (Apr 26, 2021)
-==========
+=====================
 
 New features
 - [libmamba] add experimental shell autocompletion (@wolfv) #900

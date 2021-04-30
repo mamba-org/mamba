@@ -201,6 +201,11 @@ jobs:
           then
             exit 1;
           fi
+      - name: install zsh and xonsh
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash -l -eo pipefail {0}
+        run: |
+          sudo apt-get install zsh xonsh -y
       - name: micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |

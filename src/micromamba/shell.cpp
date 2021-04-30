@@ -36,7 +36,7 @@ init_shell_parser(CLI::App* subcom)
                        Currently, only the PATH environment variable is stacked.
                        This may be enabled implicitly by the 'auto_stack'
                        configuration variable.)")));
-    subcom->add_option("--stack", stack.set_cli_config(false), stack.description());
+    subcom->add_flag("--stack", stack.set_cli_config(false), stack.description());
 
     auto& action = config.insert(Configurable("shell_action", std::string(""))
                                      .group("cli")
@@ -51,7 +51,7 @@ init_shell_parser(CLI::App* subcom)
             .group("cli")
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
-    subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description());
+    subcom->add_option("prefix,-p,--prefix", prefix.set_cli_config(""), prefix.description());
 
     auto& auto_activate_base = config.at("auto_activate_base").get_wrapped<bool>();
     subcom->add_flag("--auto-activate-base,!--no-auto-activate-base",

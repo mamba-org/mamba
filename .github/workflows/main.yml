@@ -39,7 +39,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cxx-compiler cmake gtest reproc-cpp yaml-cpp
+          conda create -q -y -n mamba-tests python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cxx-compiler cmake gtest reproc-cpp yaml-cpp
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -97,7 +97,7 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
+          micromamba create -y -p ~/build_env pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp cli11 -c conda-forge
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: build tests
@@ -145,7 +145,7 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_EXE=$(pwd)/micromamba
           . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp pyyaml cli11 -c conda-forge
+          micromamba create -y -p ~/build_env pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cxx-compiler cmake gtest cpp-filesystem reproc-cpp yaml-cpp pyyaml cli11 -c conda-forge
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: build micromamba
@@ -239,7 +239,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda install -n base -q -y vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
+          conda install -n base -q -y vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -284,7 +284,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: Run C++ tests Windows
@@ -380,7 +380,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests
@@ -419,7 +419,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests with pwsh
@@ -458,7 +458,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest ninja reproc-cpp yaml-cpp pyyaml cli11 pytest
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests

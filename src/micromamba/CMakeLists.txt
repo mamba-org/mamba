@@ -65,6 +65,8 @@ if (STATIC_DEPENDENCIES AND UNIX)
 
         libreproc++.a
         libreproc.a
+
+        libsodium.a
     )
 
     set(FINAL_LIBS "")
@@ -118,6 +120,8 @@ elseif (STATIC_DEPENDENCIES AND WIN32)
     find_library(LIBSOLVEXT_STATIC_LIBRARIES NAMES solvext_static)
     find_package(reproc++ CONFIG REQUIRED)
 
+    find_package(Sodium REQUIRED)
+
     find_library(LIBXML2_LIBRARY NAMES libxml2)
     find_library(ICONV_LIBRARY NAMES libiconv)
     find_library(CHARSET_LIBRARY NAMES libcharset)
@@ -139,6 +143,7 @@ elseif (STATIC_DEPENDENCIES AND WIN32)
         ${YAML_CPP_LIBRARIES}
         ${LIBSOLV_STATIC_LIBRARIES}
         ${LIBSOLVEXT_STATIC_LIBRARIES}
+        ${sodium_LIBRARY_RELEASE}
         reproc++
     )
 

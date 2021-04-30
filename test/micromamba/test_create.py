@@ -488,3 +488,39 @@ class TestCreate:
         for l in res["actions"]["LINK"]:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
+
+    def test_spec_with_channel(self):
+        res = create("-n", TestCreate.env_name, "bokeh::bokeh", "--json", "--dry-run")
+        ca = "https://conda.anaconda.org"
+
+        for l in res["actions"]["LINK"]:
+            if l["name"] == "bokeh":
+                assert l["channel"].startswith(f"{ca}/bokeh/")
+                assert l["url"].startswith(f"{ca}/bokeh/")
+
+        f_name = random_string() + ".yaml"
+        spec_file = os.path.join(TestCreate.spec_files_location, f_name)
+
+        contents = [
+            "dependencies:",
+            "  - bokeh::bokeh",
+            "  - conda-forge::xtensor 0.22.*",
+        ]
+        with open(spec_file, "w") as fs:
+            fs.write("\n".join(contents))
+
+        res = create("-n", TestCreate.env_name, "-f", spec_file, "--json", "--dry-run")
+
+        link_packages = [l["name"] for l in res["actions"]["LINK"]]
+        assert "bokeh" in link_packages
+        assert "xtensor" in link_packages
+
+        for l in res["actions"]["LINK"]:
+            if l["name"] == "bokeh":
+                assert l["channel"].startswith(f"{ca}/bokeh/")
+                assert l["url"].startswith(f"{ca}/bokeh/")
+
+            if l["name"] == "xtensor":
+                assert l["channel"].startswith(f"{ca}/conda-forge/")
+                assert l["url"].startswith(f"{ca}/conda-forge/")
+                assert l["version"].startswith("0.22.")

@@ -516,6 +516,7 @@ namespace mamba
                              std::vector<std::string>& result,
                              std::set<std::string>& control)
     {
+        // this checks if the channel is already in our channel_urls list
         bool ret = !control.insert(name).second;
         if (ret)
             return;

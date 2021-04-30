@@ -196,7 +196,14 @@ channels_hook(std::vector<std::string>& channels)
 
     if (override_channels)
     {
-        channels = config.at("channels").cli_value<std::vector<std::string>>();
+        if (config.at("channels").cli_configured())
+        {
+            channels = config.at("channels").cli_value<std::vector<std::string>>();
+        }
+        else
+        {
+            channels.clear();
+        }
     }
 }
 

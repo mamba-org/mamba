@@ -274,6 +274,16 @@ namespace mamba
             throw std::runtime_error("Could not create `pkgs/cache/` dirs");
         }
 
+        // add channels from specs
+        std::vector<mamba::MatchSpec> match_specs(specs.begin(), specs.end());
+        for (const auto& m : match_specs)
+        {
+            if (!m.channel.empty())
+            {
+                ctx.channels.push_back(m.channel);
+            }
+        }
+
         if (ctx.channels.empty() && !ctx.offline)
         {
             LOG_WARNING << "No 'channels' specified";

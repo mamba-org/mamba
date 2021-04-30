@@ -20,6 +20,7 @@ namespace validate
     bool md5(const std::string& path, const std::string& validation);
     bool file_size(const fs::path& path, std::uintmax_t validation);
 
+#ifdef BUILD_CRYPTO_PACKAGE_VALIDATION
     int sign(const std::string& data, unsigned char* sk, unsigned char* signature);
 
     int verify(const std::string& data, unsigned char* pk, unsigned char* signature);
@@ -29,7 +30,7 @@ namespace validate
     int verify_gpg_hashed_msg(const std::string& data,
                               const std::string& pk,
                               const std::string& signature);
-
+#endif
 
 }  // namespace validate
 

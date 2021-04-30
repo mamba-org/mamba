@@ -98,8 +98,11 @@ def clean_shell_files():
             f.touch()
 
     if plat == "win":
-        regvalue = read_windows_registry(regkey)
-        bkup_winreg_value = regvalue
+        try:
+            regvalue = read_windows_registry(regkey)
+            bkup_winreg_value = regvalue
+        except:
+            regvalue = ("", 1)
         write_windows_registry(regkey, "", regvalue[1])
 
     yield shell_files

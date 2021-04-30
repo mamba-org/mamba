@@ -57,6 +57,7 @@ option(BUILD_STATIC "" ON)
 option(BUILD_BINDINGS "" ON)
 option(STATIC_DEPENDENCIES "" OFF)
 option(USE_VENDORED_CLI11 "" OFF)
+option(BUILD_CRYPTO_PACKAGE_VALIDATION "Enable package validation using TUF" OFF)
 option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
 
 if (USE_VENDORED_CLI11)
@@ -76,7 +77,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/
 
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Sodium REQUIRED)
+
+if (BUILD_CRYPTO_PACKAGE_VALIDATION)
+    find_package(Sodium REQUIRED)
+    add_definitions(-DBUILD_CRYPTO_PACKAGE_VALIDATION=1)
+endif()
 
 message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 

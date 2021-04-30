@@ -111,7 +111,11 @@ jobs:
           touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DENABLE_TESTS=ON -DBUILD_EXE=ON -DBUILD_BINDINGS=OFF &&
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+                   -DENABLE_TESTS=ON \
+                   -DBUILD_EXE=ON \
+                   -DBUILD_CRYPTO_PACKAGE_VALIDATION=ON \
+                   -DBUILD_BINDINGS=OFF &&
           make test -j2
 
   umamba_tests:
@@ -390,6 +394,8 @@ jobs:
 
           set MAMBA_ROOT_PREFIX=%cd%\mambaroot
           set MAMBA_TEST_SHELL_TYPE=cmd.exe
+
+          reg delete HKEY_CURRENT_USER\Software\Microsoft\Command Processor /v AutoRun
 
           pytest test/micromamba
 

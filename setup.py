@@ -81,9 +81,9 @@ else:
     CURL_LIB = "curl"
     CRYPTO_LIB = "crypto"
 
-libraries = ["archive", "solv", "solvext", "reproc++", "libsodium", CURL_LIB, CRYPTO_LIB]
+libraries = ["archive", "solv", "solvext", "reproc++", CURL_LIB, CRYPTO_LIB]
 if sys.platform == "win32":
-    libraries.append("advapi32")
+    libraries = ["advapi32", "libsodium"]
 
 ext_modules = [
     Extension(

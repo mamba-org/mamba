@@ -25,6 +25,7 @@ set(TEST_SRCS
     test_thread_utils.cpp
     test_graph.cpp
     test_pinning.cpp
+    test_validate.cpp
     test_virtual_packages.cpp
     test_env_file_reading.cpp
 )

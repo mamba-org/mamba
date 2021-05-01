@@ -11,9 +11,11 @@
 #include "openssl/md5.h"
 #include "openssl/sha.h"
 
+#ifdef BUILD_CRYPTO_PACKAGE_VALIDATION
 #include "sodium/crypto_sign.h"
 #include "sodium/crypto_hash_sha256.h"
 #include "sodium/utils.h"
+#endif
 
 #include <vector>
 #include <stdexcept>
@@ -89,6 +91,7 @@ namespace validate
         return fs::file_size(path) == validation;
     }
 
+#ifdef BUILD_CRYPTO_PACKAGE_VALIDATION
     int sign(const std::string& data, unsigned char* sk, unsigned char* signature)
     {
         unsigned long long message_len = data.size();
@@ -171,4 +174,5 @@ namespace validate
 
         return verify_gpg_hashed_msg(data, bin_pk, bin_signature);
     }
+#endif  // BUILD_CRYPTO_PACKAGE_VALIDATION
 }  // namespace validate

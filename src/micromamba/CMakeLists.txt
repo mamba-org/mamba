@@ -65,9 +65,11 @@ if (STATIC_DEPENDENCIES AND UNIX)
 
         libreproc++.a
         libreproc.a
-
-        libsodium.a
     )
+
+    if (BUILD_CRYPTO_PACKAGE_VALIDATION)
+        list(APPEND MAMBA_DEPENDENCIES_LIBS "libsodium.a")
+    endif()
 
     set(FINAL_LIBS "")
     foreach(LIB ${MAMBA_DEPENDENCIES_LIBS})
@@ -120,7 +122,9 @@ elseif (STATIC_DEPENDENCIES AND WIN32)
     find_library(LIBSOLVEXT_STATIC_LIBRARIES NAMES solvext_static)
     find_package(reproc++ CONFIG REQUIRED)
 
-    find_package(Sodium REQUIRED)
+    if (BUILD_CRYPTO_PACKAGE_VALIDATION)
+        find_package(Sodium REQUIRED)
+    endif()
 
     find_library(LIBXML2_LIBRARY NAMES libxml2)
     find_library(ICONV_LIBRARY NAMES libiconv)

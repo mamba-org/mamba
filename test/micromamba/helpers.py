@@ -1,3 +1,4 @@
+import errno
 import json
 import os
 import platform
@@ -278,7 +279,7 @@ def read_windows_registry(target_path):  # pragma: no cover
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_READ)
     except EnvironmentError as e:
-        if e.errno != ENOENT:
+        if e.errno != errno.ENOENT:
             raise
         return None, None
 
@@ -306,7 +307,7 @@ def write_windows_registry(target_path, value_value, value_type):  # pragma: no 
     try:
         key = winreg.OpenKey(main_key, subkey_str, 0, winreg.KEY_WRITE)
     except EnvironmentError as e:
-        if e.errno != ENOENT:
+        if e.errno != errno.ENOENT:
             raise
         key = winreg.CreateKey(main_key, subkey_str)
     try:

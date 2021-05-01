@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#ifdef BUILD_CRYPTO_PACKAGE_VALIDATION
+
 #include "mamba/core/validate.hpp"
 
 #include "sodium/crypto_sign.h"
@@ -85,3 +87,5 @@ namespace validate
         }
     }  // namespace testing
 }  // namespace mamba
+
+#endif

@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
+
 #include "common_options.hpp"
 
 #include "mamba/api/config.hpp"
@@ -92,18 +94,12 @@ set_config_describe_command(CLI::App* subcom)
 void
 set_config_set_command(CLI::App* subcom)
 {
-}
-
-
-void
-set_config_get_command(CLI::App* subcom)
-{
     auto& config = Configuration::instance();
 
-    auto& key = config.insert(
-    Configurable("key", std::string("")).group("Output, Prompt and Flow Control").description("A shell type"));
+    auto& set_key = config.insert(
+    Configurable("set_key", std::vector<std::string>({})).group("Output, Prompt and Flow Control").description("Set configuration value on rc file"));
 
-    subcom->add_option("key", key.set_cli_config(""), key.description());
+    subcom->add_option("set_key", set_key.set_cli_config({}), set_key.description());
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -113,9 +109,53 @@ set_config_get_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        YAML::Emitter out;
+        auto srcs = config.sources();
+        auto valid_srcs = config.valid_sources();
+        std::ofstream rc_file;
 
-        std::cout << config.dump(MAMBA_SHOW_CONFIG_VALUES, { key.value() });
+        for (auto s : srcs)
+        {
+            auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
+            if (found_s != valid_srcs.end())
+            {
+                rc_file.open(env::expand_user(s).string(), std::ios::app);
+                for (std::size_t i = 0; i < set_key.value().size() - 1 ; i++)
+                {
+                    rc_file << set_key.value()[i] << ": "<< set_key.value()[i + 1] << std::endl;
+                }
+                rc_file.close();
+            }
+            else
+            {
+                std::cout << env::expand_user(s).string() + " (invalid)" << std::endl;
+            }
+        }
+
+        config.operation_teardown();
+    });
+
+}
+
+
+void
+set_config_get_command(CLI::App* subcom)
+{
+    auto& config = Configuration::instance();
+
+    auto& get_key = config.insert(
+    Configurable("get_key", std::string("")).group("Output, Prompt and Flow Control").description("Display configuration value from rc file"));
+
+    subcom->add_option("get_key", get_key.set_cli_config(""), get_key.description());
+
+    subcom->callback([&]() {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        std::cout << config.dump(MAMBA_SHOW_CONFIG_VALUES, { get_key.value() }) << std::endl;
 
         config.operation_teardown();
     });

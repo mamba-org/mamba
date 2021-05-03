@@ -1,3 +1,10 @@
+0.12.2 (May 03, 2021)
+=====================
+
+New features
+- [micromamba] add initial framework for TUF validation
+- [micromamba] add channels from specs to download
+
 0.12.1 (Apr 30, 2021)
 =====================
 

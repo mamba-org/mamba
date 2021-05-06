@@ -349,8 +349,6 @@ namespace mamba
 
         if ((total_to_download != 0 || m_expected_size != 0) && now_downloaded != 0)
         {
-            double perc
-                = static_cast<double>(now_downloaded) / static_cast<double>(total_to_download);
             std::stringstream postfix;
             postfix << std::setw(6);
             to_human_readable_filesize(postfix, now_downloaded);
@@ -361,7 +359,7 @@ namespace mamba
             postfix << std::setw(6);
             to_human_readable_filesize(postfix, get_speed(), 2);
             postfix << "/s)";
-            m_progress_bar.set_progress(perc * 100.);
+            m_progress_bar.set_progress(now_downloaded, total_to_download);
             m_progress_bar.set_postfix(postfix.str());
         }
         if (now_downloaded == 0 && total_to_download != 0)
@@ -371,7 +369,7 @@ namespace mamba
             postfix << " / ?? (";
             to_human_readable_filesize(postfix, get_speed(), 2);
             postfix << "/s)";
-            m_progress_bar.set_progress(-1);
+            m_progress_bar.set_progress(SIZE_MAX, SIZE_MAX);
             m_progress_bar.set_postfix(postfix.str());
         }
         return 0;
@@ -452,7 +450,7 @@ namespace mamba
 
             m_next_retry
                 = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
-            m_progress_bar.set_progress(0);
+            m_progress_bar.set_progress(0, 1);
             m_progress_bar.set_postfix(curl_easy_strerror(result));
             if (m_ignore_failure == false && can_retry() == false)
             {
@@ -485,7 +483,7 @@ namespace mamba
                 = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
             std::stringstream msg;
             msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
-            m_progress_bar.set_progress(0);
+            m_progress_bar.set_progress(0, downloaded_size);
             m_progress_bar.set_postfix(msg.str());
             return false;
         }

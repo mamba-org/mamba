@@ -69,194 +69,6 @@ namespace mamba
         return -1;
     }
 
-    /***********************
-     * ProgressScaleWriter *
-     ***********************/
-
-    ProgressScaleWriter::ProgressScaleWriter(int bar_width,
-                                             const std::string& fill,
-                                             const std::string& lead,
-                                             const std::string& remainder)
-        : m_bar_width(bar_width)
-        , m_fill(fill)
-        , m_lead(lead)
-        , m_remainder(remainder)
-    {
-    }
-
-    std::ostream& ProgressScaleWriter::write(std::ostream& os, std::size_t progress) const
-    {
-        int pos = static_cast<int>(progress * m_bar_width / 100.0);
-        for (int i = 0; i < m_bar_width; ++i)
-        {
-            if (i < pos)
-            {
-                os << m_fill;
-            }
-            else if (i == pos)
-            {
-                os << m_lead;
-            }
-            else
-            {
-                os << m_remainder;
-            }
-        }
-        return os;
-    }
-
-    /***************
-     * ProgressBar *
-     ***************/
-
-    ProgressBar::ProgressBar(const std::string& prefix)
-        : m_prefix(prefix)
-        , m_start_time_saved(false)
-    {
-    }
-
-    void ProgressBar::set_start()
-    {
-        m_start_time = std::chrono::high_resolution_clock::now();
-        m_start_time_saved = true;
-    }
-
-    void ProgressBar::set_progress(char p)
-    {
-        if (!m_start_time_saved)
-        {
-            set_start();
-        }
-
-        if (p == -1)
-        {
-            m_activate_bob = true;
-            m_progress += 5;
-        }
-        else
-        {
-            m_activate_bob = false;
-            m_progress = p;
-        }
-    }
-
-    void ProgressBar::set_postfix(const std::string& postfix_text)
-    {
-        m_postfix = postfix_text;
-    }
-
-    const std::string& ProgressBar::prefix() const
-    {
-        return m_prefix;
-    }
-
-    void ProgressBar::elapsed_time_to_stream(std::stringstream& s)
-    {
-        if (m_start_time_saved)
-        {
-            auto now = std::chrono::high_resolution_clock::now();
-            m_elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_start_time);
-            s << "(";
-            write_duration(s, m_elapsed_ns);
-            s << ") ";
-        }
-        else
-        {
-            s << "(--:--) ";
-        }
-    }
-
-    void ProgressBar::print()
-    {
-        std::cout << cursor::erase_line(2) << "\r";
-        std::cout << m_prefix << "[";
-
-        std::stringstream pf;
-        elapsed_time_to_stream(pf);
-        pf << m_postfix;
-        auto fpf = pf.str();
-        int width = get_console_width();
-        width = (width == -1)
-                    ? 20
-                    : (std::min)(static_cast<int>(width - (m_prefix.size() + 4) - fpf.size()), 20);
-
-        if (!m_activate_bob)
-        {
-            ProgressScaleWriter w{ width, "=", ">", " " };
-            w.write(std::cout, m_progress);
-        }
-        else
-        {
-            auto pos = static_cast<int>(m_progress * width / 100.0);
-            for (int i = 0; i < width; ++i)
-            {
-                if (i == pos - 1)
-                {
-                    std::cout << '<';
-                }
-                else if (i == pos)
-                {
-                    std::cout << '=';
-                }
-                else if (i == pos + 1)
-                {
-                    std::cout << '>';
-                }
-                else
-                {
-                    std::cout << ' ';
-                }
-            }
-        }
-        std::cout << "] " << fpf;
-    }
-
-    void ProgressBar::mark_as_completed()
-    {
-        // todo
-    }
-
-    /*****************
-     * ProgressProxy *
-     *****************/
-
-    ProgressProxy::ProgressProxy(ProgressBar* ptr, std::size_t idx)
-        : p_bar(ptr)
-        , m_idx(idx)
-    {
-    }
-
-    void ProgressProxy::set_progress(char p)
-    {
-        if (is_sig_interrupted())
-        {
-            return;
-        }
-        p_bar->set_progress(p);
-        Console::instance().print_progress(m_idx);
-    }
-
-    void ProgressProxy::elapsed_time_to_stream(std::stringstream& s)
-    {
-        if (is_sig_interrupted())
-        {
-            return;
-        }
-        p_bar->elapsed_time_to_stream(s);
-    }
-
-    void ProgressProxy::mark_as_completed(const std::string_view& final_message)
-    {
-        if (is_sig_interrupted())
-        {
-            return;
-        }
-        // mark as completed should print bar or message at FIRST position!
-        // then discard
-        p_bar->mark_as_completed();
-        Console::instance().deactivate_progress_bar(m_idx, final_message);
-    }
-
     std::string cut_repo_name(const std::string& full_url)
     {
         std::string remaining_url, scheme, auth, token;
@@ -437,6 +249,8 @@ namespace mamba
      ***********/
 
     Console::Console()
+        : m_mutex()
+        , p_progress_manager(make_progress_bar_manager(ProgressBarMode::multi))
     {
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
@@ -460,24 +274,13 @@ namespace mamba
     {
         if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
-            // print above the progress bars
-            if (Console::instance().m_progress_started
-                && Console::instance().m_active_progress_bars.size())
+            const std::lock_guard<std::mutex> lock(instance().m_mutex);
+            if (instance().p_progress_manager)
             {
-                {
-                    const std::lock_guard<std::mutex> lock(instance().m_mutex);
-                    const auto& ps = instance().m_active_progress_bars.size();
-                    std::cout << cursor::up(ps) << cursor::erase_line() << str << std::endl;
-
-                    if (!Console::instance().skip_progress_bars())
-                    {
-                        Console::instance().print_progress_unlocked();
-                    }
-                }
+                instance().p_progress_manager->print(str, instance().skip_progress_bars());
             }
             else
             {
-                const std::lock_guard<std::mutex> lock(instance().m_mutex);
                 std::cout << str << std::endl;
             }
         }
@@ -529,58 +332,18 @@ namespace mamba
 
     ProgressProxy Console::add_progress_bar(const std::string& name)
     {
-        std::string prefix = name;
-        prefix.resize(PREFIX_LENGTH - 1, ' ');
-        prefix += ' ';
-
-        m_progress_bars.push_back(std::make_unique<ProgressBar>(prefix));
-
-        return ProgressProxy(m_progress_bars[m_progress_bars.size() - 1].get(),
-                             m_progress_bars.size() - 1);
+        return p_progress_manager->add_progress_bar(name);
     }
 
-    void Console::init_multi_progress()
+    void Console::init_multi_progress(ProgressBarMode mode)
     {
-        m_active_progress_bars.clear();
-        m_progress_bars.clear();
-        m_progress_started = false;
+        p_progress_manager = make_progress_bar_manager(mode);
     }
 
     void Console::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
     {
         std::lock_guard<std::mutex> lock(instance().m_mutex);
-
-        if (Context::instance().no_progress_bars
-            && !(Context::instance().quiet || Context::instance().json))
-        {
-            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
-        }
-
-        auto it = std::find(m_active_progress_bars.begin(),
-                            m_active_progress_bars.end(),
-                            m_progress_bars[idx].get());
-        if (it == m_active_progress_bars.end() || Context::instance().quiet
-            || Context::instance().json)
-        {
-            // if no_progress_bars is true, should return here as no progress bars are
-            // active
-            std::cout << std::flush;
-            return;
-        }
-
-        m_active_progress_bars.erase(it);
-        int ps = m_active_progress_bars.size();
-        std::cout << cursor::up(ps + 1) << cursor::erase_line();
-        if (msg.empty())
-        {
-            m_progress_bars[idx]->print();
-            std::cout << std::endl;
-        }
-        else
-        {
-            std::cout << msg << std::endl;
-        }
-        print_progress_unlocked();
+        p_progress_manager->deactivate_progress_bar(idx, msg);
     }
 
     void Console::print_progress(std::size_t idx)
@@ -591,47 +354,7 @@ namespace mamba
         }
 
         std::lock_guard<std::mutex> lock(instance().m_mutex);
-
-        std::size_t cursor_up = m_active_progress_bars.size();
-        if (m_progress_started && cursor_up > 0)
-        {
-            std::cout << cursor::up(cursor_up);
-        }
-
-        auto it = std::find(m_active_progress_bars.begin(),
-                            m_active_progress_bars.end(),
-                            m_progress_bars[idx].get());
-        if (it == m_active_progress_bars.end())
-        {
-            m_active_progress_bars.push_back(m_progress_bars[idx].get());
-        }
-
-        print_progress_unlocked();
-        m_progress_started = true;
-    }
-
-    void Console::print_progress()
-    {
-        if (skip_progress_bars())
-        {
-            return;
-        }
-
-        std::lock_guard<std::mutex> lock(instance().m_mutex);
-        if (m_progress_started)
-        {
-            print_progress_unlocked();
-        }
-    }
-
-    void Console::print_progress_unlocked()
-    {
-        for (auto& bar : m_active_progress_bars)
-        {
-            bar->print();
-            std::cout << '\n';
-        }
-        std::cout << std::flush;
+        p_progress_manager->print_progress(idx);
     }
 
     bool Console::skip_progress_bars() const

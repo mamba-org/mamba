@@ -105,6 +105,7 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/core/package_cache.cpp
     ${MAMBA_SOURCE_DIR}/core/pool.cpp
     ${MAMBA_SOURCE_DIR}/core/prefix_data.cpp
+    ${MAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${MAMBA_SOURCE_DIR}/core/pinning.cpp
     ${MAMBA_SOURCE_DIR}/core/package_info.cpp
     ${MAMBA_SOURCE_DIR}/core/package_paths.cpp
@@ -159,6 +160,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/repo.hpp

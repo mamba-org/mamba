@@ -198,7 +198,7 @@ namespace mamba
 
     bool PackageDownloadExtractTarget::finalize_callback()
     {
-        m_progress_proxy.set_progress(100);
+        m_progress_proxy.set_full();
         m_progress_proxy.set_postfix("Validating...");
 
         LOG_INFO << "Download finished, validating " << m_tarball_path;

@@ -8,6 +8,7 @@
 #include <regex>
 #include <set>
 #include <sstream>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -32,13 +33,6 @@ namespace mamba
 
         const char LOCAL_CHANNELS_NAME[] = "local";
         const char DEFAULT_CHANNELS_NAME[] = "defaults";
-
-        // ATTENTION names with substrings need to go longer -> smalle
-        // otherwise linux-ppc64 matches for linux-ppc64le etc!
-        const std::vector<std::string> KNOWN_PLATFORMS
-            = { "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
-                "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
-                "win-32",       "win-64",        "zos-z" };
     }  // namespace
 
     /**************************
@@ -171,7 +165,6 @@ namespace mamba
         }
         else
         {
-            // TODO: handle unknwon archs that are not "noarch"
             base += "/noarch";
         }
 
@@ -294,18 +287,30 @@ namespace mamba
     {
         std::string cleaned_url, extension;
         split_anaconda_token(url, cleaned_url, token);
-        split_platform(KNOWN_PLATFORMS, cleaned_url, cleaned_url, platform);
-        split_package_extension(cleaned_url, cleaned_url, extension);
+        auto opt_platform = Context::instance().resolve_channel_platform(cleaned_url);
 
-        if (extension != "")
+        auto split_package = [&](std::string& from) {
+            split_package_extension(from, from, extension);
+            if (extension != "")
+            {
+                auto sp = rsplit(from, "/", 1);
+                from = sp[0];
+                package_name = sp[1] + extension;
+            }
+            else
+            {
+                package_name = "";
+            }
+        };
+
+        if (opt_platform)
         {
-            auto sp = rsplit(cleaned_url, "/", 1);
-            cleaned_url = sp[0];
-            package_name = sp[1] + extension;
+            platform = *opt_platform;
+            split_package(platform);
         }
         else
         {
-            package_name = "";
+            split_package(cleaned_url);
         }
 
         URLHandler handler(cleaned_url);
@@ -418,43 +423,57 @@ namespace mamba
 
     Channel Channel::from_name(const std::string& name)
     {
-        std::string stripped, platform;
-        split_platform(KNOWN_PLATFORMS, name, stripped, platform);
-
-        std::string tmp_stripped = stripped;
+        // Search for a componentwise-prefix match in the custom channels. Most
+        // custom channels are urls (and have a scheme), so they won't match;
+        // this is mainly for anaconda accounts.
+        std::string_view prefix = name;
         const auto& custom_channels = ChannelContext::instance().get_custom_channels();
         auto it_end = custom_channels.end();
-        auto it = custom_channels.find(tmp_stripped);
+        auto it = custom_channels.find(prefix);
         while (it == it_end)
         {
-            size_t pos = tmp_stripped.rfind("/");
+            size_t pos = prefix.find_last_of('/');
             if (pos == std::string::npos)
             {
                 break;
             }
             else
             {
-                tmp_stripped = tmp_stripped.substr(0, pos);
-                it = custom_channels.find(tmp_stripped);
+                prefix = prefix.substr(0, pos);
+                it = custom_channels.find(prefix);
             }
         }
 
+        std::optional<Channel> channel;
         if (it != it_end)
         {
-            return Channel(it->second.scheme(),
-                           it->second.auth(),
-                           it->second.location(),
-                           it->second.token(),
-                           stripped,
-                           platform != "" ? platform : it->second.platform(),
-                           it->second.package_filename());
+            channel = Channel(it->second.scheme(),
+                              it->second.auth(),
+                              it->second.location(),
+                              it->second.token(),
+                              name,
+                              "",
+                              it->second.package_filename());
         }
         else
         {
             const Channel& alias = ChannelContext::instance().get_channel_alias();
-            return Channel(
-                alias.scheme(), alias.auth(), alias.location(), alias.token(), stripped, platform);
+            channel = Channel(alias.scheme(), alias.auth(), alias.location(), alias.token(), name);
         }
+
+        // Check the initial channel url to determine whether `name` included a platform.
+        std::string url = channel->base_url();
+        auto platform = Context::instance().resolve_channel_platform(url);
+        if (platform)
+        {
+            channel->m_platform = *platform;
+            if (std::string_view(name).substr(name.size() - platform->size()) == *platform
+                && name[name.size() - platform->size() - 1] == '/')
+            {
+                channel->m_name = name.substr(0, name.size() - platform->size() - 1);
+            }
+        }
+        return std::move(*channel);
     }
 
     std::string fix_win_path(const std::string& path)

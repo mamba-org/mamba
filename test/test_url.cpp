@@ -218,27 +218,6 @@ namespace mamba
 #endif
     }
 
-    TEST(url, split_platform)
-    {
-        std::string input = "https://1.2.3.4/t/tk-123/linux-64/path";
-        std::vector<std::string> known_platforms
-            = { "noarch", "linux-32", "linux-64", "linux-aarch64" };
-        std::string cleaned_url, platform;
-        split_platform(known_platforms, input, cleaned_url, platform);
-        EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
-        EXPECT_EQ(platform, "linux-64");
-
-        input = "https://1.2.3.4/t/tk-123/linux-ppc64le/path";
-        split_platform(KNOWN_PLATFORMS, input, cleaned_url, platform);
-        EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
-        EXPECT_EQ(platform, "linux-ppc64le");
-
-        input = "https://1.2.3.4/t/tk-123/linux-ppc64/path";
-        split_platform(KNOWN_PLATFORMS, input, cleaned_url, platform);
-        EXPECT_EQ(cleaned_url, "https://1.2.3.4/t/tk-123/path");
-        EXPECT_EQ(platform, "linux-ppc64");
-    }
-
     TEST(path, is_path)
     {
         EXPECT_TRUE(is_path("./"));

@@ -2,6 +2,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
@@ -101,25 +102,6 @@ namespace mamba
 #endif
         EXPECT_EQ(c4.name(), "channel_b");
         EXPECT_EQ(c4.platform(), "");
-
-        std::string value5 = "/home/mamba/test/channel_b/" + platform;
-        Channel& c5 = make_channel(value5);
-        EXPECT_EQ(c5.scheme(), "file");
-#ifdef _WIN32
-        EXPECT_EQ(c5.location(), driveletter + ":/home/mamba/test");
-#else
-        EXPECT_EQ(c5.location(), "/home/mamba/test");
-#endif
-        EXPECT_EQ(c5.name(), "channel_b");
-        EXPECT_EQ(c5.platform(), platform);
-
-        std::string value6a = "http://localhost:8000/conda-forge/noarch";
-        Channel& c6a = make_channel(value6a);
-        EXPECT_EQ(c6a.url(false), value6a);
-
-        std::string value6b = "http://localhost:8000/conda_mirror/conda-forge/noarch";
-        Channel& c6b = make_channel(value6b);
-        EXPECT_EQ(c6b.url(false), value6b);
     }
 
     TEST(Channel, urls)
@@ -206,5 +188,23 @@ namespace mamba
         // EXPECT_EQ(chan.url(true),
         // "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch");
         // EXPECT_EQ(chan.url(false), "https://conda.anaconda.org/conda-forge/noarch");
+    }
+    TEST(Context, resolve_channel_platform)
+    {
+        const std::string expected_channel = "https://conda.anaconda.org/conda-forge";
+        std::string channel = expected_channel + "/linux-64";
+        {
+            auto platform = Context::instance().resolve_channel_platform(channel);
+            EXPECT_EQ(channel, expected_channel);
+            ASSERT_TRUE((bool) platform);
+            EXPECT_EQ(*platform, "linux-64");
+        }
+
+        channel = expected_channel;
+        {
+            auto platform = Context::instance().resolve_channel_platform(channel);
+            EXPECT_EQ(channel, expected_channel);
+            EXPECT_FALSE((bool) platform);
+        }
     }
 }  // namespace mamba

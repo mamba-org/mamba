@@ -63,31 +63,6 @@ namespace mamba
         return u1_remaining == u2_remaining;
     }
 
-    void split_platform(const std::vector<std::string>& known_platforms,
-                        const std::string& url,
-                        std::string& cleaned_url,
-                        std::string& platform)
-    {
-        platform = "";
-        size_t pos = std::string::npos;
-        for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
-        {
-            pos = url.find(*it);
-            if (pos != std::string::npos)
-            {
-                platform = *it;
-                break;
-            }
-        }
-
-        cleaned_url = url;
-        if (pos != std::string::npos)
-        {
-            cleaned_url.replace(pos - 1, platform.size() + 1, "");
-        }
-        cleaned_url = rstrip(cleaned_url, "/");
-    }
-
     bool is_path(const std::string& input)
     {
         static const std::regex re(R"(\./|\.\.|~|/|[a-zA-Z]:[/\\]|\\\\|//)");

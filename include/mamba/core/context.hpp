@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
+#include <optional>
 #include <map>
 #include <string>
 #include <vector>
@@ -188,6 +189,20 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
+        void set_channel_root_cache(const fs::path& p);
+
+        /**
+         * Resolve a url to the channel base url and the platform.
+         *
+         * Assumes `url` has been sanitized (and does not contain a trailing `/`).
+         *
+         * @param url the url to resolve; it will be overwritten with the base url if it contains a
+         * platform
+         *
+         * @return The platform, if any.
+         */
+        std::optional<std::string> resolve_channel_platform(std::string& url);
+
         static Context& instance();
 
         Context(const Context&) = delete;
@@ -201,6 +216,11 @@ namespace mamba
     private:
         Context();
         ~Context() = default;
+
+        void load_channel_root_cache();
+
+        fs::path channel_root_cache_path = root_prefix / "channels.txt";
+        std::vector<std::string> channel_root_cache;
     };
 }  // namespace mamba
 

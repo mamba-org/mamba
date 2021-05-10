@@ -133,6 +133,72 @@ namespace mamba
         }
     }
 
+    static void init_curl_handle(CURL* handle, const std::string& url)
+    {
+        curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
+        curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+        // DO NOT SET TIMEOUT as it will also take into account multi-start time and
+        // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
+        // Context::instance().read_timeout_secs);
+
+        // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to
+        // work properly with it this includes:
+        // - setting the cache stuff correctly
+        // - fixing how the progress bar works
+        curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+        // if the request is slower than 30b/s for 60 seconds, cancel.
+        curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, 60L);
+        curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
+
+        curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
+
+        std::string ssl_no_revoke_env
+            = std::getenv("MAMBA_SSL_NO_REVOKE") ? std::getenv("MAMBA_SSL_NO_REVOKE") : "0";
+        if (Context::instance().ssl_no_revoke || ssl_no_revoke_env != "0")
+        {
+            curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
+        }
+
+        std::string& ssl_verify = Context::instance().ssl_verify;
+        if (ssl_verify.size())
+        {
+            if (ssl_verify == "<false>")
+            {
+                curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L);
+                curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 0L);
+            }
+            else if (ssl_verify == "<system>")
+            {
+#ifdef UMAMBA_STATIC
+                curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+#endif
+            }
+            else
+            {
+                if (!fs::exists(ssl_verify))
+                {
+                    throw std::runtime_error("ssl_verify does not contain a valid file path.");
+                }
+                else
+                {
+                    curl_easy_setopt(handle, CURLOPT_CAINFO, ssl_verify.c_str());
+                }
+            }
+        }
+    }
+
+    CURLcode DownloadTarget::head_request(const std::string& url)
+    {
+        auto handle = curl_easy_init();
+        init_curl_handle(handle, url);
+        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+        curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
+        return curl_easy_perform(handle);
+    }
+
     /*********************************
      * DownloadTarget implementation *
      *********************************/
@@ -153,8 +219,7 @@ namespace mamba
 
     void DownloadTarget::init_curl_target(const std::string& url)
     {
-        curl_easy_setopt(m_handle, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(m_handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
+        init_curl_handle(m_handle, url);
 
         curl_easy_setopt(m_handle, CURLOPT_ERRORBUFFER, m_errbuf);
 
@@ -173,59 +238,6 @@ namespace mamba
         }
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
-
-        curl_easy_setopt(m_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-        // DO NOT SET TIMEOUT as it will also take into account multi-start time and
-        // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
-        // Context::instance().read_timeout_secs);
-
-        // TODO while libcurl in conda now _has_ http2 support we need to fix mamba to
-        // work properly with it this includes:
-        // - setting the cache stuff correctly
-        // - fixing how the progress bar works
-        curl_easy_setopt(m_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-
-        // if the request is slower than 30b/s for 60 seconds, cancel.
-        curl_easy_setopt(m_handle, CURLOPT_LOW_SPEED_TIME, 60L);
-        curl_easy_setopt(m_handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
-
-        curl_easy_setopt(
-            m_handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
-
-        std::string ssl_no_revoke_env
-            = std::getenv("MAMBA_SSL_NO_REVOKE") ? std::getenv("MAMBA_SSL_NO_REVOKE") : "0";
-        if (Context::instance().ssl_no_revoke || ssl_no_revoke_env != "0")
-        {
-            curl_easy_setopt(m_handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
-        }
-
-        std::string& ssl_verify = Context::instance().ssl_verify;
-        if (ssl_verify.size())
-        {
-            if (ssl_verify == "<false>")
-            {
-                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYPEER, 0L);
-                curl_easy_setopt(m_handle, CURLOPT_SSL_VERIFYHOST, 0L);
-            }
-            else if (ssl_verify == "<system>")
-            {
-#ifdef UMAMBA_STATIC
-                curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
-#endif
-            }
-            else
-            {
-                if (!fs::exists(ssl_verify))
-                {
-                    throw std::runtime_error("ssl_verify does not contain a valid file path.");
-                }
-                else
-                {
-                    curl_easy_setopt(m_handle, CURLOPT_CAINFO, ssl_verify.c_str());
-                }
-            }
-        }
     }
 
     bool DownloadTarget::can_retry()

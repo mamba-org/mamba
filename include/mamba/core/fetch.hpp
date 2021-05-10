@@ -33,6 +33,8 @@ namespace mamba
                        const std::string& filename);
         ~DownloadTarget();
 
+        static CURLcode head_request(const std::string& url);
+
         static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
 

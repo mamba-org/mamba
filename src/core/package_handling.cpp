@@ -18,6 +18,8 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"
 
+int archive_write_set_format_xar(struct archive*) { return ARCHIVE_FATAL; }
+
 namespace mamba
 {
     class extraction_guard

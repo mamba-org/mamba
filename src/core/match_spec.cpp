@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cassert>
+
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"
@@ -86,9 +88,10 @@ namespace mamba
             }
             auto parsed_channel = make_channel(spec_str);
 
-            if (!parsed_channel.platform().empty())
+            if (!parsed_channel.package_filename().empty())
             {
                 auto dist = parse_legacy_dist(parsed_channel.package_filename());
+                assert(dist.size() >= 3);
 
                 name = dist[0];
                 version = dist[1];

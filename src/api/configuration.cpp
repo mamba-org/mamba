@@ -220,6 +220,7 @@ namespace mamba
             auto& ctx = Context::instance();
             ctx.envs_dirs = { prefix / "envs" };
             ctx.pkgs_dirs = { prefix / "pkgs" };
+            ctx.set_channel_root_cache(prefix / "channels.txt");
         }
         /*
                 void log_level_hook(LogLevel& lvl)

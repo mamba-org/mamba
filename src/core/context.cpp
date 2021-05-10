@@ -5,13 +5,16 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <csignal>
+#include <fstream>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/environment.hpp"
+#include "mamba/core/fetch.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 
+#include "nlohmann/json.hpp"
 #include "thirdparty/termcolor.hpp"
 
 namespace mamba
@@ -26,6 +29,7 @@ namespace mamba
         }
 
         set_default_signal_handler();
+        load_channel_root_cache();
     }
 
     Context& Context::instance()
@@ -97,6 +101,97 @@ namespace mamba
         }
 
         throw std::runtime_error("Environment name not found " + name);
+    }
+
+    void Context::load_channel_root_cache()
+    {
+        if (fs::is_regular_file(channel_root_cache_path))
+        {
+            std::ifstream file(channel_root_cache_path);
+            std::string url;
+            while (std::getline(file, url))
+            {
+                channel_root_cache.emplace_back(std::move(url));
+            }
+        }
+    }
+
+    void Context::set_channel_root_cache(const fs::path& p)
+    {
+        if (p != channel_root_cache_path)
+        {
+            channel_root_cache_path = p;
+            load_channel_root_cache();
+        }
+    }
+
+    std::optional<std::string> Context::resolve_channel_platform(std::string& url)
+    {
+        // We assume the url has been sanitized, and does not end with `/`.
+        std::string_view view(url);
+        for (const auto& root : channel_root_cache)
+        {
+            if (view.substr(0, root.size()) == root
+                && (view.size() == root.size() || view[root.size()] == '/'))
+            {
+                if (view.size() == root.size())
+                {
+                    return {};
+                }
+                else
+                {
+                    auto platform = std::string(view.substr(root.size() + 1));
+                    url = root;
+                    return platform;
+                }
+            }
+        }
+
+        std::optional<std::string> platform;
+
+        // No cache hit, query the url and ancestors to determine if it's a
+        // channel root (channeldata.json) or a platform subdir.
+        //
+        // Ideally we could use the repodata.json content (.info.subdir) to
+        // discover the channel root quickly, however it seems that sometimes
+        // the repodata.json content is invalid json!
+        while (true)
+        {
+            auto result = DownloadTarget::head_request(std::string(view) + "/channeldata.json");
+            if (result != CURLE_OK)
+            {
+                auto pos = view.find_last_of('/');
+                if (pos == std::string_view::npos)
+                {
+                    LOG_WARNING << "could not find channel root for " << url;
+                    return {};
+                }
+                if (platform)
+                {
+                    *platform = std::string(view.substr(pos + 1)) + "/" + *platform;
+                }
+                else
+                {
+                    platform = std::string(view.substr(pos + 1));
+                }
+                view = view.substr(0, pos);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Insert resulting url into cache
+        {
+            channel_root_cache.emplace_back(view);
+            std::ofstream f(channel_root_cache_path, std::ios_base::app);
+            f << view << std::endl;
+        }
+
+        url = std::string(view);
+
+        return platform;
     }
 
     const void Context::debug_print()

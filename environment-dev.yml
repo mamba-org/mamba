@@ -20,3 +20,16 @@ dependencies:
   - pyyaml
   - cli11
   - pytest
+    #  - krb5-static
+    #  - libcurl-static 7.76.1 *_0
+    #  - libnghttp2-static
+    #  - libopenssl-static
+    #  - libxml2
+    #  - libsolv-static >=0.7.18
+    #  - libssh2-static
+    #  - lz4-c-static
+    #  - reproc-cpp-static
+    #  - reproc-static
+    #  - yaml-cpp-static
+    #  - xz-static
+    #  - zstd-static

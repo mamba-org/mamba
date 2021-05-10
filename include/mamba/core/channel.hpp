@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_CHANNEL_HPP
 #define MAMBA_CORE_CHANNEL_HPP
 
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -89,7 +90,7 @@ namespace mamba
     {
     public:
         using channel_list = std::vector<std::string>;
-        using channel_map = std::map<std::string, Channel>;
+        using channel_map = std::map<std::string, Channel, std::less<>>;
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
 
         static ChannelContext& instance();

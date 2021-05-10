@@ -6,7 +6,7 @@ Currently, given micromamba's early stage, it's main usage is in continous integ
 ```{admonition} Warning
 :class: warning
 
-Note that micromamba is still in early development and not considered ready-for-general-usage yet! It has been used with great succes in CI systems, though, and we encourage this usage.
+Note that micromamba is still in early development and not considered ready-for-general-usage yet! It has been used with great success in CI systems, though, and we encourage this usage.
 ```
 
 ## Installation

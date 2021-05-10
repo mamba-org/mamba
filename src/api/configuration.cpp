@@ -12,6 +12,10 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
 
+#include <reproc++/run.hpp>
+
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -171,16 +175,35 @@ namespace mamba
 
             if (prefix.empty())
             {
-                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
+                std::vector<std::string> args
+                    = { "conda", "config", "--show", "root_prefix", "--json" };
+                std::string out, err;
+                auto [status, ec] = reproc::run(
+                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+                if (ec)
                 {
-                    prefix = env::home_directory() / "micromamba";
+                    LOG_DEBUG << "Conda root prefix not found";
                 }
                 else
                 {
-                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
-                    LOG_WARNING << unindent(R"(
-                                    'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
-                                    Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                    auto j = nlohmann::json::parse(out);
+                    prefix = j.at("root_prefix").get<std::string>();
+                }
+
+                if (prefix.empty())
+                {
+                    if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
+                    {
+                        prefix = env::home_directory() / "micromamba";
+                    }
+                    else
+                    {
+                        prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
+                        LOG_WARNING << unindent(R"(
+                                        'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
+                                        Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                    }
                 }
 
                 if (env_name.configured())

@@ -32,6 +32,8 @@ extern "C"
 
     int mamba_clear_config(const char* name);
 
+    int mamba_use_conda_root_prefix(int force = 0);
+
 #ifdef __cplusplus
 }
 #endif

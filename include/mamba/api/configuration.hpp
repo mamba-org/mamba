@@ -1747,6 +1747,8 @@ namespace mamba
         auto& config = at(name).get_wrapped<T>();
         return config.set_cli_config(init);
     }
+
+    void use_conda_root_prefix(bool force = false);
 }
 
 #endif  // MAMBA_CONFIG_HPP

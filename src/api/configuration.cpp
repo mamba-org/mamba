@@ -12,6 +12,10 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
 
+#include <reproc++/run.hpp>
+
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -381,6 +385,33 @@ namespace mamba
                 }
                 Configuration::instance().at("quiet").set_value(true);
             }
+        }
+    }
+
+    fs::path get_conda_root_prefix()
+    {
+        std::vector<std::string> args = { "conda", "config", "--show", "root_prefix", "--json" };
+        std::string out, err;
+        auto [status, ec] = reproc::run(
+            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+        if (ec)
+        {
+            LOG_ERROR << "Conda root prefix not found using 'conda config' command";
+            throw std::runtime_error("Aborting.");
+        }
+        else
+        {
+            auto j = nlohmann::json::parse(out);
+            return j.at("root_prefix").get<std::string>();
+        }
+    }
+
+    void use_conda_root_prefix(bool force)
+    {
+        if (!Configuration::instance().at("root_prefix").configured() || force)
+        {
+            env::set("MAMBA_ROOT_PREFIX", get_conda_root_prefix());
         }
     }
 

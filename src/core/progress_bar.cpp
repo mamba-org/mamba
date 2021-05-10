@@ -4,6 +4,8 @@
 #include <sys/ioctl.h>
 #endif
 
+#include <utility>
+
 #include "mamba/core/output.hpp"
 #include "mamba/core/progress_bar.hpp"
 #include "mamba/core/thread_utils.hpp"
@@ -67,7 +69,7 @@ namespace mamba
         {
             return std::make_unique<MultiBarManager>();
         }
-        return nullptr;
+        return std::make_unique<AggregatedBarManager>();
     }
 
     /*******************
@@ -81,7 +83,7 @@ namespace mamba
     {
     }
 
-    ProgressProxy MultiBarManager::add_progress_bar(const std::string& name)
+    ProgressProxy MultiBarManager::add_progress_bar(const std::string& name, size_t)
     {
         std::string prefix = name;
         prefix.resize(PREFIX_LENGTH - 1, ' ');
@@ -179,6 +181,100 @@ namespace mamba
      * AggregatedBarManager *
      ************************/
 
+    AggregatedBarManager::AggregatedBarManager()
+        : m_progress_bars()
+        , m_active_progress_bars()
+        , p_main_bar(std::make_unique<DefaultProgressBar>("Downloading  ", 100))
+        , m_main_mutex()
+        , m_current(0)
+        , m_total(0)
+        , m_progress_started(false)
+    {
+    }
+
+    ProgressProxy AggregatedBarManager::add_progress_bar(const std::string& name, size_t expected_total)
+    {
+        std::string prefix = name;
+        prefix.resize(PREFIX_LENGTH - 1, ' ');
+        prefix += ' ';
+
+        m_progress_bars.push_back(std::make_unique<HiddenProgressBar>(prefix, this));
+        m_total += expected_total;
+
+        return ProgressProxy(m_progress_bars[m_progress_bars.size() - 1].get(),
+                             m_progress_bars.size() - 1);
+    }
+
+    void AggregatedBarManager::print_progress(std::size_t idx)
+    {
+        if (m_progress_started)
+        {
+            std::cout << cursor::up(1);
+        }
+        auto it = std::find(m_active_progress_bars.begin(),
+                            m_active_progress_bars.end(),
+                            m_progress_bars[idx].get());
+        if (it == m_active_progress_bars.end())
+        {
+            m_active_progress_bars.push_back(m_progress_bars[idx].get());
+        }
+        print_progress();
+        m_progress_started = true;
+    }
+
+    void AggregatedBarManager::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
+    {
+        if (Context::instance().no_progress_bars
+            && !(Context::instance().quiet || Context::instance().json))
+        {
+            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
+        }
+        auto it = std::find(m_active_progress_bars.begin(),
+                            m_active_progress_bars.end(),
+                            m_progress_bars[idx].get());
+        if (it == m_active_progress_bars.end() || Context::instance().quiet
+            || Context::instance().json)
+        {
+            // if no_progress_bars is true, should return here as no progress bars are
+            // active
+            std::cout << std::flush;
+            return;
+        }
+
+        m_active_progress_bars.erase(it);
+        std::cout << cursor::up(1) << cursor::erase_line();
+        std::cout << msg << std::endl;
+        print_progress();
+    }
+
+    void AggregatedBarManager::print(const std::string_view& str, bool skip_progress_bars)
+    {
+        if (m_progress_started && m_progress_bars.size() && !skip_progress_bars)
+        {
+            std::cout << cursor::erase_line() << str << std::endl;
+            print_progress();
+        }
+        else
+        {
+            std::cout << str << std::endl;
+        }
+    }
+
+    void AggregatedBarManager::update_main_bar(std::size_t current_diff, std::size_t total_diff)
+    {
+        const std::lock_guard<std::mutex> lock(m_main_mutex);
+        m_current += current_diff;
+        m_total += total_diff;
+        p_main_bar->set_progress(m_current, m_total);
+    }
+
+    void AggregatedBarManager::print_progress()
+    {
+        const std::lock_guard<std::mutex> lock(m_main_mutex);
+        p_main_bar->print();
+        std::cout << '\n';
+    }
+
     /***************
      * ProgressBar *
      ***************/
@@ -273,9 +369,10 @@ namespace mamba
      * DefaultProgressBar *
      **********************/
     
-    DefaultProgressBar::DefaultProgressBar(const std::string& prefix)
+    DefaultProgressBar::DefaultProgressBar(const std::string& prefix, int width_cap)
         : ProgressBar(prefix)
         , m_progress(0)
+        , m_width_cap(width_cap)
     {
     }
 
@@ -290,8 +387,8 @@ namespace mamba
         auto fpf = pf.str();
         int width = get_console_width();
         width = (width == -1)
-                    ? 20
-                    : (std::min)(static_cast<int>(width - (m_prefix.size() + 4) - fpf.size()), 20);
+                    ? m_width_cap
+                    : (std::min)(static_cast<int>(width - (m_prefix.size() + 4) - fpf.size()), m_width_cap);
 
         if (!m_activate_bob)
         {
@@ -358,19 +455,38 @@ namespace mamba
      * HiddenProgressBar *
      *********************/
 
-    HiddenProgressBar::HiddenProgressBar(const std::string& prefix)
+    HiddenProgressBar::HiddenProgressBar(const std::string& prefix, AggregatedBarManager* manager)
         : ProgressBar(prefix)
+        , p_manager(manager)
+        , m_current(0)
+        , m_total(0)
     {
     }
 
     void HiddenProgressBar::print()
     {
-        // TODO
+    }
+
+    void HiddenProgressBar::set_full()
+    {
+        if (!m_start_time_saved)
+        {
+            set_start();
+        }
+        p_manager->update_main_bar(m_total - m_current, 0u);
     }
 
     void HiddenProgressBar::set_progress(size_t current, size_t total)
     {
-        // TODO
+        if (!m_start_time_saved)
+        {
+            set_start();
+        }
+        size_t old_current = m_current;
+        size_t old_total = m_total;
+        m_current = current;
+        m_total = total;
+        p_manager->update_main_bar(m_current - old_current, m_total - old_total);
     }
 }
 

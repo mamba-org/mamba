@@ -330,9 +330,9 @@ namespace mamba
         return false;
     }
 
-    ProgressProxy Console::add_progress_bar(const std::string& name)
+    ProgressProxy Console::add_progress_bar(const std::string& name, size_t expected_total)
     {
-        return p_progress_manager->add_progress_bar(name);
+        return p_progress_manager->add_progress_bar(name, expected_total);
     }
 
     void Console::init_multi_progress(ProgressBarMode mode)

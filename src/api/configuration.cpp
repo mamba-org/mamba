@@ -175,35 +175,16 @@ namespace mamba
 
             if (prefix.empty())
             {
-                std::vector<std::string> args
-                    = { "conda", "config", "--show", "root_prefix", "--json" };
-                std::string out, err;
-                auto [status, ec] = reproc::run(
-                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
-
-                if (ec)
+                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
                 {
-                    LOG_DEBUG << "Conda root prefix not found";
+                    prefix = env::home_directory() / "micromamba";
                 }
                 else
                 {
-                    auto j = nlohmann::json::parse(out);
-                    prefix = j.at("root_prefix").get<std::string>();
-                }
-
-                if (prefix.empty())
-                {
-                    if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
-                    {
-                        prefix = env::home_directory() / "micromamba";
-                    }
-                    else
-                    {
-                        prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
-                        LOG_WARNING << unindent(R"(
-                                        'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
-                                        Consider using 'MAMBA_ROOT_PREFIX' instead)");
-                    }
+                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
+                    LOG_WARNING << unindent(R"(
+                                    'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
+                                    Consider using 'MAMBA_ROOT_PREFIX' instead)");
                 }
 
                 if (env_name.configured())
@@ -404,6 +385,33 @@ namespace mamba
                 }
                 Configuration::instance().at("quiet").set_value(true);
             }
+        }
+    }
+
+    fs::path get_conda_root_prefix()
+    {
+        std::vector<std::string> args = { "conda", "config", "--show", "root_prefix", "--json" };
+        std::string out, err;
+        auto [status, ec] = reproc::run(
+            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+        if (ec)
+        {
+            LOG_ERROR << "Conda root prefix not found using 'conda config' command";
+            throw std::runtime_error("Aborting.");
+        }
+        else
+        {
+            auto j = nlohmann::json::parse(out);
+            return j.at("root_prefix").get<std::string>();
+        }
+    }
+
+    void use_conda_root_prefix(bool force)
+    {
+        if (!Configuration::instance().at("root_prefix").configured() || force)
+        {
+            env::set("MAMBA_ROOT_PREFIX", get_conda_root_prefix());
         }
     }
 

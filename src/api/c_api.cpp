@@ -169,3 +169,18 @@ mamba_clear_config(const char* name)
         return 1;
     }
 }
+
+int
+mamba_use_conda_root_prefix(int force)
+{
+    try
+    {
+        use_conda_root_prefix(force);
+        return 0;
+    }
+    catch (...)
+    {
+        Configuration::instance().operation_teardown();
+        return 1;
+    }
+}

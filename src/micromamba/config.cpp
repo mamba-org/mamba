@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <cstdlib>
 
 #include "common_options.hpp"
 
@@ -92,6 +93,73 @@ set_config_describe_command(CLI::App* subcom)
 }
 
 void
+set_config_remove_key_command(CLI::App* subcom)
+{
+    auto& config = Configuration::instance();
+
+    auto& remove_key = config.insert(
+    Configurable("remove_key", std::string("")).group("Output, Prompt and Flow Control").description("Remove a configuration key and its values"));
+
+    subcom->add_option("remove_key", remove_key.set_cli_config(""), remove_key.description());
+
+    subcom->callback([&]() {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        auto srcs = config.sources();
+        auto valid_srcs = config.valid_sources();
+        std::ofstream rc_file;
+
+        for (auto s : srcs)
+        {
+            //check if there are valid rc files sources
+            auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
+            if (found_s != valid_srcs.end())
+            {
+                YAML::Node rc_YAML = YAML::LoadFile(env::expand_user(s).string());
+                for (YAML::const_iterator it = rc_YAML.begin(); it != rc_YAML.end(); ++it) {
+                    if(it->first.as<std::string>() == remove_key.value())
+                    {
+                        rc_YAML.remove(remove_key.value());
+                        break;
+                    }
+                }
+                //if the rc file is being modified, it's necessary to rewrite it
+                rc_file.open(env::expand_user(s).string(), std::ofstream::in | std::ofstream::trunc);
+                rc_file << rc_YAML;
+            }
+            else
+            {
+                std::cout << env::expand_user(s).string() + " (invalid)" << std::endl;
+            }
+        }
+        config.operation_teardown();
+    });
+}
+
+bool validate_key_input(std::string key)
+{
+    auto& config = Configuration::instance();
+
+    for (auto& group_it : config.get_grouped_config())
+    {
+        auto& configs = group_it.second;
+        for (auto c : configs)
+        {
+            if (key == c->name())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void
 set_config_set_command(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
@@ -115,13 +183,18 @@ set_config_set_command(CLI::App* subcom)
 
         for (auto s : srcs)
         {
+            //check if rc file is valid
             auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
             if (found_s != valid_srcs.end())
             {
                 rc_file.open(env::expand_user(s).string(), std::ios::app);
-                for (std::size_t i = 0; i < set_key.value().size() - 1 ; i++)
+                for (std::size_t i = 0; i < set_key.value().size(); i+=2)
                 {
-                    rc_file << set_key.value()[i] << ": "<< set_key.value()[i + 1] << std::endl;
+                    //check if user input is valid
+                    if (validate_key_input(set_key.value()[i]))
+                    {
+                        rc_file << "\n" << set_key.value()[i] << ": "<< set_key.value()[i + 1] << std::endl;
+                    }
                 }
                 rc_file.close();
             }
@@ -135,7 +208,6 @@ set_config_set_command(CLI::App* subcom)
     });
 
 }
-
 
 void
 set_config_get_command(CLI::App* subcom)
@@ -175,6 +247,10 @@ set_config_command(CLI::App* subcom)
     auto describe_subcom
         = subcom->add_subcommand("describe", "Describe given configuration parameters");
     set_config_describe_command(describe_subcom);
+
+    auto remove_key_subcom
+        = subcom->add_subcommand("remove-key", "Remove a configuration key and its values");
+    set_config_remove_key_command(remove_key_subcom);
 
     auto set_subcom
         = subcom->add_subcommand("set", "Set a configuration value");

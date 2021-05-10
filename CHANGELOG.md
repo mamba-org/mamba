@@ -1,22 +1,31 @@
+0.12.3 (May 10, 2021)
+=====================
+
+New features
+- [libmamba] add free-function to use an existing conda root prefix (@adriendelsalle) #927
+
+General improvements
+- [micromamba] fix a typo in documentation (@cjber) #926
+
 0.12.2 (May 03, 2021)
 =====================
 
 New features
-- [micromamba] add initial framework for TUF validation
-- [micromamba] add channels from specs to download
+- [micromamba] add initial framework for TUF validation (@adriendelsalle) #916 #919
+- [micromamba] add channels from specs to download (@wolfv) #918
 
 0.12.1 (Apr 30, 2021)
 =====================
 
 New features
-- [micromamba] env list subcommand
+- [micromamba] env list subcommand (@wolfv) #913
 
 Bug fixes
-- [micromamba] fix multiple shell init with cmd.exe
-- [micromamba] fix activate with --stack option
-- [libmamba] only try loading ssl certificates when needed
-- [micromamba] remove target_prefix checks when activating
-- [micromamba] allow 'ultra-dry' config checks in final build
+- [micromamba] fix multiple shell init with cmd.exe (@adriendelsalle) #915
+- [micromamba] fix activate with --stack option (@wolfv) #914
+- [libmamba] only try loading ssl certificates when needed (@adriendelsalle) #910
+- [micromamba] remove target_prefix checks when activating (@adriendelsalle) #909
+- [micromamba] allow 'ultra-dry' config checks in final build (@adriendelsalle) #912
 
 0.12.0 (Apr 26, 2021)
 =====================

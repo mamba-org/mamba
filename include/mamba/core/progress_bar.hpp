@@ -20,10 +20,8 @@ namespace mamba
     class ProgressProxy
     {
     public:
-
         ProgressProxy() = default;
-        ProgressProxy(ProgressBar* ptr,
-                      std::size_t idx);
+        ProgressProxy(ProgressBar* ptr, std::size_t idx);
         ~ProgressProxy() = default;
 
         ProgressProxy(const ProgressProxy&) = default;
@@ -38,7 +36,6 @@ namespace mamba
         void mark_as_completed(const std::string_view& final_message = "");
 
     private:
-
         ProgressBar* p_bar;
         std::size_t m_idx;
     };
@@ -46,16 +43,22 @@ namespace mamba
     class ProgressBarManager
     {
     public:
-
         virtual ~ProgressBarManager() = default;
-        
-        // TODO: entity semantic
 
-        virtual ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0) = 0;
+        ProgressBarManager(const ProgressBarManager&) = delete;
+        ProgressBarManager& operator=(const ProgressBarManager&) = delete;
+        ProgressBarManager(ProgressBarManager&&) = delete;
+        ProgressBarManager& operator=(ProgressBarManager&&) = delete;
+
+        virtual ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0)
+            = 0;
         virtual void print_progress(std::size_t idx) = 0;
         virtual void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "") = 0;
 
         virtual void print(const std::string_view& str, bool skip_progress_bars) = 0;
+
+    protected:
+        ProgressBarManager() = default;
     };
 
     enum ProgressBarMode
@@ -74,7 +77,6 @@ namespace mamba
     class MultiBarManager : public ProgressBarManager
     {
     public:
-
         MultiBarManager();
         virtual ~MultiBarManager() = default;
 
@@ -85,7 +87,6 @@ namespace mamba
         void print(const std::string_view& str, bool skip_progress_bars) override;
 
     private:
-
         void print_progress();
 
         using progress_bar_ptr = std::unique_ptr<ProgressBar>;
@@ -97,7 +98,6 @@ namespace mamba
     class AggregatedBarManager : public ProgressBarManager
     {
     public:
-
         AggregatedBarManager();
         virtual ~AggregatedBarManager() = default;
 
@@ -107,16 +107,15 @@ namespace mamba
 
         void print(const std::string_view& str, bool skip_progress_bars) override;
 
-        void update_main_bar(std::size_t current_diff, std::size_t total_diff);
+        void update_main_bar(std::size_t current_diff);
 
     private:
-
         void print_progress();
 
         using progress_bar_ptr = std::unique_ptr<ProgressBar>;
         std::vector<progress_bar_ptr> m_progress_bars;
-        std::vector<ProgressBar*> m_active_progress_bars;
         progress_bar_ptr p_main_bar;
+        size_t m_completed;
         std::mutex m_main_mutex;
         size_t m_current;
         size_t m_total;
@@ -126,23 +125,22 @@ namespace mamba
     class ProgressBar
     {
     public:
-
         virtual ~ProgressBar() = default;
 
+        ProgressBar(const ProgressBar&) = delete;
+        ProgressBar& operator=(const ProgressBar&) = delete;
+        ProgressBar(ProgressBar&&) = delete;
+        ProgressBar& operator=(ProgressBar&&) = delete;
         virtual void print() = 0;
         virtual void set_full() = 0;
         virtual void set_progress(size_t current, size_t total) = 0;
 
-        // TODO: entity semantics
         void set_start();
         void set_postfix(const std::string& postfix_text);
-        // TODO: remove this?
-        //void mark_as_completed();
         void elapsed_time_to_stream(std::stringstream& s);
         const std::string& prefix() const;
 
     protected:
-
         ProgressBar(const std::string& prefix);
 
         std::chrono::nanoseconds m_elapsed_ns;
@@ -157,7 +155,6 @@ namespace mamba
     class DefaultProgressBar : public ProgressBar
     {
     public:
-
         DefaultProgressBar(const std::string& prefix, int width_cap = 20);
         virtual ~DefaultProgressBar() = default;
 
@@ -166,7 +163,6 @@ namespace mamba
         void set_progress(size_t current, size_t total) override;
 
     private:
-
         size_t m_progress;
         int m_width_cap;
     };
@@ -174,8 +170,9 @@ namespace mamba
     class HiddenProgressBar : public ProgressBar
     {
     public:
-
-        HiddenProgressBar(const std::string& prefix, AggregatedBarManager* manager);
+        HiddenProgressBar(const std::string& prefix,
+                          AggregatedBarManager* manager,
+                          size_t expected_total);
         virtual ~HiddenProgressBar() = default;
 
         void print() override;
@@ -183,7 +180,6 @@ namespace mamba
         void set_progress(size_t current, size_t total) override;
 
     private:
-
         AggregatedBarManager* p_manager;
         std::size_t m_current;
         std::size_t m_total;
@@ -191,4 +187,3 @@ namespace mamba
 }
 
 #endif
-

@@ -215,7 +215,6 @@ namespace mamba
     class Console
     {
     public:
-
         Console(const Console&) = delete;
         Console& operator=(const Console&) = delete;
 
@@ -232,7 +231,6 @@ namespace mamba
         void init_multi_progress(ProgressBarMode mode = ProgressBarMode::multi);
 
     private:
-
         Console();
         ~Console() = default;
 

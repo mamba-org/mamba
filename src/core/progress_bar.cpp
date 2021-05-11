@@ -16,8 +16,7 @@ namespace mamba
      * ProgressProxy *
      *****************/
 
-    ProgressProxy::ProgressProxy(ProgressBar* ptr,
-                                 std::size_t idx)
+    ProgressProxy::ProgressProxy(ProgressBar* ptr, std::size_t idx)
         : p_bar(ptr)
         , m_idx(idx)
     {
@@ -53,9 +52,6 @@ namespace mamba
         {
             return;
         }
-        // mark as completed should print bar or message at FIRST position!
-        // then discard
-        //p_bar->mark_as_completed();
         Console::instance().deactivate_progress_bar(m_idx, final_message);
     }
 
@@ -166,7 +162,7 @@ namespace mamba
             std::cout << str << std::endl;
         }
     }
-    
+
     void MultiBarManager::print_progress()
     {
         for (auto& bar : m_active_progress_bars)
@@ -183,8 +179,8 @@ namespace mamba
 
     AggregatedBarManager::AggregatedBarManager()
         : m_progress_bars()
-        , m_active_progress_bars()
         , p_main_bar(std::make_unique<DefaultProgressBar>("Downloading  ", 100))
+        , m_completed(0)
         , m_main_mutex()
         , m_current(0)
         , m_total(0)
@@ -192,13 +188,15 @@ namespace mamba
     {
     }
 
-    ProgressProxy AggregatedBarManager::add_progress_bar(const std::string& name, size_t expected_total)
+    ProgressProxy AggregatedBarManager::add_progress_bar(const std::string& name,
+                                                         size_t expected_total)
     {
         std::string prefix = name;
         prefix.resize(PREFIX_LENGTH - 1, ' ');
         prefix += ' ';
 
-        m_progress_bars.push_back(std::make_unique<HiddenProgressBar>(prefix, this));
+        m_progress_bars.push_back(
+            std::make_unique<HiddenProgressBar>(prefix, this, expected_total));
         m_total += expected_total;
 
         return ProgressProxy(m_progress_bars[m_progress_bars.size() - 1].get(),
@@ -211,13 +209,7 @@ namespace mamba
         {
             std::cout << cursor::up(1);
         }
-        auto it = std::find(m_active_progress_bars.begin(),
-                            m_active_progress_bars.end(),
-                            m_progress_bars[idx].get());
-        if (it == m_active_progress_bars.end())
-        {
-            m_active_progress_bars.push_back(m_progress_bars[idx].get());
-        }
+
         print_progress();
         m_progress_started = true;
     }
@@ -229,21 +221,22 @@ namespace mamba
         {
             std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
         }
-        auto it = std::find(m_active_progress_bars.begin(),
-                            m_active_progress_bars.end(),
-                            m_progress_bars[idx].get());
-        if (it == m_active_progress_bars.end() || Context::instance().quiet
-            || Context::instance().json)
+
+        if (Context::instance().quiet || Context::instance().json)
         {
-            // if no_progress_bars is true, should return here as no progress bars are
-            // active
             std::cout << std::flush;
             return;
         }
 
-        m_active_progress_bars.erase(it);
         std::cout << cursor::up(1) << cursor::erase_line();
         std::cout << msg << std::endl;
+        ++m_completed;
+        if (m_completed == m_progress_bars.size())
+        {
+            const std::lock_guard<std::mutex> lock(m_main_mutex);
+            m_current = m_total;
+            p_main_bar->set_progress(m_total, m_total);
+        }
         print_progress();
     }
 
@@ -260,11 +253,10 @@ namespace mamba
         }
     }
 
-    void AggregatedBarManager::update_main_bar(std::size_t current_diff, std::size_t total_diff)
+    void AggregatedBarManager::update_main_bar(std::size_t current_diff)
     {
         const std::lock_guard<std::mutex> lock(m_main_mutex);
         m_current += current_diff;
-        m_total += total_diff;
         p_main_bar->set_progress(m_current, m_total);
     }
 
@@ -284,7 +276,6 @@ namespace mamba
         class ProgressScaleWriter
         {
         public:
-
             ProgressScaleWriter(int bar_width,
                                 const std::string& fill,
                                 const std::string& lead,
@@ -318,7 +309,6 @@ namespace mamba
             }
 
         private:
-
             int m_bar_width;
             std::string m_fill;
             std::string m_lead;
@@ -368,7 +358,7 @@ namespace mamba
     /**********************
      * DefaultProgressBar *
      **********************/
-    
+
     DefaultProgressBar::DefaultProgressBar(const std::string& prefix, int width_cap)
         : ProgressBar(prefix)
         , m_progress(0)
@@ -388,7 +378,8 @@ namespace mamba
         int width = get_console_width();
         width = (width == -1)
                     ? m_width_cap
-                    : (std::min)(static_cast<int>(width - (m_prefix.size() + 4) - fpf.size()), m_width_cap);
+                    : (std::min)(static_cast<int>(width - (m_prefix.size() + 4) - fpf.size()),
+                                 m_width_cap);
 
         if (!m_activate_bob)
         {
@@ -455,11 +446,13 @@ namespace mamba
      * HiddenProgressBar *
      *********************/
 
-    HiddenProgressBar::HiddenProgressBar(const std::string& prefix, AggregatedBarManager* manager)
+    HiddenProgressBar::HiddenProgressBar(const std::string& prefix,
+                                         AggregatedBarManager* manager,
+                                         size_t total)
         : ProgressBar(prefix)
         , p_manager(manager)
         , m_current(0)
-        , m_total(0)
+        , m_total(total)
     {
     }
 
@@ -473,20 +466,17 @@ namespace mamba
         {
             set_start();
         }
-        p_manager->update_main_bar(m_total - m_current, 0u);
+        p_manager->update_main_bar(m_total - m_current);
     }
 
-    void HiddenProgressBar::set_progress(size_t current, size_t total)
+    void HiddenProgressBar::set_progress(size_t current, size_t /*total*/)
     {
         if (!m_start_time_saved)
         {
             set_start();
         }
         size_t old_current = m_current;
-        size_t old_total = m_total;
         m_current = current;
-        m_total = total;
-        p_manager->update_main_bar(m_current - old_current, m_total - old_total);
+        p_manager->update_main_bar(m_current - old_current);
     }
 }
-

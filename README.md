@@ -45,6 +45,8 @@ conda install mamba -n base -c conda-forge
 otherwise it's best to start with [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 If you want to experiment with the latest software, you can also try micromamba (more below).
 
+Another alternative (if you want/need to avoid Anaconda entirely) is to use [Mambaforge](https://github.com/conda-forge/miniforge#mambaforge) via the [Miniforge](https://github.com/conda-forge/miniforge) distribution.
+
 ### Installing conda packages with `mamba`
 
 Now you are ready to install packages with

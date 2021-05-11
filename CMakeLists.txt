@@ -73,15 +73,9 @@ add_definitions(-DGHC_WIN_DISABLE_AUTO_PREFIXES)
 
 # Dependencies
 # ============
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
-
-if (BUILD_CRYPTO_PACKAGE_VALIDATION)
-    find_package(Sodium REQUIRED)
-    add_definitions(-DBUILD_CRYPTO_PACKAGE_VALIDATION=1)
-endif()
 
 message("Found libraries: ${MAMBA_DEPENDENCIES_LIBS}")
 
@@ -226,7 +220,6 @@ macro(mamba_create_target target_name linkage output_name)
             ${CURL_LIBRARIES}
             ${OPENSSL_LIBRARIES}
             ${YAML_CPP_LIBRARIES}
-            ${sodium_LIBRARY_RELEASE}
             reproc++
         )
 

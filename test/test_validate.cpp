@@ -1,13 +1,7 @@
 #include <gtest/gtest.h>
 
-#ifdef BUILD_CRYPTO_PACKAGE_VALIDATION
-
 #include "mamba/core/validate.hpp"
 
-#include "sodium/crypto_sign.h"
-#include "sodium/utils.h"
-
-#include <algorithm>
 #include <cstdio>
 
 
@@ -20,32 +14,31 @@ namespace validate
         public:
             VerifyMsg()
             {
-                crypto_sign_ed25519_keypair(pk, sk);
+                generate_ed25519_keypair(pk, sk);
                 sign("Some text.", sk, signature);
             }
 
         protected:
-            unsigned char pk[crypto_sign_PUBLICKEYBYTES];
-            unsigned char sk[crypto_sign_SECRETKEYBYTES];
-            unsigned char signature[crypto_sign_BYTES];
+            unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
+            unsigned char sk[MAMBA_ED25519_KEYSIZE_BYTES];
+            unsigned char signature[MAMBA_ED25519_SIGSIZE_BYTES];
         };
 
         TEST_F(VerifyMsg, from_bytes)
         {
-            EXPECT_EQ(verify("Some text.", pk, signature), 0);
+            EXPECT_EQ(verify("Some text.", pk, signature), 1);
         }
 
         TEST_F(VerifyMsg, from_hex)
         {
-            char signature_hex[crypto_sign_BYTES * 2U + 1U];
-            sodium_bin2hex(
-                signature_hex, crypto_sign_BYTES * 2U + 1U, signature, crypto_sign_BYTES);
+            char signature_hex[MAMBA_ED25519_SIGSIZE_HEX];
+            bin2hex(
+                signature_hex, MAMBA_ED25519_SIGSIZE_HEX, signature, MAMBA_ED25519_SIGSIZE_BYTES);
 
-            char pk_hex[crypto_sign_PUBLICKEYBYTES * 2U + 1U];
-            sodium_bin2hex(
-                pk_hex, crypto_sign_PUBLICKEYBYTES * 2U + 1U, pk, crypto_sign_PUBLICKEYBYTES);
+            char pk_hex[MAMBA_ED25519_KEYSIZE_HEX];
+            bin2hex(pk_hex, MAMBA_ED25519_KEYSIZE_HEX, pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
-            EXPECT_EQ(verify("Some text.", pk_hex, signature_hex), 0);
+            EXPECT_EQ(verify("Some text.", pk_hex, signature_hex), 1);
         }
 
         class VerifyGPGMsg : public ::testing::Test
@@ -60,32 +53,30 @@ namespace validate
 
         TEST_F(VerifyGPGMsg, from_bin)
         {
-            unsigned char bin_signature[crypto_sign_BYTES];
-            sodium_hex2bin(bin_signature,
-                           crypto_sign_BYTES,
-                           signature.c_str(),
-                           crypto_sign_BYTES * 2U,
-                           NULL,
-                           NULL,
-                           NULL);
+            unsigned char bin_signature[MAMBA_ED25519_SIGSIZE_BYTES];
+            hex2bin(bin_signature,
+                    MAMBA_ED25519_SIGSIZE_BYTES,
+                    signature.c_str(),
+                    MAMBA_ED25519_SIGSIZE_HEX,
+                    NULL,
+                    NULL,
+                    NULL);
 
-            unsigned char bin_pk[crypto_sign_PUBLICKEYBYTES];
-            sodium_hex2bin(bin_pk,
-                           crypto_sign_PUBLICKEYBYTES,
-                           pk.c_str(),
-                           crypto_sign_PUBLICKEYBYTES * 2U,
-                           NULL,
-                           NULL,
-                           NULL);
+            unsigned char bin_pk[MAMBA_ED25519_KEYSIZE_BYTES];
+            hex2bin(bin_pk,
+                    MAMBA_ED25519_KEYSIZE_BYTES,
+                    pk.c_str(),
+                    MAMBA_ED25519_KEYSIZE_HEX,
+                    NULL,
+                    NULL,
+                    NULL);
 
-            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, bin_pk, bin_signature), 0);
+            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, bin_pk, bin_signature), 1);
         }
 
         TEST_F(VerifyGPGMsg, from_hex)
         {  // Using test/data/2.root.json from conda-content-trust
-            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, pk, signature), 0);
+            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, pk, signature), 1);
         }
     }  // namespace testing
 }  // namespace mamba
-
-#endif

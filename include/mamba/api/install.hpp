@@ -53,6 +53,9 @@ namespace mamba
         bool eval_selector(const std::string& selector);
 
         yaml_file_contents read_yaml_file(fs::path yaml_file);
+
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
+            const std::vector<std::string>& urls);
     }
 }
 

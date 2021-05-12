@@ -8,9 +8,11 @@
 #include "constructor.hpp"
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/install.hpp"
 
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/package_info.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -72,16 +74,48 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
     if (extract_conda_pkgs)
     {
         fs::path pkgs_dir = prefix / "pkgs";
-        fs::path filename;
+        fs::path urls_file = pkgs_dir / "urls";
+
+        auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
+
         for (const auto& entry : fs::directory_iterator(pkgs_dir))
         {
-            filename = entry.path().filename();
-            if (ends_with(filename.string(), ".tar.bz2") || ends_with(filename.string(), ".conda"))
+            if (is_package_file(entry.path().filename().string()))
             {
-                extract(entry.path());
+                std::cout << "Extracting " << entry.path().filename() << std::endl;
+                fs::path base_path = extract(entry.path());
+
+                fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
+                fs::path index_path = base_path / "info" / "index.json";
+
+                nlohmann::json index;
+                std::ifstream index_file(index_path);
+                index_file >> index;
+
+                std::string pkg_name = index["name"];
+
+                index["fn"] = entry.path().filename();
+                for (const auto& pkg_info : package_details)
+                {
+                    if (pkg_info.fn == entry.path().filename())
+                    {
+                        index["url"] = pkg_info.url;
+                        index["channel"] = pkg_info.channel;
+                        if (!pkg_info.md5.empty())
+                        {
+                            index["md5"] = pkg_info.md5;
+                        }
+                        break;
+                    }
+                }
+
+                LOG_INFO << "Writing " << repodata_record_path;
+                std::ofstream repodata_record(repodata_record_path);
+                repodata_record << index.dump(4);
             }
         }
     }
+
     if (extract_tarball)
     {
         fs::path extract_tarball_path = prefix / "_tmp.tar.bz2";

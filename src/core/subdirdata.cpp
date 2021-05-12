@@ -198,7 +198,7 @@ namespace mamba
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
                      << ") for " << m_url;
             m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
-            m_progress_bar.set_progress(100);
+            m_progress_bar.set_full();
             m_progress_bar.mark_as_completed();
             m_loaded = false;
             return false;
@@ -238,7 +238,7 @@ namespace mamba
             }
 
             m_progress_bar.set_postfix("No change");
-            m_progress_bar.set_progress(100);
+            m_progress_bar.set_full();
             m_progress_bar.mark_as_completed();
 
             m_json_cache_valid = true;
@@ -294,7 +294,7 @@ namespace mamba
         }
 
         m_progress_bar.set_postfix("Done");
-        m_progress_bar.set_progress(100);
+        m_progress_bar.set_full();
         m_progress_bar.mark_as_completed();
 
         m_json_cache_valid = true;

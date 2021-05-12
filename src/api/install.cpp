@@ -730,6 +730,7 @@ namespace mamba
 
             std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
             MultiDownloadTarget multi_dl;
+            Console::instance().init_multi_progress(ProgressBarMode::aggregated);
             MultiPackageCache pkg_cache({ Context::instance().root_prefix / "pkgs" });
 
             for (auto& pkg : pkgs)

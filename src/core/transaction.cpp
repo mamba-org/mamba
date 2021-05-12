@@ -198,7 +198,7 @@ namespace mamba
 
     bool PackageDownloadExtractTarget::finalize_callback()
     {
-        m_progress_proxy.set_progress(100);
+        m_progress_proxy.set_full();
         m_progress_proxy.set_postfix("Validating...");
 
         LOG_INFO << "Download finished, validating " << m_tarball_path;
@@ -264,7 +264,7 @@ namespace mamba
                 // need to download this file
                 LOG_INFO << "Adding " << m_name << " with " << m_url;
 
-                m_progress_proxy = Console::instance().add_progress_bar(m_name);
+                m_progress_proxy = Console::instance().add_progress_bar(m_name, m_expected_size);
                 m_target = std::make_unique<DownloadTarget>(m_name, m_url, cache_path / m_filename);
                 m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback,
                                                 this);
@@ -723,7 +723,7 @@ namespace mamba
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
         MultiDownloadTarget multi_dl;
 
-        Console::instance().init_multi_progress();
+        Console::instance().init_multi_progress(ProgressBarMode::aggregated);
 
         for (auto& s : m_to_install)
         {

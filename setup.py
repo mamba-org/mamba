@@ -101,6 +101,7 @@ ext_modules = [
             "src/core/package_cache.cpp",
             "src/core/package_paths.cpp",
             "src/core/prefix_data.cpp",
+            "src/core/progress_bar.cpp",
             "src/core/package_info.cpp",
             "src/core/pool.cpp",
             "src/core/query.cpp",

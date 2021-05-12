@@ -105,6 +105,7 @@ namespace mamba
 
     void Context::load_channel_root_cache()
     {
+        channel_root_cache.clear();
         if (fs::is_regular_file(channel_root_cache_path))
         {
             std::ifstream file(channel_root_cache_path);

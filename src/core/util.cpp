@@ -621,8 +621,22 @@ namespace mamba
         // very much inspired by boost file_lock and
         // dnf's https://github.com/rpm-software-management/dnf lock.py#L80
 #ifdef _WIN32
-        int ret = _locking(fd, LK_LOCK, 1 /*lock_file_contents_length()*/);
-        return ret == 0;
+        if (!wait)
+        {
+            int ret = _locking(fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
+        }
+        else
+        {
+            int ret = _locking(fd, LK_LOCK, 1 /*lock_file_contents_length()*/);
+        }
+        if (ret == 0)
+        {
+            return pid;
+        }
+        else
+        {
+            return 1;
+        }
 #else
         struct flock lock;
         lock.l_type = F_WRLCK;
@@ -713,9 +727,9 @@ namespace mamba
         : m_path(path)
     {
         LOG_INFO << "Locking " << path;
-        // mode_t m = umask(0);
+
         m_fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
-        // umask(m);
+
         if (m_fd <= 0)
         {
             LOG_ERROR << "Could not open lockfile " << path;
@@ -726,7 +740,8 @@ namespace mamba
             int ret = try_lock(m_fd, m_pid, false);
             if (ret != m_pid)
             {
-                LOG_WARNING << "Cannot lock file " << path << "\nWaiting for other mamba process to finish.\n";
+                LOG_WARNING << "Cannot lock file " << path
+                            << "\nWaiting for other mamba process to finish.\n";
                 try_lock(m_fd, m_pid, true);
             }
         }

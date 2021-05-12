@@ -621,13 +621,14 @@ namespace mamba
         // very much inspired by boost file_lock and
         // dnf's https://github.com/rpm-software-management/dnf lock.py#L80
 #ifdef _WIN32
+        int ret;
         if (!wait)
         {
-            int ret = _locking(fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
+            ret = _locking(fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
         }
         else
         {
-            int ret = _locking(fd, LK_LOCK, 1 /*lock_file_contents_length()*/);
+            ret = _locking(fd, LK_LOCK, 1 /*lock_file_contents_length()*/);
         }
         if (ret == 0)
         {

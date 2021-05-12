@@ -238,6 +238,10 @@ namespace mamba
             p_main_bar->set_progress(m_total, m_total);
         }
         print_progress();
+        if (m_completed == m_progress_bars.size())
+        {
+            m_progress_started = false;
+        }
     }
 
     void AggregatedBarManager::print(const std::string_view& str, bool skip_progress_bars)
@@ -263,8 +267,11 @@ namespace mamba
     void AggregatedBarManager::print_progress()
     {
         const std::lock_guard<std::mutex> lock(m_main_mutex);
-        p_main_bar->print();
-        std::cout << '\n';
+        if (m_progress_started)
+        {
+            p_main_bar->print();
+            std::cout << '\n';
+        }
     }
 
     /***************

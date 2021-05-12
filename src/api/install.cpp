@@ -195,6 +195,34 @@ namespace mamba
             return result;
         }
 
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
+            const std::vector<std::string>& urls)
+        {
+            std::vector<PackageInfo> pi_result;
+            std::vector<MatchSpec> ms_result;
+            for (auto& u : urls)
+            {
+                if (strip(u).size() == 0)
+                    continue;
+                std::size_t hash = u.find_first_of('#');
+                MatchSpec ms(u.substr(0, hash));
+                PackageInfo p(ms.name);
+                p.url = ms.url;
+                p.build_string = ms.build;
+                p.version = ms.version;
+                p.channel = ms.channel;
+                p.fn = ms.fn;
+
+                if (hash != std::string::npos)
+                {
+                    p.md5 = u.substr(hash + 1);
+                    ms.brackets["md5"] = u.substr(hash + 1);
+                }
+                pi_result.push_back(p);
+                ms_result.push_back(ms);
+            }
+            return std::make_tuple(pi_result, ms_result);
+        }
     }
 
     void install()
@@ -472,39 +500,21 @@ namespace mamba
 
     void install_explicit_specs(const std::vector<std::string>& specs)
     {
-        std::vector<mamba::MatchSpec> match_specs;
-        std::vector<mamba::PackageInfo> pkg_infos;
         mamba::History hist(Context::instance().target_prefix);
         auto hist_entry = History::UserRequest::prefilled();
         std::string python_version;  // for pyc compilation
         // TODO unify this
-        for (auto& spec : specs)
+
+        auto [pkg_infos, match_specs] = detail::parse_urls_to_package_info(specs);
+        for (auto& ms : match_specs)
         {
-            if (strip(spec).size() == 0)
-                continue;
-            std::size_t hash = spec.find_first_of('#');
-            match_specs.emplace_back(spec.substr(0, hash));
-            auto& ms = match_specs.back();
-            PackageInfo p(ms.name);
-            p.url = ms.url;
-            p.build_string = ms.build;
-            p.version = ms.version;
-            p.channel = ms.channel;
-            p.fn = ms.fn;
-
-            if (hash != std::string::npos)
-            {
-                ms.brackets["md5"] = spec.substr(hash + 1);
-                p.md5 = spec.substr(hash + 1);
-            }
             hist_entry.update.push_back(ms.str());
-            pkg_infos.push_back(p);
-
             if (ms.name == "python")
             {
                 python_version = ms.version;
             }
         }
+
         if (detail::download_explicit(pkg_infos))
         {
             auto& ctx = Context::instance();
@@ -686,12 +696,12 @@ namespace mamba
             prefix_data.load();
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
-                fs::path info_json = entry.path() / "info" / "index.json";
-                if (!fs::exists(info_json))
+                fs::path repodata_record_json = entry.path() / "info" / "repodata_record.json";
+                if (!fs::exists(repodata_record_json))
                 {
                     continue;
                 }
-                prefix_data.load_single_record(info_json);
+                prefix_data.load_single_record(repodata_record_json);
             }
             return MRepo(pool, prefix_data);
         }

@@ -651,8 +651,6 @@ namespace mamba
             return -1;
         }
 
-        LOG_INFO << "Currently locked by PID " << pidc;
-
         if (strlen(pidc) != 0)
         {
             int old_pid;
@@ -728,7 +726,7 @@ namespace mamba
             int ret = try_lock(m_fd, m_pid, false);
             if (ret != m_pid)
             {
-                LOG_ERROR << "Cannot lock file " << path;
+                LOG_WARNING << "Cannot lock file " << path << "\nWaiting for other mamba process to finish.\n";
                 try_lock(m_fd, m_pid, true);
             }
         }

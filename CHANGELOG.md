@@ -1,3 +1,17 @@
+0.13.0 (May 12, 2021)
+=====================
+
+New features
+- [mamba & micromamba] aggregated progress bar for package downloading and extraction (thanks @JohanMabille) #928
+
+Bug fixes
+- [micromamba] fixes for micromamba usage in constructor #935
+- [micromamba] fixes for the usage of lock files #936
+- [micromamba] switched from libsodium to openssl for ed25519 signature verification #933
+
+Docs
+- Mention mambaforge in the README (thanks @s-pike) #932
+
 0.12.3 (May 10, 2021)
 =====================
 

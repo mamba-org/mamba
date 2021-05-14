@@ -58,10 +58,7 @@ def get_fingerprint(gpg_output):
 class RepoSigner:
 
     keys = {
-        "root": [
-            get_fingerprint(os.environ["KEY1"]),
-            get_fingerprint(os.environ["KEY2"]),
-        ],
+        "root": [],
         "key_mgr": [
             {
                 "private": "c9c2060d7e0d93616c2654840b4983d00221d8b6b69c850107da74b42168f937",
@@ -202,6 +199,12 @@ class RepoSigner:
         console.print(f"[green]Signed [bold]{final_fn}[/bold]")
 
     def __init__(self, in_folder=args.directory):
+
+        self.keys["root"] = [
+            get_fingerprint(os.environ["KEY1"]),
+            get_fingerprint(os.environ["KEY2"]),
+        ]
+
         self.in_folder = Path(in_folder).resolve()
         self.folder = self.in_folder.parent / (str(self.in_folder.name) + "_signed")
 

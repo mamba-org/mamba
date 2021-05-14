@@ -17,6 +17,7 @@
 #include <iostream>
 #include <string>
 #include <set>
+#include <regex>
 
 
 namespace validate
@@ -49,6 +50,11 @@ namespace validate
 
     role_file_error::role_file_error() noexcept
         : trust_error("Invalid role file. Aborting.")
+    {
+    }
+
+    spec_version_error::spec_version_error() noexcept
+        : trust_error("Unsupported specification version. Aborting.")
     {
     }
 
@@ -304,6 +310,11 @@ namespace validate
         return verify_gpg_hashed_msg(data, bin_pk, bin_signature);
     }
 
+    bool operator<(const RoleSignature& rs1, const RoleSignature& rs2)
+    {
+        return rs1.keyid < rs2.keyid;
+    };
+
     /**
      * Binary to hexadecimal converter.
      * from https://github.com/jedisct1/libsodium
@@ -423,137 +434,188 @@ namespace validate
         return ret;
     }
 
+    RoleKeys RolePubKeys::to_role_keys() const
+    {
+        return { pubkeys, threshold };
+    }
+
     RoleBase::~RoleBase(){};
 
-    std::string RoleBase::name() const
-    {
-        return m_type;
-    };
     std::string RoleBase::type() const
     {
         return m_type;
-    };
+    }
+
     std::string RoleBase::spec_version() const
     {
         return m_spec_version;
-    };
+    }
+
     std::size_t RoleBase::version() const
     {
         return m_version;
-    };
-    std::string RoleBase::filename() const
-    {
-        return m_type + m_ext;
-    };
-
-    void RoleBase::set_spec_version(const std::string& spec_version)
-    {
-        m_spec_version = spec_version;
-    };
-
-    void RoleBase::set_version(const std::size_t& version)
-    {
-        m_version = version;
-    };
-
-    RootRole::RootRole()
-        : RoleBase("root")
-    {
-        set_version(1);
-    };
-
-    RootRole::RootRole(const json& j)
-        : RoleBase("root")
-    {
-        from_json(j, *this);
-    };
-
-    RootRole::RootRole(const fs::path& path)
-        : RoleBase("root")
-    {
-        using namespace mamba;
-
-        if (!fs::exists(path))
-        {
-            LOG_ERROR << "'root' metadata file not found at: " << path.string();
-            throw role_file_error();
-        }
-
-        if (!ends_with(path.filename().string(), filename()))
-        {
-            LOG_ERROR << "'root' metadata file name does not end with '" << filename()
-                      << "': " << path.filename().string();
-            throw role_file_error();
-        }
-
-        std::ifstream i(path);
-        json j;
-        i >> j;
-        from_json(j["signed"], *this);
-    };
-
-    void RootRole::update(fs::path path)
-    {
-        using namespace mamba;
-
-        if (!fs::exists(path))
-        {
-            LOG_ERROR << "File not found for 'root' update: " << path.string();
-            throw role_file_error();
-        }
-
-        // Update file should be named as VERSION_NUMBER.FILENAME.EXT
-        // TODO: use regex here?
-        if (!ends_with(path.filename().string(), filename()))
-        {
-            LOG_ERROR << "'root' metadata file name does not end with '" << filename()
-                      << "': " << path.filename().string();
-            throw role_file_error();
-        }
-        // Check version number in filename is N+1
-        unsigned long new_version;
-        auto split_filename = split(path.filename().string(), ".", 1);
-        try
-        {
-            new_version = std::stoul(split_filename[0]);
-        }
-        catch (...)
-        {
-            LOG_ERROR << "Invalid version in file name for 'root' update: "
-                      << path.filename().string();
-            throw role_file_error();
-        }
-        if (new_version != (version() + 1))
-        {
-            LOG_ERROR << "'root' metadata file name does not start with '" << version() + 1
-                      << "': " << filename();
-            throw role_file_error();
-        }
-
-        std::ifstream i(path);
-        json j;
-        i >> j;
-
-        update(j);
     }
 
-    void RootRole::update(json j)
+    std::string RoleBase::file_ext() const
     {
-        RootRole new_role(j["signed"]);
-        auto new_signatures = j["signatures"].get<std::vector<RoleSignature>>();
-        std::string signed_data = j["signed"].dump();
+        return m_ext;
+    }
 
+    bool RoleBase::is_spec_version_compatible(const std::string& version) const
+    {
+        using namespace mamba;
+
+        auto spec_version_major = std::stoi(split(m_spec_version, ".", 1)[0]);
+        auto new_spec_version_major = std::stoi(split(version, ".", 1)[0]);
+        return new_spec_version_major == spec_version_major;
+    }
+
+    bool RoleBase::is_spec_version_upgradable(const std::string& version) const
+    {
+        using namespace mamba;
+
+        auto spec_version_major = std::stoi(split(m_spec_version, ".", 1)[0]);
+        auto new_spec_version_major = std::stoi(split(version, ".", 1)[0]);
+        return new_spec_version_major == (spec_version_major + 1);
+    }
+
+    SpecVersion RoleBase::major_spec_version() const
+    {
+        using namespace mamba;
+
+        auto spec_version_major = std::stoi(split(m_spec_version, ".", 1)[0]);
+        if (spec_version_major == 0)
+        {
+            return SpecVersion::kV06;
+        }
+        else if (spec_version_major == 1)
+        {
+            return SpecVersion::kV1;
+        }
+        else
+        {
+            LOG_ERROR << "Unsupported spec version: '" << m_spec_version << "'";
+            throw role_metadata_error();
+        }
+    }
+
+    void RoleBase::set_spec_version(const std::string& version)
+    {
+        m_spec_version = version;
+    }
+
+    json RoleBase::read_file(const fs::path& p, bool update) const
+    {
+        if (!fs::exists(p))
+        {
+            LOG_ERROR << "File not found for 'root' update: " << p.string();
+            throw role_file_error();
+        }
+
+        std::regex name_re;
+        std::smatch matches;
+        std::size_t expected_match_size;
+
+        std::string f_name = p.filename().string();
+        std::string f_version_str, f_type, f_ext;
+
+        // Update file should be named as VERSION_NUMBER.FILENAME.EXT
+        // std::regex name_rgx = "^([1-9]+\\d*).sv(1|0\\.[0-9]+).(root).(json)$";
+        if (update)
+        {
+            name_re = "^([1-9]+\\d*)\\.\\w+\\.(\\w+)\\.(\\w+)$";
+            expected_match_size = 4;
+        }
+        else
+        {
+            name_re = "^[1-9]+\\d*\\.\\w+\\.(\\w+)\\.(\\w+)$";
+            expected_match_size = 3;
+        }
+
+        if (std::regex_search(f_name, matches, name_re) && (matches.size() == expected_match_size))
+        {
+            if (update)
+                f_version_str = matches[1].str();
+            f_type = matches[expected_match_size - 2].str();
+            f_ext = matches[expected_match_size - 1].str();
+        }
+        else
+        {
+            LOG_ERROR << "Invalid file name for 'root' metadata update: " << f_name;
+            throw role_file_error();
+        }
+
+        if (f_ext != file_ext())
+        {
+            LOG_ERROR << "'root' metadata file should have 'json' extension, not: '" << f_ext
+                      << "'";
+            throw role_file_error();
+        }
+        if (f_type != type())
+        {
+            LOG_ERROR << "'root' metadata file should have 'root' type, not: '" << f_type << "'";
+            throw role_file_error();
+        }
+
+        if (update)
+        {
+            // Check version number in filename is N+1
+            unsigned long f_version;
+            try
+            {
+                f_version = std::stoul(f_version_str);
+            }
+            catch (...)
+            {
+                LOG_ERROR << "Invalid version in file name for 'root' metadata update: "
+                          << f_version_str;
+                throw role_file_error();
+            }
+            if (f_version != (version() + 1))
+            {
+                LOG_ERROR << "'root' metadata file name should start with N+1 version ("
+                          << version() + 1 << "), but starts with: " << f_version;
+                throw role_file_error();
+            }
+        }
+
+        std::ifstream i(p);
+        json j;
+        i >> j;
+
+        return j;
+    }
+
+    RootRoleBase::RootRoleBase(const std::string& spec_version)
+        : RoleBase("root", spec_version)
+    {
+    }
+
+    std::unique_ptr<RootRoleBase> RootRoleBase::update(fs::path path)
+    {
+        auto j = read_file(path, true);
+        return update(j);
+    }
+
+    // `create_update` currently catch a possible spec version update by testing
+    // and extracting spec version from JSON. It could be done upstream (in
+    // `update(fs::path)`) if we decide to specify the spec version in the file name.
+    // The filename would take the form VERSION_NUMBER.SPECVERSION.FILENAME.EXT
+    // To disambiguate version and spec version: 1.sv0.6.root.json or 1.sv1.root.json
+    std::unique_ptr<RootRoleBase> RootRoleBase::update(json j)
+    {
         // TUF spec 5.3.4 - Check for an arbitrary software attack
-        // Check signatures against current keyids and threshold
-        check_role_signatures(signed_data, new_signatures, *this);
+        // Check signatures against current keyids and threshold in 'RootRole' constructor
+        auto root_update = create_update(j);
+
         // Check signatures against new keyids and threshold
-        check_role_signatures(signed_data, new_signatures, new_role);
+        check_role_signatures(j, *root_update);
 
         // TUF spec 5.3.5 - Check for a rollback attack
         // Version number has to be N+1
-        if (new_role.version() != (version() + 1))
+        if (root_update->version() != (version() + 1))
         {
-            if (new_role.version() > (version() + 1))
+            if (root_update->version() > (version() + 1))
             {
                 LOG_ERROR << "Invalid 'root' metadata version, should be exactly N+1";
                 throw role_metadata_error();
@@ -565,36 +627,30 @@ namespace validate
             }
         }
 
-        from_json(j["signed"], *this);
+        return root_update;
     }
 
-
-    void RootRole::check_role_signatures(const std::string& signed_data,
-                                         const std::vector<RoleSignature>& signatures,
-                                         const RootRole& role)
+    void RootRoleBase::check_role_signatures(const json& data, const RootRoleBase& role)
     {
-        std::map<std::string, Key> accepted_keys;
-        auto& threshold = role.roles().at("root").threshold;
+        std::string signed_data = data["signed"].dump();
+        auto signatures = role.signatures(data);
 
-        for (auto& keyid : roles().at("root").keyids)
-        {
-            accepted_keys.insert({ keyid, keys().at(keyid) });
-        }
+        auto k = keys();
+        RoleFullKeys root_keys = k.at("root");
 
-        check_signatures(signed_data, signatures, accepted_keys, threshold);
+        check_signatures(signed_data, signatures, root_keys);
     }
 
-    void RootRole::check_signatures(const std::string& signed_data,
-                                    const std::vector<RoleSignature>& signatures,
-                                    const std::map<std::string, Key>& accepted_keys,
-                                    const int threshold)
+    void RootRoleBase::check_signatures(const std::string& signed_data,
+                                        const std::set<RoleSignature>& signatures,
+                                        const RoleFullKeys& keyring)
     {
-        int valid_sig = 0;
+        std::size_t valid_sig = 0;
 
         for (auto& s : signatures)
         {
-            auto it = accepted_keys.find(s.keyid);
-            if (it != accepted_keys.end())
+            auto it = keyring.keys.find(s.keyid);
+            if (it != keyring.keys.end())
             {
                 auto& pk = it->second.keyval;
                 if (verify(signed_data, pk, s.sig) == 1)
@@ -610,47 +666,430 @@ namespace validate
             {
                 LOG_WARNING << "Invalid keyid: " << s.keyid;
             }
-            if (valid_sig >= threshold)
+            if (valid_sig >= keyring.threshold)
                 break;
         }
 
-        if (valid_sig < threshold)
+        if (valid_sig < keyring.threshold)
         {
             LOG_ERROR << "Threshold of valid signatures defined in 'root' metadata is not met ("
-                      << valid_sig << "/" << threshold << ")";
+                      << valid_sig << "/" << keyring.threshold << ")";
             throw threshold_error();
         }
     }
 
-    const std::map<std::string, Key>& RootRole::keys() const
+    namespace v1
     {
-        return m_keys;
-    }
+        RootRole::RootRole()
+            : RootRoleBase("1.0.17")
+        {
+        }
 
-    std::map<std::string, Key>& RootRole::keys()
-    {
-        return m_keys;
-    }
+        RootRole::RootRole(const json& j)
+            : RootRoleBase("1.0.17")
+        {
+            load_from_json(j);
+        }
 
-    const std::map<std::string, RoleKeys>& RootRole::roles() const
-    {
-        return m_roles;
-    }
+        RootRole::RootRole(const fs::path& path)
+            : RootRoleBase("1.0.17")
+        {
+            auto j = read_file(path);
+            load_from_json(j);
+        }
 
-    std::map<std::string, RoleKeys>& RootRole::roles()
-    {
-        return m_roles;
-    }
+        std::unique_ptr<RootRoleBase> RootRole::create_update(const json& j)
+        {
+            if (v1::is_spec_version_compatible(j))
+            {
+                return std::make_unique<RootRole>(j);
+            }
+            else
+            {
+                LOG_ERROR << "Invalid spec version for 'root' update";
+                throw spec_version_error();
+            }
+        }
 
-    void RootRole::set_keys(const std::map<std::string, Key>& keys)
-    {
-        m_keys = keys;
-    }
+        void RootRole::load_from_json(const json& j)
+        {
+            from_json(j, *this);
 
-    void RootRole::set_roles(const std::map<std::string, RoleKeys>& roles)
+            // TUF spec 5.3.4 - Check for an arbitrary software attack
+            // Check signatures against current keyids and threshold
+            check_role_signatures(j, *this);
+        }
+
+        std::set<std::string> RootRole::roles() const
+        {
+            std::set<std::string> r;
+            for (auto& it : m_roles)
+            {
+                r.insert(it.first);
+            }
+            return r;
+        }
+
+        std::set<RoleSignature> RootRole::signatures(const json& j) const
+        {
+            auto sigs = j.at("signatures").get<std::vector<RoleSignature>>();
+            std::set<RoleSignature> unique_sigs(sigs.cbegin(), sigs.cend());
+
+            return unique_sigs;
+        }
+
+        std::map<std::string, RoleFullKeys> RootRole::keys() const
+        {
+            std::map<std::string, RoleFullKeys> res;
+
+            for (auto& it : m_roles)
+            {
+                std::map<std::string, Key> role_keys;
+                for (auto& keyid : it.second.keyids)
+                {
+                    role_keys.insert({ keyid, m_keys.at(keyid) });
+                }
+                res.insert({ it.first, { role_keys, it.second.threshold } });
+            }
+            return res;
+        }
+
+        void to_json(json& j, const RootRole& r)
+        {
+            to_json(j, static_cast<const RoleBase*>(&r));
+        }
+
+        void from_json(const json& j, RootRole& role)
+        {
+            auto j_signed = j.at("signed");
+            try
+            {
+                from_json(j_signed, static_cast<RoleBase*>(&role));
+
+                auto type = j_signed.at("_type").get<std::string>();
+                if (type != role.type())
+                {
+                    LOG_ERROR << "Wrong '_type' found in 'root' metadata, should be 'root': '"
+                              << type << "'";
+                    throw role_metadata_error();
+                }
+
+                role.set_spec_version(j_signed.at("spec_version").get<std::string>());
+
+                if (!v1::is_spec_version_compatible(j))
+                {
+                    using namespace mamba;
+
+                    auto spec_version_major = split(role.spec_version(), ".", 1)[0];
+
+                    LOG_ERROR
+                        << "Incompatible 'spec_version' found in 'root' metadata, should be '1' but is: '"
+                        << spec_version_major << "'";
+                    throw role_metadata_error();
+                }
+
+                role.m_keys = j_signed.at("keys").get<std::map<std::string, Key>>();
+                role.m_roles = j_signed.at("roles").get<std::map<std::string, RoleKeys>>();
+            }
+            catch (const json::exception& e)
+            {
+                LOG_ERROR << "Invalid 'root' metadata: " << e.what();
+                throw role_metadata_error();
+            }
+
+            // TODO: replace those checks with JSON schema?
+            for (const auto& r : role.m_roles)
+            {
+                json json_role = r.first;
+                auto role = json_role.get<Role>();
+                if (role == Role::kInvalid)
+                {
+                    LOG_ERROR << "Invalid role while loading 'root' metadata from JSON file: '"
+                              << r.first << "'";
+                    throw role_metadata_error();
+                }
+            }
+
+            std::set<std::string> current_roles;
+            for (const auto& r : role.m_roles)
+            {
+                current_roles.insert(r.first);
+            }
+            std::set<std::string> mandatory_roles = { "root", "snapshot", "targets", "timestamp" };
+            if (!std::includes(current_roles.begin(),
+                               current_roles.end(),
+                               mandatory_roles.begin(),
+                               mandatory_roles.end()))
+            {
+                std::vector<std::string> diff;
+                std::set_difference(mandatory_roles.begin(),
+                                    mandatory_roles.end(),
+                                    current_roles.begin(),
+                                    current_roles.end(),
+                                    std::inserter(diff, diff.end()));
+                LOG_ERROR << "Missing roles while loading 'root' metadata: "
+                          << mamba::join(", ", diff);
+                throw role_metadata_error();
+            }
+
+            for (const auto& r : role.m_roles)
+            {
+                auto r_keys = r.second;
+                if (r_keys.keyids.empty())
+                {
+                    LOG_ERROR
+                        << "'root' metadata should declare at least one key ID in 'keyids' for role: '"
+                        << r.first << "'";
+                    throw role_metadata_error();
+                }
+                if (r_keys.threshold == 0)
+                {
+                    LOG_ERROR
+                        << "'root' metadata should declare at least a 'threshold' of 1 for role: '"
+                        << r.first << "'";
+                    throw role_metadata_error();
+                }
+
+                for (auto& rk : r_keys.keyids)
+                {
+                    if (role.m_keys.find(rk) == role.m_keys.end())
+                    {
+                        LOG_ERROR
+                            << "Invalid 'root' metadata, a key ID is used in 'roles' but not declared in 'keys': '"
+                            << rk << "'";
+                        throw role_metadata_error();
+                    }
+                }
+            }
+        }
+
+        bool is_spec_version_compatible(const json& j)
+        {
+            try
+            {
+                auto spec_version = j.at("signed").at("spec_version").get<std::string>();
+                return mamba::starts_with(spec_version, "1.");
+            }
+            catch (const json::exception& e)
+            {
+                LOG_DEBUG
+                    << "Invalid 'root' metadata, impossible to check spec version compatibility: "
+                    << e.what();
+                return false;
+            }
+        }
+    }  // namespace v1
+
+
+    namespace v06
     {
-        m_roles = roles;
-    }
+        RootRole::RootRole()
+            : RootRoleBase("0.6.0")
+        {
+        }
+
+        RootRole::RootRole(const json& j)
+            : RootRoleBase("0.6.0")
+        {
+            load_from_json(j);
+        }
+
+        RootRole::RootRole(const fs::path& path)
+            : RootRoleBase("0.6.0")
+        {
+            auto j = read_file(path);
+            load_from_json(j);
+        }
+
+        std::unique_ptr<RootRoleBase> RootRole::create_update(const json& j)
+        {
+            if (v06::is_spec_version_compatible(j))
+            {
+                return std::make_unique<RootRole>(j);
+            }
+            else if (v1::is_spec_version_compatible(j))
+            {
+                LOG_DEBUG << "Updating 'root' role spec version";
+                return std::make_unique<v1::RootRole>(j);
+            }
+            {
+                LOG_ERROR << "Invalid spec version for 'root' update";
+                throw spec_version_error();
+            }
+        }
+
+        void RootRole::load_from_json(const json& j)
+        {
+            from_json(j, *this);
+
+            // TUF spec 5.3.4 - Check for an arbitrary software attack
+            // Check signatures against current keyids and threshold
+            check_role_signatures(j, *this);
+        }
+
+        std::set<std::string> RootRole::roles() const
+        {
+            std::set<std::string> r;
+            for (auto& it : m_delegations)
+            {
+                r.insert(it.first);
+            }
+            return r;
+        }
+
+        std::set<RoleSignature> RootRole::signatures(const json& j) const
+        {
+            auto sigs = j.at("signatures")
+                            .get<std::map<std::string, std::map<std::string, std::string>>>();
+            std::set<RoleSignature> unique_sigs;
+
+            for (auto& s : sigs)
+            {
+                unique_sigs.insert(RoleSignature({ s.first, s.second.at("signature") }));
+            }
+
+            return unique_sigs;
+        }
+
+        json RootRole::upgraded_signable() const
+        {
+            json v1_equivalent_root;
+
+            v1_equivalent_root["roles"]["root"] = m_delegations.at("root").to_role_keys();
+            v1_equivalent_root["roles"]["targets"] = m_delegations.at("key_mgr").to_role_keys();
+            v1_equivalent_root["roles"]["snapshot"] = RoleKeys({ std::vector<std::string>(), 1 });
+            v1_equivalent_root["roles"]["timestamp"] = RoleKeys({ std::vector<std::string>(), 1 });
+
+            auto allkeys = keys();
+            std::map<std::string, Key> v1_keys = allkeys.at("root").keys;
+            v1_keys.insert(allkeys.at("key_mgr").keys.cbegin(), allkeys.at("key_mgr").keys.cend());
+
+            v1_equivalent_root["keys"] = v1_keys;
+            v1_equivalent_root["_type"] = "root";
+            v1_equivalent_root["version"] = version();
+            v1_equivalent_root["spec_version"] = "1.0.17";
+
+            return v1_equivalent_root;
+        }
+
+        RoleSignature RootRole::upgraded_signature(const json& j,
+                                                   const std::string& pk,
+                                                   const unsigned char* sk) const
+        {
+            char sig_hex[MAMBA_ED25519_SIGSIZE_HEX];
+            unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+
+            sign(j.dump(), sk, sig_bin);
+            bin2hex(sig_hex, MAMBA_ED25519_SIGSIZE_HEX, sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
+
+            return { pk, std::string(sig_hex, sig_hex + MAMBA_ED25519_SIGSIZE_HEX) };
+        }
+
+
+        std::map<std::string, RoleFullKeys> RootRole::keys() const
+        {
+            std::map<std::string, RoleFullKeys> res;
+            for (auto& it : m_delegations)
+            {
+                std::map<std::string, Key> role_keys;
+                for (auto& key : it.second.pubkeys)
+                {
+                    role_keys.insert({ key, Key::from_ed25519(key) });
+                }
+                res.insert({ it.first, { role_keys, it.second.threshold } });
+            }
+            return res;
+        }
+
+        void to_json(json& j, const RootRole& r)
+        {
+            to_json(j, static_cast<const RoleBase*>(&r));
+        }
+
+        void from_json(const json& j, RootRole& role)
+        {
+            auto j_signed = j.at("signed");
+            try
+            {
+                from_json(j_signed, static_cast<RoleBase*>(&role));
+
+                auto type = j_signed.at("type").get<std::string>();
+                if (type != role.type())
+                {
+                    LOG_ERROR << "Wrong 'type' found in 'root' metadata, should be 'root': '"
+                              << type << "'";
+                    throw role_metadata_error();
+                }
+
+                role.set_spec_version(j_signed.at("metadata_spec_version").get<std::string>());
+
+                if (!v06::is_spec_version_compatible(j))
+                {
+                    using namespace mamba;
+
+                    auto spec_version_major = split(role.spec_version(), ".", 1)[0];
+
+                    LOG_ERROR
+                        << "Incompatible 'spec_version' found in 'root' metadata, should be '0.6.x' but is: '"
+                        << spec_version_major << "'";
+                    throw role_metadata_error();
+                }
+
+                role.m_delegations
+                    = j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>();
+            }
+            catch (const json::exception& e)
+            {
+                LOG_ERROR << "Invalid 'root' metadata: " << e.what();
+                throw role_metadata_error();
+            }
+
+            // TODO: replace those checks with JSON schema?
+            std::set<std::string> current_roles;
+            for (const auto& r : role.m_delegations)
+            {
+                current_roles.insert(r.first);
+
+                auto r_keys = r.second;
+                if (r_keys.pubkeys.empty())
+                {
+                    LOG_ERROR
+                        << "'root' metadata should declare at least one public key in 'pubkeys' for delegation: '"
+                        << r.first << "'";
+                    throw role_metadata_error();
+                }
+                if (r_keys.threshold == 0)
+                {
+                    LOG_ERROR
+                        << "'root' metadata should declare at least a 'threshold' of 1 for role: '"
+                        << r.first << "'";
+                    throw role_metadata_error();
+                }
+            }
+            std::set<std::string> mandatory_roles = { "root", "key_mgr" };
+            if (mandatory_roles != current_roles)
+            {
+                LOG_ERROR << "Invalid delegations in 'root' metadata";
+                throw role_metadata_error();
+            }
+        }
+
+        bool is_spec_version_compatible(const json& j)
+        {
+            try
+            {
+                auto spec_version = j.at("signed").at("metadata_spec_version").get<std::string>();
+                return mamba::starts_with(spec_version, "0.6.");
+            }
+            catch (const json::exception& e)
+            {
+                LOG_DEBUG
+                    << "Invalid 'root' metadata, impossible to check spec version compatibility: "
+                    << e.what();
+                return false;
+            }
+        }
+    }  // namespace v06
 
     void to_json(json& j, const Key& key)
     {
@@ -662,23 +1101,19 @@ namespace validate
         j = json{ { "keyids", role_keys.keyids }, { "threshold", role_keys.threshold } };
     }
 
+    void to_json(json& j, const RolePubKeys& role_keys)
+    {
+        j = json{ { "pubkeys", role_keys.pubkeys }, { "threshold", role_keys.threshold } };
+    }
+
     void to_json(json& j, const RoleSignature& role_sig)
     {
         j = json{ { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
     }
 
-    void to_json_base(json& j, const RoleBase& role)
+    void to_json(json& j, const RoleBase* role)
     {
-        j = json{ { "_type", role.name() },
-                  { "spec_version", role.spec_version() },
-                  { "version", role.version() } };
-    }
-
-    void to_json(json& j, const RootRole& role)
-    {
-        to_json_base(j, role);
-        j["keys"] = role.keys();
-        j["roles"] = role.roles();
+        j = json{ { "version", role->version() } };
     }
 
     void from_json(const json& j, Key& key)
@@ -694,87 +1129,39 @@ namespace validate
         j.at("threshold").get_to(role_keys.threshold);
     }
 
+    void from_json(const json& j, RolePubKeys& role_keys)
+    {
+        j.at("pubkeys").get_to(role_keys.pubkeys);
+        j.at("threshold").get_to(role_keys.threshold);
+    }
+
     void from_json(const json& j, RoleSignature& role_sig)
     {
         j.at("keyid").get_to(role_sig.keyid);
         j.at("sig").get_to(role_sig.sig);
     }
 
-    void from_json_base(const json& j, RoleBase& role)
+    void from_json(const json& j, RoleBase* role)
     {
-        role.set_spec_version(j.at("spec_version"));
-        role.set_version(j.at("version"));
+        role->m_version = j.at("version");
     }
 
-    void from_json(const json& j, RootRole& role)
+    RepoTrust::RepoTrust(const std::string& url,
+                         const fs::path& local_trusted_root,
+                         const SpecVersion& spec_version)
+        : m_base_url(url)
     {
-        std::string meta_type;
-        try
+        if (spec_version == SpecVersion::kV06)
         {
-            meta_type = j.at("_type");
+            p_root = std::make_unique<v1::RootRole>(local_trusted_root);
         }
-        catch (...)
+        else if (spec_version == SpecVersion::kV1)
         {
-            LOG_ERROR << "'_type' not found in 'root' metadata";
-            throw role_metadata_error();
+            p_root = std::make_unique<v1::RootRole>(local_trusted_root);
         }
-        if (meta_type != role.type())
+        else
         {
-            LOG_ERROR << "Wrong '_type' found in 'root' metadata, should be 'root': '"
-                      << j.at("_type") << "'";
-            throw role_metadata_error();
-        }
-
-        try
-        {
-            from_json_base(j, role);
-            role.set_keys(j.at("keys").get<std::map<std::string, Key>>());
-            role.set_roles(j.at("roles").get<std::map<std::string, RoleKeys>>());
-        }
-        catch (const json::exception& e)
-        {
-            LOG_ERROR << "Error while loading 'root' metadata from JSON file: " << e.what();
-            throw role_metadata_error();
-        }
-        catch (...)
-        {
-            LOG_ERROR << "Error while loading 'root' metadata from JSON file";
-            throw role_metadata_error();
-        }
-
-        // Did not managed to use Role enum as map key
-        // TODO: replace those checks with JSON schema?
-        for (const auto& r : role.roles())
-        {
-            json jr = r.first;
-            auto role = jr.get<Role>();
-            if (role == Role::kInvalid)
-            {
-                LOG_ERROR << "Invalid role while loading 'root' metadata from JSON file: '"
-                          << r.first << "'";
-                throw role_metadata_error();
-            }
-        }
-
-        std::set<std::string> current_roles;
-        for (const auto& r : role.roles())
-        {
-            current_roles.insert(r.first);
-        }
-        std::set<std::string> mandatory_roles = { "root", "snapshot", "targets", "timestamp" };
-        if (!std::includes(current_roles.begin(),
-                           current_roles.end(),
-                           mandatory_roles.begin(),
-                           mandatory_roles.end()))
-        {
-            std::vector<std::string> diff;
-            std::set_difference(mandatory_roles.begin(),
-                                mandatory_roles.end(),
-                                current_roles.begin(),
-                                current_roles.end(),
-                                std::inserter(diff, diff.end()));
-            LOG_ERROR << "Missing roles while loading 'root' metdata: " << mamba::join(", ", diff);
-            throw role_metadata_error();
+            throw spec_version_error();
         }
     }
 }  // namespace validate

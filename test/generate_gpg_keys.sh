@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -euo pipefail -x
+
 cat << EOF | gpg --batch --generate-key
 %no-protection
 Key-Type: eddsa

@@ -1,4 +1,6 @@
-#!/bin/bash -x
+#!/bin/bash
+
+set -euo pipefail -x
 
 rm -rf $CONDA_PREFIX/pkgs/test-package*
 ENV_NAME=testauth

@@ -58,13 +58,6 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f test/test_env.yml
           mamba env update -f test/update_env.yml
-      - name: Run server auth tests
-        shell: bash -l {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mamba-tests
-          cd test
-          sh testserver.sh
 
   libmamba_cpp_tests:
     runs-on: ${{ matrix.os }}
@@ -117,6 +110,18 @@ jobs:
                    -DBUILD_CRYPTO_PACKAGE_VALIDATION=ON \
                    -DBUILD_BINDINGS=OFF &&
           make test -j2
+      - name: Run server auth tests
+        shell: bash -l {0} -x
+        run: |
+          cd test
+          if [[ "$(uname -s)" == "Linux" ]]; then
+            sh generate_gpg_keys.sh
+          fi
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mamba-tests
+          pip install rich
+          pip install git+https://github.com/conda/conda-content-trust.git@master
+          sh testserver.sh
 
   umamba_tests:
     runs-on: ${{ matrix.os }}

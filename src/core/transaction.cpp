@@ -182,7 +182,6 @@ namespace mamba
             return true;
         }
 
-        bool result = this->extract();
         std::stringstream final_msg;
         final_msg << "Finished " << std::left << std::setw(30) << m_name << std::right
                   << std::setw(8);
@@ -193,6 +192,9 @@ namespace mamba
         to_human_readable_filesize(final_msg, m_target->avg_speed);
         final_msg << "/s";
         m_progress_proxy.mark_as_completed(final_msg.str());
+
+        bool result = this->extract();
+        m_progress_proxy.mark_as_extracted();
         return result;
     }
 

@@ -55,6 +55,16 @@ namespace mamba
         Console::instance().deactivate_progress_bar(m_idx, final_message);
     }
 
+    void ProgressProxy::mark_as_extracted()
+    {
+        if (is_sig_interrupted())
+        {
+            return;
+        }
+        p_bar->set_extracted();
+        Console::instance().print_progress(m_idx);
+    }
+
     /**********************
      * ProgressBarManager *
      **********************/
@@ -179,8 +189,10 @@ namespace mamba
 
     AggregatedBarManager::AggregatedBarManager()
         : m_progress_bars()
-        , p_main_bar(std::make_unique<DefaultProgressBar>("Downloading  ", 100))
+        , p_download_bar(std::make_unique<DefaultProgressBar>("Downloading  ", 100))
+        , p_extract_bar(std::make_unique<DefaultProgressBar>("Extracting   ", 100))
         , m_completed(0)
+        , m_extracted(0)
         , m_main_mutex()
         , m_current(0)
         , m_total(0)
@@ -207,7 +219,7 @@ namespace mamba
     {
         if (m_progress_started)
         {
-            std::cout << cursor::up(1);
+            std::cout << cursor::up(2);
         }
 
         print_progress();
@@ -228,20 +240,16 @@ namespace mamba
             return;
         }
 
-        std::cout << cursor::up(1) << cursor::erase_line();
+        std::cout << cursor::up(2) << cursor::erase_line();
         std::cout << msg << std::endl;
         ++m_completed;
         if (m_completed == m_progress_bars.size())
         {
             const std::lock_guard<std::mutex> lock(m_main_mutex);
             m_current = m_total;
-            p_main_bar->set_progress(m_total, m_total);
+            p_download_bar->set_progress(m_total, m_total);
         }
         print_progress();
-        if (m_completed == m_progress_bars.size())
-        {
-            m_progress_started = false;
-        }
     }
 
     void AggregatedBarManager::print(const std::string_view& str, bool skip_progress_bars)
@@ -257,11 +265,18 @@ namespace mamba
         }
     }
 
-    void AggregatedBarManager::update_main_bar(std::size_t current_diff)
+    void AggregatedBarManager::update_download_bar(std::size_t current_diff)
     {
         const std::lock_guard<std::mutex> lock(m_main_mutex);
         m_current += current_diff;
-        p_main_bar->set_progress(m_current, m_total);
+        p_download_bar->set_progress(m_current, m_total);
+    }
+
+    void AggregatedBarManager::update_extract_bar()
+    {
+        const std::lock_guard<std::mutex> lock(m_main_mutex);
+        ++m_extracted;
+        p_extract_bar->set_progress(m_extracted, m_progress_bars.size());
     }
 
     void AggregatedBarManager::print_progress()
@@ -269,8 +284,14 @@ namespace mamba
         const std::lock_guard<std::mutex> lock(m_main_mutex);
         if (m_progress_started)
         {
-            p_main_bar->print();
+            p_download_bar->print();
             std::cout << '\n';
+            p_extract_bar->print();
+            std::cout << '\n';
+        }
+        if (m_completed == m_progress_bars.size() && m_extracted == m_progress_bars.size())
+        {
+            m_progress_started = false;
         }
     }
 
@@ -449,6 +470,10 @@ namespace mamba
         }
     }
 
+    void DefaultProgressBar::set_extracted()
+    {
+    }
+
     /*********************
      * HiddenProgressBar *
      *********************/
@@ -473,7 +498,7 @@ namespace mamba
         {
             set_start();
         }
-        p_manager->update_main_bar(m_total - m_current);
+        p_manager->update_download_bar(m_total - m_current);
     }
 
     void HiddenProgressBar::set_progress(size_t current, size_t /*total*/)
@@ -484,6 +509,11 @@ namespace mamba
         }
         size_t old_current = m_current;
         m_current = current;
-        p_manager->update_main_bar(m_current - old_current);
+        p_manager->update_download_bar(m_current - old_current);
+    }
+
+    void HiddenProgressBar::set_extracted()
+    {
+        p_manager->update_extract_bar();
     }
 }

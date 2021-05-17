@@ -210,7 +210,9 @@ namespace mamba
             }
             else if (ssl_verify == "<system>")
             {
+#ifdef UMAMBA_STATIC
                 curl_easy_setopt(m_handle, CURLOPT_CAINFO, nullptr);
+#endif
             }
             else
             {

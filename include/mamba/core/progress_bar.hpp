@@ -34,6 +34,7 @@ namespace mamba
         void elapsed_time_to_stream(std::stringstream& s);
         void set_postfix(const std::string& s);
         void mark_as_completed(const std::string_view& final_message = "");
+        void mark_as_extracted();
 
     private:
         ProgressBar* p_bar;
@@ -107,15 +108,20 @@ namespace mamba
 
         void print(const std::string_view& str, bool skip_progress_bars) override;
 
-        void update_main_bar(std::size_t current_diff);
+        void update_download_bar(std::size_t current_diff);
+        void update_extract_bar();
 
     private:
         void print_progress();
 
+        std::chrono::time_point<std::chrono::high_resolution_clock> m_start_time;
+
         using progress_bar_ptr = std::unique_ptr<ProgressBar>;
         std::vector<progress_bar_ptr> m_progress_bars;
-        progress_bar_ptr p_main_bar;
+        progress_bar_ptr p_download_bar;
+        progress_bar_ptr p_extract_bar;
         size_t m_completed;
+        size_t m_extracted;
         std::mutex m_main_mutex;
         size_t m_current;
         size_t m_total;
@@ -134,6 +140,7 @@ namespace mamba
         virtual void print() = 0;
         virtual void set_full() = 0;
         virtual void set_progress(size_t current, size_t total) = 0;
+        virtual void set_extracted() = 0;
 
         void set_start();
         void set_postfix(const std::string& postfix_text);
@@ -161,6 +168,7 @@ namespace mamba
         void print() override;
         void set_full() override;
         void set_progress(size_t current, size_t total) override;
+        void set_extracted() override;
 
     private:
         size_t m_progress;
@@ -178,6 +186,7 @@ namespace mamba
         void print() override;
         void set_full() override;
         void set_progress(size_t current, size_t total) override;
+        void set_extracted() override;
 
     private:
         AggregatedBarManager* p_manager;

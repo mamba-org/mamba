@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <cstdlib>
+#include <typeinfo>
 
 #include "common_options.hpp"
 
@@ -15,6 +16,43 @@
 #include <yaml-cpp/yaml.h>
 
 using namespace mamba;  // NOLINT(build/namespaces)
+
+bool is_key_valid(std::string key)
+{
+    auto& config = Configuration::instance();
+
+    for (auto& group_it : config.get_grouped_config())
+    {
+        auto& configs = group_it.second;
+        for (auto c : configs)
+        {
+            if (key == c->name())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool is_parameter_type(std::string key)
+{
+    auto& config = Configuration::instance();
+
+    for (auto& group_it : config.get_grouped_config())
+    {
+        auto& configs = group_it.second;
+        std::vector<std::string> parameter_type;
+        for (auto& c : configs)
+        {
+            if (c->name() == key)
+            {
+                c->value<std::vector<std::string>>().push_back("");
+            }
+        }
+    }
+    return false;
+}
 
 void
 init_config_options(CLI::App* subcom)
@@ -93,6 +131,74 @@ set_config_describe_command(CLI::App* subcom)
 }
 
 void
+set_config_append_command(CLI::App* subcom)
+{
+    auto& config = Configuration::instance();
+
+    auto& append_value = config.insert(
+    Configurable("append_value", std::vector<std::string>({""})).group("Output, Prompt and Flow Control").description("Add one configuration value to the end of a list key"));
+
+    subcom->add_option("append_value", append_value.set_cli_config({""}), append_value.description());
+
+    subcom->callback([&]() {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        auto valid_srcs = config.valid_sources();
+        std::ofstream rc_file;
+
+        std::string append_key = append_value.value().front();
+
+        for (auto s : valid_srcs)
+        {
+            //convert rc file to YAML::Node
+            YAML::Node rc_YAML = YAML::LoadFile(env::expand_user(s).string());
+            //look for append key in file
+            for (YAML::const_iterator it = rc_YAML.begin(); it != rc_YAML.end(); ++it)
+            {
+                if(it->first.as<std::string>() == append_key)
+                {
+                    for (std::size_t i = 1; i < append_value.value().size(); i++)
+                    {
+                    //if append value is already present, remove it
+                    for (std::size_t j = 0; j < rc_YAML[append_key].size(); j++)
+                        {
+                            if (rc_YAML[append_key][j].as<std::string>() == append_value.value()[i])
+                            {
+                                rc_YAML[append_key].remove(j);
+                                break;
+                            }
+                        }
+                        if (is_key_valid(append_key))
+                        {
+                            //append value to the end of the chosen config key list
+                            rc_YAML[append_key].push_back(append_value.value()[i]);
+                        }
+                    }
+                    break;
+                }
+                else
+                {
+                    std::cout << "Append key is invalid or is not present in the file" << std::endl;
+                }
+            }
+            //if the rc file is being modified, it's necessary to rewrite it
+            rc_file.open(env::expand_user(s).string(), std::ofstream::in | std::ofstream::trunc);
+            rc_file << rc_YAML << std::endl;
+        }
+        if (valid_srcs.empty())
+        {
+            std::cout << "No valid sources were found to apply these changes" << std::endl;
+        }
+        config.operation_teardown();
+    });
+}
+
+void
 set_config_remove_key_command(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
@@ -110,53 +216,31 @@ set_config_remove_key_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        auto srcs = config.sources();
         auto valid_srcs = config.valid_sources();
         std::ofstream rc_file;
 
-        for (auto s : srcs)
+        for (auto s : valid_srcs)
         {
-            //check if there are valid rc files sources
-            auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
-            if (found_s != valid_srcs.end())
-            {
-                YAML::Node rc_YAML = YAML::LoadFile(env::expand_user(s).string());
-                for (YAML::const_iterator it = rc_YAML.begin(); it != rc_YAML.end(); ++it) {
-                    if(it->first.as<std::string>() == remove_key.value())
-                    {
-                        rc_YAML.remove(remove_key.value());
-                        break;
-                    }
+            //convert rc file to YAML::Node
+            YAML::Node rc_YAML = YAML::LoadFile(env::expand_user(s).string());
+            //look for key to remove in file
+            for (YAML::const_iterator it = rc_YAML.begin(); it != rc_YAML.end(); ++it) {
+                if(it->first.as<std::string>() == remove_key.value())
+                {
+                    rc_YAML.remove(remove_key.value());
+                    break;
                 }
-                //if the rc file is being modified, it's necessary to rewrite it
-                rc_file.open(env::expand_user(s).string(), std::ofstream::in | std::ofstream::trunc);
-                rc_file << rc_YAML;
             }
-            else
-            {
-                std::cout << env::expand_user(s).string() + " (invalid)" << std::endl;
-            }
+            //if the rc file is being modified, it's necessary to rewrite it
+            rc_file.open(env::expand_user(s).string(), std::ofstream::in | std::ofstream::trunc);
+            rc_file << rc_YAML << std::endl;
+        }
+        if (valid_srcs.empty())
+        {
+            std::cout << "No valid sources were found to apply these changes" << std::endl;
         }
         config.operation_teardown();
     });
-}
-
-bool validate_key_input(std::string key)
-{
-    auto& config = Configuration::instance();
-
-    for (auto& group_it : config.get_grouped_config())
-    {
-        auto& configs = group_it.second;
-        for (auto c : configs)
-        {
-            if (key == c->name())
-            {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 void
@@ -177,33 +261,26 @@ set_config_set_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        auto srcs = config.sources();
         auto valid_srcs = config.valid_sources();
         std::ofstream rc_file;
 
-        for (auto s : srcs)
+        for (auto s : valid_srcs)
         {
-            //check if rc file is valid
-            auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
-            if (found_s != valid_srcs.end())
+            rc_file.open(env::expand_user(s).string(), std::ios::app);
+            for (std::size_t i = 0; i < set_key.value().size(); i+=2)
             {
-                rc_file.open(env::expand_user(s).string(), std::ios::app);
-                for (std::size_t i = 0; i < set_key.value().size(); i+=2)
+                //check if user input is valid
+                if (is_key_valid(set_key.value()[i]))
                 {
-                    //check if user input is valid
-                    if (validate_key_input(set_key.value()[i]))
-                    {
-                        rc_file << "\n" << set_key.value()[i] << ": "<< set_key.value()[i + 1] << std::endl;
-                    }
+                    rc_file << set_key.value()[i] << ": "<< set_key.value()[i + 1] << std::endl;
                 }
-                rc_file.close();
             }
-            else
-            {
-                std::cout << env::expand_user(s).string() + " (invalid)" << std::endl;
-            }
+            rc_file.close();
         }
-
+        if (valid_srcs.empty())
+        {
+            std::cout << "No valid sources were found to apply these changes" << std::endl;
+        }
         config.operation_teardown();
     });
 
@@ -247,6 +324,10 @@ set_config_command(CLI::App* subcom)
     auto describe_subcom
         = subcom->add_subcommand("describe", "Describe given configuration parameters");
     set_config_describe_command(describe_subcom);
+
+    auto append_subcom
+        = subcom->add_subcommand("append", "Add one configuration value to the end of a list key");
+    set_config_append_command(append_subcom);
 
     auto remove_key_subcom
         = subcom->add_subcommand("remove-key", "Remove a configuration key and its values");

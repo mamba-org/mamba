@@ -114,6 +114,8 @@ namespace mamba
     private:
         void print_progress();
 
+        std::chrono::time_point<std::chrono::high_resolution_clock> m_start_time;
+
         using progress_bar_ptr = std::unique_ptr<ProgressBar>;
         std::vector<progress_bar_ptr> m_progress_bars;
         progress_bar_ptr p_download_bar;

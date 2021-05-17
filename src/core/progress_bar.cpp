@@ -9,6 +9,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/progress_bar.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {
@@ -203,6 +204,10 @@ namespace mamba
     ProgressProxy AggregatedBarManager::add_progress_bar(const std::string& name,
                                                          size_t expected_total)
     {
+        if (!m_progress_started)
+        {
+            m_start_time = std::chrono::high_resolution_clock::now();
+        }
         std::string prefix = name;
         prefix.resize(PREFIX_LENGTH - 1, ' ');
         prefix += ' ';
@@ -267,16 +272,30 @@ namespace mamba
 
     void AggregatedBarManager::update_download_bar(std::size_t current_diff)
     {
+        auto update_time = std::chrono::high_resolution_clock::now();
         const std::lock_guard<std::mutex> lock(m_main_mutex);
         m_current += current_diff;
+        auto diff_time
+            = std::chrono::duration_cast<std::chrono::milliseconds>(update_time - m_start_time);
+        size_t speed = static_cast<double>(m_current) / diff_time.count() * 1000;
         p_download_bar->set_progress(m_current, m_total);
+        std::stringstream s;
+        s << std::setw(7);
+        to_human_readable_filesize(s, speed, 2);
+        s << "/s";
+        p_download_bar->set_postfix(s.str());
     }
 
     void AggregatedBarManager::update_extract_bar()
     {
         const std::lock_guard<std::mutex> lock(m_main_mutex);
+        size_t bars_number = m_progress_bars.size();
+        int padding = std::to_string(bars_number).length();
         ++m_extracted;
-        p_extract_bar->set_progress(m_extracted, m_progress_bars.size());
+        p_extract_bar->set_progress(m_extracted, bars_number);
+        std::stringstream s;
+        s << std::setw(9 - padding) << m_extracted << " / " << bars_number;
+        p_extract_bar->set_postfix(s.str());
     }
 
     void AggregatedBarManager::print_progress()

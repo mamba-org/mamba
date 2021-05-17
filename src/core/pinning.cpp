@@ -15,7 +15,6 @@ namespace mamba
     {
         std::string pin = "";
         std::string py_version;
-        MatchSpec ms;
 
         auto iter = prefix_data.records().find("python");
         if (iter != prefix_data.records().end())
@@ -27,16 +26,19 @@ namespace mamba
             return "";  // Python not found in prefix
         }
 
-        for (auto spec : specs)
+        for (const auto& spec : specs)
         {
-            ms = spec;
+            MatchSpec ms(spec);
             if (ms.name == "python")
             {
                 return "";
             }
         }
 
-        return "python=" + py_version;
+        std::vector<std::string> elems = split(py_version, ".");
+        std::string py_pin = concat("python ", elems[0], ".", elems[1], ".*");
+        LOG_INFO << "Pinning python to " << py_pin;
+        return py_pin;
     }
 
     std::vector<std::string> file_pins(const fs::path& file)

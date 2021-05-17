@@ -48,11 +48,11 @@ namespace mamba
 
             specs = { "numpy" };
             pin = python_pin(prefix_data, specs);
-            EXPECT_EQ(pin, "python=3.7.10");
+            EXPECT_EQ(pin, "python 3.7.*");
 
             specs = { "python-test" };
             pin = python_pin(prefix_data, specs);
-            EXPECT_EQ(pin, "python=3.7.10");
+            EXPECT_EQ(pin, "python 3.7.*");
 
             specs = { "python==3" };
             pin = python_pin(prefix_data, specs);

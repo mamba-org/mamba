@@ -1,3 +1,10 @@
+0.13.1 (May 17, 2021)
+=====================
+
+Bug fixes
+- [micromamba] pin only minor python version #948
+- [micromamba] use openssl certs when not linking statically #949
+
 0.13.0 (May 12, 2021)
 =====================
 

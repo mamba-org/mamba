@@ -227,8 +227,11 @@ namespace mamba
             std::cout << cursor::up(2);
         }
 
+        if (!is_complete())
+        {
+            m_progress_started = true;
+        }
         print_progress();
-        m_progress_started = true;
     }
 
     void AggregatedBarManager::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
@@ -259,7 +262,7 @@ namespace mamba
 
     void AggregatedBarManager::print(const std::string_view& str, bool skip_progress_bars)
     {
-        if (m_progress_started && m_progress_bars.size() && !skip_progress_bars)
+        if (m_progress_started && !is_complete() && !skip_progress_bars)
         {
             std::cout << cursor::erase_line() << str << std::endl;
             print_progress();
@@ -308,10 +311,15 @@ namespace mamba
             p_extract_bar->print();
             std::cout << '\n';
         }
-        if (m_completed == m_progress_bars.size() && m_extracted == m_progress_bars.size())
+        if (is_complete())
         {
             m_progress_started = false;
         }
+    }
+
+    bool AggregatedBarManager::is_complete() const
+    {
+        return m_completed == m_progress_bars.size() && m_extracted == m_progress_bars.size();
     }
 
     /***************

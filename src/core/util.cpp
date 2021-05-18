@@ -12,6 +12,8 @@
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <csignal>
+#include <unistd.h>
+#include <sys/file.h>
 #endif
 
 #ifdef _WIN32

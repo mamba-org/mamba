@@ -30,6 +30,8 @@ The precedence order between those sources is:
   It's a convenient way to persist configuration on the filesystem and use it as default.
 
 
+.. _precedence-resolution:
+
 Precedence resolution
 ---------------------
 
@@ -125,4 +127,3 @@ RC files have their own precedence order and use the same resolution process as 
         { target_prefix }/.mambarc
         $CONDARC,
         $MAMBARC;
-

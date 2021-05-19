@@ -1,20 +1,23 @@
-Welcome to mamba's documentation!
+Welcome to Mamba's documentation!
 =================================
 
 Mamba is a fast, robust, and cross-platform package manager.
 
 It runs on Windows, OS X and Linux (ARM64 and PPC64LE included) and is fully compatible with ``conda`` packages and supports most of conda's commands.
 
-Mamba offers multiple flavors:
+The ``mamba-org`` organization hosts multiple Mamba flavors:
 
 - ``mamba``: a Python-based CLI conceived as a *drop-in* replacement for ``conda``, offering higher speed and more reliable environment solutions
 - ``micromamba``: a pure C++-based CLI, self-contained in a single-file executable
 - ``libmamba``: a C++ library exposing low-level and high-level APIs on top of which both ``mamba`` and ``micromamba`` are built
 
 .. note::
+   In this documentation, ``Mamba`` will refer to all flavors while flavor-specific details will mention ``mamba``, ``micromamba`` or ``libmamba``.
+
+.. note::
     :ref:`micromamba<micromamba>` is especially well fitted for the CI use-case but not limited to that!
 
-We recommend :ref:`installation<installation>` from ``mambaforge`` or through ``conda install mamba -n base -c conda-forge``, if you're already a conda user.
+You can try Mamba now by visiting the :ref:`installation page<installation>`!
 
 
 .. toctree::
@@ -46,13 +49,6 @@ We recommend :ref:`installation<installation>` from ``mambaforge`` or through ``
    :maxdepth: 2
    :hidden:
 
+   developer_zone/contributing
+   developer_zone/build_locally
    developer_zone/internals
-
-
-Indices and tables
-==================
-
-* {ref}``Index <genindex>``
-* {ref}``Search <search>``
-
-<!-- * {ref}``modindex <modindex>`` -->

@@ -5,18 +5,17 @@ Mamba
 
 ``mamba`` is a CLI tool to manage ``conda`` s environments.
 
-| If you already know ``conda``, great, you already know ``mamba``!
-| If you're new to this world, don't panic you will find everything you need in this documentation. You recommend you to get familiar with :ref:`concepts<concepts>` first.
+If you already know ``conda``, great, you already know ``mamba``!
+
+If you're new to this world, don't panic you will find everything you need in this documentation. We recommend to get familiar with :ref:`concepts<concepts>` first.
 
 
-Create an environment
-=====================
+Quickstarts
+===========
 
-Mamba handles multiple environments. The initial environment is called the *base* environment and in general, you should not install packages into the base environment. Rather it's good practice to create new environments whenever you work on a specific project. Mamba has advanced file deduplication to keep the memory footprint of having multiple environments low.
+The ``mamba create`` command creates a new environment.
 
-The ``mamba create`` command creates a new environment. Mamba's environments are similar to virtual environments known from Python's ``virtualenv`` and similar software, but more powerful since mamba also manages *native* dependencies and generalizes the virtual environment concept to many programming languages.
-
-You can create a virtual environment with the name ``nameofmyenv`` by calling
+You can create an environment with the name ``nameofmyenv`` by calling:
 
 .. code::
 
@@ -52,4 +51,55 @@ Once an environment is activated, ``mamba install`` can be used to install furth
    mamba list
 
 .. warning::
-    The only difference is that you should still use ``conda`` for *activation* and *deactivation*
+    The only difference is that you should still use ``conda`` for :ref:`activation<activation>` and :ref:`deactivation<deactivation>`.
+
+
+Repoquery
+=========
+
+``mamba`` comes with features on top of stock ``conda``.
+To efficiently query repositories and query package dependencies you can use ``mamba repoquery``.
+
+Here are some examples:
+
+.. code::
+
+    # will show you all available xtensor packages.
+    $ mamba repoquery search xtensor
+
+    # you can also specify more constraints on this search query
+    $ mamba repoquery search "xtensor>=0.18"
+
+    # will show you a tree view of the dependencies of xtensor.
+    $ mamba repoquery depends xtensor
+
+.. code::
+
+    $ mamba repoquery depends xtensor
+
+    xtensor == 0.21.5
+    ├─ libgcc-ng [>=7.3.0]
+    │ ├─ _libgcc_mutex [0.1 conda_forge]
+    │ └─ _openmp_mutex [>=4.5]
+    │   ├─ _libgcc_mutex already visited
+    │   └─ libgomp [>=7.3.0]
+    │     └─ _libgcc_mutex already visited
+    ├─ libstdcxx-ng [>=7.3.0]
+    └─ xtl [>=0.6.9,<0.7]
+        ├─ libgcc-ng already visited
+        └─ libstdcxx-ng already visited
+
+
+And you can ask for the inverse, which packages depend on some other package (e.g. ``ipython``) using ``whoneeds``.
+
+.. code::
+
+    $ mamba repoquery whoneeds ipython
+
+    Name            Version Build          Channel
+    ──────────────────────────────────────────────────
+    ipykernel       5.2.1   py37h43977f1_0 installed
+    ipywidgets      7.5.1   py_0           installed
+    jupyter_console 6.1.0   py_1           installed
+
+With the ``-t,--tree`` flag, you can get the same information in a tree.

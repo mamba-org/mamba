@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include <stdexcept>
 
 
@@ -100,6 +101,13 @@ namespace validate
         virtual ~rollback_error() = default;
     };
 
+    class spec_version_error : public trust_error
+    {
+    public:
+        spec_version_error() noexcept;
+        virtual ~spec_version_error() = default;
+    };
+
     struct Key
     {
         std::string keytype = "";
@@ -123,6 +131,8 @@ namespace validate
         std::string sig = "";
     };
 
+    bool operator<(const RoleSignature& rs1, const RoleSignature& rs2);
+
     enum Role
     {
         kRoot,
@@ -141,84 +151,185 @@ namespace validate
                                    { kTimestamp, "timestamp" },
                                    { kMirrors, "mirrors" } });
 
+    /**
+     * Store key IDs and threshold for role.
+     */
     struct RoleKeys
     {
         std::vector<std::string> keyids;
         std::size_t threshold;
     };
 
+    /**
+     * Store key values and threshold for role.
+     * Assumes key scheme/type is `ed25519`.
+     */
+    struct RolePubKeys
+    {
+        std::vector<std::string> pubkeys;
+        std::size_t threshold;
+
+        RoleKeys to_role_keys() const;
+    };
+
+    /**
+     * Store full keys and threshold for role.
+     */
+    struct RoleFullKeys
+    {
+        std::map<std::string, Key> keys;
+        std::size_t threshold;
+    };
+
+    enum SpecVersion
+    {
+        kV06 = 0,
+        kV1 = 1
+    };
+
     class RoleBase
     {
     public:
         RoleBase() = default;
-        RoleBase(const std::string& type)
-            : m_type(type){};
+        RoleBase(const std::string& type, const std::string& spec_version)
+            : m_type(type)
+            , m_spec_version(spec_version){};
 
         virtual ~RoleBase() = 0;
 
-        virtual void update(fs::path path) = 0;
-        virtual void update(json j) = 0;
-
-        std::string name() const;
         std::string type() const;
         std::string spec_version() const;
         std::size_t version() const;
-        std::string filename() const;
+        std::string file_ext() const;
 
-        void set_spec_version(const std::string& spec_version);
-        void set_version(const std::size_t& version);
+        void set_spec_version(const std::string& version);
+
+        friend void to_json(json& j, const RoleBase* r);
+        friend void from_json(const json& j, RoleBase* r);
+
+    protected:
+        SpecVersion major_spec_version() const;
+
+        json read_file(const fs::path& p, bool update = false) const;
 
     private:
+        std::string m_internal_type;
         std::string m_type;
-        std::size_t m_version;
+        std::size_t m_version = 1;
         std::string m_spec_version;
         std::string m_expires;
-        std::string m_ext = ".json";
+        std::string m_ext = "json";
+
+        bool is_spec_version_compatible(const std::string& version) const;
+        bool is_spec_version_upgradable(const std::string& version) const;
     };
 
-    class RootRole : public RoleBase
+    class RootRoleBase : public RoleBase
     {
     public:
-        RootRole();
-        RootRole(const fs::path& p);
-        RootRole(const json& j);
+        std::unique_ptr<RootRoleBase> update(fs::path path);
+        std::unique_ptr<RootRoleBase> update(json j);
 
-        void update(fs::path path);
-        void update(json j);
+        virtual std::set<std::string> roles() const = 0;
+        virtual std::map<std::string, RoleFullKeys> keys() const = 0;
+        virtual std::set<RoleSignature> signatures(const json& j) const = 0;
 
-        std::map<std::string, Key>& keys();
-        const std::map<std::string, Key>& keys() const;
-        std::map<std::string, RoleKeys>& roles();
-        const std::map<std::string, RoleKeys>& roles() const;
+    protected:
+        RootRoleBase(const std::string& spec_version);
 
-        void set_keys(const std::map<std::string, Key>& keys);
-        void set_roles(const std::map<std::string, RoleKeys>& roles);
+        void check_role_signatures(const json& data, const RootRoleBase& role);
 
     private:
-        void check_role_signatures(const std::string& signed_data,
-                                   const std::vector<RoleSignature>& signatures,
-                                   const RootRole& role);
+        virtual std::unique_ptr<RootRoleBase> create_update(const json& j) = 0;
 
         void check_signatures(const std::string& signed_data,
-                              const std::vector<RoleSignature>& signatures,
-                              const std::map<std::string, Key>& accepted_keys,
-                              const int threshold);
+                              const std::set<RoleSignature>& signatures,
+                              const RoleFullKeys& keyring);
+    };
 
-        std::map<std::string, Key> m_keys;
-        std::map<std::string, RoleKeys> m_roles;
+    class RepoTrust
+    {
+    public:
+        RepoTrust(const std::string& url,
+                  const fs::path& local_trusted_root,
+                  const SpecVersion& spec_version);
+
+    private:
+        std::string m_base_url;
+        std::unique_ptr<RootRoleBase> p_root;
     };
 
     void to_json(json& j, const Key& k);
     void to_json(json& j, const RoleKeys& rk);
+    void to_json(json& j, const RolePubKeys& rk);
     void to_json(json& j, const RoleSignature& rs);
-    void to_json_base(json& j, const RoleBase& r);
-    void to_json(json& j, const RootRole& r);
 
     void from_json(const json& j, Key& k);
     void from_json(const json& j, RoleKeys& rk);
+    void from_json(const json& j, RolePubKeys& rk);
     void from_json(const json& j, RoleSignature& rs);
-    void from_json_base(const json& j, RoleBase& r);
-    void from_json(const json& j, RootRole& r);
+
+    namespace v1
+    {
+        class RootRole : public RootRoleBase
+        {
+        public:
+            RootRole(const fs::path& p);
+            RootRole(const json& j);
+
+            std::set<std::string> roles() const override;
+            std::map<std::string, RoleFullKeys> keys() const override;
+
+            friend void to_json(json& j, const RootRole& r);
+            friend void from_json(const json& j, RootRole& r);
+
+        private:
+            RootRole();
+
+            void load_from_json(const json& j);
+
+            std::unique_ptr<RootRoleBase> create_update(const json& j) override;
+            std::set<RoleSignature> signatures(const json& j) const;
+
+            std::map<std::string, Key> m_keys;
+            std::map<std::string, RoleKeys> m_roles;
+        };
+
+        bool is_spec_version_compatible(const json& version);
+    }
+
+    namespace v06
+    {
+        class RootRole : public RootRoleBase
+        {
+        public:
+            RootRole(const fs::path& p);
+            RootRole(const json& j);
+
+            std::set<std::string> roles() const override;
+            std::map<std::string, RoleFullKeys> keys() const override;
+
+            json upgraded_signable() const;
+            RoleSignature upgraded_signature(const json& j,
+                                             const std::string& pk,
+                                             const unsigned char* sk) const;
+
+            friend void to_json(json& j, const RootRole& r);
+            friend void from_json(const json& j, RootRole& r);
+
+        private:
+            RootRole();
+
+            void load_from_json(const json& j);
+
+            std::unique_ptr<RootRoleBase> create_update(const json& j) override;
+            std::set<RoleSignature> signatures(const json& j) const;
+
+            std::map<std::string, RolePubKeys> m_delegations;
+        };
+
+        bool is_spec_version_compatible(const json& version);
+    }
 }  // namespace validate
 
 #endif  // MAMBA_VALIDATE_HPP

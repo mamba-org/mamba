@@ -4,7 +4,7 @@ Concepts
 --------
 
 Few concepts are extensively used in ``Mamba`` and in this documentation as well.
-| You should start by getting familiar with those as a starting point.
+You should start by getting familiar with those as a starting point.
 
 
 .. _prefix:
@@ -55,12 +55,8 @@ Base environment
 The *base* environment is the environment located at the *root prefix*.
 
 | This is a legacy *environment* from ``conda`` implementation still heavily used.
-| The *base* environment acts as an intermediate :ref:`system prefix<prefix>` with lower precedence than the :ref:`activated<activation>` environement: ``system prefix < base < env``.
-
- | ``mamba`` and ``conda`` being themselves Python packages, they are installed in *base* environment, making the CLIs available in all *activated* environment *based* on this *base* environement.
-
-.. note::
-  It also works for any other tool or lib installed in *base*.
+| The *base* environment contains the ``conda`` and ``mamba`` installation alongside a Python installation (since ``mamba`` and ``conda`` require Python to run)
+| ``mamba`` and ``conda`` being themselves Python packages, they are installed in *base* environment, making the CLIs available in all *activated* environment *based* on this *base* environement.
 
 .. note::
   You can't ``create`` *base* environment because it's already part of the *root prefix* structure, directly ``install`` in *base* instead.
@@ -74,10 +70,10 @@ Activation/Deactivation
 Activation
 **********
 
-The *activation* of an :ref:`environment<prefix>` makes all its content available to your shell. It mainly adds *target prefix* subdirectories to your ``$PATH`` environment variable.
+The *activation* of an :ref:`environment<prefix>` makes all its contents available to your shell. It mainly adds *target prefix* subdirectories to your ``$PATH`` environment variable.
 
 .. note::
-  *activation* implementation is platform dependent (see ``LD_LIBRARY_PATH``).
+  *activation* implementation is platform dependent.
 
 | When *activating* an environment from another, you can choose to ``stack`` or not upon the currently activated env.
 | Stacking will result in a new intermediate :ref:`prefix<prefix>`: ``system prefix < base < env1 < env2``.

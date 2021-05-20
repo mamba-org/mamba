@@ -10,8 +10,8 @@ If you already know ``conda``, great, you already know ``mamba``!
 If you're new to this world, don't panic you will find everything you need in this documentation. We recommend to get familiar with :ref:`concepts<concepts>` first.
 
 
-Quickstarts
-===========
+Quickstart
+==========
 
 The ``mamba create`` command creates a new environment.
 

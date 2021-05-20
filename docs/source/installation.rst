@@ -20,8 +20,8 @@ We strongly recommend to start from ``mambaforge``, a community project of the c
  | After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.
 
 
-Exisiting ``conda`` install
-***************************
+Existing ``conda`` install
+**************************
 
 If you are already a ``conda`` user, very good!
 
@@ -33,7 +33,7 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 
 .. warning::
-   Installing mamba into any other environment can cause unexpected behavior
+   Installing mamba into any other environment than base can cause unexpected behavior
 
 .. _umamba-install:
 
@@ -54,9 +54,8 @@ Also you need a glibc based system like Ubuntu, Fedora or Centos (Alpine Linux d
 
 The following magic URL always returns the latest available version of micromamba, and the ``bin/micromamba`` part is automatically extracted using ``tar``.
 
-.. code::
+.. code:: sh
 
-  sh
   wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 
 
@@ -89,7 +88,6 @@ Now you can activate the base environment and install new packages, or create ot
 
 .. code::
 
-  sh
   micromamba activate  # this activates the base environment
   micromamba install python=3.6 jupyter -c conda-forge
   # or
@@ -103,9 +101,8 @@ OS X
 
 ``micromamba`` has OS X support as well. Instructions are largely the same as :ref:`linux<umamba-install-linux>`:
 
-.. code::
+.. code:: bash
 
-  sh
   curl -Ls https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xvj bin/micromamba
   mv bin/micromamba ./micromamba
 
@@ -126,9 +123,9 @@ Windows
 | ``micromamba`` also has Windows support! For Windows, we recommend powershell.
 | Below are the commands to get micromamba installed in ``PowerShell``.
 
-.. code::
 
-  powershell
+.. code:: powershell
+
   Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
   C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
   C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
@@ -146,4 +143,4 @@ Windows
   .\micromamba.exe shell init -s powershell -p C:\Your\Root\Prefix
   # and use micromamba directly
   micromamba create -f ./test/env_win.yaml -y
-  micromamba activate ...
+  micromamba activate yourenv

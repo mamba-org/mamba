@@ -435,6 +435,11 @@ namespace validate
         m_spec_version = version;
     }
 
+    std::string RoleBase::canonicalize(const json& j) const
+    {
+        return j.dump();
+    }
+
     json RoleBase::read_file(const fs::path& p, bool update) const
     {
         if (!fs::exists(p))
@@ -459,7 +464,7 @@ namespace validate
         }
         else
         {
-            name_re = "^[1-9]+\\d*\\.\\w+\\.(\\w+)\\.(\\w+)$";
+            name_re = "^[1-9]+\\d*\\.[\\w\\.]+\\.(\\w+)\\.(\\w+)$";
             expected_match_size = 3;
         }
 
@@ -563,7 +568,7 @@ namespace validate
 
     void RootRoleBase::check_role_signatures(const json& data, const RootRoleBase& role)
     {
-        std::string signed_data = data["signed"].dump();
+        std::string signed_data = role.canonicalize(data["signed"]);
         auto signatures = role.signatures(data);
 
         auto k = keys();
@@ -584,7 +589,18 @@ namespace validate
             if (it != keyring.keys.end())
             {
                 auto& pk = it->second.keyval;
-                if (verify(signed_data, pk, s.sig) == 1)
+                int status;
+
+                if (s.pgp_trailer.empty())
+                {
+                    status = verify(signed_data, pk, s.sig);
+                }
+                else
+                {
+                    status = verify_gpg(signed_data, s.pgp_trailer, pk, s.sig);
+                }
+
+                if (status == 1)
                 {
                     ++valid_sig;
                 }
@@ -876,10 +892,20 @@ namespace validate
 
             for (auto& s : sigs)
             {
-                unique_sigs.insert(RoleSignature({ s.first, s.second.at("signature") }));
+                std::string pgp_trailer = "";
+                if (s.second.find("other_headers") != s.second.end())
+                    pgp_trailer = s.second["other_headers"];
+
+                unique_sigs.insert(
+                    RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
             }
 
             return unique_sigs;
+        }
+
+        std::string RootRole::canonicalize(const json& j) const
+        {
+            return j.dump(2);
         }
 
         json RootRole::upgraded_signable() const
@@ -1038,6 +1064,8 @@ namespace validate
     void to_json(json& j, const RoleSignature& role_sig)
     {
         j = json{ { "keyid", role_sig.keyid }, { "sig", role_sig.sig } };
+        if (!role_sig.pgp_trailer.empty())
+            j["other_headers"] = role_sig.pgp_trailer;
     }
 
     void to_json(json& j, const RoleBase* role)
@@ -1068,6 +1096,8 @@ namespace validate
     {
         j.at("keyid").get_to(role_sig.keyid);
         j.at("sig").get_to(role_sig.sig);
+        if (j.find("other_headers") != j.end())
+            j.at("other_headers").get_to(role_sig.pgp_trailer);
     }
 
     void from_json(const json& j, RoleBase* role)

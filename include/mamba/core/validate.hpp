@@ -145,15 +145,11 @@ namespace validate
         }
     };
 
-    struct GPGKey : public Key
-    {
-        std::string other_headers = "";
-    };
-
     struct RoleSignature
     {
         std::string keyid = "";
         std::string sig = "";
+        std::string pgp_trailer = "";
     };
 
     bool operator<(const RoleSignature& rs1, const RoleSignature& rs2);
@@ -236,6 +232,7 @@ namespace validate
         SpecVersion major_spec_version() const;
 
         json read_file(const fs::path& p, bool update = false) const;
+        virtual std::string canonicalize(const json& j) const;
 
     private:
         std::string m_internal_type;
@@ -349,6 +346,8 @@ namespace validate
 
             std::unique_ptr<RootRoleBase> create_update(const json& j) override;
             std::set<RoleSignature> signatures(const json& j) const;
+
+            std::string canonicalize(const json& j) const override;
 
             std::map<std::string, RolePubKeys> m_delegations;
         };

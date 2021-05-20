@@ -1,0 +1,195 @@
+.. _micromamba:
+
+==========
+Micromamba
+==========
+
+``micromamba`` is a small, pure-C++ executable with enough functionalities to *bootstrap* fully functional conda-environments.
+
+Still at early stage, it's main usage is in continous integration pipelines: since it's a single executable, it reduces dramatically bandwidth usage and provide *fast* operations.
+
+
+Quickstarts
+===========
+
+| ``micromamba`` supports a subset of all ``mamba`` or ``conda`` commands and implements a command line interface from scratch.
+| You can see all implemented commands with ``micromamba --help``:
+
+.. code::
+
+  $ micromamba --help
+
+  Subcommands:
+    activate                    Activate a conda / micromamba environment
+    deactivate                  Deactivate a conda / micromamba environment
+    shell                       Generate shell init scripts
+    create                      Create new environment
+    install                     Install packages in active environment
+    update                      Update packages in active environment
+    remove                      Remove packages from active environment
+    list                        List packages in active environment
+    config                      Configuration of micromamba
+    info                        Information about micromamba
+    clean                       Clean package cache
+    constructor                 Commands to support using micromamba in constructor
+    env                         List environments
+
+To activate an environment just call ``micromamba activate /path/to/env`` or, when it's a named environment in your :ref:`root prefix<root-prefix>`, then you can also use ``micromamba activate myenv``.
+
+``micromamba`` expects to find the *root prefix* set by ``$MAMBA_ROOT_PREFIX`` environment variable. You can also provide it using CLI option ``-r,--root-prefix``.
+
+ | Named environments then live in ``$MAMBA_ROOT_PREFIX/envs/``.
+
+For more details, please read about :ref:`configuration<configuration>`.
+
+After :ref:`activation<activation>`, you can run ``install`` to add new packages to the environment.
+
+.. code::
+
+  $ micromamba install xtensor -c conda-forge
+
+
+Using ``create``, you can also create environments:
+
+.. code::
+
+  $ micromamba create -n xtensor_env xtensor xsimd -c conda-forge
+                                             __
+            __  ______ ___  ____ _____ ___  / /_  ____ _
+           / / / / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
+          / /_/ / / / / / / /_/ / / / / / / /_/ / /_/ /
+         / .___/_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
+        /_/
+
+  conda-forge/noarch       [====================] (00m:01s) Done
+  conda-forge/linux-64     [====================] (00m:04s) Done
+
+  Transaction
+
+    Prefix: /home/wolfv/miniconda3/envs/xtensor_env
+
+    Updating specs:
+
+    - xtensor
+    - xsimd
+
+
+    Package        Version  Build        Channel                    Size
+  ────────────────────────────────────────────────────────────────────────
+    Install:
+  ────────────────────────────────────────────────────────────────────────
+
+    _libgcc_mutex      0.1  conda_forge  conda-forge/linux-64     Cached
+    _openmp_mutex      4.5  1_gnu        conda-forge/linux-64     Cached
+    libgcc-ng        9.3.0  h5dbcf3e_17  conda-forge/linux-64     Cached
+    libgomp          9.3.0  h5dbcf3e_17  conda-forge/linux-64     Cached
+    libstdcxx-ng     9.3.0  h2ae2ef3_17  conda-forge/linux-64     Cached
+    xsimd            7.4.9  hc9558a2_0   conda-forge/linux-64     102 KB
+    xtensor         0.21.9  h0efe328_0   conda-forge/linux-64     183 KB
+    xtl             0.6.21  h0efe328_0   conda-forge/linux-64     Cached
+
+    Summary:
+
+    Install: 8 packages
+
+    Total download: 285 KB
+
+  ────────────────────────────────────────────────────────────────────────
+
+  Confirm changes: [Y/n] ...
+
+
+After the installation is finished, the environment can be :ref:`activated<activation>` with:
+
+.. code::
+
+  $ micromamba activate xtensor_env
+
+
+Specification files
+===================
+
+The ``create`` syntax also allows you to use specification or environment files (also called *spec files*) to easily re-create environments.
+
+The three supported syntaxes are: yaml, txt and explicit spec files.
+
+Simple text spec files
+**********************
+
+The ``txt`` file contains *one spec per line*. For example, this could look like:
+
+.. code::
+
+  xtensor
+  numpy 1.19
+  xsimd >=7.4
+
+
+To use this file, pass:
+
+.. code::
+
+  $ micromamba create -n from_file -f spec_file.txt -c conda-forge
+
+.. note::
+  You can pass multiple text spec files by repeating the ``-f,--file`` argument.
+
+
+YAML spec files
+***************
+
+More powerful are ``YAML`` files like the following, because they already contain a desired environment name and the channels to use:
+
+.. code::
+
+  name: testenv
+  channels:
+    - conda-forge
+  dependencies:
+    - python >=3.6,<3.7
+    - ipykernel >=5.1
+    - ipywidgets
+
+They are used the same way as text files:
+
+.. code::
+
+  $ micromamba create -f env.yml
+
+.. note::
+  CLI options will keep :ref:`precedence<precedence-resolution>` over *target prefix* or *channels* specified in spec files.
+
+.. warning::
+  ``YAML`` spec files do not allow multiple files.
+
+
+Explicit spec files
+*******************
+
+Using ``conda`` you can generate *explicit* environment lock files. For this, create an environment and execute:
+
+.. code::
+
+  $ conda list --explicit --md5
+
+These environment files look like the following and precisely "pin" the desired package + version + build string:
+
+.. code::
+
+  # This file may be used to create an environment using:
+  # $ conda create --name <env> --file <this file>
+  # platform: linux-64
+  @EXPLICIT
+  https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81
+  https://conda.anaconda.org/conda-forge/linux-64/libstdcxx-ng-9.3.0-h2ae2ef3_17.tar.bz2#342f3c931d0a3a209ab09a522469d20c
+  https://conda.anaconda.org/conda-forge/linux-64/libgomp-9.3.0-h5dbcf3e_17.tar.bz2#8fd587013b9da8b52050268d50c12305
+  https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-1_gnu.tar.bz2#561e277319a41d4f24f5c05a9ef63c04
+  https://conda.anaconda.org/conda-forge/linux-64/libgcc-ng-9.3.0-h5dbcf3e_17.tar.bz2#fc9f5adabc4d55cd4b491332adc413e0
+  https://conda.anaconda.org/conda-forge/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2#9eee90b98fd394db7a049792e67e1659
+  https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2#1030174db5c183f3afb4181a0a02873d
+
+To install such a file with ``micromamba``, just pass the ``-f`` flag again:
+
+.. code::
+
+  $ micromamba create -n xtensor -c conda-forge -f explicit_env.txt

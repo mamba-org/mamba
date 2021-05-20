@@ -39,21 +39,17 @@ namespace validate
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature);
 
-    template <class B>
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
-        const B& sig_hex) noexcept
+        const std::string& sig_hex) noexcept;
 
-    {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
-    }
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
+        const std::string& sig_hex, int& error_code) noexcept;
 
-    template <class B>
     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
-        const B& key_hex) noexcept
+        const std::string& key_hex) noexcept;
 
-    {
-        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
-    }
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
+        const std::string& key_hex, int& error_code) noexcept;
 
     int verify(const unsigned char* data,
                std::size_t data_len,

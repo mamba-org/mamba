@@ -99,6 +99,24 @@ namespace validate
             EXPECT_EQ(verify("Some text.", pk_hex, signature_hex), 1);
         }
 
+        TEST_F(VerifyMsg, wrong_signature)
+        {
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
+
+            EXPECT_EQ(verify("Some text.", pk_hex, "signature_hex"), 0);
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+        }
+
+        TEST_F(VerifyMsg, wrong_public_key)
+        {
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            auto signature_hex = ::mamba::hex_string(signature, MAMBA_ED25519_SIGSIZE_BYTES);
+
+            EXPECT_EQ(verify("Some text.", "pk_hex", signature_hex), 0);
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+        }
+
         class VerifyGPGMsg : public ::testing::Test
         {  // Using test/data/2.root.json from conda-content-trust
         protected:

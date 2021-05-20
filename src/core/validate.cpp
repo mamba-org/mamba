@@ -125,6 +125,34 @@ namespace validate
         return fs::file_size(path) == validation;
     }
 
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
+        const std::string& sig_hex) noexcept
+
+    {
+        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex);
+    }
+
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
+        const std::string& sig_hex, int& error_code) noexcept
+
+    {
+        return ::mamba::hex_to_bytes<MAMBA_ED25519_SIGSIZE_BYTES>(sig_hex, error_code);
+    }
+
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
+        const std::string& key_hex) noexcept
+
+    {
+        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex);
+    }
+
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
+        const std::string& key_hex, int& error_code) noexcept
+
+    {
+        return ::mamba::hex_to_bytes<MAMBA_ED25519_KEYSIZE_BYTES>(key_hex, error_code);
+    }
+
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk)
     {
         std::size_t key_len = MAMBA_ED25519_KEYSIZE_BYTES;
@@ -245,12 +273,19 @@ namespace validate
 
     int verify(const std::string& data, const std::string& pk, const std::string& signature)
     {
-        auto bin_signature = ed25519_sig_hex_to_bytes(signature);
-        auto bin_pk = ed25519_key_hex_to_bytes(pk);
-
-        if (bin_signature.empty() || bin_pk.empty())
+        int error_code = 0;
+        auto bin_signature = ed25519_sig_hex_to_bytes(signature, error_code);
+        if (error_code != 0)
         {
-            throw std::runtime_error("Conversions from hex to bin format failed.");
+            LOG_DEBUG << "Invalid signature '" << signature << "' for public key '" << pk << "'";
+            return 0;
+        }
+
+        auto bin_pk = ed25519_key_hex_to_bytes(pk, error_code);
+        if (error_code != 0)
+        {
+            LOG_DEBUG << "Invalid public key '" << pk << "'";
+            return 0;
         }
 
         return verify(data, bin_pk.data(), bin_signature.data());
@@ -305,7 +340,12 @@ namespace validate
         auto final_trailer_bin = ::mamba::hex_to_bytes<2>(std::string("04ff"));
 
         uint32_t trailer_bin_len_big_endian = pgp_trailer_bin.size();
+
+#ifdef _WIN32
+        trailer_bin_len_big_endian = _byteswap_ulong(trailer_bin_len_big_endian);
+#else
         trailer_bin_len_big_endian = __builtin_bswap32(trailer_bin_len_big_endian);
+#endif
 
         std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
 

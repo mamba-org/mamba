@@ -298,13 +298,14 @@ namespace mamba
     }
 
     template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
+    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
     {
         std::array<unsigned char, S> res{};
         if (buffer.size() != (S * 2))
         {
             LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
                       << buffer.size();
+            error_code = 1;
             return res;
         }
 
@@ -317,6 +318,13 @@ namespace mamba
             ++i;
         }
         return res;
+    }
+
+    template <size_t S, class B>
+    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
+    {
+        int ec;
+        return hex_to_bytes<S>(buffer, ec);
     }
 
     // get the value corresponding to a key in a JSON object and assign it to target

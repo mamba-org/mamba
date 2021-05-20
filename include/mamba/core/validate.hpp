@@ -7,7 +7,8 @@
 #ifndef MAMBA_CORE_VALIDATE_HPP
 #define MAMBA_CORE_VALIDATE_HPP
 
-#include "mamba_fs.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -27,18 +28,6 @@ namespace validate
     bool md5(const std::string& path, const std::string& validation);
     bool file_size(const fs::path& path, std::uintmax_t validation);
 
-    int hex2bin(unsigned char* const bin,
-                const size_t bin_maxlen,
-                const char* const hex,
-                const size_t hex_len,
-                const char* const ignore,
-                size_t* const bin_len,
-                const char** const hex_end);
-    char* bin2hex(char* const hex,
-                  const size_t hex_maxlen,
-                  const unsigned char* const bin,
-                  const size_t bin_len);
-
     const std::size_t MAMBA_SHA256_SIZE_HEX = 64;
     const std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
     const std::size_t MAMBA_ED25519_KEYSIZE_HEX = 64;
@@ -50,17 +39,53 @@ namespace validate
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature);
 
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
+        const std::string& sig_hex) noexcept;
+
+    std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
+        const std::string& sig_hex, int& error_code) noexcept;
+
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
+        const std::string& key_hex) noexcept;
+
+    std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> ed25519_key_hex_to_bytes(
+        const std::string& key_hex, int& error_code) noexcept;
+
     int verify(const unsigned char* data,
                std::size_t data_len,
-               unsigned char* pk,
-               unsigned char* signature);
-    int verify(const std::string& data, unsigned char* pk, unsigned char* signature);
-    int verify(const std::string& data, const std::string& pk, const std::string& signature);
+               const unsigned char* pk,
+               const unsigned char* signature);
+    int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature);
+    int verify(const std::string& data,
+               const std::string& pk_hex,
+               const std::string& signature_hex);
 
-    int verify_gpg_hashed_msg(const std::string& data, unsigned char* pk, unsigned char* signature);
+    /**
+     * Verify a GPG/PGP signature against the hash of the binary data and
+     * the additional trailer added in V4 signature.
+     * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
+     * This method assumes hash function to be SHA-256
+     */
+    int verify_gpg_hashed_msg(const unsigned char* data,
+                              const unsigned char* pk,
+                              const unsigned char* signature);
+    int verify_gpg_hashed_msg(const std::string& data,
+                              const unsigned char* pk,
+                              const unsigned char* signature);
     int verify_gpg_hashed_msg(const std::string& data,
                               const std::string& pk,
                               const std::string& signature);
+
+    /**
+     * Verify a GPG/PGP signature against the binary data and
+     * the additional trailer added in V4 signature.
+     * See RFC4880, section 5.2.4 https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.4
+     * This method assumes hash function to be SHA-256
+     */
+    int verify_gpg(const std::string& data,
+                   const std::string& gpg_v4_trailer,
+                   const std::string& pk,
+                   const std::string& signature);
 
     class trust_error : public std::exception
     {

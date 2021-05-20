@@ -20,6 +20,8 @@
 #include "nlohmann/json.hpp"
 
 #include "mamba_fs.hpp"
+#include "output.hpp"
+
 
 namespace mamba
 {
@@ -256,15 +258,73 @@ namespace mamba
     }
 
     template <class B>
-    inline std::string hex_string(const B& buffer)
+    inline std::string hex_string(const B& buffer, std::size_t size)
     {
         std::ostringstream oss;
         oss << std::hex;
-        for (std::size_t i = 0; i < buffer.size(); ++i)
+        for (std::size_t i = 0; i < size; ++i)
         {
             oss << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i]);
         }
         return oss.str();
+    }
+
+    template <class B>
+    inline std::string hex_string(const B& buffer)
+    {
+        return hex_string(buffer, buffer.size());
+    }
+
+    template <class B>
+    std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
+    {
+        std::vector<unsigned char> res;
+        if (size % 2 != 0)
+            return res;
+
+        std::string extract;
+        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+        {
+            extract.assign(pos, pos + 2);
+            res.push_back(std::stoi(extract, nullptr, 16));
+        }
+        return res;
+    }
+
+    template <class B>
+    std::vector<unsigned char> hex_to_bytes(const B& buffer) noexcept
+    {
+        return hex_to_bytes(buffer, buffer.size());
+    }
+
+    template <size_t S, class B>
+    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
+    {
+        std::array<unsigned char, S> res{};
+        if (buffer.size() != (S * 2))
+        {
+            LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
+                      << buffer.size();
+            error_code = 1;
+            return res;
+        }
+
+        std::string extract;
+        std::size_t i = 0;
+        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+        {
+            extract.assign(pos, pos + 2);
+            res[i] = std::stoi(extract, nullptr, 16);
+            ++i;
+        }
+        return res;
+    }
+
+    template <size_t S, class B>
+    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
+    {
+        int ec;
+        return hex_to_bytes<S>(buffer, ec);
     }
 
     // get the value corresponding to a key in a JSON object and assign it to target

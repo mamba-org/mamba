@@ -190,13 +190,23 @@ namespace mamba
         }
     }
 
-    CURLcode DownloadTarget::head_request(const std::string& url)
+    bool DownloadTarget::resource_exists(const std::string& url)
     {
+        init_curl_ssl();
         auto handle = curl_easy_init();
         init_curl_handle(handle, url);
-        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
         curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);
-        return curl_easy_perform(handle);
+        curl_easy_setopt(handle, CURLOPT_NOBODY, 1L);
+        if (curl_easy_perform(handle) == CURLE_OK)
+        {
+            return true;
+        }
+
+        // Unfortunately, some servers don't support HEAD, so we will try a GET if the HEAD fails
+        // (since HEAD should be pretty quick, and a failing GET should be just as fast).
+        curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
+
+        return curl_easy_perform(handle) == CURLE_OK;
     }
 
     /*********************************

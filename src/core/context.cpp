@@ -158,8 +158,8 @@ namespace mamba
         // the repodata.json content is invalid json!
         while (true)
         {
-            auto result = DownloadTarget::head_request(std::string(view) + "/channeldata.json");
-            if (result != CURLE_OK)
+            auto exists = DownloadTarget::resource_exists(std::string(view) + "/channeldata.json");
+            if (!exists)
             {
                 auto pos = view.find_last_of('/');
                 if (pos == std::string_view::npos)

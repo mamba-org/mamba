@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
 #include "mamba/core/validate.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 
 #include <nlohmann/json.hpp>
+
+#include <openssl/sha.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -15,6 +18,58 @@ namespace validate
     namespace testing
     {
         using nlohmann::json;
+
+        TEST(Validate, ed25519_key_hex_to_bytes)
+        {
+            std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+            generate_ed25519_keypair(pk.data(), sk.data());
+
+            auto pk_hex = ::mamba::hex_string(pk);
+            auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
+            EXPECT_EQ(pk_hex, ::mamba::hex_string(pk_bytes));
+
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+
+            std::array<unsigned char, 5> not_even_key;
+            pk_hex = ::mamba::hex_string(not_even_key);
+            pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
+            EXPECT_FALSE(pk_hex == ::mamba::hex_string(pk_bytes));
+
+            std::array<unsigned char, 6> wrong_size_key;
+            pk_hex = ::mamba::hex_string(wrong_size_key);
+            pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
+            EXPECT_FALSE(pk_hex == ::mamba::hex_string(pk_bytes));
+
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+        }
+
+        TEST(Validate, ed25519_sig_hex_to_bytes)
+        {
+            std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+            generate_ed25519_keypair(pk.data(), sk.data());
+
+            std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
+            sign("Some text.", sk.data(), sig.data());
+
+            auto sig_hex = ::mamba::hex_string(sig);
+            auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
+            EXPECT_EQ(sig_hex, ::mamba::hex_string(sig_bytes));
+
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+
+            std::array<unsigned char, 5> not_even_sig;
+            sig_hex = ::mamba::hex_string(not_even_sig);
+            sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
+            EXPECT_FALSE(sig_hex == ::mamba::hex_string(sig_bytes));
+
+            std::array<unsigned char, 6> wrong_size_sig;
+            sig_hex = ::mamba::hex_string(wrong_size_sig);
+            sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
+            EXPECT_FALSE(sig_hex == ::mamba::hex_string(sig_bytes));
+
+            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+        }
+
 
         class VerifyMsg : public ::testing::Test
         {
@@ -38,12 +93,8 @@ namespace validate
 
         TEST_F(VerifyMsg, from_hex)
         {
-            char signature_hex[MAMBA_ED25519_SIGSIZE_HEX];
-            bin2hex(
-                signature_hex, MAMBA_ED25519_SIGSIZE_HEX, signature, MAMBA_ED25519_SIGSIZE_BYTES);
-
-            char pk_hex[MAMBA_ED25519_KEYSIZE_HEX];
-            bin2hex(pk_hex, MAMBA_ED25519_KEYSIZE_HEX, pk, MAMBA_ED25519_KEYSIZE_BYTES);
+            auto signature_hex = ::mamba::hex_string(signature, MAMBA_ED25519_SIGSIZE_BYTES);
+            auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
             EXPECT_EQ(verify("Some text.", pk_hex, signature_hex), 1);
         }
@@ -60,25 +111,10 @@ namespace validate
 
         TEST_F(VerifyGPGMsg, from_bin)
         {
-            unsigned char bin_signature[MAMBA_ED25519_SIGSIZE_BYTES];
-            hex2bin(bin_signature,
-                    MAMBA_ED25519_SIGSIZE_BYTES,
-                    signature.c_str(),
-                    MAMBA_ED25519_SIGSIZE_HEX,
-                    NULL,
-                    NULL,
-                    NULL);
+            auto bin_signature = ed25519_sig_hex_to_bytes(signature);
+            auto bin_pk = ed25519_key_hex_to_bytes(pk);
 
-            unsigned char bin_pk[MAMBA_ED25519_KEYSIZE_BYTES];
-            hex2bin(bin_pk,
-                    MAMBA_ED25519_KEYSIZE_BYTES,
-                    pk.c_str(),
-                    MAMBA_ED25519_KEYSIZE_HEX,
-                    NULL,
-                    NULL,
-                    NULL);
-
-            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, bin_pk, bin_signature), 1);
+            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, bin_pk.data(), bin_signature.data()), 1);
         }
 
         TEST_F(VerifyGPGMsg, from_hex)
@@ -173,20 +209,14 @@ namespace validate
                 {
                     std::map<std::string, std::map<std::string, std::string>> signatures;
 
-                    char sig_hex[MAMBA_ED25519_SIGSIZE_HEX];
                     unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
 
                     for (auto& secret : secrets.at("root"))
                     {
                         sign(root_meta.dump(), secret.second.data(), sig_bin);
 
-                        bin2hex(sig_hex,
-                                MAMBA_ED25519_SIGSIZE_HEX,
-                                sig_bin,
-                                MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures[secret.first].insert(
-                            { "signature",
-                              std::string(sig_hex, sig_hex + MAMBA_ED25519_SIGSIZE_HEX) });
+                        auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
+                        signatures[secret.first].insert({ "signature", sig_hex });
                     }
 
                     return signatures;
@@ -226,15 +256,13 @@ namespace validate
 
                     unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
                     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
-                    char pk_hex[MAMBA_ED25519_KEYSIZE_HEX];
 
                     for (int i = 0; i < count; ++i)
                     {
                         generate_ed25519_keypair(pk, sk.data());
-                        bin2hex(pk_hex, MAMBA_ED25519_KEYSIZE_HEX, pk, MAMBA_ED25519_KEYSIZE_BYTES);
+                        auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
-                        secrets.insert(
-                            { std::string(pk_hex, pk_hex + MAMBA_ED25519_KEYSIZE_HEX), sk });
+                        secrets.insert({ pk_hex, sk });
                     }
                     return secrets;
                 }
@@ -519,6 +547,72 @@ namespace validate
 
                 EXPECT_THROW(root.update(tmp_file->path()), threshold_error);
             }
+
+            TEST_F(RootRoleV06, verify_gpg_hashed_msg)
+            {
+                json signed_data = R"({
+                    "delegations": {
+                    "key_mgr": {
+                        "pubkeys": [
+                        "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+                        ],
+                        "threshold": 1
+                    },
+                    "root": {
+                        "pubkeys": [
+                        "2b920f88531576643ada0a632915d1dcdd377557647093f29cbe251ba8c33724"
+                        ],
+                        "threshold": 1
+                    }
+                    },
+                    "expiration": "2022-05-19T14:44:35Z",
+                    "metadata_spec_version": "0.6.0",
+                    "timestamp": "2021-05-19T14:44:35Z",
+                    "type": "root",
+                    "version": 1
+                    })"_json;
+
+                std::string signature
+                    = "d891de3fc102a2ff7b96559ff2f4d81a8e25b5d51a44e10a9fbc5bdc3febf22120582f30e26f6dfe9450ca8100566af7cbc286bf7f52c700d074acd3d4a01603";
+
+                std::string header
+                    = "04001608001d1621040673d781a8b80bcb7b002040ac7bc8bcf821360d050260a52453";
+
+                std::string msg = signed_data.dump(2);
+
+                EXPECT_TRUE(verify_gpg(msg,
+                                       header,
+                                       signed_data.at("delegations").at("root").at("pubkeys")[0],
+                                       signature));
+            }
+
+
+            TEST_F(RootRoleV06, verify_key_mgr)
+            {
+                json signed_data = R"({
+                        "delegations": {
+                        "pkg_mgr": {
+                            "pubkeys": [
+                            "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569"
+                            ],
+                            "threshold": 1
+                        }
+                        },
+                        "expiration": "2022-05-20T06:59:32Z",
+                        "metadata_spec_version": "0.6.0",
+                        "timestamp": "2021-05-20T06:59:32Z",
+                        "type": "key_mgr",
+                        "version": 1
+                    })"_json;
+
+                std::string signature
+                    = "76799491523757ca356b699d540370ae77945b703b4c1a6363ef06321d8b40eb6cf1f1d5d23db56634098e79f251d21590d28318f886866972aa78d294c2e101";
+
+                std::string pk = "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7";
+                std::string msg = signed_data.dump(2);
+
+                EXPECT_TRUE(verify(msg, pk, signature));
+            }
         }  // namespace testing
     }      // namespace v06
 
@@ -615,20 +709,14 @@ namespace validate
                 json sign_root_meta(const json& root_meta)
                 {
                     std::vector<RoleSignature> signatures;
-                    char sig_hex[MAMBA_ED25519_SIGSIZE_HEX];
                     unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
 
                     for (auto& secret : secrets.at("root"))
                     {
                         sign(root_meta.dump(), secret.second.data(), sig_bin);
 
-                        bin2hex(sig_hex,
-                                MAMBA_ED25519_SIGSIZE_HEX,
-                                sig_bin,
-                                MAMBA_ED25519_SIGSIZE_BYTES);
-                        signatures.push_back(
-                            { secret.first,
-                              std::string(sig_hex, sig_hex + MAMBA_ED25519_SIGSIZE_HEX) });
+                        auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
+                        signatures.push_back({ secret.first, sig_hex });
                     }
 
                     return signatures;
@@ -648,15 +736,13 @@ namespace validate
 
                     unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
                     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
-                    char pk_hex[MAMBA_ED25519_KEYSIZE_HEX];
 
                     for (int i = 0; i < count; ++i)
                     {
                         generate_ed25519_keypair(pk, sk.data());
-                        bin2hex(pk_hex, MAMBA_ED25519_KEYSIZE_HEX, pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
-                        secrets.insert(
-                            { std::string(pk_hex, pk_hex + MAMBA_ED25519_KEYSIZE_HEX), sk });
+                        auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
+                        secrets.insert({ pk_hex, sk });
                     }
                     return secrets;
                 }

@@ -201,8 +201,8 @@ namespace validate
 
     int verify(const unsigned char* data,
                std::size_t data_len,
-               unsigned char* pk,
-               unsigned char* signature)
+               const unsigned char* pk,
+               const unsigned char* signature)
     {
         std::size_t sig_len = MAMBA_ED25519_SIGSIZE_BYTES;
 
@@ -235,7 +235,7 @@ namespace validate
         return 1;
     }
 
-    int verify(const std::string& data, unsigned char* pk, unsigned char* signature)
+    int verify(const std::string& data, const unsigned char* pk, const unsigned char* signature)
     {
         unsigned long long data_len = data.size();
         auto raw_data = (const unsigned char*) data.c_str();
@@ -245,194 +245,85 @@ namespace validate
 
     int verify(const std::string& data, const std::string& pk, const std::string& signature)
     {
-        unsigned char bin_signature[MAMBA_ED25519_SIGSIZE_BYTES];
-        int ret1 = hex2bin(bin_signature,
-                           MAMBA_ED25519_SIGSIZE_BYTES,
-                           signature.c_str(),
-                           MAMBA_ED25519_SIGSIZE_HEX,
-                           NULL,
-                           NULL,
-                           NULL);
+        auto bin_signature = ed25519_sig_hex_to_bytes(signature);
+        auto bin_pk = ed25519_key_hex_to_bytes(pk);
 
-        unsigned char bin_pk[MAMBA_ED25519_KEYSIZE_BYTES];
-        int ret2 = hex2bin(bin_pk,
-                           MAMBA_ED25519_KEYSIZE_BYTES,
-                           pk.c_str(),
-                           MAMBA_ED25519_KEYSIZE_HEX,
-                           NULL,
-                           NULL,
-                           NULL);
-
-        if ((ret1 != 0) || (ret2 != 0))
+        if (bin_signature.empty() || bin_pk.empty())
         {
             throw std::runtime_error("Conversions from hex to bin format failed.");
         }
 
-        return verify(data, bin_pk, bin_signature);
+        return verify(data, bin_pk.data(), bin_signature.data());
     }
 
-    int verify_gpg_hashed_msg(const std::string& data, unsigned char* pk, unsigned char* signature)
+    int verify_gpg_hashed_msg(const unsigned char* data,
+                              const unsigned char* pk,
+                              const unsigned char* signature)
     {
-        unsigned char msg_bin[MAMBA_SHA256_SIZE_BYTES];
-        hex2bin(msg_bin,
-                MAMBA_SHA256_SIZE_BYTES,
-                data.c_str(),
-                MAMBA_SHA256_SIZE_HEX,
-                NULL,
-                NULL,
-                NULL);
+        return verify(data, MAMBA_SHA256_SIZE_BYTES, pk, signature);
+    }
 
-        return verify(msg_bin, MAMBA_SHA256_SIZE_BYTES, pk, signature);
+
+    int verify_gpg_hashed_msg(const std::string& data,
+                              const unsigned char* pk,
+                              const unsigned char* signature)
+    {
+        auto data_bin = ::mamba::hex_to_bytes<MAMBA_SHA256_SIZE_BYTES>(data);
+
+        return verify(data_bin.data(), MAMBA_SHA256_SIZE_BYTES, pk, signature);
     }
 
     int verify_gpg_hashed_msg(const std::string& data,
                               const std::string& pk,
                               const std::string& signature)
     {
-        unsigned char bin_signature[MAMBA_ED25519_SIGSIZE_BYTES];
-        hex2bin(bin_signature,
-                MAMBA_ED25519_SIGSIZE_BYTES,
-                signature.c_str(),
-                MAMBA_ED25519_SIGSIZE_HEX,
-                NULL,
-                NULL,
-                NULL);
+        auto signature_bin = ed25519_sig_hex_to_bytes(signature);
+        auto pk_bin = ed25519_key_hex_to_bytes(pk);
 
-        unsigned char bin_pk[MAMBA_ED25519_KEYSIZE_BYTES];
-        hex2bin(bin_pk,
-                MAMBA_ED25519_KEYSIZE_BYTES,
-                pk.c_str(),
-                MAMBA_ED25519_KEYSIZE_HEX,
-                NULL,
-                NULL,
-                NULL);
+        return verify_gpg_hashed_msg(data, pk_bin.data(), signature_bin.data());
+    }
 
-        return verify_gpg_hashed_msg(data, bin_pk, bin_signature);
+    int verify_gpg(const std::string& data,
+                   const std::string& pgp_v4_trailer,
+                   const std::string& pk,
+                   const std::string& signature)
+    {
+        unsigned long long data_len = data.size();
+        auto data_bin = (const unsigned char*) data.c_str();
+
+        auto signature_bin = ed25519_sig_hex_to_bytes(signature);
+        auto pk_bin = ed25519_key_hex_to_bytes(pk);
+
+        std::size_t trailer_hex_size = pgp_v4_trailer.size();
+        if (trailer_hex_size % 2 != 0)
+        {
+            LOG_DEBUG << "PGP V4 trailer size is not even: " << pgp_v4_trailer;
+            return 0;
+        }
+
+        auto pgp_trailer_bin = ::mamba::hex_to_bytes(pgp_v4_trailer);
+        auto final_trailer_bin = ::mamba::hex_to_bytes<2>(std::string("04ff"));
+
+        uint32_t trailer_bin_len_big_endian = pgp_trailer_bin.size();
+        trailer_bin_len_big_endian = __builtin_bswap32(trailer_bin_len_big_endian);
+
+        std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
+
+        SHA256_CTX sha256;
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256, data_bin, data_len);
+        SHA256_Update(&sha256, pgp_trailer_bin.data(), pgp_trailer_bin.size());
+        SHA256_Update(&sha256, final_trailer_bin.data(), final_trailer_bin.size());
+        SHA256_Update(&sha256, (unsigned char*) &trailer_bin_len_big_endian, 4);
+        SHA256_Final(hash.data(), &sha256);
+
+        return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data());
     }
 
     bool operator<(const RoleSignature& rs1, const RoleSignature& rs2)
     {
         return rs1.keyid < rs2.keyid;
     };
-
-    /**
-     * Binary to hexadecimal converter.
-     * from https://github.com/jedisct1/libsodium
-     */
-    char* bin2hex(char* const hex,
-                  const size_t hex_maxlen,
-                  const unsigned char* const bin,
-                  const size_t bin_len)
-    {
-        size_t i = (size_t) 0U;
-        unsigned int x;
-        int b;
-        int c;
-
-        if (bin_len >= SIZE_MAX / 2 || hex_maxlen < bin_len * 2U)
-        {
-            throw std::runtime_error("Invalid size for binary to hexadecimal conversion.");
-        }
-        while (i < bin_len)
-        {
-            c = bin[i] & 0xf;
-            b = bin[i] >> 4;
-            x = (unsigned char) (87U + c + (((c - 10U) >> 8) & ~38U)) << 8
-                | (unsigned char) (87U + b + (((b - 10U) >> 8) & ~38U));
-            hex[i * 2U] = (char) x;
-            x >>= 8;
-            hex[i * 2U + 1U] = (char) x;
-            i++;
-        }
-        if (hex_maxlen > bin_len * 2U)
-        {
-            hex[i * 2U] = 0U;
-        }
-
-        return hex;
-    }
-
-    /**
-     * Hexadecimal to decimal converter.
-     * from https://github.com/jedisct1/libsodium
-     */
-    int hex2bin(unsigned char* const bin,
-                const size_t bin_maxlen,
-                const char* const hex,
-                const size_t hex_len,
-                const char* const ignore,
-                size_t* const bin_len,
-                const char** const hex_end)
-    {
-        size_t bin_pos = (size_t) 0U;
-        size_t hex_pos = (size_t) 0U;
-        int ret = 0;
-        unsigned char c;
-        unsigned char c_acc = 0U;
-        unsigned char c_alpha0, c_alpha;
-        unsigned char c_num0, c_num;
-        unsigned char c_val;
-        unsigned char state = 0U;
-
-        while (hex_pos < hex_len)
-        {
-            c = (unsigned char) hex[hex_pos];
-            c_num = c ^ 48U;
-            c_num0 = (c_num - 10U) >> 8;
-            c_alpha = (c & ~32U) - 55U;
-            c_alpha0 = ((c_alpha - 10U) ^ (c_alpha - 16U)) >> 8;
-            if ((c_num0 | c_alpha0) == 0U)
-            {
-                if (ignore != NULL && state == 0U && strchr(ignore, c) != NULL)
-                {
-                    hex_pos++;
-                    continue;
-                }
-                break;
-            }
-            c_val = (c_num0 & c_num) | (c_alpha0 & c_alpha);
-            if (bin_pos >= bin_maxlen)
-            {
-                ret = -1;
-                errno = ERANGE;
-                break;
-            }
-            if (state == 0U)
-            {
-                c_acc = c_val * 16U;
-            }
-            else
-            {
-                bin[bin_pos++] = c_acc | c_val;
-            }
-            state = ~state;
-            hex_pos++;
-        }
-        if (state != 0U)
-        {
-            hex_pos--;
-            errno = EINVAL;
-            ret = -1;
-        }
-        if (ret != 0)
-        {
-            bin_pos = (size_t) 0U;
-        }
-        if (hex_end != NULL)
-        {
-            *hex_end = &hex[hex_pos];
-        }
-        else if (hex_pos != hex_len)
-        {
-            errno = EINVAL;
-            ret = -1;
-        }
-        if (bin_len != NULL)
-        {
-            *bin_len = bin_pos;
-        }
-        return ret;
-    }
 
     RoleKeys RolePubKeys::to_role_keys() const
     {
@@ -976,13 +867,11 @@ namespace validate
                                                    const std::string& pk,
                                                    const unsigned char* sk) const
         {
-            char sig_hex[MAMBA_ED25519_SIGSIZE_HEX];
-            unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+            std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
+            sign(j.dump(), sk, sig_bin.data());
+            auto sig_hex = ::mamba::hex_string(sig_bin);
 
-            sign(j.dump(), sk, sig_bin);
-            bin2hex(sig_hex, MAMBA_ED25519_SIGSIZE_HEX, sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
-
-            return { pk, std::string(sig_hex, sig_hex + MAMBA_ED25519_SIGSIZE_HEX) };
+            return { pk, sig_hex };
         }
 
 

@@ -118,26 +118,60 @@ namespace validate
         }
 
         class VerifyGPGMsg : public ::testing::Test
-        {  // Using test/data/2.root.json from conda-content-trust
+        {
+        public:
+            VerifyGPGMsg()
+            {
+                json j = R"({
+                            "delegations": {
+                            "key_mgr": {
+                                "pubkeys": [
+                                "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+                                ],
+                                "threshold": 1
+                            },
+                            "root": {
+                                "pubkeys": [
+                                "2b920f88531576643ada0a632915d1dcdd377557647093f29cbe251ba8c33724"
+                                ],
+                                "threshold": 1
+                            }
+                            },
+                            "expiration": "2022-05-19T14:44:35Z",
+                            "metadata_spec_version": "0.6.0",
+                            "timestamp": "2021-05-19T14:44:35Z",
+                            "type": "root",
+                            "version": 1
+                        })"_json;
+                data = j.dump(2);
+            }
+
         protected:
-            std::string pk = "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c";
+            std::string pk = "2b920f88531576643ada0a632915d1dcdd377557647093f29cbe251ba8c33724";
             std::string signature
-                = "6e7ad181d4dff9ea462fc076041e19f90a765cba6d6c9c9bad28a8b5094145ea7372c5aca74911daf75e2e5efc8dc9b745bd286c6d9787198659f89bfdb7fd01";
-            std::string msg_hash
-                = "9ddbb1e859bb431409bcfbfe9dc645e598324907c25a9222dde9c1b547f8bcd6";
+                = "d891de3fc102a2ff7b96559ff2f4d81a8e25b5d51a44e10a9fbc5bdc3febf22120582f30e26f6dfe9450ca8100566af7cbc286bf7f52c700d074acd3d4a01603";
+            std::string trailer
+                = "04001608001d1621040673d781a8b80bcb7b002040ac7bc8bcf821360d050260a52453";
+            std::string hash = "5ad6a0995a537a5fc728ead2dda546972607c5ac235945f7c6c66f90eae1b326";
+            std::string data;
         };
 
-        TEST_F(VerifyGPGMsg, from_bin)
+        TEST_F(VerifyGPGMsg, verify_gpg_hashed_msg_from_bin)
         {
             auto bin_signature = ed25519_sig_hex_to_bytes(signature);
             auto bin_pk = ed25519_key_hex_to_bytes(pk);
 
-            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, bin_pk.data(), bin_signature.data()), 1);
+            EXPECT_EQ(verify_gpg_hashed_msg(hash, bin_pk.data(), bin_signature.data()), 1);
         }
 
-        TEST_F(VerifyGPGMsg, from_hex)
-        {  // Using test/data/2.root.json from conda-content-trust
-            EXPECT_EQ(verify_gpg_hashed_msg(msg_hash, pk, signature), 1);
+        TEST_F(VerifyGPGMsg, verify_gpg_hashed_msg_from_hex)
+        {
+            EXPECT_EQ(verify_gpg_hashed_msg(hash, pk, signature), 1);
+        }
+
+        TEST_F(VerifyGPGMsg, verify_gpg)
+        {
+            EXPECT_EQ(verify_gpg(data, trailer, pk, signature), 1);
         }
     }  // namespace testing
 
@@ -160,16 +194,26 @@ namespace validate
                     sign_root();
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_initial_root()
+                std::unique_ptr<TemporaryFile> create_test_initial_root(const json& j)
                 {
                     std::unique_ptr<TemporaryFile> root_file
                         = std::make_unique<mamba::TemporaryFile>("1.", ".root.json");
 
                     auto p = root_file->path();
                     std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
-                    out_file << root1_json;
+                    out_file << j;
                     out_file.close();
                     return root_file;
+                }
+
+                std::unique_ptr<TemporaryFile> create_test_initial_root_raw_key()
+                {
+                    return create_test_initial_root(root1_json);
+                }
+
+                std::unique_ptr<TemporaryFile> create_test_initial_root_pgp()
+                {
+                    return create_test_initial_root(root1_pgp_json);
                 }
 
                 std::unique_ptr<TemporaryFile> create_test_update(const std::string& prefix,
@@ -221,6 +265,9 @@ namespace validate
                     root1_json["signed"]["metadata_spec_version"] = "0.6.0";
                     root1_json["signed"]["type"] = "root";
                     root1_json["signatures"] = sign_root_meta(root1_json["signed"]);
+
+                    std::ifstream i(root1_pgp);
+                    i >> root1_pgp_json;
                 }
 
                 json sign_root_meta(const json& root_meta)
@@ -231,7 +278,7 @@ namespace validate
 
                     for (auto& secret : secrets.at("root"))
                     {
-                        sign(root_meta.dump(), secret.second.data(), sig_bin);
+                        sign(root_meta.dump(2), secret.second.data(), sig_bin);
 
                         auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
                         signatures[secret.first].insert({ "signature", sig_hex });
@@ -261,8 +308,8 @@ namespace validate
                 }
 
             protected:
-                fs::path root1 = "validation_data/root.json";
-                json root1_json;
+                fs::path root1_pgp = "validation_data/1.sv0.6.root.json";
+                json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
 
@@ -288,8 +335,19 @@ namespace validate
 
             TEST_F(RootRoleV06, ctor_from_path)
             {
-                auto tmp_file = create_test_initial_root();
-                RootRole root(tmp_file->path());
+                auto root_file = create_test_initial_root_raw_key();
+                RootRole root(root_file->path());
+
+                EXPECT_EQ(root.type(), "root");
+                EXPECT_EQ(root.file_ext(), "json");
+                EXPECT_EQ(root.spec_version(), "0.6.0");
+                EXPECT_EQ(root.version(), 1);
+            }
+
+            TEST_F(RootRoleV06, ctor_from_path_pgp_signed)
+            {
+                auto root_file = create_test_initial_root_pgp();
+                RootRole root(root_file->path());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
@@ -307,19 +365,29 @@ namespace validate
                 EXPECT_EQ(root.version(), 1);
             }
 
+            TEST_F(RootRoleV06, ctor_from_json_pgp_signed)
+            {
+                RootRole root(root1_pgp_json);
+
+                EXPECT_EQ(root.type(), "root");
+                EXPECT_EQ(root.file_ext(), "json");
+                EXPECT_EQ(root.spec_version(), "0.6.0");
+                EXPECT_EQ(root.version(), 1);
+            }
+
             TEST_F(RootRoleV06, update_from_path)
             {
                 using namespace mamba;
 
-                auto tmp_file = create_test_initial_root();
-                RootRole root(tmp_file->path());
+                auto root_file = create_test_initial_root_raw_key();
+                RootRole root(root_file->path());
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                tmp_file = create_test_update("2.", ".root.json", patch);
+                root_file = create_test_update("2.", ".root.json", patch);
 
-                auto updated_root = root.update(tmp_file->path());
+                auto updated_root = root.update(root_file->path());
 
                 EXPECT_EQ(updated_root->type(), "root");
                 EXPECT_EQ(updated_root->file_ext(), "json");
@@ -564,72 +632,6 @@ namespace validate
                 auto tmp_file = create_test_update("2.", ".root.json", patch);
 
                 EXPECT_THROW(root.update(tmp_file->path()), threshold_error);
-            }
-
-            TEST_F(RootRoleV06, verify_gpg_hashed_msg)
-            {
-                json signed_data = R"({
-                    "delegations": {
-                    "key_mgr": {
-                        "pubkeys": [
-                        "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
-                        ],
-                        "threshold": 1
-                    },
-                    "root": {
-                        "pubkeys": [
-                        "2b920f88531576643ada0a632915d1dcdd377557647093f29cbe251ba8c33724"
-                        ],
-                        "threshold": 1
-                    }
-                    },
-                    "expiration": "2022-05-19T14:44:35Z",
-                    "metadata_spec_version": "0.6.0",
-                    "timestamp": "2021-05-19T14:44:35Z",
-                    "type": "root",
-                    "version": 1
-                    })"_json;
-
-                std::string signature
-                    = "d891de3fc102a2ff7b96559ff2f4d81a8e25b5d51a44e10a9fbc5bdc3febf22120582f30e26f6dfe9450ca8100566af7cbc286bf7f52c700d074acd3d4a01603";
-
-                std::string header
-                    = "04001608001d1621040673d781a8b80bcb7b002040ac7bc8bcf821360d050260a52453";
-
-                std::string msg = signed_data.dump(2);
-
-                EXPECT_TRUE(verify_gpg(msg,
-                                       header,
-                                       signed_data.at("delegations").at("root").at("pubkeys")[0],
-                                       signature));
-            }
-
-
-            TEST_F(RootRoleV06, verify_key_mgr)
-            {
-                json signed_data = R"({
-                        "delegations": {
-                        "pkg_mgr": {
-                            "pubkeys": [
-                            "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569"
-                            ],
-                            "threshold": 1
-                        }
-                        },
-                        "expiration": "2022-05-20T06:59:32Z",
-                        "metadata_spec_version": "0.6.0",
-                        "timestamp": "2021-05-20T06:59:32Z",
-                        "type": "key_mgr",
-                        "version": 1
-                    })"_json;
-
-                std::string signature
-                    = "76799491523757ca356b699d540370ae77945b703b4c1a6363ef06321d8b40eb6cf1f1d5d23db56634098e79f251d21590d28318f886866972aa78d294c2e101";
-
-                std::string pk = "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7";
-                std::string msg = signed_data.dump(2);
-
-                EXPECT_TRUE(verify(msg, pk, signature));
             }
         }  // namespace testing
     }      // namespace v06
@@ -1028,6 +1030,17 @@ namespace validate
                 auto tmp_file = create_test_update("2.", ".root.json", patch);
 
                 EXPECT_THROW(root.update(tmp_file->path()), threshold_error);
+            }
+
+            TEST(RoleSignature, to_json)
+            {
+                RoleSignature s{ "some_key_id", "some_signature", "" };
+                json j = R"({"keyid": "some_key_id", "sig": "some_signature"})"_json;
+                EXPECT_EQ(j, json(s));
+
+                s = { "some_key_id", "some_signature", "some_pgp_trailer" };
+                j = R"({"keyid": "some_key_id", "other_headers": "some_pgp_trailer", "sig": "some_signature"})"_json;
+                EXPECT_EQ(j, json(s));
             }
         }  // namespace testing
     }      // namespace v1

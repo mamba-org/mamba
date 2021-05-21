@@ -123,9 +123,6 @@ class RepoSigner:
         cct_root_signing.sign_root_metadata_via_gpg(
             root_filepath, root_keys[0]["fingerprint"]
         )
-        cct_root_signing.sign_root_metadata_via_gpg(
-            root_filepath, root_keys[0]["fingerprint"]
-        )
 
         # Load untrusted signed root metadata.
         signed_root_md = cct_common.load_metadata_from_file(root_filepath)

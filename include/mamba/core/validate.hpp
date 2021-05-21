@@ -229,10 +229,12 @@ namespace validate
         friend void from_json(const json& j, RoleBase* r);
 
     protected:
+        virtual std::string canonicalize(const json& j) const;
+        virtual bool upgradable() const;
+
         SpecVersion major_spec_version() const;
 
         json read_file(const fs::path& p, bool update = false) const;
-        virtual std::string canonicalize(const json& j) const;
 
     private:
         std::string m_internal_type;
@@ -343,6 +345,8 @@ namespace validate
             RootRole();
 
             void load_from_json(const json& j);
+
+            bool upgradable() const override;
 
             std::unique_ptr<RootRoleBase> create_update(const json& j) override;
             std::set<RoleSignature> signatures(const json& j) const;

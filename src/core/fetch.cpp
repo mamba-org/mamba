@@ -190,6 +190,11 @@ namespace mamba
         }
     }
 
+    static size_t discard(char* ptr, size_t size, size_t nmemb, void*)
+    {
+        return size * nmemb;
+    }
+
     bool DownloadTarget::resource_exists(const std::string& url)
     {
         init_curl_ssl();
@@ -205,6 +210,8 @@ namespace mamba
         // Unfortunately, some servers don't support HEAD, so we will try a GET if the HEAD fails
         // (since HEAD should be pretty quick, and a failing GET should be just as fast).
         curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
+        // Prevent output of data
+        curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
 
         return curl_easy_perform(handle) == CURLE_OK;
     }

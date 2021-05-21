@@ -190,53 +190,53 @@ namespace validate
 
                 RootRoleV06()
                 {
+                    channel_dir = std::make_unique<TemporaryDirectory>();
+
                     generate_secrets();
                     sign_root();
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_initial_root(const json& j)
+                fs::path trusted_root_file(const json& j)
                 {
-                    std::unique_ptr<TemporaryFile> root_file
-                        = std::make_unique<mamba::TemporaryFile>("1.", ".root.json");
+                    fs::path p = channel_dir->path() / "root.json";
 
-                    auto p = root_file->path();
                     std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
                     out_file << j;
                     out_file.close();
-                    return root_file;
+
+                    return p;
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_initial_root_raw_key()
+                fs::path trusted_root_file_raw_key()
                 {
-                    return create_test_initial_root(root1_json);
+                    return trusted_root_file(root1_json);
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_initial_root_pgp()
+                fs::path trusted_root_file_pgp()
                 {
-                    return create_test_initial_root(root1_pgp_json);
+                    return trusted_root_file(root1_pgp_json);
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_update(const std::string& prefix,
-                                                                  const std::string& suffix,
-                                                                  json patch)
+                fs::path create_test_update(const fs::path& name, const json& patch = json())
                 {
-                    std::unique_ptr<TemporaryFile> root_update
-                        = std::make_unique<mamba::TemporaryFile>(prefix, suffix);
+                    fs::path p = channel_dir->path() / name;
 
-                    auto p = root_update->path();
                     std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
 
-                    auto new_root = root1_json.patch(patch);
+                    json new_root = root1_json;
+
+                    if (!patch.empty())
+                        new_root = new_root.patch(patch);
 
                     json sig_patch = R"([
-                            { "op": "replace", "path": "/signatures", "value": 2 }
-                            ])"_json;
+                                        { "op": "replace", "path": "/signatures", "value": 2 }
+                                        ])"_json;
                     sig_patch[0]["value"] = sign_root_meta(new_root.at("signed"));
 
                     out_file << new_root.patch(sig_patch);
                     out_file.close();
 
-                    return root_update;
+                    return p;
                 }
 
                 void generate_secrets(int root = 1, int key_mgr = 1)
@@ -313,6 +313,8 @@ namespace validate
 
                 secrets_type secrets;
 
+                std::unique_ptr<TemporaryDirectory> channel_dir;
+
                 std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
                 generate_role_secrets(int count)
                 {
@@ -335,8 +337,7 @@ namespace validate
 
             TEST_F(RootRoleV06, ctor_from_path)
             {
-                auto root_file = create_test_initial_root_raw_key();
-                RootRole root(root_file->path());
+                RootRole root(trusted_root_file_raw_key());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
@@ -346,8 +347,7 @@ namespace validate
 
             TEST_F(RootRoleV06, ctor_from_path_pgp_signed)
             {
-                auto root_file = create_test_initial_root_pgp();
-                RootRole root(root_file->path());
+                RootRole root(trusted_root_file_pgp());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
@@ -375,19 +375,29 @@ namespace validate
                 EXPECT_EQ(root.version(), 1);
             }
 
+            TEST_F(RootRoleV06, ctor_wrong_filename_spec_version)
+            {
+                fs::path p = channel_dir->path() / "2.sv1.root.json";
+
+                std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                out_file << root1_json;
+                out_file.close();
+
+                // "2.sv1.root.json" is not compatible spec version (spec version N)
+                EXPECT_THROW(RootRole root(p), role_file_error);
+            }
+
             TEST_F(RootRoleV06, update_from_path)
             {
                 using namespace mamba;
 
-                auto root_file = create_test_initial_root_raw_key();
-                RootRole root(root_file->path());
+                auto f = trusted_root_file_raw_key();
+                RootRole root(f);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                root_file = create_test_update("2.", ".root.json", patch);
-
-                auto updated_root = root.update(root_file->path());
+                auto updated_root = root.update(create_test_update("2.root.json", patch));
 
                 EXPECT_EQ(updated_root->type(), "root");
                 EXPECT_EQ(updated_root->file_ext(), "json");
@@ -402,9 +412,9 @@ namespace validate
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 3 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, spec_version)
@@ -415,9 +425,8 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 },
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.1" }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
+                auto updated_root = root.update(create_test_update("2.root.json", patch));
 
-                auto updated_root = root.update(tmp_file->path());
                 EXPECT_EQ(updated_root->spec_version(), "0.6.1");
                 EXPECT_EQ(updated_root->version(), 2);
             }
@@ -430,9 +439,9 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 },
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "1.0.0" }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), spec_version_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             spec_version_error);
 
                 json signable_patch = R"([
                     { "op": "replace", "path": "/version", "value": 2 },
@@ -468,39 +477,40 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 },
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "1.0.0" }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), spec_version_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             spec_version_error);
             }
 
             TEST_F(RootRoleV06, wrong_filename_role)
             {
                 RootRole root(root1_json);
 
-                json patch = R"([])"_json;
-                auto tmp_file = create_test_update("2.", ".rooot.json", patch);
-
-                EXPECT_THROW(root.update(tmp_file->path()), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("2.rooot.json")), role_file_error);
             }
 
             TEST_F(RootRoleV06, wrong_filename_version)
             {
                 RootRole root(root1_json);
 
-                json patch = R"([])"_json;
-                auto tmp_file = create_test_update("3.", ".root.json", patch);
+                EXPECT_THROW(root.update(create_test_update("3.root.json")), role_file_error);
+            }
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_file_error);
+            TEST_F(RootRoleV06, wrong_filename_spec_version)
+            {
+                RootRole root(root1_json);
+
+                // "2.sv1.root.json" is upgradable spec version (spec version N+1)
+                EXPECT_THROW(root.update(create_test_update("3.sv1.root.json")), role_file_error);
             }
 
             TEST_F(RootRoleV06, hillformed_filename_version)
             {
                 RootRole root(root1_json);
 
-                json patch = R"([])"_json;
-                auto tmp_file = create_test_update("wrong.", ".root.json", patch);
-
-                EXPECT_THROW(root.update(tmp_file->path()), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("wrong.root.json")), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("2..root.json")), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("2.sv04.root.json")), role_file_error);
             }
 
             TEST_F(RootRoleV06, rollback_attack)
@@ -510,9 +520,8 @@ namespace validate
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 1 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), rollback_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)), rollback_error);
             }
 
             TEST_F(RootRoleV06, wrong_type)
@@ -523,9 +532,9 @@ namespace validate
                     { "op": "replace", "path": "/signed/type", "value": "timestamp" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, missing_type)
@@ -536,8 +545,9 @@ namespace validate
                     { "op": "remove", "path": "/signed/type" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, missing_delegations)
@@ -548,8 +558,9 @@ namespace validate
                     { "op": "remove", "path": "/signed/delegations" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, missing_delegation)
@@ -560,9 +571,9 @@ namespace validate
                                 { "op": "remove", "path": "/signed/delegations/root" },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, empty_delegation_pubkeys)
@@ -573,9 +584,9 @@ namespace validate
                                 { "op": "replace", "path": "/signed/delegations/root/pubkeys", "value": [] },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, null_role_threshold)
@@ -586,9 +597,9 @@ namespace validate
                                 { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 0 },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV06, extra_roles)
@@ -600,9 +611,9 @@ namespace validate
                                     "value": { "keyids": ["c"], "threshold": 1 } },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
             /*
             TEST_F(RootRoleV06, mirrors_role)
@@ -613,9 +624,8 @@ namespace validate
                                        ["c"], "threshold": 1 } }, { "op": "replace", "path":
                "/signed/version", "value": 2 }
                                                         ])"_json;
-                auto tmp_file = create_test_update("", ".root.json", patch);
 
-                RootRole root(tmp_file->path());
+                RootRole root(create_test_update("2.root.json", patch));
                 bool mirrors_role_found = (root.roles().find("mirrors") != root.roles().end());
                 EXPECT_TRUE(mirrors_role_found);
             }
@@ -629,9 +639,8 @@ namespace validate
                     { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 2 }
                     ])"_json;
 
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-
-                EXPECT_THROW(root.update(tmp_file->path()), threshold_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             threshold_error);
             }
         }  // namespace testing
     }      // namespace v06
@@ -651,43 +660,43 @@ namespace validate
 
                 RootRoleV1()
                 {
+                    channel_dir = std::make_unique<TemporaryDirectory>();
+
                     generate_secrets();
                     sign_root();
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_initial_root()
+                fs::path trusted_root_file()
                 {
-                    std::unique_ptr<TemporaryFile> root_file
-                        = std::make_unique<mamba::TemporaryFile>("1.", ".root.json");
+                    fs::path p = channel_dir->path() / "root.json";
 
-                    auto p = root_file->path();
                     std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
                     out_file << root1_json;
                     out_file.close();
-                    return root_file;
+
+                    return p;
                 }
 
-                std::unique_ptr<TemporaryFile> create_test_update(const std::string& prefix,
-                                                                  const std::string& suffix,
-                                                                  json patch)
+                fs::path create_test_update(const fs::path& name, const json& patch = json())
                 {
-                    std::unique_ptr<TemporaryFile> root_update
-                        = std::make_unique<mamba::TemporaryFile>(prefix, suffix);
+                    fs::path p = channel_dir->path() / name;
 
-                    auto p = root_update->path();
                     std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
 
-                    auto new_root = root1_json.patch(patch);
+                    json new_root = root1_json;
+
+                    if (!patch.empty())
+                        new_root = new_root.patch(patch);
 
                     json sig_patch = R"([
-                            { "op": "replace", "path": "/signatures", "value": 2 }
-                            ])"_json;
+                                        { "op": "replace", "path": "/signatures", "value": 2 }
+                                        ])"_json;
                     sig_patch[0]["value"] = sign_root_meta(new_root.at("signed"));
 
                     out_file << new_root.patch(sig_patch);
                     out_file.close();
 
-                    return root_update;
+                    return p;
                 }
 
                 void generate_secrets(int root = 1,
@@ -746,6 +755,8 @@ namespace validate
                 fs::path root1 = "validation_data/root.json";
                 json root1_json;
 
+                std::unique_ptr<TemporaryDirectory> channel_dir;
+
                 secrets_type secrets;
 
                 std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
@@ -770,8 +781,7 @@ namespace validate
 
             TEST_F(RootRoleV1, ctor_from_path)
             {
-                auto tmp_file = create_test_initial_root();
-                RootRole root(tmp_file->path());
+                RootRole root(trusted_root_file());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
@@ -793,20 +803,29 @@ namespace validate
             {
                 using namespace mamba;
 
-                auto tmp_file = create_test_initial_root();
-                RootRole root(tmp_file->path());
+                RootRole root(trusted_root_file());
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                tmp_file = create_test_update("2.", ".root.json", patch);
-
-                auto updated_root = root.update(tmp_file->path());
+                auto updated_root = root.update(create_test_update("2.root.json", patch));
 
                 EXPECT_EQ(updated_root->type(), "root");
                 EXPECT_EQ(updated_root->file_ext(), "json");
                 EXPECT_EQ(updated_root->spec_version(), "1.0.17");
                 EXPECT_EQ(updated_root->version(), 2);
+            }
+
+            TEST_F(RootRoleV1, ctor_wrong_filename_spec_version)
+            {
+                fs::path p = channel_dir->path() / "2.sv0.6.root.json";
+
+                std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                out_file << root1_json;
+                out_file.close();
+
+                // "2.sv0.6.root.json" is not compatible spec version (spec version N)
+                EXPECT_THROW(RootRole root(p), role_file_error);
             }
 
             TEST_F(RootRoleV1, wrong_version)
@@ -816,9 +835,9 @@ namespace validate
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 3 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, spec_version)
@@ -829,9 +848,8 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 },
                     { "op": "replace", "path": "/signed/spec_version", "value": "1.30.10" }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                auto updated_root = root.update(tmp_file->path());
+                auto updated_root = root.update(create_test_update("2.root.json", patch));
                 EXPECT_EQ(updated_root->spec_version(), "1.30.10");
                 EXPECT_EQ(updated_root->version(), 2);
             }
@@ -843,9 +861,9 @@ namespace validate
                 json patch = R"([
                     { "op": "replace", "path": "/signed/spec_version", "value": "2.0.0" }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), spec_version_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             spec_version_error);
             }
 
             TEST_F(RootRoleV1, wrong_filename_role)
@@ -853,9 +871,9 @@ namespace validate
                 RootRole root(root1_json);
 
                 json patch = R"([])"_json;
-                auto tmp_file = create_test_update("2.", ".rooot.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("2.rooot.json", patch)),
+                             role_file_error);
             }
 
             TEST_F(RootRoleV1, wrong_filename_version)
@@ -863,9 +881,22 @@ namespace validate
                 RootRole root(root1_json);
 
                 json patch = R"([])"_json;
-                auto tmp_file = create_test_update("3.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("3.root.json", patch)),
+                             role_file_error);
+            }
+
+            TEST_F(RootRoleV1, wrong_filename_spec_version)
+            {
+                RootRole root(root1_json);
+
+                // "2.sv2.root.json" is upgradable spec version (spec version N+1)
+                // but v2 is NOT implemented yet, so v1::RootRole is not upgradable
+                EXPECT_THROW(root.update(create_test_update("2.sv2.root.json")),
+                             spec_version_error);
+                // "2.sv3.root.json" is NOT upgradable spec version (spec version N+1)
+                EXPECT_THROW(root.update(create_test_update("2.sv3.root.json")), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("2.sv0.6.root.json")), role_file_error);
             }
 
             TEST_F(RootRoleV1, hillformed_filename_version)
@@ -873,9 +904,9 @@ namespace validate
                 RootRole root(root1_json);
 
                 json patch = R"([])"_json;
-                auto tmp_file = create_test_update("wrong.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_file_error);
+                EXPECT_THROW(root.update(create_test_update("wrong.root.json", patch)),
+                             role_file_error);
             }
 
             TEST_F(RootRoleV1, rollback_attack)
@@ -885,9 +916,8 @@ namespace validate
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 1 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), rollback_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)), rollback_error);
             }
 
             TEST_F(RootRoleV1, wrong_type)
@@ -898,9 +928,9 @@ namespace validate
                     { "op": "replace", "path": "/signed/_type", "value": "timestamp" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, missing_type)
@@ -911,8 +941,9 @@ namespace validate
                     { "op": "remove", "path": "/signed/_type" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, missing_keys)
@@ -923,8 +954,9 @@ namespace validate
                     { "op": "remove", "path": "/signed/keys" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, missing_roles)
@@ -935,8 +967,9 @@ namespace validate
                     { "op": "remove", "path": "/signed/roles" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, missing_role)
@@ -947,9 +980,9 @@ namespace validate
                     { "op": "remove", "path": "/signed/roles/timestamp" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, empty_role_keyids)
@@ -960,9 +993,9 @@ namespace validate
                                 { "op": "replace", "path": "/signed/roles/snapshot/keyids", "value": [] },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, null_role_threshold)
@@ -973,9 +1006,9 @@ namespace validate
                                 { "op": "replace", "path": "/signed/roles/snapshot/threshold", "value": 0 },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, extra_roles)
@@ -986,9 +1019,9 @@ namespace validate
                     { "op": "add", "path": "/signed/roles/some_wrong_role", "value": { "keyids": ["c"], "threshold": 1 } },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, not_found_keyid)
@@ -999,9 +1032,9 @@ namespace validate
                     { "op": "add", "path": "/signed/roles/snapshot/keyids/-", "value": "c" },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                EXPECT_THROW(root.update(tmp_file->path()), role_metadata_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootRoleV1, mirrors_role)
@@ -1011,9 +1044,8 @@ namespace validate
                     { "op": "add", "path": "/signed/keys/c", "value": { "scheme": "ed25519", "keytype": "ed25519", "keyval": "c"} },
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
 
-                RootRole root(tmp_file->path());
+                RootRole root(create_test_update("2.root.json", patch));
                 bool mirrors_role_found = (root.roles().find("mirrors") != root.roles().end());
                 EXPECT_TRUE(mirrors_role_found);
             }
@@ -1027,9 +1059,8 @@ namespace validate
                     { "op": "replace", "path": "/signed/roles/root/threshold", "value": 2 }
                     ])"_json;
 
-                auto tmp_file = create_test_update("2.", ".root.json", patch);
-
-                EXPECT_THROW(root.update(tmp_file->path()), threshold_error);
+                EXPECT_THROW(root.update(create_test_update("2.root.json", patch)),
+                             threshold_error);
             }
 
             TEST(RoleSignature, to_json)

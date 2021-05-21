@@ -23,7 +23,7 @@
 namespace validate
 {
     trust_error::trust_error(const std::string& message) noexcept
-        : m_message(message)
+        : m_message("Content trust error. " + message + ". Aborting.")
     {
         std::cout << this->m_message << std::endl;
     }
@@ -34,27 +34,27 @@ namespace validate
     }
 
     threshold_error::threshold_error() noexcept
-        : trust_error("Signatures threshold not met. Aborting.")
+        : trust_error("Signatures threshold not met")
     {
     }
 
     role_metadata_error::role_metadata_error() noexcept
-        : trust_error("Invalid role metadata. Aborting.")
+        : trust_error("Invalid role metadata")
     {
     }
 
     rollback_error::rollback_error() noexcept
-        : trust_error("Possible rollback attack. Aborting.")
+        : trust_error("Possible rollback attack")
     {
     }
 
     role_file_error::role_file_error() noexcept
-        : trust_error("Invalid role file. Aborting.")
+        : trust_error("Invalid role file")
     {
     }
 
     spec_version_error::spec_version_error() noexcept
-        : trust_error("Unsupported specification version. Aborting.")
+        : trust_error("Unsupported specification version")
     {
     }
 
@@ -440,6 +440,11 @@ namespace validate
         return j.dump();
     }
 
+    bool RoleBase::upgradable() const
+    {
+        return false;
+    };
+
     json RoleBase::read_file(const fs::path& p, bool update) const
     {
         if (!fs::exists(p))
@@ -450,30 +455,41 @@ namespace validate
 
         std::regex name_re;
         std::smatch matches;
-        std::size_t expected_match_size;
+        std::size_t min_match_size;
 
         std::string f_name = p.filename().string();
-        std::string f_version_str, f_type, f_ext;
+        std::string f_spec_version_str, f_version_str, f_type, f_ext;
 
-        // Update file should be named as VERSION_NUMBER.FILENAME.EXT
-        // std::regex name_rgx = "^([1-9]+\\d*).sv(1|0\\.[0-9]+).(root).(json)$";
+        // Files should be named using one of the following structures:
+        // - Trusted (reference) file:
+        //   - FILENAME.EXT
+        //   - svSPEC_VERSION_MAJOR.FILENAME.EXT
+        // - Update file:
+        //   - VERSION_NUMBER.FILENAME.EXT
+        //   - VERSION_NUMBER.svSPEC_VERSION_MAJOR.FILENAME.EXT
         if (update)
         {
-            name_re = "^([1-9]+\\d*)\\.\\w+\\.(\\w+)\\.(\\w+)$";
-            expected_match_size = 4;
+            name_re = "^(?:([1-9]+\\d*).)(?:sv([1-9]\\d*|0\\.[1-9]\\d*).)?(\\w+)\\.(\\w+)$";
+            min_match_size = 4;
         }
         else
         {
-            name_re = "^[1-9]+\\d*\\.[\\w\\.]+\\.(\\w+)\\.(\\w+)$";
-            expected_match_size = 3;
+            name_re = "^(?:[1-9]+\\d*.)?(?:sv([1-9]\\d*|0\\.[1-9]\\d*).)?(\\w+)\\.(\\w+)$";
+            min_match_size = 3;
         }
 
-        if (std::regex_search(f_name, matches, name_re) && (matches.size() == expected_match_size))
+        if (std::regex_search(f_name, matches, name_re) && (min_match_size <= matches.size()))
         {
+            auto match_size = matches.size();
+
             if (update)
                 f_version_str = matches[1].str();
-            f_type = matches[expected_match_size - 2].str();
-            f_ext = matches[expected_match_size - 1].str();
+
+            f_type = matches[match_size - 2].str();
+            f_ext = matches[match_size - 1].str();
+
+            if ((min_match_size + 1) == match_size)
+                f_spec_version_str = matches[match_size - 3].str();
         }
         else
         {
@@ -491,6 +507,22 @@ namespace validate
         {
             LOG_ERROR << "'root' metadata file should have 'root' type, not: '" << f_type << "'";
             throw role_file_error();
+        }
+        if (!f_spec_version_str.empty())
+        {
+            if (update && is_spec_version_upgradable(f_spec_version_str) && !upgradable())
+            {
+                LOG_ERROR << "Please check for a client update, unsupported spec version: '"
+                          << f_spec_version_str << "'";
+                throw spec_version_error();
+            }
+            else if (!((!update && is_spec_version_compatible(f_spec_version_str))
+                       || (update && is_spec_version_upgradable(f_spec_version_str))))
+            {
+                LOG_ERROR << "Invalid spec version specified in file name: '" << f_spec_version_str
+                          << "'";
+                throw role_file_error();
+            }
         }
 
         if (update)
@@ -721,8 +753,6 @@ namespace validate
                     throw role_metadata_error();
                 }
 
-                role.set_spec_version(j_signed.at("spec_version").get<std::string>());
-
                 if (!v1::is_spec_version_compatible(j))
                 {
                     using namespace mamba;
@@ -734,6 +764,7 @@ namespace validate
                         << spec_version_major << "'";
                     throw role_metadata_error();
                 }
+                role.set_spec_version(j_signed.at("spec_version").get<std::string>());
 
                 role.m_keys = j_signed.at("keys").get<std::map<std::string, Key>>();
                 role.m_roles = j_signed.at("roles").get<std::map<std::string, RoleKeys>>();
@@ -847,6 +878,11 @@ namespace validate
             auto j = read_file(path);
             load_from_json(j);
         }
+
+        bool RootRole::upgradable() const
+        {
+            return true;
+        };
 
         std::unique_ptr<RootRoleBase> RootRole::create_update(const json& j)
         {
@@ -976,8 +1012,6 @@ namespace validate
                     throw role_metadata_error();
                 }
 
-                role.set_spec_version(j_signed.at("metadata_spec_version").get<std::string>());
-
                 if (!v06::is_spec_version_compatible(j))
                 {
                     using namespace mamba;
@@ -989,6 +1023,8 @@ namespace validate
                         << spec_version_major << "'";
                     throw role_metadata_error();
                 }
+
+                role.set_spec_version(j_signed.at("metadata_spec_version").get<std::string>());
 
                 role.m_delegations
                     = j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>();

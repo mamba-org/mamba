@@ -248,14 +248,15 @@ namespace validate
 
                 void sign_root()
                 {
-                    for (auto it : secrets)
+                    std::vector<std::string> mandatory_roles({ "root", "key_mgr" });
+                    for (auto& r : mandatory_roles)
                     {
                         std::vector<std::string> role_public_keys;
-                        for (auto& secret : it.second)
+                        for (auto& secret : secrets.at(r))
                         {
                             role_public_keys.push_back(secret.first);
                         }
-                        root1_json["signed"]["delegations"][it.first]
+                        root1_json["signed"]["delegations"][r]
                             = RolePubKeys({ role_public_keys, 1 });
                     }
 
@@ -286,7 +287,7 @@ namespace validate
                     return signatures;
                 }
 
-                json upgrade_to_v1(const RootRole& root, const json& patch = json())
+                json upgrade_to_v1(const RootImpl& root, const json& patch = json())
                 {
                     auto root_meta = root.upgraded_signable();
                     if (!patch.empty())
@@ -336,41 +337,41 @@ namespace validate
 
             TEST_F(RootRoleV06, ctor_from_path)
             {
-                RootRole root(trusted_root_file_raw_key());
+                RootImpl root(trusted_root_file_raw_key());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
-                EXPECT_EQ(root.spec_version(), SpecVersion("0.6.0"));
+                EXPECT_EQ(root.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(root.version(), 1);
             }
 
             TEST_F(RootRoleV06, ctor_from_path_pgp_signed)
             {
-                RootRole root(trusted_root_file_pgp());
+                RootImpl root(trusted_root_file_pgp());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
-                EXPECT_EQ(root.spec_version(), SpecVersion("0.6.0"));
+                EXPECT_EQ(root.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(root.version(), 1);
             }
 
             TEST_F(RootRoleV06, ctor_from_json)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
-                EXPECT_EQ(root.spec_version(), SpecVersion("0.6.0"));
+                EXPECT_EQ(root.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(root.version(), 1);
             }
 
             TEST_F(RootRoleV06, ctor_from_json_pgp_signed)
             {
-                RootRole root(root1_pgp_json);
+                RootImpl root(root1_pgp_json);
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
-                EXPECT_EQ(root.spec_version(), SpecVersion("0.6.0"));
+                EXPECT_EQ(root.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(root.version(), 1);
             }
 
@@ -383,7 +384,7 @@ namespace validate
                 out_file.close();
 
                 // "2.sv1.root.json" is not compatible spec version (spec version N)
-                EXPECT_THROW(RootRole root(p), role_file_error);
+                EXPECT_THROW(RootImpl root(p), role_file_error);
             }
 
             TEST_F(RootRoleV06, update_from_path)
@@ -391,22 +392,23 @@ namespace validate
                 using namespace mamba;
 
                 auto f = trusted_root_file_raw_key();
-                RootRole root(f);
+                RootImpl root(f);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
                 auto updated_root = root.update(create_test_update("2.root.json", patch));
 
-                EXPECT_EQ(updated_root->type(), "root");
-                EXPECT_EQ(updated_root->file_ext(), "json");
-                EXPECT_EQ(updated_root->spec_version(), SpecVersion("0.6.0"));
-                EXPECT_EQ(updated_root->version(), 2);
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_EQ(testing_root->type(), "root");
+                EXPECT_EQ(testing_root->file_ext(), "json");
+                EXPECT_EQ(testing_root->spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(testing_root->version(), 2);
             }
 
             TEST_F(RootRoleV06, wrong_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 3 }
@@ -418,7 +420,7 @@ namespace validate
 
             TEST_F(RootRoleV06, spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -426,14 +428,15 @@ namespace validate
                     ])"_json;
                 auto updated_root = root.update(create_test_update("2.root.json", patch));
 
-                EXPECT_EQ(updated_root->spec_version(), SpecVersion("0.6.1"));
-                EXPECT_EQ(updated_root->version(), 2);
-                EXPECT_EQ(updated_root->expires(), root.expires());
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_EQ(testing_root->spec_version(), SpecImpl("0.6.1"));
+                EXPECT_EQ(testing_root->version(), 2);
+                EXPECT_EQ(testing_root->expires(), root.expires());
             }
 
             TEST_F(RootRoleV06, upgraded_spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -453,29 +456,31 @@ namespace validate
                     { "op": "add", "path": "/roles/timestamp/keyids", "value": ["dummy_value"] }
                     ])");
                 auto updated_root = root.update(upgrade_to_v1(root, signable_patch));
-                EXPECT_EQ(updated_root->spec_version(), SpecVersion("1.0.17"));
-                EXPECT_EQ(updated_root->version(), 2);
-                EXPECT_LT(updated_root->expires(), root.expires());
+
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_EQ(testing_root->spec_version(), SpecImpl("1.0.17"));
+                EXPECT_EQ(testing_root->version(), 2);
+                EXPECT_LT(testing_root->expires(), root.expires());
             }
 
             TEST_F(RootRoleV06, equivalent_upgraded_spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json signable_patch = R"([
                     { "op": "add", "path": "/keys/dummy_value", "value": { "keytype": "ed25519", "scheme": "ed25519", "keyval": "dummy_value" } },
                     { "op": "add", "path": "/roles/snapshot/keyids", "value": ["dummy_value"] },
                     { "op": "add", "path": "/roles/timestamp/keyids", "value": ["dummy_value"] }
                     ])"_json;
-                v1::RootRole updated_root(upgrade_to_v1(root, signable_patch));
+                v1::RootImpl updated_root(upgrade_to_v1(root, signable_patch));
 
-                EXPECT_EQ(updated_root.spec_version(), v1::SpecVersion("1.0.17"));
+                EXPECT_EQ(updated_root.spec_version(), v1::SpecImpl("1.0.17"));
                 EXPECT_EQ(updated_root.version(), 1);
             }
 
             TEST_F(RootRoleV06, wrong_spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -496,21 +501,21 @@ namespace validate
 
             TEST_F(RootRoleV06, wrong_filename_role)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 EXPECT_THROW(root.update(create_test_update("2.rooot.json")), role_file_error);
             }
 
             TEST_F(RootRoleV06, wrong_filename_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 EXPECT_THROW(root.update(create_test_update("3.root.json")), role_file_error);
             }
 
             TEST_F(RootRoleV06, wrong_filename_spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 // "2.sv1.root.json" is upgradable spec version (spec version N+1)
                 EXPECT_THROW(root.update(create_test_update("3.sv1.root.json")), role_file_error);
@@ -518,7 +523,7 @@ namespace validate
 
             TEST_F(RootRoleV06, hillformed_filename_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 EXPECT_THROW(root.update(create_test_update("wrong.root.json")), role_file_error);
                 EXPECT_THROW(root.update(create_test_update("2..root.json")), role_file_error);
@@ -527,7 +532,7 @@ namespace validate
 
             TEST_F(RootRoleV06, rollback_attack)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 1 }
@@ -538,7 +543,7 @@ namespace validate
 
             TEST_F(RootRoleV06, wrong_type)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/type", "value": "timestamp" },
@@ -551,7 +556,7 @@ namespace validate
 
             TEST_F(RootRoleV06, missing_type)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "remove", "path": "/signed/type" },
@@ -564,7 +569,7 @@ namespace validate
 
             TEST_F(RootRoleV06, missing_delegations)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "remove", "path": "/signed/delegations" },
@@ -577,7 +582,7 @@ namespace validate
 
             TEST_F(RootRoleV06, missing_delegation)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                                 { "op": "remove", "path": "/signed/delegations/root" },
@@ -590,7 +595,7 @@ namespace validate
 
             TEST_F(RootRoleV06, empty_delegation_pubkeys)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                                 { "op": "replace", "path": "/signed/delegations/root/pubkeys", "value": [] },
@@ -603,7 +608,7 @@ namespace validate
 
             TEST_F(RootRoleV06, null_role_threshold)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                                 { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 0 },
@@ -616,11 +621,11 @@ namespace validate
 
             TEST_F(RootRoleV06, extra_roles)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                                 { "op": "add", "path": "/signed/delegations/some_wrong_role",
-                                    "value": { "keyids": ["c"], "threshold": 1 } },
+                                    "value": { "pubkeys": ["c"], "threshold": 1 } },
                                 { "op": "replace", "path": "/signed/version", "value": 2 }
                                 ])"_json;
 
@@ -637,14 +642,14 @@ namespace validate
                "/signed/version", "value": 2 }
                                                         ])"_json;
 
-                RootRole root(create_test_update("2.root.json", patch));
+                RootImpl root(create_test_update("2.root.json", patch));
                 bool mirrors_role_found = (root.roles().find("mirrors") != root.roles().end());
                 EXPECT_TRUE(mirrors_role_found);
             }
             */
             TEST_F(RootRoleV06, threshold_not_met)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -657,7 +662,7 @@ namespace validate
 
             TEST_F(RootRoleV06, expires)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 // expiration is set to now+3600s in 'sign_root'
                 TimeRef::instance().set(utc_time_now());
@@ -672,7 +677,9 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])");
                 auto updated_root = root.update(create_test_update("2.root.json", patch));
-                EXPECT_FALSE(updated_root->expired());
+
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_FALSE(testing_root->expired());
             }
 
             class KeyMgr : public RootRoleV06
@@ -754,25 +761,24 @@ namespace validate
 
             TEST_F(KeyMgr, ctor_from_json)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
+                auto key_mgr = root.create_key_mgr(key_mgr_json);
 
-                KeyMgrRole key_mgr(key_mgr_json, root.all_keys()["key_mgr"]);
-
-                EXPECT_EQ(key_mgr.spec_version(), SpecVersion("0.6.0"));
+                EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(key_mgr.version(), 1);
             }
 
             TEST_F(KeyMgr, version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 {
                     json key_mgr_patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                    KeyMgrRole key_mgr(sign_patched(key_mgr_patch), root.all_keys()["key_mgr"]);
+                    auto key_mgr = root.create_key_mgr(sign_patched(key_mgr_patch));
 
-                    EXPECT_EQ(key_mgr.spec_version(), SpecVersion("0.6.0"));
+                    EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                     EXPECT_EQ(key_mgr.version(), 2);
                 }
 
@@ -780,24 +786,24 @@ namespace validate
                     json key_mgr_patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 20 }
                     ])"_json;
-                    KeyMgrRole key_mgr(sign_patched(key_mgr_patch), root.all_keys()["key_mgr"]);
+                    auto key_mgr = root.create_key_mgr(sign_patched(key_mgr_patch));
 
-                    EXPECT_EQ(key_mgr.spec_version(), SpecVersion("0.6.0"));
+                    EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                     EXPECT_EQ(key_mgr.version(), 20);
                 }
             }
 
             TEST_F(KeyMgr, spec_version)
             {  // spec version as to match exactly 'root' spec version
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 {
                     json key_mgr_patch = R"([
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.0" }
                     ])"_json;
-                    KeyMgrRole key_mgr(sign_patched(key_mgr_patch), root.all_keys()["key_mgr"]);
+                    auto key_mgr = root.create_key_mgr(sign_patched(key_mgr_patch));
 
-                    EXPECT_EQ(key_mgr.spec_version(), SpecVersion("0.6.0"));
+                    EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                     EXPECT_EQ(key_mgr.version(), 1);
                 }
 
@@ -806,9 +812,8 @@ namespace validate
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.1" }
                     ])"_json;
 
-                    EXPECT_THROW(
-                        KeyMgrRole key_mgr(sign_patched(key_mgr_patch), root.all_keys()["key_mgr"]),
-                        spec_version_error);
+                    EXPECT_THROW(root.create_key_mgr(sign_patched(key_mgr_patch)),
+                                 spec_version_error);
                 }
 
                 {  // wrong type
@@ -816,47 +821,42 @@ namespace validate
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": 0.6 }
                     ])"_json;
 
-                    EXPECT_THROW(
-                        KeyMgrRole key_mgr(sign_patched(key_mgr_patch), root.all_keys()["key_mgr"]),
-                        role_metadata_error);
+                    EXPECT_THROW(root.create_key_mgr(sign_patched(key_mgr_patch)),
+                                 role_metadata_error);
                 }
             }
 
             TEST_F(KeyMgr, ctor_from_path)
             {
-                RootRole root(root1_json);
-                auto key_mgr_keys = root.all_keys()["key_mgr"];
+                RootImpl root(root1_json);
 
-                {
-                    KeyMgrRole key_mgr(trusted_file(key_mgr_json), key_mgr_keys);
-                    EXPECT_EQ(key_mgr.spec_version(), SpecVersion("0.6.0"));
-                    EXPECT_EQ(key_mgr.version(), 1);
-                }
-                {  // TODO: enforce consistency between spec version in filename and metadata
-                    KeyMgrRole key_mgr(trusted_file(key_mgr_json, "20.sv0.6.key_mgr.json"),
-                                       key_mgr_keys);
-                    EXPECT_EQ(key_mgr.spec_version(), SpecVersion("0.6.0"));
-                    EXPECT_EQ(key_mgr.version(), 1);
-                }
+                auto key_mgr = root.create_key_mgr(trusted_file(key_mgr_json));
+                EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(key_mgr.version(), 1);
 
-                EXPECT_THROW(KeyMgrRole(fs::path("not_existing"), key_mgr_keys), role_file_error);
+                // TODO: enforce consistency between spec version in filename and metadata
+                key_mgr = root.create_key_mgr(trusted_file(key_mgr_json, "20.sv0.6.key_mgr.json"));
+                EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(key_mgr.version(), 1);
 
-                EXPECT_THROW(KeyMgrRole(trusted_file(key_mgr_json, "wrong.json"), key_mgr_keys),
+
+                EXPECT_THROW(root.create_key_mgr(fs::path("not_existing")), role_file_error);
+
+                EXPECT_THROW(root.create_key_mgr(trusted_file(key_mgr_json, "wrong.json")),
+                             role_file_error);
+
+                EXPECT_THROW(root.create_key_mgr(trusted_file(key_mgr_json, "sv1.key_mgr.json")),
                              role_file_error);
 
                 EXPECT_THROW(
-                    KeyMgrRole(trusted_file(key_mgr_json, "sv1.key_mgr.json"), key_mgr_keys),
+                    root.create_key_mgr(trusted_file(key_mgr_json, "wrong.sv0.6.key_mgr.json")),
                     role_file_error);
-
-                EXPECT_THROW(KeyMgrRole(trusted_file(key_mgr_json, "wrong.sv0.6.key_mgr.json"),
-                                        key_mgr_keys),
-                             role_file_error);
             }
 
             TEST_F(KeyMgr, expires)
             {
-                RootRole root(root1_json);
-                KeyMgrRole key_mgr(key_mgr_json, root.all_keys()["key_mgr"]);
+                RootImpl root(root1_json);
+                auto key_mgr = root.create_key_mgr(key_mgr_json);
 
                 // expiration is set to now+3600s in 'sign_key_mgr'
                 TimeRef::instance().set(utc_time_now());
@@ -871,11 +871,127 @@ namespace validate
                     { "op": "replace", "path": "/signed/expiration", "value": ")"
                                          + timestamp(utc_time_now() + 10800) + R"(" }
                     ])");
+
+                key_mgr = root.create_key_mgr(sign_patched(patch));
+                EXPECT_FALSE(key_mgr.expired());
+                EXPECT_TRUE(root.expired());
+            }
+
+
+            class PkgMgr : public KeyMgr
+            {
+            public:
+                PkgMgr()
+                    : KeyMgr()
                 {
-                    KeyMgrRole key_mgr(sign_patched(patch), root.all_keys()["key_mgr"]);
-                    EXPECT_FALSE(key_mgr.expired());
-                    EXPECT_TRUE(root.expired());
+                    init_repodata();
+                    root = std::make_unique<RootImpl>(root1_json);
+                };
+
+                json sign_repodata(const json& patch = json())
+                {
+                    json updated_repodata = repodata_json;
+
+                    if (!patch.empty())
+                        updated_repodata = updated_repodata.patch(patch);
+
+                    for (auto& it : updated_repodata.at("packages").get<json::object_t>())
+                    {
+                        json sig_patch = json::parse(
+                            R"({
+                                "signatures": { ")"
+                            + it.first + "\":" + sign_repodata_meta(it.second).dump() + R"(
+                                    }
+                                })");
+                        updated_repodata.merge_patch(sig_patch);
+                    }
+                    return updated_repodata;
                 }
+
+            protected:
+                json repodata_json, signed_repodata_json;
+
+                std::unique_ptr<RootImpl> root;
+
+                void init_repodata()
+                {
+                    repodata_json = R"({
+                                        "info": {
+                                            "subdir": "noarch"
+                                        },
+                                        "packages": {
+                                            "test-package1-0.1-0.tar.bz2": {
+                                            "build": "0",
+                                            "build_number": 0,
+                                            "depends": [],
+                                            "license": "BSD",
+                                            "license_family": "BSD",
+                                            "md5": "2a8595f37faa2950e1b433acbe91d481",
+                                            "name": "test-package",
+                                            "noarch": "generic",
+                                            "sha256": "b908ffce2d26d94c58c968abf286568d4bcf87d1cfe6c994958351724a6f6988",
+                                            "size": 5719,
+                                            "subdir": "noarch",
+                                            "timestamp": 1613117294885,
+                                            "version": "0.1"
+                                            },
+                                            "test-package2-0.1-0.tar.bz2": {
+                                            "build": "0"
+                                            }
+                                        }
+                                    })"_json;
+
+                    signed_repodata_json = sign_repodata();
+                }
+
+                json sign_repodata_meta(const json& meta)
+                {
+                    std::map<std::string, std::map<std::string, std::string>> signatures;
+
+                    unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+
+                    for (auto& secret : secrets.at("pkg_mgr"))
+                    {
+                        sign(meta.dump(2), secret.second.data(), sig_bin);
+
+                        auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
+                        signatures[secret.first].insert({ "signature", sig_hex });
+                    }
+
+                    return signatures;
+                }
+            };
+
+            TEST_F(PkgMgr, verify_index)
+            {
+                auto key_mgr = root->create_key_mgr(key_mgr_json);
+                auto pkg_mgr = key_mgr.create_pkg_mgr();
+
+                pkg_mgr.verify_index(signed_repodata_json);
+            }
+
+            TEST_F(PkgMgr, corrupted_repodata)
+            {
+                auto key_mgr = root->create_key_mgr(key_mgr_json);
+                auto pkg_mgr = key_mgr.create_pkg_mgr();
+
+                json wrong_pkg_patch = R"([
+                            { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
+                            ])"_json;
+                EXPECT_THROW(pkg_mgr.verify_index(signed_repodata_json.patch(wrong_pkg_patch)),
+                             package_error);
+            }
+
+            TEST_F(PkgMgr, hillformed_repodata)
+            {
+                auto key_mgr = root->create_key_mgr(key_mgr_json);
+                auto pkg_mgr = key_mgr.create_pkg_mgr();
+
+                json hillformed_pkg_patch = R"([
+                            { "op": "remove", "path": "/signatures"}
+                            ])"_json;
+                EXPECT_THROW(pkg_mgr.verify_index(signed_repodata_json.patch(hillformed_pkg_patch)),
+                             package_error);
             }
         }  // namespace testing
     }      // namespace v06
@@ -1017,21 +1133,21 @@ namespace validate
 
             TEST_F(RootRoleV1, ctor_from_path)
             {
-                RootRole root(trusted_root_file());
+                RootImpl root(trusted_root_file());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
-                EXPECT_EQ(root.spec_version(), SpecVersion("1.0.17"));
+                EXPECT_EQ(root.spec_version(), SpecImpl("1.0.17"));
                 EXPECT_EQ(root.version(), 1);
             }
 
             TEST_F(RootRoleV1, ctor_from_json)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
-                EXPECT_EQ(root.spec_version(), SpecVersion("1.0.17"));
+                EXPECT_EQ(root.spec_version(), SpecImpl("1.0.17"));
                 EXPECT_EQ(root.version(), 1);
             }
 
@@ -1039,17 +1155,18 @@ namespace validate
             {
                 using namespace mamba;
 
-                RootRole root(trusted_root_file());
+                RootImpl root(trusted_root_file());
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
                 auto updated_root = root.update(create_test_update("2.root.json", patch));
 
-                EXPECT_EQ(updated_root->type(), "root");
-                EXPECT_EQ(updated_root->file_ext(), "json");
-                EXPECT_EQ(updated_root->spec_version(), SpecVersion("1.0.17"));
-                EXPECT_EQ(updated_root->version(), 2);
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_EQ(testing_root->type(), "root");
+                EXPECT_EQ(testing_root->file_ext(), "json");
+                EXPECT_EQ(testing_root->spec_version(), SpecImpl("1.0.17"));
+                EXPECT_EQ(testing_root->version(), 2);
             }
 
             TEST_F(RootRoleV1, ctor_wrong_filename_spec_version)
@@ -1061,12 +1178,12 @@ namespace validate
                 out_file.close();
 
                 // "2.sv0.6.root.json" is not compatible spec version (spec version N)
-                EXPECT_THROW(RootRole root(p), role_file_error);
+                EXPECT_THROW(RootImpl root(p), role_file_error);
             }
 
             TEST_F(RootRoleV1, wrong_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 3 }
@@ -1078,7 +1195,7 @@ namespace validate
 
             TEST_F(RootRoleV1, spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -1086,13 +1203,15 @@ namespace validate
                     ])"_json;
 
                 auto updated_root = root.update(create_test_update("2.root.json", patch));
-                EXPECT_EQ(updated_root->spec_version(), SpecVersion("1.30.10"));
-                EXPECT_EQ(updated_root->version(), 2);
+
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_EQ(testing_root->spec_version(), SpecImpl("1.30.10"));
+                EXPECT_EQ(testing_root->version(), 2);
             }
 
             TEST_F(RootRoleV1, wrong_spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/spec_version", "value": "2.0.0" }
@@ -1104,7 +1223,7 @@ namespace validate
 
             TEST_F(RootRoleV1, wrong_filename_role)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([])"_json;
 
@@ -1114,7 +1233,7 @@ namespace validate
 
             TEST_F(RootRoleV1, wrong_filename_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([])"_json;
 
@@ -1124,10 +1243,10 @@ namespace validate
 
             TEST_F(RootRoleV1, wrong_filename_spec_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 // "2.sv2.root.json" is upgradable spec version (spec version N+1)
-                // but v2 is NOT implemented yet, so v1::RootRole is not upgradable
+                // but v2 is NOT implemented yet, so v1::RootImpl is not upgradable
                 EXPECT_THROW(root.update(create_test_update("2.sv2.root.json")),
                              spec_version_error);
                 // "2.sv3.root.json" is NOT upgradable spec version (spec version N+1)
@@ -1137,7 +1256,7 @@ namespace validate
 
             TEST_F(RootRoleV1, hillformed_filename_version)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([])"_json;
 
@@ -1147,7 +1266,7 @@ namespace validate
 
             TEST_F(RootRoleV1, rollback_attack)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 1 }
@@ -1158,7 +1277,7 @@ namespace validate
 
             TEST_F(RootRoleV1, wrong_type)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/_type", "value": "timestamp" },
@@ -1171,7 +1290,7 @@ namespace validate
 
             TEST_F(RootRoleV1, missing_type)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "remove", "path": "/signed/_type" },
@@ -1184,7 +1303,7 @@ namespace validate
 
             TEST_F(RootRoleV1, missing_keys)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "remove", "path": "/signed/keys" },
@@ -1197,7 +1316,7 @@ namespace validate
 
             TEST_F(RootRoleV1, missing_roles)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "remove", "path": "/signed/roles" },
@@ -1210,7 +1329,7 @@ namespace validate
 
             TEST_F(RootRoleV1, missing_role)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "remove", "path": "/signed/roles/timestamp" },
@@ -1223,7 +1342,7 @@ namespace validate
 
             TEST_F(RootRoleV1, empty_role_keyids)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                                 { "op": "replace", "path": "/signed/roles/snapshot/keyids", "value": [] },
@@ -1236,7 +1355,7 @@ namespace validate
 
             TEST_F(RootRoleV1, null_role_threshold)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                                 { "op": "replace", "path": "/signed/roles/snapshot/threshold", "value": 0 },
@@ -1249,7 +1368,7 @@ namespace validate
 
             TEST_F(RootRoleV1, extra_roles)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "add", "path": "/signed/roles/some_wrong_role", "value": { "keyids": ["c"], "threshold": 1 } },
@@ -1260,9 +1379,9 @@ namespace validate
                              role_metadata_error);
             }
 
-            TEST_F(RootRoleV1, not_found_keyid)
+            TEST_F(RootRoleV1, key_not_found)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "add", "path": "/signed/roles/snapshot/keyids/-", "value": "c" },
@@ -1281,14 +1400,14 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
 
-                RootRole root(create_test_update("2.root.json", patch));
+                RootImpl root(create_test_update("2.root.json", patch));
                 bool mirrors_role_found = (root.roles().find("mirrors") != root.roles().end());
                 EXPECT_TRUE(mirrors_role_found);
             }
 
             TEST_F(RootRoleV1, threshold_not_met)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 json patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 },
@@ -1301,7 +1420,7 @@ namespace validate
 
             TEST_F(RootRoleV1, expires)
             {
-                RootRole root(root1_json);
+                RootImpl root(root1_json);
 
                 // expiration is set to now+3600s in 'sign_root'
                 TimeRef::instance().set(utc_time_now());
@@ -1316,7 +1435,9 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])");
                 auto updated_root = root.update(create_test_update("2.root.json", patch));
-                EXPECT_FALSE(updated_root->expired());
+
+                auto testing_root = static_cast<RootImpl*>(updated_root.get());
+                EXPECT_FALSE(testing_root->expired());
             }
 
             TEST(RoleSignature, to_json)

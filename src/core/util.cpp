@@ -756,4 +756,61 @@ namespace mamba
         fs::remove(m_path);
     }
 
+    std::string timestamp(const std::time_t& utc_time)
+    {
+        char buf[sizeof("2011-10-08T07:07:09Z")];
+        strftime(buf, sizeof(buf), "%FT%TZ", gmtime(&utc_time));
+        return buf;
+    }
+
+    std::time_t utc_time_now()
+    {
+        std::time_t now;
+        std::time(&now);
+        gmtime(&now);
+        return now;
+    }
+
+    std::string utc_timestamp_now()
+    {
+        return timestamp(utc_time_now());
+    }
+
+    std::time_t parse_utc_timestamp(const std::string& timestamp, int& error_code) noexcept
+    {
+        error_code = 0;
+        struct std::tm tt = { 0 };
+
+        if (sscanf(timestamp.data(),
+                   "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                   &tt.tm_year,
+                   &tt.tm_mon,
+                   &tt.tm_mday,
+                   &tt.tm_hour,
+                   &tt.tm_min,
+                   &tt.tm_sec)
+            != 6)
+        {
+            error_code = 1;
+            return -1;
+        }
+
+        tt.tm_mon -= 1;
+        tt.tm_year -= 1900;
+        tt.tm_isdst = -1;
+        return mktime(&tt);
+    }
+
+    std::time_t parse_utc_timestamp(const std::string& timestamp)
+    {
+        int errc = 0;
+        auto res = parse_utc_timestamp(timestamp, errc);
+        if (errc != 0)
+        {
+            LOG_ERROR << "Error , should be '2011-10-08T07:07:09Z' (ISO8601), but is: '"
+                      << timestamp << "'";
+            throw std::runtime_error("Timestamp format error. Aborting");
+        }
+        return res;
+    }
 }  // namespace mamba

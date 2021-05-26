@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <time.h>
 #include <vector>
 
 #include "nlohmann/json.hpp"
@@ -349,6 +350,16 @@ namespace mamba
     std::string prepend(const std::string& p, const char* start, const char* newline = "");
 
     std::string prepend(const char* p, const char* start, const char* newline = "");
+
+    std::string timestamp(const std::time_t& time);
+
+    std::time_t utc_time_now();
+
+    std::string utc_timestamp_now();
+
+    std::time_t parse_utc_timestamp(const std::string& timestamp, int& error_code) noexcept;
+
+    std::time_t parse_utc_timestamp(const std::string& timestamp);
 
 }  // namespace mamba
 

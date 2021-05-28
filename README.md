@@ -160,7 +160,7 @@ You will additionally need to install cmake and cli11 for micromamba:
 mamba install -c conda-forge cli11 cmake
 ```
 
-For the C++ tests, you need Google Tests installed (e.g. `mamba install gtest`).
+For the C++ tests, you need Google Test and Google Mock installed (e.g. `mamba install gtest gmock`).
 To build the program using CMake, the following lines need to be used:
 
 ```bash

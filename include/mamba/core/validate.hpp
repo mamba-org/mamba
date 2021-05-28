@@ -294,14 +294,15 @@ namespace validate
 
         virtual std::string canonicalize(const json& j) const;
 
-        std::string compatible_starts_with() const;
-        std::string upgradable_starts_with() const;
+        std::string compatible_prefix() const;
+        std::vector<std::string> upgrade_prefix() const;
 
+        bool is_compatible(const fs::path& p) const;
         bool is_compatible(const json& j) const;
         bool is_compatible(const std::string& version) const;
 
-        bool is_upgradable(const json& j) const;
-        bool is_upgradable(const std::string& version) const;
+        bool is_upgrade(const json& j) const;
+        bool is_upgrade(const std::string& version) const;
 
         virtual bool upgradable() const;
 
@@ -402,7 +403,7 @@ namespace validate
     /**
      * 'root' role interface.
      */
-    class RootRole
+    class RootRole : public RoleBase
     {
     public:
         std::unique_ptr<RootRole> update(fs::path path);
@@ -414,11 +415,12 @@ namespace validate
             const std::string& url) const = 0;
 
     protected:
-        RootRole() = default;
+        RootRole(std::shared_ptr<SpecBase> spec);
 
     private:
-        virtual json read_root_file(const fs::path& p, bool update = false) const = 0;
-        virtual std::size_t root_version() const = 0;
+        // virtual json read_root_file(const fs::path& p, bool update = false) const = 0;
+        // virtual std::size_t root_version() const = 0;
+        // virtual SpecBase* spec_impl() = 0;
 
         virtual std::unique_ptr<RootRole> create_update(const json& j) = 0;
     };
@@ -431,6 +433,7 @@ namespace validate
     class RepoIndexChecker
     {
     public:
+        virtual ~RepoIndexChecker() = default;
         virtual void verify_index(const json& j) const = 0;
         virtual void verify_index(const fs::path& p) const = 0;
 
@@ -450,8 +453,8 @@ namespace validate
         RepoChecker(const std::string& url, const fs::path& local_trusted_root);
 
         // Fowarding to a ``RepoIndexChecker`` implementation
-        bool check(const json& j);
-        bool check(const fs::path& p);
+        void verify_index(const json& j);
+        void verify_index(const fs::path& p);
 
     private:
         std::string m_base_url;
@@ -486,9 +489,7 @@ namespace validate
          * TUF v1.0.17 §2.1.1
          * https://theupdateframework.github.io/specification/latest/#root
          */
-        class RootImpl final
-            : public RootRole
-            , public RoleBase
+        class RootImpl final : public RootRole
         {
         public:
             RootImpl(const fs::path& p);
@@ -514,9 +515,6 @@ namespace validate
 
             void set_defined_roles(std::map<std::string, Key> keys,
                                    std::map<std::string, RoleKeys> roles);
-
-            json read_root_file(const fs::path& p, bool update = false) const override;
-            std::size_t root_version() const override;
         };
     }
 
@@ -537,7 +535,6 @@ namespace validate
 
             std::set<RoleSignature> signatures(const json& j) const override;
 
-        protected:
             std::string canonicalize(const json& j) const override;
             bool upgradable() const override;
         };
@@ -548,9 +545,7 @@ namespace validate
         /**
          * 'root' role implementation.
          */
-        class RootImpl final
-            : public RootRole
-            , public RoleBase
+        class RootImpl final : public RootRole
         {
         public:
             RootImpl(const fs::path& p);
@@ -583,9 +578,6 @@ namespace validate
             std::set<std::string> optionally_defined_roles() const override;
 
             void set_defined_roles(std::map<std::string, RolePubKeys> keys);
-
-            json read_root_file(const fs::path& p, bool update = false) const override;
-            std::size_t root_version() const override;
         };
 
 

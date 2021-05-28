@@ -211,6 +211,26 @@ namespace mamba
         return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
     }
 
+    bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix)
+    {
+        for (auto& s : str)
+        {
+            if (starts_with(s, prefix))
+                return true;
+        }
+        return false;
+    }
+
+    bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix)
+    {
+        for (auto& p : prefix)
+        {
+            if (starts_with(str, p))
+                return true;
+        }
+        return false;
+    }
+
     bool contains(const std::string_view& str, const std::string_view& sub_str)
     {
         return str.find(sub_str) != std::string::npos;

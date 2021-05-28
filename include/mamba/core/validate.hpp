@@ -87,6 +87,9 @@ namespace validate
                    const std::string& pk,
                    const std::string& signature);
 
+    /**
+     * Base class for artefact/package verification error.
+     */
     class trust_error : public std::exception
     {
     public:
@@ -98,6 +101,12 @@ namespace validate
         std::string m_message;
     };
 
+
+    /**
+     * Error raised when a threshold of signatures is
+     * not met. This can be due to wrong signatures,
+     * wrong or missing public keys.
+     */
     class threshold_error : public trust_error
     {
     public:
@@ -105,6 +114,10 @@ namespace validate
         virtual ~threshold_error() = default;
     };
 
+    /**
+     * Error raised when wrong metadata are spotted
+     * in a role file.
+     */
     class role_metadata_error : public trust_error
     {
     public:
@@ -112,6 +125,11 @@ namespace validate
         virtual ~role_metadata_error() = default;
     };
 
+
+    /**
+     * Error raised when a wrong file name is
+     * detected for role metadata.
+     */
     class role_file_error : public trust_error
     {
     public:
@@ -119,6 +137,11 @@ namespace validate
         virtual ~role_file_error() = default;
     };
 
+
+    /**
+     * Error raised when a possible rollback
+     * attack is detected.
+     */
     class rollback_error : public trust_error
     {
     public:
@@ -126,6 +149,11 @@ namespace validate
         virtual ~rollback_error() = default;
     };
 
+
+    /**
+     * Error raised when a spec version is either
+     * wrong/invalid or not supported by the client.
+     */
     class spec_version_error : public trust_error
     {
     public:
@@ -133,6 +161,23 @@ namespace validate
         virtual ~spec_version_error() = default;
     };
 
+
+    /**
+     * Error raised when signatures threshold
+     * is not met for a package.
+     */
+    class package_error : public trust_error
+    {
+    public:
+        package_error() noexcept;
+        virtual ~package_error() = default;
+    };
+
+
+    /**
+     * Representation of the public part of a
+     * cryptographic key pair.
+     */
     struct Key
     {
         std::string keytype = "";
@@ -145,6 +190,16 @@ namespace validate
         }
     };
 
+    void to_json(json& j, const Key& k);
+    void from_json(const json& j, Key& k);
+
+
+    /**
+     * Representation of a role signature.
+     * Optional 'pgp_trailer' will trigger special
+     * handling during verification to conform to
+     * OpenPGP RFC4880.
+     */
     struct RoleSignature
     {
         std::string keyid = "";
@@ -152,34 +207,26 @@ namespace validate
         std::string pgp_trailer = "";
     };
 
+    void to_json(json& j, const RoleSignature& rs);
+    void from_json(const json& j, RoleSignature& rs);
+
     bool operator<(const RoleSignature& rs1, const RoleSignature& rs2);
 
-    enum Role
-    {
-        kRoot,
-        kSnapshot,
-        kTargets,
-        kTimestamp,
-        kMirrors,
-        kInvalid = -1,
-    };
-
-    NLOHMANN_JSON_SERIALIZE_ENUM(Role,
-                                 { { kInvalid, "invalid" },
-                                   { kRoot, "root" },
-                                   { kSnapshot, "snapshot" },
-                                   { kTargets, "targets" },
-                                   { kTimestamp, "timestamp" },
-                                   { kMirrors, "mirrors" } });
 
     /**
-     * Store key IDs and threshold for role.
+     * Store key IDs and threshold for a role.
+     * Key ID can be a hash of Key, or just
+     * its public key value.
      */
     struct RoleKeys
     {
         std::vector<std::string> keyids;
         std::size_t threshold;
     };
+
+    void to_json(json& j, const RoleKeys& rk);
+    void from_json(const json& j, RoleKeys& rk);
+
 
     /**
      * Store key values and threshold for role.
@@ -193,6 +240,10 @@ namespace validate
         RoleKeys to_role_keys() const;
     };
 
+    void to_json(json& j, const RolePubKeys& rk);
+    void from_json(const json& j, RolePubKeys& rk);
+
+
     /**
      * Store full keys and threshold for role.
      */
@@ -200,17 +251,20 @@ namespace validate
     {
         std::map<std::string, Key> keys;
         std::size_t threshold;
+
+        std::map<std::string, Key> to_keys() const;
+        RoleKeys to_roles() const;
     };
 
     void to_json(json& j, const RoleFullKeys& r);
     void from_json(const json& j, RoleFullKeys& r);
 
-    enum SpecVersion
-    {
-        kV06 = 0,
-        kV1 = 1
-    };
 
+    /**
+     * Singleton class to define a time reference.
+     * TUF 5.1 'Record fixed update start time'
+     * https://theupdateframework.github.io/specification/latest/#fix-time
+     */
     class TimeRef
     {
     public:
@@ -227,15 +281,18 @@ namespace validate
         std::time_t m_time_ref;
     };
 
-    class SpecVersionBase
+
+    /**
+     * Base class for spec implementations.
+     */
+    class SpecBase
     {
     public:
-        virtual ~SpecVersionBase() = default;
+        virtual ~SpecBase() = default;
 
         std::string version_str() const;
 
         virtual std::string canonicalize(const json& j) const;
-        virtual bool upgradable() const;
 
         std::string compatible_starts_with() const;
         std::string upgradable_starts_with() const;
@@ -246,14 +303,16 @@ namespace validate
         bool is_upgradable(const json& j) const;
         bool is_upgradable(const std::string& version) const;
 
+        virtual bool upgradable() const;
+
         virtual std::string json_key() const = 0;
         virtual std::string expiration_json_key() const = 0;
 
         virtual std::set<RoleSignature> signatures(const json& j) const = 0;
 
     protected:
-        SpecVersionBase(const std::string& spec_version);
-        SpecVersionBase() = delete;
+        SpecBase(const std::string& spec_version);
+        SpecBase() = delete;
 
         std::string get_json_value(const json& j) const;
 
@@ -261,103 +320,159 @@ namespace validate
         std::string m_spec_version;
     };
 
-    bool operator==(const SpecVersionBase& sv1, const SpecVersionBase& sv2);
-    bool operator!=(const SpecVersionBase& sv1, const SpecVersionBase& sv2);
+    bool operator==(const SpecBase& sv1, const SpecBase& sv2);
+    bool operator!=(const SpecBase& sv1, const SpecBase& sv2);
 
+
+    /**
+     * Base class for role implementation.
+     */
     class RoleBase
     {
     public:
-        RoleBase(const std::string& type, std::unique_ptr<SpecVersionBase> sv);
+        RoleBase(const std::string& type, std::shared_ptr<SpecBase> sv);
 
         virtual ~RoleBase() = 0;
 
         std::string type() const;
-        SpecVersionBase& spec_version() const;
+        SpecBase& spec_version() const;
         std::size_t version() const;
         std::string file_ext() const;
         std::string expires() const;
 
         bool expired() const;
 
+        std::set<std::string> roles() const;
         std::set<RoleSignature> signatures(const json& j) const;
+
         virtual RoleFullKeys self_keys() const = 0;
+        std::map<std::string, RoleFullKeys> all_keys() const;
 
         friend void to_json(json& j, const RoleBase* r);
         friend void from_json(const json& j, RoleBase* r);
 
     protected:
-        json read_file(const fs::path& p, bool update = false) const;
+        json read_json_file(const fs::path& p, bool update = false) const;
 
+        /**
+         * Check that a threshold of valid signatures is met
+         * for the signed metadata of a role, using another
+         * role keys (possibly the same).
+         * Both signed and signatures metadata are contained
+         * in 'data'.
+         */
         void check_role_signatures(const json& data, const RoleBase& role);
+        /**
+         * Check that a threshold of valid signatures is met
+         * for the signed metadata, using a set of keys.
+         */
+        void check_signatures(const std::string& signed_data,
+                              const std::set<RoleSignature>& signatures,
+                              const RoleFullKeys& keyring) const;
 
-        void set_spec_version(std::unique_ptr<SpecVersionBase> sv);
-
+        void set_spec_version(std::shared_ptr<SpecBase> sv);
         void set_expiration(const std::string& expires);
 
+        // Forwarding to spec implementation
         std::string canonicalize(const json& j) const;
+        // Return the spec implementation
+        std::shared_ptr<SpecBase> spec_impl() const;
+
+        // Mandatory roles defined by the current role
+        virtual std::set<std::string> mandatory_defined_roles() const;
+        // Optional roles defined by the current role
+        virtual std::set<std::string> optionally_defined_roles() const;
+        // Checks on the defined roles
+        void check_defined_roles() const;
+
+        std::map<std::string, RoleFullKeys> m_defined_roles;
 
     private:
         std::string m_internal_type;
         std::string m_type;
-        std::unique_ptr<SpecVersionBase> p_spec_version;
+        std::shared_ptr<SpecBase> p_spec;
         std::size_t m_version = 1;
         std::string m_expires;
         std::string m_ext = "json";
-
-        void check_signatures(const std::string& signed_data,
-                              const std::set<RoleSignature>& signatures,
-                              const RoleFullKeys& keyring);
     };
 
-    class RootRoleBase : public RoleBase
+    // Forward declaration of RepoIndexChecker.
+    class RepoIndexChecker;
+
+    /**
+     * 'root' role interface.
+     */
+    class RootRole
     {
     public:
-        std::unique_ptr<RootRoleBase> update(fs::path path);
-        std::unique_ptr<RootRoleBase> update(json j);
+        std::unique_ptr<RootRole> update(fs::path path);
+        std::unique_ptr<RootRole> update(json j);
 
-        // Set of valid top-level roles (incl. 'root')
-        virtual std::set<std::string> roles() const = 0;
+        std::vector<fs::path> possible_update_files();
 
-        // Map of full-keys for valid top-level roles (incl. 'root')
-        virtual std::map<std::string, RoleFullKeys> all_keys() const = 0;
+        virtual std::unique_ptr<RepoIndexChecker> build_index_checker(
+            const std::string& url) const = 0;
 
     protected:
-        RootRoleBase(std::unique_ptr<SpecVersionBase> sv);
+        RootRole() = default;
 
     private:
-        virtual std::unique_ptr<RootRoleBase> create_update(const json& j) = 0;
+        virtual json read_root_file(const fs::path& p, bool update = false) const = 0;
+        virtual std::size_t root_version() const = 0;
+
+        virtual std::unique_ptr<RootRole> create_update(const json& j) = 0;
     };
 
-    /*
-    class RepoTrust
+
+    /**
+     * Interface that performs validity checks
+     * on a repository packages index.
+     */
+    class RepoIndexChecker
     {
     public:
-        RepoTrust(const std::string& url,
-                  const fs::path& local_trusted_root,
-                  const SpecVersion& spec_version);
+        virtual void verify_index(const json& j) const = 0;
+        virtual void verify_index(const fs::path& p) const = 0;
+
+    protected:
+        RepoIndexChecker() = default;
+    };
+
+
+    /**
+     * Perform security check against a repository
+     * package index using cryptographic signatures.
+     * Relies on multiple roles defined in TUF specification.
+     */
+    class RepoChecker
+    {
+    public:
+        RepoChecker(const std::string& url, const fs::path& local_trusted_root);
+
+        // Fowarding to a ``RepoIndexChecker`` implementation
+        bool check(const json& j);
+        bool check(const fs::path& p);
 
     private:
         std::string m_base_url;
-        std::unique_ptr<RootRoleBase> p_root;
+
+        fs::path m_local_trusted_root;
+
+        std::unique_ptr<RepoIndexChecker> p_index_checker;
+
+        std::unique_ptr<RootRole> get_root_role();
     };
-    */
 
-    void to_json(json& j, const Key& k);
-    void to_json(json& j, const RoleKeys& rk);
-    void to_json(json& j, const RolePubKeys& rk);
-    void to_json(json& j, const RoleSignature& rs);
-
-    void from_json(const json& j, Key& k);
-    void from_json(const json& j, RoleKeys& rk);
-    void from_json(const json& j, RolePubKeys& rk);
-    void from_json(const json& j, RoleSignature& rs);
 
     namespace v1
     {
-        class SpecVersion final : public SpecVersionBase
+        /**
+         * TUF v1 specific implementation.
+         */
+        class SpecImpl final : public SpecBase
         {
         public:
-            SpecVersion(const std::string& sv = "1.0.17");
+            SpecImpl(const std::string& sv = "1.0.17");
 
             std::string json_key() const override;
             std::string expiration_json_key() const override;
@@ -365,28 +480,43 @@ namespace validate
             std::set<RoleSignature> signatures(const json& j) const override;
         };
 
-        class RootRole final : public RootRoleBase
+
+        /**
+         * 'root' role implementation.
+         * TUF v1.0.17 §2.1.1
+         * https://theupdateframework.github.io/specification/latest/#root
+         */
+        class RootImpl final
+            : public RootRole
+            , public RoleBase
         {
         public:
-            RootRole(const fs::path& p);
-            RootRole(const json& j);
+            RootImpl(const fs::path& p);
+            RootImpl(const json& j);
 
-            std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
-            std::map<std::string, RoleFullKeys> all_keys() const override;
 
-            friend void to_json(json& j, const RootRole& r);
-            friend void from_json(const json& j, RootRole& r);
+            std::unique_ptr<RepoIndexChecker> build_index_checker(
+                const std::string& url) const override;
+
+            friend void to_json(json& j, const RootImpl& r);
+            friend void from_json(const json& j, RootImpl& r);
 
         private:
-            RootRole() = delete;
+            RootImpl() = delete;
 
             void load_from_json(const json& j);
 
-            std::unique_ptr<RootRoleBase> create_update(const json& j) override;
+            std::unique_ptr<RootRole> create_update(const json& j) override;
 
-            std::map<std::string, Key> m_keys;
-            std::map<std::string, RoleKeys> m_roles;
+            std::set<std::string> mandatory_defined_roles() const override;
+            std::set<std::string> optionally_defined_roles() const override;
+
+            void set_defined_roles(std::map<std::string, Key> keys,
+                                   std::map<std::string, RoleKeys> roles);
+
+            json read_root_file(const fs::path& p, bool update = false) const override;
+            std::size_t root_version() const override;
         };
     }
 
@@ -394,10 +524,13 @@ namespace validate
     {
         std::string json_canonicalize(const json& version);
 
-        class SpecVersion final : public SpecVersionBase
+        /**
+         * ``conda-content-trust`` v0.6.0 specific implementation.
+         */
+        class SpecImpl final : public SpecBase
         {
         public:
-            SpecVersion(const std::string& sv = "0.6.0");
+            SpecImpl(const std::string& sv = "0.6.0");
 
             std::string json_key() const override;
             std::string expiration_json_key() const override;
@@ -409,55 +542,120 @@ namespace validate
             bool upgradable() const override;
         };
 
-        class RootRole final : public RootRoleBase
+        // Forward declaration of KeyMgrRole.
+        class KeyMgrRole;
+
+        /**
+         * 'root' role implementation.
+         */
+        class RootImpl final
+            : public RootRole
+            , public RoleBase
         {
         public:
-            RootRole(const fs::path& p);
-            RootRole(const json& j);
+            RootImpl(const fs::path& p);
+            RootImpl(const json& j);
 
-            std::set<std::string> roles() const override;
+            std::unique_ptr<RepoIndexChecker> build_index_checker(
+                const std::string& url) const override;
+
             RoleFullKeys self_keys() const override;
-            std::map<std::string, RoleFullKeys> all_keys() const override;
 
             json upgraded_signable() const;
             RoleSignature upgraded_signature(const json& j,
                                              const std::string& pk,
                                              const unsigned char* sk) const;
 
-            friend void to_json(json& j, const RootRole& r);
-            friend void from_json(const json& j, RootRole& r);
+            KeyMgrRole create_key_mgr(const fs::path& p) const;
+            KeyMgrRole create_key_mgr(const json& j) const;
+
+            friend void to_json(json& j, const RootImpl& r);
+            friend void from_json(const json& j, RootImpl& r);
 
         private:
-            RootRole() = delete;
+            RootImpl() = delete;
 
             void load_from_json(const json& j);
 
-            std::unique_ptr<RootRoleBase> create_update(const json& j) override;
+            std::unique_ptr<RootRole> create_update(const json& j) override;
 
-            std::map<std::string, RolePubKeys> m_delegations;
+            std::set<std::string> mandatory_defined_roles() const override;
+            std::set<std::string> optionally_defined_roles() const override;
+
+            void set_defined_roles(std::map<std::string, RolePubKeys> keys);
+
+            json read_root_file(const fs::path& p, bool update = false) const override;
+            std::size_t root_version() const override;
         };
 
 
+        // Forward declaration of KeyMgrRole.
+        class PkgMgrRole;
+
+        /**
+         * 'key_mgr' role implementation.
+         */
         class KeyMgrRole final : public RoleBase
         {
         public:
-            KeyMgrRole(const fs::path& p, const RoleFullKeys& keys);
-            KeyMgrRole(const json& j, const RoleFullKeys& keys);
-
             // std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
 
+            PkgMgrRole create_pkg_mgr() const;
+
+            std::unique_ptr<RepoIndexChecker> build_index_checker(const std::string& url) const;
 
             friend void to_json(json& j, const KeyMgrRole& r);
             friend void from_json(const json& j, KeyMgrRole& r);
 
         private:
             KeyMgrRole() = delete;
+            KeyMgrRole(const fs::path& p,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(const json& j,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
 
             void load_from_json(const json& j);
 
             RoleFullKeys m_keys;
             std::map<std::string, RolePubKeys> m_delegations;
+
+            std::set<std::string> mandatory_defined_roles() const override;
+            std::set<std::string> optionally_defined_roles() const override;
+
+            void set_defined_roles(std::map<std::string, RolePubKeys> keys);
+
+            friend class RootImpl;
+        };
+
+
+        /**
+         * 'pkg_mgr' role implementation.
+         * This role inherits from ``RepoIndexChecker`` and
+         * will be used by ``RepoChecker`` to perform the
+         * repository index verification.
+         */
+        class PkgMgrRole final
+            : public RoleBase
+            , public RepoIndexChecker
+        {
+        public:
+            void verify_index(const fs::path& p) const override;
+            void verify_index(const json& j) const override;
+
+        private:
+            PkgMgrRole() = delete;
+            PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+
+            RoleFullKeys self_keys() const override;
+            std::set<RoleSignature> pkg_signatures(const json& j) const;
+            void check_pkg_signatures(const json& signed_data, const json& signatures) const;
+
+            RoleFullKeys m_keys;
+
+            friend class KeyMgrRole;
         };
     }
 }  // namespace validate

@@ -58,6 +58,11 @@ namespace validate
     {
     }
 
+    package_error::package_error() noexcept
+        : trust_error("Invalid package index metadata")
+    {
+    }
+
     std::string sha256sum(const std::string& path)
     {
         std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
@@ -370,6 +375,21 @@ namespace validate
         return { pubkeys, threshold };
     }
 
+    std::map<std::string, Key> RoleFullKeys::to_keys() const
+    {
+        return keys;
+    }
+
+    RoleKeys RoleFullKeys::to_roles() const
+    {
+        std::vector<std::string> keyids;
+        for (auto& k : keys)
+        {
+            keyids.push_back(k.first);
+        }
+        return { keyids, threshold };
+    }
+
     TimeRef::TimeRef()
         : m_time_ref(mamba::utc_time_now())
     {
@@ -396,17 +416,17 @@ namespace validate
         return mamba::timestamp(m_time_ref);
     }
 
-    SpecVersionBase::SpecVersionBase(const std::string& spec_version)
+    SpecBase::SpecBase(const std::string& spec_version)
         : m_spec_version(spec_version)
     {
     }
 
-    std::string SpecVersionBase::version_str() const
+    std::string SpecBase::version_str() const
     {
         return m_spec_version;
     }
 
-    std::string SpecVersionBase::compatible_starts_with() const
+    std::string SpecBase::compatible_starts_with() const
     {
         auto split_spec_version = mamba::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
@@ -420,7 +440,7 @@ namespace validate
         }
     }
 
-    std::string SpecVersionBase::upgradable_starts_with() const
+    std::string SpecBase::upgradable_starts_with() const
     {
         auto split_spec_version = mamba::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
@@ -435,12 +455,12 @@ namespace validate
         }
     }
 
-    bool SpecVersionBase::is_compatible(const std::string& version) const
+    bool SpecBase::is_compatible(const std::string& version) const
     {
         return mamba::starts_with(version, compatible_starts_with());
     }
 
-    bool SpecVersionBase::is_compatible(const json& j) const
+    bool SpecBase::is_compatible(const json& j) const
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
@@ -453,12 +473,12 @@ namespace validate
         }
     }
 
-    bool SpecVersionBase::is_upgradable(const std::string& version) const
+    bool SpecBase::is_upgradable(const std::string& version) const
     {
         return mamba::starts_with(version, upgradable_starts_with());
     }
 
-    bool SpecVersionBase::is_upgradable(const json& j) const
+    bool SpecBase::is_upgradable(const json& j) const
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
@@ -471,7 +491,7 @@ namespace validate
         }
     }
 
-    std::string SpecVersionBase::get_json_value(const json& j) const
+    std::string SpecBase::get_json_value(const json& j) const
     {
         try
         {
@@ -485,30 +505,30 @@ namespace validate
         }
     }
 
-    std::string SpecVersionBase::canonicalize(const json& j) const
+    std::string SpecBase::canonicalize(const json& j) const
     {
         return j.dump();
     }
 
-    bool SpecVersionBase::upgradable() const
+    bool SpecBase::upgradable() const
     {
         return false;
     };
 
-    bool operator==(const SpecVersionBase& sv1, const SpecVersionBase& sv2)
+    bool operator==(const SpecBase& sv1, const SpecBase& sv2)
     {
         return sv1.version_str() == sv2.version_str();
     }
 
-    bool operator!=(const SpecVersionBase& sv1, const SpecVersionBase& sv2)
+    bool operator!=(const SpecBase& sv1, const SpecBase& sv2)
     {
         return sv1.version_str() != sv2.version_str();
     }
 
-    RoleBase::RoleBase(const std::string& type, std::unique_ptr<SpecVersionBase> sv)
+    RoleBase::RoleBase(const std::string& type, std::shared_ptr<SpecBase> sv)
         : m_type(type)
     {
-        p_spec_version = std::move(sv);
+        p_spec = std::move(sv);
     };
 
     RoleBase::~RoleBase(){};
@@ -533,9 +553,14 @@ namespace validate
         return m_ext;
     }
 
-    SpecVersionBase& RoleBase::spec_version() const
+    SpecBase& RoleBase::spec_version() const
     {
-        return *p_spec_version;
+        return *p_spec;
+    }
+
+    std::shared_ptr<SpecBase> RoleBase::spec_impl() const
+    {
+        return p_spec;
     }
 
     bool RoleBase::expired() const
@@ -545,15 +570,93 @@ namespace validate
 
     std::string RoleBase::canonicalize(const json& j) const
     {
-        return p_spec_version->canonicalize(j);
+        return p_spec->canonicalize(j);
     }
 
     std::set<RoleSignature> RoleBase::signatures(const json& j) const
     {
-        return p_spec_version->signatures(j);
+        return p_spec->signatures(j);
     }
 
-    void RoleBase::set_spec_version(std::unique_ptr<SpecVersionBase> new_sv)
+    std::set<std::string> RoleBase::roles() const
+    {
+        std::set<std::string> r;
+        for (auto& it : m_defined_roles)
+        {
+            r.insert(it.first);
+        }
+        return r;
+    }
+
+    std::set<std::string> RoleBase::mandatory_defined_roles() const
+    {
+        return {};
+    }
+
+    std::set<std::string> RoleBase::optionally_defined_roles() const
+    {
+        return {};
+    }
+
+    void RoleBase::check_defined_roles() const
+    {
+        auto mandatory_roles = mandatory_defined_roles();
+        auto optional_roles = optionally_defined_roles();
+        auto all_roles = mandatory_roles;
+        all_roles.insert(optional_roles.cbegin(), optional_roles.cend());
+
+        for (const auto& r : roles())
+        {
+            if (all_roles.find(r) == all_roles.end())
+            {
+                LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r << "'";
+                throw role_metadata_error();
+            }
+        }
+
+        auto current_roles = roles();
+        if (!std::includes(current_roles.begin(),
+                           current_roles.end(),
+                           mandatory_roles.begin(),
+                           mandatory_roles.end()))
+        {
+            std::vector<std::string> diff;
+            std::set_difference(mandatory_roles.begin(),
+                                mandatory_roles.end(),
+                                current_roles.begin(),
+                                current_roles.end(),
+                                std::inserter(diff, diff.end()));
+            LOG_ERROR << "Missing roles while loading '" << type() << "' metadata: '"
+                      << mamba::join(", ", diff) << "'";
+            throw role_metadata_error();
+        }
+
+        for (const auto& r : all_keys())
+        {
+            auto r_keys = r.second;
+            if (r_keys.keys.empty())
+            {
+                LOG_ERROR << "'" << type()
+                          << "' metadata should declare at least one key ID for role: '" << r.first
+                          << "'";
+                throw role_metadata_error();
+            }
+            if (r_keys.threshold == 0)
+            {
+                LOG_ERROR << "'" << type()
+                          << "' metadata should declare at least a 'threshold' of 1 for role: '"
+                          << r.first << "'";
+                throw role_metadata_error();
+            }
+        }
+    }
+
+    std::map<std::string, RoleFullKeys> RoleBase::all_keys() const
+    {
+        return m_defined_roles;
+    }
+
+    void RoleBase::set_spec_version(std::shared_ptr<SpecBase> new_sv)
     {
         auto& current_sv = spec_version();
 
@@ -566,7 +669,7 @@ namespace validate
             throw spec_version_error();
         }
 
-        p_spec_version = std::move(new_sv);
+        p_spec = std::move(new_sv);
     }
 
     void RoleBase::set_expiration(const std::string& expires)
@@ -574,7 +677,7 @@ namespace validate
         m_expires = expires;
     }
 
-    json RoleBase::read_file(const fs::path& p, bool update) const
+    json RoleBase::read_json_file(const fs::path& p, bool update) const
     {
         if (!fs::exists(p))
         {
@@ -697,7 +800,7 @@ namespace validate
 
     void RoleBase::check_signatures(const std::string& signed_data,
                                     const std::set<RoleSignature>& signatures,
-                                    const RoleFullKeys& keyring)
+                                    const RoleFullKeys& keyring) const
     {
         std::size_t valid_sig = 0;
 
@@ -724,8 +827,7 @@ namespace validate
                 }
                 else
                 {
-                    LOG_WARNING << "Invalid signature for '" << type()
-                                << "' metadata using keyid: " << s.keyid;
+                    LOG_WARNING << "Invalid signature of metadata using keyid: " << s.keyid;
                 }
             }
             else
@@ -744,14 +846,13 @@ namespace validate
         }
     }
 
-    RootRoleBase::RootRoleBase(std::unique_ptr<SpecVersionBase> sv)
-        : RoleBase("root", std::move(sv))
+    std::vector<fs::path> RootRole::possible_update_files()
     {
+        return {};
     }
-
-    std::unique_ptr<RootRoleBase> RootRoleBase::update(fs::path path)
+    std::unique_ptr<RootRole> RootRole::update(fs::path path)
     {
-        auto j = read_file(path, true);
+        auto j = read_root_file(path, true);
         return update(j);
     }
 
@@ -760,20 +861,20 @@ namespace validate
     // `update(fs::path)`) if we decide to specify the spec version in the file name.
     // The filename would take the form VERSION_NUMBER.SPECVERSION.FILENAME.EXT
     // To disambiguate version and spec version: 1.sv0.6.root.json or 1.sv1.root.json
-    std::unique_ptr<RootRoleBase> RootRoleBase::update(json j)
+    std::unique_ptr<RootRole> RootRole::update(json j)
     {
         // TUF spec 5.3.4 - Check for an arbitrary software attack
-        // Check signatures against current keyids and threshold in 'RootRole' constructor
+        // Check signatures against current keyids and threshold in 'RootImpl' constructor
         auto root_update = create_update(j);
 
         // Check signatures against new keyids and threshold
-        check_role_signatures(j, *root_update);
+        // check_role_signatures(j, *root_update);
 
         // TUF spec 5.3.5 - Check for a rollback attack
         // Version number has to be N+1
-        if (root_update->version() != (version() + 1))
+        if (root_update->root_version() != (root_version() + 1))
         {
-            if (root_update->version() > (version() + 1))
+            if (root_update->root_version() > (root_version() + 1))
             {
                 LOG_ERROR << "Invalid 'root' metadata version, should be exactly N+1";
                 throw role_metadata_error();
@@ -790,22 +891,22 @@ namespace validate
 
     namespace v1
     {
-        SpecVersion::SpecVersion(const std::string& sv)
-            : SpecVersionBase(sv)
+        SpecImpl::SpecImpl(const std::string& sv)
+            : SpecBase(sv)
         {
         }
 
-        std::string SpecVersion::json_key() const
+        std::string SpecImpl::json_key() const
         {
             return "spec_version";
         }
 
-        std::string SpecVersion::expiration_json_key() const
+        std::string SpecImpl::expiration_json_key() const
         {
             return "expires";
         }
 
-        std::set<RoleSignature> SpecVersion::signatures(const json& j) const
+        std::set<RoleSignature> SpecImpl::signatures(const json& j) const
         {
             auto sigs = j.at("signatures").get<std::vector<RoleSignature>>();
             std::set<RoleSignature> unique_sigs(sigs.cbegin(), sigs.cend());
@@ -813,24 +914,27 @@ namespace validate
             return unique_sigs;
         }
 
-        RootRole::RootRole(const json& j)
-            : RootRoleBase(std::make_unique<SpecVersion>())
+        RootImpl::RootImpl(const json& j)
+            : RootRole()
+            , RoleBase("root", std::make_shared<SpecImpl>())
+
         {
             load_from_json(j);
         }
 
-        RootRole::RootRole(const fs::path& path)
-            : RootRoleBase(std::make_unique<SpecVersion>())
+        RootImpl::RootImpl(const fs::path& path)
+            : RootRole()
+            , RoleBase("root", std::make_shared<SpecImpl>())
         {
-            auto j = read_file(path);
+            auto j = read_json_file(path);
             load_from_json(j);
         }
 
-        std::unique_ptr<RootRoleBase> RootRole::create_update(const json& j)
+        std::unique_ptr<RootRole> RootImpl::create_update(const json& j)
         {
-            if (v1::SpecVersion().is_compatible(j))
+            if (v1::SpecImpl().is_compatible(j))
             {
-                return std::make_unique<RootRole>(j);
+                return std::make_unique<RootImpl>(j);
             }
             else
             {
@@ -839,7 +943,7 @@ namespace validate
             }
         }
 
-        void RootRole::load_from_json(const json& j)
+        void RootImpl::load_from_json(const json& j)
         {
             from_json(j, *this);
 
@@ -848,51 +952,69 @@ namespace validate
             check_role_signatures(j, *this);
         }
 
-        std::set<std::string> RootRole::roles() const
+        RoleFullKeys RootImpl::self_keys() const
         {
-            std::set<std::string> r;
-            for (auto& it : m_roles)
-            {
-                r.insert(it.first);
-            }
-            return r;
+            return m_defined_roles.at("root");
         }
 
-        RoleFullKeys RootRole::self_keys() const
+        json RootImpl::read_root_file(const fs::path& p, bool update) const
         {
-            std::map<std::string, Key> role_keys;
-            auto& role = m_roles.at("root");
-
-            for (auto& keyid : role.keyids)
-            {
-                role_keys.insert({ keyid, m_keys.at(keyid) });
-            }
-
-            return { role_keys, role.threshold };
+            return read_json_file(p, update);
         }
 
-        std::map<std::string, RoleFullKeys> RootRole::all_keys() const
+        std::size_t RootImpl::root_version() const
         {
-            std::map<std::string, RoleFullKeys> res;
+            return version();
+        }
 
-            for (auto& it : m_roles)
+        std::set<std::string> RootImpl::mandatory_defined_roles() const
+        {
+            return { "root", "snapshot", "targets", "timestamp" };
+        }
+
+        std::set<std::string> RootImpl::optionally_defined_roles() const
+        {
+            return { "mirrors" };
+        }
+
+        void RootImpl::set_defined_roles(std::map<std::string, Key> keys,
+                                         std::map<std::string, RoleKeys> roles)
+        {
+            m_defined_roles.clear();
+
+            for (auto& it : roles)
             {
                 std::map<std::string, Key> role_keys;
                 for (auto& keyid : it.second.keyids)
                 {
-                    role_keys.insert({ keyid, m_keys.at(keyid) });
+                    try
+                    {
+                        role_keys.insert({ keyid, keys.at(keyid) });
+                    }
+                    catch (const std::out_of_range&)
+                    {
+                        LOG_ERROR << "Missing key in 'keys' is used in '" << it.first
+                                  << "' delegation: '" << keyid << "'";
+                        throw role_metadata_error();
+                    }
                 }
-                res.insert({ it.first, { role_keys, it.second.threshold } });
+                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
             }
-            return res;
         }
 
-        void to_json(json& j, const RootRole& r)
+        std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
+            const std::string& url) const
+        {
+            std::unique_ptr<RepoIndexChecker> ptr;
+            return ptr;
+        }
+
+        void to_json(json& j, const RootImpl& r)
         {
             to_json(j, static_cast<const RoleBase*>(&r));
         }
 
-        void from_json(const json& j, RootRole& role)
+        void from_json(const json& j, RootImpl& role)
         {
             auto j_signed = j.at("signed");
             try
@@ -908,10 +1030,11 @@ namespace validate
                 }
 
                 role.set_spec_version(
-                    std::make_unique<SpecVersion>(j_signed.at("spec_version").get<std::string>()));
+                    std::make_shared<SpecImpl>(j_signed.at("spec_version").get<std::string>()));
 
-                role.m_keys = j_signed.at("keys").get<std::map<std::string, Key>>();
-                role.m_roles = j_signed.at("roles").get<std::map<std::string, RoleKeys>>();
+                auto keys = j_signed.at("keys").get<std::map<std::string, Key>>();
+                auto roles = j_signed.at("roles").get<std::map<std::string, RoleKeys>>();
+                role.set_defined_roles(keys, roles);
             }
             catch (const json::exception& e)
             {
@@ -919,92 +1042,29 @@ namespace validate
                 throw role_metadata_error();
             }
 
-            // TODO: replace those checks with JSON schema?
-            for (const auto& r : role.m_roles)
-            {
-                json json_role = r.first;
-                auto role = json_role.get<Role>();
-                if (role == Role::kInvalid)
-                {
-                    LOG_ERROR << "Invalid role while loading 'root' metadata from JSON file: '"
-                              << r.first << "'";
-                    throw role_metadata_error();
-                }
-            }
-
-            std::set<std::string> current_roles;
-            for (const auto& r : role.m_roles)
-            {
-                current_roles.insert(r.first);
-            }
-            std::set<std::string> mandatory_roles = { "root", "snapshot", "targets", "timestamp" };
-            if (!std::includes(current_roles.begin(),
-                               current_roles.end(),
-                               mandatory_roles.begin(),
-                               mandatory_roles.end()))
-            {
-                std::vector<std::string> diff;
-                std::set_difference(mandatory_roles.begin(),
-                                    mandatory_roles.end(),
-                                    current_roles.begin(),
-                                    current_roles.end(),
-                                    std::inserter(diff, diff.end()));
-                LOG_ERROR << "Missing roles while loading 'root' metadata: "
-                          << mamba::join(", ", diff);
-                throw role_metadata_error();
-            }
-
-            for (const auto& r : role.m_roles)
-            {
-                auto r_keys = r.second;
-                if (r_keys.keyids.empty())
-                {
-                    LOG_ERROR
-                        << "'root' metadata should declare at least one key ID in 'keyids' for role: '"
-                        << r.first << "'";
-                    throw role_metadata_error();
-                }
-                if (r_keys.threshold == 0)
-                {
-                    LOG_ERROR
-                        << "'root' metadata should declare at least a 'threshold' of 1 for role: '"
-                        << r.first << "'";
-                    throw role_metadata_error();
-                }
-
-                for (auto& rk : r_keys.keyids)
-                {
-                    if (role.m_keys.find(rk) == role.m_keys.end())
-                    {
-                        LOG_ERROR
-                            << "Invalid 'root' metadata, a key ID is used in 'roles' but not declared in 'keys': '"
-                            << rk << "'";
-                        throw role_metadata_error();
-                    }
-                }
-            }
+            role.check_defined_roles();
         }
     }  // namespace v1
 
 
     namespace v06
     {
-        SpecVersion::SpecVersion(const std::string& sv)
-            : SpecVersionBase(sv)
+        SpecImpl::SpecImpl(const std::string& sv)
+            : SpecBase(sv)
         {
         }
 
-        std::string SpecVersion::json_key() const
+        std::string SpecImpl::json_key() const
         {
             return "metadata_spec_version";
         }
 
-        std::string SpecVersion::expiration_json_key() const
+        std::string SpecImpl::expiration_json_key() const
         {
             return "expiration";
         }
 
-        std::set<RoleSignature> SpecVersion::signatures(const json& j) const
+        std::set<RoleSignature> SpecImpl::signatures(const json& j) const
         {
             auto sigs = j.at("signatures")
                             .get<std::map<std::string, std::map<std::string, std::string>>>();
@@ -1028,39 +1088,41 @@ namespace validate
             return j.dump(2);
         }
 
-        bool SpecVersion::upgradable() const
+        bool SpecImpl::upgradable() const
         {
             return true;
         };
 
-        std::string SpecVersion::canonicalize(const json& j) const
+        std::string SpecImpl::canonicalize(const json& j) const
         {
             return json_canonicalize(j);
         }
 
-        RootRole::RootRole(const json& j)
-            : RootRoleBase(std::make_unique<SpecVersion>())
+        RootImpl::RootImpl(const json& j)
+            : RootRole()
+            , RoleBase("root", std::make_shared<SpecImpl>())
         {
             load_from_json(j);
         }
 
-        RootRole::RootRole(const fs::path& path)
-            : RootRoleBase(std::make_unique<SpecVersion>())
+        RootImpl::RootImpl(const fs::path& path)
+            : RootRole()
+            , RoleBase("root", std::make_shared<SpecImpl>())
         {
-            auto j = read_file(path);
+            auto j = read_json_file(path);
             load_from_json(j);
         }
 
-        std::unique_ptr<RootRoleBase> RootRole::create_update(const json& j)
+        std::unique_ptr<RootRole> RootImpl::create_update(const json& j)
         {
-            if (v06::SpecVersion().is_compatible(j))
+            if (v06::SpecImpl().is_compatible(j))
             {
-                return std::make_unique<RootRole>(j);
+                return std::make_unique<RootImpl>(j);
             }
-            else if (v1::SpecVersion().is_compatible(j))
+            else if (v1::SpecImpl().is_compatible(j))
             {
                 LOG_DEBUG << "Updating 'root' role spec version";
-                return std::make_unique<v1::RootRole>(j);
+                return std::make_unique<v1::RootImpl>(j);
             }
             {
                 LOG_ERROR << "Invalid spec version for 'root' update";
@@ -1068,7 +1130,7 @@ namespace validate
             }
         }
 
-        void RootRole::load_from_json(const json& j)
+        void RootImpl::load_from_json(const json& j)
         {
             from_json(j, *this);
 
@@ -1077,28 +1139,28 @@ namespace validate
             check_role_signatures(j, *this);
         }
 
-        std::set<std::string> RootRole::roles() const
+        json RootImpl::read_root_file(const fs::path& p, bool update) const
         {
-            std::set<std::string> r;
-            for (auto& it : m_delegations)
-            {
-                r.insert(it.first);
-            }
-            return r;
+            return read_json_file(p, update);
         }
 
-        json RootRole::upgraded_signable() const
+        std::size_t RootImpl::root_version() const
+        {
+            return version();
+        }
+
+        json RootImpl::upgraded_signable() const
         {
             json v1_equivalent_root;
 
-            v1_equivalent_root["roles"]["root"] = m_delegations.at("root").to_role_keys();
-            v1_equivalent_root["roles"]["targets"] = m_delegations.at("key_mgr").to_role_keys();
+            v1_equivalent_root["roles"]["root"] = m_defined_roles.at("root").to_roles();
+            v1_equivalent_root["roles"]["targets"] = m_defined_roles.at("key_mgr").to_roles();
             v1_equivalent_root["roles"]["snapshot"] = RoleKeys({ std::vector<std::string>(), 1 });
             v1_equivalent_root["roles"]["timestamp"] = RoleKeys({ std::vector<std::string>(), 1 });
 
-            auto allkeys = all_keys();
-            std::map<std::string, Key> v1_keys = allkeys.at("root").keys;
-            v1_keys.insert(allkeys.at("key_mgr").keys.cbegin(), allkeys.at("key_mgr").keys.cend());
+            std::map<std::string, Key> v1_keys = m_defined_roles.at("root").to_keys();
+            auto key_mgr_keys = m_defined_roles.at("key_mgr").to_keys();
+            v1_keys.insert(key_mgr_keys.cbegin(), key_mgr_keys.cend());
 
             v1_equivalent_root["keys"] = v1_keys;
             v1_equivalent_root["_type"] = "root";
@@ -1109,7 +1171,7 @@ namespace validate
             return v1_equivalent_root;
         }
 
-        RoleSignature RootRole::upgraded_signature(const json& j,
+        RoleSignature RootImpl::upgraded_signature(const json& j,
                                                    const std::string& pk,
                                                    const unsigned char* sk) const
         {
@@ -1120,40 +1182,58 @@ namespace validate
             return { pk, sig_hex };
         }
 
-        RoleFullKeys RootRole::self_keys() const
+        RoleFullKeys RootImpl::self_keys() const
         {
-            auto& role = m_delegations.at("root");
-
-            std::map<std::string, Key> role_keys;
-            for (auto& key : role.pubkeys)
-            {
-                role_keys.insert({ key, Key::from_ed25519(key) });
-            }
-
-            return { role_keys, role.threshold };
+            return m_defined_roles.at("root");
         }
 
-        std::map<std::string, RoleFullKeys> RootRole::all_keys() const
+        std::set<std::string> RootImpl::mandatory_defined_roles() const
         {
-            std::map<std::string, RoleFullKeys> res;
-            for (auto& it : m_delegations)
+            return { "root", "key_mgr" };
+        }
+
+        std::set<std::string> RootImpl::optionally_defined_roles() const
+        {
+            return {};
+        }
+
+        void RootImpl::set_defined_roles(std::map<std::string, RolePubKeys> keys)
+        {
+            m_defined_roles.clear();
+            for (auto& it : keys)
             {
                 std::map<std::string, Key> role_keys;
                 for (auto& key : it.second.pubkeys)
                 {
                     role_keys.insert({ key, Key::from_ed25519(key) });
                 }
-                res.insert({ it.first, { role_keys, it.second.threshold } });
+                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
             }
-            return res;
         }
 
-        void to_json(json& j, const RootRole& r)
+        std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
+            const std::string& url) const
+        {
+            KeyMgrRole key_mgr(fs::path(url) / "key_mgr.json", all_keys()["key_mgr"], spec_impl());
+            return key_mgr.build_index_checker(url);
+        }
+
+        KeyMgrRole RootImpl::create_key_mgr(const fs::path& p) const
+        {
+            return KeyMgrRole(p, all_keys()["key_mgr"], spec_impl());
+        }
+
+        KeyMgrRole RootImpl::create_key_mgr(const json& j) const
+        {
+            return KeyMgrRole(j, all_keys()["key_mgr"], spec_impl());
+        }
+
+        void to_json(json& j, const RootImpl& r)
         {
             to_json(j, static_cast<const RoleBase*>(&r));
         }
 
-        void from_json(const json& j, RootRole& role)
+        void from_json(const json& j, RootImpl& role)
         {
             auto j_signed = j.at("signed");
             try
@@ -1168,11 +1248,11 @@ namespace validate
                     throw role_metadata_error();
                 }
 
-                role.set_spec_version(std::make_unique<SpecVersion>(
+                role.set_spec_version(std::make_shared<SpecImpl>(
                     j_signed.at("metadata_spec_version").get<std::string>()));
 
-                role.m_delegations
-                    = j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>();
+                role.set_defined_roles(
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
             }
             catch (const json::exception& e)
             {
@@ -1180,57 +1260,23 @@ namespace validate
                 throw role_metadata_error();
             }
 
-            // TODO: replace those checks with JSON schema?
-            std::set<std::string> current_roles;
-            for (const auto& r : role.m_delegations)
-            {
-                current_roles.insert(r.first);
-
-                auto r_keys = r.second;
-                if (r_keys.pubkeys.empty())
-                {
-                    LOG_ERROR
-                        << "'root' metadata should declare at least one public key in 'pubkeys' for delegation: '"
-                        << r.first << "'";
-                    throw role_metadata_error();
-                }
-                if (r_keys.threshold == 0)
-                {
-                    LOG_ERROR
-                        << "'root' metadata should declare at least a 'threshold' of 1 for role: '"
-                        << r.first << "'";
-                    throw role_metadata_error();
-                }
-            }
-
-            std::set<std::string> mandatory_roles = { "root", "key_mgr" };
-            if (!std::includes(current_roles.begin(),
-                               current_roles.end(),
-                               mandatory_roles.begin(),
-                               mandatory_roles.end()))
-            {
-                std::vector<std::string> diff;
-                std::set_difference(mandatory_roles.begin(),
-                                    mandatory_roles.end(),
-                                    current_roles.begin(),
-                                    current_roles.end(),
-                                    std::inserter(diff, diff.end()));
-                LOG_ERROR << "Missing delegations while loading 'root' metadata: "
-                          << mamba::join(", ", diff);
-                throw role_metadata_error();
-            }
+            role.check_defined_roles();
         }
 
-        KeyMgrRole::KeyMgrRole(const fs::path& p, const RoleFullKeys& keys)
-            : RoleBase("key_mgr", std::make_unique<SpecVersion>())
+        KeyMgrRole::KeyMgrRole(const fs::path& p,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
-            auto j = read_file(p);
+            auto j = read_json_file(p);
             load_from_json(j);
         }
 
-        KeyMgrRole::KeyMgrRole(const json& j, const RoleFullKeys& keys)
-            : RoleBase("key_mgr", std::make_unique<SpecVersion>())
+        KeyMgrRole::KeyMgrRole(const json& j,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("key_mgr", spec)
             , m_keys(keys)
         {
             load_from_json(j);
@@ -1246,6 +1292,42 @@ namespace validate
         RoleFullKeys KeyMgrRole::self_keys() const
         {
             return m_keys;
+        }
+
+        PkgMgrRole KeyMgrRole::create_pkg_mgr() const
+        {
+            return PkgMgrRole(all_keys().at("pkg_mgr"), spec_impl());
+        }
+
+        std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
+            const std::string& url) const
+        {
+            auto pkg_mgr = std::make_unique<PkgMgrRole>(create_pkg_mgr());
+            return pkg_mgr;
+        }
+
+        std::set<std::string> KeyMgrRole::mandatory_defined_roles() const
+        {
+            return { "pkg_mgr" };
+        }
+
+        std::set<std::string> KeyMgrRole::optionally_defined_roles() const
+        {
+            return {};
+        }
+
+        void KeyMgrRole::set_defined_roles(std::map<std::string, RolePubKeys> keys)
+        {
+            m_defined_roles.clear();
+            for (auto& it : keys)
+            {
+                std::map<std::string, Key> role_keys;
+                for (auto& key : it.second.pubkeys)
+                {
+                    role_keys.insert({ key, Key::from_ed25519(key) });
+                }
+                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+            }
         }
 
         void to_json(json& j, const KeyMgrRole& r)
@@ -1270,7 +1352,7 @@ namespace validate
 
                 auto new_spec_version
                     = j_signed.at(role.spec_version().json_key()).get<std::string>();
-                if (role.spec_version() != SpecVersion(new_spec_version))
+                if (role.spec_version() != SpecImpl(new_spec_version))
                 {
                     LOG_ERROR
                         << "Invalid spec version '" << new_spec_version
@@ -1279,16 +1361,107 @@ namespace validate
                     throw spec_version_error();
                 }
 
-                /*
-                    role.m_delegations
-                                    = j_signed.at("delegations").get<std::map<std::string,
-                    RolePubKeys>>();
-                */
+                role.set_defined_roles(
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
             }
             catch (const json::exception& e)
             {
                 LOG_ERROR << "Invalid 'key_mgr' metadata: " << e.what();
                 throw role_metadata_error();
+            }
+
+            role.check_defined_roles();
+        }
+
+        PkgMgrRole::PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+        }
+
+        RoleFullKeys PkgMgrRole::self_keys() const
+        {
+            return m_keys;
+        }
+
+        std::set<RoleSignature> PkgMgrRole::pkg_signatures(const json& j) const
+        {
+            auto sigs = j.get<std::map<std::string, std::map<std::string, std::string>>>();
+            std::set<RoleSignature> unique_sigs;
+
+            for (auto& s : sigs)
+            {
+                std::string pgp_trailer = "";
+                if (s.second.find("other_headers") != s.second.end())
+                    pgp_trailer = s.second["other_headers"];
+
+                unique_sigs.insert(
+                    RoleSignature({ s.first, s.second.at("signature"), pgp_trailer }));
+            }
+
+            return unique_sigs;
+        }
+
+        void PkgMgrRole::check_pkg_signatures(const json& metadata, const json& signatures) const
+        {
+            std::string signed_data = canonicalize(metadata);
+            auto sigs = pkg_signatures(signatures);
+            auto k = self_keys();
+
+            check_signatures(signed_data, sigs, k);
+        }
+
+        void PkgMgrRole::verify_index(const json& j) const
+        {
+            try
+            {
+                auto packages = j.at("packages").get<json::object_t>();
+                auto sigs = j.at("signatures").get<json::object_t>();
+
+                for (auto& it : packages)
+                {
+                    auto pkg_name = it.first;
+                    auto pkg_meta = it.second;
+                    auto pkg_sigs = sigs.at(pkg_name).get<json::object_t>();
+
+                    try
+                    {
+                        check_pkg_signatures(pkg_meta, pkg_sigs);
+                    }
+                    catch (const threshold_error& e)
+                    {
+                        LOG_ERROR << "Validation failed on package: '" << pkg_name << "'";
+                        throw package_error();
+                    }
+                }
+            }
+            catch (const json::exception& e)
+            {
+                LOG_ERROR << "Invalid package index metadata: " << e.what();
+                throw package_error();
+            }
+        }
+
+        void PkgMgrRole::verify_index(const fs::path& p) const
+        {
+            if (!fs::exists(p))
+            {
+                LOG_ERROR << "'repodata' file not found at: " << p.string();
+                throw role_file_error();
+            }
+
+            std::ifstream i(p);
+            json j;
+            i >> j;
+
+            try
+            {
+                verify_index(j);
+            }
+            catch (const package_error& e)
+            {
+                LOG_ERROR << "Validation failed on package index: '" << p.string() << "'";
+                throw e;
             }
         }
     }  // namespace v06
@@ -1364,24 +1537,51 @@ namespace validate
         role->set_expiration(j.at(role->spec_version().expiration_json_key()));
     }
 
-    /*
-        RepoTrust::RepoTrust(const std::string& url,
-                             const fs::path& local_trusted_root,
-                             const SpecVersion& spec_version)
-            : m_base_url(url)
+    RepoChecker::RepoChecker(const std::string& url, const fs::path& local_trusted_root)
+        : m_base_url(url)
+        , m_local_trusted_root(local_trusted_root)
+    {
+        auto root = get_root_role();
+        p_index_checker = root->build_index_checker(fs::path(url));
+    };
+
+    std::unique_ptr<RootRole> RepoChecker::get_root_role()
+    {
+        std::unique_ptr<RootRole> updated_root;
+
+        if (v06::SpecImpl().is_compatible(m_local_trusted_root.string()))
         {
-            if (spec_version == SpecVersion::kV06)
-            {
-                p_root = std::make_unique<v1::RootRole>(local_trusted_root);
-            }
-            else if (spec_version == SpecVersion::kV1)
-            {
-                p_root = std::make_unique<v1::RootRole>(local_trusted_root);
-            }
-            else
-            {
-                throw spec_version_error();
-            }
+            updated_root = std::make_unique<v06::RootImpl>(m_local_trusted_root);
         }
-    */
+        else if (v1::SpecImpl().is_compatible(m_local_trusted_root.string()))
+        {
+            return std::make_unique<v1::RootImpl>(m_local_trusted_root);
+        }
+        {
+            LOG_ERROR << "Invalid spec version for 'root' initial trusted file";
+            throw spec_version_error();
+        }
+
+        auto update_files = updated_root->possible_update_files();
+        // do chained updates
+        while (true)
+        {
+            fs::path p = "";
+            for (auto& f : update_files)
+            {
+                if (fs::exists(f))
+                {
+                    p = f;
+                    break;
+                }
+            }
+
+            if (p.empty())
+                break;
+
+            updated_root = updated_root->update(p);
+            update_files = updated_root->possible_update_files();
+        }
+        return updated_root;
+    };
 }  // namespace validate

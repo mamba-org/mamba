@@ -148,8 +148,6 @@ set_config_file_command(CLI::App* subcom)
                                         .description("File path to set configuration"),
                                     true);
     subcom->add_option("--file", file_path.set_cli_config(fs::path()), file_path.description());
-
-    path::touch(file_path.value().string(), true);
 }
 
 void
@@ -182,12 +180,13 @@ set_config_prepend_command(CLI::App* subcom)
         std::string prepend_key = prepend_map.value().front();
         std::string prepend_value = prepend_map.value().back();
 
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
-
-        if (!file_path.value().string().empty())
+        if (file_path.configured())
         {
+            path::touch(file_path.value().string(), true);
             rc_source = env::expand_user(file_path.value()).string();
         }
+
+        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
         // look for append key in YAML
         for (auto v : rc_YAML)
@@ -208,15 +207,16 @@ set_config_prepend_command(CLI::App* subcom)
             }
         }
 
-        if (is_key_valid(prepend_key))
+        if (is_key_valid(prepend_key) && prepend_map.value().size() < 3)
         {
             // prepend value to the end of the chosen config key list
             rc_YAML[prepend_key] = insert_yaml_sequence(rc_YAML[prepend_key], prepend_value);
         }
         else
         {
-            std::cout << "Prepend key is invalid or is not present in file " << rc_source
-                      << std::endl;
+            std::cout
+                << "Prepend key is invalid or it's not present in file or more than one key was received"
+                << std::endl;
         }
         // if the rc file is being modified, it's necessary to rewrite it
         rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
@@ -236,7 +236,7 @@ set_config_append_command(CLI::App* subcom)
     auto& append_map
         = config.insert(Configurable("append_map", std::vector<std::string>({ "" }))
                             .group("Output, Prompt and Flow Control")
-                            .description("Add one configuration value to the end of a list key"));
+                            .description("Add one configuration value to the end of a list"));
     subcom->add_option("append_map", append_map.set_cli_config({ "" }), append_map.description());
 
     auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
@@ -255,12 +255,13 @@ set_config_append_command(CLI::App* subcom)
         std::string append_key = append_map.value().front();
         std::string append_value = append_map.value().back();
 
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
-
-        if (!file_path.value().string().empty())
+        if (file_path.configured())
         {
+            path::touch(file_path.value().string(), true);
             rc_source = env::expand_user(file_path.value()).string();
         }
+
+        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
         // look for append key in YAML
         for (auto v : rc_YAML)
@@ -281,14 +282,16 @@ set_config_append_command(CLI::App* subcom)
             }
         }
 
-        if (is_key_valid(append_key))
+        if (is_key_valid(append_key) && append_map.value().size() < 3)
         {
+            // std::cout << "append_value " << append_value << std::endl;
             rc_YAML[append_key].push_back(append_value);
         }
         else
         {
-            std::cout << "Append key is invalid or is not present in file " << rc_source
-                      << std::endl;
+            std::cout
+                << "Append key is invalid or it's not present in file or more than one key was received"
+                << std::endl;
         }
 
         // if the rc file is being modified, it's necessary to rewrite it
@@ -325,8 +328,9 @@ set_config_remove_key_command(CLI::App* subcom)
         std::ofstream rc_file;
         bool key_removed = false;
 
-        if (!file_path.value().string().empty())
+        if (file_path.configured())
         {
+            path::touch(file_path.value().string(), true);
             rc_source = env::expand_user(file_path.value()).string();
         }
 
@@ -346,13 +350,13 @@ set_config_remove_key_command(CLI::App* subcom)
 
         if (!key_removed)
         {
-            std::cout << "Key " << remove_key.value() << " is not present in file " << rc_source
-                      << std::endl;
+            std::cout << "Key is not present in file" << std::endl;
         }
 
         // if the rc file is being modified, it's necessary to rewrite it
         rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
         rc_file << rc_YAML << std::endl;
+
         config.operation_teardown();
     });
 }
@@ -382,16 +386,21 @@ set_config_set_command(CLI::App* subcom)
         fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
         std::ofstream rc_file;
 
-        if (!file_path.value().string().empty())
+        if (file_path.configured())
         {
+            path::touch(file_path.value().string(), true);
             rc_source = env::expand_user(file_path.value().string());
         }
 
         YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
-        if (is_key_valid(set_value.value().at(0)))
+        if (is_key_valid(set_value.value().at(0)) && set_value.value().size() < 3)
         {
             rc_YAML[set_value.value().at(0)] = set_value.value().at(1);
+        }
+        else
+        {
+            std::cout << "Key is invalid or more than one key was received" << std::endl;
         }
 
         // if the rc file is being modified, it's necessary to rewrite it
@@ -409,6 +418,7 @@ set_config_get_command(CLI::App* subcom)
 
     auto& config = Configuration::instance();
 
+    // TODO: get_value should be a vector of strings
     auto& get_value = config.insert(Configurable("get_value", std::string(""))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Display configuration value from rc file"));
@@ -429,20 +439,20 @@ set_config_get_command(CLI::App* subcom)
 
         bool value_found = false;
 
-        if (!file_path.value().string().empty())
+        if (file_path.configured())
         {
             rc_source = env::expand_user(file_path.value()).string();
         }
 
-        // convert rc file to YAML::Node
         YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
-        // look for key
         for (auto v : rc_YAML)
         {
             if (v.first.as<std::string>() == get_value.value())
             {
-                std::cout << get_value.value() << ":" << v.second << std::endl;
+                YAML::Node aux_rc_YAML;
+                aux_rc_YAML[v.first] = v.second;
+                std::cout << aux_rc_YAML << std::endl;
                 value_found = true;
                 break;
             }
@@ -450,8 +460,7 @@ set_config_get_command(CLI::App* subcom)
 
         if (!value_found)
         {
-            std::cout << "Key " << get_value.value() << " is not present in file " << rc_source
-                      << std::endl;
+            std::cout << "Key is not present in file" << std::endl;
         }
 
         config.operation_teardown();

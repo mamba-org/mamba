@@ -336,7 +336,15 @@ class TestConfigModifiers:
 
     def test_set_multiple_inputs(self):
         assert (
-            config("set", "json", "true", "clean_tarballs", "true").splitlines()
+            config(
+                "set",
+                "json",
+                "true",
+                "clean_tarballs",
+                "true",
+                "--file",
+                TestConfigModifiers.rc_path,
+            ).splitlines()
             == "Key is invalid or more than one key was received".splitlines()
         )
 

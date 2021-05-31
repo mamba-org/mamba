@@ -144,7 +144,6 @@ namespace mamba
         , m_filename(filename)
         , m_url(unc_url(url))
     {
-        LOG_INFO << "Downloading to filename: " << m_filename;
         m_handle = curl_easy_init();
 
         init_curl_ssl();
@@ -416,6 +415,9 @@ namespace mamba
 
     bool DownloadTarget::perform()
     {
+        if (m_active_logs)
+            LOG_INFO << "Downloading to filename: " << m_filename;
+
         result = curl_easy_perform(m_handle);
         set_result(result);
         return m_finalize_callback ? m_finalize_callback() : true;
@@ -448,13 +450,19 @@ namespace mamba
             {
                 err << m_errbuf;
             }
-            LOG_INFO << err.str();
-
+            if (m_active_logs)
+            {
+                LOG_INFO << err.str();
+            }
             m_next_retry
                 = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
-            m_progress_bar.set_progress(0, 1);
-            m_progress_bar.set_postfix(curl_easy_strerror(result));
-            if (m_ignore_failure == false && can_retry() == false)
+
+            if (m_has_progress_bar)
+            {
+                m_progress_bar.set_progress(0, 1);
+                m_progress_bar.set_postfix(curl_easy_strerror(result));
+            }
+            if (!m_ignore_failure && !can_retry())
             {
                 throw std::runtime_error(err.str());
             }
@@ -475,9 +483,11 @@ namespace mamba
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-        LOG_INFO << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-                 << downloaded_size << " bytes";
-
+        if (m_active_logs)
+        {
+            LOG_INFO << "Transfer finalized, status: " << http_status << " [" << effective_url
+                     << "] " << downloaded_size << " bytes";
+        }
         if (http_status >= 500 && can_retry())
         {
             // this request didn't work!

@@ -66,6 +66,21 @@ namespace mamba
             return m_ignore_failure;
         }
 
+        inline void set_active_logs(bool yes)
+        {
+            m_active_logs = yes;
+        }
+
+        inline bool active_logs() const
+        {
+            return m_active_logs;
+        }
+
+        inline curl_off_t get_downloaded_size() const
+        {
+            return downloaded_size;
+        }
+
         void set_result(CURLcode r);
         bool finalize();
 
@@ -101,6 +116,7 @@ namespace mamba
 
         bool m_has_progress_bar = false;
         bool m_ignore_failure = false;
+        bool m_active_logs = false;
 
         ProgressProxy m_progress_bar;
 

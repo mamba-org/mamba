@@ -151,6 +151,18 @@ namespace validate
 
 
     /**
+     * Error raised when a possible freeze
+     * attack is detected.
+     */
+    class freeze_error : public trust_error
+    {
+    public:
+        freeze_error() noexcept;
+        virtual ~freeze_error() = default;
+    };
+
+
+    /**
      * Error raised when a spec version is either
      * wrong/invalid or not supported by the client.
      */
@@ -159,6 +171,18 @@ namespace validate
     public:
         spec_version_error() noexcept;
         virtual ~spec_version_error() = default;
+    };
+
+
+    /**
+     * Error raised when a role metadata file
+     * fetching process fails.
+     */
+    class fetching_error : public trust_error
+    {
+    public:
+        fetching_error() noexcept;
+        virtual ~fetching_error() = default;
     };
 
 
@@ -452,12 +476,15 @@ namespace validate
     public:
         RepoChecker(const std::string& url, const fs::path& local_trusted_root);
 
-        // Fowarding to a ``RepoIndexChecker`` implementation
+        // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const json& j);
         void verify_index(const fs::path& p);
 
+        std::size_t root_version();
+
     private:
         std::string m_base_url;
+        std::size_t m_root_version = 0;
 
         fs::path m_local_trusted_root;
 
@@ -520,10 +547,9 @@ namespace validate
 
     namespace v06
     {
-        std::string json_canonicalize(const json& version);
-
         /**
          * ``conda-content-trust`` v0.6.0 specific implementation.
+         * This is a variation of TUF specification.
          */
         class SpecImpl final : public SpecBase
         {
@@ -551,6 +577,10 @@ namespace validate
             RootImpl(const fs::path& p);
             RootImpl(const json& j);
 
+            /**
+             * Return a ``RepoIndexChecker`` implementation (derived class)
+             * from repository base URL.
+             */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
                 const std::string& url) const override;
 
@@ -595,6 +625,10 @@ namespace validate
 
             PkgMgrRole create_pkg_mgr() const;
 
+            /**
+             * Return a ``RepoIndexChecker`` implementation (derived class)
+             * from repository base URL.
+             */
             std::unique_ptr<RepoIndexChecker> build_index_checker(const std::string& url) const;
 
             friend void to_json(json& j, const KeyMgrRole& r);

@@ -229,10 +229,11 @@ class TestShell:
 
         if multiple_time:
             if same_prefix and shell_type == "cmd.exe":
-                assert (
-                    shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
-                    == ""
-                )
+                res = shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+                assert res.splitlines() == [
+                    "cmd.exe already initialized.",
+                    "Windows long-path support already enabled.",
+                ]
             else:
                 assert shell(
                     "-y",

@@ -679,6 +679,14 @@ namespace mamba
                         !WARNING: Using this option can result in corruption of long-lived
                         environments due to broken links (deleted cache).)")));
 
+        insert(
+            Configurable("shortcuts", &ctx.shortcuts)
+                .group("Link & Install")
+                .set_rc_configurable()
+                .set_env_var_name()
+                .description(
+                    "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"));
+
         insert(Configurable("safety_checks", &ctx.safety_checks)
                    .group("Link & Install")
                    .set_rc_configurable()

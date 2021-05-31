@@ -83,7 +83,7 @@ else:
 
 libraries = ["archive", "solv", "solvext", "reproc++", CURL_LIB, CRYPTO_LIB]
 if sys.platform == "win32":
-    libraries += ["advapi32"]
+    libraries += ["advapi32", "ole32", "shell32"]
 
 ext_modules = [
     Extension(
@@ -96,6 +96,7 @@ ext_modules = [
             "src/core/fetch.cpp",
             "src/core/history.cpp",
             "src/core/match_spec.cpp",
+            "src/core/menuinst.cpp",
             "src/core/output.cpp",
             "src/core/package_handling.cpp",
             "src/core/package_cache.cpp",
@@ -106,14 +107,15 @@ ext_modules = [
             "src/core/pool.cpp",
             "src/core/query.cpp",
             "src/core/repo.cpp",
-            "src/core/solver.cpp",
             "src/core/shell_init.cpp",
+            "src/core/solver.cpp",
             "src/core/subdirdata.cpp",
             "src/core/thread_utils.cpp",
             "src/core/transaction.cpp",
             "src/core/transaction_context.cpp",
             "src/core/url.cpp",
             "src/core/util.cpp",
+            "src/core/util_os.cpp",
             "src/core/validate.cpp",
             "src/core/version.cpp",
             "src/core/link.cpp",

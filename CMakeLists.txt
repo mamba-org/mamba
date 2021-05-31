@@ -92,6 +92,7 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/core/link.cpp
     ${MAMBA_SOURCE_DIR}/core/history.cpp
     ${MAMBA_SOURCE_DIR}/core/match_spec.cpp
+    ${MAMBA_SOURCE_DIR}/core/menuinst.cpp
     ${MAMBA_SOURCE_DIR}/core/url.cpp
     ${MAMBA_SOURCE_DIR}/core/output.cpp
     ${MAMBA_SOURCE_DIR}/core/package_handling.cpp
@@ -110,6 +111,7 @@ set(MAMBA_SOURCES
     ${MAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${MAMBA_SOURCE_DIR}/core/transaction.cpp
     ${MAMBA_SOURCE_DIR}/core/util.cpp
+    ${MAMBA_SOURCE_DIR}/core/util_os.cpp
     ${MAMBA_SOURCE_DIR}/core/validate.cpp
     ${MAMBA_SOURCE_DIR}/core/version.cpp
     ${MAMBA_SOURCE_DIR}/core/virtual_packages.cpp
@@ -146,6 +148,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/core/link.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/mamba_fs.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/match_spec.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/menuinst.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/output.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/package_cache.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
@@ -165,6 +168,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/util.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/version.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp

@@ -321,6 +321,10 @@ init_install_options(CLI::App* subcom)
                      extra_safety_checks.set_cli_config(0),
                      extra_safety_checks.description());
 
+    auto& shortcuts = config.at("shortcuts").get_wrapped<bool>();
+    subcom->add_flag(
+        "--shortcuts,!--no-shortcuts", shortcuts.set_cli_config(0), shortcuts.description());
+
     auto& safety_checks = config.at("safety_checks").get_wrapped<VerificationLevel>();
     subcom->add_set("--safety-checks",
                     safety_checks.set_cli_config(""),

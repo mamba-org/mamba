@@ -19,13 +19,11 @@
 
 namespace mamba
 {
-    std::string macos_version();
     std::vector<PackageInfo> get_virtual_packages();
 
     namespace detail
     {
         std::string cuda_version();
-        std::string macos_version();
         std::string get_arch();
 
         PackageInfo make_virtual_package(const std::string& name,

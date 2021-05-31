@@ -9,28 +9,16 @@
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/environment.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 #include "thirdparty/termcolor.hpp"
 
 #include <reproc++/run.hpp>
 
-#ifndef _WIN32
-#if defined(__APPLE__)
-#include <mach-o/dyld.h>
-#include <libProc.h>
-#endif
-#include <inttypes.h>
-#if defined(__linux__)
-#include <linux/limits.h>
-#else
-#include <limits.h>
-#endif
-#else
-#include <windows.h>
-#include <intrin.h>
-#include <tlhelp32.h>
+#ifdef _WIN32
 #include "thirdparty/WinReg.hpp"
 #endif
 
@@ -43,6 +31,9 @@ namespace mamba
 #include "../data/mamba.sh"
             ;
         constexpr const char mamba_bat[] =
+#include "../data/micromamba.bat"
+            ;
+        constexpr const char activate_bat[] =
 #include "../data/micromamba.bat"
             ;
         constexpr const char _mamba_activate_bat[] =
@@ -69,94 +60,6 @@ namespace mamba
                                                 "([\\s\\S]*?)"
                                                 "#endregion(?:\n|\r\n)?");
     }
-
-
-#ifdef _WIN32
-    DWORD getppid()
-    {
-        HANDLE hSnapshot;
-        PROCESSENTRY32 pe32;
-        DWORD ppid = 0, pid = GetCurrentProcessId();
-
-        hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        __try
-        {
-            if (hSnapshot == INVALID_HANDLE_VALUE)
-                __leave;
-
-            ZeroMemory(&pe32, sizeof(pe32));
-            pe32.dwSize = sizeof(pe32);
-            if (!Process32First(hSnapshot, &pe32))
-                __leave;
-
-            do
-            {
-                if (pe32.th32ProcessID == pid)
-                {
-                    ppid = pe32.th32ParentProcessID;
-                    break;
-                }
-            } while (Process32Next(hSnapshot, &pe32));
-        }
-        __finally
-        {
-            if (hSnapshot != INVALID_HANDLE_VALUE)
-                CloseHandle(hSnapshot);
-        }
-        return ppid;
-    }
-
-    std::string get_process_name_by_pid(DWORD processId)
-    {
-        std::string ret;
-        HANDLE handle = OpenProcess(
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            FALSE,
-            processId /* This is the PID, you can find one from windows task manager */
-        );
-        if (handle)
-        {
-            DWORD buffSize = 1024;
-            CHAR buffer[1024];
-            if (QueryFullProcessImageNameA(handle, 0, buffer, &buffSize))
-            {
-                ret = buffer;
-            }
-            else
-            {
-                printf("Error GetModuleBaseNameA : %lu", GetLastError());
-            }
-            CloseHandle(handle);
-        }
-        else
-        {
-            printf("Error OpenProcess : %lu", GetLastError());
-        }
-        return ret;
-    }
-#elif defined(__APPLE__)
-    std::string get_process_name_by_pid(const int pid)
-    {
-        std::string ret;
-        char name[1024];
-        proc_name(pid, name, sizeof(name));
-        ret = name;
-
-        return ret;
-    }
-#elif defined(__linux__)
-    std::string get_process_name_by_pid(const int pid)
-    {
-        std::ifstream f(concat("/proc/", std::to_string(pid), "/status"));
-        if (f.good())
-        {
-            std::string l;
-            std::getline(f, l);
-            return l;
-        }
-        return "";
-    }
-#endif
 
     std::string guess_shell()
     {
@@ -198,7 +101,7 @@ namespace mamba
         }
         catch (const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            LOG_INFO << "No AutoRun key detected.";
         }
         // std::wstring hook_path = '"%s"' % join(conda_prefix, 'condabin', 'conda_hook.bat')
         std::wstring hook_string = std::wstring(L"\"")
@@ -241,54 +144,14 @@ namespace mamba
                 std::cout << termcolor::reset << std::endl;
                 key.SetStringValue(L"AutoRun", new_value);
             }
-        }
-    }
-#endif
-
-    // Heavily inspired by https://github.com/gpakosz/whereami/
-    // check their source to add support for other OS
-    fs::path get_self_exe_path()
-    {
-#ifdef _WIN32
-        DWORD size;
-        std::wstring buffer(MAX_PATH, '\0');
-        size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
-        if (size == 0)
-        {
-            throw std::runtime_error("Could find location of the micromamba executable!");
-        }
-        else if (size == buffer.size())
-        {
-            DWORD new_size = size;
-            do
+            else
             {
-                new_size *= 2;
-                buffer.reserve(new_size);
-                size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
-            } while (new_size == size);
-        }
-        buffer.resize(buffer.find(L'\0'));
-        return fs::absolute(buffer);
-#elif defined(__APPLE__)
-        uint32_t size = PATH_MAX;
-        std::vector<char> buffer(size);
-        if (_NSGetExecutablePath(buffer.data(), &size) == -1)
-        {
-            buffer.reserve(size);
-            if (!_NSGetExecutablePath(buffer.data(), &size))
-            {
-                throw std::runtime_error("Couldn't find location the micromamba executable!");
+                std::cout << termcolor::green << "cmd.exe already initialized." << termcolor::reset
+                          << std::endl;
             }
         }
-        return fs::absolute(buffer.data());
-#else
-#if defined(__sun)
-        return fs::read_symlink("/proc/self/path/a.out");
-#else
-        return fs::read_symlink("/proc/self/exe");
-#endif
-#endif
     }
+#endif
 
     // this function calls cygpath to convert win path to unix
     std::string native_path_to_unix(const std::string& path, bool is_a_path_env)
@@ -492,7 +355,10 @@ namespace mamba
     void init_root_prefix_cmdexe(const fs::path& root_prefix)
     {
         fs::path exe = get_self_exe_path();
+
         fs::create_directories(root_prefix / "condabin");
+        fs::create_directories(root_prefix / "Scripts");
+
         std::ofstream mamba_bat_f(root_prefix / "condabin" / "micromamba.bat");
         std::string mamba_bat_contents(mamba_bat);
         replace_all(mamba_bat_contents,
@@ -505,6 +371,15 @@ namespace mamba
         mamba_bat_f << mamba_bat_contents;
         std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
         _mamba_activate_bat_f << _mamba_activate_bat;
+
+        std::ofstream condabin_activate_bat_f(root_prefix / "condabin" / "activate.bat");
+        condabin_activate_bat_f << activate_bat;
+
+        std::ofstream scripts_activate_bat_f(root_prefix / "Scripts" / "activate.bat");
+        scripts_activate_bat_f << activate_bat;
+
+        // std::ofstream scripts_activate_bat_f(root_prefix / "Scripts" / "activate.bat");
+        // activate_bat_f << activate_bat;
 
         std::string hook_content = mamba_hook_bat;
         replace_all(hook_content,
@@ -707,5 +582,8 @@ namespace mamba
         {
             throw std::runtime_error("Support for other shells not yet implemented.");
         }
+#ifdef _WIN32
+        enable_long_paths_support(false);
+#endif
     }
 }

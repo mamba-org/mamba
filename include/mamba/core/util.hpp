@@ -165,6 +165,10 @@ namespace mamba
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
     bool contains(const std::string_view& str, const std::string_view& sub_str);
 
+    bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix);
+
+    bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix);
+
     std::string_view strip(const std::string_view& input);
     std::string_view lstrip(const std::string_view& input);
     std::string_view rstrip(const std::string_view& input);

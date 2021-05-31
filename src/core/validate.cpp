@@ -426,38 +426,72 @@ namespace validate
         return m_spec_version;
     }
 
-    std::string SpecBase::compatible_starts_with() const
+    std::string SpecBase::compatible_prefix() const
     {
         auto split_spec_version = mamba::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
         if (spec_version_major == 0)
         {
-            return split_spec_version[0] + "." + split_spec_version[1] + ".";
+            return split_spec_version[0] + "." + split_spec_version[1];
         }
         else
         {
-            return split_spec_version[0] + ".";
+            return split_spec_version[0];
         }
     }
 
-    std::string SpecBase::upgradable_starts_with() const
+    std::vector<std::string> SpecBase::upgrade_prefix() const
     {
         auto split_spec_version = mamba::split(m_spec_version, ".", 2);
         auto spec_version_major = std::stoi(split_spec_version[0]);
         auto spec_version_minor = std::stoi(split_spec_version[1]);
         if (spec_version_major == 0)
         {
-            return split_spec_version[0] + "." + std::to_string(spec_version_minor + 1) + ".";
+            // Return the most recent possible upgrade first
+            return { "1", split_spec_version[0] + "." + std::to_string(spec_version_minor + 1) };
         }
         else
         {
-            return std::to_string(spec_version_major + 1) + ".";
+            return { std::to_string(spec_version_major + 1) };
+        }
+    }
+
+    bool SpecBase::is_compatible(const fs::path& p) const
+    {
+        std::regex name_re;
+        std::smatch matches;
+        std::size_t min_match_size;
+
+        std::string f_name = p.filename().string();
+        std::string f_spec_version_str, f_version_str, f_type, f_ext;
+
+        name_re = "^(?:[1-9]+\\d*.)?(?:sv([1-9]\\d*|0\\.[1-9]\\d*).)?(\\w+)\\.(\\w+)$";
+        min_match_size = 3;
+
+        if (std::regex_search(f_name, matches, name_re) && (min_match_size <= matches.size()))
+        {
+            f_spec_version_str = matches[1].str();
+            if (!f_spec_version_str.empty())
+            {
+                return is_compatible(matches[1].str() + ".");
+            }
+            else
+            {
+                std::ifstream i(p);
+                json j;
+                i >> j;
+                return is_compatible(j);
+            }
+        }
+        else
+        {
+            return false;
         }
     }
 
     bool SpecBase::is_compatible(const std::string& version) const
     {
-        return mamba::starts_with(version, compatible_starts_with());
+        return mamba::starts_with(version, compatible_prefix() + ".");
     }
 
     bool SpecBase::is_compatible(const json& j) const
@@ -473,17 +507,25 @@ namespace validate
         }
     }
 
-    bool SpecBase::is_upgradable(const std::string& version) const
+    bool SpecBase::is_upgrade(const std::string& version) const
     {
-        return mamba::starts_with(version, upgradable_starts_with());
+        auto upgrade_prefixes = upgrade_prefix();
+        std::vector<std::string_view> possible_upgrades;
+        for (auto& s : upgrade_prefixes)
+        {
+            s += ".";
+            possible_upgrades.push_back(s);
+        }
+
+        return mamba::starts_with_any(version, possible_upgrades);
     }
 
-    bool SpecBase::is_upgradable(const json& j) const
+    bool SpecBase::is_upgrade(const json& j) const
     {
         auto spec_version = get_json_value(j);
         if (!spec_version.empty())
         {
-            return is_upgradable(spec_version);
+            return is_upgrade(spec_version);
         }
         else
         {
@@ -663,8 +705,8 @@ namespace validate
         if (!current_sv.is_compatible(new_sv->version_str()))
         {
             LOG_ERROR << "Incompatible 'spec_version' found in 'root' metadata, should start with '"
-                      << current_sv.compatible_starts_with() << "' but is: '"
-                      << new_sv->version_str() << "'";
+                      << current_sv.compatible_prefix() << "' but is: '" << new_sv->version_str()
+                      << "'";
 
             throw spec_version_error();
         }
@@ -681,7 +723,7 @@ namespace validate
     {
         if (!fs::exists(p))
         {
-            LOG_ERROR << "File not found for 'root' update: " << p.string();
+            LOG_ERROR << "File not found for '" << type() << "' role: " << p.string();
             throw role_file_error();
         }
 
@@ -744,7 +786,7 @@ namespace validate
         {
             auto new_spec_version_str = f_spec_version_str + ".";
 
-            if (update && spec_version().is_upgradable(new_spec_version_str)
+            if (update && spec_version().is_upgrade(new_spec_version_str)
                 && !spec_version().upgradable())
             {
                 LOG_ERROR << "Please check for a client update, unsupported spec version: '"
@@ -752,7 +794,7 @@ namespace validate
                 throw spec_version_error();
             }
             else if (!((!update && spec_version().is_compatible(new_spec_version_str))
-                       || (update && spec_version().is_upgradable(new_spec_version_str))))
+                       || (update && spec_version().is_upgrade(new_spec_version_str))))
             {
                 LOG_ERROR << "Invalid spec version specified in file name: '" << f_spec_version_str
                           << "'";
@@ -846,13 +888,36 @@ namespace validate
         }
     }
 
+    RootRole::RootRole(std::shared_ptr<SpecBase> spec)
+        : RoleBase("root", spec)
+    {
+    }
+
     std::vector<fs::path> RootRole::possible_update_files()
     {
-        return {};
+        auto new_v = std::to_string(version() + 1);
+        auto compat_spec = spec_impl()->compatible_prefix();
+        auto upgrade_spec = spec_impl()->upgrade_prefix();
+
+        std::vector<fs::path> files;
+        // upgrade first
+        for (auto& s : upgrade_spec)
+        {
+            files.push_back(
+                mamba::join(".", std::vector<std::string>({ new_v, "sv" + s, "root.json" })));
+        }
+        // compatible next
+        files.push_back(
+            mamba::join(".", std::vector<std::string>({ new_v, "sv" + compat_spec, "root.json" })));
+        // then finally undefined spec
+        files.push_back(mamba::join(".", std::vector<std::string>({ new_v, "root.json" })));
+
+        return files;
     }
+
     std::unique_ptr<RootRole> RootRole::update(fs::path path)
     {
-        auto j = read_root_file(path, true);
+        auto j = read_json_file(path, true);
         return update(j);
     }
 
@@ -872,9 +937,9 @@ namespace validate
 
         // TUF spec 5.3.5 - Check for a rollback attack
         // Version number has to be N+1
-        if (root_update->root_version() != (root_version() + 1))
+        if (root_update->version() != (version() + 1))
         {
-            if (root_update->root_version() > (root_version() + 1))
+            if (root_update->version() > (version() + 1))
             {
                 LOG_ERROR << "Invalid 'root' metadata version, should be exactly N+1";
                 throw role_metadata_error();
@@ -915,16 +980,14 @@ namespace validate
         }
 
         RootImpl::RootImpl(const json& j)
-            : RootRole()
-            , RoleBase("root", std::make_shared<SpecImpl>())
+            : RootRole(std::make_shared<SpecImpl>())
 
         {
             load_from_json(j);
         }
 
         RootImpl::RootImpl(const fs::path& path)
-            : RootRole()
-            , RoleBase("root", std::make_shared<SpecImpl>())
+            : RootRole(std::make_shared<SpecImpl>())
         {
             auto j = read_json_file(path);
             load_from_json(j);
@@ -955,16 +1018,6 @@ namespace validate
         RoleFullKeys RootImpl::self_keys() const
         {
             return m_defined_roles.at("root");
-        }
-
-        json RootImpl::read_root_file(const fs::path& p, bool update) const
-        {
-            return read_json_file(p, update);
-        }
-
-        std::size_t RootImpl::root_version() const
-        {
-            return version();
         }
 
         std::set<std::string> RootImpl::mandatory_defined_roles() const
@@ -1099,15 +1152,13 @@ namespace validate
         }
 
         RootImpl::RootImpl(const json& j)
-            : RootRole()
-            , RoleBase("root", std::make_shared<SpecImpl>())
+            : RootRole(std::make_shared<SpecImpl>())
         {
             load_from_json(j);
         }
 
         RootImpl::RootImpl(const fs::path& path)
-            : RootRole()
-            , RoleBase("root", std::make_shared<SpecImpl>())
+            : RootRole(std::make_shared<SpecImpl>())
         {
             auto j = read_json_file(path);
             load_from_json(j);
@@ -1137,16 +1188,6 @@ namespace validate
             // TUF spec 5.3.4 - Check for an arbitrary software attack
             // Check signatures against current keyids and threshold
             check_role_signatures(j, *this);
-        }
-
-        json RootImpl::read_root_file(const fs::path& p, bool update) const
-        {
-            return read_json_file(p, update);
-        }
-
-        std::size_t RootImpl::root_version() const
-        {
-            return version();
         }
 
         json RootImpl::upgraded_signable() const
@@ -1545,18 +1586,29 @@ namespace validate
         p_index_checker = root->build_index_checker(fs::path(url));
     };
 
+    void RepoChecker::verify_index(const json& j)
+    {
+        p_index_checker->verify_index(j);
+    }
+
+    void RepoChecker::verify_index(const fs::path& p)
+    {
+        p_index_checker->verify_index(p);
+    }
+
     std::unique_ptr<RootRole> RepoChecker::get_root_role()
     {
         std::unique_ptr<RootRole> updated_root;
 
-        if (v06::SpecImpl().is_compatible(m_local_trusted_root.string()))
+        if (v06::SpecImpl().is_compatible(m_local_trusted_root))
         {
             updated_root = std::make_unique<v06::RootImpl>(m_local_trusted_root);
         }
-        else if (v1::SpecImpl().is_compatible(m_local_trusted_root.string()))
+        else if (v1::SpecImpl().is_compatible(m_local_trusted_root))
         {
-            return std::make_unique<v1::RootImpl>(m_local_trusted_root);
+            updated_root = std::make_unique<v1::RootImpl>(m_local_trusted_root);
         }
+        else
         {
             LOG_ERROR << "Invalid spec version for 'root' initial trusted file";
             throw spec_version_error();
@@ -1567,6 +1619,7 @@ namespace validate
         while (true)
         {
             fs::path p = "";
+            // Update from the most recent spec supported by this client
             for (auto& f : update_files)
             {
                 if (fs::exists(f))
@@ -1582,6 +1635,7 @@ namespace validate
             updated_root = updated_root->update(p);
             update_files = updated_root->possible_update_files();
         }
+
         return updated_root;
     };
 }  // namespace validate

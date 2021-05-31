@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-if(WIN32)
-    find_package(GTest)
-else()
-    add_library(GTest::GTest INTERFACE IMPORTED)
-    target_link_libraries(GTest::GTest INTERFACE gtest)
-    add_library(GTest::Main INTERFACE IMPORTED)
-    target_link_libraries(GTest::Main INTERFACE gtest_main)
-endif()
+find_package(GTest)
 
 include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 

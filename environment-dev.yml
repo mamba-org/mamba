@@ -13,6 +13,7 @@ dependencies:
   - libcurl 7.76.1 *_0
   - cxx-compiler
   - gtest
+  - gmock
   - cpp-filesystem
   - reproc-cpp
   - yaml-cpp

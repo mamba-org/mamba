@@ -59,7 +59,7 @@ namespace mamba
         auto res = detail::read_yaml_file("env_file_test/env_3.yaml");
         EXPECT_EQ(res.name, "env_3");
         EXPECT_EQ(res.channels, V({ "conda-forge", "bioconda" }));
-        EXPECT_EQ(res.dependencies, V({ "test1", "test2", "test3" }));
+        EXPECT_EQ(res.dependencies, V({ "test1", "test2", "test3", "pip" }));
         EXPECT_TRUE(res.other_pkg_mgr_specs.size());
 
         EXPECT_EQ(res.other_pkg_mgr_specs.size(), 1);

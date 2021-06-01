@@ -254,8 +254,13 @@ namespace mamba
     std::string_view strip(const std::string_view& input, const std::string_view& chars)
     {
         size_t start = input.find_first_not_of(chars);
-        size_t stop = input.find_last_not_of(chars);
-        return start == std::string::npos ? "" : input.substr(start, stop + 1);
+        if (start == std::string::npos)
+        {
+            return "";
+        }
+        size_t stop = input.find_last_not_of(chars) + 1;
+        size_t length = stop - start;
+        return length == 0 ? "" : input.substr(start, length);
     }
 
     std::string_view lstrip(const std::string_view& input, const std::string_view& chars)

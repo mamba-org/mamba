@@ -367,4 +367,14 @@ namespace mamba
         std::vector<std::string> args8 = { "ab", "" };
         EXPECT_EQ(quote_for_shell(args8, "cmdexe"), "ab \"\"");
     }
+
+    TEST(utils, strip)
+    {
+        std::string x(strip("   testwhitespacestrip  "));
+        EXPECT_EQ(x, "testwhitespacestrip");
+        std::string y(rstrip("   testwhitespacestrip  "));
+        EXPECT_EQ(y, "   testwhitespacestrip");
+        std::string z(lstrip("   testwhitespacestrip  "));
+        EXPECT_EQ(z, "testwhitespacestrip  ");
+    }
 }  // namespace mamba

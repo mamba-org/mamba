@@ -370,11 +370,37 @@ namespace mamba
 
     TEST(utils, strip)
     {
-        std::string x(strip("   testwhitespacestrip  "));
-        EXPECT_EQ(x, "testwhitespacestrip");
-        std::string y(rstrip("   testwhitespacestrip  "));
-        EXPECT_EQ(y, "   testwhitespacestrip");
-        std::string z(lstrip("   testwhitespacestrip  "));
-        EXPECT_EQ(z, "testwhitespacestrip  ");
+        {
+            std::string x(strip("   testwhitespacestrip  "));
+            EXPECT_EQ(x, "testwhitespacestrip");
+            std::string y(rstrip("   testwhitespacestrip  "));
+            EXPECT_EQ(y, "   testwhitespacestrip");
+            std::string z(lstrip("   testwhitespacestrip  "));
+            EXPECT_EQ(z, "testwhitespacestrip  ");
+        }
+        {
+            std::string x(strip("    "));
+            EXPECT_EQ(x, "");
+            std::string y(rstrip("    "));
+            EXPECT_EQ(y, "");
+            std::string z(lstrip("    "));
+            EXPECT_EQ(z, "");
+        }
+        {
+            std::string x(strip(" \r \t  \n   "));
+            EXPECT_EQ(x, "");
+            std::string y(rstrip("  \r \t  \n  "));
+            EXPECT_EQ(y, "");
+            std::string z(lstrip("   \r \t  \n "));
+            EXPECT_EQ(z, "");
+        }
+        {
+            std::string x(strip("\r \t  \n testwhitespacestrip  \r \t  \n"));
+            EXPECT_EQ(x, "testwhitespacestrip");
+            std::string y(rstrip("  \r \t  \n testwhitespacestrip  \r \t  \n"));
+            EXPECT_EQ(y, "  \r \t  \n testwhitespacestrip");
+            std::string z(lstrip("  \r \t  \n testwhitespacestrip \r \t  \n "));
+            EXPECT_EQ(z, "testwhitespacestrip \r \t  \n ");
+        }
     }
 }  // namespace mamba

@@ -387,6 +387,30 @@ namespace mamba
             EXPECT_EQ(z, "");
         }
         {
+            std::string x(strip("a"));
+            EXPECT_EQ(x, "a");
+            std::string y(rstrip("a"));
+            EXPECT_EQ(y, "a");
+            std::string z(lstrip("a"));
+            EXPECT_EQ(z, "a");
+        }
+        {
+            std::string x(strip("  a   "));
+            EXPECT_EQ(x, "a");
+            std::string y(rstrip(" a  "));
+            EXPECT_EQ(y, " a");
+            std::string z(lstrip("  a   "));
+            EXPECT_EQ(z, "a   ");
+        }
+        {
+            std::string x(strip("abc"));
+            EXPECT_EQ(x, "abc");
+            std::string y(rstrip("abc"));
+            EXPECT_EQ(y, "abc");
+            std::string z(lstrip("abc"));
+            EXPECT_EQ(z, "abc");
+        }
+        {
             std::string x(strip(" \r \t  \n   "));
             EXPECT_EQ(x, "");
             std::string y(rstrip("  \r \t  \n  "));

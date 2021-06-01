@@ -166,6 +166,14 @@ namespace mamba
             }
 
             std::vector<std::string> dependencies = final_deps.as<std::vector<std::string>>();
+
+            if (!pip_deps.empty())
+            {
+                if (!std::count(dependencies.begin(), dependencies.end(), "pip"))
+                {
+                    dependencies.push_back("pip");
+                }
+            }
             result.dependencies = dependencies;
 
             if (f["channels"])

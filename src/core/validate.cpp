@@ -1704,7 +1704,7 @@ namespace validate
                     {
                         LOG_DEBUG << "Content trust: 'root' role update for repo '" << m_base_url
                                   << "'\n"
-                                  << dl_target->get_downloaded_size() << " bytes fetched for file '"
+                                  << dl_target->downloaded_size << " bytes fetched for file '"
                                   << f.string() << "'";
                         break;
                     }

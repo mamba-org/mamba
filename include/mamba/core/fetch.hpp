@@ -76,11 +76,6 @@ namespace mamba
             return m_active_logs;
         }
 
-        inline curl_off_t get_downloaded_size() const
-        {
-            return downloaded_size;
-        }
-
         void set_result(CURLcode r);
         bool finalize();
 

@@ -1,0 +1,22 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+# env_hash: 8ef82ce4a41fff8289b0b0fbc60703426eb2144d9bcd6fcf481c3e67d4da070f
+@EXPLICIT
+https://repo.anaconda.com/pkgs/main/linux-64/_libgcc_mutex-0.1-main.conda#c3473ff8bdb3d124ed5ff11ec380d6f9
+https://repo.anaconda.com/pkgs/main/linux-64/ca-certificates-2021.5.25-h06a4308_1.conda#3a2f8a1a5c82296693933f8c3f236fcb
+https://repo.anaconda.com/pkgs/main/linux-64/ld_impl_linux-64-2.33.1-h53a641e_7.conda#ae7fa9dd2ad15b81ab2ba25fe264bcb0
+https://repo.anaconda.com/pkgs/main/linux-64/libstdcxx-ng-9.1.0-hdf63c60_0.conda#c3efd14430bedbe0a036a899f50cec7f
+https://repo.anaconda.com/pkgs/main/noarch/tzdata-2020f-h52ac0ba_0.conda#e968a3b568f386342fceebca8c8e6af9
+
+# i am just a comment
+https://repo.anaconda.com/pkgs/main/linux-64/libgcc-ng-9.1.0-hdf63c60_0.conda#80a23105874059534307086faae566c5
+https://repo.anaconda.com/pkgs/main/linux-64/libffi-3.3-he6710b0_2.conda#88a54b8f50e351c650e16f4ee781440c
+https://repo.anaconda.com/pkgs/main/linux-64/ncurses-6.2-he6710b0_1.conda#b7ddf5ee3934b7f54620e8f6c0ee8a95
+https://repo.anaconda.com/pkgs/main/linux-64/openssl-1.1.1k-h27cfd23_0.conda#9c1822b18564cdc68c493366da6f46f4
+https://repo.anaconda.com/pkgs/main/linux-64/xz-5.2.5-h7b6447c_0.conda#73a16ea8ba890175a1ce94a3a87c8f68
+https://repo.anaconda.com/pkgs/main/linux-64/zlib-1.2.11-h7b6447c_3.conda#50aa4407424985d56ec8ae2f94626aa9
+https://repo.anaconda.com/pkgs/main/linux-64/readline-8.1-h27cfd23_0.conda#715789a38d447bc0cccc936209ac78c0
+https://repo.anaconda.com/pkgs/main/linux-64/tk-8.6.10-hbc83047_0.conda#9ba14aaba4818a66c820f85f5bf34ca0
+https://repo.anaconda.com/pkgs/main/linux-64/sqlite-3.35.4-hdfb4753_0.conda#390226b113ecaf216cc7a18aa11d7297
+https://repo.anaconda.com/pkgs/main/linux-64/python-3.9.5-hdb3f193_3.conda#9165a5c5112ebaa60d9a589f5c7c83cb

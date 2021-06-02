@@ -347,12 +347,12 @@ namespace mamba
         for (auto& url : channel_urls)
         {
             auto& channel = make_channel(url);
-            std::string full_url = concat(channel.url(true), "/repodata.json");
+            std::string repodata_full_url = concat(channel.url(true), "/repodata.json");
 
             auto sdir
                 = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
-                                                full_url,
-                                                cache_dir / cache_fn_url(full_url));
+                                                repodata_full_url,
+                                                cache_dir / cache_fn_url(repodata_full_url));
 
             sdir->load();
             multi_dl.add(sdir->target());

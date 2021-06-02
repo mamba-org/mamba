@@ -69,7 +69,7 @@ namespace mamba
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
-                        auto channel = make_channel(pkg_info.url);
+                        auto& channel = make_channel(pkg_info.url);
                         obj["base_url"] = channel.base_url();
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;

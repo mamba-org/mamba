@@ -88,7 +88,7 @@ namespace validate
                    const std::string& signature);
 
     /**
-     * Base class for artefact/package verification error.
+     * Base class for artifact/package verification error.
      */
     class trust_error : public std::exception
     {
@@ -195,6 +195,18 @@ namespace validate
     public:
         package_error() noexcept;
         virtual ~package_error() = default;
+    };
+
+
+    /**
+     * Error raised when an invalid package
+     * index is met.
+     */
+    class index_error : public trust_error
+    {
+    public:
+        index_error() noexcept;
+        virtual ~index_error() = default;
     };
 
 
@@ -430,22 +442,20 @@ namespace validate
     class RootRole : public RoleBase
     {
     public:
+        virtual ~RootRole() = default;
+
         std::unique_ptr<RootRole> update(fs::path path);
         std::unique_ptr<RootRole> update(json j);
 
         std::vector<fs::path> possible_update_files();
 
         virtual std::unique_ptr<RepoIndexChecker> build_index_checker(
-            const std::string& url) const = 0;
+            const std::string& url, const fs::path& cache_path) const = 0;
 
     protected:
         RootRole(std::shared_ptr<SpecBase> spec);
 
     private:
-        // virtual json read_root_file(const fs::path& p, bool update = false) const = 0;
-        // virtual std::size_t root_version() const = 0;
-        // virtual SpecBase* spec_impl() = 0;
-
         virtual std::unique_ptr<RootRole> create_update(const json& j) = 0;
     };
 
@@ -460,6 +470,8 @@ namespace validate
         virtual ~RepoIndexChecker() = default;
         virtual void verify_index(const json& j) const = 0;
         virtual void verify_index(const fs::path& p) const = 0;
+        virtual void verify_package(const fs::path& index_path,
+                                    const std::string& pkg_name) const = 0;
 
     protected:
         RepoIndexChecker() = default;
@@ -474,19 +486,38 @@ namespace validate
     class RepoChecker
     {
     public:
-        RepoChecker(const std::string& url, const fs::path& local_trusted_root);
+        /**
+         * Constructor.
+         * @param base_url Repository base URL
+         * @param ref_path Path to the reference directory, hosting trusted root metadata
+         * @param cache_path Path to the cache directory
+         */
+        RepoChecker(const std::string& base_url,
+                    const fs::path& ref_path,
+                    const fs::path& cache_path = "");
 
         // Forwarding to a ``RepoIndexChecker`` implementation
-        void verify_index(const json& j);
-        void verify_index(const fs::path& p);
+        void verify_index(const json& j) const;
+        void verify_index(const fs::path& p) const;
+        void verify_package(const fs::path& index_path, const std::string& pkg_name) const;
+
+        void generate_index_checker();
+
+        const fs::path& cache_path();
 
         std::size_t root_version();
 
     private:
         std::string m_base_url;
         std::size_t m_root_version = 0;
+        fs::path m_ref_path;
+        fs::path m_cache_path;
 
-        fs::path m_local_trusted_root;
+        fs::path initial_trusted_root();
+        fs::path ref_root();
+        fs::path cached_root();
+
+        void persist_file(const fs::path& file_path);
 
         std::unique_ptr<RepoIndexChecker> p_index_checker;
 
@@ -525,7 +556,7 @@ namespace validate
             RoleFullKeys self_keys() const override;
 
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url) const override;
+                const std::string& url, const fs::path& cache_path) const override;
 
             friend void to_json(json& j, const RootImpl& r);
             friend void from_json(const json& j, RootImpl& r);
@@ -582,7 +613,7 @@ namespace validate
              * from repository base URL.
              */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url) const override;
+                const std::string& url, const fs::path& cache_path) const override;
 
             RoleFullKeys self_keys() const override;
 
@@ -629,7 +660,8 @@ namespace validate
              * Return a ``RepoIndexChecker`` implementation (derived class)
              * from repository base URL.
              */
-            std::unique_ptr<RepoIndexChecker> build_index_checker(const std::string& url) const;
+            std::unique_ptr<RepoIndexChecker> build_index_checker(const std::string& url,
+                                                                  const fs::path& cache_path) const;
 
             friend void to_json(json& j, const KeyMgrRole& r);
             friend void from_json(const json& j, KeyMgrRole& r);
@@ -670,6 +702,8 @@ namespace validate
         public:
             void verify_index(const fs::path& p) const override;
             void verify_index(const json& j) const override;
+            void verify_package(const fs::path& index_path,
+                                const std::string& pkg_name) const override;
 
         private:
             PkgMgrRole() = delete;

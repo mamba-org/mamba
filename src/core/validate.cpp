@@ -73,6 +73,11 @@ namespace validate
     }
 
     package_error::package_error() noexcept
+        : trust_error("Invalid package metadata")
+    {
+    }
+
+    index_error::index_error() noexcept
         : trust_error("Invalid package index metadata")
     {
     }
@@ -1070,7 +1075,7 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& url) const
+            const std::string& url, const fs::path& cache_path) const
         {
             std::unique_ptr<RepoIndexChecker> ptr;
             return ptr;
@@ -1262,17 +1267,17 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& base_url) const
+            const std::string& base_url, const fs::path& cache_path) const
         {
+            fs::path metadata_path = cache_path / "key_mgr.json";
+
             auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
-            auto tmp_dir_path = tmp_dir->path();
+            auto tmp_metadata_path = tmp_dir->path() / "key_mgr.json";
 
-            mamba::URLHandler url(base_url + "key_mgr.json");
-            fs::path tmp_file_path = tmp_dir_path / "key_mgr.json";
+            mamba::URLHandler url(base_url + "/key_mgr.json");
 
-            auto dl_target
-                = std::make_unique<mamba::DownloadTarget>("key_mgr.json", url.url(), tmp_file_path);
-
+            auto dl_target = std::make_unique<mamba::DownloadTarget>(
+                "key_mgr.json", url.url(), tmp_metadata_path);
 
             if (dl_target->resource_exists())
             {
@@ -1281,7 +1286,7 @@ namespace validate
 
                 if ((result == CURLE_OK) && dl_target->finalize())
                 {
-                    KeyMgrRole key_mgr(tmp_file_path, all_keys()["key_mgr"], spec_impl());
+                    KeyMgrRole key_mgr(tmp_metadata_path, all_keys()["key_mgr"], spec_impl());
 
                     // TUF spec 5.6.5 - Check for a freeze attack
                     // 'key_mgr' (equivalent of 'targets') role should not be expired
@@ -1293,8 +1298,23 @@ namespace validate
                         throw freeze_error();
                     }
 
-                    return key_mgr.build_index_checker(base_url);
+                    // TUF spec 5.6.6 - Persist targets metadata
+                    if (!cache_path.empty())
+                    {
+                        if (fs::exists(metadata_path))
+                            fs::remove(metadata_path);
+                        fs::copy(tmp_metadata_path, metadata_path);
+                    }
+
+                    return key_mgr.build_index_checker(base_url, cache_path);
                 }
+            }
+
+            // Fallback to local cached-copy if existing
+            if (fs::exists(metadata_path))
+            {
+                KeyMgrRole key_mgr(metadata_path, all_keys()["key_mgr"], spec_impl());
+                return key_mgr.build_index_checker(base_url, cache_path);
             }
 
             LOG_ERROR << "Error while fetching 'key_mgr' metadata";
@@ -1383,7 +1403,7 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
-            const std::string& url) const
+            const std::string& url, const fs::path& cache_path) const
         {
             auto pkg_mgr = std::make_unique<PkgMgrRole>(create_pkg_mgr());
             return pkg_mgr;
@@ -1521,7 +1541,7 @@ namespace validate
             catch (const json::exception& e)
             {
                 LOG_ERROR << "Invalid package index metadata: " << e.what();
-                throw package_error();
+                throw index_error();
             }
         }
 
@@ -1530,7 +1550,7 @@ namespace validate
             if (!fs::exists(p))
             {
                 LOG_ERROR << "'repodata' file not found at: " << p.string();
-                throw role_file_error();
+                throw index_error();
             }
 
             std::ifstream i(p);
@@ -1544,7 +1564,40 @@ namespace validate
             catch (const package_error& e)
             {
                 LOG_ERROR << "Validation failed on package index: '" << p.string() << "'";
-                throw e;
+                throw index_error();
+            }
+        }
+        void PkgMgrRole::verify_package(const fs::path& index_path,
+                                        const std::string& pkg_name) const
+        {
+            if (!fs::exists(index_path))
+            {
+                LOG_ERROR << "'repodata' file not found at: " << index_path.string();
+                throw index_error();
+            }
+
+            std::ifstream i(index_path);
+            json j;
+            i >> j;
+
+            try
+            {
+                auto pkg_meta = j.at("packages").at(pkg_name).get<json::object_t>();
+                auto pkg_sigs = j.at("signatures").at(pkg_name).get<json::object_t>();
+                try
+                {
+                    check_pkg_signatures(pkg_meta, pkg_sigs);
+                }
+                catch (const threshold_error& e)
+                {
+                    LOG_ERROR << "Validation failed on package: '" << pkg_name << "'";
+                    throw package_error();
+                }
+            }
+            catch (const json::exception& e)
+            {
+                LOG_ERROR << "Invalid package index metadata: " << e.what();
+                throw index_error();
             }
         }
     }  // namespace v06
@@ -1620,28 +1673,48 @@ namespace validate
         role->set_expiration(j.at(role->spec_version().expiration_json_key()));
     }
 
-    RepoChecker::RepoChecker(const std::string& url, const fs::path& local_trusted_root)
-        : m_base_url(url)
-        , m_local_trusted_root(local_trusted_root)
+    RepoChecker::RepoChecker(const std::string& base_url,
+                             const fs::path& ref_path,
+                             const fs::path& cache_path)
+        : m_base_url(base_url)
+        , m_ref_path(ref_path)
+        , m_cache_path(cache_path){};
+
+    const fs::path& RepoChecker::cache_path()
     {
-        // TUF spec 5.1 - Record fixed update start time
-        // Expiration computations will be done against
-        // this reference
-        // https://theupdateframework.github.io/specification/latest/#fix-time
-        TimeRef::instance().set_now();
+        return m_cache_path;
+    }
 
-        auto root = get_root_role();
-        p_index_checker = root->build_index_checker(url);
-    };
+    void RepoChecker::generate_index_checker()
+    {
+        if (p_index_checker == nullptr)
+        {
+            // TUF spec 5.1 - Record fixed update start time
+            // Expiration computations will be done against
+            // this reference
+            // https://theupdateframework.github.io/specification/latest/#fix-time
+            TimeRef::instance().set_now();
 
-    void RepoChecker::verify_index(const json& j)
+            auto root = get_root_role();
+            p_index_checker = root->build_index_checker(m_base_url, cache_path());
+
+            LOG_INFO << "Index checker successfully generated for '" << m_base_url << "'";
+        }
+    }
+
+    void RepoChecker::verify_index(const json& j) const
     {
         p_index_checker->verify_index(j);
     }
 
-    void RepoChecker::verify_index(const fs::path& p)
+    void RepoChecker::verify_index(const fs::path& p) const
     {
         p_index_checker->verify_index(p);
+    }
+
+    void RepoChecker::verify_package(const fs::path& index_path, const std::string& pkg_name) const
+    {
+        p_index_checker->verify_package(index_path, pkg_name);
     }
 
     std::size_t RepoChecker::root_version()
@@ -1649,42 +1722,97 @@ namespace validate
         return m_root_version;
     }
 
-    std::unique_ptr<RootRole> RepoChecker::get_root_role()
+    fs::path RepoChecker::ref_root()
     {
-        std::unique_ptr<RootRole> updated_root;
+        return m_ref_path / "root.json";
+    }
 
-        if (v06::SpecImpl().is_compatible(m_local_trusted_root))
+    fs::path RepoChecker::cached_root()
+    {
+        if (cache_path().empty())
         {
-            updated_root = std::make_unique<v06::RootImpl>(m_local_trusted_root);
-        }
-        else if (v1::SpecImpl().is_compatible(m_local_trusted_root))
-        {
-            updated_root = std::make_unique<v1::RootImpl>(m_local_trusted_root);
+            return "";
         }
         else
         {
-            LOG_ERROR << "Invalid spec version for 'root' initial trusted file";
-            throw spec_version_error();
+            return cache_path() / "root.json";
         }
+    }
+
+    void RepoChecker::persist_file(const fs::path& file_path)
+    {
+        if (fs::exists(cached_root()))
+            fs::remove(cached_root());
+        if (!cached_root().empty())
+            fs::copy(file_path, cached_root());
+    }
+
+    fs::path RepoChecker::initial_trusted_root()
+    {
+        if (fs::exists(cached_root()))
+        {
+            LOG_DEBUG << "Using cache for 'root' initial trusted file";
+            return cached_root();
+        }
+
+        if (!fs::exists(m_ref_path))
+        {
+            LOG_ERROR << "'root' initial trusted file not found at '" << m_ref_path.string()
+                      << "' for repo '" << m_base_url << "'";
+            throw role_file_error();
+        }
+        else
+        {
+            return ref_root();
+        }
+    }
+
+    std::unique_ptr<RootRole> RepoChecker::get_root_role()
+    {
+        // TUF spec 5.3 - Update the root role
+        // https://theupdateframework.github.io/specification/latest/#update-root
+
+        std::unique_ptr<RootRole> updated_root;
+
+        LOG_DEBUG << "Loading 'root' metadata for repo '" << m_base_url << "'";
+        auto trusted_root = initial_trusted_root();
+
+        if (v06::SpecImpl().is_compatible(trusted_root))
+        {
+            updated_root = std::make_unique<v06::RootImpl>(trusted_root);
+        }
+        else if (v1::SpecImpl().is_compatible(trusted_root))
+        {
+            updated_root = std::make_unique<v1::RootImpl>(trusted_root);
+        }
+        else
+        {
+            LOG_ERROR << "Invalid 'root' initial trusted file '" << trusted_root.string()
+                      << "' for repo '" << m_base_url << "'";
+            throw role_file_error();
+        }
+
+        if (trusted_root != cached_root())
+            persist_file(trusted_root);
 
         auto update_files = updated_root->possible_update_files();
         auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
         auto tmp_dir_path = tmp_dir->path();
 
         // do chained updates
-        while (true)
+        LOG_DEBUG << "Starting updates of 'root' metadata";
+        do
         {
             fs::path tmp_file_path;
 
             // Update from the most recent spec supported by this client
             for (auto& f : update_files)
             {
-                mamba::URLHandler url(m_base_url + f.string());
+                auto url = mamba::concat(m_base_url, "/", f.string());
                 tmp_file_path = tmp_dir_path / f;
 
                 auto dl_target
-                    = std::make_unique<mamba::DownloadTarget>(f.string(), url.url(), tmp_file_path);
-                // dl_target->set_ignore_failure(true);
+                    = std::make_unique<mamba::DownloadTarget>(f.string(), url, tmp_file_path);
 
                 if (dl_target->resource_exists())
                 {
@@ -1693,8 +1821,6 @@ namespace validate
 
                     if ((result == CURLE_OK) && dl_target->finalize())
                     {
-                        updated_root = updated_root->update(tmp_file_path);
-                        update_files = updated_root->possible_update_files();
                         break;
                     }
                 }
@@ -1703,7 +1829,16 @@ namespace validate
 
             if (tmp_file_path.empty())
                 break;
+
+            updated_root = updated_root->update(tmp_file_path);
+            // TUF spec 5.3.8 - Persist root metadata
+            // Updated 'root' metadata are persisted in a cache directory
+            persist_file(tmp_file_path);
+
+            update_files = updated_root->possible_update_files();
         }
+        // TUF spec 5.3.9 - Repeat steps 5.3.2 to 5.3.9
+        while (true);
 
         m_root_version = updated_root->version();
         LOG_DEBUG << "Latest 'root' metadata has version " << m_root_version;

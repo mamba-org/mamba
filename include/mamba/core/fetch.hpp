@@ -45,6 +45,8 @@ namespace mamba
         const std::string& name() const;
 
         void init_curl_target(const std::string& url);
+
+        bool resource_exists();
         bool perform();
         CURL* handle();
 
@@ -64,16 +66,6 @@ namespace mamba
         inline bool ignore_failure() const
         {
             return m_ignore_failure;
-        }
-
-        inline void set_active_logs(bool yes)
-        {
-            m_active_logs = yes;
-        }
-
-        inline bool active_logs() const
-        {
-            return m_active_logs;
         }
 
         void set_result(CURLcode r);
@@ -111,12 +103,13 @@ namespace mamba
 
         bool m_has_progress_bar = false;
         bool m_ignore_failure = false;
-        bool m_active_logs = false;
 
         ProgressProxy m_progress_bar;
 
         char m_errbuf[CURL_ERROR_SIZE];
         std::ofstream m_file;
+
+        static void init_curl_handle(CURL* handle, const std::string& url);
     };
 
     class MultiDownloadTarget

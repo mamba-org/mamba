@@ -1272,22 +1272,15 @@ namespace validate
 
             auto dl_target
                 = std::make_unique<mamba::DownloadTarget>("key_mgr.json", url.url(), tmp_file_path);
-            dl_target->set_active_logs(false);
-            dl_target->set_ignore_failure(true);
 
-            // perform download
-            auto result = curl_easy_perform(dl_target->handle());
-            dl_target->set_result(result);
 
-            if (result == CURLE_OK)
+            if (dl_target->resource_exists())
             {
-                if (dl_target->finalize())
-                {
-                    LOG_DEBUG << "Content trust: 'key_mgr' role creation for repo '" << base_url
-                              << "'\n"
-                              << dl_target->downloaded_size
-                              << " bytes fetched for file 'key_mgr.json'";
+                auto result = curl_easy_perform(dl_target->handle());
+                dl_target->set_result(result);
 
+                if ((result == CURLE_OK) && dl_target->finalize())
+                {
                     KeyMgrRole key_mgr(tmp_file_path, all_keys()["key_mgr"], spec_impl());
 
                     // TUF spec 5.6.5 - Check for a freeze attack
@@ -1304,7 +1297,7 @@ namespace validate
                 }
             }
 
-            LOG_ERROR << "Content trust: error while fetching 'key_mgr' metadata.";
+            LOG_ERROR << "Error while fetching 'key_mgr' metadata";
             throw fetching_error();
         }
 
@@ -1691,39 +1684,29 @@ namespace validate
 
                 auto dl_target
                     = std::make_unique<mamba::DownloadTarget>(f.string(), url.url(), tmp_file_path);
-                dl_target->set_active_logs(false);
-                dl_target->set_ignore_failure(true);
+                // dl_target->set_ignore_failure(true);
 
-                // perform download
-                auto result = curl_easy_perform(dl_target->handle());
-                dl_target->set_result(result);
-
-                if (result == CURLE_OK)
+                if (dl_target->resource_exists())
                 {
-                    if (dl_target->finalize())
+                    auto result = curl_easy_perform(dl_target->handle());
+                    dl_target->set_result(result);
+
+                    if ((result == CURLE_OK) && dl_target->finalize())
                     {
-                        LOG_DEBUG << "Content trust: 'root' role update for repo '" << m_base_url
-                                  << "'\n"
-                                  << dl_target->downloaded_size << " bytes fetched for file '"
-                                  << f.string() << "'";
+                        updated_root = updated_root->update(tmp_file_path);
+                        update_files = updated_root->possible_update_files();
                         break;
                     }
                 }
-                else
-                {
-                    tmp_file_path = "";
-                }
+                tmp_file_path = "";
             }
 
             if (tmp_file_path.empty())
                 break;
-
-            updated_root = updated_root->update(tmp_file_path);
-            update_files = updated_root->possible_update_files();
         }
 
         m_root_version = updated_root->version();
-        LOG_DEBUG << "Content trust: latest 'root' metadata has version " << m_root_version;
+        LOG_DEBUG << "Latest 'root' metadata has version " << m_root_version;
 
         // TUF spec 5.3.10 - Check for a freeze attack
         // Updated 'root' role should not be expired

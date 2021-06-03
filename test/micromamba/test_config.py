@@ -299,42 +299,87 @@ class TestConfigList:
             shutil.rmtree(os.path.expanduser(os.path.join("~", "test_mamba")))
 
 
+# TODO: instead of "Key is not present in file" => "Key " + key + "is not present in file"
 class TestConfigModifiers:
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
-    rc_path = os.path.join(root_prefix, ".dummyrc")
+
+    # vars --file
+    home_rc_path = os.path.join(root_prefix, ".dummyrc")
+
+    # vars for --env
+    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_prefix = os.environ["CONDA_PREFIX"]
+    cache = os.path.join(current_root_prefix, "pkgs")
+
+    env_name = random_string()
+    prefix = os.path.join(root_prefix, "envs", env_name)
+    other_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+
+    spec_files_location = os.path.expanduser(
+        os.path.join("~", "mamba_spec_files_test_" + random_string())
+    )
 
     def setup_method(cls):
+        # setup for --env
+        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigModifiers.root_prefix
+        os.environ["CONDA_PREFIX"] = TestConfigModifiers.prefix
+
+        # speed-up the tests
+        os.environ["CONDA_PKGS_DIRS"] = TestConfigModifiers.cache
+
+        os.makedirs(TestConfigModifiers.spec_files_location, exist_ok=True)
+
+        # setup for --file
         os.mkdir(TestConfigModifiers.root_prefix)
-        with open(TestConfigModifiers.rc_path, "a"):
-            os.utime(TestConfigModifiers.rc_path)
+        with open(TestConfigModifiers.home_rc_path, "a"):
+            os.utime(TestConfigModifiers.home_rc_path)
 
     def teardown_method(cls):
-        if os.path.exists(TestConfigModifiers.rc_path):
-            os.remove(TestConfigModifiers.rc_path)
-        os.rmdir(TestConfigModifiers.root_prefix)
+        # teardown for --env
+        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigModifiers.root_prefix
+        os.environ["CONDA_PREFIX"] = TestConfigModifiers.prefix
 
-    def test_set_single_input(self):
-        config("set", "json", "true", "--file", TestConfigModifiers.rc_path)
+        for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
+            if v in os.environ:
+                os.environ.pop(v)
+
+        if Path(TestConfigModifiers.root_prefix).exists():
+            shutil.rmtree(TestConfigModifiers.root_prefix)
+        if Path(TestConfigModifiers.other_prefix).exists():
+            shutil.rmtree(TestConfigModifiers.other_prefix)
+
+        # teardown for --file
+        if os.path.exists(TestConfigModifiers.home_rc_path):
+            os.remove(TestConfigModifiers.home_rc_path)
+
+    def test_file_set_single_input(self):
+        config("set", "json", "true", "--file", TestConfigModifiers.home_rc_path)
         assert (
-            config("get", "json", "--file", TestConfigModifiers.rc_path).splitlines()
+            config(
+                "get", "json", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
             == "json: true".splitlines()
         )
 
-    def test_set_change_key_value(self):
-        config("set", "json", "true", "--file", TestConfigModifiers.rc_path)
-        config("set", "json", "false", "--file", TestConfigModifiers.rc_path)
+    def test_file_set_change_key_value(self):
+        config("set", "json", "true", "--file", TestConfigModifiers.home_rc_path)
+        config("set", "json", "false", "--file", TestConfigModifiers.home_rc_path)
         assert (
-            config("get", "json", "--file", TestConfigModifiers.rc_path).splitlines()
+            config(
+                "get", "json", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
             == "json: false".splitlines()
         )
 
-    def test_set_invalit_input(self):
+    def test_file_set_invalit_input(self):
         assert (
-            config("set", "$%#@abc", "--file", TestConfigModifiers.rc_path).splitlines()
+            config(
+                "set", "$%#@abc", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
             == "Key is invalid or more than one key was received".splitlines()
         )
 
-    def test_set_multiple_inputs(self):
+    def test_file_set_multiple_inputs(self):
         assert (
             config(
                 "set",
@@ -343,53 +388,57 @@ class TestConfigModifiers:
                 "clean_tarballs",
                 "true",
                 "--file",
-                TestConfigModifiers.rc_path,
+                TestConfigModifiers.home_rc_path,
             ).splitlines()
             == "Key is invalid or more than one key was received".splitlines()
         )
 
-    def test_remove_single_input(self):
-        config("set", "json", "true", "--file", TestConfigModifiers.rc_path)
+    def test_file_remove_single_input(self):
+        config("set", "json", "true", "--file", TestConfigModifiers.home_rc_path)
         assert (
             config(
-                "remove-key", "json", "--file", TestConfigModifiers.rc_path
+                "remove-key", "json", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == []
         )
 
-    def test_remove_non_existent_key(self):
+    def test_file_remove_non_existent_key(self):
         assert (
             config(
-                "remove-key", "json", "--file", TestConfigModifiers.rc_path
+                "remove-key", "json", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_remove_invalid_key(self):
+    def test_file_remove_invalid_key(self):
         assert (
             config(
-                "remove-key", "^&*&^def", "--file", TestConfigModifiers.rc_path
+                "remove-key", "^&*&^def", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_remove_vector(self):
-        config("append", "channels", "flowers", "--file", TestConfigModifiers.rc_path)
-        config("remove-key", "channels", "--file", TestConfigModifiers.rc_path)
+    def test_file_remove_vector(self):
+        config(
+            "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
+        )
+        config("remove-key", "channels", "--file", TestConfigModifiers.home_rc_path)
         assert (
             config(
-                "get", "channels", "--file", TestConfigModifiers.rc_path
+                "get", "channels", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_append_single_input(self):
-        config("append", "channels", "flowers", "--file", TestConfigModifiers.rc_path)
+    def test_file_append_single_input(self):
+        config(
+            "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
+        )
         assert config(
-            "get", "channels", "--file", TestConfigModifiers.rc_path
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
         ).splitlines() == ["channels:", "  - flowers"]
 
-    def test_append_multiple_inputs(self):
+    def test_file_append_multiple_inputs(self):
         assert (
             config(
                 "append",
@@ -397,26 +446,28 @@ class TestConfigModifiers:
                 "condesc",
                 "mambesc",
                 "--file",
-                TestConfigModifiers.rc_path,
+                TestConfigModifiers.home_rc_path,
             ).splitlines()
             == "Append key is invalid or it's not present in file or more than one key was received".splitlines()
         )
 
-    def test_append_invalid_input(self):
+    def test_file_append_invalid_input(self):
         assert (
             config(
-                "append", "@#A321", "--file", TestConfigModifiers.rc_path
+                "append", "@#A321", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "Append key is invalid or it's not present in file or more than one key was received".splitlines()
         )
 
-    def test_prepend_single_input(self):
-        config("prepend", "channels", "flowers", "--file", TestConfigModifiers.rc_path)
+    def test_file_prepend_single_input(self):
+        config(
+            "prepend", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
+        )
         assert config(
-            "get", "channels", "--file", TestConfigModifiers.rc_path
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
         ).splitlines() == ["channels:", "  - flowers"]
 
-    def test_prepend_multiple_inputs(self):
+    def test_file_prepend_multiple_inputs(self):
         assert (
             config(
                 "prepend",
@@ -424,50 +475,95 @@ class TestConfigModifiers:
                 "condesc",
                 "mambesc",
                 "--file",
-                TestConfigModifiers.rc_path,
+                TestConfigModifiers.home_rc_path,
             ).splitlines()
             == "Prepend key is invalid or it's not present in file or more than one key was received".splitlines()
         )
 
-    def test_prepend_invalid_input(self):
+    def test_file_prepend_invalid_input(self):
         assert (
             config(
-                "prepend", "@#A321", "--file", TestConfigModifiers.rc_path
+                "prepend", "@#A321", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "Prepend key is invalid or it's not present in file or more than one key was received".splitlines()
         )
 
-    def test_append_and_prepend_inputs(self):
-        config("append", "channels", "flowers", "--file", TestConfigModifiers.rc_path)
-        config("prepend", "channels", "powers", "--file", TestConfigModifiers.rc_path)
+    def test_file_append_and_prepend_inputs(self):
+        config(
+            "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
+        )
+        config(
+            "prepend", "channels", "powers", "--file", TestConfigModifiers.home_rc_path
+        )
         assert config(
-            "get", "channels", "--file", TestConfigModifiers.rc_path
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
         ).splitlines() == ["channels:", "  - powers", "  - flowers"]
 
-    def test_set_and_append_inputs(self):
-        config("set", "experimental", "true", "--file", TestConfigModifiers.rc_path)
-        config("append", "channels", "gandalf", "--file", TestConfigModifiers.rc_path)
-        config("append", "channels", "legolas", "--file", TestConfigModifiers.rc_path)
+    def test_file_set_and_append_inputs(self):
+        config(
+            "set", "experimental", "true", "--file", TestConfigModifiers.home_rc_path
+        )
+        config(
+            "append", "channels", "gandalf", "--file", TestConfigModifiers.home_rc_path
+        )
+        config(
+            "append", "channels", "legolas", "--file", TestConfigModifiers.home_rc_path
+        )
         assert (
             config(
-                "get", "experimental", "--file", TestConfigModifiers.rc_path
+                "get", "experimental", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "experimental: true".splitlines()
         )
         assert config(
-            "get", "channels", "--file", TestConfigModifiers.rc_path
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
         ).splitlines() == ["channels:", "  - gandalf", "  - legolas"]
 
-    def test_set_and_prepend_inputs(self):
-        config("set", "experimental", "false", "--file", TestConfigModifiers.rc_path)
-        config("prepend", "channels", "zelda", "--file", TestConfigModifiers.rc_path)
-        config("prepend", "channels", "link", "--file", TestConfigModifiers.rc_path)
+    def test_file_set_and_prepend_inputs(self):
+        config(
+            "set", "experimental", "false", "--file", TestConfigModifiers.home_rc_path
+        )
+        config(
+            "prepend", "channels", "zelda", "--file", TestConfigModifiers.home_rc_path
+        )
+        config(
+            "prepend", "channels", "link", "--file", TestConfigModifiers.home_rc_path
+        )
         assert (
             config(
-                "get", "experimental", "--file", TestConfigModifiers.rc_path
+                "get", "experimental", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
             == "experimental: false".splitlines()
         )
         assert config(
-            "get", "channels", "--file", TestConfigModifiers.rc_path
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
         ).splitlines() == ["channels:", "  - link", "  - zelda"]
+
+    def test_flag_env_set(self):
+        config("set", "experimental", "false", "--env")
+        assert (
+            config("get", "experimental", "--env").splitlines()
+            == "experimental: false".splitlines()
+        )
+
+    def test_flag_env_file_remove_vector(self):
+        config("prepend", "channels", "thinga-madjiga", "--env")
+        config("remove-key", "channels", "--env")
+        assert (
+            config("get", "channels", "--env").splitlines()
+            == "Key is not present in file".splitlines()
+        )
+
+    def test_flag_env_file_set_and_append_inputs(self):
+        config("set", "local_repodata_ttl", "2", "--env")
+        config("append", "channels", "finn", "--env")
+        config("append", "channels", "jake", "--env")
+        assert (
+            config("get", "local_repodata_ttl", "--env").splitlines()
+            == "local_repodata_ttl: 2".splitlines()
+        )
+        assert config("get", "channels", "--env").splitlines() == [
+            "channels:",
+            "  - finn",
+            "  - jake",
+        ]

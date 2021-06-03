@@ -163,6 +163,20 @@ class TestConfigSources:
         for (file, tmp_file) in tmpfiles:
             os.rename(tmp_file, file)
 
+    def test_expand_user(self):
+        rc_path = os.path.join(TestConfigSources.root_prefix, random_string() + ".yml")
+        rc_path_short = rc_path.replace(os.path.expanduser("~"), "~")
+
+        os.makedirs(TestConfigSources.root_prefix, exist_ok=True)
+        with open(rc_path, "w") as f:
+            f.write("override_channels_enabled: true")
+
+        res = config("sources", "--rc-file", f"{rc_path_short}")
+        assert (
+            res.strip().splitlines()
+            == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
+        )
+
 
 class TestConfigList:
     @pytest.mark.parametrize("rc_flag", ["--no-rc", "--rc-file="])

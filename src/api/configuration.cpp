@@ -326,6 +326,7 @@ namespace mamba
                 }
                 for (auto& f : files)
                 {
+                    f = env::expand_user(f);
                     if (!fs::exists(f))
                     {
                         LOG_ERROR << "'rc_file' specified but does not exist at: " << f.string();

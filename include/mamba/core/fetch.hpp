@@ -45,6 +45,8 @@ namespace mamba
         const std::string& name() const;
 
         void init_curl_target(const std::string& url);
+
+        bool resource_exists();
         bool perform();
         CURL* handle();
 
@@ -106,6 +108,8 @@ namespace mamba
 
         char m_errbuf[CURL_ERROR_SIZE];
         std::ofstream m_file;
+
+        static void init_curl_handle(CURL* handle, const std::string& url);
     };
 
     class MultiDownloadTarget

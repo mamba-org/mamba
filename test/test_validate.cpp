@@ -851,7 +851,7 @@ namespace validate
                     key_mgr_json["signatures"] = sign_key_mgr_meta(key_mgr_json["signed"]);
                 }
 
-                json sign_patched(const json& patch = json())
+                json patched_key_mgr_json(const json& patch = json())
                 {
                     json update_key_mgr = key_mgr_json;
 
@@ -866,7 +866,8 @@ namespace validate
                     return update_key_mgr.patch(sig_patch);
                 }
 
-                fs::path trusted_file(const json& j, const std::string& filename = "key_mgr.json")
+                fs::path write_key_mgr_file(const json& j,
+                                            const std::string& filename = "key_mgr.json")
                 {
                     fs::path p = channel_dir->path() / filename;
 
@@ -915,7 +916,7 @@ namespace validate
                     json key_mgr_patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
-                    auto key_mgr = root.create_key_mgr(sign_patched(key_mgr_patch));
+                    auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
                     EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                     EXPECT_EQ(key_mgr.version(), 2);
@@ -925,7 +926,7 @@ namespace validate
                     json key_mgr_patch = R"([
                     { "op": "replace", "path": "/signed/version", "value": 20 }
                     ])"_json;
-                    auto key_mgr = root.create_key_mgr(sign_patched(key_mgr_patch));
+                    auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
                     EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                     EXPECT_EQ(key_mgr.version(), 20);
@@ -940,7 +941,7 @@ namespace validate
                     json key_mgr_patch = R"([
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.0" }
                     ])"_json;
-                    auto key_mgr = root.create_key_mgr(sign_patched(key_mgr_patch));
+                    auto key_mgr = root.create_key_mgr(patched_key_mgr_json(key_mgr_patch));
 
                     EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                     EXPECT_EQ(key_mgr.version(), 1);
@@ -951,7 +952,7 @@ namespace validate
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": "0.6.1" }
                     ])"_json;
 
-                    EXPECT_THROW(root.create_key_mgr(sign_patched(key_mgr_patch)),
+                    EXPECT_THROW(root.create_key_mgr(patched_key_mgr_json(key_mgr_patch)),
                                  spec_version_error);
                 }
 
@@ -960,7 +961,7 @@ namespace validate
                     { "op": "replace", "path": "/signed/metadata_spec_version", "value": 0.6 }
                     ])"_json;
 
-                    EXPECT_THROW(root.create_key_mgr(sign_patched(key_mgr_patch)),
+                    EXPECT_THROW(root.create_key_mgr(patched_key_mgr_json(key_mgr_patch)),
                                  role_metadata_error);
                 }
             }
@@ -969,27 +970,29 @@ namespace validate
             {
                 RootImpl root(root1_json);
 
-                auto key_mgr = root.create_key_mgr(trusted_file(key_mgr_json));
+                auto key_mgr = root.create_key_mgr(write_key_mgr_file(key_mgr_json));
                 EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(key_mgr.version(), 1);
 
                 // TODO: enforce consistency between spec version in filename and metadata
-                key_mgr = root.create_key_mgr(trusted_file(key_mgr_json, "20.sv0.6.key_mgr.json"));
+                key_mgr = root.create_key_mgr(
+                    write_key_mgr_file(key_mgr_json, "20.sv0.6.key_mgr.json"));
                 EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(key_mgr.version(), 1);
 
 
                 EXPECT_THROW(root.create_key_mgr(fs::path("not_existing")), role_file_error);
 
-                EXPECT_THROW(root.create_key_mgr(trusted_file(key_mgr_json, "wrong.json")),
-                             role_file_error);
-
-                EXPECT_THROW(root.create_key_mgr(trusted_file(key_mgr_json, "sv1.key_mgr.json")),
+                EXPECT_THROW(root.create_key_mgr(write_key_mgr_file(key_mgr_json, "wrong.json")),
                              role_file_error);
 
                 EXPECT_THROW(
-                    root.create_key_mgr(trusted_file(key_mgr_json, "wrong.sv0.6.key_mgr.json")),
+                    root.create_key_mgr(write_key_mgr_file(key_mgr_json, "sv1.key_mgr.json")),
                     role_file_error);
+
+                EXPECT_THROW(root.create_key_mgr(
+                                 write_key_mgr_file(key_mgr_json, "wrong.sv0.6.key_mgr.json")),
+                             role_file_error);
             }
 
             TEST_F(KeyMgrT_v06, expires)
@@ -1011,7 +1014,7 @@ namespace validate
                                          + timestamp(utc_time_now() + 10800) + R"(" }
                     ])");
 
-                key_mgr = root.create_key_mgr(sign_patched(patch));
+                key_mgr = root.create_key_mgr(patched_key_mgr_json(patch));
                 EXPECT_FALSE(key_mgr.expired());
                 EXPECT_TRUE(root.expired());
             }
@@ -1140,6 +1143,9 @@ namespace validate
                 RepoCheckerT()
                     : PkgMgrT_v06()
                 {
+                    m_repo_base_url = "file://" + channel_dir->path().string() + "/";
+                    m_trusted_root = channel_dir->path() / "root.json";
+
                     write_role(root1_json, channel_dir->path() / "root.json");
 
                     json patch = json::parse(R"([
@@ -1148,9 +1154,18 @@ namespace validate
                     write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
 
                     write_role(key_mgr_json, channel_dir->path() / "key_mgr.json");
+
+                    mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
                 }
 
-            private:
+                ~RepoCheckerT()
+                {
+                    mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kWarning;
+                }
+
+            protected:
+                std::string m_trusted_root, m_repo_base_url;
+
                 void write_role(const json& j, const fs::path& p)
                 {
                     fs::path expanded_p = env::expand_user(p);
@@ -1163,18 +1178,48 @@ namespace validate
 
             TEST_F(RepoCheckerT, ctor)
             {
-                RepoChecker checker(channel_dir->path(), channel_dir->path() / "root.json");
+                RepoChecker checker(m_repo_base_url, m_trusted_root);
+                EXPECT_EQ(checker.root_version(), 2);
             }
 
             TEST_F(RepoCheckerT, verify_index)
             {
-                RepoChecker checker(channel_dir->path(), channel_dir->path() / "root.json");
+                RepoChecker checker(m_repo_base_url, m_trusted_root);
                 checker.verify_index(signed_repodata_json);
+            }
+
+            TEST_F(RepoCheckerT, root_freeze_attack)
+            {
+                json patch = json::parse(R"([
+                                    { "op": "replace", "path": "/signed/version", "value": 2 },
+                                    { "op": "replace", "path": "/signed/expiration", "value": ")"
+                                         + timestamp(utc_time_now() - 10) + R"(" }
+                                ])");
+                write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
+
+                EXPECT_THROW(RepoChecker checker(m_repo_base_url, m_trusted_root), freeze_error);
+            }
+
+            TEST_F(RepoCheckerT, key_mgr_freeze_attack)
+            {
+                json patch = json::parse(R"([
+                                    { "op": "replace", "path": "/signed/expiration", "value": ")"
+                                         + timestamp(utc_time_now() - 10) + R"(" }
+                                ])");
+                write_role(patched_key_mgr_json(patch), channel_dir->path() / "key_mgr.json");
+
+                EXPECT_THROW(RepoChecker checker(m_repo_base_url, m_trusted_root), freeze_error);
+            }
+
+            TEST_F(RepoCheckerT, missing_key_mgr_file)
+            {
+                fs::remove(channel_dir->path() / "key_mgr.json");
+                EXPECT_THROW(RepoChecker checker(m_repo_base_url, m_trusted_root), fetching_error);
             }
 
             TEST_F(RepoCheckerT, corrupted_repodata)
             {
-                RepoChecker checker(channel_dir->path(), channel_dir->path() / "root.json");
+                RepoChecker checker(m_repo_base_url, m_trusted_root);
 
                 json wrong_pkg_patch = R"([
                             { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
@@ -1185,7 +1230,7 @@ namespace validate
 
             TEST_F(RepoCheckerT, hillformed_repodata)
             {
-                RepoChecker checker(channel_dir->path(), channel_dir->path() / "root.json");
+                RepoChecker checker(m_repo_base_url, m_trusted_root);
 
                 json hillformed_pkg_patch = R"([
                             { "op": "remove", "path": "/signatures"}

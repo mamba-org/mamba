@@ -4,8 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/environment.hpp"
+#include "mamba/core/fetch.hpp"
+#include "mamba/core/fsutil.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 
 #include "openssl/md5.h"
@@ -48,6 +52,11 @@ namespace validate
     {
     }
 
+    freeze_error::freeze_error() noexcept
+        : trust_error("Possible freeze attack")
+    {
+    }
+
     role_file_error::role_file_error() noexcept
         : trust_error("Invalid role file")
     {
@@ -55,6 +64,11 @@ namespace validate
 
     spec_version_error::spec_version_error() noexcept
         : trust_error("Unsupported specification version")
+    {
+    }
+
+    fetching_error::fetching_error() noexcept
+        : trust_error("Failed to fetch role metadata")
     {
     }
 
@@ -1136,11 +1150,6 @@ namespace validate
             return unique_sigs;
         }
 
-        std::string json_canonicalize(const json& j)
-        {
-            return j.dump(2);
-        }
-
         bool SpecImpl::upgradable() const
         {
             return true;
@@ -1148,7 +1157,7 @@ namespace validate
 
         std::string SpecImpl::canonicalize(const json& j) const
         {
-            return json_canonicalize(j);
+            return j.dump(2);
         }
 
         RootImpl::RootImpl(const json& j)
@@ -1253,10 +1262,43 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& url) const
+            const std::string& base_url) const
         {
-            KeyMgrRole key_mgr(fs::path(url) / "key_mgr.json", all_keys()["key_mgr"], spec_impl());
-            return key_mgr.build_index_checker(url);
+            auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
+            auto tmp_dir_path = tmp_dir->path();
+
+            mamba::URLHandler url(base_url + "key_mgr.json");
+            fs::path tmp_file_path = tmp_dir_path / "key_mgr.json";
+
+            auto dl_target
+                = std::make_unique<mamba::DownloadTarget>("key_mgr.json", url.url(), tmp_file_path);
+
+
+            if (dl_target->resource_exists())
+            {
+                auto result = curl_easy_perform(dl_target->handle());
+                dl_target->set_result(result);
+
+                if ((result == CURLE_OK) && dl_target->finalize())
+                {
+                    KeyMgrRole key_mgr(tmp_file_path, all_keys()["key_mgr"], spec_impl());
+
+                    // TUF spec 5.6.5 - Check for a freeze attack
+                    // 'key_mgr' (equivalent of 'targets') role should not be expired
+                    // https://theupdateframework.github.io/specification/latest/#update-targets
+                    if (key_mgr.expired())
+                    {
+                        LOG_ERROR << "Possible freeze attack of 'key_mgr' metadata.\nExpired: "
+                                  << key_mgr.expires();
+                        throw freeze_error();
+                    }
+
+                    return key_mgr.build_index_checker(base_url);
+                }
+            }
+
+            LOG_ERROR << "Error while fetching 'key_mgr' metadata";
+            throw fetching_error();
         }
 
         KeyMgrRole RootImpl::create_key_mgr(const fs::path& p) const
@@ -1582,8 +1624,14 @@ namespace validate
         : m_base_url(url)
         , m_local_trusted_root(local_trusted_root)
     {
+        // TUF spec 5.1 - Record fixed update start time
+        // Expiration computations will be done against
+        // this reference
+        // https://theupdateframework.github.io/specification/latest/#fix-time
+        TimeRef::instance().set_now();
+
         auto root = get_root_role();
-        p_index_checker = root->build_index_checker(fs::path(url));
+        p_index_checker = root->build_index_checker(url);
     };
 
     void RepoChecker::verify_index(const json& j)
@@ -1594,6 +1642,11 @@ namespace validate
     void RepoChecker::verify_index(const fs::path& p)
     {
         p_index_checker->verify_index(p);
+    }
+
+    std::size_t RepoChecker::root_version()
+    {
+        return m_root_version;
     }
 
     std::unique_ptr<RootRole> RepoChecker::get_root_role()
@@ -1615,25 +1668,54 @@ namespace validate
         }
 
         auto update_files = updated_root->possible_update_files();
+        auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
+        auto tmp_dir_path = tmp_dir->path();
+
         // do chained updates
         while (true)
         {
-            fs::path p = "";
+            fs::path tmp_file_path;
+
             // Update from the most recent spec supported by this client
             for (auto& f : update_files)
             {
-                if (fs::exists(f))
+                mamba::URLHandler url(m_base_url + f.string());
+                tmp_file_path = tmp_dir_path / f;
+
+                auto dl_target
+                    = std::make_unique<mamba::DownloadTarget>(f.string(), url.url(), tmp_file_path);
+                // dl_target->set_ignore_failure(true);
+
+                if (dl_target->resource_exists())
                 {
-                    p = f;
-                    break;
+                    auto result = curl_easy_perform(dl_target->handle());
+                    dl_target->set_result(result);
+
+                    if ((result == CURLE_OK) && dl_target->finalize())
+                    {
+                        updated_root = updated_root->update(tmp_file_path);
+                        update_files = updated_root->possible_update_files();
+                        break;
+                    }
                 }
+                tmp_file_path = "";
             }
 
-            if (p.empty())
+            if (tmp_file_path.empty())
                 break;
+        }
 
-            updated_root = updated_root->update(p);
-            update_files = updated_root->possible_update_files();
+        m_root_version = updated_root->version();
+        LOG_DEBUG << "Latest 'root' metadata has version " << m_root_version;
+
+        // TUF spec 5.3.10 - Check for a freeze attack
+        // Updated 'root' role should not be expired
+        // https://theupdateframework.github.io/specification/latest/#update-root
+        if (updated_root->expired())
+        {
+            LOG_ERROR << "Possible freeze attack of 'root' metadata.\nExpired: "
+                      << updated_root->expires();
+            throw freeze_error();
         }
 
         return updated_root;

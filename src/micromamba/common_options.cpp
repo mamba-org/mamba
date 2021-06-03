@@ -327,6 +327,6 @@ init_install_options(CLI::App* subcom)
                     { "enabled", "warn", "disabled" },
                     safety_checks.description());
 
-    auto& av = config.at("artifact_verif").get_wrapped<bool>();
-    subcom->add_flag("--artifact-verif", av.set_cli_config(0), av.description());
+    auto& av = config.at("verify_artifacts").get_wrapped<bool>();
+    subcom->add_flag("--verif-artifacts", av.set_cli_config(0), av.description());
 }

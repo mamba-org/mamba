@@ -696,7 +696,7 @@ namespace mamba
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
 
-        insert(Configurable("artifact_verif", &ctx.artifact_verif)
+        insert(Configurable("verify_artifacts", &ctx.verify_artifacts)
                    .group("Link & Install")
                    .set_rc_configurable()
                    .set_env_var_name()

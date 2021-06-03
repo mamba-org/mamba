@@ -28,23 +28,37 @@ namespace decompress
 
 namespace mamba
 {
+    /**
+     * Represents a channel subdirectory (i.e. a platform)
+     * packages index. Handles downloading of the index
+     * from the server and cache generation as well.
+     */
     class MSubdirData
     {
     public:
+        /**
+         * Constructor.
+         * @param name Name of the subdirectory (<channel>/<subdir>)
+         * @param repodata_url URL of the repodata file
+         * @param repodata_fn Local path of the repodata file
+         */
         MSubdirData(const std::string& name,
-                    const std::string& url,
+                    const std::string& repodata_url,
                     const std::string& repodata_fn);
 
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
                                                  const fs::file_time_type::clock::time_point& ref);
+        bool load();
         bool loaded();
+
         bool forbid_cache();
         void clear_cache();
-        bool load();
+
         std::string cache_path() const;
-        DownloadTarget* target();
         const std::string& name() const;
+
+        DownloadTarget* target();
         bool finalize_transfer();
 
         MRepo create_repo(MPool& pool);
@@ -66,7 +80,7 @@ namespace mamba
 
         bool m_loaded;
         bool m_download_complete;
-        std::string m_url;
+        std::string m_repodata_url;
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;

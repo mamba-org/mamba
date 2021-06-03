@@ -7,6 +7,8 @@
 #ifndef MAMBA_CORE_CHANNEL_HPP
 #define MAMBA_CORE_CHANNEL_HPP
 
+#include "mamba/core/validate.hpp"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -36,6 +38,7 @@ namespace mamba
         const std::string& platform() const;
         const std::string& package_filename() const;
         const std::string& canonical_name() const;
+        const validate::RepoChecker& repo_checker();
 
         std::string base_url() const;
         std::string url(bool with_credential = true) const;
@@ -70,6 +73,7 @@ namespace mamba
         std::string m_platform;
         std::string m_package_filename;
         mutable std::string m_canonical_name;
+        validate::RepoChecker m_repo_checker;
     };
 
     Channel& make_channel(const std::string& value);

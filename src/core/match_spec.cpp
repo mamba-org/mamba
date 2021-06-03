@@ -84,7 +84,7 @@ namespace mamba
                 LOG_INFO << "need to expand path!";
                 spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)));
             }
-            auto parsed_channel = make_channel(spec_str);
+            auto& parsed_channel = make_channel(spec_str);
 
             if (!parsed_channel.platform().empty())
             {

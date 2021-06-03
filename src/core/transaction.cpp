@@ -8,6 +8,8 @@
 #include <stack>
 #include <thread>
 
+#include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
@@ -745,7 +747,25 @@ namespace mamba
             }
             if (mamba_repo->url() == "")
             {
+                // TODO: comment which use case it represents
                 continue;
+            }
+
+            auto& ctx = Context::instance();
+            if (ctx.experimental && ctx.verify_artifacts)
+            {
+                const auto& repo_checker
+                    = Channel::make_cached_channel(mamba_repo->url()).repo_checker();
+
+                auto pkg_info = PackageInfo(s);
+
+                // TODO: avoid parsing again the index file by storing
+                // keyid/signatures into libsolv Solvable
+                repo_checker.verify_package(fs::path(mamba_repo->index_file()),
+                                            pkg_info.str() + ".tar.bz2");
+
+                LOG_DEBUG << "Package '" << pkg_info.name << "' trusted from channel '"
+                          << mamba_repo->url() << "' metadata";
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));

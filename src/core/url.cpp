@@ -4,12 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <iostream>
-#include <regex>
-
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+
+#include "openssl/md5.h"
+
+#include <iostream>
+#include <regex>
+
 
 namespace mamba
 {
@@ -171,6 +174,17 @@ namespace mamba
         throw std::runtime_error("Could not url-unescape string.");
     }
 
+    std::string cache_name_from_url(const std::string& url)
+    {
+        std::vector<unsigned char> hash(MD5_DIGEST_LENGTH);
+        MD5_CTX md5;
+        MD5_Init(&md5);
+        MD5_Update(&md5, url.c_str(), url.size());
+        MD5_Final(hash.data(), &md5);
+
+        std::string hex_digest = hex_string(hash);
+        return hex_digest.substr(0u, 8u);
+    }
 
     URLHandler::URLHandler(const std::string& url)
         : m_url(url)

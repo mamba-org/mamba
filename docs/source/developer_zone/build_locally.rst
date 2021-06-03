@@ -88,7 +88,7 @@ To build ``micromamba``, just activate the ``BUILD_EXE`` flag in ``cmake`` comma
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
 
 | Doing so, you have built the dynamically linked version of ``micromamba``.
-| It's well fitted for development but is not the artefact shipped when installing ``micromamba``.
+| It's well fitted for development but is not the artifact shipped when installing ``micromamba``.
 
 
 Statically linked

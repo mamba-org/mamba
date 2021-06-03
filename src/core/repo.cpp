@@ -30,23 +30,23 @@ namespace mamba
 
     MRepo::MRepo(MPool& pool,
                  const std::string& name,
-                 const fs::path& filename,
+                 const fs::path& index,
                  const RepoMetadata& metadata)
         : m_metadata(metadata)
     {
         m_url = rsplit(metadata.url, "/", 1)[0];
         m_repo = repo_create(pool, m_url.c_str());
-        read_file(filename);
+        read_file(index);
     }
 
     MRepo::MRepo(MPool& pool,
                  const std::string& name,
-                 const std::string& filename,
+                 const std::string& index,
                  const std::string& url)
         : m_url(url)
     {
         m_repo = repo_create(pool, name.c_str());
-        read_file(filename);
+        read_file(index);
     }
 
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
@@ -156,6 +156,11 @@ namespace mamba
     std::size_t MRepo::size() const
     {
         return m_repo->nsolvables;
+    }
+
+    const std::string& MRepo::index_file()
+    {
+        return m_json_file;
     }
 
     bool MRepo::read_file(const std::string& filename)

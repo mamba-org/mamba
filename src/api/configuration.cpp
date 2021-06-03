@@ -696,6 +696,15 @@ namespace mamba
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
 
+        insert(Configurable("verify_artifacts", &ctx.verify_artifacts)
+                   .group("Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_name()
+                   .description("Run verifications on packages signatures")
+                   .long_description(unindent(R"(
+                        Spend extra time validating package contents. It consists of running
+                        cryptographic verifications on channels and packages metadata.)")));
+
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &ctx.always_yes)
                    .group("Output, Prompt and Flow Control")

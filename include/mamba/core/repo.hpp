@@ -24,6 +24,10 @@ extern "C"
 
 namespace mamba
 {
+    /**
+     * Represents a channel subdirectory
+     * index.
+     */
     struct RepoMetadata
     {
         std::string url;
@@ -38,19 +42,52 @@ namespace mamba
                && lhs.mod == rhs.mod;
     }
 
+    /**
+     * A wrapper class of libsolv Repo.
+     * Represents a channel subdirectory and
+     * is built using a ready-to-use index/metadata
+     * file (see ``MSubdirData``).
+     */
     class MRepo
     {
     public:
+        /**
+         * Constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param prefix_data prefix data
+         */
         MRepo(MPool& pool, const PrefixData& prefix_data);
+
+        /**
+         * Constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name of the subdirectory (<channel>/<subdir>)
+         * @param index Path to the index file
+         * @param url Subdirectory URL
+         */
         MRepo(MPool& pool,
               const std::string& name,
               const std::string& filename,
               const std::string& url);
-        MRepo(MPool& pool, const std::string& name, const fs::path& path, const RepoMetadata& meta);
+
+        /**
+         * Constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name of the subdirectory (<channel>/<subdir>)
+         * @param index Path to the index file
+         * @param meta Metadata of the repo
+         */
+        MRepo(MPool& pool,
+              const std::string& name,
+              const fs::path& filename,
+              const RepoMetadata& meta);
+
         ~MRepo();
 
         void set_installed();
         void set_priority(int priority, int subpriority);
+
+        const std::string& index_file();
 
         std::string name() const;
         bool write() const;

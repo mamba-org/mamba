@@ -134,6 +134,7 @@ namespace mamba
 
         VerificationLevel safety_checks = VerificationLevel::kWarn;
         bool extra_safety_checks = false;
+        bool verify_artifacts = false;
 
         // debug helpers
         bool keep_temp_files = std::getenv("MAMBA_KEEP_TEMP") ? 1 : 0;

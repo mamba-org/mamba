@@ -4,12 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "openssl/md5.h"
-
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/core/url.hpp"
+
 
 namespace decompress
 {
@@ -64,11 +64,11 @@ namespace decompress
 namespace mamba
 {
     MSubdirData::MSubdirData(const std::string& name,
-                             const std::string& url,
+                             const std::string& repodata_url,
                              const std::string& repodata_fn)
         : m_loaded(false)
         , m_download_complete(false)
-        , m_url(url)
+        , m_repodata_url(repodata_url)
         , m_name(name)
         , m_json_fn(repodata_fn)
         , m_solv_fn(repodata_fn.substr(0, repodata_fn.size() - 4) + "solv")
@@ -98,7 +98,7 @@ namespace mamba
 
     bool MSubdirData::forbid_cache()
     {
-        return starts_with(m_url, "file://");
+        return starts_with(m_repodata_url, "file://");
     }
 
     bool MSubdirData::load()
@@ -128,8 +128,8 @@ namespace mamba
                 if ((max_age > cache_age_seconds || Context::instance().offline))
                 {
                     // cache valid!
-                    LOG_INFO << "Using cache " << m_url << " age in seconds: " << cache_age_seconds
-                             << " / " << max_age;
+                    LOG_INFO << "Using cache " << m_repodata_url
+                             << " age in seconds: " << cache_age_seconds << " / " << max_age;
                     std::string prefix = m_name;
                     prefix.resize(PREFIX_LENGTH - 1, ' ');
                     Console::stream() << prefix << " Using cache";
@@ -158,7 +158,7 @@ namespace mamba
         }
         else
         {
-            LOG_INFO << "No cache found " << m_url;
+            LOG_INFO << "No cache found " << m_repodata_url;
             if (!Context::instance().offline || forbid_cache())
             {
                 create_target(m_mod_etag);
@@ -196,7 +196,7 @@ namespace mamba
         if (m_target->result != 0 || m_target->http_status >= 400)
         {
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for " << m_url;
+                     << ") for " << m_repodata_url;
             m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
             m_progress_bar.set_full();
             m_progress_bar.mark_as_completed();
@@ -247,24 +247,26 @@ namespace mamba
             return true;
         }
 
-        LOG_INFO << "Finalized transfer: " << m_url;
+        LOG_INFO << "Finalized transfer: " << m_repodata_url;
 
         m_mod_etag.clear();
-        m_mod_etag["_url"] = m_url;
+        m_mod_etag["_url"] = m_repodata_url;
         m_mod_etag["_etag"] = m_target->etag;
         m_mod_etag["_mod"] = m_target->mod;
         m_mod_etag["_cache_control"] = m_target->cache_control;
 
         LOG_INFO << "Opening: " << m_json_fn;
         std::ofstream final_file(m_json_fn);
-        // TODO make sure that cache directory exists!
+
+        create_cache_dir();
+
         if (!final_file.is_open())
         {
             LOG_ERROR << "Could not open file " << m_json_fn;
             exit(1);
         }
 
-        if (ends_with(m_url, ".bz2"))
+        if (ends_with(m_repodata_url, ".bz2"))
         {
             m_progress_bar.set_postfix("Decomp...");
             decompress();
@@ -287,8 +289,8 @@ namespace mamba
 
         if (!temp_file)
         {
-            LOG_ERROR << "Could not write out repodata file " << m_json_fn << ": "
-                      << strerror(errno);
+            LOG_ERROR << "Could not write out repodata file '" << m_json_fn
+                      << "': " << strerror(errno);
             fs::remove(m_json_fn);
             exit(1);
         }
@@ -326,7 +328,7 @@ namespace mamba
     {
         m_temp_file = std::make_unique<TemporaryFile>();
         m_progress_bar = Console::instance().add_progress_bar(m_name);
-        m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_temp_file->path());
+        m_target = std::make_unique<DownloadTarget>(m_name, m_repodata_url, m_temp_file->path());
         m_target->set_progress_bar(m_progress_bar);
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved
@@ -405,14 +407,7 @@ namespace mamba
 
     std::string cache_fn_url(const std::string& url)
     {
-        std::vector<unsigned char> hash(MD5_DIGEST_LENGTH);
-        MD5_CTX md5;
-        MD5_Init(&md5);
-        MD5_Update(&md5, url.c_str(), url.size());
-        MD5_Final(hash.data(), &md5);
-
-        std::string hex_digest = hex_string(hash);
-        return hex_digest.substr(0u, 8u) + ".json";
+        return cache_name_from_url(url) + ".json";
     }
 
     std::string create_cache_dir()
@@ -428,7 +423,7 @@ namespace mamba
 
     MRepo MSubdirData::create_repo(MPool& pool)
     {
-        RepoMetadata meta{ m_url,
+        RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
                            m_mod_etag["_etag"],
                            m_mod_etag["_mod"] };

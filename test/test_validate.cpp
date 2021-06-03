@@ -1026,7 +1026,7 @@ namespace validate
                 PkgMgrT_v06()
                     : KeyMgrT_v06()
                 {
-                    init_repodata();
+                    generate_index_checkerdata();
                     root = std::make_unique<RootImpl>(root1_json);
                 };
 
@@ -1055,7 +1055,7 @@ namespace validate
 
                 std::unique_ptr<RootImpl> root;
 
-                void init_repodata()
+                void generate_index_checkerdata()
                 {
                     repodata_json = R"({
                                         "info": {
@@ -1133,7 +1133,7 @@ namespace validate
                             { "op": "remove", "path": "/signatures"}
                             ])"_json;
                 EXPECT_THROW(pkg_mgr.verify_index(signed_repodata_json.patch(hillformed_pkg_patch)),
-                             package_error);
+                             index_error);
             }
 
 
@@ -1143,8 +1143,8 @@ namespace validate
                 RepoCheckerT()
                     : PkgMgrT_v06()
                 {
-                    m_repo_base_url = "file://" + channel_dir->path().string() + "/";
-                    m_trusted_root = channel_dir->path() / "root.json";
+                    m_repo_base_url = "file://" + channel_dir->path().string();
+                    m_ref_path = channel_dir->path();
 
                     write_role(root1_json, channel_dir->path() / "root.json");
 
@@ -1164,7 +1164,7 @@ namespace validate
                 }
 
             protected:
-                std::string m_trusted_root, m_repo_base_url;
+                std::string m_ref_path, m_repo_base_url;
 
                 void write_role(const json& j, const fs::path& p)
                 {
@@ -1178,13 +1178,15 @@ namespace validate
 
             TEST_F(RepoCheckerT, ctor)
             {
-                RepoChecker checker(m_repo_base_url, m_trusted_root);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
+                checker.generate_index_checker();
                 EXPECT_EQ(checker.root_version(), 2);
             }
 
             TEST_F(RepoCheckerT, verify_index)
             {
-                RepoChecker checker(m_repo_base_url, m_trusted_root);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
+                checker.generate_index_checker();
                 checker.verify_index(signed_repodata_json);
             }
 
@@ -1196,8 +1198,8 @@ namespace validate
                                          + timestamp(utc_time_now() - 10) + R"(" }
                                 ])");
                 write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
-
-                EXPECT_THROW(RepoChecker checker(m_repo_base_url, m_trusted_root), freeze_error);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
+                EXPECT_THROW(checker.generate_index_checker(), freeze_error);
             }
 
             TEST_F(RepoCheckerT, key_mgr_freeze_attack)
@@ -1207,36 +1209,39 @@ namespace validate
                                          + timestamp(utc_time_now() - 10) + R"(" }
                                 ])");
                 write_role(patched_key_mgr_json(patch), channel_dir->path() / "key_mgr.json");
-
-                EXPECT_THROW(RepoChecker checker(m_repo_base_url, m_trusted_root), freeze_error);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
+                EXPECT_THROW(checker.generate_index_checker(), freeze_error);
             }
 
             TEST_F(RepoCheckerT, missing_key_mgr_file)
             {
                 fs::remove(channel_dir->path() / "key_mgr.json");
-                EXPECT_THROW(RepoChecker checker(m_repo_base_url, m_trusted_root), fetching_error);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
+                EXPECT_THROW(checker.generate_index_checker(), fetching_error);
             }
 
             TEST_F(RepoCheckerT, corrupted_repodata)
             {
-                RepoChecker checker(m_repo_base_url, m_trusted_root);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
 
                 json wrong_pkg_patch = R"([
                             { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
                             ])"_json;
+                checker.generate_index_checker();
                 EXPECT_THROW(checker.verify_index(signed_repodata_json.patch(wrong_pkg_patch)),
                              package_error);
             }
 
             TEST_F(RepoCheckerT, hillformed_repodata)
             {
-                RepoChecker checker(m_repo_base_url, m_trusted_root);
+                RepoChecker checker(m_repo_base_url, m_ref_path);
 
                 json hillformed_pkg_patch = R"([
                             { "op": "remove", "path": "/signatures"}
                             ])"_json;
+                checker.generate_index_checker();
                 EXPECT_THROW(checker.verify_index(signed_repodata_json.patch(hillformed_pkg_patch)),
-                             package_error);
+                             index_error);
             }
         }  // namespace testing
     }      // namespace v06

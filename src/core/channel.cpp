@@ -14,9 +14,12 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/fsutil.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/validate.hpp"
+
 
 namespace mamba
 {
@@ -61,7 +64,13 @@ namespace mamba
         , m_platform(platform)
         , m_package_filename(package_filename)
         , m_canonical_name(multi_name)
+        , m_repo_checker(base_url(),
+                         Context::instance().root_prefix / "etc" / "trusted-repos"
+                             / cache_name_from_url(base_url()),
+                         Context::instance().root_prefix / "pkgs" / "cache"
+                             / cache_name_from_url(base_url()))
     {
+        fs::create_directories(m_repo_checker.cache_path());
     }
 
     void Channel::set_token(const std::string& token)
@@ -104,6 +113,12 @@ namespace mamba
         return m_package_filename;
     }
 
+    const validate::RepoChecker& Channel::repo_checker()
+    {
+        m_repo_checker.generate_index_checker();
+        return m_repo_checker;
+    }
+
     const std::string& Channel::canonical_name() const
     {
         if (m_canonical_name == "")
@@ -131,7 +146,7 @@ namespace mamba
 
     std::string Channel::base_url() const
     {
-        if (canonical_name() == UNKNOWN_CHANNEL)
+        if (name() == UNKNOWN_CHANNEL)
         {
             return "";
         }

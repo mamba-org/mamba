@@ -415,8 +415,12 @@ namespace mamba
                           << std::endl;
                 break;
             case LogSeverity::kDebug:
-                std::cerr << "DEBUG   " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
-                          << std::endl;
+                std::cerr << termcolor::cyan << "DEBUG   " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                break;
+            case LogSeverity::kTrace:
+                std::cerr << termcolor::blue << "TRACE   " << termcolor::reset
+                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             default:
                 std::cerr << "UNKOWN  " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())

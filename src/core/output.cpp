@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <iostream>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
@@ -286,7 +287,7 @@ namespace mamba
         }
     }
 
-    bool Console::prompt(const std::string_view& message, char fallback)
+    bool Console::prompt(const std::string_view& message, char fallback, std::istream& input_stream)
     {
         if (Context::instance().always_yes)
         {
@@ -308,7 +309,7 @@ namespace mamba
                 std::cout << "[y/n] ";
             }
             std::string response;
-            std::getline(std::cin, response);
+            std::getline(input_stream, response);
 #ifdef _WIN32
             response = strip(response);
 #endif

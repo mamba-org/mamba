@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <sstream>
+#include <tuple>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
@@ -241,6 +244,43 @@ namespace mamba
         EXPECT_TRUE(ends_with(output, "conda-forge channel downloaded\n"));
         Context::instance().no_progress_bars = false;
     }
+
+    class OutputPromptTests : public testing::TestWithParam<std::tuple<std::string, char, bool>> {};
+
+    TEST_P(OutputPromptTests, prompt)
+    {
+	auto params = GetParam();
+
+	std::stringstream test_stream;
+	test_stream << std::get<0>(params) << std::endl;
+	EXPECT_EQ(Console::instance().prompt("Test prompt", std::get<1>(params), test_stream), std::get<2>(params));
+    }
+
+    INSTANTIATE_TEST_CASE_P(
+        output,
+        OutputPromptTests,
+        testing::Values(
+            std::make_tuple("y", 'y', true),
+            std::make_tuple("yes", 'y', true),
+            std::make_tuple("Y", 'y', true),
+            std::make_tuple("Yes", 'y', true),
+            std::make_tuple("", 'y', true),
+            std::make_tuple("n", 'y', false),
+            std::make_tuple("no", 'y', false),
+            std::make_tuple("N", 'y', false),
+            std::make_tuple("No", 'y', false),
+
+            std::make_tuple("y", 'n', true),
+            std::make_tuple("yes", 'n', true),
+            std::make_tuple("Y", 'n', true),
+            std::make_tuple("Yes", 'n', true),
+            std::make_tuple("", 'n', false),
+            std::make_tuple("n", 'n', false),
+            std::make_tuple("no", 'n', false),
+            std::make_tuple("N", 'n', false),
+            std::make_tuple("No", 'n', false),
+	)
+    );
 
     TEST(context, env_name)
     {

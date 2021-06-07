@@ -278,7 +278,7 @@ namespace mamba
             std::make_tuple("n", 'n', false),
             std::make_tuple("no", 'n', false),
             std::make_tuple("N", 'n', false),
-            std::make_tuple("No", 'n', false),
+            std::make_tuple("No", 'n', false)
 	)
     );
 

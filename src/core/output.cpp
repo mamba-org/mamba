@@ -319,7 +319,7 @@ namespace mamba
                 response = std::string(1, fallback);
             }
             if (response.compare("yes") == 0 || 
-		response.compare("Yes") == 0||
+		response.compare("Yes") == 0 ||
 		response.compare("y") == 0 ||
 		response.compare("Y") == 0)
             {

@@ -317,11 +317,17 @@ namespace mamba
                 // enter pressed
                 response = std::string(1, fallback);
             }
-            if (response.compare("y") == 0 || response.compare("Y") == 0)
+            if (response.compare("yes") == 0 || 
+		response.compare("Yes") == 0||
+		response.compare("y") == 0 ||
+		response.compare("Y") == 0)
             {
                 return true && !is_sig_interrupted();
             }
-            if (response.compare("n") == 0 || response.compare("N") == 0)
+            if (response.compare("no") == 0 ||
+		response.compare("No") == 0 || 
+		response.compare("n") == 0 || 
+		response.compare("N") == 0)
             {
                 Console::print("Aborted.");
                 return false;

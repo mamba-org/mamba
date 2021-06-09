@@ -225,7 +225,9 @@ namespace mamba
 
         static ConsoleStream stream();
         static void print(const std::string_view& str, bool force_print = false);
-        static bool prompt(const std::string_view& message, char fallback = '_');
+        static bool prompt(const std::string_view& message,
+                           char fallback = '_',
+                           std::istream& input_stream = std::cin);
 
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0);
         void init_multi_progress(ProgressBarMode mode = ProgressBarMode::multi);

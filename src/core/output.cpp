@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <iostream>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
@@ -286,7 +287,7 @@ namespace mamba
         }
     }
 
-    bool Console::prompt(const std::string_view& message, char fallback)
+    bool Console::prompt(const std::string_view& message, char fallback, std::istream& input_stream)
     {
         if (Context::instance().always_yes)
         {
@@ -308,7 +309,7 @@ namespace mamba
                 std::cout << "[y/n] ";
             }
             std::string response;
-            std::getline(std::cin, response);
+            std::getline(input_stream, response);
 #ifdef _WIN32
             response = strip(response);
 #endif
@@ -317,11 +318,13 @@ namespace mamba
                 // enter pressed
                 response = std::string(1, fallback);
             }
-            if (response.compare("y") == 0 || response.compare("Y") == 0)
+            if (response.compare("yes") == 0 || response.compare("Yes") == 0
+                || response.compare("y") == 0 || response.compare("Y") == 0)
             {
                 return true && !is_sig_interrupted();
             }
-            if (response.compare("n") == 0 || response.compare("N") == 0)
+            if (response.compare("no") == 0 || response.compare("No") == 0
+                || response.compare("n") == 0 || response.compare("N") == 0)
             {
                 Console::print("Aborted.");
                 return false;

@@ -252,6 +252,7 @@ namespace mamba
         Console::instance().print_progress(m_idx);
     }
 
+#undef TRACE
 #undef DEBUG
 #undef INFO
 #undef WARNING
@@ -260,6 +261,7 @@ namespace mamba
 
     enum class LogSeverity
     {
+        kTrace,
         kDebug,
         kInfo,
         kWarning,
@@ -316,6 +318,7 @@ namespace mamba
 #undef FATAL
 
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
+#define LOG_TRACE LOG(mamba::LogSeverity::kTrace)
 #define LOG_DEBUG LOG(mamba::LogSeverity::kDebug)
 #define LOG_INFO LOG(mamba::LogSeverity::kInfo)
 #define LOG_WARNING LOG(mamba::LogSeverity::kWarning)

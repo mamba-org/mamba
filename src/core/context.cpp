@@ -41,9 +41,13 @@ namespace mamba
         {
             MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
         }
-        else if (lvl > 1)
+        else if (lvl == 2)
         {
             MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+        }
+        else if (lvl > 2)
+        {
+            MessageLogger::global_log_severity() = mamba::LogSeverity::kTrace;
         }
         this->verbosity = lvl;
     }

@@ -69,7 +69,6 @@ if (STATIC_DEPENDENCIES)
 endif()
 
 add_definitions(-DGHC_WIN_DISABLE_WSTRING_STORAGE_TYPE)
-add_definitions(-DGHC_WIN_DISABLE_AUTO_PREFIXES)
 
 # Dependencies
 # ============

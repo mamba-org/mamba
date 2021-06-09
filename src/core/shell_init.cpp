@@ -267,6 +267,7 @@ namespace mamba
                 size = GetModuleFileNameW(NULL, (wchar_t*) buffer.c_str(), (DWORD) buffer.size());
             } while (new_size == size);
         }
+        buffer.resize(buffer.find(L'\0'));
         return fs::absolute(buffer);
 #elif defined(__APPLE__)
         uint32_t size = PATH_MAX;
@@ -454,6 +455,7 @@ namespace mamba
     std::string get_hook_contents(const std::string& shell)
     {
         fs::path exe = get_self_exe_path();
+
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             std::string contents = mamba_sh;

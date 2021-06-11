@@ -11,6 +11,8 @@ Overview
 While not necessary to understand the basic usage, those ``advanced concepts`` are fundamental to understand Mamba in details.
 
 
+.. _linking:
+
 Linking
 -------
 

@@ -44,6 +44,7 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
 
    advanced_usage/more_concepts
    advanced_usage/detailed_operations
+   advanced_usage/artifacts_verification
 
 .. toctree::
    :caption: API reference

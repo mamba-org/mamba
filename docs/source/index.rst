@@ -38,6 +38,13 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    user_guide/configuration
 
 .. toctree::
+   :caption: ADVANCED USAGE
+   :maxdepth: 2
+   :hidden:
+
+   advanced_usage/more_concepts
+
+.. toctree::
    :caption: API reference
    :maxdepth: 2
    :hidden:

@@ -43,6 +43,7 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    :hidden:
 
    advanced_usage/more_concepts
+   advanced_usage/detailed_operations
 
 .. toctree::
    :caption: API reference

@@ -98,7 +98,7 @@ class Mermaid(Directive):
             try:
                 with codecs.open(filename, "r", "utf-8") as fp:
                     mmcode = fp.read()
-            except (IOError, OSError):
+            except (IOError, OSError):  # noqa
                 return [
                     document.reporter.warning(
                         "External Mermaid file %r not found or reading "
@@ -137,11 +137,11 @@ class Mermaid(Directive):
         return [node]
 
 
-def render_mm(self, code, options, format, prefix="mermaid"):
+def render_mm(self, code, options, fmt, prefix="mermaid"):
     """Render mermaid code into a PNG or PDF output file."""
 
-    if format == "raw":
-        format = "png"
+    if fmt == "raw":
+        fmt = "png"
 
     mermaid_cmd = self.builder.config.mermaid_cmd
     hashkey = (
@@ -149,7 +149,7 @@ def render_mm(self, code, options, format, prefix="mermaid"):
     ).encode("utf-8")
 
     basename = "%s-%s" % (prefix, sha1(hashkey).hexdigest())
-    fname = "%s.%s" % (basename, format)
+    fname = "%s.%s" % (basename, fmt)
     relfn = posixpath.join(self.builder.imgpath, fname)
     outdir = os.path.join(self.builder.outdir, self.builder.imagedir)
     outfn = os.path.join(outdir, fname)
@@ -220,20 +220,20 @@ def _render_mm_html_raw(
 
 
 def render_mm_html(self, node, code, options, prefix="mermaid", imgcls=None, alt=None):
-    format = self.builder.config.mermaid_output_format
-    if format == "raw":
+    fmt = self.builder.config.mermaid_output_format
+    if fmt == "raw":
         return _render_mm_html_raw(
             self, node, code, options, prefix="mermaid", imgcls=None, alt=None
         )
 
     try:
-        if format not in ("png", "svg"):
+        if fmt not in ("png", "svg"):
             raise MermaidError(
                 "mermaid_output_format must be one of 'raw', 'png', "
-                "'svg', but is %r" % format
+                "'svg', but is %r" % fmt
             )
 
-        fname, outfn = render_mm(self, code, options, format, prefix)
+        fname, outfn = render_mm(self, code, options, fmt, prefix)
     except MermaidError as exc:
         logger.warning("mermaid code %r: " % code + str(exc))
         raise nodes.SkipNode
@@ -244,7 +244,7 @@ def render_mm_html(self, node, code, options, prefix="mermaid", imgcls=None, alt
         if alt is None:
             alt = node.get("alt", self.encode(code).strip())
         imgcss = imgcls and 'class="%s"' % imgcls or ""
-        if format == "svg":
+        if fmt == "svg":
             svgtag = """<object data="%s" type="image/svg+xml">
             <p class="warning">%s</p></object>\n""" % (
                 fname,
@@ -283,7 +283,8 @@ def render_mm_latex(self, node, code, options, prefix="mermaid"):
             if err.errno != ENOENT:  # No such file or directory
                 raise
             logger.warning(
-                "command %r cannot be run (needed to crop pdf), check the mermaid_cmd setting"
+                "command %r cannot be run (needed to crop pdf), \
+                check the mermaid_cmd setting"
                 % self.builder.config.mermaid_pdfcrop
             )
             return None, None
@@ -372,7 +373,8 @@ def config_inited(app, config):
     app.add_js_file(mermaid_js_url)
     app.add_js_file(
         None,
-        body='mermaid.initialize({startOnLoad:true, theme:"neutral", securityLevel="loose", sequenceConfig: {mirrorActors: false}});',
+        body='mermaid.initialize({startOnLoad:true, theme:"neutral", securityLevel="loose", \
+              sequenceConfig: {mirrorActors: false}});',
     )
     app.add_css_file("mermaid.css")
 

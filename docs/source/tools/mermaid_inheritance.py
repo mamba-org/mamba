@@ -29,13 +29,7 @@ r"""
     :license: BSD, see LICENSE for details.
 """
 
-import builtins
-import inspect
-import re
-from hashlib import md5
-from importlib import import_module
-from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple, cast
+from typing import Any, Dict, Iterable, List, cast
 
 import sphinx
 from docutils import nodes
@@ -54,7 +48,6 @@ from sphinx.ext.inheritance_diagram import (
     inheritance_diagram,
     skip,
 )
-from sphinx.util.docutils import SphinxDirective
 from sphinx.writers.html import HTMLTranslator
 from sphinx.writers.latex import LaTeXTranslator
 from sphinx.writers.texinfo import TexinfoTranslator
@@ -98,11 +91,11 @@ class MermaidGraph(InheritanceGraph):
     def generate_dot(
         self,
         name: str,
-        urls: Dict = {},
+        urls: Dict = {},  # noqa
         env: BuildEnvironment = None,
-        graph_attrs: Dict = {},
-        node_attrs: Dict = {},
-        edge_attrs: Dict = {},
+        graph_attrs: Dict = {},  # noqa
+        node_attrs: Dict = {},  # noqa
+        edge_attrs: Dict = {},  # noqa
     ) -> str:
         """Generate a mermaid graph from the classes that were passed in
         to __init__.

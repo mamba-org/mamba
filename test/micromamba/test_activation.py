@@ -196,6 +196,9 @@ class TestActivation:
         os.path.join("~", "tmproot" + random_string())
     )
     prefix = os.path.join(root_prefix, "envs", env_name)
+    long_prefix = os.path.join(
+        root_prefix, *["some_very_long_prefix" for i in range(20)], env_name
+    )
 
     @classmethod
     def setup_class(cls):
@@ -376,6 +379,23 @@ class TestActivation:
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
             assert not find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
+
+            # long paths
+            s = [
+                f"micromamba create -p {TestActivation.long_prefix} xtensor six -y -c conda-forge"
+            ]
+            call(s)
+
+            s = [
+                f"micromamba activate",
+                f"micromamba activate {TestActivation.long_prefix}",
+            ] + evars
+            stdout, stderr = call(s)
+            res = to_dict(stdout)
+
+            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
+            assert find_path_in_str(TestActivation.long_prefix, res["PATH"])
 
             s = [
                 f"micromamba activate",

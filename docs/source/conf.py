@@ -11,7 +11,9 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 # import os
-# import sys
+import sys
+from pathlib import Path
+
 # sys.path.insert(0, os.path.abspath('.'))
 
 
@@ -27,10 +29,13 @@ release = "0.5.2"
 
 # -- General configuration ---------------------------------------------------
 
+# Load local extensions (e.g. mermaid)
+sys.path.insert(0, str(Path.cwd().resolve() / "tools"))
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["myst_parser"]
+extensions = ["mermaid", "mermaid_inheritance", "myst_parser"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

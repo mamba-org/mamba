@@ -18,6 +18,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
 
 #include "thirdparty/termcolor.hpp"
@@ -26,13 +27,19 @@ namespace mamba
 {
     static std::vector<std::tuple<std::string, std::vector<std::string>>> other_pkg_mgr_specs;
     static std::map<std::string, std::string> other_pkg_mgr_install_instructions
-        = { { "pip", "pip install {0} --no-input" } };
+        = { { "pip", "pip install -r {0} --no-input" } };
 
     auto install_for_other_pkgmgr(const std::string& pkg_mgr, const std::vector<std::string>& deps)
     {
         std::string install_instructions = other_pkg_mgr_install_instructions[pkg_mgr];
 
-        replace_all(install_instructions, "{0}", join(" ", deps));
+        TemporaryFile specs;
+        std::ofstream specs_f(specs.path());
+        for (auto& d : deps)
+            specs_f << d.c_str() << '\n';
+        specs_f.close();
+
+        replace_all(install_instructions, "{0}", specs.path());
 
         const auto& ctx = Context::instance();
 
@@ -48,8 +55,8 @@ namespace mamba
         options.working_directory = cwd.c_str();
 
         std::cout << "\n"
-                  << termcolor::cyan << "Installing " << pkg_mgr << " packages: " << join(" ", deps)
-                  << termcolor::reset << std::endl;
+                  << termcolor::cyan << "Installing " << pkg_mgr
+                  << " packages: " << join(", ", deps) << termcolor::reset << std::endl;
         LOG_INFO << "Calling: " << join(" ", install_args);
 
         auto [_, ec] = reproc::run(wrapped_command, options);

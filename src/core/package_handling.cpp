@@ -446,7 +446,8 @@ namespace mamba
                 {
                     if (is_warn || is_fail)
                     {
-                        LOG_WARNING << "Missing file from package cache: " << full_path;
+                        LOG_WARNING << "Invalid package cache, file '" << full_path.string()
+                                    << "' is missing";
                         return false;
                     }
                 }
@@ -458,8 +459,8 @@ namespace mamba
                     if (p.path_type != PathType::SOFTLINK
                         && !validate::file_size(full_path, p.size_in_bytes))
                     {
-                        LOG_WARNING << "Size incorrect, file modified in package cache "
-                                    << full_path;
+                        LOG_WARNING << "Invalid package cache, file '" << full_path.string()
+                                    << "' has incorrect size";
                         is_invalid = true;
                         if (is_fail)
                         {
@@ -469,8 +470,8 @@ namespace mamba
                     if (full_validation && !is_invalid && p.path_type != PathType::SOFTLINK
                         && !validate::sha256(full_path, p.sha256))
                     {
-                        LOG_WARNING << "SHA256 checksum incorrect, file modified in package cache "
-                                    << full_path;
+                        LOG_WARNING << "Invalid package cache, file '" << full_path.string()
+                                    << "' has incorrect SHA-256 checksum";
                         if (is_fail)
                         {
                             return false;
@@ -481,10 +482,10 @@ namespace mamba
         }
         catch (...)
         {
-            LOG_WARNING << "Could not read paths.json from " << pkg_folder << std::endl;
+            LOG_WARNING << "Invalid package cache, could not read 'paths.json' from '"
+                        << pkg_folder.string() << "'" << std::endl;
             return false;
         }
-        LOG_INFO << "Validated package cache for " << pkg_folder;
         return true;
     }
 }  // namespace mamba

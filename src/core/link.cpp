@@ -536,8 +536,8 @@ namespace mamba
 
         if (!fs::exists(path))
         {
-            LOG_INFO << action << " script for " << pkg_info.name << " does not exist (" << path
-                     << ")";
+            LOG_DEBUG << action << " script for '" << pkg_info.name << "' does not exist ('"
+                      << path.string() << "')";
             return true;
         }
 
@@ -622,7 +622,7 @@ namespace mamba
         std::string cargs = join(" ", command_args);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
-        LOG_INFO << "Calling " << cargs;
+        LOG_TRACE << "Calling " << cargs;
 
         reproc::options options;
         options.redirect.parent = true;
@@ -631,7 +631,7 @@ namespace mamba
         std::string cwd = path.parent_path();
         options.working_directory = cwd.c_str();
 
-        LOG_DEBUG << "ENV MAP:"
+        LOG_TRACE << "ENV MAP:"
                   << "\n ROOT_PREFIX: " << envmap["ROOT_PREFIX"]
                   << "\n PREFIX: " << envmap["PREFIX"] << "\n PKG_NAME: " << envmap["PKG_NAME"]
                   << "\n PKG_VERSION: " << envmap["PKG_VERSION"]
@@ -731,7 +731,7 @@ namespace mamba
                                                                 bool noarch_python)
     {
         std::string subtarget = path_data.path;
-        LOG_INFO << "linking path " << subtarget;
+        LOG_TRACE << "linking '" << subtarget << "'";
         fs::path dst, rel_dst;
         if (noarch_python)
         {
@@ -755,6 +755,7 @@ namespace mamba
             // Sometimes we might want to raise here ...
             std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
                       << "$CONDA_PREFIX/" << rel_dst.string() << std::endl;
+            LOG_WARNING << "Clobberwarning: $CONDA_PREFIX/" << rel_dst.string();
 #ifdef _WIN32
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
 #endif
@@ -773,7 +774,7 @@ namespace mamba
 #ifdef _WIN32
             replace_all(new_prefix, "\\", "/");
 #endif
-            LOG_INFO << "Copying file & replace prefix " << src << " -> " << dst;
+            LOG_TRACE << "Copying file & replace prefix " << src << " -> " << dst;
             // TODO windows does something else here
 
             std::string buffer;
@@ -925,7 +926,8 @@ namespace mamba
                 }
                 else
                 {
-                    LOG_INFO << "hard linked " << src << " --> " << dst;
+                    LOG_TRACE << "hard-linked '" << src.string() << "'" << std::endl
+                              << " --> '" << dst.string() << "'";
                 }
             }
             if (softlink)
@@ -938,18 +940,21 @@ namespace mamba
                 }
                 else
                 {
-                    LOG_INFO << "soft linked " << src << " --> " << dst;
+                    LOG_TRACE << "soft-linked '" << src.string() << "'" << std::endl
+                              << " --> '" << dst.string() << "'";
                 }
             }
             if (copy)
             {
                 fs::copy(src, dst);
-                LOG_INFO << "copied " << src << " --> " << dst;
+                LOG_TRACE << "copied '" << src.string() << "'" << std::endl
+                          << " --> '" << dst.string() << "'";
             }
         }
         else if (path_data.path_type == PathType::SOFTLINK)
         {
-            LOG_INFO << "soft linked " << src << " --> " << dst;
+            LOG_TRACE << "soft-linked '" << src.string() << "'" << std::endl
+                      << " --> '" << dst.string() << "'";
             fs::copy_symlink(src, dst);
         }
         else
@@ -1048,16 +1053,21 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
-        LOG_INFO << "Executing install for " << m_source;
         nlohmann::json index_json, out_json;
-        LOG_INFO << "Opening: " << m_source / "info" / "paths.json";
+        LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
+        LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
         auto paths_data = read_paths(m_source);
 
-        LOG_INFO << "Opening: " << m_source / "info" / "repodata_record.json";
+        LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
         std::ifstream repodata_f(m_source / "info" / "repodata_record.json");
-
         repodata_f >> index_json;
+
+        std::string f_name = index_json["name"].get<std::string>() + "-"
+                             + index_json["version"].get<std::string>() + "-"
+                             + index_json["build"].get<std::string>();
+
+        LOG_DEBUG << "Linking package '" << f_name << "' from '" << m_source.string() << "'";
 
         // handle noarch packages
         NoarchType noarch_type = NoarchType::NOT_A_NOARCH;
@@ -1088,6 +1098,7 @@ namespace mamba
         nlohmann::json paths_json = nlohmann::json::object();
         paths_json["paths"] = nlohmann::json::array();
         paths_json["paths_version"] = 1;
+
         for (auto& path : paths_data)
         {
             auto [sha256_in_prefix, final_path]
@@ -1127,10 +1138,7 @@ namespace mamba
 
             paths_json["paths"].push_back(json_record);
         }
-
-        std::string f_name = index_json["name"].get<std::string>() + "-"
-                             + index_json["version"].get<std::string>() + "-"
-                             + index_json["build"].get<std::string>();
+        LOG_DEBUG << paths_data.size() << " files linked";
 
         out_json = index_json;
         out_json["paths_data"] = paths_json;
@@ -1182,7 +1190,7 @@ namespace mamba
                     auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
                     auto entry_point_path
                         = get_bin_directory_short_path() / entry_point_parsed.command;
-                    LOG_INFO << "entry point path: " << entry_point_path << std::endl;
+                    LOG_TRACE << "entry point path: " << entry_point_path << std::endl;
                     auto files = create_python_entry_point(entry_point_path, entry_point_parsed);
 
 #ifdef _WIN32
@@ -1211,8 +1219,10 @@ namespace mamba
             fs::create_directory(prefix_meta);
         }
 
-        LOG_INFO << "Finalizing package " << f_name << " installation";
-        std::ofstream out_file(prefix_meta / (f_name + ".json"));
+        LOG_DEBUG << "Finalizing linking";
+        auto meta = prefix_meta / (f_name + ".json");
+        LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
+        std::ofstream out_file(meta);
         out_file << out_json.dump(4);
 
         return true;

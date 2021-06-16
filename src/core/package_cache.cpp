@@ -122,6 +122,8 @@ namespace mamba
         }
 
         assert(!s.fn.empty());
+        auto pkg_name = strip_package_extension(s.fn);
+        LOG_DEBUG << "Verify cache for package '" << pkg_name.string() << "'";
 
         bool valid = false, extract_dir_valid = false;
         if (fs::exists(m_pkgs_dir / s.fn))
@@ -130,11 +132,14 @@ namespace mamba
             // validate that this tarball has the right size and MD5 sum
             valid = validate::file_size(tarball_path, s.size);
             valid = (valid || s.size == 0) && validate::md5(tarball_path, s.md5);
-            LOG_INFO << tarball_path << " is " << valid;
+            if (valid)
+                LOG_TRACE << "Package tarball '" << tarball_path.string() << "' is valid";
+            else
+                LOG_WARNING << "Package tarball '" << tarball_path.string() << "' is invalid";
             m_valid_cache[pkg] = valid;
         }
 
-        fs::path extract_dir = m_pkgs_dir / strip_package_extension(s.fn);
+        fs::path extract_dir = m_pkgs_dir / pkg_name;
         if (fs::exists(extract_dir))
         {
             auto repodata_record_path = extract_dir / "info" / "repodata_record.json";
@@ -145,78 +150,96 @@ namespace mamba
                     std::ifstream repodata_record_f(repodata_record_path);
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
-                    extract_dir_valid = false;
-                    if (s.size != 0)
+                    extract_dir_valid = s.size != 0;
+
+                    // Validate size
+                    if (extract_dir_valid)
                     {
                         extract_dir_valid = repodata_record["size"].get<std::size_t>() == s.size;
                         if (!extract_dir_valid)
                         {
-                            LOG_INFO << "Found cache, size differs.";
-                        }
-                    }
-                    if (!s.sha256.empty())
-                    {
-                        if (s.sha256 != repodata_record["sha256"].get<std::string>())
-                        {
-                            extract_dir_valid = false;
-                            LOG_INFO << "Found cache, sha256 differs.";
-                        }
-                        else if (s.size == 0)
-                        {
-                            // in case we have no s.size
-                            // set extract_dir_valid true here
-                            extract_dir_valid = true;
-                        }
-                    }
-                    else if (!s.md5.empty())
-                    {
-                        if (s.md5 != repodata_record["md5"].get<std::string>())
-                        {
-                            LOG_INFO << "Found cache, md5 differs. ("
-                                     << repodata_record["md5"].get<std::string>() << " vs " << s.md5
-                                     << ")";
-                            extract_dir_valid = false;
-                        }
-                        else if (s.size == 0)
-                        {
-                            // for explicit env, we have no size, nor sha256 so we need to
-                            // set extract_dir_valid true here
-                            extract_dir_valid = true;
-                        }
-                    }
-                    else
-                    {
-                        // cannot validate if we don't know either md5 or sha256
-                        LOG_INFO << "Found cache, no checksum.";
-                        extract_dir_valid = false;
-                    }
-                    if (!repodata_record["url"].get<std::string>().empty())
-                    {
-                        if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
-                        {
-                            LOG_INFO << "Found cache, url differs.";
-                            extract_dir_valid = false;
-                        }
-                    }
-                    else
-                    {
-                        if (repodata_record["channel"].get<std::string>() != s.channel)
-                        {
-                            extract_dir_valid = false;
-                            LOG_INFO << "Found cache, channel differs.";
+                            LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                        << "' has invalid size and will be removed";
                         }
                     }
 
-                    if (!extract_dir_valid)
+                    // Validate checksum
+                    if (extract_dir_valid)
                     {
-                        LOG_INFO << "Found directory with same name, but different size, "
-                                    "channel, url or checksum "
-                                 << repodata_record_path;
+                        if (!s.sha256.empty())
+                        {
+                            if (s.sha256 != repodata_record["sha256"].get<std::string>())
+                            {
+                                extract_dir_valid = false;
+                                LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                            << "' has invalid SHA-256 checksum and will be removed";
+                            }
+                            else if (s.size == 0)
+                            {
+                                // in case we have no s.size
+                                // set extract_dir_valid true here
+                                extract_dir_valid = true;
+                            }
+                        }
+                        else if (!s.md5.empty())
+                        {
+                            if (s.md5 != repodata_record["md5"].get<std::string>())
+                            {
+                                LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                            << "' has invalid md5 checksum and will be removed";
+                                extract_dir_valid = false;
+                            }
+                            else if (s.size == 0)
+                            {
+                                // for explicit env, we have no size, nor sha256 so we need to
+                                // set extract_dir_valid true here
+                                extract_dir_valid = true;
+                            }
+                        }
+                        else
+                        {
+                            // cannot validate if we don't know either md5 or sha256
+                            LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                        << "' has no checksum and will be removed";
+                            extract_dir_valid = false;
+                        }
                     }
+
+                    // Validate URL
+                    if (extract_dir_valid)
+                    {
+                        if (!repodata_record["url"].get<std::string>().empty())
+                        {
+                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(),
+                                                     s.url))
+                            {
+                                LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                            << "' has invalid url and will be removed";
+                                extract_dir_valid = false;
+                            }
+                        }
+                        else
+                        {
+                            if (repodata_record["channel"].get<std::string>() != s.channel)
+                            {
+                                LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                            << "' has invalid channel and will be removed";
+                                extract_dir_valid = false;
+                            }
+                        }
+                    }
+                }
+                catch (const nlohmann::json::exception& e)
+                {
+                    LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                << "' has invalid 'repodata_record.json' file and will be removed: "
+                                << e.what();
+                    extract_dir_valid = false;
                 }
                 catch (...)
                 {
-                    LOG_WARNING << "Found corrupted repodata_record file " << repodata_record_path;
+                    LOG_WARNING << "Extracted package cache '" << extract_dir.string()
+                                << "' is invalid and will be removed'";
                     extract_dir_valid = false;
                 }
 
@@ -227,6 +250,7 @@ namespace mamba
             }
             if (!extract_dir_valid)
             {
+                LOG_TRACE << "Removing invalid extraction directory";
                 try
                 {
                     remove_or_rename(extract_dir);
@@ -240,10 +264,13 @@ namespace mamba
             }
             else
             {
+                LOG_TRACE << "Extracted package cache is valid";
                 valid = true;
             }
         }
         m_valid_cache[pkg] = valid;
+
+        LOG_DEBUG << "Cache is " << (valid ? "valid" : "invalid");
         return valid;
     }
 

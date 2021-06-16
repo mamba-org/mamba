@@ -82,7 +82,9 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
         {
             if (is_package_file(entry.path().filename().string()))
             {
+                LOG_TRACE << "Extracting " << entry.path().filename() << std::endl;
                 std::cout << "Extracting " << entry.path().filename() << std::endl;
+
                 fs::path base_path = extract(entry.path());
 
                 fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
@@ -101,15 +103,20 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                     {
                         index["url"] = pkg_info.url;
                         index["channel"] = pkg_info.channel;
+                        index["size"] = pkg_info.size;
                         if (!pkg_info.md5.empty())
                         {
                             index["md5"] = pkg_info.md5;
+                        }
+                        if (!pkg_info.sha256.empty())
+                        {
+                            index["sha256"] = pkg_info.sha256;
                         }
                         break;
                     }
                 }
 
-                LOG_INFO << "Writing " << repodata_record_path;
+                LOG_TRACE << "Writing " << repodata_record_path;
                 std::ofstream repodata_record(repodata_record_path);
                 repodata_record << index.dump(4);
             }

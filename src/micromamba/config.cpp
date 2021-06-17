@@ -464,6 +464,109 @@ set_config_remove_key_command(CLI::App* subcom)
 }
 
 void
+set_config_remove_command(CLI::App* subcom)
+{
+    // have to check if a string is a vector
+    set_config_path_command(subcom);
+
+    auto& config = Configuration::instance();
+    auto& ctx = Context::instance();
+
+    auto& remove_vec_map = config.insert(
+        Configurable("remove", std::vector<std::string>())
+            .group("Output, Prompt and Flow Control")
+            .description(
+                "Remove a configuration value from a list key. This removes all instances of the value."));
+    subcom->add_option(
+        "remove", remove_vec_map.set_cli_config({ "" }), remove_vec_map.description());
+
+    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
+    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
+    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
+
+    subcom->callback([&]() {
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("show_banner").set_value(false);
+        config.at("target_prefix_checks")
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+        config.load();
+
+        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+        std::ofstream rc_file;
+        bool key_removed = false;
+        std::string remove_vec_key = remove_vec_map.value().front();
+        std::string remove_vec_value = remove_vec_map.value().at(1);
+
+        if (remove_vec_map.value().size() > 2)
+        {
+            std::cout << "Only one value can be removed at a time" << std::endl;
+            return;
+        }
+        else if (file_path.configured())
+        {
+            path::touch(file_path.value().string(), true);
+            rc_source = env::expand_user(file_path.value()).string();
+        }
+        else if (env_path.configured())
+        {
+            std::string path = fs::path(ctx.target_prefix / ".condarc");
+            if (!env_path_exists(path))
+            {
+                return;
+            }
+            env_path_setup(path, rc_source);
+        }
+        else if (system_path.configured())
+        {
+            if (!system_path_exists())
+            {
+                return;
+            }
+            system_path_setup(rc_source);
+        }
+
+        // convert rc file to YAML::Node
+        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
+
+        // look for key to remove in file
+        for (auto v : rc_YAML)
+        {
+            if (v.first.as<std::string>() == remove_vec_key)
+            {
+                for (std::size_t i = 0; i < v.second.size(); ++i)
+                {
+                    if (v.second.size() == 1 && v.second[i].as<std::string>() == remove_vec_value)
+                    {
+                        rc_YAML.remove(remove_vec_key);
+                        key_removed = true;
+                        break;
+                    }
+                    else if (v.second[i].as<std::string>() == remove_vec_value)
+                    {
+                        rc_YAML[remove_vec_key].remove(i);
+                        key_removed = true;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!key_removed)
+        {
+            std::cout << "Key is not present in file" << std::endl;
+        }
+
+        // if the rc file is being modified, it's necessary to rewrite it
+        rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
+        rc_file << rc_YAML << std::endl;
+
+        config.operation_teardown();
+    });
+}
+
+void
 set_config_set_command(CLI::App* subcom)
 {
     set_config_path_command(subcom);
@@ -627,6 +730,11 @@ set_config_command(CLI::App* subcom)
     auto remove_key_subcom
         = subcom->add_subcommand("remove-key", "Remove a configuration key and its values");
     set_config_remove_key_command(remove_key_subcom);
+
+    auto remove_subcom = subcom->add_subcommand(
+        "remove",
+        "Remove a configuration value from a list key. This removes all instances of the value.");
+    set_config_remove_command(remove_subcom);
 
     auto set_subcom = subcom->add_subcommand("set", "Set a configuration value");
     set_config_set_command(set_subcom);

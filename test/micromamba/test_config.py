@@ -444,6 +444,53 @@ class TestConfigModifiers:
             == "Key is not present in file".splitlines()
         )
 
+    def test_file_remove_vector_value(self):
+        config(
+            "append", "channels", "totoro", "--file", TestConfigModifiers.home_rc_path
+        )
+        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+        config(
+            "remove", "channels", "totoro", "--file", TestConfigModifiers.home_rc_path
+        )
+        assert config(
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
+        ).splitlines() == ["channels:", "  - haku"]
+
+    # TODO: This behavior should be fixed "channels: []"
+    def test_file_remove_vector_all_values(self):
+        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+        config("remove", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+        assert config(
+            "get", "channels", "--file", TestConfigModifiers.home_rc_path
+        ).splitlines() == ["Key is not present in file"]
+
+    def test_file_remove_vector_nonexistent_value(self):
+        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+        assert (
+            config(
+                "remove",
+                "channels",
+                "chihiro",
+                "--file",
+                TestConfigModifiers.home_rc_path,
+            ).splitlines()
+            == "Key is not present in file".splitlines()
+        )
+
+    def test_file_remove_vector_multiple_values(self):
+        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+        assert (
+            config(
+                "remove",
+                "channels",
+                "haku",
+                "chihiro",
+                "--file",
+                TestConfigModifiers.home_rc_path,
+            ).splitlines()
+            == "Only one value can be removed at a time".splitlines()
+        )
+
     def test_file_append_single_input(self):
         config(
             "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path

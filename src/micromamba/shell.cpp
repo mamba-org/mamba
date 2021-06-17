@@ -43,7 +43,17 @@ init_shell_parser(CLI::App* subcom)
                                      .description("The action to complete"));
     subcom->add_set("action",
                     action.set_cli_config(""),
-                    { "init", "activate", "deactivate", "hook", "reactivate", "deactivate" },
+                    { "init",
+                      "activate",
+                      "deactivate",
+                      "hook",
+                      "reactivate",
+                      "deactivate"
+#ifdef _WIN32
+                      ,
+                      "enable-long-paths-support"
+#endif
+                    },
                     action.description());
 
     auto& prefix = config.insert(

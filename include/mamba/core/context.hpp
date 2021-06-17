@@ -132,6 +132,9 @@ namespace mamba
         bool always_copy = false;
         bool always_softlink = false;
 
+        // add start menu shortcuts on Windows (not implemented on Linux / macOS)
+        bool shortcuts = true;
+
         VerificationLevel safety_checks = VerificationLevel::kWarn;
         bool extra_safety_checks = false;
         bool verify_artifacts = false;

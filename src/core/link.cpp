@@ -13,6 +13,7 @@
 #include <reproc++/run.hpp>
 
 #include "mamba/core/environment.hpp"
+#include "mamba/core/menuinst.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
@@ -28,6 +29,8 @@
 
 namespace mamba
 {
+    static const std::regex MENU_PATH_REGEX("^menu[/\\\\].*\\.json$", std::regex_constants::icase);
+
     void python_entry_point_template(std::ostream& out, const python_entry_point_parsed& p)
     {
         auto import_name = split(p.func, ".")[0];
@@ -701,6 +704,12 @@ namespace mamba
 
         for (auto& path : json_record["paths_data"]["paths"])
         {
+            std::string fpath = path["_path"];
+            if (std::regex_match(fpath, MENU_PATH_REGEX))
+            {
+                remove_menu_from_json(m_context->target_prefix / fpath, m_context);
+            }
+
             unlink_path(path);
         }
 
@@ -1094,7 +1103,6 @@ namespace mamba
 
         std::vector<std::string> files_record;
 
-        // for (auto& path : paths_json["paths"])
         nlohmann::json paths_json = nlohmann::json::object();
         paths_json["paths"] = nlohmann::json::array();
         paths_json["paths_version"] = 1;
@@ -1207,6 +1215,19 @@ namespace mamba
                         { { "_path", files }, { "path_type", "unix_python_entry_point" } });
                     out_json["files"].push_back(files);
 #endif
+                }
+            }
+        }
+
+        // Create all start menu shortcuts if prefix name doesn't start with underscore
+        if (on_win && Context::instance().shortcuts
+            && m_context->target_prefix.filename().string()[0] != '_')
+        {
+            for (auto& path : paths_data)
+            {
+                if (std::regex_match(path.path, MENU_PATH_REGEX))
+                {
+                    create_menu_from_json(m_context->target_prefix / path.path, m_context);
                 }
             }
         }

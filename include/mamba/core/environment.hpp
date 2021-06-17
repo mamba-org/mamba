@@ -222,15 +222,6 @@ namespace mamba
             return p;
         }
 
-        inline bool is_admin()
-        {
-#ifdef _WIN32
-            return IsUserAnAdmin();
-#else
-            return geteuid() == 0 || getegid() == 0;
-#endif
-        }
-
         // inline fs::path expand_vars(const fs::path& path)
         // {
         //     #ifndef _WIN32

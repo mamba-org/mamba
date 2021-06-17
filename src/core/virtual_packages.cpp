@@ -3,6 +3,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util_os.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -18,75 +19,6 @@ namespace mamba
 {
     namespace detail
     {
-        std::string macos_version()
-        {
-            if (!env::get("CONDA_OVERRIDE_OSX").empty())
-            {
-                return env::get("CONDA_OVERRIDE_OSX");
-            }
-
-            if (!on_mac)
-            {
-                return "";
-            }
-
-            std::string out, err;
-            // Note: we could also inspect /System/Library/CoreServices/SystemVersion.plist which is
-            // an XML file
-            //       that contains the same information. However, then we'd either need an xml
-            //       parser or some other crude method to read the data
-            std::vector<std::string> args = { "sw_vers", "-productVersion" };
-            auto [status, ec] = reproc::run(
-                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
-
-            if (ec)
-            {
-                LOG_DEBUG
-                    << "Could not find macOS version by calling 'sw_vers -productVersion'\nPlease file a bug report.\nError: "
-                    << ec.message();
-                return "";
-            }
-            return std::string(strip(out));
-        }
-
-        std::string linux_version()
-        {
-            if (!env::get("CONDA_OVERRIDE_LINUX").empty())
-            {
-                return env::get("CONDA_OVERRIDE_LINUX");
-            }
-            if (!on_linux)
-            {
-                return "";
-            }
-
-            std::string out, err;
-            std::vector<std::string> args = { "uname", "-r" };
-            auto [status, ec] = reproc::run(
-                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
-
-            if (ec)
-            {
-                LOG_INFO << "Could not find linux version by calling 'uname -r' (skipped)";
-                return "";
-            }
-
-            std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)-.*");
-            std::smatch m;
-
-            if (std::regex_search(out, m, re))
-            {
-                if (m.size() == 2)
-                {
-                    std::ssub_match linux_version = m[1];
-                    LOG_DEBUG << "linux version found: " << linux_version;
-                    return linux_version.str();
-                }
-            }
-
-            return "";
-        }
-
         std::string glibc_version()
         {
             if (!env::get("CONDA_OVERRIDE_GLIBC").empty())
@@ -232,7 +164,7 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix"));
 
-                std::string linux_ver = detail::linux_version();
+                std::string linux_ver = linux_version();
                 if (!linux_ver.empty())
                 {
                     res.push_back(make_virtual_package("__linux", linux_ver));
@@ -256,7 +188,7 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix"));
 
-                std::string osx_ver = detail::macos_version();
+                std::string osx_ver = macos_version();
                 if (!osx_ver.empty())
                 {
                     res.push_back(make_virtual_package("__osx", osx_ver));

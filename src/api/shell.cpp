@@ -12,6 +12,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/shell_init.hpp"
+#include "mamba/core/util_os.hpp"
 
 
 namespace mamba
@@ -131,6 +132,15 @@ namespace mamba
         {
             std::cout << activator->deactivate();
         }
+#ifdef _WIN32
+        else if (action == "enable-long-paths-support")
+        {
+            if (!enable_long_paths_support(true))
+            {
+                exit(1);
+            }
+        }
+#endif
         else
         {
             throw std::runtime_error("Need an action (activate, deactivate or hook)");

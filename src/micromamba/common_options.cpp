@@ -301,6 +301,9 @@ init_install_options(CLI::App* subcom)
     auto& no_pin = config.at("no_pin").get_wrapped<bool>();
     subcom->add_flag("--no-pin,!--pin", no_pin.set_cli_config(0), no_pin.description());
 
+    auto& no_py_pin = config.at("no_py_pin").get_wrapped<bool>();
+    subcom->add_flag("--no-py-pin,!--py-pin", no_py_pin.set_cli_config(0), no_py_pin.description());
+
     auto& allow_softlinks = config.at("allow_softlinks").get_wrapped<bool>();
     subcom->add_flag("--allow-softlinks,!--no-allow-softlinks",
                      allow_softlinks.set_cli_config(0),

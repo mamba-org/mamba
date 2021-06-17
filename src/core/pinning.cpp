@@ -37,7 +37,7 @@ namespace mamba
 
         std::vector<std::string> elems = split(py_version, ".");
         std::string py_pin = concat("python ", elems[0], ".", elems[1], ".*");
-        LOG_INFO << "Pinning python to " << py_pin;
+        LOG_DEBUG << "Pinning Python to '" << py_pin << "'";
         return py_pin;
     }
 

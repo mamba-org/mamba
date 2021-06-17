@@ -634,6 +634,16 @@ namespace mamba
                    .set_env_var_name()
                    .description("Ignore pinned packages"));
 
+        insert(Configurable("no_py_pin", false)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_name()
+                   .description("Do not automatically pin Python")
+                   .long_description(unindent(R"(
+                        Do not automatically pin Python when not present in
+                        the packages specifications, which is the default
+                        behavior.)")));
+
         insert(Configurable("pinned_packages", &ctx.pinned_packages)
                    .group("Solver")
                    .set_rc_configurable()

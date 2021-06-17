@@ -1,3 +1,28 @@
+0.14.0 (June 16, 2021)
+=====================
+
+New features
+- [micromamba] add `config set`, `get`, `append` and `prepend` (@marimeireles) #838
+- automatically include `pip` in conda dependencies when having pip packages to install (@madhur-tandon) #973
+- add experimental support for artifacts verification (@adriendelsalle) #954,#955,#956,#963,#965,#970,#972,#978
+
+Bug fixes
+- fix double-print int transaction (@JohanMabille) #952
+- fix strip function (@wolfv) #974
+- [micromamba] expand home directory in `--rc-file` (@adriendelsalle) #979
+- [micromamba] add yes and no as additional ways of answering a prompt (@ibebrett) #989
+- fix long paths support on Windows (@adriendelsalle) #994
+
+General improvement
+- remove duplicate snippet (@madhur-tandon) #957
+- add `trace` log level (@adriendelsalle) #988
+
+Docs
+- concepts, user guide, configuration, update installation and build locally (@adriendelsalle) #953
+- advance usage section, linking (@adriendelsalle) #998
+- repo, channel, subdir, repodata, tarball (@adriendelsalle) #1004
+- artifacts verification (@adriendelsalle) #1000
+
 0.13.1 (May 17, 2021)
 =====================
 

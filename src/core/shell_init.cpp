@@ -34,7 +34,7 @@ namespace mamba
 #include "../data/micromamba.bat"
             ;
         constexpr const char activate_bat[] =
-#include "../data/micromamba.bat"
+#include "../data/activate.bat"
             ;
         constexpr const char _mamba_activate_bat[] =
 #include "../data/_mamba_activate.bat"
@@ -372,14 +372,21 @@ namespace mamba
         std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
         _mamba_activate_bat_f << _mamba_activate_bat;
 
+
+        std::string activate_bat_contents(activate_bat);
+        replace_all(activate_bat_contents,
+                    std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
+                    std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
+        replace_all(activate_bat_contents,
+                    std::string("__MAMBA_INSERT_MAMBA_EXE__"),
+                    std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
+
+
         std::ofstream condabin_activate_bat_f(root_prefix / "condabin" / "activate.bat");
-        condabin_activate_bat_f << activate_bat;
+        condabin_activate_bat_f << activate_bat_contents;
 
         std::ofstream scripts_activate_bat_f(root_prefix / "Scripts" / "activate.bat");
-        scripts_activate_bat_f << activate_bat;
-
-        // std::ofstream scripts_activate_bat_f(root_prefix / "Scripts" / "activate.bat");
-        // activate_bat_f << activate_bat;
+        scripts_activate_bat_f << activate_bat_contents;
 
         std::string hook_content = mamba_hook_bat;
         replace_all(hook_content,

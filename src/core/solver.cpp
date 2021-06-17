@@ -246,6 +246,7 @@ namespace mamba
             LOG_ERROR << "No package can be installed for pin: " << pin;
             exit(1);
         }
+        m_pinned_specs.push_back(ms);
 
         Queue selected_pkgs;
         queue_init(&selected_pkgs);
@@ -313,6 +314,11 @@ namespace mamba
     const std::vector<MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
+    }
+
+    const std::vector<MatchSpec>& MSolver::pinned_specs() const
+    {
+        return m_pinned_specs;
     }
 
     bool MSolver::solve()

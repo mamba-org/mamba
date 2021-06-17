@@ -285,6 +285,7 @@ namespace mamba
         auto& config = Configuration::instance();
 
         auto& no_pin = config.at("no_pin").value<bool>();
+        auto& no_py_pin = config.at("no_py_pin").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
         fs::path pkgs_dirs;
@@ -460,10 +461,20 @@ namespace mamba
             solver.add_pins(ctx.pinned_packages);
         }
 
-        auto py_pin = python_pin(prefix_data, specs);
-        if (!py_pin.empty())
+        if (!no_py_pin)
         {
-            solver.add_pin(py_pin);
+            auto py_pin = python_pin(prefix_data, specs);
+            if (!py_pin.empty())
+            {
+                solver.add_pin(py_pin);
+            }
+        }
+        if (!solver.pinned_specs().empty())
+        {
+            std::vector<std::string> pinned_str;
+            for (auto& ms : solver.pinned_specs())
+                pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
+            Console::print("\nPinned packages:\n" + join("", pinned_str));
         }
 
         bool success = solver.solve();

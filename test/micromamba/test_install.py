@@ -446,3 +446,30 @@ class TestInstall:
         for l in res["actions"]["LINK"]:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
+
+    @pytest.mark.skipif(
+        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+    )
+    def test_python_pinning(self):
+        install("python=3.9", no_dry_run=True)
+        res = install("setuptools=28.4.0", "--no-py-pin", "--json")
+
+        print(res["actions"].keys())
+        print(res["actions"]["UNLINK"])
+        keys = {"success", "prefix", "actions", "dry_run"}
+        assert keys.issubset(set(res.keys()))
+
+        action_keys = {"LINK", "UNLINK", "PREFIX"}
+        assert action_keys.issubset(set(res["actions"].keys()))
+
+        expected_packages = {"python", "python_abi"}
+        link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        assert expected_packages.issubset(link_packages)
+        unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
+        assert expected_packages.issubset(unlink_packages)
+
+        py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
+        assert not py_pkg["version"].startswith("3.9")
+
+        py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
+        assert py_pkg["version"].startswith("3.9")

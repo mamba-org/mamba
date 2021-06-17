@@ -535,11 +535,12 @@ def install(args, parser, command="install"):
                 if a_pkg in installed_names:
                     solver.add_jobs([a_pkg], api.SOLVER_UPDATE)
 
+        pinned_specs_info = ""
         if python_constraint:
             solver.add_pin(python_constraint)
+            pinned_specs_info += f"  - {python_constraint}"
 
         pinned_specs = get_pinned_specs(context.target_prefix)
-        pinned_specs_info = ""
         if pinned_specs:
             conda_prefix_data = PrefixData(context.target_prefix)
         for s in pinned_specs:
@@ -567,7 +568,7 @@ def install(args, parser, command="install"):
                 )
 
         if pinned_specs_info:
-            print(f"\n  Pinned packages:\n\n{pinned_specs_info}\n")
+            print(f"\nPinned packages:\n{pinned_specs_info}\n")
 
         success = solver.solve()
         if not success:

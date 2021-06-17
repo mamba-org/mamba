@@ -147,6 +147,47 @@ namespace mamba
         m_pool.get().create_whatprovides();
     }
 
+    auto print_solvable = [](auto& pkg)
+    {
+        std::string title = pkg->name + " " + pkg->version + " " + pkg->build_string;
+        std::cout << title << std::endl;
+        std::cout << std::string(title.size(), '-') << std::endl;
+        printf("%-12s: %1s\n", "file name", pkg->fn.c_str());
+        printf("%-12s: %1s\n", "name", pkg->name.c_str());
+        printf("%-12s: %1s\n", "version", pkg->version.c_str());
+        printf("%-12s: %1s\n", "build", pkg->build_string.c_str());
+        printf("%-12s: %1lu\n", "build number", pkg->build_number);
+        printf("%-12s: %1lu KB\n", "size", pkg->size / 1000);
+        printf("%-12s: %1s\n", "license", pkg->license.c_str());
+        printf("%-12s: %1s\n", "subdir", pkg->subdir.c_str());
+        printf("%-12s: %1s\n", "url", pkg->url.c_str());
+        printf("%-12s: %1s\n", "md5", pkg->md5.c_str());
+        time_t timestamp = pkg->timestamp / 1000;
+        char timestamp_buffer[100];
+        strftime(timestamp_buffer, sizeof(timestamp_buffer), "%Y-%m-%d %H:%M:%S", std::gmtime(&timestamp));
+        std::string timestamp_string(timestamp_buffer);
+        printf("%-12s: %1s UTC\n", "timestamp", timestamp_string.c_str());
+        if(!pkg->constrains.empty())
+        {
+            std::vector<std::string> constrains = pkg->constrains;
+            printf("%-12s: \n", "constraints");
+            for(auto& each_constraint : constrains)
+            {
+                printf("  - %1s\n", each_constraint.c_str());
+            }
+        }
+        if(!pkg->depends.empty())
+        {
+            std::vector<std::string> depends = pkg->depends;
+            printf("%-12s: \n", "dependencies");
+            for(auto& each_dependency : depends)
+            {
+                printf("  - %1s\n", each_dependency.c_str());
+            }
+        }
+        std::cout << std::endl;
+    };
+
     query_result Query::find(const std::string& query) const
     {
         Queue job, solvables;
@@ -603,6 +644,18 @@ namespace mamba
             out << "  └─ " << get_package_repr(*m_pkg_view_list.back()) << '\n';
         }
 
+        return out;
+    }
+
+    std::ostream& query_result::pretty(std::ostream& out) const
+    {
+        if (!m_pkg_view_list.empty())
+        {
+            for (const auto& pkg : m_pkg_view_list)
+            {
+                print_solvable(pkg);
+            }
+        }
         return out;
     }
 

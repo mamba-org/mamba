@@ -29,7 +29,8 @@ namespace query
     {
         JSON,
         TREE,
-        TABLE
+        TABLE,
+        PRETTY
     };
 }
 
@@ -100,7 +101,8 @@ PYBIND11_MODULE(mamba_api, m)
     py::enum_<query::RESULT_FORMAT>(m, "QueryFormat")
         .value("JSON", query::RESULT_FORMAT::JSON)
         .value("TREE", query::RESULT_FORMAT::TREE)
-        .value("TABLE", query::RESULT_FORMAT::TABLE);
+        .value("TABLE", query::RESULT_FORMAT::TABLE)
+        .value("PRETTY", query::RESULT_FORMAT::PRETTY);
 
     py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
@@ -117,6 +119,9 @@ PYBIND11_MODULE(mamba_api, m)
                      case query::TREE:
                      case query::TABLE:
                          q.find(query).groupby("name").table(res_stream);
+                         break;
+                     case query::PRETTY:
+                         q.find(query).groupby("name").pretty(res_stream);
                  }
                  return res_stream.str();
              })

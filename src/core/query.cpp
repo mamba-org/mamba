@@ -164,23 +164,26 @@ namespace mamba
         printf("%-12s: %1s\n", "md5", pkg->md5.c_str());
         time_t timestamp = pkg->timestamp / 1000;
         char timestamp_buffer[100];
-        strftime(timestamp_buffer, sizeof(timestamp_buffer), "%Y-%m-%d %H:%M:%S", std::gmtime(&timestamp));
+        strftime(timestamp_buffer,
+                 sizeof(timestamp_buffer),
+                 "%Y-%m-%d %H:%M:%S",
+                 std::gmtime(&timestamp));
         std::string timestamp_string(timestamp_buffer);
         printf("%-12s: %1s UTC\n", "timestamp", timestamp_string.c_str());
-        if(!pkg->constrains.empty())
+        if (!pkg->constrains.empty())
         {
             std::vector<std::string> constrains = pkg->constrains;
             printf("%-12s: \n", "constraints");
-            for(auto& each_constraint : constrains)
+            for (auto& each_constraint : constrains)
             {
                 printf("  - %1s\n", each_constraint.c_str());
             }
         }
-        if(!pkg->depends.empty())
+        if (!pkg->depends.empty())
         {
             std::vector<std::string> depends = pkg->depends;
             printf("%-12s: \n", "dependencies");
-            for(auto& each_dependency : depends)
+            for (auto& each_dependency : depends)
             {
                 printf("  - %1s\n", each_dependency.c_str());
             }

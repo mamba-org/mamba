@@ -536,7 +536,7 @@ set_config_remove_command(CLI::App* subcom)
             {
                 for (std::size_t i = 0; i < v.second.size(); ++i)
                 {
-                    if (v.second.size() == 1)
+                    if (v.second.size() == 1 && v.second[i].as<std::string>() == remove_vec_value)
                     {
                         rc_YAML.remove(remove_vec_key);
                         key_removed = true;

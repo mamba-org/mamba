@@ -462,7 +462,7 @@ class TestConfigModifiers:
         config("remove", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
         assert config(
             "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels: []"]
+        ).splitlines() == ["Key is not present in file"]
 
     def test_file_remove_vector_nonexistent_value(self):
         config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)

@@ -45,14 +45,17 @@ class TestMenuinst:
         shortcut = shell.CreateShortCut(lnk)
 
         assert shortcut.TargetPath.lower() == os.getenv("COMSPEC").lower()
-        assert (
-            shortcut.IconLocation.lower()
-            == os.path.join(prefix, "Menu", "console_shortcut.ico").lower() + ",0"
+        icon_location = shortcut.IconLocation
+        icon_location_path, icon_location_index = icon_location.split(",")
+        assert Path(icon_location_path) == (
+            Path(prefix) / "Menu" / "console_shortcut.ico"
         )
+        assert (icon_location_index, "0")
+
         assert shortcut.Description == "Miniforge Prompt (" + env_name + ")"
-        assert shortcut.Arguments == "/K " + os.path.join(
-            self.root_prefix, "Scripts", "activate.bat"
-        ) + " " + os.path.join(prefix)
+        assert shortcut.Arguments == "/K " + str(
+            Path(self.root_prefix, "Scripts", "activate.bat")
+        ) + " " + str(Path(prefix))
 
         remove("miniforge_console_shortcut", "-n", env_name, no_dry_run=True)
         assert not os.path.exists(lnk)
@@ -75,17 +78,21 @@ class TestMenuinst:
         shortcut = shell.CreateShortCut(lnk)
 
         assert shortcut.TargetPath.lower() == os.getenv("COMSPEC").lower()
-        assert (
-            shortcut.IconLocation.lower()
-            == os.path.join(prefix, "Menu", "console_shortcut.ico").lower() + ",0"
+
+        icon_location = shortcut.IconLocation
+        icon_location_path, icon_location_index = icon_location.split(",")
+        assert Path(icon_location_path) == (
+            Path(prefix) / "Menu" / "console_shortcut.ico"
         )
+        assert (icon_location_index, "0")
+
         assert shortcut.Description == "Miniforge Prompt (" + env_name + ")"
         assert (
             shortcut.Arguments
             == '/K "'
-            + os.path.join(root_prefix, "Scripts", "activate.bat")
+            + str(Path(root_prefix) / "Scripts" / "activate.bat")
             + '" "'
-            + os.path.join(prefix)
+            + str(Path(prefix))
             + '"'
         )
 

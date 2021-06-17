@@ -2,9 +2,15 @@
 =====================
 
 New features
-- [micromamba] add `config set`, `get`, `append` and `prepend` (@marimeireles) #838
+- [micromamba] add `config set`, `get`, `append` and `prepend`, `remove` (@marimeireles) #838
 - automatically include `pip` in conda dependencies when having pip packages to install (@madhur-tandon) #973
 - add experimental support for artifacts verification (@adriendelsalle) #954,#955,#956,#963,#965,#970,#972,#978
+- [micromamba] shell init will try attempt to enable long paths support on Windows (@wolfv) #975
+- [micromamba] if `menuinst` json files are present, micromamba will create shortcuts in the start menu on Windows (@wolfv) #975
+- Improve python auto-pinning and add --no-py-pin flag to micromamba (@adriendelsalle) #1010
+- [micromamba] Fix constructor invalid repodata_record (@adriendelsalle) #1007
+- Refactor log levels for linking steps (@adriendelsalle) #1009
+- [micromamba] Use a proper requirements.txt file for pip installations #1008
 
 Bug fixes
 - fix double-print int transaction (@JohanMabille) #952

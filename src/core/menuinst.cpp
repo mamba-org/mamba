@@ -1,23 +1,13 @@
 #include <string>
-#include <iostream>
-#include <codecvt>
 #include <regex>
-#include <reproc++/run.hpp>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/shell_init.hpp"
-#include "mamba/core/environment.hpp"
-#include "mamba/core/virtual_packages.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
-#include <commctrl.h>
-#include <imagehlp.h>
-#include <objbase.h>
-#include <objidl.h>
 #include <shlobj.h>
 #endif
 

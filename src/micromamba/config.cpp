@@ -18,49 +18,33 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 bool
-is_key_present(YAML::Node rc_YAML, std::string key)
+is_valid_rc_key(const std::string& key)
 {
-    for (std::size_t j = 0; j < rc_YAML.size(); j++)
+    auto& config = Configuration::instance();
+    try
     {
-        if (rc_YAML[j].as<std::string>() == key)
-        {
-            return true;
-        }
+        return config.config().at(key).rc_configurable();
     }
-    return true;
+    catch (const std::out_of_range& e)
+    {
+        return false;
+    }
 }
 
 bool
-is_key_valid(std::string key)
+is_valid_rc_sequence(const std::string& key, const std::string& value)
 {
     auto& config = Configuration::instance();
-
-    for (auto& group_it : config.get_grouped_config())
+    try
     {
-        auto& configs = group_it.second;
-        for (auto c : configs)
-        {
-            if (key == c->name())
-            {
-                return true;
-            }
-        }
+        auto& c = config.config().at(key);
+        return c.is_valid_serialization(value) && c.rc_configurable();
     }
-    return false;
-}
-
-YAML::Node
-insert_yaml_sequence(YAML::Node seq, std::string val)
-{
-    YAML::Node aux;
-    aux.push_back(val);
-    for (auto v : seq)
+    catch (const std::out_of_range& e)
     {
-        aux.push_back(v);
+        return false;
     }
-    return aux;
 }
-
 
 void
 system_path_setup(fs::path& rc_source)
@@ -87,7 +71,7 @@ system_path_exists()
     {
         return true;
     }
-    std::cout << "File doesn't exist or it's not valid." << std::endl;
+    std::cout << "File doesn't exist or is not valid." << std::endl;
     return false;
 }
 
@@ -194,194 +178,150 @@ set_config_path_command(CLI::App* subcom)
                                           .group("cli")
                                           .description("Set configuration on system's rc file"),
                                       true);
-    subcom->add_flag("--system", system_path.set_cli_config(0), system_path.description());
+    auto* system_flag
+        = subcom->add_flag("--system", system_path.set_cli_config(0), system_path.description());
 
     auto& env_path = config.insert(Configurable("config_set_env_path", false)
                                        .group("cli")
                                        .description("Set configuration on env's rc file"),
                                    true);
-    subcom->add_flag("--env", env_path.set_cli_config(0), env_path.description());
+    auto* env_flag = subcom->add_flag("--env", env_path.set_cli_config(0), env_path.description())
+                         ->excludes(system_flag);
 
     auto& file_path = config.insert(Configurable("config_set_file_path", fs::path())
                                         .group("cli")
                                         .description("Set configuration on system's rc file"),
                                     true);
-    subcom->add_option("--file", file_path.set_cli_config(fs::path()), file_path.description());
+    subcom->add_option("--file", file_path.set_cli_config(fs::path()), file_path.description())
+        ->excludes(system_flag)
+        ->excludes(env_flag);
+}
+
+
+enum class SequenceAddType
+{
+    kAppend = 0,
+    kPrepend = 1
+};
+
+void
+set_config_sequence_command(CLI::App* subcom)
+{
+    set_config_path_command(subcom);
+
+    auto& config = Configuration::instance();
+    auto& specs = config.insert(Configurable("config_set_sequence_spec",
+                                             std::vector<std::pair<std::string, std::string>>({}))
+                                    .group("Output, Prompt and Flow Control")
+                                    .description("Add value to the beginning of a configuration"),
+                                true);
+    subcom->add_option("specs", specs.set_cli_config({}), specs.description())->required();
+}
+
+void
+set_sequence_to_yaml(YAML::Node& node,
+                     const std::string& key,
+                     const std::string& value,
+                     const SequenceAddType& opt)
+{
+    if (!is_valid_rc_sequence(key, value))
+    {
+        if (!is_valid_rc_key(key))
+            LOG_ERROR << "Invalid key '" << key << "' or not rc configurable";
+        else
+            LOG_ERROR << "Invalid sequence key";
+        throw std::runtime_error("Aborting.");
+    }
+
+    auto values = detail::Source<std::vector<std::string>>::deserialize(value);
+
+    // remove any already defined value to respect precedence order
+    if (node[key])
+    {
+        auto existing_values = node[key].as<std::vector<std::string>>();
+        for (auto& v : values)
+        {
+            auto pos = existing_values.end();
+            while (existing_values.begin() <= --pos)
+            {
+                if (*pos == v)
+                    existing_values.erase(pos);
+            }
+        }
+
+        if (opt == SequenceAddType::kAppend)
+            existing_values.insert(existing_values.end(), values.begin(), values.end());
+        else
+            existing_values.insert(existing_values.begin(), values.begin(), values.end());
+
+        node[key] = existing_values;
+    }
+    else
+    {
+        node[key] = values;
+    }
+}
+
+void
+set_sequence_to_rc(const SequenceAddType& opt)
+{
+    auto& config = Configuration::instance();
+    auto& ctx = Context::instance();
+
+    config.at("use_target_prefix_fallback").set_value(true);
+    config.at("show_banner").set_value(false);
+    config.at("target_prefix_checks")
+        .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                   | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+    config.load();
+
+    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
+    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
+    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
+    auto specs = config.at("config_set_sequence_spec")
+                     .value<std::vector<std::pair<std::string, std::string>>>();
+
+    fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+
+    if (file_path.configured())
+    {
+        path::touch(file_path.value().string(), true);
+        rc_source = env::expand_user(file_path.value()).string();
+    }
+    else if (env_path.configured())
+    {
+        std::string path = fs::path(ctx.target_prefix / ".condarc");
+        env_path_setup(path, rc_source);
+    }
+    else if (system_path.configured())
+    {
+        system_path_setup(rc_source);
+    }
+
+    YAML::Node node = YAML::LoadFile(rc_source.string());
+    for (auto& pair : specs)
+        set_sequence_to_yaml(node, pair.first, pair.second, opt);
+
+    std::ofstream rc_file;
+    rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
+    rc_file << node << std::endl;
+
+    config.operation_teardown();
 }
 
 void
 set_config_prepend_command(CLI::App* subcom)
 {
-    set_config_path_command(subcom);
-
-    auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
-
-    auto& prepend_map = config.insert(
-        Configurable("prepend_map", std::vector<std::string>({ "" }))
-            .group("Output, Prompt and Flow Control")
-            .description("Add one configuration value to the beginning of a list key"));
-    subcom->add_option(
-        "prepend_map", prepend_map.set_cli_config({ "" }), prepend_map.description());
-
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
-
-    subcom->callback([&]() {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-        std::ofstream rc_file;
-
-        std::string prepend_key = prepend_map.value().front();
-        std::string prepend_value = prepend_map.value().back();
-
-        if (file_path.configured())
-        {
-            path::touch(file_path.value().string(), true);
-            rc_source = env::expand_user(file_path.value()).string();
-        }
-        else if (env_path.configured())
-        {
-            std::string path = fs::path(ctx.target_prefix / ".condarc");
-            env_path_setup(path, rc_source);
-        }
-        else if (system_path.configured())
-        {
-            system_path_setup(rc_source);
-        }
-
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
-
-        // look for append key in YAML
-        for (auto v : rc_YAML)
-        {
-            if (v.first.as<std::string>() == prepend_key)
-            {
-                // if key was found, look for the same value
-                for (std::size_t j = 0; j < rc_YAML[prepend_key].size(); j++)
-                {
-                    if (rc_YAML[prepend_key][j].as<std::string>() == prepend_value)
-                    {
-                        // if value exists, remove it so it can be prepended to end of the list
-                        // later on
-                        rc_YAML[prepend_key].remove(j);
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (is_key_valid(prepend_key) && prepend_map.value().size() < 3)
-        {
-            // prepend value to the end of the chosen config key list
-            rc_YAML[prepend_key] = insert_yaml_sequence(rc_YAML[prepend_key], prepend_value);
-        }
-        else
-        {
-            std::cout
-                << "Prepend key is invalid or it's not present in file or more than one key was received"
-                << std::endl;
-        }
-        // if the rc file is being modified, it's necessary to rewrite it
-        rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
-        rc_file << rc_YAML << std::endl;
-
-        config.operation_teardown();
-    });
+    set_config_sequence_command(subcom);
+    subcom->callback([&]() { set_sequence_to_rc(SequenceAddType::kPrepend); });
 }
 
 void
 set_config_append_command(CLI::App* subcom)
 {
-    set_config_path_command(subcom);
-
-    auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
-
-    auto& append_map
-        = config.insert(Configurable("append_map", std::vector<std::string>({ "" }))
-                            .group("Output, Prompt and Flow Control")
-                            .description("Add one configuration value to the end of a list"));
-    subcom->add_option("append_map", append_map.set_cli_config({ "" }), append_map.description());
-
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
-
-    subcom->callback([&]() {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-        std::ofstream rc_file;
-
-        std::string append_key = append_map.value().front();
-        std::string append_value = append_map.value().back();
-
-        if (file_path.configured())
-        {
-            path::touch(file_path.value().string(), true);
-            rc_source = env::expand_user(file_path.value()).string();
-        }
-        else if (env_path.configured())
-        {
-            std::string path = fs::path(ctx.target_prefix / ".condarc");
-            env_path_setup(path, rc_source);
-        }
-        else if (system_path.configured())
-        {
-            system_path_setup(rc_source);
-        }
-
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
-
-        // look for append key in YAML
-        for (auto v : rc_YAML)
-        {
-            if (v.first.as<std::string>() == append_key)
-            {
-                // if key was found, look for the same value
-                for (std::size_t j = 0; j < rc_YAML[append_key].size(); j++)
-                {
-                    if (rc_YAML[append_key][j].as<std::string>() == append_value)
-                    {
-                        // if value exists, remove it so it can be appended to end of the list
-                        // later on
-                        rc_YAML[append_key].remove(j);
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (is_key_valid(append_key) && append_map.value().size() < 3)
-        {
-            rc_YAML[append_key].push_back(append_value);
-        }
-        else
-        {
-            std::cout
-                << "Append key is invalid or it's not present in file or more than one key was received"
-                << std::endl;
-        }
-
-        // if the rc file is being modified, it's necessary to rewrite it
-        rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
-        rc_file << rc_YAML << std::endl;
-
-        config.operation_teardown();
-    });
+    set_config_sequence_command(subcom);
+    subcom->get_option("specs")->description("Add value to the end of a configuration");
+    subcom->callback([&]() { set_sequence_to_rc(SequenceAddType::kAppend); });
 }
 
 void
@@ -611,7 +551,7 @@ set_config_set_command(CLI::App* subcom)
 
         YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
-        if (is_key_valid(set_value.value().at(0)) && set_value.value().size() < 3)
+        if (is_valid_rc_key(set_value.value().at(0)) && set_value.value().size() < 3)
         {
             rc_YAML[set_value.value().at(0)] = set_value.value().at(1);
         }

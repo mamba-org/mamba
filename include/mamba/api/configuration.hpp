@@ -592,6 +592,8 @@ namespace mamba
         self_type& compute(const int options = 0,
                            const ConfigurationLevel& level = ConfigurationLevel::kFile);
 
+        bool is_valid_serialization(const std::string& value) const;
+
         void reset_compute_counter();
 
         void lock();
@@ -814,6 +816,20 @@ namespace mamba
     }
 
     template <class T>
+    bool Configurable<T>::is_valid_serialization(const std::string& value) const
+    {
+        try
+        {
+            detail::Source<T>::deserialize(value);
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    template <class T>
     void Configurable<T>::lock()
     {
         m_lock = true;
@@ -1010,6 +1026,8 @@ namespace mamba
 
             virtual bool has_single_op_lifetime() const = 0;
 
+            virtual bool is_valid_serialization(const std::string& value) const = 0;
+
             virtual bool locked() = 0;
 
             virtual void reset_compute_counter() = 0;
@@ -1157,6 +1175,11 @@ namespace mamba
             bool locked()
             {
                 return p_wrapped->locked();
+            }
+
+            bool is_valid_serialization(const std::string& value) const
+            {
+                return p_wrapped->is_valid_serialization(value);
             }
 
             void reset_compute_counter()
@@ -1441,6 +1464,11 @@ namespace mamba
         bool locked()
         {
             return p_impl->locked();
+        }
+
+        bool is_valid_serialization(const std::string& value) const
+        {
+            return p_impl->is_valid_serialization(value);
         }
 
         self_type& set_rc_yaml_value(const YAML::Node& value, const std::string& source)

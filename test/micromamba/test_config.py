@@ -500,25 +500,55 @@ class TestConfigModifiers:
         ).splitlines() == ["channels:", "  - flowers"]
 
     def test_file_append_multiple_inputs(self):
+        with open(TestConfigModifiers.home_rc_path, "w") as f:
+            f.write("channels:\n  - foo")
+
+        config(
+            "append",
+            "channels",
+            "condesc,mambesc",
+            "--file",
+            TestConfigModifiers.home_rc_path,
+        )
         assert (
             config(
-                "append",
-                "channels",
-                "condesc",
-                "mambesc",
-                "--file",
-                TestConfigModifiers.home_rc_path,
+                "get", "channels", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
-            == "Append key is invalid or it's not present in file or more than one key was received".splitlines()
+            == "channels:\n  - foo\n  - condesc\n  - mambesc".splitlines()
+        )
+
+    def test_file_append_multiple_keys(self):
+        with open(TestConfigModifiers.home_rc_path, "w") as f:
+            f.write("channels:\n  - foo\ndefault_channels:\n  - bar")
+
+        config(
+            "append",
+            "channels",
+            "condesc,mambesc",
+            "default_channels",
+            "condescd,mambescd",
+            "--file",
+            TestConfigModifiers.home_rc_path,
+        )
+        assert (
+            config(
+                "get", "channels", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
+            == "channels:\n  - foo\n  - condesc\n  - mambesc".splitlines()
+        )
+        assert (
+            config(
+                "get", "default_channels", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
+            == "default_channels:\n  - bar\n  - condescd\n  - mambescd".splitlines()
         )
 
     def test_file_append_invalid_input(self):
-        assert (
-            config(
-                "append", "@#A321", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
-            == "Append key is invalid or it's not present in file or more than one key was received".splitlines()
-        )
+        with pytest.raises(subprocess.CalledProcessError):
+            config("append", "--file", TestConfigModifiers.home_rc_path)
+
+        with pytest.raises(subprocess.CalledProcessError):
+            config("append", "@#A321", "--file", TestConfigModifiers.home_rc_path)
 
     def test_file_prepend_single_input(self):
         config(
@@ -529,25 +559,55 @@ class TestConfigModifiers:
         ).splitlines() == ["channels:", "  - flowers"]
 
     def test_file_prepend_multiple_inputs(self):
+        with open(TestConfigModifiers.home_rc_path, "w") as f:
+            f.write("channels:\n  - foo")
+
+        config(
+            "prepend",
+            "channels",
+            "condesc,mambesc",
+            "--file",
+            TestConfigModifiers.home_rc_path,
+        )
         assert (
             config(
-                "prepend",
-                "channels",
-                "condesc",
-                "mambesc",
-                "--file",
-                TestConfigModifiers.home_rc_path,
+                "get", "channels", "--file", TestConfigModifiers.home_rc_path
             ).splitlines()
-            == "Prepend key is invalid or it's not present in file or more than one key was received".splitlines()
+            == "channels:\n  - condesc\n  - mambesc\n  - foo".splitlines()
+        )
+
+    def test_file_prepend_multiple_keys(self):
+        with open(TestConfigModifiers.home_rc_path, "w") as f:
+            f.write("channels:\n  - foo\ndefault_channels:\n  - bar")
+
+        config(
+            "prepend",
+            "channels",
+            "condesc,mambesc",
+            "default_channels",
+            "condescd,mambescd",
+            "--file",
+            TestConfigModifiers.home_rc_path,
+        )
+        assert (
+            config(
+                "get", "channels", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
+            == "channels:\n  - condesc\n  - mambesc\n  - foo".splitlines()
+        )
+        assert (
+            config(
+                "get", "default_channels", "--file", TestConfigModifiers.home_rc_path
+            ).splitlines()
+            == "default_channels:\n  - condescd\n  - mambescd\n  - bar".splitlines()
         )
 
     def test_file_prepend_invalid_input(self):
-        assert (
-            config(
-                "prepend", "@#A321", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
-            == "Prepend key is invalid or it's not present in file or more than one key was received".splitlines()
-        )
+        with pytest.raises(subprocess.CalledProcessError):
+            config("prepend", "--file", TestConfigModifiers.home_rc_path)
+
+        with pytest.raises(subprocess.CalledProcessError):
+            config("prepend", "@#A321", "--file", TestConfigModifiers.home_rc_path)
 
     def test_file_append_and_prepend_inputs(self):
         config(

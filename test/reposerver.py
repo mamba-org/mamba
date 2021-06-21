@@ -42,9 +42,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-key = "user:test"
-key = base64.b64encode(bytes(key, "utf-8")).decode("ascii")
-
 api_key = "xy-12345678-1234-1234-1234-123456789012"
 
 
@@ -234,7 +231,8 @@ class BasicAuthHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        global key
+        key = os.environ["TESTPWD"]
+        key = base64.b64encode(bytes(key, "utf-8")).decode("ascii")
         """ Present frontpage with user authentication. """
         auth_header = self.headers.get("Authorization", "")
         if not auth_header:

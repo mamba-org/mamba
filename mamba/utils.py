@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import os
 import tempfile
+import urllib.parse
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
@@ -53,6 +54,12 @@ def get_index(
     index = []
 
     for url in real_urls:
+        at_count = url.count("@")
+        if at_count > 1:
+            first_at = url.find("@")
+            url = (
+                url[:first_at] + urllib.parse.quote(url[first_at]) + url[first_at + 1 :]
+            )
         channel = Channel(url)
         full_url = CondaHttpAuth.add_binstar_token(
             channel.url(with_credentials=True) + "/" + repodata_fn

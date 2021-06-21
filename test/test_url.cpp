@@ -26,6 +26,15 @@ namespace mamba
             EXPECT_EQ(m.user(), "userx123");
             EXPECT_EQ(m.password(), "üúßsajd");
         }
+        // {
+        //     URLHandler m("http://user@email.com:test@localhost:8000");
+        //     EXPECT_EQ(m.scheme(), "http");
+        //     EXPECT_EQ(m.path(), "/");
+        //     EXPECT_EQ(m.host(), "localhost");
+        //     EXPECT_EQ(m.port(), "8000");
+        //     EXPECT_EQ(m.user(), "user@email.com");
+        //     EXPECT_EQ(m.password(), "test");
+        // }
         {
             URLHandler m("https://mamba🆒🔬.org/this/is/a/path/?query=123&xyz=3333");
             EXPECT_EQ(m.scheme(), "https");

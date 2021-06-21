@@ -372,7 +372,7 @@ namespace mamba
                 }
                 else
                 {
-                    res << "=" + version.substr(0, version.size() - 1);
+                    res << version.substr(0, version.size() - 1);
                 }
             }
             else if (starts_with(version, "=="))

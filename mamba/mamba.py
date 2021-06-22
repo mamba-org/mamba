@@ -567,7 +567,7 @@ def install(args, parser, command="install"):
                     "libname VERSION BUILD, for example libblas=*=*mkl\n"
                 )
 
-        if pinned_specs_info:
+        if pinned_specs_info and not (context.quiet or context.json):
             print(f"\nPinned packages:\n{pinned_specs_info}\n")
 
         success = solver.solve()

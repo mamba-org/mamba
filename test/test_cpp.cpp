@@ -198,6 +198,10 @@ namespace mamba
             EXPECT_EQ(ms.conda_build_form(), "xtensor 0.15*");
             EXPECT_EQ(ms.str(), "xtensor=0.15");
         }
+        {
+            MatchSpec ms("numpy=1.20");
+            EXPECT_EQ(ms.str(), "numpy=1.20");
+        }
     }
 
     TEST(match_spec, is_simple)

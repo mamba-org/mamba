@@ -370,9 +370,13 @@ namespace mamba
                 {
                     res << "=*";
                 }
-                else
+                else if (starts_with(version, "="))
                 {
                     res << version.substr(0, version.size() - 1);
+                }
+                else
+                {
+                    res << "=" + version.substr(0, version.size() - 1);
                 }
             }
             else if (starts_with(version, "=="))

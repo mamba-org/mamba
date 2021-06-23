@@ -100,9 +100,9 @@ class TestLinking:
 
         create_args = ["xtensor", "-p", "/tmp/testenv", "--json"]
         if allow_softlinks:
-            create_args.append("--allow-softlinks", no_dry_run=True)
+            create_args.append("--allow-softlinks")
         if always_copy:
-            create_args.append("--always-copy", no_dry_run=True)
+            create_args.append("--always-copy")
         res = create(*create_args, no_dry_run=True)
 
         xf = Path(env) / xtensor_hpp

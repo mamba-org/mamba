@@ -177,7 +177,7 @@ PYBIND11_MODULE(mamba_api, m)
              });
 
     py::class_<MSubdirData>(m, "SubdirData")
-        .def(py::init<const std::string&, const std::string&, const std::string&>())
+        .def(py::init<const std::string&, const std::string&, const std::string&, bool>())
         .def("create_repo", &MSubdirData::create_repo)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
@@ -240,6 +240,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def_property_readonly("platforms", &Channel::platforms)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("urls", &Channel::urls, py::arg("with_credentials") = true)
+        .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
         .def("__repr__",
              [](const Channel& c)
              {

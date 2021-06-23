@@ -64,22 +64,24 @@ def get_index(
                 url[:first_at] + urllib.parse.quote(url[first_at]) + url[first_at + 1 :]
             )
         channel = Channel(url)
-        full_url = CondaHttpAuth.add_binstar_token(
-            channel.url(with_credentials=True) + "/" + repodata_fn
-        )
+        for ind, (platform, url) in enumerate(
+                channel.platform_urls(with_credentials=True)
+                ):
+            full_url = CondaHttpAuth.add_binstar_token(url + "/" + repodata_fn)
 
-        full_path_cache = os.path.join(
-            api.create_cache_dir(), api.cache_fn_url(full_url)
-        )
-        if channel.name:
-            channel_name = channel.name + "/" + channel.subdir
-        else:
-            channel_name = channel.url(with_credentials=False)
-        sd = api.SubdirData(channel_name, full_url, full_path_cache)
+            full_path_cache = os.path.join(
+                api.create_cache_dir(), api.cache_fn_url(full_url)
+            )
+            name = None
+            if channel.name:
+                name = channel.name + "/" + platform
+            else:
+                name = channel.urls(with_credential=False)[ind]
+            sd = api.SubdirData(name, full_url, full_path_cache, platform == "noarch")
 
-        sd.load()
-        index.append((sd, channel))
-        dlist.add(sd)
+            sd.load()
+            index.append((sd, channel))
+            dlist.add(sd)
 
     is_downloaded = dlist.download(True)
 

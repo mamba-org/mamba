@@ -460,7 +460,7 @@ namespace mamba
         }
     }
 
-    static std::string fix_win_path(const std::string& path)
+    std::string fix_win_path(const std::string& path)
     {
 #ifdef _WIN32
         if (starts_with(path, "file:"))
@@ -585,32 +585,6 @@ namespace mamba
             }
         }
         return result;
-    }
-
-    std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
-                                                    bool append_context_channels,
-                                                    bool use_local)
-    {
-        if (append_context_channels || use_local)
-        {
-            const auto& ctx_channels = Context::instance().channels;
-            std::vector<std::string> names;
-            names.reserve(channel_names.size() + 1 + ctx_channels.size());
-            if (use_local)
-            {
-                names.push_back(LOCAL_CHANNELS_NAME);
-            }
-            std::copy(channel_names.begin(), channel_names.end(), std::back_inserter(names));
-            if (append_context_channels)
-            {
-                std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(names));
-            }
-            return get_channel_urls(names);
-        }
-        else
-        {
-            return get_channel_urls(channel_names);
-        }
     }
 
     void check_whitelist(const std::vector<std::string>& urls)

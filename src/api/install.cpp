@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <set>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 
@@ -333,7 +335,10 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
+        std::vector<std::string> channel_urls = ctx.channels;
+        // Always append context channels
+        auto& ctx_channels = Context::instance().channels;
+        std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channel_urls));
 
         std::vector<std::shared_ptr<MSubdirData>> subdirs;
         MultiDownloadTarget multi_dl;
@@ -352,8 +357,13 @@ namespace mamba
             load_tokens();
         }
 
+        // Keep track of urls used to ignore duplicates
+        std::set<std::string> visited_urls;
         for (auto& chan_url : channel_urls)
         {
+            if (visited_urls.count(chan_url) > 0)
+                continue;
+            visited_urls.insert(chan_url);
             auto& channel = make_channel(chan_url);
             for (auto& [platform, url] : channel.platform_urls(true))
             {
@@ -362,7 +372,8 @@ namespace mamba
                 auto sdir
                     = std::make_shared<MSubdirData>(concat(channel.name(), "/", platform),
                                                     repodata_full_url,
-                                                    cache_dir / cache_fn_url(repodata_full_url));
+                                                    cache_dir / cache_fn_url(repodata_full_url),
+                                                    platform == "noarch");
 
                 sdir->load();
                 multi_dl.add(sdir->target());

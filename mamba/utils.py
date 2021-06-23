@@ -15,7 +15,6 @@ from conda.common.serialize import json_dump
 from conda.common.url import join_url, remove_auth, split_anaconda_token
 from conda.core.index import (
     _supplement_index_with_system,
-    calculate_channel_urls,
     check_whitelist,
 )
 from conda.core.link import PrefixSetup, UnlinkLinkTransaction
@@ -45,15 +44,19 @@ def get_index(
     prefix=None,
     repodata_fn="repodata.json",
 ):
-
-    real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-    check_whitelist(real_urls)
+    all_urls = []
+    if use_local:
+        all_urls.append("local")
+    all_urls.extend(channel_urls)
+    if prepend:
+        all_urls.extend(context.channels)
+    check_whitelist(all_urls)
 
     dlist = api.DownloadTargetList()
 
     index = []
 
-    for url in real_urls:
+    for url in all_urls:
         at_count = url.count("@")
         if at_count > 1:
             first_at = url.find("@")

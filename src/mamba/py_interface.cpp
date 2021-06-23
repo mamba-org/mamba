@@ -258,7 +258,6 @@ PYBIND11_MODULE(mamba_api, m)
              });
 
     m.def("get_channel_urls", &get_channel_urls);
-    m.def("calculate_channel_urls", &calculate_channel_urls);
 
     m.def("transmute", &transmute);
 

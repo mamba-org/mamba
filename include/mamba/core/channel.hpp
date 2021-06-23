@@ -66,11 +66,6 @@ namespace mamba
     std::vector<std::string> get_channel_urls(const std::vector<std::string>& channel_names,
                                               bool with_credential = true);
 
-    // public
-    std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
-                                                    bool append_context_channels = true,
-                                                    bool use_local = false);
-
     // XXX unused, but should be in python API according to docs
     void check_whitelist(const std::vector<std::string>& urls);
 }  // namespace mamba

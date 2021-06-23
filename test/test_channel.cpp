@@ -145,44 +145,6 @@ namespace mamba
                                              "https://conda.anaconda.org/conda-forge/noarch" }));
     }
 
-    TEST(Channel, calculate_channel_urls)
-    {
-        std::vector<std::string> urls = { "conda-forge", "defaults" };
-        std::vector<std::string> res = calculate_channel_urls(urls, true);
-        EXPECT_EQ(res.size(), on_win ? 8u : 6u);
-        EXPECT_EQ(res[0], "https://conda.anaconda.org/conda-forge/" + platform);
-        EXPECT_EQ(res[1], "https://conda.anaconda.org/conda-forge/noarch");
-        EXPECT_EQ(res[2], "https://repo.anaconda.com/pkgs/main/" + platform);
-        EXPECT_EQ(res[3], "https://repo.anaconda.com/pkgs/main/noarch");
-        EXPECT_EQ(res[4], "https://repo.anaconda.com/pkgs/r/" + platform);
-        EXPECT_EQ(res[5], "https://repo.anaconda.com/pkgs/r/noarch");
-
-        std::vector<std::string> res2 = calculate_channel_urls(urls, false);
-        EXPECT_EQ(res2.size(), on_win ? 8u : 6u);
-        EXPECT_EQ(res2[0], res[0]);
-        EXPECT_EQ(res2[1], res[1]);
-        EXPECT_EQ(res2[2], res[2]);
-        EXPECT_EQ(res2[3], res[3]);
-        EXPECT_EQ(res2[4], res[4]);
-        EXPECT_EQ(res2[5], res[5]);
-
-#ifdef _WIN32
-        EXPECT_EQ(res[6], "https://repo.anaconda.com/pkgs/msys2/" + platform);
-        EXPECT_EQ(res[7], "https://repo.anaconda.com/pkgs/msys2/noarch");
-        EXPECT_EQ(res2[6], res[6]);
-        EXPECT_EQ(res2[7], res[7]);
-#endif
-
-        std::vector<std::string> local_urls = { "./channel_b", "./channel_a" };
-        std::vector<std::string> local_res = calculate_channel_urls(local_urls, false);
-        std::string current_dir = path_to_url(fs::current_path().string()) + '/';
-        EXPECT_EQ(local_res.size(), 4u);
-        EXPECT_EQ(local_res[0], current_dir + "channel_b/" + platform);
-        EXPECT_EQ(local_res[1], current_dir + "channel_b/noarch");
-        EXPECT_EQ(local_res[2], current_dir + "channel_a/" + platform);
-        EXPECT_EQ(local_res[3], current_dir + "channel_a/noarch");
-    }
-
     TEST(Channel, add_token)
     {
         auto& ctx = Context::instance();

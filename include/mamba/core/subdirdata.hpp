@@ -44,7 +44,8 @@ namespace mamba
          */
         MSubdirData(const std::string& name,
                     const std::string& repodata_url,
-                    const std::string& repodata_fn);
+                    const std::string& repodata_fn,
+                    bool is_noarch);
 
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
@@ -84,6 +85,7 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
+        bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;
     };

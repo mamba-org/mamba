@@ -11,8 +11,10 @@ namespace mamba
         Context::instance().quiet = true;
         {
             mamba::MultiDownloadTarget multi_dl;
-            mamba::MSubdirData cf(
-                "conda-forge/linux-64", "file:///nonexistent/repodata.json", "/tmp/zyx.json");
+            mamba::MSubdirData cf("conda-forge/linux-64",
+                                  "file:///nonexistent/repodata.json",
+                                  "/tmp/zyx.json",
+                                  false);
             cf.load();
             multi_dl.add(cf.target());
 
@@ -27,7 +29,7 @@ namespace mamba
         {
             mamba::MultiDownloadTarget multi_dl;
             mamba::MSubdirData cf(
-                "conda-forge/noarch", "file:///nonexistent/repodata.json", "/tmp/zyx.json");
+                "conda-forge/noarch", "file:///nonexistent/repodata.json", "/tmp/zyx.json", true);
             cf.load();
             multi_dl.add(cf.target());
             EXPECT_THROW(multi_dl.download(true), std::runtime_error);

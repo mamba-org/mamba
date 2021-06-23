@@ -38,7 +38,7 @@ is_valid_rc_sequence(const std::string& key, const std::string& value)
     try
     {
         auto& c = config.config().at(key);
-        return c.is_valid_serialization(value) && c.rc_configurable();
+        return c.is_valid_serialization(value) && c.rc_configurable() && c.is_sequence();
     }
     catch (const std::out_of_range& e)
     {
@@ -213,7 +213,7 @@ set_config_sequence_command(CLI::App* subcom)
     auto& specs = config.insert(Configurable("config_set_sequence_spec",
                                              std::vector<std::pair<std::string, std::string>>({}))
                                     .group("Output, Prompt and Flow Control")
-                                    .description("Add value to the beginning of a configuration"),
+                                    .description("Add value to a configurable sequence"),
                                 true);
     subcom->add_option("specs", specs.set_cli_config({}), specs.description())->required();
 }
@@ -313,6 +313,8 @@ void
 set_config_prepend_command(CLI::App* subcom)
 {
     set_config_sequence_command(subcom);
+    subcom->get_option("specs")->description(
+        "Add value at the beginning of a configurable sequence");
     subcom->callback([&]() { set_sequence_to_rc(SequenceAddType::kPrepend); });
 }
 
@@ -320,7 +322,7 @@ void
 set_config_append_command(CLI::App* subcom)
 {
     set_config_sequence_command(subcom);
-    subcom->get_option("specs")->description("Add value to the end of a configuration");
+    subcom->get_option("specs")->description("Add value at the end of a configurable sequence");
     subcom->callback([&]() { set_sequence_to_rc(SequenceAddType::kAppend); });
 }
 

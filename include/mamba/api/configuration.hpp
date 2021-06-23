@@ -385,6 +385,8 @@ namespace mamba
                               std::vector<std::string>& source);
 
             static T deserialize(const std::string& value);
+
+            static bool is_sequence();
         };
 
         template <class T>
@@ -401,6 +403,8 @@ namespace mamba
                               std::vector<std::string>& source);
 
             static std::vector<T> deserialize(const std::string& value);
+
+            static bool is_sequence();
         };
 
         template <class T>
@@ -439,6 +443,12 @@ namespace mamba
         }
 
         template <class T>
+        bool Source<T>::is_sequence()
+        {
+            return false;
+        }
+
+        template <class T>
         void Source<std::vector<T>>::merge(const std::map<std::string, std::vector<T>>& values,
                                            const std::vector<std::string>& sources,
                                            std::vector<T>& value,
@@ -467,6 +477,12 @@ namespace mamba
         std::vector<T> Source<std::vector<T>>::deserialize(const std::string& value)
         {
             return YAML::Load("[" + value + "]").as<std::vector<T>>();
+        }
+
+        template <class T>
+        bool Source<std::vector<T>>::is_sequence()
+        {
+            return true;
         }
     }
 
@@ -593,6 +609,8 @@ namespace mamba
                            const ConfigurationLevel& level = ConfigurationLevel::kFile);
 
         bool is_valid_serialization(const std::string& value) const;
+
+        bool is_sequence() const;
 
         void reset_compute_counter();
 
@@ -830,6 +848,12 @@ namespace mamba
     }
 
     template <class T>
+    bool Configurable<T>::is_sequence() const
+    {
+        return detail::Source<T>::is_sequence();
+    }
+
+    template <class T>
     void Configurable<T>::lock()
     {
         m_lock = true;
@@ -1028,6 +1052,8 @@ namespace mamba
 
             virtual bool is_valid_serialization(const std::string& value) const = 0;
 
+            virtual bool is_sequence() const = 0;
+
             virtual bool locked() = 0;
 
             virtual void reset_compute_counter() = 0;
@@ -1180,6 +1206,11 @@ namespace mamba
             bool is_valid_serialization(const std::string& value) const
             {
                 return p_wrapped->is_valid_serialization(value);
+            }
+
+            bool is_sequence() const
+            {
+                return p_wrapped->is_sequence();
             }
 
             void reset_compute_counter()
@@ -1469,6 +1500,11 @@ namespace mamba
         bool is_valid_serialization(const std::string& value) const
         {
             return p_impl->is_valid_serialization(value);
+        }
+
+        bool is_sequence() const
+        {
+            return p_impl->is_sequence();
         }
 
         self_type& set_rc_yaml_value(const YAML::Node& value, const std::string& source)

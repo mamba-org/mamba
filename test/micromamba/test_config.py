@@ -550,6 +550,20 @@ class TestConfigModifiers:
         with pytest.raises(subprocess.CalledProcessError):
             config("append", "@#A321", "--file", TestConfigModifiers.home_rc_path)
 
+        with pytest.raises(subprocess.CalledProcessError):
+            config("append", "json", "true", "--file", TestConfigModifiers.home_rc_path)
+
+        with pytest.raises(subprocess.CalledProcessError):
+            config(
+                "append",
+                "channels",
+                "foo,bar",
+                "json",
+                "true",
+                "--file",
+                TestConfigModifiers.home_rc_path,
+            )
+
     def test_file_prepend_single_input(self):
         config(
             "prepend", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
@@ -608,6 +622,22 @@ class TestConfigModifiers:
 
         with pytest.raises(subprocess.CalledProcessError):
             config("prepend", "@#A321", "--file", TestConfigModifiers.home_rc_path)
+
+        with pytest.raises(subprocess.CalledProcessError):
+            config(
+                "prepend", "json", "true", "--file", TestConfigModifiers.home_rc_path
+            )
+
+        with pytest.raises(subprocess.CalledProcessError):
+            config(
+                "prepend",
+                "channels",
+                "foo,bar",
+                "json",
+                "true",
+                "--file",
+                TestConfigModifiers.home_rc_path,
+            )
 
     def test_file_append_and_prepend_inputs(self):
         config(

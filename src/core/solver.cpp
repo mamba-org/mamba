@@ -41,8 +41,15 @@ namespace mamba
         // bioconda-experimental etc) Note: s->repo->name is the URL of the repo
         // TODO maybe better to check all repos, select pointers, and compare the
         // pointer (s->repo == ptr?)
-        Channel& chan = make_channel(s->repo->name);
-        return chan.url(false).find(channel) != std::string::npos;
+        const Channel& chan = make_channel(s->repo->name);
+        for (const auto& url : chan.urls(false))
+        {
+            if (url.find(channel) != std::string::npos)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)

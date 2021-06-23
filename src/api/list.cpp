@@ -105,7 +105,7 @@ namespace mamba
                     }
                     else
                     {
-                        Channel& channel = make_channel(package.second.url);
+                        const Channel& channel = make_channel(package.second.url);
                         formatted_pkgs.channel = channel.name();
                     }
                     packages.push_back(formatted_pkgs);

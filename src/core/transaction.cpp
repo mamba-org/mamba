@@ -369,7 +369,8 @@ namespace mamba
 
         if (solver.only_deps == false)
         {
-            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string> {
+            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
+            {
                 std::vector<std::string> res;
                 for (const auto& el : vec)
                     res.push_back(el.str());
@@ -705,7 +706,8 @@ namespace mamba
             to_unlink.push_back(solvable_to_json(s));
         }
 
-        auto add_json = [](const auto& jlist, const char* s) {
+        auto add_json = [](const auto& jlist, const char* s)
+        {
             if (!jlist.empty())
             {
                 JsonLogger::instance().json_down(s);
@@ -754,8 +756,7 @@ namespace mamba
             auto& ctx = Context::instance();
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker
-                    = Channel::make_cached_channel(mamba_repo->url()).repo_checker();
+                const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker();
 
                 auto pkg_info = PackageInfo(s);
 

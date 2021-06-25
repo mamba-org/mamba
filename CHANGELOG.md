@@ -1,5 +1,17 @@
+0.14.1 (June 25, 2021)
+======================
+
+New features
+- [micromamba] add remove command, to remove keys of vectors (@marimeireles) #1011
+
+Bug fixes
+- [micromamba] fixed in config prepend and append sequence (@adriendelsalle) #1023
+- fix bug when username has @ (@madhur-tandon) #1025
+- fix wrong update spec in history (@madhur-tandon) #1028
+- [mamba] silent pinned packages using JSON output (@adriendelsalle) #1031
+
 0.14.0 (June 16, 2021)
-=====================
+======================
 
 New features
 - [micromamba] add `config set`, `get`, `append` and `prepend`, `remove` (@marimeireles) #838

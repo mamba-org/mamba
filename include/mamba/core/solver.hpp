@@ -56,6 +56,7 @@ namespace mamba
 
         const std::vector<MatchSpec>& install_specs() const;
         const std::vector<MatchSpec>& remove_specs() const;
+        const std::vector<MatchSpec>& neuter_specs() const;
         const std::vector<MatchSpec>& pinned_specs() const;
 
         operator Solver*();
@@ -71,7 +72,7 @@ namespace mamba
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;
         std::vector<MatchSpec> m_remove_specs;
-        std::vector<MatchSpec> m_neuter_specs;  // unused for now
+        std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
         bool m_is_solved;
         Solver* m_solver;

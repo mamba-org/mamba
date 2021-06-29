@@ -239,7 +239,15 @@ def remove(args, parser):
             repos.append(repo)
 
         solver = api.Solver(pool, solver_options)
-        solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE)
+
+        history = api.History(context.target_prefix)
+        history_map = history.get_requested_specs_map()
+        solver.add_jobs(
+            [ms.conda_build_form() for ms in history_map.values()],
+            api.SOLVER_USERINSTALLED,
+        )
+
+        solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
         success = solver.solve()
         if not success:
             print(solver.problems_to_str())

@@ -47,6 +47,8 @@ class TestRemove:
 
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
     def test_remove(self, env_selector):
+        env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
+
         if env_selector == "prefix":
             res = remove("xtensor", "-p", TestRemove.prefix, "--json")
         elif env_selector == "name":
@@ -57,8 +59,34 @@ class TestRemove:
         keys = {"dry_run", "success", "prefix", "actions"}
         assert keys.issubset(set(res.keys()))
         assert res["success"]
+        assert len(res["actions"]["UNLINK"]) == len(env_pkgs)
+        for p in res["actions"]["UNLINK"]:
+            assert p["name"] in env_pkgs
+        assert res["actions"]["PREFIX"] == TestRemove.prefix
+
+    def test_remove_orphaned(self):
+        env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
+        install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
+
+        res = remove("xframe", "-p", TestRemove.prefix, "--json")
+
+        keys = {"dry_run", "success", "prefix", "actions"}
+        assert keys.issubset(set(res.keys()))
+        assert res["success"]
         assert len(res["actions"]["UNLINK"]) == 1
-        assert res["actions"]["UNLINK"][0]["name"] == "xtensor"
+        assert res["actions"]["UNLINK"][0]["name"] == "xframe"
+        assert res["actions"]["PREFIX"] == TestRemove.prefix
+
+        res = remove("xtensor", "-p", TestRemove.prefix, "--json")
+
+        keys = {"dry_run", "success", "prefix", "actions"}
+        assert keys.issubset(set(res.keys()))
+        assert res["success"]
+        assert len(res["actions"]["UNLINK"]) == len(env_pkgs) + (
+            1 if dry_run_tests == DryRun.DRY else 0
+        )
+        for p in res["actions"]["UNLINK"]:
+            assert p["name"] in env_pkgs
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
 

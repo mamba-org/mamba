@@ -155,7 +155,10 @@ namespace mamba
             }
             else if (job_flag & SOLVER_ERASE)
             {
-                m_remove_specs.emplace_back(job);
+                if (((job_flag & SOLVER_USERINSTALLED) ^ SOLVER_USERINSTALLED) == 0)
+                    m_neuter_specs.emplace_back(job);
+                else
+                    m_remove_specs.emplace_back(job);
             }
             if (!ms.channel.empty())
             {
@@ -314,6 +317,11 @@ namespace mamba
     const std::vector<MatchSpec>& MSolver::remove_specs() const
     {
         return m_remove_specs;
+    }
+
+    const std::vector<MatchSpec>& MSolver::neuter_specs() const
+    {
+        return m_neuter_specs;
     }
 
     const std::vector<MatchSpec>& MSolver::pinned_specs() const

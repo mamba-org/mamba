@@ -74,7 +74,16 @@ namespace mamba
 
             MSolver solver(
                 pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 }, { SOLVER_FLAG_ALLOW_UNINSTALL, 1 } });
-            solver.add_jobs(specs, SOLVER_ERASE);
+
+            History history(ctx.target_prefix);
+            auto hist_map = history.get_requested_specs_map();
+            std::vector<std::string> keep_specs;
+            for (auto& it : hist_map)
+                keep_specs.push_back(it.second.conda_build_form());
+
+            solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
+
+            solver.add_jobs(specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
             solver.solve();
 
             const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");

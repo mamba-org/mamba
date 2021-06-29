@@ -90,6 +90,15 @@ PYBIND11_MODULE(mamba_api, m)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("solve", &MSolver::solve);
 
+    py::class_<History>(m, "History")
+        .def(py::init<const std::string&>())
+        .def("get_requested_specs_map", &History::get_requested_specs_map);
+
+    py::class_<MatchSpec>(m, "MatchSpec")
+        .def(py::init<>())
+        .def(py::init<const std::string&>())
+        .def("conda_build_form", &MatchSpec::conda_build_form);
+
     /*py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
         .def("find", &Query::find)

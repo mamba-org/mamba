@@ -900,7 +900,8 @@ namespace mamba
         std::size_t total_size = 0;
         auto* pool = m_transaction->pool;
 
-        auto format_row = [this, pool, &total_size](rows& r, Solvable* s, printers::format flag) {
+        auto format_row = [this, pool, &total_size](
+                              rows& r, Solvable* s, printers::format flag, std::string diff) {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)
@@ -932,7 +933,7 @@ namespace mamba
                 }
             }
             printers::FormattedString name;
-            name.s = pool_id2str(pool, s->name);
+            name.s = diff + " " + std::string(pool_id2str(pool, s->name));
             name.flag = flag;
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
@@ -971,41 +972,44 @@ namespace mamba
 
                 if (filter(s))
                 {
-                    format_row(ignored, s, printers::format::yellow);
+                    format_row(ignored, s, printers::format::yellow, "=");
                     continue;
                 }
                 switch (cls)
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
-                        format_row(upgraded, s, printers::format::red);
+                        format_row(upgraded, s, printers::format::red, "-");
                         format_row(upgraded,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
-                                   printers::format::green);
+                                   printers::format::green,
+                                   "+");
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
                     case SOLVER_TRANSACTION_REINSTALLED:
                         if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
                             break;
 
-                        format_row(changed, s, printers::format::red);
+                        format_row(changed, s, printers::format::red, "-");
                         format_row(changed,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
-                                   printers::format::green);
+                                   printers::format::green,
+                                   "+");
                         break;
                     case SOLVER_TRANSACTION_DOWNGRADED:
-                        format_row(downgraded, s, printers::format::red);
+                        format_row(downgraded, s, printers::format::red, "-");
                         format_row(downgraded,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
-                                   printers::format::green);
+                                   printers::format::green,
+                                   "+");
                         break;
                     case SOLVER_TRANSACTION_ERASE:
-                        format_row(erased, s, printers::format::red);
+                        format_row(erased, s, printers::format::red, "-");
                         break;
                     case SOLVER_TRANSACTION_INSTALL:
-                        format_row(installed, s, printers::format::green);
+                        format_row(installed, s, printers::format::green, "+");
                         break;
                     case SOLVER_TRANSACTION_IGNORE:
                         break;

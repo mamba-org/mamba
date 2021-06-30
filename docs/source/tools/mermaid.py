@@ -31,7 +31,8 @@ from sphinx.locale import _
 from sphinx.util import logging
 from sphinx.util.fileutil import copy_asset
 from sphinx.util.i18n import search_image_for_language
-from sphinx.util.osutil import ENOENT, ensuredir
+from sphinx.util.osutil import ensuredir
+from errno import ENOENT
 
 logger = logging.getLogger(__name__)
 

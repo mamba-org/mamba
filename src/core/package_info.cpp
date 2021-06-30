@@ -151,6 +151,17 @@ namespace mamba
         {
             constrains[i] = pool_dep2str(pool, q.elements[i]);
         }
+        queue_empty(&q);
+        solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, &q);
+        if (q.count)
+        {
+            std::vector<std::string> tmp_tf(q.count);
+            for (int i = 0; i < q.count; ++i)
+            {
+                track_features += pool_id2str(pool, q.elements[i]);
+                track_features += (i == q.count - 1) ? "" : ",";
+            }
+        }
         queue_free(&q);
     }
 
@@ -176,6 +187,7 @@ namespace mamba
         assign_or(j, "license", license, ""s);
         assign_or(j, "md5", md5, ""s);
         assign_or(j, "sha256", sha256, ""s);
+        assign_or(j, "track_features", track_features, ""s);
 
         if (j.contains("depends"))
         {
@@ -218,6 +230,7 @@ namespace mamba
         j["build_string"] = build_string;
         j["build_number"] = build_number;
         j["license"] = license;
+        j["track_features"] = track_features;
         if (!md5.empty())
         {
             j["md5"] = md5;

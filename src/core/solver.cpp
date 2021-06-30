@@ -153,13 +153,13 @@ namespace mamba
             {
                 m_install_specs.emplace_back(job);
             }
-            else if (job_flag & SOLVER_ERASE)
+            else if (((job_flag & SOLVER_ERASE) ^ SOLVER_ERASE) != 0)
             {
-                if (((job_flag & SOLVER_USERINSTALLED) ^ SOLVER_USERINSTALLED) == 0)
-                    m_neuter_specs.emplace_back(job);
-                else
-                    m_remove_specs.emplace_back(job);
+                m_remove_specs.emplace_back(job);
             }
+            else if (((job_flag & SOLVER_LOCK) ^ SOLVER_LOCK) == 0)
+                m_neuter_specs.emplace_back(job);
+
             if (!ms.channel.empty())
             {
                 if (job_flag & SOLVER_ERASE)

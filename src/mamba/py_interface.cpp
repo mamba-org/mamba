@@ -219,7 +219,14 @@ PYBIND11_MODULE(mamba_api, m)
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())
+        .def_readwrite("package_records", &PrefixData::m_package_records)
         .def("load", &PrefixData::load);
+
+    py::class_<PackageInfo>(m, "PackageInfo")
+        .def(py::init<Solvable*>())
+        .def(py::init<const std::string&>())
+        .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
+        .def_readwrite("name", &PackageInfo::name);
 
     py::class_<Channel>(m, "Channel")
         .def(py::init([](const std::string& value) { return &(make_channel(value)); }))

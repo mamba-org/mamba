@@ -534,7 +534,7 @@ def install(args, parser, command="install"):
             ]
         )
 
-        if args.update_modifier is UpdateModifier.FREEZE_INSTALLED:
+        if context.update_modifier is UpdateModifier.FREEZE_INSTALLED:
             solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
 
         solver.add_jobs(mamba_solve_specs, solver_task)

@@ -85,7 +85,7 @@ def get_index(
             if channel.name:
                 name = channel.name + "/" + channel_platform
             else:
-                name = channel.platform_url(channel_platform, with_credential=False)
+                name = channel.platform_url(channel_platform, with_credentials=False)
             sd = api.SubdirData(name, full_url, full_path_cache,
                                 channel_platform == "noarch")
 

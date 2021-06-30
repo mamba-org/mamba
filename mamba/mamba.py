@@ -497,9 +497,8 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    if use_mamba_experimental or context.force_reinstall:
-        prefix_data = api.PrefixData(context.target_prefix)
-        prefix_data.load()
+    prefix_data = api.PrefixData(context.target_prefix)
+    prefix_data.load()
 
     # add installed
     if use_mamba_experimental:
@@ -534,6 +533,10 @@ def install(args, parser, command="install"):
                 (api.MAMBA_FORCE_REINSTALL, context.force_reinstall),
             ]
         )
+
+        if context.update_modifier is UpdateModifier.FREEZE_INSTALLED:
+            solver.add_jobs([p for p in prefix_data.package_records], api.SOLVER_LOCK)
+
         solver.add_jobs(mamba_solve_specs, solver_task)
 
         if not context.force_reinstall:

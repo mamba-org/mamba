@@ -454,8 +454,6 @@ class TestInstall:
         install("python=3.9", no_dry_run=True)
         res = install("setuptools=28.4.0", "--no-py-pin", "--json")
 
-        print(res["actions"].keys())
-        print(res["actions"]["UNLINK"])
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
@@ -473,3 +471,22 @@ class TestInstall:
 
         py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
         assert py_pkg["version"].startswith("3.9")
+
+    @pytest.mark.skipif(
+        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+    )
+    def test_freeze_installed(self):
+        install("xtensor=0.20", no_dry_run=True)
+        res = install("xframe", "--freeze-installed", "--json")
+
+        # without freeze installed, xframe 0.3.0 should be installed and xtensor updated to 0.21
+        keys = {"success", "prefix", "actions", "dry_run"}
+        assert keys.issubset(set(res.keys()))
+
+        action_keys = {"LINK", "PREFIX"}
+        assert action_keys.issubset(set(res["actions"].keys()))
+
+        expected_packages = {"xframe"}
+        link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        assert expected_packages == link_packages
+        assert res["actions"]["LINK"][0]["version"] == "0.2.0"

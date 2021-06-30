@@ -395,6 +395,11 @@ namespace mamba
         }
         PrefixData prefix_data(ctx.target_prefix);
         prefix_data.load();
+
+        std::vector<std::string> prefix_pkgs;
+        for (auto& it : prefix_data.m_package_records)
+            prefix_pkgs.push_back(it.first);
+
         prefix_data.add_virtual_packages(get_virtual_packages());
 
         auto repo = MRepo(pool, prefix_data);
@@ -453,6 +458,13 @@ namespace mamba
         }
 
         MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+
+        if (ctx.freeze_installed && !prefix_pkgs.empty())
+        {
+            LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
+            solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
+        }
+
         solver.add_jobs(specs, solver_flag);
 
         if (!no_pin)
@@ -486,6 +498,9 @@ namespace mamba
                 ctx.local_repodata_ttl = 2;
                 return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
             }
+            if (ctx.freeze_installed)
+                Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");
+
             throw std::runtime_error("Could not solve for environment specs");
         }
 

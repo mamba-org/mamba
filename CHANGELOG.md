@@ -4,6 +4,7 @@
 New features
 - remove orphaned packages such as dependencies of explicitely installed packages (@adriendelsalle) #1040
 - add a diff character before package name in transaction table to improve readability without coloration (@adriendelsalle) #1040
+- add capability to freeze installed packages during `install` operation using `--freeze-installed` flag (@adriendelsalle) #1048
 
 0.14.1 (June 25, 2021)
 ======================

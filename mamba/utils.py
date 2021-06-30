@@ -285,7 +285,10 @@ def to_txn(
             print("No package record found!")
 
     for c, pkg, jsn_s in to_link:
-        sdir = lookup_dict[split_anaconda_token(remove_auth(c))[0]]
+        key = split_anaconda_token(remove_auth(c))[0]
+        if key not in lookup_dict:
+            raise ValueError("missing key {} in channels: {}".format(key, lookup_dict))
+        sdir = lookup_dict[key]
         rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
         final_precs.add(rec)
         to_link_records.append(rec)

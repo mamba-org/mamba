@@ -237,10 +237,14 @@ PYBIND11_MODULE(mamba_api, m)
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
+        .def_property_readonly("auth", &Channel::auth)
+        .def_property_readonly("token", &Channel::token)
+        .def_property_readonly("package_filename", &Channel::package_filename)
         .def_property_readonly("platforms", &Channel::platforms)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("urls", &Channel::urls, py::arg("with_credentials") = true)
         .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
+        .def("platform_url", &Channel::platform_url, py::arg("platform"), py::arg("with_credentials") = true)
         .def("__repr__",
              [](const Channel& c)
              {
@@ -258,7 +262,7 @@ PYBIND11_MODULE(mamba_api, m)
                  return s;
              });
 
-    m.def("get_channel_urls", &get_channel_urls);
+    m.def("get_channels", &get_channels);
 
     m.def("transmute", &transmute);
 

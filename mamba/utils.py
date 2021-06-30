@@ -7,6 +7,7 @@ import json
 import os
 import tempfile
 import urllib.parse
+from collections import OrderedDict
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
@@ -21,9 +22,9 @@ from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.gateways.connection.session import CondaHttpAuth
-from conda.models.channel import Channel
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
+from conda.models.channel import Channel as CondaChannel
 
 import mamba.mamba_api as api
 
@@ -44,29 +45,37 @@ def get_index(
     prefix=None,
     repodata_fn="repodata.json",
 ):
-    all_urls = []
+    all_channels = []
     if use_local:
-        all_urls.append("local")
-    all_urls.extend(channel_urls)
+        all_channels.append("local")
+    all_channels.extend(channel_urls)
     if prepend:
-        all_urls.extend(context.channels)
-    check_whitelist(all_urls)
+        all_channels.extend(context.channels)
+    check_whitelist(all_channels)
+
+    # Remove duplicates but retain order
+    all_channels = list(OrderedDict.fromkeys(all_channels))
 
     dlist = api.DownloadTargetList()
 
     index = []
 
-    for url in all_urls:
-        at_count = url.count("@")
+    def fixup_channel_spec(spec):
+        at_count = spec.count("@")
         if at_count > 1:
-            first_at = url.find("@")
-            url = (
-                url[:first_at] + urllib.parse.quote(url[first_at]) + url[first_at + 1 :]
+            first_at = spec.find("@")
+            spec = (
+                spec[:first_at] + urllib.parse.quote(spec[first_at])
+                + spec[first_at + 1 :]
             )
-        channel = Channel(url)
-        for ind, (platform, url) in enumerate(
-                channel.platform_urls(with_credentials=True)
-                ):
+        if platform:
+            spec = spec + "[" + platform + "]"
+        return spec
+
+    all_channels = list(map(fixup_channel_spec, all_channels))
+
+    for channel in api.get_channels(all_channels):
+        for channel_platform, url in channel.platform_urls(with_credentials=True):
             full_url = CondaHttpAuth.add_binstar_token(url + "/" + repodata_fn)
 
             full_path_cache = os.path.join(
@@ -74,13 +83,18 @@ def get_index(
             )
             name = None
             if channel.name:
-                name = channel.name + "/" + platform
+                name = channel.name + "/" + channel_platform
             else:
-                name = channel.urls(with_credential=False)[ind]
-            sd = api.SubdirData(name, full_url, full_path_cache, platform == "noarch")
+                name = channel.platform_url(channel_platform, with_credential=False)
+            sd = api.SubdirData(name, full_url, full_path_cache,
+                                channel_platform == "noarch")
 
             sd.load()
-            index.append((sd, channel))
+            index.append((sd, {
+                "platform": channel_platform,
+                "url": url,
+                "channel": channel
+            }))
             dlist.add(sd)
 
     is_downloaded = dlist.download(True)
@@ -117,31 +131,32 @@ def load_channels(
     subprio_index = len(index)
     if strict_priority:
         # first, count unique channels
-        n_channels = len(set([channel.canonical_name for _, channel in index]))
-        current_channel = index[0][1].canonical_name
+        n_channels = len(set([entry["channel"].canonical_name for _, entry in index]))
+        current_channel = index[0][1]["channel"].canonical_name
         channel_prio = n_channels
 
-    for subdir, chan in index:
+    for subdir, entry in index:
         # add priority here
         if strict_priority:
-            if chan.canonical_name != current_channel:
+            if entry["channel"].canonical_name != current_channel:
                 channel_prio -= 1
-                current_channel = chan.canonical_name
+                current_channel = entry["channel"].canonical_name
             priority = channel_prio
         else:
             priority = 0
         if strict_priority:
-            subpriority = 0 if chan.platform == "noarch" else 1
+            subpriority = 0 if entry["platform"] == "noarch" else 1
         else:
             subpriority = subprio_index
             subprio_index -= 1
 
-        if not subdir.loaded() and chan.platform != "noarch":
+        if not subdir.loaded() and entry["platform"] != "noarch":
             # ignore non-loaded subdir if channel is != noarch
             continue
 
         if context.verbosity != 0:
-            print("Channel: {}, prio: {} : {}".format(chan, priority, subpriority))
+            print("Channel: {}, platform: {}, prio: {} : {}".format(
+                entry["channel"], entry["platform"], priority, subpriority))
             print("Cache path: ", subdir.cache_path())
 
         repo = subdir.create_repo(pool)
@@ -186,12 +201,16 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
 
 
-def to_package_record_from_subjson(channel, pkg, jsn_string):
-    channel = channel
-    channel_url = channel.url(with_credentials=True)
+def to_conda_channel(channel, platform):
+    return CondaChannel(channel.scheme, channel.auth, channel.location,
+                        channel.token, channel.name, platform, channel.package_filename)
+
+
+def to_package_record_from_subjson(entry, pkg, jsn_string):
+    channel_url = entry["url"]
     info = json.loads(jsn_string)
     info["fn"] = pkg
-    info["channel"] = channel
+    info["channel"] = to_conda_channel(entry["channel"], entry["platform"])
     info["url"] = join_url(channel_url, pkg)
     package_record = PackageRecord(**info)
     return package_record
@@ -252,8 +271,9 @@ def to_txn(
     final_precs = IndexedSet(prefix_data.iter_records())
 
     lookup_dict = {}
-    for _, c in index:
-        lookup_dict[c.url(with_credentials=False)] = c
+    for _, entry in index:
+        lookup_dict[entry["channel"]
+                    .platform_url(entry["platform"], with_credentials=False)] = entry
 
     for _, pkg in to_unlink:
         for i_rec in installed_pkg_recs:

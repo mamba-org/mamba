@@ -204,6 +204,19 @@ namespace mamba
         return ret;
     }
 
+    std::string Channel::platform_url(std::string platform, bool with_credential) const
+    {
+        std::string base = location();
+        if (with_credential && token())
+        {
+            base += "/t/" + *token();
+        }
+        base += "/" + name();
+
+        std::vector<std::pair<std::string, std::string>> ret;
+        return build_url(*this, base + "/" + platform, with_credential);
+    }
+
     Channel ChannelInternal::make_simple_channel(const Channel& channel_alias,
                                                  const std::string& channel_url,
                                                  const std::string& channel_name,
@@ -564,24 +577,39 @@ namespace mamba
         std::copy(urls.begin(), urls.end(), std::back_inserter(result));
     }
 
-    std::vector<std::string> get_channel_urls(const std::vector<std::string>& channel_names,
-                                              bool with_credential)
+    std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names)
     {
-        std::set<std::string> control;
-        std::vector<std::string> result;
-        for (const auto& name : channel_names)
+        std::set<const Channel*> added;
+        std::vector<const Channel*> result;
+        for (auto name : channel_names)
         {
+            std::string platform_spec;
+            auto platform_spec_ind = name.find("[");
+            if (platform_spec_ind != std::string::npos)
+            {
+                platform_spec = name.substr(platform_spec_ind);
+                name = name.substr(0, platform_spec_ind);
+            }
+
+            auto add_channel = [&](const std::string& name)
+            {
+                auto channel = &make_channel(name + platform_spec);
+                if (added.insert(channel).second)
+                {
+                    result.push_back(channel);
+                }
+            };
             auto multi_iter = ChannelContext::instance().get_custom_multichannels().find(name);
             if (multi_iter != ChannelContext::instance().get_custom_multichannels().end())
             {
                 for (const auto& n : multi_iter->second)
                 {
-                    append_channel_urls(n, with_credential, result, control);
+                    add_channel(n);
                 }
             }
             else
             {
-                append_channel_urls(name, with_credential, result, control);
+                add_channel(name);
             }
         }
         return result;

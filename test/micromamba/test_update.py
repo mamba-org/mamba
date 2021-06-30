@@ -400,3 +400,8 @@ class TestUpdateConfig:
                 assert res["specs"] == specs
             else:  # explicit
                 assert res["specs"] == [explicit_specs[0]]
+
+    def test_channel_specific(self):
+        install("quantstack::sphinx", no_dry_run=True)
+        res = update("quantstack::sphinx", "-c", "conda-forge", "--json")
+        assert "actions" not in res

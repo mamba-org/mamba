@@ -213,7 +213,6 @@ namespace mamba
         }
         base += "/" + name();
 
-        std::vector<std::pair<std::string, std::string>> ret;
         return build_url(*this, base + "/" + platform, with_credential);
     }
 

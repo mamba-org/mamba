@@ -16,6 +16,7 @@
 import codecs
 import os
 import posixpath
+from errno import ENOENT
 from hashlib import sha1
 from subprocess import PIPE, Popen
 from tempfile import _get_default_tempdir
@@ -32,7 +33,6 @@ from sphinx.util import logging
 from sphinx.util.fileutil import copy_asset
 from sphinx.util.i18n import search_image_for_language
 from sphinx.util.osutil import ensuredir
-from errno import ENOENT
 
 logger = logging.getLogger(__name__)
 

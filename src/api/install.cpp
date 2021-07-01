@@ -357,20 +357,14 @@ namespace mamba
             load_tokens();
         }
 
-        // Keep track of urls used to ignore duplicates
-        std::set<std::string> visited_urls;
-        for (auto& chan_url : channel_urls)
+        for (auto channel : get_channels(channel_urls))
         {
-            if (visited_urls.count(chan_url) > 0)
-                continue;
-            visited_urls.insert(chan_url);
-            auto& channel = make_channel(chan_url);
-            for (auto& [platform, url] : channel.platform_urls(true))
+            for (auto& [platform, url] : channel->platform_urls(true))
             {
                 std::string repodata_full_url = concat(url, "/repodata.json");
 
                 auto sdir
-                    = std::make_shared<MSubdirData>(concat(channel.name(), "/", platform),
+                    = std::make_shared<MSubdirData>(concat(channel->name(), "/", platform),
                                                     repodata_full_url,
                                                     cache_dir / cache_fn_url(repodata_full_url),
                                                     platform == "noarch");
@@ -384,10 +378,10 @@ namespace mamba
                 }
                 else  // Consider 'flexible' and 'strict' the same way
                 {
-                    if (channel.name() != prev_channel_name)
+                    if (channel->name() != prev_channel_name)
                     {
                         max_prio--;
-                        prev_channel_name = channel.name();
+                        prev_channel_name = channel->name();
                     }
                     priorities.push_back(std::make_pair(max_prio, platform == "noarch" ? 0 : 1));
                 }

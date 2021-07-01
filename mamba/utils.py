@@ -285,7 +285,13 @@ def to_txn(
             print("No package record found!")
 
     for c, pkg, jsn_s in to_link:
-        key = split_anaconda_token(remove_auth(c))[0]
+        if c.startswith("file://"):
+            # The conda functions (specifically remove_auth) assume the input
+            # is a url; a file uri on windows with a drive letter messes them
+            # up.
+            key = c
+        else:
+            key = split_anaconda_token(remove_auth(c))[0]
         if key not in lookup_dict:
             raise ValueError("missing key {} in channels: {}".format(key, lookup_dict))
         sdir = lookup_dict[key]

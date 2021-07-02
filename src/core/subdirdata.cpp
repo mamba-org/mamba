@@ -360,8 +360,7 @@ namespace mamba
         // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
         // "_cache_control": "public, max-age=1200"
 
-        auto extract_subjson = [](std::ifstream& s)
-        {
+        auto extract_subjson = [](std::ifstream& s) {
             char next;
             std::string result;
             bool escaped = false;

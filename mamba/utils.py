@@ -14,17 +14,14 @@ from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.common.serialize import json_dump
 from conda.common.url import join_url, remove_auth, split_anaconda_token
-from conda.core.index import (
-    _supplement_index_with_system,
-    check_whitelist,
-)
+from conda.core.index import _supplement_index_with_system, check_whitelist
 from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.gateways.connection.session import CondaHttpAuth
+from conda.models.channel import Channel as CondaChannel
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
-from conda.models.channel import Channel as CondaChannel
 
 import mamba.mamba_api as api
 
@@ -65,7 +62,8 @@ def get_index(
         if at_count > 1:
             first_at = spec.find("@")
             spec = (
-                spec[:first_at] + urllib.parse.quote(spec[first_at])
+                spec[:first_at]
+                + urllib.parse.quote(spec[first_at])
                 + spec[first_at + 1 :]
             )
         if platform:
@@ -86,15 +84,14 @@ def get_index(
                 name = channel.name + "/" + channel_platform
             else:
                 name = channel.platform_url(channel_platform, with_credentials=False)
-            sd = api.SubdirData(name, full_url, full_path_cache,
-                                channel_platform == "noarch")
+            sd = api.SubdirData(
+                name, full_url, full_path_cache, channel_platform == "noarch"
+            )
 
             sd.load()
-            index.append((sd, {
-                "platform": channel_platform,
-                "url": url,
-                "channel": channel
-            }))
+            index.append(
+                (sd, {"platform": channel_platform, "url": url, "channel": channel})
+            )
             dlist.add(sd)
 
     is_downloaded = dlist.download(True)
@@ -155,8 +152,11 @@ def load_channels(
             continue
 
         if context.verbosity != 0:
-            print("Channel: {}, platform: {}, prio: {} : {}".format(
-                entry["channel"], entry["platform"], priority, subpriority))
+            print(
+                "Channel: {}, platform: {}, prio: {} : {}".format(
+                    entry["channel"], entry["platform"], priority, subpriority
+                )
+            )
             print("Cache path: ", subdir.cache_path())
 
         repo = subdir.create_repo(pool)
@@ -202,8 +202,15 @@ def init_api_context(use_mamba_experimental=False):
 
 
 def to_conda_channel(channel, platform):
-    return CondaChannel(channel.scheme, channel.auth, channel.location,
-                        channel.token, channel.name, platform, channel.package_filename)
+    return CondaChannel(
+        channel.scheme,
+        channel.auth,
+        channel.location,
+        channel.token,
+        channel.name,
+        platform,
+        channel.package_filename,
+    )
 
 
 def to_package_record_from_subjson(entry, pkg, jsn_string):
@@ -272,8 +279,9 @@ def to_txn(
 
     lookup_dict = {}
     for _, entry in index:
-        lookup_dict[entry["channel"]
-                    .platform_url(entry["platform"], with_credentials=False)] = entry
+        lookup_dict[
+            entry["channel"].platform_url(entry["platform"], with_credentials=False)
+        ] = entry
 
     for _, pkg in to_unlink:
         for i_rec in installed_pkg_recs:

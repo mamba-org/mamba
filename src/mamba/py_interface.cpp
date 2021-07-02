@@ -39,9 +39,9 @@ PYBIND11_MODULE(mamba_api, m)
 
     py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())
-        .def("__repr__",
-             [](fs::path& self) -> std::string
-             { return std::string("fs::path[") + std::string(self) + "]"; });
+        .def("__repr__", [](fs::path& self) -> std::string {
+            return std::string("fs::path[") + std::string(self) + "]";
+        });
     py::implicitly_convertible<std::string, fs::path>();
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
@@ -74,9 +74,9 @@ PYBIND11_MODULE(mamba_api, m)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
-        .def("execute",
-             [](MTransaction& self, PrefixData& target_prefix) -> bool
-             { return self.execute(target_prefix); });
+        .def("execute", [](MTransaction& self, PrefixData& target_prefix) -> bool {
+            return self.execute(target_prefix);
+        });
 
     py::class_<MSolver>(m, "Solver")
         .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
@@ -116,8 +116,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def("find",
              [](const Query& q,
                 const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string
-             {
+                const query::RESULT_FORMAT format) -> std::string {
                  std::stringstream res_stream;
                  switch (format)
                  {
@@ -133,8 +132,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def("whoneeds",
              [](const Query& q,
                 const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string
-             {
+                const query::RESULT_FORMAT format) -> std::string {
                  // QueryResult res = q.whoneeds(query, tree);
                  std::stringstream res_stream;
                  query_result res = q.whoneeds(query, (format == query::TREE));
@@ -156,8 +154,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def("depends",
              [](const Query& q,
                 const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string
-             {
+                const query::RESULT_FORMAT format) -> std::string {
                  query_result res = q.depends(query, (format == query::TREE));
                  std::stringstream res_stream;
                  switch (format)
@@ -232,8 +229,8 @@ PYBIND11_MODULE(mamba_api, m)
         .def_readwrite("name", &PackageInfo::name);
 
     py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel")
-        .def(py::init([](const std::string& value)
-                      { return const_cast<Channel*>(&make_channel(value)); }))
+        .def(py::init(
+            [](const std::string& value) { return const_cast<Channel*>(&make_channel(value)); }))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
@@ -244,23 +241,24 @@ PYBIND11_MODULE(mamba_api, m)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
         .def("urls", &Channel::urls, py::arg("with_credentials") = true)
         .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
-        .def("platform_url", &Channel::platform_url, py::arg("platform"), py::arg("with_credentials") = true)
-        .def("__repr__",
-             [](const Channel& c)
-             {
-                 auto s = c.name();
-                 s += "[";
-                 bool first = true;
-                 for (const auto& platform : c.platforms())
-                 {
-                     if (!first)
-                         s += ",";
-                     s += platform;
-                     first = false;
-                 }
-                 s += "]";
-                 return s;
-             });
+        .def("platform_url",
+             &Channel::platform_url,
+             py::arg("platform"),
+             py::arg("with_credentials") = true)
+        .def("__repr__", [](const Channel& c) {
+            auto s = c.name();
+            s += "[";
+            bool first = true;
+            for (const auto& platform : c.platforms())
+            {
+                if (!first)
+                    s += ",";
+                s += platform;
+                first = false;
+            }
+            s += "]";
+            return s;
+        });
 
     m.def("get_channels", &get_channels);
 

@@ -369,8 +369,7 @@ namespace mamba
 
         if (solver.only_deps == false)
         {
-            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
-            {
+            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string> {
                 std::vector<std::string> res;
                 for (const auto& el : vec)
                     res.push_back(el.str());
@@ -706,8 +705,7 @@ namespace mamba
             to_unlink.push_back(solvable_to_json(s));
         }
 
-        auto add_json = [](const auto& jlist, const char* s)
-        {
+        auto add_json = [](const auto& jlist, const char* s) {
             if (!jlist.empty())
             {
                 JsonLogger::instance().json_down(s);

@@ -590,8 +590,7 @@ namespace mamba
                 name = name.substr(0, platform_spec_ind);
             }
 
-            auto add_channel = [&](const std::string& name)
-            {
+            auto add_channel = [&](const std::string& name) {
                 auto channel = &make_channel(name + platform_spec);
                 if (added.insert(channel).second)
                 {
@@ -624,20 +623,16 @@ namespace mamba
                            whitelist.end(),
                            accepted_urls.begin(),
                            [](const std::string& url) { return make_channel(url).base_url(); });
-            std::for_each(urls.begin(),
-                          urls.end(),
-                          [&accepted_urls](const std::string& s)
-                          {
-                              auto it = std::find(accepted_urls.begin(),
-                                                  accepted_urls.end(),
-                                                  make_channel(s).base_url());
-                              if (it == accepted_urls.end())
-                              {
-                                  std::ostringstream str;
-                                  str << "Channel " << s << " not allowed";
-                                  throw std::runtime_error(str.str().c_str());
-                              }
-                          });
+            std::for_each(urls.begin(), urls.end(), [&accepted_urls](const std::string& s) {
+                auto it = std::find(
+                    accepted_urls.begin(), accepted_urls.end(), make_channel(s).base_url());
+                if (it == accepted_urls.end())
+                {
+                    std::ostringstream str;
+                    str << "Channel " << s << " not allowed";
+                    throw std::runtime_error(str.str().c_str());
+                }
+            });
         }
     }
 

@@ -180,7 +180,11 @@ jobs:
           export MAMBA_EXE=$(pwd)/micromamba
           cd build
           ./micromamba --version
-          ./micromamba create -p ~/explicit_env -f ../test/explicit_env.txt
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            ./micromamba create -p ~/explicit_env -f ../test/explicit_env_linux.txt
+          else
+            ./micromamba create -p ~/explicit_env -f ../test/explicit_env_osx.txt
+          fi;
       - name: run new micromamba yaml env
         shell: bash -l {0}
         run: |

@@ -124,38 +124,37 @@ namespace mamba
 
     void MultiBarManager::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
     {
+        auto& ctx = Context::instance();
+        if (ctx.no_progress_bars && !(ctx.json || ctx.quiet))
+        {
+            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
+        }
+
         auto it = std::find(m_active_progress_bars.begin(),
                             m_active_progress_bars.end(),
                             m_progress_bars[idx].get());
-        if (it == m_active_progress_bars.end() || Context::instance().quiet
-            || Context::instance().json)
+        if (it == m_active_progress_bars.end())
         {
-            // if no_progress_bars is true, should return here
-            // as no progress bars are active
-            std::cout << std::flush;
             return;
         }
 
         m_active_progress_bars.erase(it);
 
-        if (Context::instance().no_progress_bars)
+        if (ctx.no_progress_bars || ctx.json || ctx.quiet)
         {
-            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
             return;
+        }
+
+        int ps = m_active_progress_bars.size();
+        std::cout << cursor::up(ps + 1) << cursor::erase_line();
+        if (msg.empty())
+        {
+            m_progress_bars[idx]->print();
+            std::cout << std::endl;
         }
         else
         {
-            int ps = m_active_progress_bars.size();
-            std::cout << cursor::up(ps + 1) << cursor::erase_line();
-            if (msg.empty())
-            {
-                m_progress_bars[idx]->print();
-                std::cout << std::endl;
-            }
-            else
-            {
-                std::cout << msg << std::endl;
-            }
+            std::cout << msg << std::endl;
         }
         print_progress();
     }

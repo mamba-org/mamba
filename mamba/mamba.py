@@ -549,7 +549,7 @@ def install(args, parser, command="install"):
         pinned_specs_info = ""
         if python_constraint:
             solver.add_pin(python_constraint)
-            pinned_specs_info += f"  - {python_constraint}"
+            pinned_specs_info += f"  - {python_constraint}\n"
 
         pinned_specs = get_pinned_specs(context.target_prefix)
         if pinned_specs:
@@ -569,7 +569,7 @@ def install(args, parser, command="install"):
 
             try:
                 final_spec = s.conda_build_form()
-                pinned_specs_info += f"  - {final_spec}"
+                pinned_specs_info += f"  - {final_spec}\n"
                 solver.add_pin(final_spec)
             except AssertionError:
                 print(

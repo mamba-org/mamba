@@ -68,6 +68,7 @@ namespace mamba
     private:
         void add_channel_specific_job(const MatchSpec& ms, int job_flag);
         void add_reinstall_job(MatchSpec& ms, int job_flag);
+        void apply_strict_priority();
 
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;

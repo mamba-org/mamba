@@ -272,9 +272,9 @@ namespace mamba
         return ConsoleStream();
     }
 
-    std::string Console::hide_secrets(const std::string& str)
+    std::string Console::hide_secrets(const std::string_view& str)
     {
-        std::string copy = str;
+        std::string copy(str);
         copy = std::regex_replace(copy, token_re, "/t/*****");
         copy = std::regex_replace(copy, http_basicauth_re, "://$1:*****@");
         return copy;
@@ -287,12 +287,12 @@ namespace mamba
             const std::lock_guard<std::mutex> lock(instance().m_mutex);
             if (instance().p_progress_manager)
             {
-                instance().p_progress_manager->print(hide_secrets(str),
+                instance().p_progress_manager->print(instance().hide_secrets(str),
                                                      instance().skip_progress_bars());
             }
             else
             {
-                std::cout << hide_secrets(str) << std::endl;
+                std::cout << instance().hide_secrets(str) << std::endl;
             }
         }
     }

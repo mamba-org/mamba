@@ -232,7 +232,7 @@ namespace mamba
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0);
         void init_multi_progress(ProgressBarMode mode = ProgressBarMode::multi);
 
-        std::string hide_secrets(const std::string& str);
+        static std::string hide_secrets(const std::string_view& str);
 
     private:
         Console();

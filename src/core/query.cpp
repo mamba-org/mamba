@@ -147,8 +147,7 @@ namespace mamba
         m_pool.get().create_whatprovides();
     }
 
-    auto print_solvable = [](auto& pkg)
-    {
+    auto print_solvable = [](auto& pkg) {
         std::string title = pkg->name + " " + pkg->version + " " + pkg->build_string;
         std::cout << title << std::endl;
         std::cout << std::string(title.size(), '-') << std::endl;

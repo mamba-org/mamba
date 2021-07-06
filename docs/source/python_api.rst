@@ -32,13 +32,12 @@ Here is an example usage of the mamba_api:
         prefix=None,
         repodata_fn="repodata.json",
     ):
-        real_urls = calculate_channel_urls(channel_urls, prepend, platform, use_local)
-        check_whitelist(real_urls)
+        check_whitelist(channel_urls)
 
         dlist = mamba_api.DownloadTargetList()
 
         index = []
-        for idx, url in enumerate(real_urls):
+        for idx, url in enumerate(channel_urls):
             channel = Channel(url)
 
             full_url = channel.url(with_credentials=True) + "/" + repodata_fn

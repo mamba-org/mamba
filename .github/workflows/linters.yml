@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies
       shell: pwsh
       run: |
-        conda install clang clang-tools=10.0.1 pre-commit
+        conda install clang clang-tools=11.1.0 pre-commit
     - name: Conda info
       shell: pwsh
       run: |
@@ -41,4 +41,4 @@ jobs:
     - name: Run all linters
       shell: pwsh
       run: |
-        pre-commit run --all-files --verbose
+        pre-commit run --all-files --verbose --show-diff-on-failure

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cassert>
 #include <iostream>
 #include <regex>
 #include <set>
@@ -12,6 +13,7 @@
 #include <utility>
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/channel_internal.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
@@ -35,13 +37,6 @@ namespace mamba
 
         const char LOCAL_CHANNELS_NAME[] = "local";
         const char DEFAULT_CHANNELS_NAME[] = "defaults";
-
-        // ATTENTION names with substrings need to go longer -> smalle
-        // otherwise linux-ppc64 matches for linux-ppc64le etc!
-        const std::vector<std::string> KNOWN_PLATFORMS
-            = { "noarch",       "linux-32",      "linux-64",    "linux-aarch64", "linux-armv6l",
-                "linux-armv7l", "linux-ppc64le", "linux-ppc64", "osx-64",        "osx-arm64",
-                "win-32",       "win-64",        "zos-z" };
     }  // namespace
 
     /**************************
@@ -49,21 +44,20 @@ namespace mamba
      **************************/
 
     Channel::Channel(const std::string& scheme,
-                     const std::string& auth,
                      const std::string& location,
-                     const std::string& token,
                      const std::string& name,
-                     const std::string& platform,
-                     const std::string& package_filename,
-                     const std::string& multi_name)
+                     const std::optional<std::string>& auth,
+                     const std::optional<std::string>& token,
+                     const std::optional<std::string>& package_filename,
+                     const std::optional<std::string>& canonical_name)
         : m_scheme(scheme)
-        , m_auth(auth)
         , m_location(location)
-        , m_token(token)
         , m_name(name)
-        , m_platform(platform)
+        , m_platforms()
+        , m_auth(auth)
+        , m_token(token)
         , m_package_filename(package_filename)
-        , m_canonical_name(multi_name)
+        , m_canonical_name(canonical_name)
         , m_repo_checker(base_url(),
                          Context::instance().root_prefix / "etc" / "trusted-repos"
                              / cache_name_from_url(base_url()),
@@ -73,19 +67,9 @@ namespace mamba
         fs::create_directories(m_repo_checker.cache_path());
     }
 
-    void Channel::set_token(const std::string& token)
-    {
-        m_token = token;
-    }
-
     const std::string& Channel::scheme() const
     {
         return m_scheme;
-    }
-
-    const std::string& Channel::auth() const
-    {
-        return m_auth;
     }
 
     const std::string& Channel::location() const
@@ -93,27 +77,32 @@ namespace mamba
         return m_location;
     }
 
-    const std::string& Channel::token() const
-    {
-        return m_token;
-    }
-
     const std::string& Channel::name() const
     {
         return m_name;
     }
 
-    const std::string& Channel::platform() const
+    const std::vector<std::string>& Channel::platforms() const
     {
-        return m_platform;
+        return m_platforms;
     }
 
-    const std::string& Channel::package_filename() const
+    const std::optional<std::string>& Channel::auth() const
+    {
+        return m_auth;
+    }
+
+    const std::optional<std::string>& Channel::token() const
+    {
+        return m_token;
+    }
+
+    const std::optional<std::string>& Channel::package_filename() const
     {
         return m_package_filename;
     }
 
-    const validate::RepoChecker& Channel::repo_checker()
+    const validate::RepoChecker& Channel::repo_checker() const
     {
         m_repo_checker.generate_index_checker();
         return m_repo_checker;
@@ -121,7 +110,7 @@ namespace mamba
 
     const std::string& Channel::canonical_name() const
     {
-        if (m_canonical_name == "")
+        if (!m_canonical_name)
         {
             auto it = ChannelContext::instance().get_custom_channels().find(m_name);
             if (it != ChannelContext::instance().get_custom_channels().end())
@@ -141,7 +130,7 @@ namespace mamba
                 m_canonical_name = lstrip(m_location + '/' + m_name, "/");
             }
         }
-        return m_canonical_name;
+        return *m_canonical_name;
     }
 
     std::string Channel::base_url() const
@@ -156,85 +145,81 @@ namespace mamba
         }
     }
 
-    std::string Channel::build_url(const std::string& base, bool with_credential) const
+    static std::string build_url(const Channel& c, const std::string& base, bool with_credential)
     {
-        if (with_credential && auth() != "")
+        if (with_credential && c.auth())
         {
-            return concat(scheme(), "://", auth(), "@", base);
+            return concat(c.scheme(), "://", *c.auth(), "@", base);
         }
         else
         {
-            return concat(scheme(), "://", base);
+            return concat(c.scheme(), "://", base);
         }
     }
 
-    std::string Channel::url(bool with_credential) const
+    static std::optional<std::string> nonempty_str(std::string&& s)
     {
-        std::string base = location();
-        if (with_credential && token() != "")
-        {
-            base += "/t/" + token();
-        }
-        base += "/" + name();
-        if (platform() != "")
-        {
-            base += "/" + platform();
-            if (package_filename() != "")
-            {
-                base += "/" + package_filename();
-            }
-        }
-        else
-        {
-            // TODO: handle unknwon archs that are not "noarch"
-            base += "/noarch";
-        }
-
-        return build_url(base, with_credential);
+        return s.empty() ? std::optional<std::string>() : std::make_optional(s);
     }
 
     std::vector<std::string> Channel::urls(bool with_credential) const
     {
-        return urls(Context::instance().platforms(), with_credential);
-    }
-
-    std::vector<std::string> Channel::urls(const std::vector<std::string>& platforms,
-                                           bool with_credential) const
-    {
-        if (canonical_name() == UNKNOWN_CHANNEL)
-            return make_channel(DEFAULT_CHANNELS_NAME).urls(platforms, with_credential);
-
-        std::string base = with_credential && token() != ""
-                               ? join_url(location(), "t", token(), name())
-                               : join_url(location(), name());
-
-        size_t size = platform() != "" ? (platform() != "noarch" ? 2u : 1u) : platforms.size();
-        std::vector<std::string> res(size);
-        if (platform() != "")
+        if (package_filename())
         {
-            res[0] = build_url(join_url(base, platform()), with_credential);
-            if (size > 1u)
+            std::string base = location();
+            if (with_credential && token())
             {
-                res[1] = build_url(join_url(base, "noarch"), with_credential);
+                base += "/t/" + *token();
             }
+            base += "/" + name();
+            base += "/" + *package_filename();
+            return { { build_url(*this, base, with_credential) } };
         }
         else
         {
-            std::transform(platforms.cbegin(),
-                           platforms.cend(),
-                           res.begin(),
-                           [this, &base, with_credential](const std::string& p) {
-                               return this->build_url(join_url(base, p), with_credential);
-                           });
+            std::vector<std::string> ret;
+            for (auto& [_, v] : platform_urls(with_credential))
+            {
+                ret.emplace_back(v);
+            }
+            return ret;
         }
-
-        return res;
     }
 
-    Channel Channel::make_simple_channel(const Channel& channel_alias,
-                                         const std::string& channel_url,
-                                         const std::string& channel_name,
-                                         const std::string& multi_name)
+    std::vector<std::pair<std::string, std::string>> Channel::platform_urls(
+        bool with_credential) const
+    {
+        std::string base = location();
+        if (with_credential && token())
+        {
+            base += "/t/" + *token();
+        }
+        base += "/" + name();
+
+        std::vector<std::pair<std::string, std::string>> ret;
+        for (const auto& platform : platforms())
+        {
+            ret.emplace_back(platform, build_url(*this, base + "/" + platform, with_credential));
+        }
+        return ret;
+    }
+
+    std::string Channel::platform_url(std::string platform, bool with_credential) const
+    {
+        std::string base = location();
+        if (with_credential && token())
+        {
+            base += "/t/" + *token();
+        }
+        base += "/" + name();
+
+        return build_url(*this, base + "/" + platform, with_credential);
+    }
+
+    Channel ChannelInternal::make_simple_channel(const Channel& channel_alias,
+                                                 const std::string& channel_url,
+                                                 const std::string& channel_name,
+                                                 const std::string& multi_name)
     {
         std::string name(channel_name);
         std::string location, scheme, auth, token;
@@ -243,8 +228,8 @@ namespace mamba
         {
             location = channel_alias.location();
             scheme = channel_alias.scheme();
-            auth = channel_alias.auth();
-            token = channel_alias.token();
+            auth = channel_alias.auth().value_or("");
+            token = channel_alias.token().value_or("");
         }
         else if (name == "")
         {
@@ -264,52 +249,70 @@ namespace mamba
             }
         }
         name = name != "" ? strip(name, "/") : strip(channel_url, "/");
-        return Channel(scheme, auth, location, token, name, "", "", multi_name);
+        return ChannelInternal(scheme,
+                               location,
+                               name,
+                               nonempty_str(std::move(auth)),
+                               nonempty_str(std::move(token)),
+                               {},
+                               nonempty_str(std::string(multi_name)));
     }
 
-    Channel& Channel::make_cached_channel(const std::string& value)
+    const Channel& ChannelInternal::make_cached_channel(const std::string& value)
     {
         auto res = get_cache().find(value);
         if (res == get_cache().end())
         {
             auto& ctx = Context::instance();
 
-            auto chan = Channel::from_value(value);
+            auto chan = ChannelInternal::from_value(value);
             auto token_base = concat(chan.scheme(), "://", chan.location());
-            if (chan.token().empty()
-                && ctx.channel_tokens.find(token_base) != ctx.channel_tokens.end())
+            if (!chan.token())
             {
-                chan.set_token(ctx.channel_tokens[token_base]);
+                auto it = ctx.channel_tokens.find(token_base);
+                if (it != ctx.channel_tokens.end())
+                {
+                    chan.m_token = it->second;
+                }
             }
             res = get_cache().insert(std::make_pair(value, std::move(chan))).first;
         }
         return res->second;
     }
 
-    void Channel::clear_cache()
+    void ChannelInternal::clear_cache()
     {
         get_cache().clear();
     }
 
-    Channel::cache_type& Channel::get_cache()
+    ChannelInternal::ChannelInternal(const std::string& scheme,
+                                     const std::string& location,
+                                     const std::string& name,
+                                     const std::optional<std::string>& auth,
+                                     const std::optional<std::string>& token,
+                                     const std::optional<std::string>& package_filename,
+                                     const std::optional<std::string>& canonical_name)
+        : Channel(scheme, location, name, auth, token, package_filename, canonical_name)
+    {
+    }
+
+    ChannelInternal::cache_type& ChannelInternal::get_cache()
     {
         static cache_type cache;
         return cache;
     }
 
-    void split_conda_url(const std::string& url,
-                         std::string& scheme,
-                         std::string& host,
-                         std::string& port,
-                         std::string& path,
-                         std::string& auth,
-                         std::string& token,
-                         std::string& platform,
-                         std::string& package_name)
+    static void split_conda_url(const std::string& url,
+                                std::string& scheme,
+                                std::string& host,
+                                std::string& port,
+                                std::string& path,
+                                std::string& auth,
+                                std::string& token,
+                                std::string& package_name)
     {
         std::string cleaned_url, extension;
         split_anaconda_token(url, cleaned_url, token);
-        split_platform(KNOWN_PLATFORMS, cleaned_url, cleaned_url, platform);
         split_package_extension(cleaned_url, cleaned_url, extension);
 
         if (extension != "")
@@ -353,10 +356,10 @@ namespace mamba
         std::string m_token;
     };
 
-    channel_configuration read_channel_configuration(const std::string& scheme,
-                                                     const std::string& host,
-                                                     const std::string& port,
-                                                     const std::string& path)
+    static channel_configuration read_channel_configuration(const std::string& scheme,
+                                                            const std::string& host,
+                                                            const std::string& port,
+                                                            const std::string& path)
     {
         std::string spath = std::string(rstrip(path, "/"));
         std::string url
@@ -389,8 +392,8 @@ namespace mamba
                 return channel_configuration(channel.location(),
                                              join_url(channel.name(), subname),
                                              scheme,
-                                             channel.auth(),
-                                             channel.token());
+                                             channel.auth().value_or(""),
+                                             channel.token().value_or(""));
             }
         }
 
@@ -399,7 +402,8 @@ namespace mamba
         if (ca.location() != "" && starts_with(url, ca.location()))
         {
             auto name = std::string(strip(url.replace(0u, ca.location().size(), ""), "/"));
-            return channel_configuration(ca.location(), name, scheme, ca.auth(), ca.token());
+            return channel_configuration(
+                ca.location(), name, scheme, ca.auth().value_or(""), ca.token().value_or(""));
         }
 
         // Case 6: not-otherwise-specified file://-type urls
@@ -415,28 +419,25 @@ namespace mamba
         return channel_configuration(std::string(strip(location, "/")), spath, scheme, "", "");
     }
 
-    Channel Channel::from_url(const std::string& url)
+    ChannelInternal ChannelInternal::from_url(const std::string& url)
     {
-        std::string scheme, host, port, path, auth, token, platform, package_name;
-        split_conda_url(url, scheme, host, port, path, auth, token, platform, package_name);
+        std::string scheme, host, port, path, auth, token, package_name;
+        split_conda_url(url, scheme, host, port, path, auth, token, package_name);
 
         auto config = read_channel_configuration(scheme, host, port, path);
 
-        return Channel(config.m_scheme.size() ? config.m_scheme : "https",
-                       auth.size() ? auth : config.m_auth,
-                       config.m_location,
-                       token.size() ? token : config.m_token,
-                       config.m_name,
-                       platform,
-                       package_name);
+        return ChannelInternal(
+            config.m_scheme.size() ? config.m_scheme : "https",
+            config.m_location,
+            config.m_name,
+            auth.size() ? std::make_optional(auth) : nonempty_str(std::move(config.m_auth)),
+            token.size() ? std::make_optional(token) : nonempty_str(std::move(config.m_token)),
+            nonempty_str(std::move(package_name)));
     }
 
-    Channel Channel::from_name(const std::string& name)
+    ChannelInternal ChannelInternal::from_name(const std::string& name)
     {
-        std::string stripped, platform;
-        split_platform(KNOWN_PLATFORMS, name, stripped, platform);
-
-        std::string tmp_stripped = stripped;
+        std::string tmp_stripped = name;
         const auto& custom_channels = ChannelContext::instance().get_custom_channels();
         auto it_end = custom_channels.end();
         auto it = custom_channels.find(tmp_stripped);
@@ -456,19 +457,18 @@ namespace mamba
 
         if (it != it_end)
         {
-            return Channel(it->second.scheme(),
-                           it->second.auth(),
-                           it->second.location(),
-                           it->second.token(),
-                           stripped,
-                           platform != "" ? platform : it->second.platform(),
-                           it->second.package_filename());
+            return ChannelInternal(it->second.scheme(),
+                                   it->second.location(),
+                                   name,
+                                   it->second.auth(),
+                                   it->second.token(),
+                                   it->second.package_filename());
         }
         else
         {
             const Channel& alias = ChannelContext::instance().get_channel_alias();
-            return Channel(
-                alias.scheme(), alias.auth(), alias.location(), alias.token(), stripped, platform);
+            return ChannelInternal(
+                alias.scheme(), alias.location(), name, alias.auth(), alias.token());
         }
     }
 
@@ -491,110 +491,126 @@ namespace mamba
 #endif
     }
 
-    Channel Channel::from_value(const std::string& value)
+    static std::vector<std::string> take_platforms(std::string& value)
     {
-        if (INVALID_CHANNELS.find(value) != INVALID_CHANNELS.end())
+        std::vector<std::string> platforms;
+        if (!value.empty())
         {
-            return Channel("", "", "", "", UNKNOWN_CHANNEL);
+            if (value[value.size() - 1] == ']')
+            {
+                const auto end_value = value.find_last_of('[');
+                if (end_value != std::string::npos)
+                {
+                    auto ind = end_value + 1;
+                    while (ind < value.size() - 1)
+                    {
+                        auto end = value.find_first_of(", ]", ind);
+                        assert(end != std::string::npos);
+                        platforms.emplace_back(value.substr(ind, end - ind));
+                        ind = end;
+                        while (value[ind] == ',' || value[ind] == ' ')
+                            ind++;
+                    }
+
+                    value.resize(end_value);
+                }
+            }
         }
 
-        if (has_scheme(value))
+        if (platforms.empty())
         {
-            return Channel::from_url(fix_win_path(value));
+            platforms = Context::instance().platforms();
+        }
+        return platforms;
+    }
+
+
+    ChannelInternal ChannelInternal::from_value(const std::string& in_value)
+    {
+        if (INVALID_CHANNELS.count(in_value) > 0)
+        {
+            return ChannelInternal("", "", UNKNOWN_CHANNEL, "");
         }
 
-        if (is_path(value))
-        {
-            return Channel::from_url(path_to_url(value));
-        }
+        std::string value = in_value;
+        auto platforms = take_platforms(value);
 
-        if (is_package_file(value))
-        {
-            return Channel::from_url(fix_win_path(value));
-        }
+        auto chan = has_scheme(value)        ? ChannelInternal::from_url(fix_win_path(value))
+                    : is_path(value)         ? ChannelInternal::from_url(path_to_url(value))
+                    : is_package_file(value) ? ChannelInternal::from_url(fix_win_path(value))
+                                             : ChannelInternal::from_name(value);
 
-        return Channel::from_name(value);
+        chan.m_platforms = std::move(platforms);
+
+        return chan;
+    }
+
+    ChannelInternal ChannelInternal::from_alias(const std::string& scheme,
+                                                const std::string& location,
+                                                const std::optional<std::string>& auth,
+                                                const std::optional<std::string>& token)
+    {
+        return ChannelInternal(scheme, location, "<alias>", auth, token);
     }
 
     /************************************
      * utility functions implementation *
      ************************************/
 
-    Channel& make_channel(const std::string& value)
+    const Channel& make_channel(const std::string& value)
     {
-        return Channel::make_cached_channel(value);
+        return ChannelInternal::make_cached_channel(value);
     }
 
-    void append_channel_urls(const std::string name,
-                             const std::vector<std::string>& platforms,
-                             bool with_credential,
-                             std::vector<std::string>& result,
-                             std::set<std::string>& control)
+    static void append_channel_urls(const std::string name,
+                                    bool with_credential,
+                                    std::vector<std::string>& result,
+                                    std::set<std::string>& control)
     {
         // this checks if the channel is already in our channel_urls list
         bool ret = !control.insert(name).second;
         if (ret)
             return;
 
-        std::vector<std::string> urls = make_channel(name).urls(platforms, with_credential);
+        std::vector<std::string> urls = make_channel(name).urls(with_credential);
         std::copy(urls.begin(), urls.end(), std::back_inserter(result));
     }
 
-    std::vector<std::string> get_channel_urls(const std::vector<std::string>& channel_names,
-                                              const std::vector<std::string>& platforms,
-                                              bool with_credential)
+    std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names)
     {
-        std::set<std::string> control;
-        std::vector<std::string> result;
-        result.reserve(channel_names.size() * platforms.size());
-        for (const auto& name : channel_names)
+        std::set<const Channel*> added;
+        std::vector<const Channel*> result;
+        for (auto name : channel_names)
         {
+            std::string platform_spec;
+            auto platform_spec_ind = name.find("[");
+            if (platform_spec_ind != std::string::npos)
+            {
+                platform_spec = name.substr(platform_spec_ind);
+                name = name.substr(0, platform_spec_ind);
+            }
+
+            auto add_channel = [&](const std::string& name) {
+                auto channel = &make_channel(name + platform_spec);
+                if (added.insert(channel).second)
+                {
+                    result.push_back(channel);
+                }
+            };
             auto multi_iter = ChannelContext::instance().get_custom_multichannels().find(name);
             if (multi_iter != ChannelContext::instance().get_custom_multichannels().end())
             {
                 for (const auto& n : multi_iter->second)
                 {
-                    append_channel_urls(n, platforms, with_credential, result, control);
+                    add_channel(n);
                 }
             }
             else
             {
-                append_channel_urls(name, platforms, with_credential, result, control);
+                add_channel(name);
             }
         }
         return result;
-    }
-
-    std::vector<std::string> calculate_channel_urls(const std::vector<std::string>& channel_names,
-                                                    bool append_context_channels,
-                                                    const std::string& platform,
-                                                    bool use_local)
-    {
-        // TODO that doesn't seem very logical
-        std::vector<std::string> platforms = platform.size()
-                                                 ? std::vector<std::string>({ platform, "noarch" })
-                                                 : Context::instance().platforms();
-
-        if (append_context_channels || use_local)
-        {
-            const auto& ctx_channels = Context::instance().channels;
-            std::vector<std::string> names;
-            names.reserve(channel_names.size() + 1 + ctx_channels.size());
-            if (use_local)
-            {
-                names.push_back(LOCAL_CHANNELS_NAME);
-            }
-            std::copy(channel_names.begin(), channel_names.end(), std::back_inserter(names));
-            if (append_context_channels)
-            {
-                std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(names));
-            }
-            return get_channel_urls(names, platforms);
-        }
-        else
-        {
-            return get_channel_urls(channel_names, platforms);
-        }
     }
 
     void check_whitelist(const std::vector<std::string>& urls)
@@ -665,7 +681,8 @@ namespace mamba
         std::string alias = ctx.channel_alias;
         std::string location, scheme, auth, token;
         split_scheme_auth_token(alias, location, scheme, auth, token);
-        return Channel(scheme, auth, location, token);
+        return ChannelInternal::from_alias(
+            scheme, location, nonempty_str(std::move(auth)), nonempty_str(std::move(token)));
     }
 
     void ChannelContext::init_custom_channels()
@@ -680,8 +697,8 @@ namespace mamba
         auto name_iter = default_names.begin();
         for (auto& url : default_channels)
         {
-            auto channel
-                = Channel::make_simple_channel(m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
+            auto channel = ChannelInternal::make_simple_channel(
+                m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
             std::string name = channel.name();
             auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
             *name_iter++ = res.first->first;
@@ -701,8 +718,8 @@ namespace mamba
             if (fs::is_directory(p))
             {
                 std::string url = path_to_url(p);
-                auto channel
-                    = Channel::make_simple_channel(m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
+                auto channel = ChannelInternal::make_simple_channel(
+                    m_channel_alias, url, "", LOCAL_CHANNELS_NAME);
                 std::string name = channel.name();
                 auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
                 local_names.push_back(res.first->first);
@@ -718,7 +735,8 @@ namespace mamba
         for (auto& ch : DEFAULT_CUSTOM_CHANNELS)
         {
             m_custom_channels.emplace(
-                ch.first, Channel::make_simple_channel(m_channel_alias, ch.second, ch.first));
+                ch.first,
+                ChannelInternal::make_simple_channel(m_channel_alias, ch.second, ch.first));
         }
     }
 

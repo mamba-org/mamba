@@ -174,7 +174,7 @@ PYBIND11_MODULE(mamba_api, m)
              });
 
     py::class_<MSubdirData>(m, "SubdirData")
-        .def(py::init<const std::string&, const std::string&, const std::string&>())
+        .def(py::init<const std::string&, const std::string&, const std::string&, bool>())
         .def("create_repo", &MSubdirData::create_repo)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
@@ -228,19 +228,39 @@ PYBIND11_MODULE(mamba_api, m)
         .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
         .def_readwrite("name", &PackageInfo::name);
 
-    py::class_<Channel>(m, "Channel")
-        .def(py::init([](const std::string& value) { return &(make_channel(value)); }))
+    py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel")
+        .def(py::init(
+            [](const std::string& value) { return const_cast<Channel*>(&make_channel(value)); }))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
-        .def_property_readonly("platform", &Channel::platform)
-        .def_property_readonly("subdir", &Channel::platform)
+        .def_property_readonly("auth", &Channel::auth)
+        .def_property_readonly("token", &Channel::token)
+        .def_property_readonly("package_filename", &Channel::package_filename)
+        .def_property_readonly("platforms", &Channel::platforms)
         .def_property_readonly("canonical_name", &Channel::canonical_name)
-        .def("url", &Channel::url, py::arg("with_credentials") = true)
-        .def("__repr__", [](const Channel& c) { return join_url(c.name(), c.platform()); });
+        .def("urls", &Channel::urls, py::arg("with_credentials") = true)
+        .def("platform_urls", &Channel::platform_urls, py::arg("with_credentials") = true)
+        .def("platform_url",
+             &Channel::platform_url,
+             py::arg("platform"),
+             py::arg("with_credentials") = true)
+        .def("__repr__", [](const Channel& c) {
+            auto s = c.name();
+            s += "[";
+            bool first = true;
+            for (const auto& platform : c.platforms())
+            {
+                if (!first)
+                    s += ",";
+                s += platform;
+                first = false;
+            }
+            s += "]";
+            return s;
+        });
 
-    m.def("get_channel_urls", &get_channel_urls);
-    m.def("calculate_channel_urls", &calculate_channel_urls);
+    m.def("get_channels", &get_channels);
 
     m.def("transmute", &transmute);
 

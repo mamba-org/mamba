@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <set>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 
@@ -333,7 +335,10 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        std::vector<std::string> channel_urls = calculate_channel_urls(ctx.channels);
+        std::vector<std::string> channel_urls = ctx.channels;
+        // Always append context channels
+        auto& ctx_channels = Context::instance().channels;
+        std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channel_urls));
 
         std::vector<std::shared_ptr<MSubdirData>> subdirs;
         MultiDownloadTarget multi_dl;
@@ -352,32 +357,34 @@ namespace mamba
             load_tokens();
         }
 
-        for (auto& url : channel_urls)
+        for (auto channel : get_channels(channel_urls))
         {
-            auto& channel = make_channel(url);
-            std::string repodata_full_url = concat(channel.url(true), "/repodata.json");
-
-            auto sdir
-                = std::make_shared<MSubdirData>(concat(channel.name(), "/", channel.platform()),
-                                                repodata_full_url,
-                                                cache_dir / cache_fn_url(repodata_full_url));
-
-            sdir->load();
-            multi_dl.add(sdir->target());
-            subdirs.push_back(sdir);
-            if (ctx.channel_priority == ChannelPriority::kDisabled)
+            for (auto& [platform, url] : channel->platform_urls(true))
             {
-                priorities.push_back(std::make_pair(0, max_prio--));
-            }
-            else  // Consider 'flexible' and 'strict' the same way
-            {
-                if (channel.name() != prev_channel_name)
+                std::string repodata_full_url = concat(url, "/repodata.json");
+
+                auto sdir
+                    = std::make_shared<MSubdirData>(concat(channel->name(), "/", platform),
+                                                    repodata_full_url,
+                                                    cache_dir / cache_fn_url(repodata_full_url),
+                                                    platform == "noarch");
+
+                sdir->load();
+                multi_dl.add(sdir->target());
+                subdirs.push_back(sdir);
+                if (ctx.channel_priority == ChannelPriority::kDisabled)
                 {
-                    max_prio--;
-                    prev_channel_name = channel.name();
+                    priorities.push_back(std::make_pair(0, max_prio--));
                 }
-                priorities.push_back(
-                    std::make_pair(max_prio, channel.platform() == "noarch" ? 0 : 1));
+                else  // Consider 'flexible' and 'strict' the same way
+                {
+                    if (channel->name() != prev_channel_name)
+                    {
+                        max_prio--;
+                        prev_channel_name = channel->name();
+                    }
+                    priorities.push_back(std::make_pair(max_prio, platform == "noarch" ? 0 : 1));
+                }
             }
         }
         if (!ctx.offline)

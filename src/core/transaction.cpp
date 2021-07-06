@@ -754,8 +754,7 @@ namespace mamba
             auto& ctx = Context::instance();
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker
-                    = Channel::make_cached_channel(mamba_repo->url()).repo_checker();
+                const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker();
 
                 auto pkg_info = PackageInfo(s);
 

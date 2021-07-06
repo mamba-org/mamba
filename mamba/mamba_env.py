@@ -11,7 +11,6 @@ from conda.base.context import context
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import get_pinned_specs
-from conda.models.channel import prioritize_channels
 from conda.models.match_spec import MatchSpec
 from conda_env.installers import conda
 
@@ -38,13 +37,9 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         if spec_channel and spec_channel not in channel_urls:
             channel_urls.append(str(spec_channel))
 
-    ordered_channels_dict = prioritize_channels(channel_urls)
-
     pool = api.Pool()
     repos = []
-    index = load_channels(
-        pool, tuple(ordered_channels_dict.keys()), repos, prepend=False
-    )
+    index = load_channels(pool, channel_urls, repos, prepend=False)
 
     if not (context.quiet or context.json):
         print("\n\nLooking for: {}\n\n".format(specs))

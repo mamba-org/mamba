@@ -86,17 +86,18 @@ namespace mamba
             }
             auto& parsed_channel = make_channel(spec_str);
 
-            if (!parsed_channel.platform().empty())
+            if (parsed_channel.package_filename())
             {
-                auto dist = parse_legacy_dist(parsed_channel.package_filename());
+                auto dist = parse_legacy_dist(*parsed_channel.package_filename());
 
                 name = dist[0];
                 version = dist[1];
                 build = dist[2];
 
                 channel = parsed_channel.canonical_name();
-                subdir = parsed_channel.platform();
-                fn = parsed_channel.package_filename();
+                // TODO how to handle this with multiple platforms?
+                // subdir = parsed_channel.platforms();
+                fn = *parsed_channel.package_filename();
                 url = spec_str;
                 is_file = true;
             }

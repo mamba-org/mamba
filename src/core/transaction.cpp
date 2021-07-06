@@ -143,6 +143,7 @@ namespace mamba
                 LOG_INFO << "Extracted to " << extract_path;
                 write_repodata_record(extract_path);
                 add_url();
+                m_progress_proxy.mark_as_completed("Extraction successful");
             }
             catch (std::exception& e)
             {

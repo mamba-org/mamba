@@ -23,6 +23,9 @@ namespace mamba
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
+
+        if (Context::instance().channel_priority == ChannelPriority::kStrict)
+            m_flags.push_back(std::make_pair<int, int>(SOLVER_FLAG_STRICT_REPO_PRIORITY, 1));
     }
 
     MSolver::~MSolver()
@@ -133,40 +136,6 @@ namespace mamba
         Id inst_id
             = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
         queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
-    }
-
-    void MSolver::apply_strict_priority()
-    {
-        // this blacklists all lower-prio packages
-        // to be implemented in libsolv directly
-        std::map<Id, int> max_prio_map;
-        Pool* pool = m_pool;
-        Id p;
-        FOR_POOL_SOLVABLES(p)
-        {
-            Solvable* s = pool->solvables + p;
-            if (max_prio_map.find(s->name) != max_prio_map.end())
-                max_prio_map[s->name] = std::max(max_prio_map[s->name], s->repo->priority);
-            else
-                max_prio_map[s->name] = s->repo->priority;
-        }
-
-        Queue selected_pkgs;
-        queue_init(&selected_pkgs);
-
-        Repo* installed = pool->installed;
-
-        FOR_POOL_SOLVABLES(p)
-        {
-            Solvable* s = pool->solvables + p;
-            if (s->repo != installed && s->repo->priority < max_prio_map[s->name])
-            {
-                queue_push(&selected_pkgs, p);
-            }
-        }
-        Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
-        queue_push2(&m_jobs, SOLVER_BLACKLIST | SOLVER_SOLVABLE_ONE_OF, d);
-        queue_free(&selected_pkgs);
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -383,13 +352,7 @@ namespace mamba
     {
         bool success;
         m_solver = solver_create(m_pool);
-        Pool* pool = m_pool;
         set_flags(m_flags);
-
-        if (Context::instance().channel_priority == ChannelPriority::kStrict)
-        {
-            apply_strict_priority();
-        }
 
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;

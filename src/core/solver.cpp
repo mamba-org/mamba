@@ -176,6 +176,12 @@ namespace mamba
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
             MatchSpec ms(job);
+
+            if (!ms.channel.empty() && job_flag & SOLVER_INSTALL)
+            {
+                add_channel_specific_job(ms, job_flag);
+            }
+
             if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
             {
                 // ignoring update specs here for now
@@ -199,7 +205,9 @@ namespace mamba
                 m_remove_specs.emplace_back(job);
             }
             else if (((job_flag & SOLVER_LOCK) ^ SOLVER_LOCK) == 0)
+            {
                 m_neuter_specs.emplace_back(job);
+            }
 
             if (!ms.channel.empty())
             {
@@ -210,7 +218,8 @@ namespace mamba
                 }
                 add_channel_specific_job(ms, job_flag);
             }
-            else if (job_flag & SOLVER_INSTALL && force_reinstall)
+
+            if (job_flag & SOLVER_INSTALL && force_reinstall)
             {
                 add_reinstall_job(ms, job_flag);
             }

@@ -235,6 +235,26 @@ namespace mamba
         EXPECT_TRUE(u.date[0] == '2' && u.date[1] == '0');
     }
 
+    TEST(output, hide_secrets)
+    {
+        auto res = Console::instance().hide_secrets("http://myweb.com/t/my-12345-token/test.repo");
+        EXPECT_EQ(res, "http://myweb.com/t/*****/test.repo");
+
+        res = Console::instance().hide_secrets("http://root:secretpassword@myweb.com/test.repo");
+        EXPECT_EQ(res, "http://root:*****@myweb.com/test.repo");
+
+        res = Console::instance().hide_secrets(
+            "http://root:secretpassword@myweb.com/test.repo http://root:secretpassword@myweb.com/test.repo");
+        EXPECT_EQ(res,
+                  "http://root:*****@myweb.com/test.repo http://root:*****@myweb.com/test.repo");
+
+        res = Console::instance().hide_secrets(
+            "http://root:secretpassword@myweb.com/test.repo\nhttp://myweb.com/t/my-12345-token/test.repo http://myweb.com/t/my-12345-token/test.repo http://root:secretpassword@myweb.com/test.repo");
+        EXPECT_EQ(
+            res,
+            "http://root:*****@myweb.com/test.repo\nhttp://myweb.com/t/*****/test.repo http://myweb.com/t/*****/test.repo http://root:*****@myweb.com/test.repo");
+    }
+
     TEST(output, no_progress_bars)
     {
         Context::instance().no_progress_bars = true;

@@ -17,6 +17,7 @@
 #include <string_view>
 #include <time.h>
 #include <vector>
+#include <regex>
 
 #include "nlohmann/json.hpp"
 
@@ -41,6 +42,9 @@ namespace mamba
 #else
 #error "no supported OS detected"
 #endif
+
+    const static std::regex token_re("/t/([a-zA-Z0-9-]*)");
+    const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
 
     class mamba_error : public std::runtime_error
     {

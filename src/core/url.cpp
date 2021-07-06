@@ -24,7 +24,6 @@ namespace mamba
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
-        std::regex token_re("/t/([a-zA-Z0-9-]*)");
         auto token_begin = std::sregex_iterator(url.begin(), url.end(), token_re);
         if (token_begin != std::sregex_iterator())
         {

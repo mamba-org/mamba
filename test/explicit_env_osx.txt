@@ -5,6 +5,7 @@
 
 https://repo.anaconda.com/pkgs/main/osx-64/ca-certificates-2021.5.25-hecd8cb5_1.conda
 
+# some comment in the middle of nowhere
 https://repo.anaconda.com/pkgs/main/osx-64/libcxx-10.0.0-1.conda
 https://repo.anaconda.com/pkgs/main/noarch/tzdata-2021a-h52ac0ba_0.conda
 https://repo.anaconda.com/pkgs/main/osx-64/xz-5.2.5-h1de35cc_0.conda

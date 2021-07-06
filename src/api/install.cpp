@@ -563,7 +563,7 @@ namespace mamba
             }
         }
 
-        if (detail::download_explicit(pkg_infos))
+        if (!Context::instance().dry_run && detail::download_explicit(pkg_infos))
         {
             auto& ctx = Context::instance();
             // pkgs can now be linked
@@ -698,7 +698,8 @@ namespace mamba
                             for (auto f = file_contents.begin() + i + 1; f != file_contents.end();
                                  ++f)
                             {
-                                if (!(*f).empty())
+                                std::string_view spec = strip((*f));
+                                if (!spec.empty() && spec[0] != '#')
                                     explicit_specs.push_back(*f);
                             }
 

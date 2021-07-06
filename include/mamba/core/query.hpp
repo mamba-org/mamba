@@ -91,6 +91,8 @@ namespace mamba
         std::ostream& tree(std::ostream&) const;
         nl::json json() const;
 
+        std::ostream& pretty(std::ostream&) const;
+
     private:
         void reset_pkg_view_list();
         std::string get_package_repr(const PackageInfo& pkg) const;

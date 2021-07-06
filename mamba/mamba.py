@@ -715,6 +715,8 @@ def repoquery(args, parser):
         fmt = api.QueryFormat.JSON
     elif hasattr(args, "tree") and args.tree:
         fmt = api.QueryFormat.TREE
+    elif hasattr(args, "pretty") and args.pretty:
+        fmt = api.QueryFormat.PRETTY
     else:
         fmt = api.QueryFormat.TABLE
 
@@ -787,6 +789,7 @@ Examples:
 
     package_cmds.add_argument("-p", "--platform")
     package_cmds.add_argument("--no-installed", action="store_true")
+    package_cmds.add_argument("--pretty", action="store_true")
 
     package_cmds.add_argument(
         "-a",

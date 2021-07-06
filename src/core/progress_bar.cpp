@@ -124,35 +124,38 @@ namespace mamba
 
     void MultiBarManager::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
     {
-        if (Context::instance().no_progress_bars
-            && !(Context::instance().quiet || Context::instance().json))
-        {
-            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
-        }
-
         auto it = std::find(m_active_progress_bars.begin(),
                             m_active_progress_bars.end(),
                             m_progress_bars[idx].get());
         if (it == m_active_progress_bars.end() || Context::instance().quiet
             || Context::instance().json)
         {
-            // if no_progress_bars is true, should return here as no progress bars are
-            // active
+            // if no_progress_bars is true, should return here
+            // as no progress bars are active
             std::cout << std::flush;
             return;
         }
 
         m_active_progress_bars.erase(it);
-        int ps = m_active_progress_bars.size();
-        std::cout << cursor::up(ps + 1) << cursor::erase_line();
-        if (msg.empty())
+
+        if (Context::instance().no_progress_bars)
         {
-            m_progress_bars[idx]->print();
-            std::cout << std::endl;
+            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
+            return;
         }
         else
         {
-            std::cout << msg << std::endl;
+            int ps = m_active_progress_bars.size();
+            std::cout << cursor::up(ps + 1) << cursor::erase_line();
+            if (msg.empty())
+            {
+                m_progress_bars[idx]->print();
+                std::cout << std::endl;
+            }
+            else
+            {
+                std::cout << msg << std::endl;
+            }
         }
         print_progress();
     }
@@ -236,15 +239,13 @@ namespace mamba
 
     void AggregatedBarManager::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
     {
-        if (Context::instance().no_progress_bars
-            && !(Context::instance().quiet || Context::instance().json))
-        {
-            std::cout << m_progress_bars[idx]->prefix() << " " << msg << '\n';
-        }
-
         if (Context::instance().quiet || Context::instance().json)
         {
-            std::cout << std::flush;
+            return;
+        }
+        else if (Context::instance().no_progress_bars)
+        {
+            std::cout << msg << '\n';
             return;
         }
 

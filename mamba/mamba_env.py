@@ -88,7 +88,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
         try:
             final_spec = s.conda_build_form()
-            pinned_specs_info += f"  - {final_spec}"
+            pinned_specs_info += f"  - {final_spec}\n"
             solver.add_pin(final_spec)
         except AssertionError:
             print(

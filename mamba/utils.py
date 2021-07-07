@@ -106,7 +106,7 @@ def load_channels(
     pool,
     channels,
     repos,
-    strict_priority=None,
+    has_priority=None,
     prepend=True,
     platform=None,
     use_local=False,
@@ -122,11 +122,14 @@ def load_channels(
         use_cache=use_cache,
     )
 
-    if strict_priority is None:
-        strict_priority = context.channel_priority == ChannelPriority.STRICT
+    if has_priority is None:
+        has_priority = context.channel_priority in [
+            ChannelPriority.STRICT,
+            ChannelPriority.FLEXIBLE,
+        ]
 
     subprio_index = len(index)
-    if strict_priority:
+    if has_priority:
         # first, count unique channels
         n_channels = len(set([entry["channel"].canonical_name for _, entry in index]))
         current_channel = index[0][1]["channel"].canonical_name
@@ -134,14 +137,14 @@ def load_channels(
 
     for subdir, entry in index:
         # add priority here
-        if strict_priority:
+        if has_priority:
             if entry["channel"].canonical_name != current_channel:
                 channel_prio -= 1
                 current_channel = entry["channel"].canonical_name
             priority = channel_prio
         else:
             priority = 0
-        if strict_priority:
+        if has_priority:
             subpriority = 0 if entry["platform"] == "noarch" else 1
         else:
             subpriority = subprio_index
@@ -199,6 +202,13 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
+
+    if context.channel_priority is ChannelPriority.STRICT:
+        api_ctx.channel_priority = api.ChannelPriority.kStrict
+    elif context.channel_priority is ChannelPriority.FLEXIBLE:
+        api_ctx.channel_priority = api.ChannelPriority.kFlexible
+    elif context.channel_priority is ChannelPriority.DISABLED:
+        api_ctx.channel_priority = api.ChannelPriority.kDisabled
 
 
 def to_conda_channel(channel, platform):

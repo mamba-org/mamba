@@ -72,8 +72,11 @@ namespace mamba
             auto repo = MRepo(pool, prefix_data);
             repos.push_back(repo);
 
-            MSolver solver(
-                pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 }, { SOLVER_FLAG_ALLOW_UNINSTALL, 1 } });
+            MSolver solver(pool,
+                           { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                             { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
+                             { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                               ctx.channel_priority == ChannelPriority::kStrict } });
 
             History history(ctx.target_prefix);
             auto hist_map = history.get_requested_specs_map();

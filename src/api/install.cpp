@@ -464,7 +464,10 @@ namespace mamba
             throw std::runtime_error("Could not load repodata. Cache corrupted?");
         }
 
-        MSolver solver(pool, { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+        MSolver solver(pool,
+                       { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                         { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                           ctx.channel_priority == ChannelPriority::kStrict } });
 
         if (ctx.freeze_installed && !prefix_pkgs.empty())
         {

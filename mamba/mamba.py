@@ -10,7 +10,7 @@ from logging import getLogger
 from os.path import isdir, isfile, join
 
 # create support
-from conda.base.constants import DepsModifier, UpdateModifier
+from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
 from conda.base.context import context
 from conda.cli import common as cli_common
 from conda.cli.common import (
@@ -223,6 +223,9 @@ def remove(args, parser):
         mamba_solve_specs = [s.conda_build_form() for s in specs]
 
         solver_options.append((api.SOLVER_FLAG_ALLOW_UNINSTALL, 1))
+
+        if context.channel_priority is ChannelPriority.STRICT:
+            solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
         pool = api.Pool()
         repos = []
@@ -492,6 +495,9 @@ def install(args, parser, command="install"):
             python_constraint = MatchSpec("python==" + version).conda_build_form()
 
     mamba_solve_specs = [s.__str__() for s in specs]
+
+    if context.channel_priority is ChannelPriority.STRICT:
+        solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
     pool = api.Pool()
 

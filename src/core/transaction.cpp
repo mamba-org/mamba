@@ -808,7 +808,8 @@ namespace mamba
             {
                 t->clear_cache();
                 all_valid = false;
-                throw std::runtime_error("Found incorrect download. Aborting");
+                throw std::runtime_error(std::string("Found incorrect download: ") + t->name()
+                                         + ". Aborting");
             }
         }
 

@@ -465,9 +465,9 @@ namespace mamba
         }
 
         MSolver solver(pool,
-                       { { SOLVER_FLAG_ALLOW_DOWNGRADE,
-                           1 } { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                                 ctx.channel_priority == ChannelPriority::kStrict } });
+                       { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                         { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                           ctx.channel_priority == ChannelPriority::kStrict } });
 
         if (ctx.freeze_installed && !prefix_pkgs.empty())
         {

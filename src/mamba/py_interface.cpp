@@ -194,6 +194,11 @@ PYBIND11_MODULE(mamba_api, m)
              [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); })
         .def("download", &MultiDownloadTarget::download);
 
+    py::enum_<ChannelPriority>(m, "ChannelPriority")
+        .value("kFlexible", ChannelPriority::kFlexible)
+        .value("kStrict", ChannelPriority::kStrict)
+        .value("kDisabled", ChannelPriority::kDisabled);
+
     py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
         .def(
             py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
@@ -220,7 +225,8 @@ PYBIND11_MODULE(mamba_api, m)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def("set_verbosity", &Context::set_verbosity)
         .def_readwrite("channels", &Context::channels)
-        .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2);
+        .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
+        .def_readwrite("channel_priority", &Context::channel_priority);
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())
@@ -335,6 +341,7 @@ PYBIND11_MODULE(mamba_api, m)
     m.attr("SOLVER_FLAG_STRONG_RECOMMENDS") = SOLVER_FLAG_STRONG_RECOMMENDS;
     m.attr("SOLVER_FLAG_INSTALL_ALSO_UPDATES") = SOLVER_FLAG_INSTALL_ALSO_UPDATES;
     m.attr("SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED") = SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED;
+    m.attr("SOLVER_FLAG_STRICT_REPO_PRIORITY") = SOLVER_FLAG_STRICT_REPO_PRIORITY;
 
     m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;
     m.attr("MAMBA_ONLY_DEPS") = MAMBA_ONLY_DEPS;

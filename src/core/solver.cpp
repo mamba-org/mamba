@@ -23,9 +23,6 @@ namespace mamba
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
-
-        if (Context::instance().channel_priority == ChannelPriority::kStrict)
-            m_flags.push_back(std::make_pair<int, int>(SOLVER_FLAG_STRICT_REPO_PRIORITY, 1));
     }
 
     MSolver::~MSolver()

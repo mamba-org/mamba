@@ -535,12 +535,10 @@ namespace mamba
         std::string value = in_value;
         auto platforms = take_platforms(value);
 
-        auto chan = has_scheme(value)
-                        ? ChannelInternal::from_url(fix_win_path(value))
-                        : is_path(value) ? ChannelInternal::from_url(path_to_url(value))
-                                         : is_package_file(value)
-                                               ? ChannelInternal::from_url(fix_win_path(value))
-                                               : ChannelInternal::from_name(value);
+        auto chan = has_scheme(value)        ? ChannelInternal::from_url(fix_win_path(value))
+                    : is_path(value)         ? ChannelInternal::from_url(path_to_url(value))
+                    : is_package_file(value) ? ChannelInternal::from_url(fix_win_path(value))
+                                             : ChannelInternal::from_name(value);
 
         chan.m_platforms = std::move(platforms);
 

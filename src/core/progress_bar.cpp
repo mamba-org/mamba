@@ -374,6 +374,7 @@ namespace mamba
     ProgressBar::ProgressBar(const std::string& prefix)
         : m_prefix(prefix)
         , m_start_time_saved(false)
+        , m_activate_bob(false)
     {
     }
 

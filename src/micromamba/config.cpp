@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
-#include <filesystem>
 
 #include "common_options.hpp"
 

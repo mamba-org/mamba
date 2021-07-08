@@ -42,6 +42,9 @@ def get_index(
     prefix=None,
     repodata_fn="repodata.json",
 ):
+    if isinstance(platform, str):
+        platform = [platform, "noarch"]
+
     all_channels = []
     if use_local:
         all_channels.append("local")
@@ -67,7 +70,7 @@ def get_index(
                 + spec[first_at + 1 :]
             )
         if platform:
-            spec = spec + "[" + platform + "]"
+            spec = spec + "[" + ",".join(platform) + "]"
         return spec
 
     all_channels = list(map(fixup_channel_spec, all_channels))

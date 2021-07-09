@@ -1,4 +1,4 @@
-0.15.0 (July 7, 2021)
+0.15.0 (July 9, 2021)
 =====================
 
 Big changes:
@@ -14,6 +14,13 @@ Big changes:
 	  will use packages from lower-priority channels if necessary to fulfill
 	  dependencies or explicitly requested (e.g. by version number). Disabled
 	  will use the highest version number, irregardless of the channel order.
+- allow subdir selection as part of the channel: users can now specify an
+  explicit list of subdirs, for example:
+
+      `-c mychannel[linux-static64, linux-64, noarch]`
+
+  to pull in repodata and packages from these three subdirs.
+  Thanks for the contribution, @afranchuk! #1033
 
 New features
 - remove orphaned packages such as dependencies of explicitely installed

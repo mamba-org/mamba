@@ -333,6 +333,9 @@ if (NOT (BUILD_EXE AND STATIC_DEPENDENCIES))
             PATTERN "*.hpp"
             PATTERN "*.h")
 
+    install(DIRECTORY "${MAMBA_SRC_DIR}/mamba/shell/"
+            DESTINATION "${CMAKE_INSTALL_PREFIX}/etc/profile.d")
+
     # Makes the project importable from the build directory
     export(EXPORT ${PROJECT_NAME}-targets
            FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")

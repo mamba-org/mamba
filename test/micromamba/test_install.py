@@ -491,7 +491,7 @@ class TestInstall:
         assert expected_packages == link_packages
         assert res["actions"]["LINK"][0]["version"] == "0.2.0"
 
-    def test_channel_specific_job(self):
+    def test_channel_specific(self):
         res = install(
             "conda-forge::xtensor", "--json", default_channel=False, no_rc=True
         )

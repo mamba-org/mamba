@@ -412,8 +412,8 @@ def install(args, parser, command="install"):
     for spec in specs:
         # CONDA TODO: correct handling for subdir isn't yet done
         spec_channel = spec.get_exact_value("channel")
-        if spec_channel and spec_channel not in channels:
-            channels.append(spec_channel)
+        if spec_channel and spec_channel.base_url not in channels:
+            channels.append(spec_channel.base_url)
 
     index_args["channel_urls"] = channels
 

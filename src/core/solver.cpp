@@ -143,11 +143,6 @@ namespace mamba
             // which are the flags for SOLVER_UPDATE
             MatchSpec ms(job);
 
-            if (!ms.channel.empty() && job_flag & SOLVER_INSTALL)
-            {
-                add_channel_specific_job(ms, job_flag);
-            }
-
             if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
             {
                 // ignoring update specs here for now

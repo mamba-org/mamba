@@ -490,3 +490,21 @@ class TestInstall:
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_packages == link_packages
         assert res["actions"]["LINK"][0]["version"] == "0.2.0"
+
+    def test_channel_specific_job(self):
+        res = install(
+            "conda-forge::xtensor", "--json", default_channel=False, no_rc=True
+        )
+
+        keys = {"success", "prefix", "actions", "dry_run"}
+        assert keys.issubset(set(res.keys()))
+
+        action_keys = {"LINK", "PREFIX"}
+        assert action_keys.issubset(set(res["actions"].keys()))
+
+        expected_packages = {"xtensor", "xtl"}
+        link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
+        assert expected_packages.issubset(link_packages)
+
+        for pkg in res["actions"]["LINK"]:
+            assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")

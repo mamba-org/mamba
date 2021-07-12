@@ -235,6 +235,45 @@ namespace mamba
             out << std::flush;
             return out;
         }
+
+        bool string_comparison(const std::string& a, const std::string& b)
+        {
+            return a < b;
+        }
+
+        std::ostringstream table_like(const std::vector<std::string>& data, std::size_t max_width)
+        {
+            int pos = 0;
+            int padding = 3;
+            std::size_t data_max_width = 0;
+            std::ostringstream out;
+
+            for (const auto& d : data)
+                if (d.size() > data_max_width)
+                    data_max_width = d.size();
+
+            max_width -= max_width % (data_max_width + padding);
+            int block_width = padding + data_max_width;
+
+            auto sorted_data = data;
+            std::sort(sorted_data.begin(), sorted_data.end(), string_comparison);
+            for (const auto& d : sorted_data)
+            {
+                int p = block_width - d.size();
+
+                if ((pos + d.size()) < max_width)
+                {
+                    out << d << std::string(p, ' ');
+                    pos += block_width;
+                }
+                else
+                {
+                    out << "\n" << d << std::string(p, ' ');
+                    pos = block_width;
+                }
+            }
+            return out;
+        }
     }  // namespace printers
 
     /*****************

@@ -13,8 +13,6 @@
 
 #include "mamba/api/configuration.hpp"
 
-#include "completer.cpp"
-
 #include <CLI/CLI.hpp>
 
 
@@ -34,7 +32,7 @@ main(int argc, char** argv)
 
     if (argc >= 2 && strcmp(argv[1], "completer") == 0)
     {
-        get_completions(argc, argv);
+        get_completions(&app, argc, argv);
         exit(0);
     }
 

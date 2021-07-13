@@ -225,6 +225,8 @@ PYBIND11_MODULE(mamba_api, m)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def("set_verbosity", &Context::set_verbosity)
         .def_readwrite("channels", &Context::channels)
+        .def_readwrite("custom_channels", &Context::custom_channels)
+        .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority);
 

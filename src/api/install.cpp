@@ -363,11 +363,11 @@ namespace mamba
             {
                 std::string repodata_full_url = concat(url, "/repodata.json");
 
-                auto sdir
-                    = std::make_shared<MSubdirData>(concat(channel->name(), "/", platform),
-                                                    repodata_full_url,
-                                                    cache_dir / cache_fn_url(repodata_full_url),
-                                                    platform == "noarch");
+                auto sdir = std::make_shared<MSubdirData>(
+                    concat(channel->canonical_name(), "/", platform),
+                    repodata_full_url,
+                    cache_dir / cache_fn_url(repodata_full_url),
+                    platform == "noarch");
 
                 sdir->load();
                 multi_dl.add(sdir->target());

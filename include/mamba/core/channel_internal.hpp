@@ -60,6 +60,7 @@ namespace mamba
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
 
         static ChannelContext& instance();
+        void reset();
 
         ChannelContext(const ChannelContext&) = delete;
         ChannelContext& operator=(const ChannelContext&) = delete;

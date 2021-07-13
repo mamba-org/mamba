@@ -68,6 +68,92 @@ namespace mamba
         EXPECT_EQ(it->second.canonical_name(), "defaults");
     }
 
+    TEST(ChannelContext, channel_alias)
+    {
+        // ChannelContext builds its custom channels with
+        // make_simple_channel
+        auto& ctx = Context::instance();
+        ctx.channel_alias = "https://mydomain.com/channels/";
+        ChannelContext::instance().reset();
+
+        const auto& ch = ChannelContext::instance().get_channel_alias();
+        EXPECT_EQ(ch.scheme(), "https");
+        EXPECT_EQ(ch.location(), "mydomain.com/channels");
+        EXPECT_EQ(ch.name(), "<alias>");
+        EXPECT_EQ(ch.canonical_name(), "<alias>");
+
+        const auto& custom = ChannelContext::instance().get_custom_channels();
+
+        auto it = custom.find("pkgs/main");
+        EXPECT_NE(it, custom.end());
+        EXPECT_EQ(it->second.name(), "pkgs/main");
+        EXPECT_EQ(it->second.location(), "repo.anaconda.com");
+        EXPECT_EQ(it->second.canonical_name(), "defaults");
+
+        std::string value = "conda-forge";
+        const Channel& c = make_channel(value);
+        EXPECT_EQ(c.scheme(), "https");
+        EXPECT_EQ(c.location(), "mydomain.com/channels");
+        EXPECT_EQ(c.name(), "conda-forge");
+        EXPECT_EQ(c.canonical_name(), "conda-forge");
+        // EXPECT_EQ(c.url(), "conda-forge");
+        EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ChannelContext::instance().reset();
+    }
+
+    TEST(ChannelContext, custom_channels)
+    {
+        // ChannelContext builds its custom channels with
+        // make_simple_channel
+        auto& ctx = Context::instance();
+        ctx.channel_alias = "https://mydomain.com/channels/";
+        ctx.custom_channels = {
+            { "test_channel", "file:///tmp" },
+            { "some_channel", "https://conda.mydomain.xyz/" },
+        };
+        ChannelContext::instance().reset();
+
+        const auto& ch = ChannelContext::instance().get_channel_alias();
+        EXPECT_EQ(ch.scheme(), "https");
+        EXPECT_EQ(ch.location(), "mydomain.com/channels");
+        EXPECT_EQ(ch.name(), "<alias>");
+        EXPECT_EQ(ch.canonical_name(), "<alias>");
+
+        {
+            std::string value = "test_channel";
+            const Channel& c = make_channel(value);
+            EXPECT_EQ(c.scheme(), "file");
+            EXPECT_EQ(c.location(), "");
+            EXPECT_EQ(c.name(), "tmp/test_channel");
+            EXPECT_EQ(c.canonical_name(), "test_channel");
+            EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+            std::vector<std::string> exp_urls({ std::string("file:///tmp/test_channel/") + platform,
+                                                std::string("file:///tmp/test_channel/noarch") });
+            EXPECT_EQ(c.urls(), exp_urls);
+        }
+
+        {
+            std::string value = "some_channel";
+            const Channel& c = make_channel(value);
+            EXPECT_EQ(c.scheme(), "https");
+            EXPECT_EQ(c.location(), "conda.mydomain.xyz");
+            EXPECT_EQ(c.name(), "some_channel");
+            EXPECT_EQ(c.canonical_name(), "some_channel");
+            EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+            std::vector<std::string> exp_urls(
+                { std::string("https://conda.mydomain.xyz/some_channel/") + platform,
+                  std::string("https://conda.mydomain.xyz/some_channel/noarch") });
+            EXPECT_EQ(c.urls(), exp_urls);
+        }
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
+
     TEST(Channel, make_channel)
     {
         std::string value = "conda-forge";

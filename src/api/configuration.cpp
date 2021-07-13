@@ -546,6 +546,13 @@ namespace mamba
                         The list of channel names and/or urls used for the 'defaults'
                         multichannel.)")));
 
+        insert(Configurable("custom_channels", &ctx.custom_channels)
+                   .group("Channels")
+                   .set_rc_configurable()
+                   .set_env_var_name()
+                   .description("Custom channels")
+                   .long_description("A dictionary with name: url to use for custom channels."));
+
         insert(Configurable("override_channels_enabled", &ctx.override_channels_enabled)
                    .group("Channels")
                    .set_rc_configurable()

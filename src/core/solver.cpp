@@ -139,15 +139,18 @@ namespace mamba
     {
         for (const auto& job : jobs)
         {
+            MatchSpec ms(job);
+            int job_type = job_flag & SOLVER_JOBMASK;
+
+            if (job_type & SOLVER_INSTALL)
+                m_install_specs.emplace_back(job);
+            else if (job_type == SOLVER_ERASE)
+                m_remove_specs.emplace_back(job);
+            else if (job_type == SOLVER_LOCK)
+                m_neuter_specs.emplace_back(job);  // not used for the moment
+
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
-            MatchSpec ms(job);
-
-            if (!ms.channel.empty() && job_flag & SOLVER_INSTALL)
-            {
-                add_channel_specific_job(ms, job_flag);
-            }
-
             if (((job_flag & SOLVER_UPDATE) ^ SOLVER_UPDATE) == 0)
             {
                 // ignoring update specs here for now
@@ -157,35 +160,27 @@ namespace mamba
                                                       ms.conda_build_form().c_str());
                     queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
                 }
-                Id update_id
-                    = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.name.c_str());
-                queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
+                if (ms.channel.empty())
+                {
+                    Id update_id
+                        = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.name.c_str());
+                    queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
+                }
+                else
+                    add_channel_specific_job(ms, job_flag);
+
                 continue;
-            }
-            else if (job_flag & SOLVER_INSTALL)
-            {
-                m_install_specs.emplace_back(job);
-            }
-            else if (((job_flag & SOLVER_ERASE) ^ SOLVER_ERASE) != 0)
-            {
-                m_remove_specs.emplace_back(job);
-            }
-            else if (((job_flag & SOLVER_LOCK) ^ SOLVER_LOCK) == 0)
-            {
-                m_neuter_specs.emplace_back(job);
             }
 
             if (!ms.channel.empty())
             {
-                if (job_flag & SOLVER_ERASE)
+                if (job_type == SOLVER_ERASE)
                 {
-                    throw std::runtime_error("Cannot erase a channel-specific package. (" + job
-                                             + ")");
+                    throw std::runtime_error("Cannot remove channel-specific spec '" + job + "'");
                 }
                 add_channel_specific_job(ms, job_flag);
             }
-
-            if (job_flag & SOLVER_INSTALL && force_reinstall)
+            else if (job_flag & SOLVER_INSTALL && force_reinstall)
             {
                 add_reinstall_job(ms, job_flag);
             }

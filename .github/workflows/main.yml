@@ -48,7 +48,7 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mamba-tests
           python --version
-          python -m pip install ".[test]"
+          python -m pip install ".[test]" -vvv
       - name: Run tests OS X and Linux
         shell: bash -l {0}
         run: |
@@ -262,7 +262,7 @@ jobs:
         run: |
           conda activate base
           python --version
-          python -m pip install ".[test]"
+          python -m pip install ".[test]" -vvv
       - name: Run pytests on Windows
         run: |
           conda activate base

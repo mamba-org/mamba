@@ -187,12 +187,18 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 
+data_files = [
+    ("etc/profile.d", ["mamba/shell_templates/mamba.sh"]),
+]
+if sys.platform == "win32":
+    data_files.append(("condabin", ["mamba/shell_templates/mamba.bat"]),)
+
 setup(
     name="mamba",
     version=__version__,
     author="Wolf Vollprecht",
-    author_email="w.vollprecht@gmail.com",
-    url="https://github.com/wolfv/mamba",
+    author_email="wolf.vollprecht@quantstack.net",
+    url="https://github.com/mamba-org/mamba",
     description="A fast, libsolv based solver and installer for conda packages.",
     packages=["mamba"],
     entry_points={"console_scripts": ["mamba = mamba.mamba:main"]},
@@ -201,5 +207,7 @@ setup(
     install_requires=[],
     extras_require={"test": ["pytest"]},
     cmdclass={"build_ext": BuildExt},
+    data_files=data_files,
+    include_package_data=True,
     zip_safe=False,
 )

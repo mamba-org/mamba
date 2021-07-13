@@ -51,6 +51,7 @@ from conda.models.match_spec import MatchSpec
 import mamba
 import mamba.mamba_api as api
 from mamba import repoquery as repoquery_api
+from mamba.mamba_shell_init import shell_init
 from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 if sys.version_info < (3, 2):
@@ -734,7 +735,6 @@ def repoquery(args, parser):
 
 def do_call(args, parser):
     relative_mod, func_name = args.func.rsplit(".", 1)
-
     # func_name should always be 'execute'
     if relative_mod in [
         ".main_list",
@@ -755,6 +755,8 @@ def do_call(args, parser):
         exit_code = create(args, parser)
     elif relative_mod == ".main_update":
         exit_code = update(args, parser)
+    elif relative_mod == ".main_init":
+        exit_code = shell_init(args)
     elif relative_mod == ".main_repoquery":
         exit_code = repoquery(args, parser)
     else:

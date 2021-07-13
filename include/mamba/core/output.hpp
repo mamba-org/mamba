@@ -195,6 +195,8 @@ namespace mamba
             std::vector<int> m_padding;
             std::vector<std::vector<FormattedString>> m_table;
         };
+
+        std::ostringstream table_like(const std::vector<std::string>& data, std::size_t max_width);
     }  // namespace printers
 
     // The next two functions / classes were ported from the awesome indicators

@@ -190,6 +190,7 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.use_index_cache = context.use_index_cache
     api_ctx.always_yes = context.always_yes
     api_ctx.channels = context.channels
+    api_ctx.platform = context.subdir
 
     def get_base_url(url, name=None):
         tmp = url.rsplit("/", 1)[0]

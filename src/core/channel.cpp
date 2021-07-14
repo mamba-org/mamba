@@ -459,10 +459,11 @@ namespace mamba
         {
             return ChannelInternal(it->second.scheme(),
                                    it->second.location(),
-                                   name,
+                                   it->second.name(),
                                    it->second.auth(),
                                    it->second.token(),
-                                   it->second.package_filename());
+                                   it->second.package_filename(),
+                                   name);
         }
         else
         {
@@ -646,6 +647,16 @@ namespace mamba
         return context;
     }
 
+    void ChannelContext::reset()
+    {
+        m_channel_alias = build_channel_alias();
+        m_custom_channels.clear();
+        m_custom_multichannels.clear();
+        m_whitelist_channels.clear();
+        init_custom_channels();
+        ChannelInternal::clear_cache();
+    }
+
     const Channel& ChannelContext::get_channel_alias() const
     {
         return m_channel_alias;
@@ -727,6 +738,18 @@ namespace mamba
         }
         m_custom_multichannels.emplace(LOCAL_CHANNELS_NAME, std::move(local_names));
 
+        const auto& context_custom_channels = Context::instance().custom_channels;
+        for (const auto& [n, p] : context_custom_channels)
+        {
+            std::string url = p;
+            if (!starts_with(url, "http"))
+                url = path_to_url(url);
+
+            auto channel
+                = ChannelInternal::make_simple_channel(m_channel_alias, join_url(url, n), "", n);
+            auto res = m_custom_channels.emplace(n, std::move(channel));
+        }
+
         /*******************
          * SIMPLE CHANNELS *
          *******************/
@@ -771,7 +794,6 @@ namespace mamba
                     // cut ".token" ending
                     token_url = token_url.substr(0, token_url.size() - 6);
 
-                    std::cout << "Replace token URL: " << token_url << std::endl;
                     std::string token_content = read_contents(entry.path());
                     ctx.channel_tokens[token_url] = token_content;
                     LOG_WARNING << "Found token for " << token_url;

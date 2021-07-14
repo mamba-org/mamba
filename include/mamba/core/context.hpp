@@ -172,7 +172,9 @@ namespace mamba
         std::string platform = MAMBA_PLATFORM;
         std::vector<std::string> platforms();
 
-        std::vector<std::string> channels = {};
+        std::vector<std::string> channels;
+        std::map<std::string, std::string> custom_channels;
+
         std::vector<std::string> default_channels = {
 #ifdef _WIN32
             "https://repo.anaconda.com/pkgs/main",

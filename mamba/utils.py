@@ -182,6 +182,7 @@ def init_api_context(use_mamba_experimental=False):
         context.quiet = True
         if use_mamba_experimental:
             context.json = False
+
     api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline
@@ -189,6 +190,25 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.use_index_cache = context.use_index_cache
     api_ctx.always_yes = context.always_yes
     api_ctx.channels = context.channels
+
+    def get_base_url(url, name=None):
+        tmp = url.rsplit("/", 1)[0]
+        if name:
+            if tmp.endswith(name):
+                return tmp.rsplit("/", 1)[0]
+        return tmp
+
+    api_ctx.channel_alias = str(
+        get_base_url(context.channel_alias.url(with_credentials=True))
+    )
+
+    additional_custom_channels = {}
+    for el in context.custom_channels:
+        if context.custom_channels[el].canonical_name not in ["local", "defaults"]:
+            additional_custom_channels[el] = get_base_url(
+                context.custom_channels[el].url(with_credentials=True), el
+            )
+    api_ctx.custom_channels = additional_custom_channels
 
     if context.ssl_verify is False:
         api_ctx.ssl_verify = "<false>"

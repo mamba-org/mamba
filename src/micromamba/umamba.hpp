@@ -7,11 +7,7 @@
 #ifndef UMAMBA_UMAMBA_HPP
 #define UMAMBA_UMAMBA_HPP
 
-#ifdef VENDORED_CLI11
-#include "mamba/core/CLI.hpp"
-#else
 #include <CLI/CLI.hpp>
-#endif
 
 
 const char banner[] = R"MAMBARAW(

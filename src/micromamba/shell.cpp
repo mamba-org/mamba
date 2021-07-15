@@ -21,10 +21,9 @@ init_shell_parser(CLI::App* subcom)
 
     auto& shell_type = config.insert(
         Configurable("shell_type", std::string("")).group("cli").description("A shell type"));
-    subcom->add_set("-s,--shell",
-                    shell_type.set_cli_config(""),
-                    { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh" },
-                    shell_type.description());
+    subcom->add_option("-s,--shell", shell_type.set_cli_config(""), shell_type.description())
+        ->check(CLI::IsMember(
+            std::set<std::string>({ "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh" })));
 
     auto& stack = config.insert(Configurable("shell_stack", false)
                                     .group("cli")
@@ -41,20 +40,18 @@ init_shell_parser(CLI::App* subcom)
     auto& action = config.insert(Configurable("shell_action", std::string(""))
                                      .group("cli")
                                      .description("The action to complete"));
-    subcom->add_set("action",
-                    action.set_cli_config(""),
-                    { "init",
-                      "activate",
-                      "deactivate",
-                      "hook",
-                      "reactivate",
-                      "deactivate"
+    subcom->add_option("action", action.set_cli_config(""), action.description())
+        ->check(CLI::IsMember(std::set<std::string>({ "init",
+                                                      "activate",
+                                                      "deactivate",
+                                                      "hook",
+                                                      "reactivate",
+                                                      "deactivate"
 #ifdef _WIN32
-                      ,
-                      "enable-long-paths-support"
+                                                      ,
+                                                      "enable-long-paths-support"
 #endif
-                    },
-                    action.description());
+        })));
 
     auto& prefix = config.insert(
         Configurable("shell_prefix", std::string(""))

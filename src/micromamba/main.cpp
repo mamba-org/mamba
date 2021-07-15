@@ -15,11 +15,8 @@
 
 #include "completer.cpp"
 
-#ifdef VENDORED_CLI11
-#include "mamba/core/CLI.hpp"
-#else
 #include <CLI/CLI.hpp>
-#endif
+
 
 using namespace mamba;  // NOLINT(build/namespaces)
 

@@ -310,13 +310,10 @@ class TestInstall:
             expected_priority = "strict"
 
         if (
-            (priority == "flexible")
-            or (
-                (priority is not None)
-                and (
-                    (no_priority and priority != "disabled")
-                    or (strict_priority and priority != "strict")
-                )
+            (priority is not None)
+            and (
+                (no_priority and priority != "disabled")
+                or (strict_priority and priority != "strict")
             )
             or (no_priority and strict_priority)
         ):

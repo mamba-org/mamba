@@ -161,7 +161,7 @@ init_channel_parser(CLI::App* subcom)
         ->add_option("--channel-priority",
                      channel_priority.set_cli_config(""),
                      channel_priority.description())
-        ->check(CLI::IsMember(std::set<std::string>({ "strict", "flexible", "disabled" })));
+        ->check(CLI::IsMember(std::set<std::string>({ "strict", "disabled" })));
 
     auto& channel_alias = config.at("channel_alias").get_wrapped<std::string>();
     subcom->add_option(

@@ -56,13 +56,8 @@ option(BUILD_SHARED "" OFF)
 option(BUILD_STATIC "" ON)
 option(BUILD_BINDINGS "" ON)
 option(STATIC_DEPENDENCIES "" OFF)
-option(USE_VENDORED_CLI11 "" OFF)
 option(BUILD_CRYPTO_PACKAGE_VALIDATION "Enable package validation using TUF" OFF)
 option(ENABLE_TESTS "Enable C++ tests for mamba" OFF)
-
-if (USE_VENDORED_CLI11)
-    add_definitions(-DVENDORED_CLI11=1)
-endif()
 
 if (STATIC_DEPENDENCIES)
     add_definitions(-DUMAMBA_STATIC)

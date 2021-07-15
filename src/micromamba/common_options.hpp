@@ -9,11 +9,7 @@
 
 #include "mamba/core/context.hpp"
 
-#ifdef VENDORED_CLI11
-#include "mamba/core/CLI.hpp"
-#else
 #include <CLI/CLI.hpp>
-#endif
 
 
 void

@@ -157,10 +157,11 @@ init_channel_parser(CLI::App* subcom)
                      override_channels.description());
 
     auto& channel_priority = config.at("channel_priority").get_wrapped<ChannelPriority>();
-    subcom->add_set("--channel-priority",
-                    channel_priority.set_cli_config(""),
-                    { "strict", "disabled" },
-                    channel_priority.description());
+    subcom
+        ->add_option("--channel-priority",
+                     channel_priority.set_cli_config(""),
+                     channel_priority.description())
+        ->check(CLI::IsMember(std::set<std::string>({ "strict", "flexible", "disabled" })));
 
     auto& channel_alias = config.at("channel_alias").get_wrapped<std::string>();
     subcom->add_option(
@@ -329,10 +330,10 @@ init_install_options(CLI::App* subcom)
         "--shortcuts,!--no-shortcuts", shortcuts.set_cli_config(0), shortcuts.description());
 
     auto& safety_checks = config.at("safety_checks").get_wrapped<VerificationLevel>();
-    subcom->add_set("--safety-checks",
-                    safety_checks.set_cli_config(""),
-                    { "enabled", "warn", "disabled" },
-                    safety_checks.description());
+    subcom
+        ->add_option(
+            "--safety-checks", safety_checks.set_cli_config(""), safety_checks.description())
+        ->check(CLI::IsMember(std::set<std::string>({ "enabled", "warn", "disabled" })));
 
     auto& av = config.at("verify_artifacts").get_wrapped<bool>();
     subcom->add_flag("--verify-artifacts", av.set_cli_config(0), av.description());

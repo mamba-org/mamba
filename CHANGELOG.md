@@ -1,3 +1,16 @@
+0.15.1 (July 15, 2021)
+======================
+
+New features:
+- add `mamba init` command and add mamba.sh (#1075, thanks @isuruf & #1078)
+- add flexible channel priority option in micromamba CLI (#1087)
+- improved autocompletion for micromamba (#1079)
+
+Bug fixes:
+- improve "file://" URL handling, fix local channel on Windows (#1085)
+- fix CONDA_SUBDIR not being used in mamba (#1084)
+- pass in channel_alias and custom_channels from conda to mamba (#1081)
+
 0.15.0 (July 9, 2021)
 =====================
 

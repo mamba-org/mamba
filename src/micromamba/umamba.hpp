@@ -55,4 +55,7 @@ set_update_command(CLI::App* subcom);
 void
 set_env_command(CLI::App* subcom);
 
+void
+get_completions(CLI::App* app, int argc, char** argv);
+
 #endif

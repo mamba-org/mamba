@@ -1,6 +1,7 @@
 set(MAMBA_EXE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/clean.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/completer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/constructor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/create.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/micromamba/info.cpp

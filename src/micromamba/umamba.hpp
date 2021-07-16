@@ -58,4 +58,11 @@ set_env_command(CLI::App* subcom);
 void
 get_completions(CLI::App* app, int argc, char** argv);
 
+namespace
+{
+    constexpr const char umamba_bash_completion[] =
+#include "./completer.bash"
+        ;
+}
+
 #endif

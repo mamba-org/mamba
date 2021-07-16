@@ -17,19 +17,8 @@
 
 namespace mamba
 {
-    void shell(const std::string& action,
-               std::string& shell_type,
-               const std::string& prefix,
-               bool stack)
+    void detect_shell(std::string& shell_type)
     {
-        auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
-
-        config.at("show_banner").set_value(false);
-        config.at("use_target_prefix_fallback").set_value(false);
-        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
-        config.load();
-
         if (shell_type.empty())
         {
             LOG_DEBUG << "No shell type provided";
@@ -43,11 +32,27 @@ namespace mamba
 
             if (shell_type.empty())
             {
-                std::cout << "Please provide a shell type." << std::endl;
-                std::cout << "Run with --help for more information." << std::endl;
-                return;
+                LOG_ERROR << "Please provide a shell type." << std::endl
+                          << "Run with --help for more information." << std::endl;
+                throw std::runtime_error("Unknown shell type. Aborting.");
             }
         }
+    }
+
+    void shell(const std::string& action,
+               std::string& shell_type,
+               const std::string& prefix,
+               bool stack)
+    {
+        auto& ctx = Context::instance();
+        auto& config = Configuration::instance();
+
+        config.at("show_banner").set_value(false);
+        config.at("use_target_prefix_fallback").set_value(false);
+        config.at("target_prefix_checks").set_value(MAMBA_NO_PREFIX_CHECK);
+        config.load();
+
+        detect_shell(shell_type);
 
         std::string shell_prefix = env::expand_user(prefix);
         std::unique_ptr<Activator> activator;
@@ -141,6 +146,18 @@ namespace mamba
             }
         }
 #endif
+        else if (action == "completion")
+        {
+            if (shell_type == "bash")
+            {
+            }
+            else
+            {
+                LOG_ERROR << "Shell auto-completion is not supported in '" << shell_type << "'";
+                throw std::runtime_error("Shell auto-completion is not supported in '" + shell_type
+                                         + "'");
+            }
+        }
         else
         {
             throw std::runtime_error("Need an action (activate, deactivate or hook)");

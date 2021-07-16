@@ -247,6 +247,51 @@ namespace mamba
                   std::vector<std::string>{ { "https://conda.anaconda.org/conda-forge/noarch" } });
     }
 
+    TEST(Channel, fix_win_file_path)
+    {
+        if (platform == "win-64")
+        {
+            const Channel& c = make_channel("C:\\test\\channel");
+            EXPECT_EQ(c.urls(false),
+                      std::vector<std::string>(
+                          { "file:///C:/test/channel/win-64", "file:///C:/test/channel/noarch" }));
+        }
+        else
+        {
+            const Channel& c = make_channel("/test/channel");
+            EXPECT_EQ(c.urls(false),
+                      std::vector<std::string>({ std::string("file:///test/channel/") + platform,
+                                                 "file:///test/channel/noarch" }));
+        }
+    }
+
+    TEST(Channel, trailing_slash)
+    {
+        const Channel& c = make_channel("http://localhost:8000/");
+        EXPECT_EQ(c.platform_url("win-64", false), "http://localhost:8000/win-64");
+        EXPECT_EQ(c.base_url(), "http://localhost:8000");
+        std::vector<std::string> expected_urls(
+            { std::string("http://localhost:8000/") + platform, "http://localhost:8000/noarch" });
+        EXPECT_EQ(c.urls(true), expected_urls);
+        const Channel& c4 = make_channel("http://localhost:8000");
+        EXPECT_EQ(c4.platform_url("linux-64", false), "http://localhost:8000/linux-64");
+        const Channel& c2 = make_channel("http://user:test@localhost:8000/");
+        EXPECT_EQ(c2.platform_url("win-64", false), "http://localhost:8000/win-64");
+        EXPECT_EQ(c2.platform_url("win-64", true), "http://user:test@localhost:8000/win-64");
+        const Channel& c3
+            = make_channel("https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012");
+        EXPECT_EQ(c3.platform_url("win-64", false), "https://localhost:8000/win-64");
+        EXPECT_EQ(c3.platform_url("win-64", true),
+                  "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/win-64");
+
+        std::vector<std::string> expected_urls2(
+            { std::string("https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/")
+                  + platform,
+              "https://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012/noarch" });
+
+        EXPECT_EQ(c3.urls(true), expected_urls2);
+    }
+
     TEST(Channel, load_tokens)
     {
         // touch(env::home_directory() / ".continuum" / "anaconda")

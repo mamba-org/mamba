@@ -1,6 +1,7 @@
 name: mamba-dev
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - cmake
   - make
@@ -19,4 +20,5 @@ dependencies:
   - yaml-cpp
   - pyyaml
   - cli11
+  - ccache
   - pytest

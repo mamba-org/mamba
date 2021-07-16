@@ -17,6 +17,11 @@
 
 namespace mamba
 {
+    namespace detail
+    {
+        std::string concat_scheme_url(const std::string& scheme, const std::string& location);
+    }
+
     void load_tokens();
 
     // accessors public

@@ -1,3 +1,9 @@
+0.15.2 (July 16, 2021)
+======================
+
+- micromamba autocomplete now ready for usage (#1091)
+- improved file:// urls for windows to properly work (#1090)
+
 0.15.1 (July 15, 2021)
 ======================
 

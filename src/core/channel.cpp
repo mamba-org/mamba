@@ -141,7 +141,24 @@ namespace mamba
         }
         else
         {
-            return concat(scheme(), "://", join_url(location(), name()));
+            return detail::concat_scheme_url(scheme(), join_url(location(), name()));
+        }
+    }
+
+    namespace detail
+    {
+        // proper file scheme on Windows is `file:///C:/blabla`
+        // https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
+        std::string concat_scheme_url(const std::string& scheme, const std::string& location)
+        {
+            if (scheme == "file" && location.size() > 1 && location[1] == ':')
+            {
+                return concat("file:///", location);
+            }
+            else
+            {
+                return concat(scheme, "://", location);
+            }
         }
     }
 
@@ -149,11 +166,11 @@ namespace mamba
     {
         if (with_credential && c.auth())
         {
-            return concat(c.scheme(), "://", *c.auth(), "@", base);
+            return detail::concat_scheme_url(c.scheme(), concat(*c.auth(), "@", base));
         }
         else
         {
-            return concat(c.scheme(), "://", base);
+            return detail::concat_scheme_url(c.scheme(), base);
         }
     }
 
@@ -169,11 +186,11 @@ namespace mamba
             std::string base = location();
             if (with_credential && token())
             {
-                base += "/t/" + *token();
+                base = join_url(base, "t", *token());
             }
-            base += "/" + name();
-            base += "/" + *package_filename();
-            return { { build_url(*this, base, with_credential) } };
+
+            return { { build_url(
+                *this, join_url(base, name(), *package_filename()), with_credential) } };
         }
         else
         {
@@ -192,14 +209,14 @@ namespace mamba
         std::string base = location();
         if (with_credential && token())
         {
-            base += "/t/" + *token();
+            base = join_url(base, "t", *token());
         }
-        base += "/" + name();
 
         std::vector<std::pair<std::string, std::string>> ret;
         for (const auto& platform : platforms())
         {
-            ret.emplace_back(platform, build_url(*this, base + "/" + platform, with_credential));
+            ret.emplace_back(platform,
+                             build_url(*this, join_url(base, name(), platform), with_credential));
         }
         return ret;
     }
@@ -209,11 +226,9 @@ namespace mamba
         std::string base = location();
         if (with_credential && token())
         {
-            base += "/t/" + *token();
+            base = join_url(base, "t", *token());
         }
-        base += "/" + name();
-
-        return build_url(*this, base + "/" + platform, with_credential);
+        return build_url(*this, join_url(base, name(), platform), with_credential);
     }
 
     Channel ChannelInternal::make_simple_channel(const Channel& channel_alias,
@@ -241,7 +256,7 @@ namespace mamba
             }
             else
             {
-                std::string full_url = concat(scheme, "://", location);
+                std::string full_url = detail::concat_scheme_url(scheme, location);
                 URLHandler parser(full_url);
                 location = rstrip(
                     URLHandler().set_host(parser.host()).set_port(parser.port()).url(), "/");
@@ -266,7 +281,7 @@ namespace mamba
             auto& ctx = Context::instance();
 
             auto chan = ChannelInternal::from_value(value);
-            auto token_base = concat(chan.scheme(), "://", chan.location());
+            auto token_base = detail::concat_scheme_url(chan.scheme(), chan.location());
             if (!chan.token())
             {
                 auto it = ctx.channel_tokens.find(token_base);

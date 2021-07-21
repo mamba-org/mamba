@@ -99,7 +99,8 @@ namespace mamba
         if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
-                      << "\nExpected: " << m_expected_size << "\n";
+                      << "\nExpected: " << m_expected_size
+                      << "\nActual:: " << size_t(m_target->downloaded_size) << "\n";
             m_progress_proxy.mark_as_completed("File size validation error.");
             m_validation_result = SIZE_ERROR;
         }
@@ -110,7 +111,8 @@ namespace mamba
             m_validation_result = SHA256_ERROR;
             m_progress_proxy.mark_as_completed("SHA256 sum validation error.");
             LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path
-                      << "\nExpected: " << m_sha256 << "\n";
+                      << "\nExpected: " << m_sha256
+                      << "\nActual: " << validate::sha256sum(m_tarball_path) << "\n";
         }
         else
         {
@@ -119,7 +121,8 @@ namespace mamba
                 m_validation_result = MD5SUM_ERROR;
                 m_progress_proxy.mark_as_completed("MD5 sum validation error.");
                 LOG_ERROR << "File not valid: MD5 sum doesn't match expectation " << m_tarball_path
-                          << "\nExpected: " << m_md5 << "\n";
+                          << "\nExpected: " << m_md5
+                          << "\nActual: " << validate::md5sum(m_tarball_path) << "\n";
             }
         }
     }

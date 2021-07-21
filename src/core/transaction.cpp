@@ -100,7 +100,7 @@ namespace mamba
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
                       << "\nExpected: " << m_expected_size
-                      << "\nActual:: " << size_t(m_target->downloaded_size) << "\n";
+                      << "\nActual: " << size_t(m_target->downloaded_size) << "\n";
             m_progress_proxy.mark_as_completed("File size validation error.");
             m_validation_result = SIZE_ERROR;
         }

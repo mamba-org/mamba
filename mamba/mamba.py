@@ -407,7 +407,7 @@ def install(args, parser, command="install"):
             )
             return
 
-        specs.extend([MatchSpec(s) for s in file_specs])
+        specs.extend(MatchSpec(s) for s in file_specs)
 
     specs.extend(specs_from_args(args_packages, json=context.json))
 
@@ -461,7 +461,7 @@ def install(args, parser, command="install"):
                 ms = MatchSpec(dep)
                 if ms.name != "python":
                     final_specs.append(MatchSpec(ms.name))
-        specs = set(final_specs)
+        specs = list(set(final_specs))
 
     if newenv and args.clone:
         if args.packages:
@@ -486,17 +486,16 @@ def install(args, parser, command="install"):
     if not (context.quiet or context.json):
         print("\nLooking for: {}\n".format([str(s) for s in specs]))
 
-    spec_names = [s.name for s in specs]
-
     # If python was not specified, check if it is installed.
     # If yes, add the installed python to the specs to prevent updating it.
     python_constraint = None
 
-    if "python" not in spec_names:
-        if "python" in installed_names:
-            i = installed_names.index("python")
-            version = installed_pkg_recs[i].version
-            python_constraint = MatchSpec("python==" + version).conda_build_form()
+    if not any(s.name == "python" for s in specs) and "python" in installed_names:
+        i = installed_names.index("python")
+        version = installed_pkg_recs[i].version
+        major_minor_version = ".".join(version.split(".")[:2])
+        specs.append(MatchSpec(f"python=={major_minor_version}.*"))
+        python_constraint = specs[-1].conda_build_form()
 
     mamba_solve_specs = [s.__str__() for s in specs]
 
@@ -559,7 +558,6 @@ def install(args, parser, command="install"):
 
         pinned_specs_info = ""
         if python_constraint:
-            solver.add_pin(python_constraint)
             pinned_specs_info += f"  - {python_constraint}\n"
 
         pinned_specs = get_pinned_specs(context.target_prefix)

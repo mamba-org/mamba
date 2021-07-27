@@ -126,8 +126,11 @@ namespace mamba
         std::string find_python_version();
 
     private:
+        void insert_spec_tree(const std::vector<MatchSpec>& specs);
+
         FilterType m_filter_type = FilterType::none;
         std::set<Id> m_filter_name_ids;
+        std::set<Id> m_spec_tree_name_ids;
 
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;

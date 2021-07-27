@@ -46,6 +46,7 @@ namespace mamba
 
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void add_constraint(const std::string& job);
+        void add_compatibility_specs(const std::vector<std::string>& jobs);
         void add_pin(const std::string& pin);
         void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
@@ -58,6 +59,7 @@ namespace mamba
         const std::vector<MatchSpec>& remove_specs() const;
         const std::vector<MatchSpec>& neuter_specs() const;
         const std::vector<MatchSpec>& pinned_specs() const;
+        const std::vector<MatchSpec>& compatible_specs() const;
 
         operator Solver*();
 
@@ -74,6 +76,7 @@ namespace mamba
         std::vector<MatchSpec> m_remove_specs;
         std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
+        std::vector<MatchSpec> m_compatible_specs;
         bool m_is_solved;
         Solver* m_solver;
         Pool* m_pool;

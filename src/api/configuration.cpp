@@ -507,6 +507,12 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Packages specification"));
 
+        insert(Configurable("compatible", std::vector<std::string>({}))
+                   .group("Basic")
+                   .needs({ "file_specs" })
+                   .set_single_op_lifetime()
+                   .description("Packages to be compatible with"));
+
         insert(Configurable("experimental", &ctx.experimental)
                    .group("Basic")
                    .description("Enable experimental features")

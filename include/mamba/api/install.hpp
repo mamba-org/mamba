@@ -23,6 +23,7 @@ namespace mamba
     void install();
 
     void install_specs(const std::vector<std::string>& specs,
+                       const std::vector<std::string>& compatible_specs,
                        bool create_env = false,
                        int solver_flag = SOLVER_INSTALL,
                        int is_retry = 0);

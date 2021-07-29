@@ -42,6 +42,7 @@ from conda.exceptions import (
     PackagesNotFoundError,
     TooManyArgumentsError,
 )
+from conda.lock import FileLock
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
@@ -140,13 +141,14 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise DryRunExit()
 
     try:
-        unlink_link_transaction.download_and_extract()
-        if context.download_only:
-            raise CondaExitZero(
-                "Package caches prepared. UnlinkLinkTransaction cancelled with "
-                "--download-only option."
-            )
-        unlink_link_transaction.execute()
+        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+            unlink_link_transaction.download_and_extract()
+            if context.download_only:
+                raise CondaExitZero(
+                    "Package caches prepared. UnlinkLinkTransaction cancelled with "
+                    "--download-only option."
+                )
+            unlink_link_transaction.execute()
 
     except SystemExit as e:
         raise CondaSystemExit("Exiting", e)
@@ -262,7 +264,8 @@ def remove(args, parser):
         transaction = api.Transaction(
             solver, package_cache, PackageCacheData.first_writable().pkgs_dir
         )
-        downloaded = transaction.prompt(repos)
+        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+            downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
 
@@ -504,8 +507,9 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    prefix_data = api.PrefixData(context.target_prefix)
-    prefix_data.load()
+    with FileLock(os.path.join(context.root_prefix, "pkgs")):
+        prefix_data = api.PrefixData(context.target_prefix)
+        prefix_data.load()
 
     # add installed
     if use_mamba_experimental:
@@ -604,18 +608,19 @@ def install(args, parser, command="install"):
         specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
         transaction.log_json()
+        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+            downloaded = transaction.prompt(repos)
+            if not downloaded:
+                exit(0)
 
-        downloaded = transaction.prompt(repos)
-        if not downloaded:
-            exit(0)
-        PackageCacheData.first_writable().reload()
+            PackageCacheData.first_writable().reload()
 
     # if use_mamba_experimental and not os.name == "nt":
     if use_mamba_experimental:
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
-
-        transaction.execute(prefix_data)
+        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+            transaction.execute(prefix_data)
     else:
         conda_transaction = to_txn(
             specs_to_add,

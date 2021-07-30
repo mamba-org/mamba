@@ -141,7 +141,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise DryRunExit()
 
     try:
-        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
             unlink_link_transaction.download_and_extract()
             if context.download_only:
                 raise CondaExitZero(
@@ -260,11 +260,11 @@ def remove(args, parser):
             exit_code = 1
             return exit_code
 
-        package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(
-            solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-        )
-        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+            package_cache = api.MultiPackageCache(context.pkgs_dirs)
+            transaction = api.Transaction(
+                solver, package_cache, PackageCacheData.first_writable().pkgs_dir
+            )
             downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
@@ -507,7 +507,7 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    with FileLock(os.path.join(context.root_prefix, "pkgs")):
+    with FileLock(context.target_prefix):
         prefix_data = api.PrefixData(context.target_prefix)
         prefix_data.load()
 
@@ -598,17 +598,17 @@ def install(args, parser, command="install"):
             exit_code = 1
             return exit_code
 
-        package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(
-            solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-        )
-        mmb_specs, to_link, to_unlink = transaction.to_conda()
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+            package_cache = api.MultiPackageCache(context.pkgs_dirs)
+            transaction = api.Transaction(
+                solver, package_cache, PackageCacheData.first_writable().pkgs_dir
+            )
+            mmb_specs, to_link, to_unlink = transaction.to_conda()
 
-        specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
-        specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
+            specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
+            specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
-        transaction.log_json()
-        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+            transaction.log_json()
             downloaded = transaction.prompt(repos)
             if not downloaded:
                 exit(0)
@@ -619,7 +619,7 @@ def install(args, parser, command="install"):
     if use_mamba_experimental:
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
-        with FileLock(os.path.join(context.root_prefix, "pkgs")):
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
             transaction.execute(prefix_data)
     else:
         conda_transaction = to_txn(

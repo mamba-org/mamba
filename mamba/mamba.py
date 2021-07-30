@@ -42,10 +42,10 @@ from conda.exceptions import (
     PackagesNotFoundError,
     TooManyArgumentsError,
 )
-from conda.lock import FileLock
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
+from conda.lock import FileLock
 from conda.misc import explicit, touch_nonadmin
 from conda.models.match_spec import MatchSpec
 

@@ -254,7 +254,6 @@ namespace mamba
         config.load();
 
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
-        auto& compatible_specs = config.at("compatible").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
         if (!install_specs.empty())
@@ -265,7 +264,7 @@ namespace mamba
             }
             else
             {
-                mamba::install_specs(install_specs, compatible_specs, false);
+                mamba::install_specs(install_specs, {}, false);
             }
         }
         else
@@ -454,7 +453,11 @@ namespace mamba
             if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
             {
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                return install_specs(specs, compatible_specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
+                return install_specs(specs,
+                                     compatible_specs,
+                                     create_env,
+                                     solver_flag,
+                                     is_retry | RETRY_SUBDIR_FETCH);
             }
             throw std::runtime_error("Could not load repodata. Cache corrupted?");
         }
@@ -506,7 +509,8 @@ namespace mamba
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
-                return install_specs(specs, compatible_specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
+                return install_specs(
+                    specs, compatible_specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
             }
             if (ctx.freeze_installed)
                 Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");

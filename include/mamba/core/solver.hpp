@@ -59,6 +59,8 @@ namespace mamba
         const std::vector<MatchSpec>& remove_specs() const;
         const std::vector<MatchSpec>& neuter_specs() const;
         const std::vector<MatchSpec>& pinned_specs() const;
+
+        // Empty means not specified, so filtering should not happen
         const std::vector<MatchSpec>& compatible_specs() const;
 
         operator Solver*();

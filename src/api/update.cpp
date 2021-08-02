@@ -26,7 +26,6 @@ namespace mamba
         config.load();
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
-        auto& compatible_specs = config.at("compatible").value<std::vector<std::string>>();
 
         if (update_all)
         {
@@ -45,7 +44,7 @@ namespace mamba
 
         if (!update_specs.empty())
         {
-            install_specs(update_specs, compatible_specs, false, SOLVER_UPDATE);
+            install_specs(update_specs, {}, false, SOLVER_UPDATE);
         }
         else
         {

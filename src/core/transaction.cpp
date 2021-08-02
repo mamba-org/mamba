@@ -393,12 +393,27 @@ namespace mamba
 
         m_force_reinstall = solver.force_reinstall;
 
-        // compatible_specs affect but are not a part of the dependency tree,
-        // so create the spec tree using everything else
-        insert_spec_tree(solver.install_specs());
-        insert_spec_tree(solver.remove_specs());
-        insert_spec_tree(solver.neuter_specs());
-        insert_spec_tree(solver.pinned_specs());
+        if (solver.compatible_specs().empty())
+        {
+            // No compatible_specs were requested, so we do not filter (so, add everything).
+            // This is different to including the requested specs, because libsolv may
+            // change specs outside those the user has requested.
+            for (int i = 0; i < m_transaction->steps.count; ++i)
+            {
+                Id p = m_transaction->steps.elements[i];
+                Solvable* s = pool_id2solvable(m_transaction->pool, p);
+                m_spec_tree_name_ids.insert(s->name);
+            }
+        }
+        else
+        {
+            // compatible_specs affect but are not a part of the dependency tree,
+            // so create the spec tree using everything else
+            insert_spec_tree(solver.install_specs());
+            insert_spec_tree(solver.remove_specs());
+            insert_spec_tree(solver.neuter_specs());
+            insert_spec_tree(solver.pinned_specs());
+        }
 
         init();
         // if no action required, don't even start logging them
@@ -417,22 +432,17 @@ namespace mamba
 
     void MTransaction::insert_spec_tree(const std::vector<MatchSpec>& specs)
     {
-        std::unordered_map<Id, Id> name2id;
+        std::unordered_map<Id, std::vector<Id>> name2id;
         for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); ++i)
         {
             Id p = m_transaction->steps.elements[i];
             Solvable* s = pool_id2solvable(m_transaction->pool, p);
-            if (name2id.find(s->name) != name2id.end())
-            {
-                throw std::runtime_error("Unexpected duplicate package name");
-            }
-            name2id[s->name] = p;
+            name2id[s->name].push_back(p);
         }
 
         Queue q;
         queue_init(&q);
-        const auto& add_name_to_tree = [this, &q, &name2id](Id name)
-        {
+        const auto& add_name_to_tree = [this, &q, &name2id](Id name) {
             auto it = name2id.find(name);
             if (it == name2id.end())
             {
@@ -441,9 +451,10 @@ namespace mamba
                 return;
             }
             if (m_spec_tree_name_ids.insert(name).second)
-                queue_push(&q, it->second);
+                for (Id i : it->second)
+                    queue_push(&q, i);
         };
-        for (const MatchSpec& spec: specs)
+        for (const MatchSpec& spec : specs)
         {
             Id name = pool_str2id(m_transaction->pool, spec.name.c_str(), 0);
             if (!name)

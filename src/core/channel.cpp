@@ -17,6 +17,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
@@ -61,7 +62,7 @@ namespace mamba
         , m_repo_checker(base_url(),
                          Context::instance().root_prefix / "etc" / "trusted-repos"
                              / cache_name_from_url(base_url()),
-                         Context::instance().root_prefix / "pkgs" / "cache"
+                         PackageCacheData::first_writable().get_pkgs_dir() / "cache"
                              / cache_name_from_url(base_url()))
     {
         fs::create_directories(m_repo_checker.cache_path());

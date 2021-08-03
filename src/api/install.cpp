@@ -290,15 +290,7 @@ namespace mamba
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        fs::path pkgs_dirs;
-        if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
-        {
-            pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
-        }
-        else
-        {
-            pkgs_dirs = ctx.root_prefix / "pkgs";
-        }
+        fs::path pkgs_dirs = ctx.pkgs_dirs.at(0);
 
         if (ctx.target_prefix.empty())
         {

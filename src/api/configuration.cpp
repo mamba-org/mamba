@@ -219,7 +219,15 @@ namespace mamba
 
             auto& ctx = Context::instance();
             ctx.envs_dirs = { prefix / "envs" };
-            ctx.pkgs_dirs = { prefix / "pkgs" };
+
+            if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
+            {
+                ctx.pkgs_dirs = { fs::path(std::getenv("CONDA_PKGS_DIRS")) };
+            }
+            else
+            {
+                ctx.pkgs_dirs = { prefix / "pkgs" };
+            }
         }
         /*
                 void log_level_hook(LogLevel& lvl)

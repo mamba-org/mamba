@@ -38,7 +38,7 @@ class TestPkgCache:
         os.environ["CONDA_PREFIX"] = TestPkgCache.prefix
 
         if "CONDA_PKGS_DIRS" in os.environ:
-            os.pop("CONDA_PKGS_DIRS")
+            os.environ.pop("CONDA_PKGS_DIRS")
 
     @classmethod
     def teardown_class(cls):

@@ -197,20 +197,24 @@ namespace mamba
 
     bool MRepo::read_file(const std::string& filename)
     {
-        LOG_INFO << m_repo->name << ": reading repo file " << filename;
-
         bool is_solv = ends_with(filename, ".solv");
 
+        std::string filename_wo_extension;
         if (is_solv)
         {
             m_solv_file = filename;
-            m_json_file = filename.substr(0, filename.size() - strlen(".solv")) + ".json";
+            filename_wo_extension = filename.substr(0, filename.size() - strlen(".solv"));
+            m_json_file = filename_wo_extension + ".json";
         }
         else
         {
             m_json_file = filename;
-            m_solv_file = filename.substr(0, filename.size() - strlen(".json")) + ".solv";
+            filename_wo_extension = filename.substr(0, filename.size() - strlen(".json"));
+            m_solv_file = filename_wo_extension + ".solv";
         }
+
+        LOG_INFO << "Reading cache files '" << filename_wo_extension << ".*' for repo index '"
+                 << m_repo->name << "'";
 
         if (is_solv)
         {
@@ -220,13 +224,13 @@ namespace mamba
                 throw std::runtime_error("Could not open repository file " + filename);
             }
 
-            LOG_INFO << "Attempt load from solv " << m_solv_file;
+            LOG_DEBUG << "Attempt load from solv " << m_solv_file;
 
             int ret = repo_add_solv(m_repo, fp, 0);
             if (ret != 0)
             {
-                LOG_ERROR << "Could not load .solv file, falling back to JSON: "
-                          << pool_errstr(m_repo->pool);
+                LOG_ERROR << "Could not load SOLV file, falling back to JSON ("
+                          << pool_errstr(m_repo->pool) << ")";
             }
             else
             {
@@ -258,19 +262,19 @@ namespace mamba
                                          && (std::strcmp(tool_version, mamba_tool_version()) == 0);
                     }
 
-                    LOG_INFO << "Metadata from .solv is "
-                             << (metadata_valid ? "valid" : "NOT valid");
+                    LOG_DEBUG << "Metadata from SOLV are "
+                              << (metadata_valid ? "valid" : "NOT valid");
 
                     if (!metadata_valid)
                     {
-                        LOG_INFO << "solv file was written with a previous version of "
-                                    "libsolv or mamba "
-                                 << (tool_version != nullptr ? tool_version : "<NULL>")
-                                 << ", updating it now!";
+                        LOG_DEBUG << "SOLV file was written with a previous version of "
+                                     "libsolv or mamba "
+                                  << (tool_version != nullptr ? tool_version : "<NULL>")
+                                  << ", updating it now!";
                     }
                     else
                     {
-                        LOG_INFO << "Loaded from solv " << m_solv_file;
+                        LOG_DEBUG << "Loaded from SOLV " << m_solv_file;
                         repo_internalize(m_repo);
                         fclose(fp);
                         return true;
@@ -289,7 +293,7 @@ namespace mamba
             throw std::runtime_error("Could not open repository file " + m_json_file);
         }
 
-        LOG_INFO << "loading from json " << m_json_file;
+        LOG_DEBUG << "Loading JSON file '" << m_json_file << "'";
         int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         int ret = repo_add_conda(m_repo, fp, flags);
         if (ret != 0)
@@ -318,7 +322,7 @@ namespace mamba
     {
         Repodata* info;
 
-        LOG_INFO << "writing solv file: " << m_solv_file;
+        LOG_INFO << "Writing SOLV file '" << fs::path(m_solv_file).filename().string() << "'";
 
         info = repo_add_repodata(m_repo, 0);  // add new repodata for our meta info
         repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, mamba_tool_version());

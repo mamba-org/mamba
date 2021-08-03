@@ -46,6 +46,7 @@ PYBIND11_MODULE(mamba_api, m)
 
     py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())
+        .def("__str__", [](fs::path& self) -> std::string { return self.string(); })
         .def("__repr__", [](fs::path& self) -> std::string {
             return std::string("fs::path[") + std::string(self) + "]";
         });
@@ -62,7 +63,8 @@ PYBIND11_MODULE(mamba_api, m)
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<std::vector<fs::path>>())
-        .def("query", &MultiPackageCache::query);
+        .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
+        .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
@@ -75,7 +77,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&, MultiPackageCache&, const std::string&>())
+        .def(py::init<MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
@@ -186,7 +188,11 @@ PYBIND11_MODULE(mamba_api, m)
              });
 
     py::class_<MSubdirData>(m, "SubdirData")
-        .def(py::init<const std::string&, const std::string&, const std::string&, bool>())
+        .def(py::init<const std::string&,
+                      const std::string&,
+                      const std::string&,
+                      MultiPackageCache&,
+                      bool>())
         .def("create_repo", &MSubdirData::create_repo)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)

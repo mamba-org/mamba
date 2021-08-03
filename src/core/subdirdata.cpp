@@ -9,7 +9,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/url.hpp"
-
+#include "mamba/core/util.hpp"
 
 namespace decompress
 {
@@ -66,6 +66,7 @@ namespace mamba
     MSubdirData::MSubdirData(const std::string& name,
                              const std::string& repodata_url,
                              const std::string& repodata_fn,
+                             MultiPackageCache& caches,
                              bool is_noarch)
         : m_loaded(false)
         , m_download_complete(false)
@@ -73,6 +74,7 @@ namespace mamba
         , m_name(name)
         , m_json_fn(repodata_fn)
         , m_solv_fn(repodata_fn.substr(0, repodata_fn.size() - 4) + "solv")
+        , m_caches(caches)
         , m_is_noarch(is_noarch)
     {
     }
@@ -106,65 +108,101 @@ namespace mamba
     bool MSubdirData::load()
     {
         auto now = fs::file_time_type::clock::now();
-        auto cache_age = check_cache(m_json_fn, now);
-        if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
+
+        m_valid_cache_path = "";
+        m_expired_cache_path = "";
+        m_loaded = false;
+        m_mod_etag = nlohmann::json();
+
+        LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
+
+        for (const auto& cache_path : m_caches.paths())
         {
-            LOG_INFO << "Found valid cache file.";
-            m_mod_etag = read_mod_and_etag();
-            if (m_mod_etag.size() != 0)
+            auto json_file = cache_path / "cache" / m_json_fn;
+            auto solv_file = cache_path / "cache" / m_solv_fn;
+
+            if (!fs::exists(json_file))
+                continue;
+
+            auto lock = LockFile::try_lock(cache_path / "cache");
+            auto cache_age = check_cache(json_file, now);
+
+            if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
             {
-                int max_age = 0;
-                if (Context::instance().local_repodata_ttl > 1)
-                {
-                    max_age = Context::instance().local_repodata_ttl;
-                }
-                else if (Context::instance().local_repodata_ttl == 1)
-                {
-                    // TODO error handling if _cache_control key does not exist!
-                    auto el = m_mod_etag.value("_cache_control", std::string(""));
-                    max_age = get_cache_control_max_age(el);
-                }
+                LOG_INFO << "Found cache at '" << json_file.string() << "'";
+                m_mod_etag = read_mod_and_etag(json_file);
 
-                auto cache_age_seconds
-                    = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-                if ((max_age > cache_age_seconds || Context::instance().offline))
+                if (m_mod_etag.size() != 0)
                 {
-                    // cache valid!
-                    LOG_INFO << "Using cache " << m_repodata_url
-                             << " age in seconds: " << cache_age_seconds << " / " << max_age;
-                    std::string prefix = m_name;
-                    prefix.resize(PREFIX_LENGTH - 1, ' ');
-                    Console::stream() << prefix << " Using cache";
-
-                    m_loaded = true;
-                    m_json_cache_valid = true;
-
-                    // check solv cache
-                    auto solv_age = check_cache(m_solv_fn, now);
-                    LOG_INFO << "Solv cache age in seconds: "
-                             << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count();
-                    if (solv_age != fs::file_time_type::duration::max()
-                        && solv_age.count() <= cache_age.count())
+                    int max_age = 0;
+                    if (Context::instance().local_repodata_ttl > 1)
                     {
-                        LOG_INFO << "Also using .solv cache file";
-                        m_solv_cache_valid = true;
+                        max_age = Context::instance().local_repodata_ttl;
                     }
-                    return true;
+                    else if (Context::instance().local_repodata_ttl == 1)
+                    {
+                        // TODO error handling if _cache_control key does not exist!
+                        auto el = m_mod_etag.value("_cache_control", std::string(""));
+                        max_age = get_cache_control_max_age(el);
+                    }
+
+                    auto cache_age_seconds
+                        = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
+                    if ((max_age > cache_age_seconds || Context::instance().offline))
+                    {
+                        // valid json cache found
+                        if (!m_loaded)
+                        {
+                            LOG_DEBUG << "Using JSON cache";
+                            LOG_TRACE << "Cache age: " << cache_age_seconds << "/" << max_age
+                                      << "s";
+
+                            m_valid_cache_path = cache_path;
+                            m_json_cache_valid = true;
+                            m_loaded = true;
+                        }
+
+                        // check libsolv cache
+                        auto solv_age = check_cache(solv_file, now);
+                        if (solv_age != fs::file_time_type::duration::max()
+                            && solv_age.count() <= cache_age.count())
+                        {
+                            // valid libsolv cache found
+                            LOG_DEBUG << "Using SOLV cache";
+                            LOG_TRACE << "Cache age: "
+                                      << std::chrono::duration_cast<std::chrono::seconds>(solv_age)
+                                             .count()
+                                      << "s";
+                            m_solv_cache_valid = true;
+                            m_valid_cache_path = cache_path;
+                            // no need to search for other valid caches
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        m_expired_cache_path = cache_path;
+                        LOG_DEBUG << "Expired cache or invalid mod/etag headers";
+                    }
+                }
+                else
+                {
+                    LOG_DEBUG << "Could not determine cache mod/etag headers";
                 }
             }
-            else
-            {
-                LOG_INFO << "Could not determine cache file mod / etag headers";
-            }
-            create_target(m_mod_etag);
+        }
+
+        if (m_loaded)
+        {
+            std::string prefix = m_name;
+            prefix.resize(PREFIX_LENGTH - 1, ' ');
+            Console::stream() << prefix << " Using cache";
         }
         else
         {
-            LOG_INFO << "No cache found " << m_repodata_url;
+            LOG_INFO << "No valid cache found";
             if (!Context::instance().offline || forbid_cache())
-            {
                 create_target(m_mod_etag);
-            }
         }
         return true;
     }
@@ -174,11 +212,11 @@ namespace mamba
         // TODO invalidate solv cache on version updates!!
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return m_solv_fn;
+            return m_valid_cache_path / "cache" / m_solv_fn;
         }
         else if (m_json_cache_valid)
         {
-            return m_json_fn;
+            return m_valid_cache_path / "cache" / m_json_fn;
         }
         throw std::runtime_error("Cache not loaded!");
     }
@@ -198,7 +236,7 @@ namespace mamba
         if (m_target->result != 0 || m_target->http_status >= 400)
         {
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for " << m_repodata_url;
+                     << ") for '" << m_repodata_url << "'";
             m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
             m_progress_bar.set_full();
             m_progress_bar.mark_as_completed();
@@ -206,7 +244,7 @@ namespace mamba
             return false;
         }
 
-        LOG_INFO << "HTTP response code: " << m_target->http_status;
+        LOG_DEBUG << "HTTP response code: " << m_target->http_status;
         // Note HTTP status == 0 for files
         if (m_target->http_status == 0 || m_target->http_status == 200
             || m_target->http_status == 304)
@@ -220,22 +258,64 @@ namespace mamba
                                      + std::to_string(m_target->http_status));
         }
 
+        fs::path json_file, solv_file;
+        fs::path writable_cache_path = m_caches.first_writable_path();
+
         if (m_target->http_status == 304)
         {
             // cache still valid
-            auto now = fs::file_time_type::clock::now();
-            auto cache_age = check_cache(m_json_fn, now);
-            auto solv_age = check_cache(m_solv_fn, now);
+            LOG_INFO << "Cache is still valid";
+            json_file = m_expired_cache_path / "cache" / m_json_fn;
+            solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-            fs::last_write_time(m_json_fn, now);
-            LOG_INFO << "Solv age: "
-                     << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
-                     << ", JSON age: "
-                     << std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-            if (solv_age != fs::file_time_type::duration::max()
-                && solv_age.count() <= cache_age.count())
+            auto now = fs::file_time_type::clock::now();
+            auto json_age = check_cache(json_file, now);
+            auto solv_age = check_cache(solv_file, now);
+
+            if (path::is_writable(json_file)
+                && (!fs::exists(solv_file) || path::is_writable(solv_file)))
             {
-                fs::last_write_time(m_solv_fn, now);
+                LOG_DEBUG << "Refreshing cache files ages";
+                m_valid_cache_path = m_expired_cache_path;
+            }
+            else
+            {
+                if (writable_cache_path.empty())
+                {
+                    LOG_ERROR << "Could not find any writable cache directory for repodata file";
+                    std::runtime_error("Non-writable cache error.");
+                }
+
+                LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
+                          << "' to '" << writable_cache_path.string() << "'";
+                fs::path writable_cache_dir = create_cache_dir(writable_cache_path);
+                auto lock = LockFile(writable_cache_dir);
+
+                auto copied_json_file = writable_cache_dir / m_json_fn;
+                fs::copy(json_file, copied_json_file);
+                json_file = copied_json_file;
+
+                if (fs::exists(solv_file))
+                {
+                    auto copied_solv_file = writable_cache_dir / m_solv_fn;
+                    fs::copy(solv_file, copied_solv_file);
+                    solv_file = copied_solv_file;
+                }
+
+                m_valid_cache_path = writable_cache_path;
+            }
+
+
+            {
+                LOG_TRACE << "Refreshing '" << json_file.string() << "'";
+                auto lock = LockFile(json_file);
+                fs::last_write_time(json_file, now);
+            }
+            if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
+            {
+                LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
+                auto lock = LockFile(solv_file);
+                fs::last_write_time(solv_file, now);
                 m_solv_cache_valid = true;
             }
 
@@ -249,7 +329,11 @@ namespace mamba
             return true;
         }
 
-        LOG_INFO << "Finalized transfer: " << m_repodata_url;
+        LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
+
+        fs::path writable_cache_dir = create_cache_dir(writable_cache_path);
+        json_file = writable_cache_dir / m_json_fn;
+        auto lock = LockFile(writable_cache_dir);
 
         m_mod_etag.clear();
         m_mod_etag["_url"] = m_repodata_url;
@@ -257,14 +341,13 @@ namespace mamba
         m_mod_etag["_mod"] = m_target->mod;
         m_mod_etag["_cache_control"] = m_target->cache_control;
 
-        LOG_INFO << "Opening: " << m_json_fn;
-        std::ofstream final_file(m_json_fn);
-
-        create_cache_dir();
+        LOG_DEBUG << "Opening '" << json_file.string() << "'";
+        path::touch(json_file, true);
+        std::ofstream final_file(json_file);
 
         if (!final_file.is_open())
         {
-            LOG_ERROR << "Could not open file " << m_json_fn;
+            LOG_ERROR << "Could not open file '" << json_file.string() << "'";
             exit(1);
         }
 
@@ -291,9 +374,9 @@ namespace mamba
 
         if (!temp_file)
         {
-            LOG_ERROR << "Could not write out repodata file '" << m_json_fn
+            LOG_ERROR << "Could not write out repodata file '" << json_file
                       << "': " << strerror(errno);
-            fs::remove(m_json_fn);
+            fs::remove(json_file);
             exit(1);
         }
 
@@ -301,6 +384,7 @@ namespace mamba
         m_progress_bar.set_full();
         m_progress_bar.mark_as_completed();
 
+        m_valid_cache_path = writable_cache_path;
         m_json_cache_valid = true;
         m_loaded = true;
 
@@ -308,7 +392,7 @@ namespace mamba
         m_temp_file.reset(nullptr);
         final_file.close();
 
-        fs::last_write_time(m_json_fn, fs::file_time_type::clock::now());
+        fs::last_write_time(json_file, fs::file_time_type::clock::now());
 
         return true;
     }
@@ -352,7 +436,7 @@ namespace mamba
         return std::stoi(max_age_match[1]);
     }
 
-    nlohmann::json MSubdirData::read_mod_and_etag()
+    nlohmann::json MSubdirData::read_mod_and_etag(const fs::path& file)
     {
         // parse json at the beginning of the stream such as
         // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
@@ -392,7 +476,7 @@ namespace mamba
             return std::string();
         };
 
-        std::ifstream in_file(m_json_fn);
+        std::ifstream in_file(file);
         auto json = extract_subjson(in_file);
         nlohmann::json result;
         try
@@ -402,7 +486,7 @@ namespace mamba
         }
         catch (...)
         {
-            LOG_WARNING << "Could not parse mod / etag header!";
+            LOG_WARNING << "Could not parse mod/etag header";
             return nlohmann::json();
         }
     }
@@ -412,10 +496,9 @@ namespace mamba
         return cache_name_from_url(url) + ".json";
     }
 
-    std::string create_cache_dir()
+    std::string create_cache_dir(const fs::path& cache_path)
     {
-        std::string cache_dir
-            = PackageCacheData::first_writable().get_pkgs_dir().string() + "/cache";
+        std::string cache_dir = cache_path / "cache";
         fs::create_directories(cache_dir);
 #ifndef _WIN32
         ::chmod(cache_dir.c_str(), 02775);

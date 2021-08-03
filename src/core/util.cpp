@@ -687,12 +687,12 @@ namespace mamba
         else
         {
             m_pid = getpid();
-            if (!(m_locked = try_lock()))
+            if (!(m_locked = lock_non_blocking()))
             {
                 LOG_WARNING << "Cannot lock '" << m_path.string() << "'"
                             << "\nWaiting for other mamba process to finish";
 
-                m_locked = lock();
+                m_locked = lock_blocking();
             }
 
             if (m_locked)
@@ -871,7 +871,7 @@ namespace mamba
     }
 
 #ifndef _WIN32
-    int timedout_set_lock(int fd, struct flock& lock, const std::chrono::seconds& timeout)
+    int timedout_set_fd_lock(int fd, struct flock& lock, const std::chrono::seconds& timeout)
     {
         int ret;
         std::mutex m;
@@ -914,7 +914,7 @@ namespace mamba
     }
 #endif
 
-    bool LockFile::set_lock(bool blocking) const
+    bool LockFile::set_fd_lock(bool blocking) const
     {
         int ret;
 #ifdef _WIN32
@@ -949,7 +949,7 @@ namespace mamba
         if (blocking)
         {
             if (m_timeout.count())
-                ret = timedout_set_lock(m_fd, lock, m_timeout);
+                ret = timedout_set_fd_lock(m_fd, lock, m_timeout);
             else
                 ret = fcntl(m_fd, F_SETLKW, &lock);
         }
@@ -961,7 +961,7 @@ namespace mamba
 
     bool LockFile::lock(int pid, bool blocking) const
     {
-        if (!set_lock(blocking))
+        if (!set_fd_lock(blocking))
         {
             LOG_ERROR << "Could not set lock (" << strerror(errno) << ")";
             return false;
@@ -981,12 +981,12 @@ namespace mamba
         return m_fd;
     }
 
-    bool LockFile::lock()
+    bool LockFile::lock_blocking()
     {
         return lock(m_pid, true);
     }
 
-    bool LockFile::try_lock()
+    bool LockFile::lock_non_blocking()
     {
         int old_pid = read_pid();
         if (old_pid > 0)
@@ -1019,6 +1019,21 @@ namespace mamba
     fs::path LockFile::lockfile_path() const
     {
         return m_lock;
+    }
+
+    std::unique_ptr<LockFile> LockFile::try_lock(const fs::path& path) noexcept
+    {
+        try
+        {
+            auto ptr = std::make_unique<LockFile>(path);
+            return ptr;
+        }
+        catch (...)
+        {
+            LOG_WARNING << "LockFile creation for path '" << path.string()
+                        << "' failed, continuing without it";
+        }
+        return nullptr;
     }
 
     std::string timestamp(const std::time_t& utc_time)

@@ -391,23 +391,31 @@ namespace mamba
         }
     }
 
+    void extract(const fs::path& file, const fs::path& dest)
+    {
+        if (ends_with(file.string(), ".tar.bz2"))
+            extract_archive(file, dest);
+        else if (ends_with(file.string(), ".conda"))
+            extract_conda(file, dest);
+        else
+        {
+            LOG_ERROR << "Unknown package format '" << file.string() << "'";
+            throw std::runtime_error("Unknown package format.");
+        }
+    }
+
     fs::path extract(const fs::path& file)
     {
         std::string dest_dir = file;
         if (ends_with(dest_dir, ".tar.bz2"))
         {
             dest_dir = dest_dir.substr(0, dest_dir.size() - 8);
-            extract_archive(file, dest_dir);
         }
         else if (ends_with(dest_dir, ".conda"))
         {
             dest_dir = dest_dir.substr(0, dest_dir.size() - 6);
-            extract_conda(file, dest_dir);
         }
-        else
-        {
-            throw std::runtime_error("Unknown package format (" + file.string() + ")");
-        }
+        extract(file, dest_dir);
         return dest_dir;
     }
 

@@ -13,12 +13,13 @@
 
 #include "nlohmann/json.hpp"
 
-#include "context.hpp"
-#include "fetch.hpp"
-#include "mamba_fs.hpp"
-#include "output.hpp"
-#include "repo.hpp"
-#include "util.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/fetch.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/repo.hpp"
+#include "mamba/core/util.hpp"
 
 
 namespace decompress
@@ -41,10 +42,13 @@ namespace mamba
          * @param name Name of the subdirectory (<channel>/<subdir>)
          * @param repodata_url URL of the repodata file
          * @param repodata_fn Local path of the repodata file
+         * @param possible packages caches
+         * @param is_noarch Local path of the repodata file
          */
         MSubdirData(const std::string& name,
                     const std::string& repodata_url,
                     const std::string& repodata_fn,
+                    MultiPackageCache& caches,
                     bool is_noarch);
 
         // TODO return seconds as double
@@ -68,12 +72,14 @@ namespace mamba
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
-        nlohmann::json read_mod_and_etag();
+        nlohmann::json read_mod_and_etag(const fs::path&);
 
         std::unique_ptr<DownloadTarget> m_target;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
+
+        fs::path m_valid_cache_path, m_expired_cache_path;
 
         std::ofstream out_file;
 
@@ -85,6 +91,7 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
+        MultiPackageCache& m_caches;
         bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;
@@ -96,7 +103,7 @@ namespace mamba
     // concatenante base url and repodata depending on repodata value
     // and old behavior support.
     std::string cache_fn_url(const std::string& url);
-    std::string create_cache_dir();
+    std::string create_cache_dir(const fs::path& cache_path);
 
 }  // namespace mamba
 

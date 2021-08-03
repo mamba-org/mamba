@@ -9,6 +9,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
@@ -43,7 +44,7 @@ namespace mamba
 
         MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
 
-        bool download_explicit(const std::vector<PackageInfo>& pkgs);
+        bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
 
         struct other_pkg_mgr_spec
         {

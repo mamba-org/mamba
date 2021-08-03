@@ -44,15 +44,15 @@ namespace mamba
             Console::stream() << "Cleaning index cache..";
 
             for (auto* pkg_cache : caches.writable_caches())
-                if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
+                if (fs::exists(pkg_cache->path() / "cache"))
                 {
                     try
                     {
-                        fs::remove_all(pkg_cache->get_pkgs_dir() / "cache");
+                        fs::remove_all(pkg_cache->path() / "cache");
                     }
                     catch (...)
                     {
-                        LOG_WARNING << "Could not clean " << pkg_cache->get_pkgs_dir() / "cache";
+                        LOG_WARNING << "Could not clean " << pkg_cache->path() / "cache";
                     }
                 }
         }
@@ -63,8 +63,8 @@ namespace mamba
 
             for (auto* pkg_cache : caches.writable_caches())
             {
-                if (fs::exists(pkg_cache->get_pkgs_dir()))
-                    for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                if (fs::exists(pkg_cache->path()))
+                    for (auto& p : fs::directory_iterator(pkg_cache->path()))
                     {
                         if (p.exists() && ends_with(p.path().string(), ".lock")
                             && fs::exists(rstrip(p.path().string(), ".lock")))
@@ -81,9 +81,8 @@ namespace mamba
                         }
                     }
 
-                if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
-                    for (auto& p :
-                         fs::recursive_directory_iterator(pkg_cache->get_pkgs_dir() / "cache"))
+                if (fs::exists(pkg_cache->path() / "cache"))
+                    for (auto& p : fs::recursive_directory_iterator(pkg_cache->path() / "cache"))
                     {
                         if (p.exists() && ends_with(p.path().string(), ".lock"))
                         {
@@ -149,9 +148,9 @@ namespace mamba
             for (auto* pkg_cache : caches.writable_caches())
             {
                 std::string header_line
-                    = concat("Package cache folder: ", pkg_cache->get_pkgs_dir().string());
+                    = concat("Package cache folder: ", pkg_cache->path().string());
                 std::vector<std::vector<printers::FormattedString>> rows;
-                for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
                     std::string fname = p.path().filename();
                     if (!p.is_directory()
@@ -167,7 +166,7 @@ namespace mamba
                 std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
                     return a[0].s < b[0].s;
                 });
-                t.add_rows(pkg_cache->get_pkgs_dir().string(), rows);
+                t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
             {
@@ -221,9 +220,9 @@ namespace mamba
             for (auto* pkg_cache : caches.writable_caches())
             {
                 std::string header_line
-                    = concat("Package cache folder: ", pkg_cache->get_pkgs_dir().string());
+                    = concat("Package cache folder: ", pkg_cache->path().string());
                 std::vector<std::vector<printers::FormattedString>> rows;
-                for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
                     std::string fname = p.path().filename();
                     if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
@@ -243,7 +242,7 @@ namespace mamba
                 std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
                     return a[0].s < b[0].s;
                 });
-                t.add_rows(pkg_cache->get_pkgs_dir().string(), rows);
+                t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
             {

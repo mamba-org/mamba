@@ -89,9 +89,8 @@ namespace mamba
             solver.add_jobs(specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
             solver.solve();
 
-            const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
-            MultiPackageCache package_caches({ pkgs_dirs });
-            MTransaction trans(solver, package_caches, pkgs_dirs);
+            MultiPackageCache package_caches(ctx.pkgs_dirs);
+            MTransaction trans(solver, package_caches);
 
             if (ctx.json)
             {

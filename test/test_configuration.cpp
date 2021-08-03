@@ -481,15 +481,25 @@ namespace mamba
             std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
             env::set("MAMBA_ROOT_PREFIX", root_prefix_str);
             load_test_config(empty_rc);
-            EXPECT_EQ(
-                config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
-                                | MAMBA_SHOW_ALL_CONFIGS,
-                            { "pkgs_dirs" }),
-                unindent((R"(
+
+#ifdef _WIN32
+            std::string extra_cache = "\n  - "
+                                      + (fs::path(env::get("APPDATA")) / ".mamba" / "pkgs").string()
+                                      + "  # 'fallback'";
+#else
+            std::string extra_cache = "";
+#endif
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
+                                      | MAMBA_SHOW_ALL_CONFIGS,
+                                  { "pkgs_dirs" }),
+                      unindent((R"(
                                 pkgs_dirs:
                                   - )"
-                          + (fs::path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback')")
-                             .c_str()));
+                                + (fs::path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
+                                  - )"
+                                + (env::home_directory() / ".mamba" / "pkgs").string()
+                                + R"(  # 'fallback')" + extra_cache)
+                                   .c_str()));
             EXPECT_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::path>>());
 
             std::string cache4 = (env::home_directory() / "babaz").string();

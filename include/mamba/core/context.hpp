@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "mamba_fs.hpp"
+#include "mamba/core/mamba_fs.hpp"
 
 #define ROOT_ENV_NAME "base"
 
@@ -109,7 +109,15 @@ namespace mamba
 
         // TODO check writable and add other potential dirs
         std::vector<fs::path> envs_dirs = { root_prefix / "envs" };
-        std::vector<fs::path> pkgs_dirs = { root_prefix / "pkgs" };
+        std::vector<fs::path> pkgs_dirs
+            = { root_prefix / "pkgs",
+                fs::path("~") / ".mamba" / "pkgs"
+#ifdef _WIN32
+                ,
+                fs::path(std::getenv("APPDATA") ? std::getenv("APPDATA") : "") / ".mamba" / "pkgs"
+#endif
+              };
+
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header

@@ -59,11 +59,6 @@ namespace mamba
         , m_token(token)
         , m_package_filename(package_filename)
         , m_canonical_name(canonical_name)
-        , m_repo_checker(rsplit(base_url(), "/", 1).front(),
-                         Context::instance().root_prefix / "etc" / "trusted-repos"
-                             / cache_name_from_url(base_url()),
-                         PackageCacheData::first_writable().get_pkgs_dir() / "cache"
-                             / cache_name_from_url(base_url()))
     {
     }
 
@@ -102,10 +97,21 @@ namespace mamba
         return m_package_filename;
     }
 
-    const validate::RepoChecker& Channel::repo_checker() const
+    const validate::RepoChecker& Channel::repo_checker(MultiPackageCache& caches) const
     {
-        m_repo_checker.generate_index_checker();
-        return m_repo_checker;
+        if (p_repo_checker == nullptr)
+        {
+            p_repo_checker = std::make_unique<validate::RepoChecker>(
+                rsplit(base_url(), "/", 1).front(),
+                Context::instance().root_prefix / "etc" / "trusted-repos"
+                    / cache_name_from_url(base_url()),
+                caches.first_writable_path() / "cache" / cache_name_from_url(base_url()));
+
+            fs::create_directories(p_repo_checker->cache_path());
+            p_repo_checker->generate_index_checker();
+        }
+
+        return *p_repo_checker;
     }
 
     const std::string& Channel::canonical_name() const

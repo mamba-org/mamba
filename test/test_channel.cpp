@@ -153,21 +153,44 @@ namespace mamba
         ChannelContext::instance().reset();
     }
 
+    TEST(ChannelContext, default_channels)
+    {
+        auto& ctx = Context::instance();
+        ctx.default_channels = {
+            "https://mamba.com/test/channel",
+            "https://mamba.com/stable/channel"
+        };
+        ChannelContext::instance().reset();
+
+        auto x = get_channels({"defaults"});
+        const Channel* c1 = x[0];
+        const Channel* c2 = x[1];
+
+        EXPECT_EQ(c1->name(), "test/channel");
+        std::vector<std::string> exp_urls(
+            { std::string("https://mamba.com/test/channel/") + platform,
+              std::string("https://mamba.com/test/channel/noarch") });
+        EXPECT_EQ(c1->urls(), exp_urls);
+        std::vector<std::string> exp_urls2(
+            { std::string("https://mamba.com/stable/channel/") + platform,
+              std::string("https://mamba.com/stable/channel/noarch") });
+        EXPECT_EQ(c2->urls(), exp_urls2);
+
+        EXPECT_EQ(c2->name(), "stable/channel");
+        EXPECT_EQ(c2->location(), "mamba.com");
+        EXPECT_EQ(c2->scheme(), "https");
+
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
     TEST(ChannelContext, custom_channels_with_labels)
     {
-        // ChannelContext builds its custom channels with
-        // make_simple_channel
         auto& ctx = Context::instance();
         ctx.custom_channels = {
             { "test_channel", "https://server.com/private/channels" },
         };
         ChannelContext::instance().reset();
-
-        // const auto& ch = ChannelContext::instance().get_channel_alias();
-        // EXPECT_EQ(ch.scheme(), "https");
-        // EXPECT_EQ(ch.location(), "mydomain.com/channels");
-        // EXPECT_EQ(ch.name(), "<alias>");
-        // EXPECT_EQ(ch.canonical_name(), "<alias>");
 
         {
             std::string value = "test_channel";

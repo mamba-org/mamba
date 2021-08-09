@@ -249,7 +249,9 @@ def get_env(n, f=None):
         return Path(os.path.join(root_prefix, "envs", n))
 
 
-def get_pkg(n, f=None, root_prefix=os.getenv("MAMBA_ROOT_PREFIX")):
+def get_pkg(n, f=None, root_prefix=None):
+    if not root_prefix:
+        root_prefix = os.getenv("MAMBA_ROOT_PREFIX")
     if f:
         return Path(os.path.join(root_prefix, "pkgs", n, f))
     else:

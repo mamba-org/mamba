@@ -153,6 +153,57 @@ namespace mamba
         ChannelContext::instance().reset();
     }
 
+    TEST(ChannelContext, custom_channels_with_labels)
+    {
+        // ChannelContext builds its custom channels with
+        // make_simple_channel
+        auto& ctx = Context::instance();
+        ctx.custom_channels = {
+            { "test_channel", "https://server.com/private/channels" },
+        };
+        ChannelContext::instance().reset();
+
+        // const auto& ch = ChannelContext::instance().get_channel_alias();
+        // EXPECT_EQ(ch.scheme(), "https");
+        // EXPECT_EQ(ch.location(), "mydomain.com/channels");
+        // EXPECT_EQ(ch.name(), "<alias>");
+        // EXPECT_EQ(ch.canonical_name(), "<alias>");
+
+        {
+            std::string value = "test_channel";
+            const Channel& c = make_channel(value);
+            EXPECT_EQ(c.scheme(), "https");
+            EXPECT_EQ(c.location(), "server.com");
+            EXPECT_EQ(c.name(), "private/channels/test_channel");
+            EXPECT_EQ(c.canonical_name(), "test_channel");
+            EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+            std::vector<std::string> exp_urls(
+                { std::string("https://server.com/private/channels/test_channel/") + platform,
+                  std::string("https://server.com/private/channels/test_channel/noarch") });
+            EXPECT_EQ(c.urls(), exp_urls);
+        }
+
+        {
+            std::string value = "test_channel/mylabel/xyz";
+            const Channel& c = make_channel(value);
+            EXPECT_EQ(c.scheme(), "https");
+            EXPECT_EQ(c.location(), "server.com");
+            EXPECT_EQ(c.name(), "private/channels/test_channel/mylabel/xyz");
+            EXPECT_EQ(c.canonical_name(), "test_channel/mylabel/xyz");
+            EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+            std::vector<std::string> exp_urls(
+                { std::string("https://server.com/private/channels/test_channel/mylabel/xyz/")
+                      + platform,
+                  std::string(
+                      "https://server.com/private/channels/test_channel/mylabel/xyz/noarch") });
+            EXPECT_EQ(c.urls(), exp_urls);
+        }
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
 
     TEST(Channel, make_channel)
     {

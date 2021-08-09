@@ -473,9 +473,22 @@ namespace mamba
 
         if (it != it_end)
         {
+            // we can have a channel like
+            // testchannel: https://server.com/private/testchannel
+            // where `name == private/testchannel` and we need to join the remaining label part
+            // of the channel (e.g. -c testchannel/mylabel/xyz)
+            // needs to result in `name = private/testchannel/mylabel/xyz`
+
+            std::string combined_name = it->second.name();
+            if (name.find('/') != std::string::npos)
+            {
+                combined_name += "/";
+                combined_name += name.substr(name.find('/') + 1, std::string::npos);
+            }
+            std::cout << "Name: " << name << " -> " << it->second.name() << std::endl;
             return ChannelInternal(it->second.scheme(),
                                    it->second.location(),
-                                   it->second.name(),
+                                   combined_name,
                                    it->second.auth(),
                                    it->second.token(),
                                    it->second.package_filename(),

@@ -44,7 +44,7 @@ class TestMenuinst:
         d2 = self.dirs["system"]["start"][0]
         lnk2 = os.path.join(d2, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
 
-        assert (os.path.exists(lnk) or os.path.exists(lnk2))
+        assert os.path.exists(lnk) or os.path.exists(lnk2)
 
         if os.path.exists(lnk2):
             lnk = lnk2
@@ -85,7 +85,7 @@ class TestMenuinst:
         d2 = self.dirs["system"]["start"][0]
         lnk2 = os.path.join(d2, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
 
-        assert (os.path.exists(lnk) or os.path.exists(lnk2))
+        assert os.path.exists(lnk) or os.path.exists(lnk2)
 
         if os.path.exists(lnk2):
             lnk = lnk2

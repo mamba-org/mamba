@@ -42,9 +42,12 @@ class TestMenuinst:
 
         lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
         d2 = self.dirs["system"]["start"][0]
-        lnk2 = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
+        lnk2 = os.path.join(d2, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
 
         assert os.path.exists(lnk) or os.path.exists(lnk2)
+
+        if os.path.exists(lnk2):
+            lnk = lnk2
 
         shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(lnk)
@@ -78,7 +81,14 @@ class TestMenuinst:
         d = self.dirs["user"]["start"][0]
         lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
 
-        assert os.path.exists(lnk)
+        lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
+        d2 = self.dirs["system"]["start"][0]
+        lnk2 = os.path.join(d2, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
+
+        assert os.path.exists(lnk) or os.path.exists(lnk2)
+
+        if os.path.exists(lnk2):
+            lnk = lnk2
 
         shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(lnk)

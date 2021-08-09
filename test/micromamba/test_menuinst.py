@@ -37,9 +37,14 @@ class TestMenuinst:
         create("miniforge_console_shortcut", "-n", env_name, no_dry_run=True)
         prefix = os.path.join(self.root_prefix, "envs", env_name)
         d = self.dirs["user"]["start"][0]
-        lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
+        print(d)
+        print(self.dirs)
 
-        assert os.path.exists(lnk)
+        lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
+        d2 = self.dirs["system"]["start"][0]
+        lnk2 = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
+
+        assert os.path.exists(lnk) or os.path.exists(lnk2)
 
         shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortCut(lnk)
@@ -61,6 +66,7 @@ class TestMenuinst:
         assert not os.path.exists(lnk)
 
     def test_shortcut_weird_env(self):
+        print(os.environ)
         # note Umlauts do not work yet
         os.environ["MAMBA_ROOT_PREFIX"] = str(Path("./compl i c ted").absolute())
         root_prefix = os.environ["MAMBA_ROOT_PREFIX"]

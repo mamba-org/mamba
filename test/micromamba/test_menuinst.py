@@ -34,7 +34,7 @@ class TestMenuinst:
     def test_simple_shortcut(self):
         env_name = random_string()
         # "--json"
-        create("miniforge_console_shortcut", "-n", env_name, no_dry_run=True)
+        create("miniforge_console_shortcut=1.0", "-n", env_name, no_dry_run=True)
         prefix = os.path.join(self.root_prefix, "envs", env_name)
         d = self.dirs["user"]["start"][0]
         lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")
@@ -67,7 +67,7 @@ class TestMenuinst:
 
         env_name = random_string()
         # "--json"
-        create("miniforge_console_shortcut", "-n", env_name, no_dry_run=True)
+        create("miniforge_console_shortcut=1.0", "-n", env_name, no_dry_run=True)
         prefix = os.path.join(root_prefix, "envs", env_name)
         d = self.dirs["user"]["start"][0]
         lnk = os.path.join(d, "Miniforge", "Miniforge Prompt (" + env_name + ").lnk")

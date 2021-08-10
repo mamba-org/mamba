@@ -363,7 +363,7 @@ jobs:
           conda list
           # cut first couple of lines to remove prefix path
           conda list | tail -n +3 > list.txt
-          if [ "$(grep -c "miniconda/conda-bld" list.txt)" -ne 2 ]; then
+          if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
             exit 1
           fi
 

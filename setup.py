@@ -192,6 +192,9 @@ data_files = [
 ]
 if sys.platform == "win32":
     data_files.append(("condabin", ["mamba/shell_templates/mamba.bat"]),)
+    data_files.append(
+        ("Library/bin", ["mamba/shell_templates/win_redirect/mamba.bat"]),
+    )
 
 setup(
     name="mamba",

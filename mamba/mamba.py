@@ -45,6 +45,7 @@ from conda.exceptions import (
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
+from conda.lock import FileLock
 from conda.misc import explicit, touch_nonadmin
 from conda.models.match_spec import MatchSpec
 
@@ -140,13 +141,14 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise DryRunExit()
 
     try:
-        unlink_link_transaction.download_and_extract()
-        if context.download_only:
-            raise CondaExitZero(
-                "Package caches prepared. UnlinkLinkTransaction cancelled with "
-                "--download-only option."
-            )
-        unlink_link_transaction.execute()
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+            unlink_link_transaction.download_and_extract()
+            if context.download_only:
+                raise CondaExitZero(
+                    "Package caches prepared. UnlinkLinkTransaction cancelled with "
+                    "--download-only option."
+                )
+            unlink_link_transaction.execute()
 
     except SystemExit as e:
         raise CondaSystemExit("Exiting", e)
@@ -258,11 +260,12 @@ def remove(args, parser):
             exit_code = 1
             return exit_code
 
-        package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(
-            solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-        )
-        downloaded = transaction.prompt(repos)
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+            package_cache = api.MultiPackageCache(context.pkgs_dirs)
+            transaction = api.Transaction(
+                solver, package_cache, PackageCacheData.first_writable().pkgs_dir
+            )
+            downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
 
@@ -504,8 +507,9 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    prefix_data = api.PrefixData(context.target_prefix)
-    prefix_data.load()
+    with FileLock(context.target_prefix):
+        prefix_data = api.PrefixData(context.target_prefix)
+        prefix_data.load()
 
     # add installed
     if use_mamba_experimental:
@@ -594,28 +598,29 @@ def install(args, parser, command="install"):
             exit_code = 1
             return exit_code
 
-        package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(
-            solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-        )
-        mmb_specs, to_link, to_unlink = transaction.to_conda()
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+            package_cache = api.MultiPackageCache(context.pkgs_dirs)
+            transaction = api.Transaction(
+                solver, package_cache, PackageCacheData.first_writable().pkgs_dir
+            )
+            mmb_specs, to_link, to_unlink = transaction.to_conda()
 
-        specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
-        specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
+            specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
+            specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
-        transaction.log_json()
+            transaction.log_json()
+            downloaded = transaction.prompt(repos)
+            if not downloaded:
+                exit(0)
 
-        downloaded = transaction.prompt(repos)
-        if not downloaded:
-            exit(0)
-        PackageCacheData.first_writable().reload()
+            PackageCacheData.first_writable().reload()
 
     # if use_mamba_experimental and not os.name == "nt":
     if use_mamba_experimental:
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
-
-        transaction.execute(prefix_data)
+        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+            transaction.execute(prefix_data)
     else:
         conda_transaction = to_txn(
             specs_to_add,

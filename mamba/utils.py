@@ -19,6 +19,7 @@ from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.gateways.connection.session import CondaHttpAuth
+from conda.lock import FileLock
 from conda.models.channel import Channel as CondaChannel
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
@@ -87,17 +88,20 @@ def get_index(
                 name = channel.name + "/" + channel_platform
             else:
                 name = channel.platform_url(channel_platform, with_credentials=False)
-            sd = api.SubdirData(
-                name, full_url, full_path_cache, channel_platform == "noarch"
-            )
 
-            sd.load()
+            with FileLock(full_path_cache):
+                sd = api.SubdirData(
+                    name, full_url, full_path_cache, channel_platform == "noarch"
+                )
+                sd.load()
+
             index.append(
                 (sd, {"platform": channel_platform, "url": url, "channel": channel})
             )
             dlist.add(sd)
 
-    is_downloaded = dlist.download(True)
+    with FileLock(api.create_cache_dir()):
+        is_downloaded = dlist.download(True)
 
     if not is_downloaded:
         raise RuntimeError("Error downloading repodata.")
@@ -165,7 +169,9 @@ def load_channels(
             )
             print("Cache path: ", subdir.cache_path())
 
-        repo = subdir.create_repo(pool)
+        with FileLock(subdir.cache_path()):
+            repo = subdir.create_repo(pool)
+
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 

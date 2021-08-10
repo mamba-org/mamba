@@ -448,34 +448,35 @@ namespace mamba
             return;
         }
 
+        auto str = Console::hide_secrets(m_stream.str());
         switch (m_severity)
         {
             case LogSeverity::kFatal:
                 std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset
-                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::kError:
                 std::cerr << termcolor::red << "ERROR   " << termcolor::reset
-                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::kWarning:
                 std::cerr << termcolor::yellow << "WARNING " << termcolor::reset
-                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::kInfo:
-                std::cerr << "INFO    " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
+                std::cerr << "INFO    " << prepend(str, "", std::string(8, ' ').c_str())
                           << std::endl;
                 break;
             case LogSeverity::kDebug:
                 std::cerr << termcolor::cyan << "DEBUG   " << termcolor::reset
-                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             case LogSeverity::kTrace:
                 std::cerr << termcolor::blue << "TRACE   " << termcolor::reset
-                          << prepend(m_stream.str(), "", std::string(8, ' ').c_str()) << std::endl;
+                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
                 break;
             default:
-                std::cerr << "UNKOWN  " << prepend(m_stream.str(), "", std::string(8, ' ').c_str())
+                std::cerr << "UNKOWN  " << prepend(str, "", std::string(8, ' ').c_str())
                           << std::endl;
                 break;
         }

@@ -156,13 +156,41 @@ namespace mamba
     TEST(ChannelContext, default_channels)
     {
         auto& ctx = Context::instance();
-        ctx.default_channels = {
-            "https://mamba.com/test/channel",
-            "https://mamba.com/stable/channel"
-        };
         ChannelContext::instance().reset();
 
-        auto x = get_channels({"defaults"});
+        auto x = get_channels({ "defaults" });
+#if !defined(_WIN32)
+        const Channel* c1 = x[0];
+        const Channel* c2 = x[1];
+
+        EXPECT_EQ(c1->name(), "pkgs/main");
+        std::vector<std::string> exp_urls(
+            { std::string("https://repo.anaconda.com/pkgs/main/") + platform,
+              std::string("https://repo.anaconda.com/pkgs/main/noarch") });
+        EXPECT_EQ(c1->urls(), exp_urls);
+
+        EXPECT_EQ(c2->name(), "pkgs/r");
+        std::vector<std::string> exp_urls2(
+            { std::string("https://repo.anaconda.com/pkgs/r/") + platform,
+              std::string("https://repo.anaconda.com/pkgs/r/noarch") });
+        EXPECT_EQ(c2->urls(), exp_urls2);
+
+        EXPECT_EQ(c1->location(), "repo.anaconda.com");
+        EXPECT_EQ(c1->scheme(), "https");
+
+#endif
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
+    TEST(ChannelContext, custom_default_channels)
+    {
+        auto& ctx = Context::instance();
+        ctx.default_channels
+            = { "https://mamba.com/test/channel", "https://mamba.com/stable/channel" };
+        ChannelContext::instance().reset();
+
+        auto x = get_channels({ "defaults" });
         const Channel* c1 = x[0];
         const Channel* c2 = x[1];
 

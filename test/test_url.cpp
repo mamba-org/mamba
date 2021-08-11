@@ -204,12 +204,19 @@ namespace mamba
     TEST(url, split_scheme_auth_token)
     {
         std::string input = "https://u:p@conda.io/t/x1029384756/more/path";
+        std::string input2 = "https://u:p@conda.io/t/a_-12345-absdj12345-xyxyxyx/more/path";
         std::string remaining_url, scheme, auth, token;
         split_scheme_auth_token(input, remaining_url, scheme, auth, token);
         EXPECT_EQ(remaining_url, "conda.io/more/path");
         EXPECT_EQ(scheme, "https");
         EXPECT_EQ(auth, "u:p");
         EXPECT_EQ(token, "x1029384756");
+
+        split_scheme_auth_token(input2, remaining_url, scheme, auth, token);
+        EXPECT_EQ(remaining_url, "conda.io/more/path");
+        EXPECT_EQ(scheme, "https");
+        EXPECT_EQ(auth, "u:p");
+        EXPECT_EQ(token, "a_-12345-absdj12345-xyxyxyx");
 
 #ifdef _WIN32
         split_scheme_auth_token(

@@ -217,6 +217,8 @@ def init_api_context(use_mamba_experimental=False):
             )
     api_ctx.custom_channels = additional_custom_channels
 
+    api_ctx.default_channels = [x.base_url for x in context.default_channels]
+
     if context.ssl_verify is False:
         api_ctx.ssl_verify = "<false>"
     elif context.ssl_verify is not True:

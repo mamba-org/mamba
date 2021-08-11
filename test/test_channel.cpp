@@ -153,6 +153,108 @@ namespace mamba
         ChannelContext::instance().reset();
     }
 
+    TEST(ChannelContext, default_channels)
+    {
+        auto& ctx = Context::instance();
+        ChannelContext::instance().reset();
+
+        auto x = get_channels({ "defaults" });
+#if !defined(_WIN32)
+        const Channel* c1 = x[0];
+        const Channel* c2 = x[1];
+
+        EXPECT_EQ(c1->name(), "pkgs/main");
+        std::vector<std::string> exp_urls(
+            { std::string("https://repo.anaconda.com/pkgs/main/") + platform,
+              std::string("https://repo.anaconda.com/pkgs/main/noarch") });
+        EXPECT_EQ(c1->urls(), exp_urls);
+
+        EXPECT_EQ(c2->name(), "pkgs/r");
+        std::vector<std::string> exp_urls2(
+            { std::string("https://repo.anaconda.com/pkgs/r/") + platform,
+              std::string("https://repo.anaconda.com/pkgs/r/noarch") });
+        EXPECT_EQ(c2->urls(), exp_urls2);
+
+        EXPECT_EQ(c1->location(), "repo.anaconda.com");
+        EXPECT_EQ(c1->scheme(), "https");
+
+#endif
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
+    TEST(ChannelContext, custom_default_channels)
+    {
+        auto& ctx = Context::instance();
+        ctx.default_channels
+            = { "https://mamba.com/test/channel", "https://mamba.com/stable/channel" };
+        ChannelContext::instance().reset();
+
+        auto x = get_channels({ "defaults" });
+        const Channel* c1 = x[0];
+        const Channel* c2 = x[1];
+
+        EXPECT_EQ(c1->name(), "test/channel");
+        std::vector<std::string> exp_urls(
+            { std::string("https://mamba.com/test/channel/") + platform,
+              std::string("https://mamba.com/test/channel/noarch") });
+        EXPECT_EQ(c1->urls(), exp_urls);
+        std::vector<std::string> exp_urls2(
+            { std::string("https://mamba.com/stable/channel/") + platform,
+              std::string("https://mamba.com/stable/channel/noarch") });
+        EXPECT_EQ(c2->urls(), exp_urls2);
+
+        EXPECT_EQ(c2->name(), "stable/channel");
+        EXPECT_EQ(c2->location(), "mamba.com");
+        EXPECT_EQ(c2->scheme(), "https");
+
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
+    TEST(ChannelContext, custom_channels_with_labels)
+    {
+        auto& ctx = Context::instance();
+        ctx.custom_channels = {
+            { "test_channel", "https://server.com/private/channels" },
+        };
+        ChannelContext::instance().reset();
+
+        {
+            std::string value = "test_channel";
+            const Channel& c = make_channel(value);
+            EXPECT_EQ(c.scheme(), "https");
+            EXPECT_EQ(c.location(), "server.com");
+            EXPECT_EQ(c.name(), "private/channels/test_channel");
+            EXPECT_EQ(c.canonical_name(), "test_channel");
+            EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+            std::vector<std::string> exp_urls(
+                { std::string("https://server.com/private/channels/test_channel/") + platform,
+                  std::string("https://server.com/private/channels/test_channel/noarch") });
+            EXPECT_EQ(c.urls(), exp_urls);
+        }
+
+        {
+            std::string value = "test_channel/mylabel/xyz";
+            const Channel& c = make_channel(value);
+            EXPECT_EQ(c.scheme(), "https");
+            EXPECT_EQ(c.location(), "server.com");
+            EXPECT_EQ(c.name(), "private/channels/test_channel/mylabel/xyz");
+            EXPECT_EQ(c.canonical_name(), "test_channel/mylabel/xyz");
+            EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+            std::vector<std::string> exp_urls(
+                { std::string("https://server.com/private/channels/test_channel/mylabel/xyz/")
+                      + platform,
+                  std::string(
+                      "https://server.com/private/channels/test_channel/mylabel/xyz/noarch") });
+            EXPECT_EQ(c.urls(), exp_urls);
+        }
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
 
     TEST(Channel, make_channel)
     {

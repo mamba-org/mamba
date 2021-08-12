@@ -435,8 +435,9 @@ def install(args, parser, command="install"):
     # and that they are name-only specs
     if isupdate and context.update_modifier == UpdateModifier.UPDATE_ALL:
         for i in installed_names:
-            if i != "python":
-                specs.append(MatchSpec(i))
+            if i.startswith("__"):
+                continue
+            specs.append(MatchSpec(i))
 
         prefix_data = PrefixData(prefix)
         for s in args_packages:
@@ -490,12 +491,13 @@ def install(args, parser, command="install"):
     # If yes, add the installed python to the specs to prevent updating it.
     python_constraint = None
 
-    if not any(s.name == "python" for s in specs) and "python" in installed_names:
-        i = installed_names.index("python")
-        version = installed_pkg_recs[i].version
-        major_minor_version = ".".join(version.split(".")[:2])
-        specs.append(MatchSpec(f"python=={major_minor_version}.*"))
-        python_constraint = specs[-1].conda_build_form()
+    if "python" in installed_names:
+        if context.update_modifier == UpdateModifier.UPDATE_ALL or not any(
+            s.name == "python" for s in specs
+        ):
+            version = installed_pkg_recs[installed_names.index("python")].version
+            major_minor_version = ".".join(version.split(".")[:2])
+            python_constraint = f"python {major_minor_version}.*"
 
     mamba_solve_specs = [s.__str__() for s in specs]
 
@@ -559,6 +561,7 @@ def install(args, parser, command="install"):
         pinned_specs_info = ""
         if python_constraint:
             pinned_specs_info += f"  - {python_constraint}\n"
+            solver.add_pin(python_constraint)
 
         pinned_specs = get_pinned_specs(context.target_prefix)
         if pinned_specs:

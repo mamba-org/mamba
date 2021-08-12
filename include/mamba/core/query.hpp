@@ -29,7 +29,6 @@ extern "C"
 #include "solv/solver.h"
 }
 
-namespace nl = nlohmann;
 
 namespace mamba
 {
@@ -89,7 +88,7 @@ namespace mamba
         std::ostream& table(std::ostream&) const;
         std::ostream& table(std::ostream&, const std::vector<std::string>& fmt) const;
         std::ostream& tree(std::ostream&) const;
-        nl::json json() const;
+        nlohmann::json json() const;
 
         std::ostream& pretty(std::ostream&) const;
 

@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 jobs:
   mamba_python_tests:
@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [ '3.8' ]
+        python-version: ["3.8"]
 
     steps:
       - uses: actions/checkout@v2
@@ -303,7 +303,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2016]
-        python-version: [ '3.7' ]
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
@@ -378,7 +378,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2016]
-        python-version: [ '3.7' ]
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
@@ -421,7 +421,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2016]
-        python-version: [ '3.7' ]
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
@@ -475,7 +475,7 @@ jobs:
           micromamba create -n testenv python=3.8 wheel -c conda-forge
           micromamba activate testenv
           wheel --help
-      - name: 'Tar files'
+      - name: "Tar files"
         run: tar -cvf umamba.tar build/micromamba.exe
       - uses: actions/upload-artifact@v2
         with:
@@ -489,7 +489,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2016]
-        python-version: [ '3.7' ]
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
@@ -530,7 +530,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2016]
-        python-version: [ '3.7' ]
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
@@ -569,7 +569,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2016]
-        python-version: [ '3.7' ]
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2

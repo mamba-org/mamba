@@ -43,7 +43,9 @@ namespace mamba
 #error "no supported OS detected"
 #endif
 
-    const static std::regex token_re("/t/([a-zA-Z0-9-]*)");
+    // usernames on anaconda.org can have a underscore, which influences the
+    // first two characters
+    const static std::regex token_re("/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)");
     const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
 
     class mamba_error : public std::runtime_error

@@ -11,7 +11,7 @@ dependencies:
   - libsolv >=0.7.18
   - libarchive
   - libsodium
-  - libcurl 7.76.1 *_0
+  - libcurl 7.75.0 *_0
   - cxx-compiler
   - gtest
   - gmock

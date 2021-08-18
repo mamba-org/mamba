@@ -1,3 +1,15 @@
+0.15.3 (August 18, 2021)
+========================
+
+- change token regex to work with edge-cases (underscores in user name) (#1122)
+- only pin major.minor version of python for update --all (#1101, thanks @mparry!)
+- add mamba init to the activate message (#1124, thanks @isuruf)
+- hide tokens in logs (#1121)
+- add lockfiles for repodata and pkgs download (#1105, thanks @jaimergp)
+- log actual SHA256/MD5/file size when failing to avlidate (#1095, thanks @johnhany97)
+- Add mamba.bat in front of PATH (#1112, thanks @isuruf)
+- Fix mamba not writable cache errors (#1108)
+
 0.15.2 (July 16, 2021)
 ======================
 

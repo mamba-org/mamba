@@ -8,6 +8,8 @@
 #define MAMBA_CORE_FS_UTIL
 
 #include <string>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "environment.hpp"
 #include "mamba_fs.hpp"
@@ -51,7 +53,7 @@ namespace mamba
             path = env::expand_user(path);
             if (lexists(path))
             {
-                fs::last_write_time(path, fs::file_time_type::clock::now());
+                utimensat(AT_FDCWD, path.string().c_str(), NULL, AT_SYMLINK_NOFOLLOW);
                 return true;
             }
             else

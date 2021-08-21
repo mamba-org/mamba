@@ -9,7 +9,8 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/url.hpp"
-
+#include <fcntl.h>
+#include <sys/stat.h>
 
 namespace decompress
 {
@@ -227,7 +228,7 @@ namespace mamba
             auto cache_age = check_cache(m_json_fn, now);
             auto solv_age = check_cache(m_solv_fn, now);
 
-            fs::last_write_time(m_json_fn, now);
+            utimensat(AT_FDCWD, m_json_fn.c_str(), NULL, AT_SYMLINK_NOFOLLOW);
             LOG_INFO << "Solv age: "
                      << std::chrono::duration_cast<std::chrono::seconds>(solv_age).count()
                      << ", JSON age: "
@@ -235,7 +236,7 @@ namespace mamba
             if (solv_age != fs::file_time_type::duration::max()
                 && solv_age.count() <= cache_age.count())
             {
-                fs::last_write_time(m_solv_fn, now);
+                utimensat(AT_FDCWD, m_solv_fn.c_str(), NULL, AT_SYMLINK_NOFOLLOW);
                 m_solv_cache_valid = true;
             }
 
@@ -308,7 +309,7 @@ namespace mamba
         m_temp_file.reset(nullptr);
         final_file.close();
 
-        fs::last_write_time(m_json_fn, fs::file_time_type::clock::now());
+        utimensat(AT_FDCWD, m_json_fn.c_str(), NULL, AT_SYMLINK_NOFOLLOW);
 
         return true;
     }

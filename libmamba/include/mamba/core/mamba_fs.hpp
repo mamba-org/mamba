@@ -7,6 +7,12 @@
 
 #include "mamba/core/util_string.hpp"
 
+#if ! defined(_WIN32)
+    #include <sys/stat.h>
+    #include <fcntl.h>
+#endif
+
+
 //---- RATIONAL: Why do we wrap standard filesystem here? ----
 // 1. This codebase relies on `std::string` and `const char*` to denote UTF-8 encoded text.
 //    However `std::filesystem::path` constructors cannot assume that `std::string` is in
@@ -63,6 +69,8 @@
 
 namespace fs
 {
+    // use named class as sentinel argument for last_write_time
+    class now {};
 
 
 #if defined(_WIN32)
@@ -1146,6 +1154,21 @@ namespace fs
     file_time_type last_write_time(const u8path& path, OtherArgs&&... args)
     {
         return std::filesystem::last_write_time(path, std::forward<OtherArgs>(args)...);
+    }
+
+    // void last_write_time(const path& p, file_time_type new_time);
+    // void last_write_time(const path& p, file_time_type new_time, error_code& ec) noexcept;
+    template <typename... OtherArgs>
+    void last_write_time(const u8path& path, now _, OtherArgs&&... args)
+    {
+#if defined(_WIN32)
+        auto new_time = fs::file_time_type::clock::now();
+        return std::filesystem::last_write_time(path, new_time, std::forward<OtherArgs>(args)...);
+#else
+        int err = utimensat(AT_FDCWD, path.string().c_str(), NULL, AT_SYMLINK_NOFOLLOW);
+        if (err == 0) return;
+        // TODO proper err handling
+#endif
     }
 
     // void last_write_time(const path& p, file_time_type new_time);

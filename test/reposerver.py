@@ -8,6 +8,7 @@ import shutil
 import socketserver
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+import ssl
 
 import conda_content_trust.authentication as cct_authentication
 import conda_content_trust.common as cct_common
@@ -235,6 +236,7 @@ class BasicAuthHandler(SimpleHTTPRequestHandler):
         key = base64.b64encode(bytes(key, "utf-8")).decode("ascii")
         """ Present frontpage with user authentication. """
         auth_header = self.headers.get("Authorization", "")
+        console.print("Got", auth_header)
         if not auth_header:
             self.do_AUTHHEAD()
             self.wfile.write(b"no auth header received")
@@ -287,8 +289,14 @@ elif not args.auth or args.auth == "token":
 
 PORT = args.port
 
-server = HTTPServer(("", PORT), handler)
+server = HTTPServer(('localhost', PORT), handler)
 print("Server started at localhost:" + str(PORT))
+
+server.auth = "test"
+server.socket = ssl.wrap_socket (server.socket, 
+        keyfile="/Volumes/git/mamba/test/new_aps_key.pem", 
+        certfile='/Volumes/git/mamba/test/cert.pem', server_side=True)
+
 try:
     server.serve_forever()
 except:

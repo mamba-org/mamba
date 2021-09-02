@@ -119,6 +119,7 @@ ext_modules = [
             "src/core/validate.cpp",
             "src/core/version.cpp",
             "src/core/link.cpp",
+            "src/core/virtual_packages.cpp",
         ],
         include_dirs=[
             get_pybind_include(),

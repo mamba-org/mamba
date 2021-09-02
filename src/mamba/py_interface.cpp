@@ -20,6 +20,7 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/virtual_packages.hpp"
 
 namespace py = pybind11;
 
@@ -235,7 +236,8 @@ PYBIND11_MODULE(mamba_api, m)
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())
         .def_readwrite("package_records", &PrefixData::m_package_records)
-        .def("load", &PrefixData::load);
+        .def("load", &PrefixData::load)
+        .def("add_virtual_packages", &PrefixData::add_virtual_packages);
 
     py::class_<PackageInfo>(m, "PackageInfo")
         .def(py::init<Solvable*>())
@@ -278,6 +280,8 @@ PYBIND11_MODULE(mamba_api, m)
     m.def("get_channels", &get_channels);
 
     m.def("transmute", &transmute);
+
+    m.def("get_virtual_packages", &get_virtual_packages);
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

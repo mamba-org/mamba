@@ -21,6 +21,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "../core/virtual_packages.cpp"
 
 namespace py = pybind11;
 

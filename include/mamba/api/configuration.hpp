@@ -496,6 +496,16 @@ namespace mamba
         kDefault = 4
     };
 
+
+    enum class RCConfigLevel
+    {
+        kSystemDir = 0,
+        kRootPrefix = 1,
+        kHomeDir = 2,
+        kTargetPrefix = 3
+    };
+
+
     int const MAMBA_NO_PREFIX_CHECK = 1 << 0;
     int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
     int const MAMBA_ALLOW_MISSING_PREFIX = 1 << 2;
@@ -555,6 +565,8 @@ namespace mamba
 
         bool rc_configurable() const;
 
+        RCConfigLevel rc_configurable_level() const;
+
         bool rc_configured() const;
 
         bool env_var_configured() const;
@@ -594,7 +606,7 @@ namespace mamba
 
         self_type& implies(const std::set<std::string>& names);
 
-        self_type& set_rc_configurable();
+        self_type& set_rc_configurable(RCConfigLevel level = RCConfigLevel::kTargetPrefix);
 
         self_type& description(const std::string& desc);
 
@@ -635,6 +647,7 @@ namespace mamba
         std::vector<std::string> m_env_var_names = {};
 
         bool m_rc_configurable = false;
+        RCConfigLevel m_rc_configurable_policy = RCConfigLevel::kTargetPrefix;
         bool m_rc_configured = false;
         bool m_api_configured = false;
 
@@ -741,6 +754,12 @@ namespace mamba
     bool Configurable<T>::rc_configurable() const
     {
         return m_rc_configurable;
+    };
+
+    template <class T>
+    RCConfigLevel Configurable<T>::rc_configurable_level() const
+    {
+        return m_rc_configurable_policy;
     };
 
     template <class T>
@@ -958,9 +977,16 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::set_rc_configurable() -> self_type&
+    auto Configurable<T>::set_rc_configurable(RCConfigLevel level) -> self_type&
     {
         m_rc_configurable = true;
+        m_rc_configurable_policy = level;
+
+        if (level == RCConfigLevel::kTargetPrefix)
+            m_needed_configs.insert("target_prefix");
+        else
+            m_needed_configs.insert("root_prefix");
+
         return *this;
     };
 
@@ -1083,6 +1109,8 @@ namespace mamba
             virtual bool api_configured() const = 0;
 
             virtual bool rc_configurable() const = 0;
+
+            virtual RCConfigLevel rc_configurable_level() const = 0;
 
             virtual const std::set<std::string>& needed() const = 0;
 
@@ -1219,6 +1247,11 @@ namespace mamba
             bool rc_configurable() const
             {
                 return p_wrapped->rc_configurable();
+            };
+
+            RCConfigLevel rc_configurable_level() const
+            {
+                return p_wrapped->rc_configurable_level();
             };
 
             const std::set<std::string>& needed() const
@@ -1496,6 +1529,11 @@ namespace mamba
             return p_impl->rc_configurable();
         };
 
+        RCConfigLevel rc_configurable_level() const
+        {
+            return p_impl->rc_configurable_level();
+        };
+
         const std::set<std::string>& needed() const
         {
             return p_impl->needed();
@@ -1684,10 +1722,7 @@ namespace mamba
         std::vector<fs::path> sources();
         std::vector<fs::path> valid_sources();
 
-        void set_possible_rc_sources();
-        void set_possible_rc_sources(const std::vector<fs::path>& sources);
-
-        void load_rc_files();
+        void set_rc_values(std::vector<fs::path> possible_rc_paths, const RCConfigLevel& level);
 
         void load();
 
@@ -1728,14 +1763,22 @@ namespace mamba
 
         void compute_loading_sequence();
 
-        void add_to_loading_sequence(std::vector<std::string>& seq, const std::string& name);
+        void clear_rc_sources();
+
+        void add_to_loading_sequence(std::vector<std::string>& seq,
+                                     const std::string& name,
+                                     std::vector<std::string>&);
 
         static YAML::Node load_rc_file(const fs::path& file);
 
-        void update_sources();
+        static std::vector<fs::path> compute_default_rc_sources(const RCConfigLevel& level);
+
+        std::vector<fs::path> get_existing_rc_sources(
+            const std::vector<fs::path>& possible_rc_paths);
 
         std::vector<fs::path> m_sources;
         std::vector<fs::path> m_valid_sources;
+        std::map<fs::path, YAML::Node> m_rc_yaml_nodes_cache;
 
         bool m_load_lock = false;
 

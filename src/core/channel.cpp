@@ -65,7 +65,6 @@ namespace mamba
                          PackageCacheData::first_writable().get_pkgs_dir() / "cache"
                              / cache_name_from_url(base_url()))
     {
-        fs::create_directories(m_repo_checker.cache_path());
     }
 
     const std::string& Channel::scheme() const

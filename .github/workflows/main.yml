@@ -292,7 +292,7 @@ jobs:
           eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
 
           micromamba activate
-          micromamba install python=3.8 pytest pyyaml -c conda-forge
+          micromamba install python=3.8 pytest pyyaml pytest-lazy-fixture -c conda-forge
 
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba
           pytest test/micromamba
@@ -508,7 +508,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest menuinst
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest pytest-lazy-fixture menuinst
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests
@@ -549,7 +549,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest menuinst
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest pytest-lazy-fixture menuinst
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests with pwsh
@@ -588,7 +588,7 @@ jobs:
         run: |
           conda config --add channels conda-forge
           conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest menuinst
+          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cpp-filesystem conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest pytest-lazy-fixture menuinst
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
       - name: micromamba python based tests

@@ -428,8 +428,8 @@ class TestInstall:
         [
             "",
             "https://conda.anaconda.org/",
-            "https://repo.mamba.pm/",
-            "https://repo.mamba.pm",
+            "https://beta.mamba.pm/",
+            "https://beta.mamba.pm",
         ],
     )
     def test_channel_alias(self, alias):

@@ -105,7 +105,7 @@ namespace mamba
             rc = unindent(R"(
                 channels:
                     - test10
-                   - https://repo.mamba.pm/conda-forge)");
+                   - https://beta.mamba.pm/conda-forge)");
 
             load_test_config(rc);
 
@@ -226,7 +226,7 @@ namespace mamba
             std::string rc1 = unindent(R"(
                 channels:
                     - test1
-                    - https://repo.mamba.pm/conda-forge
+                    - https://beta.mamba.pm/conda-forge
                 override_channels_enabled: true
                 allow_softlinks: true
                 test_complex_structure:
@@ -250,7 +250,7 @@ namespace mamba
             EXPECT_EQ(res, unindent(R"(
                                 channels:
                                   - test1
-                                  - https://repo.mamba.pm/conda-forge
+                                  - https://beta.mamba.pm/conda-forge
                                   - test10
                                 override_channels_enabled: true
                                 allow_softlinks: true)"));
@@ -261,7 +261,7 @@ namespace mamba
                                 channels:
                                   - test1  # ')"
                                 + src1 + R"('
-                                  - https://repo.mamba.pm/conda-forge  # ')"
+                                  - https://beta.mamba.pm/conda-forge  # ')"
                                 + src1 + R"('
                                   - test10  # ')"
                                 + src2 + R"('
@@ -415,11 +415,11 @@ namespace mamba
 
         TEST_F(Configuration, channel_alias)
         {
-            std::string rc1 = "channel_alias: http://repo.mamba.pm/";
+            std::string rc1 = "channel_alias: http://beta.mamba.pm/";
             std::string rc2 = "channel_alias: https://conda.anaconda.org/";
 
             load_test_config({ rc1, rc2 });
-            EXPECT_EQ(config.dump(), "channel_alias: http://repo.mamba.pm/");
+            EXPECT_EQ(config.dump(), "channel_alias: http://beta.mamba.pm/");
 
             load_test_config({ rc2, rc1 });
             EXPECT_EQ(config.dump(), "channel_alias: https://conda.anaconda.org/");

@@ -51,6 +51,9 @@ namespace mamba
         constexpr const char mamba_xsh[] =
 #include "../data/mamba.xsh"
             ;
+        constexpr const char mamba_fish[] =
+#include "../data/mamba.fish"
+            ;
 
         std::regex CONDA_INITIALIZE_RE_BLOCK("# >>> mamba initialize >>>(?:\n|\r\n)?"
                                              "([\\s\\S]*?)"
@@ -84,6 +87,10 @@ namespace mamba
         if (contains(parent_process_name, "powershell"))
         {
             return "powershell";
+        }
+        if (contains(parent_process_name, "fish"))
+        {
+            return "fish";
         }
         return "";
     }
@@ -267,6 +274,31 @@ namespace mamba
         return content.str();
     }
 
+    std::string fish_content(const fs::path& env_prefix,
+                              const std::string& shell,
+                              const fs::path& mamba_exe)
+    {
+        std::stringstream content;
+        std::string s_mamba_exe;
+
+        if (on_win)
+        {
+            s_mamba_exe = native_path_to_unix(mamba_exe.string());
+        }
+        else
+        {
+            s_mamba_exe = mamba_exe;
+        }
+
+        content << "# >>> mamba initialize >>>\n";
+        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "set -gx MAMBA_EXE " << mamba_exe << "\n";
+        content << "set -gx MAMBA_ROOT_PREFIX " << env_prefix << "\n";
+        content << "eval " << mamba_exe << " shell hook --shell fish --prefix " << env_prefix << " | source\n";
+        content << "# <<< mamba initialize <<<\n";
+        return content.str();
+    }
+
     bool modify_rc_file(const fs::path& file_path,
                         const fs::path& conda_prefix,
                         const std::string& shell,
@@ -288,6 +320,10 @@ namespace mamba
         if (shell == "xonsh")
         {
             conda_init_content = xonsh_content(conda_prefix, shell, mamba_exe);
+        }
+        if (shell == "fish")
+        {
+            conda_init_content = fish_content(conda_prefix, shell, mamba_exe);
         }
         else
         {
@@ -348,6 +384,12 @@ namespace mamba
                 << "       CALL "
                 << std::quoted(
                        (Context::instance().root_prefix / "condabin" / "mamba_hook.bat").string());
+        }
+        else if (shell == "fish")
+        {
+            std::string contents = mamba_fish;
+            replace_all(contents, "$MAMBA_EXE", exe.string());
+            return contents;
         }
         return "";
     }
@@ -527,6 +569,11 @@ namespace mamba
             fs::path xonshrc_path = home / ".xonshrc";
             // std::cout << xonsh_content(conda_prefix, shell, mamba_exe);
             modify_rc_file(xonshrc_path, conda_prefix, shell, mamba_exe);
+        }
+        else if (shell == "fish")
+        {
+            fs::path fishrc_path = home / ".config" / "fish" / "config.fish";
+            modify_rc_file(fishrc_path, conda_prefix, shell, mamba_exe);
         }
         else if (shell == "cmd.exe")
         {

@@ -73,6 +73,10 @@ namespace mamba
         {
             activator = std::make_unique<mamba::XonshActivator>();
         }
+        else if (shell_type == "fish")
+        {
+            activator = std::make_unique<mamba::FishActivator>();
+        }
         else
         {
             LOG_ERROR << "Not handled 'shell_type': " << shell_type;

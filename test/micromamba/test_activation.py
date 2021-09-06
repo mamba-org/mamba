@@ -37,13 +37,14 @@ suffixes = {
     "bash": ".sh",
     "zsh": ".sh",
     "xonsh": ".sh",
+    "fish": ".fish",
     "powershell": ".ps1",
 }
 
 paths = {
     "win": {"powershell": None, "cmdexe": None},
-    "osx": {"zsh": "~/.zshrc", "bash": "~/.bash_profile"},
-    "linux": {"zsh": "~/.zshrc", "bash": "~/.bashrc"},
+    "osx": {"zsh": "~/.zshrc", "bash": "~/.bash_profile", "fish": "~/.config/fish/config.fish"},
+    "linux": {"zsh": "~/.zshrc", "bash": "~/.bashrc", "fish": "~/.config/fish/config.fish"},
 }
 
 if plat == "win":
@@ -70,12 +71,12 @@ def emit_check(cond):
 enable_on_os = {
     "win": {"powershell", "cmdexe"},
     # 'unix': {'bash', 'zsh', 'xonsh'},
-    "unix": {"bash", "zsh"},
+    "unix": {"bash", "zsh", "fish"},
 }
 
 shell_files = [
     Path(x).expanduser()
-    for x in ["~/.bashrc", "~/.bash_profile", "~/.zshrc", "~/.zsh_profile"]
+    for x in ["~/.bashrc", "~/.bash_profile", "~/.zshrc", "~/.zsh_profile", "~/.config/fish/config.fish"]
 ]
 
 if plat == "win":
@@ -182,6 +183,8 @@ def shvar(v, interpreter):
         return f"$Env:{v}"
     elif interpreter == "cmdexe":
         return f"%{v}%"
+    elif interpreter == "fish":
+        return f"${v}"
 
 
 class TestActivation:
@@ -329,6 +332,8 @@ class TestActivation:
             extract_vars = lambda vxs: [f"echo {v}=%{v}%" for v in vxs]
         elif interpreter in ["powershell"]:
             extract_vars = lambda vxs: [f"echo {v}=$Env:{v}" for v in vxs]
+        elif interpreter in ["fish"]:
+            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
 
         def to_dict(out):
             return {k: v for k, v in [x.split("=", 1) for x in out.splitlines()]}

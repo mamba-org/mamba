@@ -171,4 +171,3 @@ complete -x -c micromamba -n '__fish_mamba_using_command upgrade' -a '(__fish_ma
 complete -x -c micromamba -n '__fish_mamba_using_command update' -a '(__fish_mamba_packages)'
 
 )MAMBARAW"
-

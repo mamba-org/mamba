@@ -43,8 +43,16 @@ suffixes = {
 
 paths = {
     "win": {"powershell": None, "cmdexe": None},
-    "osx": {"zsh": "~/.zshrc", "bash": "~/.bash_profile", "fish": "~/.config/fish/config.fish"},
-    "linux": {"zsh": "~/.zshrc", "bash": "~/.bashrc", "fish": "~/.config/fish/config.fish"},
+    "osx": {
+        "zsh": "~/.zshrc",
+        "bash": "~/.bash_profile",
+        "fish": "~/.config/fish/config.fish",
+    },
+    "linux": {
+        "zsh": "~/.zshrc",
+        "bash": "~/.bashrc",
+        "fish": "~/.config/fish/config.fish",
+    },
 }
 
 if plat == "win":
@@ -76,7 +84,13 @@ enable_on_os = {
 
 shell_files = [
     Path(x).expanduser()
-    for x in ["~/.bashrc", "~/.bash_profile", "~/.zshrc", "~/.zsh_profile", "~/.config/fish/config.fish"]
+    for x in [
+        "~/.bashrc",
+        "~/.bash_profile",
+        "~/.zshrc",
+        "~/.zsh_profile",
+        "~/.config/fish/config.fish",
+    ]
 ]
 
 if plat == "win":

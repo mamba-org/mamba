@@ -275,8 +275,8 @@ namespace mamba
     }
 
     std::string fish_content(const fs::path& env_prefix,
-                              const std::string& shell,
-                              const fs::path& mamba_exe)
+                             const std::string& shell,
+                             const fs::path& mamba_exe)
     {
         std::stringstream content;
         std::string s_mamba_exe;
@@ -294,7 +294,8 @@ namespace mamba
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
         content << "set -gx MAMBA_EXE " << mamba_exe << "\n";
         content << "set -gx MAMBA_ROOT_PREFIX " << env_prefix << "\n";
-        content << "eval " << mamba_exe << " shell hook --shell fish --prefix " << env_prefix << " | source\n";
+        content << "eval " << mamba_exe << " shell hook --shell fish --prefix " << env_prefix
+                << " | source\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
     }

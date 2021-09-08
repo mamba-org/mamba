@@ -1033,4 +1033,72 @@ namespace mamba
 
         return out.str();
     }
+
+    std::string FishActivator::shell_extension()
+    {
+        return ".fish";
+    }
+
+    std::string FishActivator::shell()
+    {
+        return "fish";
+    }
+
+    std::string FishActivator::hook_preamble()
+    {
+        return "";
+    }
+
+    std::string FishActivator::hook_postamble()
+    {
+        return "";
+    }
+
+    fs::path FishActivator::hook_source_path()
+    {
+        return Context::instance().root_prefix / "etc" / "fish" / "conf.d" / "mamba.fish";
+    }
+
+    std::pair<std::string, std::string> FishActivator::update_prompt(
+        const std::string& conda_prompt_modifier)
+    {
+        return { "", "" };
+    }
+
+    std::string FishActivator::script(const EnvironmentTransform& env_transform)
+    {
+        std::stringstream out;
+
+        if (!env_transform.export_path.empty())
+        {
+            out << "set -gx PATH \"" << env_transform.export_path << "\"\n";
+        }
+
+        for (const fs::path& ds : env_transform.deactivate_scripts)
+        {
+            out << "source " << ds << "\n";
+        }
+
+        for (const std::string& uvar : env_transform.unset_vars)
+        {
+            out << "set -e " << uvar << "\n";
+        }
+
+        for (const auto& [skey, svar] : env_transform.set_vars)
+        {
+            out << "set " << skey << " \"" << svar << "\"\n";
+        }
+
+        for (const auto& [ekey, evar] : env_transform.export_vars)
+        {
+            out << "set -gx " << ekey << " \"" << evar << "\"\n";
+        }
+
+        for (const fs::path& p : env_transform.activate_scripts)
+        {
+            out << "source " << p << "\n";
+        }
+
+        return out.str();
+    }
 }  // namespace mamba

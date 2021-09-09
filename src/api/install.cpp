@@ -53,8 +53,6 @@ namespace mamba
 
         reproc::options options;
         options.redirect.parent = true;
-        std::string cwd = ctx.target_prefix;
-        options.working_directory = cwd.c_str();
 
         std::cout << "\n"
                   << termcolor::cyan << "Installing " << pkg_mgr

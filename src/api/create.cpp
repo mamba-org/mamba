@@ -25,6 +25,7 @@ namespace mamba
         config.load();
 
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
+        auto& compatible_specs = config.at("compatible").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
         if (!create_specs.empty())
@@ -62,7 +63,7 @@ namespace mamba
             }
             else
             {
-                install_specs(create_specs, true);
+                install_specs(create_specs, compatible_specs, true);
             }
         }
         else

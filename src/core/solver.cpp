@@ -203,6 +203,15 @@ namespace mamba
         queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
+    void MSolver::add_compatibility_specs(const std::vector<std::string>& jobs)
+    {
+        add_jobs(jobs, SOLVER_INSTALL);
+        // Move them from install specs to compatible specs
+        const auto& start = m_install_specs.end() - jobs.size();
+        std::move(start, m_install_specs.end(), std::back_inserter(m_compatible_specs));
+        m_install_specs.erase(start, m_install_specs.end());
+    }
+
     void MSolver::add_pin(const std::string& pin)
     {
         // if we pin a package, we need to remove all packages that don't match the
@@ -338,6 +347,11 @@ namespace mamba
     const std::vector<MatchSpec>& MSolver::pinned_specs() const
     {
         return m_pinned_specs;
+    }
+
+    const std::vector<MatchSpec>& MSolver::compatible_specs() const
+    {
+        return m_compatible_specs;
     }
 
     bool MSolver::solve()

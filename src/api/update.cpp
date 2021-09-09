@@ -44,7 +44,7 @@ namespace mamba
 
         if (!update_specs.empty())
         {
-            install_specs(update_specs, false, SOLVER_UPDATE);
+            install_specs(update_specs, {}, false, SOLVER_UPDATE);
         }
         else
         {

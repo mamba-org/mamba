@@ -524,3 +524,31 @@ class TestCreate:
                 assert l["channel"].startswith(f"{ca}/conda-forge/")
                 assert l["url"].startswith(f"{ca}/conda-forge/")
                 assert l["version"].startswith("0.22.")
+
+    @pytest.mark.parametrize(
+        "specs,compatibles",
+        [(["numpy=1.21.1"], ["pytest=6.0.1"]), (["numpy=1.21.1"], ["pytest=6.2.3"]),],
+    )
+    def test_compatibility_constraint(self, specs, compatibles):
+        def get_urls(plan):
+            return {package["url"] for package in plan["actions"]["LINK"]}
+
+        cli_args = sum((["-x", compatible] for compatible in compatibles), [])
+        plan1 = create(
+            "-n", TestCreate.env_name, "--json", "--dry-run", *specs, *cli_args
+        )
+        plan2 = create(
+            "-n", TestCreate.env_name, "--json", "--dry-run", *specs, *compatibles
+        )
+        # Constrained should be subset of real
+        assert get_urls(plan1).issubset(get_urls(plan2))
+
+        exact_specs = [
+            "{}={}={}".format(
+                package["name"], package["version"], package["build_string"]
+            )
+            for package in plan1["actions"]["LINK"]
+        ]
+        plan3 = create("-n", TestCreate.env_name, "--json", "--dry-run", *exact_specs)
+        # Constrained should already contain all its dependencies
+        assert get_urls(plan1) == get_urls(plan3)

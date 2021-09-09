@@ -264,7 +264,7 @@ namespace mamba
             }
             else
             {
-                mamba::install_specs(install_specs, false);
+                mamba::install_specs(install_specs, {}, false);
             }
         }
         else
@@ -279,6 +279,7 @@ namespace mamba
     int RETRY_SOLVE_ERROR = 1 << 1;
 
     void install_specs(const std::vector<std::string>& specs,
+                       const std::vector<std::string>& compatible_specs,
                        bool create_env,
                        int solver_flag,
                        int is_retry)
@@ -312,8 +313,9 @@ namespace mamba
             throw std::runtime_error("Could not create `pkgs/cache/` dirs");
         }
 
-        // add channels from specs
+        // add channels from specs and compatibility requirements
         std::vector<mamba::MatchSpec> match_specs(specs.begin(), specs.end());
+        match_specs.insert(match_specs.end(), compatible_specs.begin(), compatible_specs.end());
         for (const auto& m : match_specs)
         {
             if (!m.channel.empty())
@@ -451,7 +453,11 @@ namespace mamba
             if (!ctx.offline && !(is_retry & RETRY_SUBDIR_FETCH))
             {
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SUBDIR_FETCH);
+                return install_specs(specs,
+                                     compatible_specs,
+                                     create_env,
+                                     solver_flag,
+                                     is_retry | RETRY_SUBDIR_FETCH);
             }
             throw std::runtime_error("Could not load repodata. Cache corrupted?");
         }
@@ -468,6 +474,7 @@ namespace mamba
         }
 
         solver.add_jobs(specs, solver_flag);
+        solver.add_compatibility_specs(compatible_specs);
 
         if (!no_pin)
         {
@@ -478,6 +485,10 @@ namespace mamba
         if (!no_py_pin)
         {
             auto py_pin = python_pin(prefix_data, specs);
+            if (py_pin.empty())
+            {
+                py_pin = python_pin(prefix_data, compatible_specs);
+            }
             if (!py_pin.empty())
             {
                 solver.add_pin(py_pin);
@@ -498,7 +509,8 @@ namespace mamba
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
-                return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
+                return install_specs(
+                    specs, compatible_specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
             }
             if (ctx.freeze_installed)
                 Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");

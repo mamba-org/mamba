@@ -399,8 +399,15 @@ namespace mamba
     {
         fs::path exe = get_self_exe_path();
 
-        fs::create_directories(root_prefix / "condabin");
-        fs::create_directories(root_prefix / "Scripts");
+        try
+        {
+            fs::create_directories(root_prefix / "condabin");
+            fs::create_directories(root_prefix / "Scripts");
+        }
+        catch (...)
+        {
+            // Maybe the prefix isn't writable. No big deal, just keep going.
+        }
 
         std::ofstream mamba_bat_f(root_prefix / "condabin" / "micromamba.bat");
         std::string mamba_bat_contents(mamba_bat);
@@ -448,7 +455,14 @@ namespace mamba
         {
             PosixActivator a;
             auto sh_source_path = a.hook_source_path();
-            fs::create_directories(sh_source_path.parent_path());
+            try
+            {
+                fs::create_directories(sh_source_path.parent_path());
+            }
+            catch (...)
+            {
+                // Maybe the prefix isn't writable. No big deal, just keep going.
+            }
             std::ofstream sh_file(sh_source_path);
             sh_file << mamba_sh;
         }
@@ -456,7 +470,14 @@ namespace mamba
         {
             XonshActivator a;
             auto sh_source_path = a.hook_source_path();
-            fs::create_directories(sh_source_path.parent_path());
+            try
+            {
+                fs::create_directories(sh_source_path.parent_path());
+            }
+            catch (...)
+            {
+                // Maybe the prefix isn't writable. No big deal, just keep going.
+            }
             std::ofstream sh_file(sh_source_path);
             sh_file << mamba_xsh;
         }
@@ -466,7 +487,14 @@ namespace mamba
         }
         else if (shell == "powershell")
         {
-            fs::create_directories(root_prefix / "condabin");
+            try
+            {
+                fs::create_directories(root_prefix / "condabin");
+            }
+            catch (...)
+            {
+                // Maybe the prefix isn't writable. No big deal, just keep going.
+            }
             std::ofstream mamba_hook_f(root_prefix / "condabin" / "mamba_hook.ps1");
             mamba_hook_f << mamba_hook_ps1;
             std::ofstream mamba_psm1_f(root_prefix / "condabin" / "Mamba.psm1");

@@ -442,15 +442,9 @@ def install(args, parser, command="install"):
         prefix_data = PrefixData(prefix)
         for s in args_packages:
             s = MatchSpec(s)
-            if s.name == "python":
-                specs.append(s)
-            if not s.is_name_only_spec:
-                raise CondaValueError(
-                    "Invalid spec for 'conda update': %s\n"
-                    "Use 'conda install' instead." % s
-                )
             if not prefix_data.get(s.name, None):
                 raise PackageNotInstalledError(prefix, s.name)
+            specs.append(s)
 
     elif context.update_modifier == UpdateModifier.UPDATE_DEPS:
         # find the deps for each package and add to the update job

@@ -677,21 +677,23 @@ namespace validate
         check_timestamp_metadata_format(m_expires);
     }
 
-    void RoleBase::check_defined_roles() const
+    void RoleBase::check_defined_roles(bool allow_any) const
     {
         auto mandatory_roles = mandatory_defined_roles();
         auto optional_roles = optionally_defined_roles();
         auto all_roles = mandatory_roles;
         all_roles.insert(optional_roles.cbegin(), optional_roles.cend());
 
-        for (const auto& r : roles())
-        {
-            if (all_roles.find(r) == all_roles.end())
+        if (!allow_any)
+            for (const auto& r : roles())
             {
-                LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r << "'";
-                throw role_metadata_error();
+                if (all_roles.find(r) == all_roles.end())
+                {
+                    LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r
+                              << "'";
+                    throw role_metadata_error();
+                }
             }
-        }
 
         auto current_roles = roles();
         if (!std::includes(current_roles.begin(),
@@ -1517,6 +1519,79 @@ namespace validate
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
+        }
+
+        PkgMgrRole::PkgMgrRole(const json& j,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+            load_from_json(j);
+        }
+
+        void PkgMgrRole::load_from_json(const json& j)
+        {
+            from_json(j, *this);
+            // Check signatures against keyids and threshold
+            check_role_signatures(j, *this);
+        }
+
+        void PkgMgrRole::set_defined_roles(std::map<std::string, RolePubKeys> keys)
+        {
+            m_defined_roles.clear();
+            for (auto& it : keys)
+            {
+                std::map<std::string, Key> role_keys;
+                for (auto& key : it.second.pubkeys)
+                {
+                    role_keys.insert({ key, Key::from_ed25519(key) });
+                }
+                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+            }
+        }
+
+        void to_json(json& j, const PkgMgrRole& r)
+        {
+            to_json(j, static_cast<const RoleBase*>(&r));
+        }
+
+        void from_json(const json& j, PkgMgrRole& role)
+        {
+            auto j_signed = j.at("signed");
+            try
+            {
+                from_json(j_signed, static_cast<RoleBase*>(&role));
+
+                auto type = j_signed.at("type").get<std::string>();
+                if (type != role.type())
+                {
+                    LOG_ERROR << "Wrong 'type' found in 'pkg_mgr' metadata, should be 'pkg_mgr': '"
+                              << type << "'";
+                    throw role_metadata_error();
+                }
+
+                auto new_spec_version
+                    = j_signed.at(role.spec_version().json_key()).get<std::string>();
+                if (role.spec_version() != SpecImpl(new_spec_version))
+                {
+                    LOG_ERROR
+                        << "Invalid spec version '" << new_spec_version
+                        << "' in 'pkg_mgr' metadata, it should match exactly 'root' spec version: '"
+                        << role.spec_version().version_str() << "'";
+                    throw spec_version_error();
+                }
+
+                role.set_defined_roles(
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
+            }
+            catch (const json::exception& e)
+            {
+                LOG_ERROR << "Invalid 'pkg_mgr' metadata: " << e.what();
+                throw role_metadata_error();
+            }
+
+            role.check_defined_roles();
         }
 
         RoleFullKeys PkgMgrRole::self_keys() const

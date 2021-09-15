@@ -76,6 +76,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
+        .def("find_python_version", &MTransaction::find_python_version)
         .def("execute", [](MTransaction& self, PrefixData& target_prefix) -> bool {
             return self.execute(target_prefix);
         });

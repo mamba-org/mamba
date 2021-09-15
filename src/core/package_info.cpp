@@ -129,23 +129,28 @@ namespace mamba
         if (str)
             license = str;
         size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
-        timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0) * 1000;
+        timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0);
         str = solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type);
         if (str)
             md5 = str;
         str = solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type);
         if (str)
             sha256 = str;
+        signatures = check_char(solvable_lookup_str(s, SIGNATURE_DATA));
+        if (signatures.empty())
+            signatures = "{}";
 
         queue_init(&q);
-        solvable_lookup_deparray(s, SOLVABLE_REQUIRES, &q, -1);
+        if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, &q, -1))
+            defaulted_keys.insert("depends");
         depends.resize(q.count);
         for (int i = 0; i < q.count; ++i)
         {
             depends[i] = pool_dep2str(pool, q.elements[i]);
         }
         queue_empty(&q);
-        solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, &q, -1);
+        if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, &q, -1))
+            defaulted_keys.insert("constrains");
         constrains.resize(q.count);
         for (int i = 0; i < q.count; ++i)
         {
@@ -155,13 +160,46 @@ namespace mamba
         solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, &q);
         if (q.count)
         {
-            std::vector<std::string> tmp_tf(q.count);
             for (int i = 0; i < q.count; ++i)
             {
                 track_features += pool_id2str(pool, q.elements[i]);
                 track_features += (i == q.count - 1) ? "" : ",";
             }
         }
+
+        Id extra_keys_id = pool_str2id(pool, "solvable:extra_keys", 0);
+        Id extra_values_id = pool_str2id(pool, "solvable:extra_values", 0);
+
+        if (extra_keys_id && extra_values_id)
+        {
+            // Get extra signed keys
+            queue_empty(&q);
+            solvable_lookup_idarray(s, extra_keys_id, &q);
+            std::vector<std::string> extra_keys;
+            for (int i = 0; i < q.count; ++i)
+                extra_keys.push_back(pool_dep2str(pool, q.elements[i]));
+
+            // Get extra signed values
+            queue_empty(&q);
+            solvable_lookup_idarray(s, extra_values_id, &q);
+            std::vector<std::string> extra_values;
+            for (int i = 0; i < q.count; ++i)
+                extra_values.push_back(pool_dep2str(pool, q.elements[i]));
+
+            // Build a JSON string for extra signed metadata
+            if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
+            {
+                std::vector<std::string> extra;
+                for (std::size_t i = 0; i < extra_keys.size(); ++i)
+                {
+                    extra.push_back("\"" + extra_keys[i] + "\":" + extra_values[i]);
+                }
+                extra_metadata = "{" + join(",", extra) + "}";
+            }
+        }
+        else
+            extra_metadata = "{}";
+
         queue_free(&q);
     }
 
@@ -215,7 +253,7 @@ namespace mamba
     {
     }
 
-    nlohmann::json PackageInfo::json() const
+    nlohmann::json PackageInfo::json_record() const
     {
         nlohmann::json j;
         j["name"] = name;
@@ -256,6 +294,48 @@ namespace mamba
         {
             j["constrains"] = constrains;
         }
+        return j;
+    }
+
+    nlohmann::json PackageInfo::json_signable() const
+    {
+        nlohmann::json j;
+
+        // Mandatory keys
+        j["name"] = name;
+        j["version"] = version;
+        j["subdir"] = subdir;
+        j["size"] = size;
+        j["timestamp"] = timestamp;
+        j["build"] = build_string;
+        j["build_number"] = build_number;
+        j["license"] = license;
+        j["md5"] = md5;
+        j["sha256"] = sha256;
+
+        // Defaulted keys to empty arrays
+        if (depends.empty())
+        {
+            if (defaulted_keys.find("depends") == defaulted_keys.end())
+                j["depends"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["depends"] = depends;
+        }
+        if (constrains.empty())
+        {
+            if (defaulted_keys.find("constrains") == defaulted_keys.end())
+                j["constrains"] = nlohmann::json::array();
+        }
+        else
+        {
+            j["constrains"] = constrains;
+        }
+
+        // Optional keys that may be part of signed metadata
+        j.merge_patch(nlohmann::json::parse(extra_metadata));
+
         return j;
     }
 

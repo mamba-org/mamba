@@ -481,8 +481,7 @@ namespace validate
         virtual ~RepoIndexChecker() = default;
         virtual void verify_index(const json& j) const = 0;
         virtual void verify_index(const fs::path& p) const = 0;
-        virtual void verify_package(const fs::path& index_path,
-                                    const std::string& pkg_name) const = 0;
+        virtual void verify_package(const json& signed_data, const json& signatures) const = 0;
 
     protected:
         RepoIndexChecker() = default;
@@ -510,7 +509,7 @@ namespace validate
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const json& j) const;
         void verify_index(const fs::path& p) const;
-        void verify_package(const fs::path& index_path, const std::string& pkg_name) const;
+        void verify_package(const json& signed_data, const json& signatures) const;
 
         void generate_index_checker();
 
@@ -746,8 +745,7 @@ namespace validate
 
             void verify_index(const fs::path& p) const override;
             void verify_index(const json& j) const override;
-            void verify_package(const fs::path& index_path,
-                                const std::string& pkg_name) const override;
+            void verify_package(const json& signed_data, const json& signatures) const override;
 
             friend void to_json(json& j, const PkgMgrRole& r);
             friend void from_json(const json& j, PkgMgrRole& r);

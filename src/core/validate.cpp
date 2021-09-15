@@ -1761,37 +1761,16 @@ namespace validate
                 throw index_error();
             }
         }
-        void PkgMgrRole::verify_package(const fs::path& index_path,
-                                        const std::string& pkg_name) const
+        void PkgMgrRole::verify_package(const json& signed_data, const json& signatures) const
         {
-            if (!fs::exists(index_path))
-            {
-                LOG_ERROR << "'repodata' file not found at: " << index_path.string();
-                throw index_error();
-            }
-
-            std::ifstream i(index_path);
-            json j;
-            i >> j;
-
             try
             {
-                auto pkg_meta = j.at("packages").at(pkg_name).get<json::object_t>();
-                auto pkg_sigs = j.at("signatures").at(pkg_name).get<json::object_t>();
-                try
-                {
-                    check_pkg_signatures(pkg_meta, pkg_sigs);
-                }
-                catch (const threshold_error& e)
-                {
-                    LOG_ERROR << "Validation failed on package: '" << pkg_name << "'";
-                    throw package_error();
-                }
+                check_pkg_signatures(signed_data, signatures);
             }
-            catch (const json::exception& e)
+            catch (const threshold_error& e)
             {
-                LOG_ERROR << "Invalid package index metadata: " << e.what();
-                throw index_error();
+                LOG_ERROR << "Validation failed on package: '" << signed_data.at("name") << "'";
+                throw package_error();
             }
         }
     }  // namespace v06
@@ -1906,9 +1885,9 @@ namespace validate
         p_index_checker->verify_index(p);
     }
 
-    void RepoChecker::verify_package(const fs::path& index_path, const std::string& pkg_name) const
+    void RepoChecker::verify_package(const json& signed_data, const json& signatures) const
     {
-        p_index_checker->verify_package(index_path, pkg_name);
+        p_index_checker->verify_package(signed_data, signatures);
     }
 
     std::size_t RepoChecker::root_version()

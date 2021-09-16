@@ -10,17 +10,19 @@
 #include <sys/ioctl.h>
 #endif
 
-#include <algorithm>
-#include <cstdlib>
-#include <iostream>
-#include <regex>
-
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 
 #include "thirdparty/termcolor.hpp"
+
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <map>
+#include <regex>
+#include <string>
 
 namespace mamba
 {
@@ -279,6 +281,10 @@ namespace mamba
     /*****************
      * ConsoleStream *
      *****************/
+    ConsoleStream::ConsoleStream()
+    {
+        termcolor::colorize(*this);
+    }
 
     ConsoleStream::~ConsoleStream()
     {

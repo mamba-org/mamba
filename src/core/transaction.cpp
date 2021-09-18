@@ -135,33 +135,24 @@ namespace mamba
 
     bool PackageDownloadExtractTarget::extract()
     {
-        // Extracting is __not__ yet thread safe it seems...
-        interruption_point();
-        LOG_INFO << "Waiting for decompression " << m_tarball_path;
-        m_progress_proxy.set_postfix("Waiting...");
+        m_progress_proxy.set_postfix("Decompressing...");
+        LOG_INFO << "Decompressing " << m_tarball_path;
+        fs::path extract_path;
+        try
         {
-            std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
-            interruption_point();
-            m_progress_proxy.set_postfix("Decompressing...");
-            LOG_INFO << "Decompressing " << m_tarball_path;
-            fs::path extract_path;
-            try
-            {
-                extract_path = mamba::extract(m_tarball_path);
-                interruption_point();
-                LOG_INFO << "Extracted to " << extract_path;
-                write_repodata_record(extract_path);
-                add_url();
-            }
-            catch (std::exception& e)
-            {
-                LOG_ERROR << "Error when extracting package: " << e.what();
-                m_decompress_exception = e;
-                m_validation_result = VALIDATION_RESULT::EXTRACT_ERROR;
-                m_finished = true;
-                m_progress_proxy.mark_as_completed("Extraction error");
-                return false;
-            }
+            extract_path = mamba::extract(m_tarball_path);
+            LOG_INFO << "Extracted to " << extract_path;
+            write_repodata_record(extract_path);
+            add_url();
+        }
+        catch (std::exception& e)
+        {
+            LOG_ERROR << "Error when extracting package: " << e.what();
+            m_decompress_exception = e;
+            m_validation_result = VALIDATION_RESULT::EXTRACT_ERROR;
+            m_finished = true;
+            m_progress_proxy.mark_as_completed("Extraction error");
+            return false;
         }
 
         m_finished = true;

@@ -7,6 +7,8 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <sstream>
 
@@ -52,33 +54,6 @@ namespace mamba
     private:
         const fs::path& m_file;
     };
-
-    static int copy_data(archive* ar, archive* aw)
-    {
-        int r;
-        const void* buff;
-        std::size_t size;
-        la_int64_t offset;
-
-        while (true && !is_sig_interrupted())
-        {
-            r = archive_read_data_block(ar, &buff, &size, &offset);
-            if (r == ARCHIVE_EOF)
-            {
-                return ARCHIVE_OK;
-            }
-            if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(ar));
-            }
-            r = archive_write_data_block(aw, buff, size, offset);
-            if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(aw));
-            }
-        }
-        return r;
-    }
 
     // Bundle up all files in directory and create destination archive
     void create_archive(const fs::path& directory,
@@ -252,98 +227,17 @@ namespace mamba
     {
         LOG_INFO << "Extracting " << file << " to " << destination;
         extraction_guard g(destination);
-
-        auto prev_path = fs::current_path();
         if (!fs::exists(destination))
         {
             fs::create_directories(destination);
         }
-        fs::current_path(destination);
-
-        struct archive* a;
-        struct archive* ext;
-        struct archive_entry* entry;
-        int flags;
-        int r;
-
-        /* Select which attributes we want to restore. */
-        flags = ARCHIVE_EXTRACT_TIME;
-        flags |= ARCHIVE_EXTRACT_PERM;
-        flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
-        flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
-        flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
-        flags |= ARCHIVE_EXTRACT_SPARSE;
-        flags |= ARCHIVE_EXTRACT_UNLINK;
-
-        a = archive_read_new();
-        archive_read_support_format_tar(a);
-        archive_read_support_format_zip(a);
-        archive_read_support_filter_all(a);
-
-        ext = archive_write_disk_new();
-        archive_write_disk_set_options(ext, flags);
-        archive_write_disk_set_standard_lookup(ext);
-
-        if ((r = archive_read_open_filename(a, file.c_str(), 10240)))
-        {
-            throw std::runtime_error(std::string(file) + ": Could not open archive for reading.");
+        const char *const args[6] = { "/usr/bin/tar", "xzf", file.c_str(), "-C", destination.c_str(), NULL};
+        pid_t cpid = vfork();
+        if (cpid == 0) {
+            execv(args[0], (char**)args);
+        } else {
+            waitpid(cpid, NULL, 0);
         }
-
-        for (;;)
-        {
-            if (is_sig_interrupted())
-            {
-                break;
-            }
-
-            r = archive_read_next_header(a, &entry);
-            if (r == ARCHIVE_EOF)
-            {
-                break;
-            }
-            if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(a));
-            }
-
-            r = archive_write_header(ext, entry);
-            if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(ext));
-            }
-            else if (archive_entry_size(entry) > 0)
-            {
-                r = copy_data(a, ext);
-                if (r < ARCHIVE_OK)
-                {
-                    const char* err_str = archive_error_string(ext);
-                    if (err_str == nullptr)
-                    {
-                        err_str = archive_error_string(a);
-                    }
-                    if (err_str != nullptr)
-                    {
-                        throw std::runtime_error(err_str);
-                    }
-                    throw std::runtime_error("Extraction: writing data was not successful.");
-                }
-            }
-            r = archive_write_finish_entry(ext);
-            if (r == ARCHIVE_WARN)
-            {
-                LOG_WARNING << "libarchive warning: " << archive_error_string(a);
-            }
-            else if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(ext));
-            }
-        }
-        archive_read_close(a);
-        archive_read_free(a);
-        archive_write_close(ext);
-        archive_write_free(ext);
-
-        fs::current_path(prev_path);
     }
 
     void extract_conda(const fs::path& file,

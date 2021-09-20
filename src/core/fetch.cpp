@@ -434,12 +434,20 @@ namespace mamba
         if (curl_easy_perform(handle) == CURLE_OK)
             return true;
 
-        // Some servers don't support HEAD, try a GET if the HEAD fails
-        curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
-        // Prevent output of data
-        curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+        long response_code;
+        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
 
-        return curl_easy_perform(handle) == CURLE_OK;
+        if (response_code == 405)
+        {
+            // Method not allowed
+            // Some servers don't support HEAD, try a GET if the HEAD fails
+            curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
+            // Prevent output of data
+            curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+            return curl_easy_perform(handle) == CURLE_OK;
+        }
+        else
+            return false;
     }
 
     bool DownloadTarget::perform()

@@ -209,6 +209,7 @@ namespace validate
         virtual ~index_error() = default;
     };
 
+    void check_timestamp_metadata_format(const std::string& ts);
 
     /**
      * Representation of the public part of a
@@ -419,7 +420,9 @@ namespace validate
         virtual std::set<std::string> mandatory_defined_roles() const;
         // Optional roles defined by the current role
         virtual std::set<std::string> optionally_defined_roles() const;
-        // Checks on the defined roles
+
+        // Check role
+        void check_expiration_format() const;
         void check_defined_roles() const;
 
         std::map<std::string, RoleFullKeys> m_defined_roles;
@@ -596,13 +599,27 @@ namespace validate
             bool upgradable() const override;
         };
 
+        class V06RoleBaseExtension
+        {
+        public:
+            void set_timestamp(const std::string& ts);
+
+        protected:
+            std::string m_timestamp;
+
+            void check_timestamp_format() const;
+        };
+
+
         // Forward declaration of KeyMgrRole.
         class KeyMgrRole;
 
         /**
          * 'root' role implementation.
          */
-        class RootImpl final : public RootRole
+        class RootImpl final
+            : public RootRole
+            , protected V06RoleBaseExtension
         {
         public:
             RootImpl(const fs::path& p);
@@ -648,7 +665,9 @@ namespace validate
         /**
          * 'key_mgr' role implementation.
          */
-        class KeyMgrRole final : public RoleBase
+        class KeyMgrRole final
+            : public RoleBase
+            , public V06RoleBaseExtension
         {
         public:
             // std::set<std::string> roles() const override;
@@ -697,6 +716,7 @@ namespace validate
          */
         class PkgMgrRole final
             : public RoleBase
+            , public V06RoleBaseExtension
             , public RepoIndexChecker
         {
         public:

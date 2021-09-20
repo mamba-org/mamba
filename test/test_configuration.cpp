@@ -151,7 +151,7 @@ namespace mamba
                                 + src1 + "'")
                                    .c_str()));
 
-            // hill-formed key
+            // ill-formed key
             std::string rc3 = unindent(R"(
                 channels:
                     - test3
@@ -186,7 +186,7 @@ namespace mamba
                                 + src1 + "'")
                                    .c_str()));
 
-            // hill-formed file
+            // ill-formed file
             std::string rc4 = unindent(R"(
                 channels:
                   - test3

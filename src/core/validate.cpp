@@ -435,6 +435,19 @@ namespace validate
         return mamba::timestamp(m_time_ref);
     }
 
+    void check_timestamp_metadata_format(const std::string& ts)
+    {
+        std::regex timestamp_re("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$");
+
+        if (!std::regex_match(ts, timestamp_re))
+        {
+            mamba::Console::stream() << "Invalid timestamp in content trust metadata";
+            LOG_ERROR << "Invalid timestamp format '" << ts
+                      << "', should be UTC ISO8601 ('<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>Z')";
+            throw role_metadata_error();
+        }
+    }
+
     SpecBase::SpecBase(const std::string& spec_version)
         : m_spec_version(spec_version)
     {
@@ -657,6 +670,11 @@ namespace validate
     std::set<std::string> RoleBase::optionally_defined_roles() const
     {
         return {};
+    }
+
+    void RoleBase::check_expiration_format() const
+    {
+        check_timestamp_metadata_format(m_expires);
     }
 
     void RoleBase::check_defined_roles() const
@@ -1114,6 +1132,7 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
             role.check_defined_roles();
         }
     }  // namespace v1
@@ -1163,6 +1182,16 @@ namespace validate
         std::string SpecImpl::canonicalize(const json& j) const
         {
             return j.dump(2);
+        }
+
+        void V06RoleBaseExtension::check_timestamp_format() const
+        {
+            check_timestamp_metadata_format(m_timestamp);
+        }
+
+        void V06RoleBaseExtension::set_timestamp(const std::string& ts)
+        {
+            m_timestamp = ts;
         }
 
         RootImpl::RootImpl(const json& j)
@@ -1343,6 +1372,8 @@ namespace validate
             {
                 from_json(j_signed, static_cast<RoleBase*>(&role));
 
+                role.set_timestamp(j_signed.at("timestamp").get<std::string>());
+
                 auto type = j_signed.at("type").get<std::string>();
                 if (type != role.type())
                 {
@@ -1363,6 +1394,8 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
+            role.check_timestamp_format();
             role.check_defined_roles();
         }
 
@@ -1445,6 +1478,8 @@ namespace validate
             {
                 from_json(j_signed, static_cast<RoleBase*>(&role));
 
+                role.set_timestamp(j_signed.at("timestamp").get<std::string>());
+
                 auto type = j_signed.at("type").get<std::string>();
                 if (type != role.type())
                 {
@@ -1473,6 +1508,8 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
+            role.check_timestamp_format();
             role.check_defined_roles();
         }
 
@@ -1835,6 +1872,7 @@ namespace validate
             // Updated 'root' metadata are persisted in a cache directory
             persist_file(tmp_file_path);
 
+            // Set the next possible files
             update_files = updated_root->possible_update_files();
         }
         // TUF spec 5.3.9 - Repeat steps 5.3.2 to 5.3.9

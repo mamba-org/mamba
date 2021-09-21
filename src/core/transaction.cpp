@@ -15,6 +15,8 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/thread_utils.hpp"
 
+#include "thirdparty/termcolor.hpp"
+
 namespace
 {
     bool need_pkg_download(const mamba::PackageInfo& pkg_info,
@@ -34,7 +36,7 @@ namespace mamba
 {
     nlohmann::json solvable_to_json(Solvable* s)
     {
-        return PackageInfo(s).json();
+        return PackageInfo(s).json_record();
     }
 
     /********************************
@@ -80,7 +82,7 @@ namespace mamba
         std::ifstream index_file(index_path);
         index_file >> index;
 
-        solvable_json = m_package_info.json();
+        solvable_json = m_package_info.json_record();
         index.insert(solvable_json.cbegin(), solvable_json.cend());
 
         std::ofstream repodata_record(repodata_record_path);
@@ -738,6 +740,11 @@ namespace mamba
 
         Console::instance().init_multi_progress(ProgressBarMode::aggregated);
 
+        auto& ctx = Context::instance();
+
+        if (ctx.experimental && ctx.verify_artifacts)
+            LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
+
         for (auto& s : m_to_install)
         {
             std::string url;
@@ -760,26 +767,28 @@ namespace mamba
                 continue;
             }
 
-            auto& ctx = Context::instance();
             if (ctx.experimental && ctx.verify_artifacts)
             {
                 const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker();
 
                 auto pkg_info = PackageInfo(s);
 
-                // TODO: avoid parsing again the index file by storing
-                // keyid/signatures into libsolv Solvable
-                repo_checker.verify_package(fs::path(mamba_repo->index_file()),
-                                            pkg_info.str() + ".tar.bz2");
+                repo_checker.verify_package(pkg_info.json_signable(),
+                                            nlohmann::json::parse(pkg_info.signatures));
 
-                LOG_DEBUG << "Package '" << pkg_info.name << "' trusted from channel '"
-                          << mamba_repo->url() << "' metadata";
+                LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << mamba_repo->url() << "'";
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
             multi_dl.add(targets[targets.size() - 1]->target(m_cache_path, m_multi_cache));
         }
 
+        if (ctx.experimental && ctx.verify_artifacts)
+        {
+            Console::stream() << "Content trust verifications successful, " << termcolor::green
+                              << "package(s) are trusted " << termcolor::reset;
+            LOG_INFO << "All package(s) are trusted";
+        }
         interruption_guard g([]() { Console::instance().init_multi_progress(); });
 
         bool downloaded = multi_dl.download(true);

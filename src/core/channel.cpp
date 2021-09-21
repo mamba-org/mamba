@@ -59,7 +59,7 @@ namespace mamba
         , m_token(token)
         , m_package_filename(package_filename)
         , m_canonical_name(canonical_name)
-        , m_repo_checker(base_url(),
+        , m_repo_checker(rsplit(base_url(), "/", 1).front(),
                          Context::instance().root_prefix / "etc" / "trusted-repos"
                              / cache_name_from_url(base_url()),
                          PackageCacheData::first_writable().get_pkgs_dir() / "cache"

@@ -17,6 +17,7 @@ extern "C"
 
 #include <string>
 #include <vector>
+#include <set>
 
 #include "nlohmann/json.hpp"
 
@@ -40,7 +41,8 @@ namespace mamba
                     const std::string build_string,
                     std::size_t build_number);
 
-        nlohmann::json json() const;
+        nlohmann::json json_record() const;
+        nlohmann::json json_signable() const;
         std::string str() const;
         std::string long_str() const;
 
@@ -60,6 +62,9 @@ namespace mamba
         std::string track_features;
         std::vector<std::string> depends;
         std::vector<std::string> constrains;
+        std::string signatures;
+        std::string extra_metadata;
+        std::set<std::string> defaulted_keys;
     };
 }  // namespace mamba
 

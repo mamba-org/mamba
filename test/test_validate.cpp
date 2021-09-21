@@ -371,6 +371,16 @@ namespace validate
                 EXPECT_EQ(root.version(), 1);
             }
 
+            TEST_F(RootImplT_v06, ctor_from_json_str)
+            {
+                RootImpl root(root1_json.dump());
+
+                EXPECT_EQ(root.type(), "root");
+                EXPECT_EQ(root.file_ext(), "json");
+                EXPECT_EQ(root.spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(root.version(), 1);
+            }
+
             TEST_F(RootImplT_v06, ctor_from_json_pgp_signed)
             {
                 RootImpl root(root1_pgp_json);
@@ -933,6 +943,17 @@ namespace validate
             {
                 RootImpl root(root1_json);
                 auto key_mgr = root.create_key_mgr(key_mgr_json);
+
+                EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(key_mgr.version(), 1);
+            }
+
+            TEST_F(KeyMgrT_v06, ctor_from_json_str)
+            {
+                RootImpl root(root1_json);
+                auto key_mgr = KeyMgrRole(key_mgr_json.dump(),
+                                          root.all_keys()["key_mgr"],
+                                          std::make_shared<SpecImpl>(SpecImpl()));
 
                 EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(key_mgr.version(), 1);

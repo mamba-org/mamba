@@ -661,9 +661,9 @@ namespace mamba
         return out;
     }
 
-    nl::json query_result::json() const
+    nlohmann::json query_result::json() const
     {
-        nl::json j;
+        nlohmann::json j;
         std::string query_type = m_type == QueryType::Search
                                      ? "search"
                                      : (m_type == QueryType::Depends ? "depends" : "whoneeds");
@@ -684,7 +684,7 @@ namespace mamba
             bool has_root = !m_dep_graph.get_edge_list(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
             j["result"]["graph_roots"].push_back(has_root ? m_dep_graph.get_node_list()[0].json()
-                                                          : nl::json(m_query));
+                                                          : nlohmann::json(m_query));
         }
         return j;
     }

@@ -36,8 +36,13 @@ namespace validate
     const std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk);
+    std::pair<std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
+              std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    generate_ed25519_keypair();
+    std::pair<std::string, std::string> generate_ed25519_keypair_hex();
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature);
+    int sign(const std::string& data, const std::string& sk, std::string& signature);
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
         const std::string& sig_hex) noexcept;
@@ -286,6 +291,9 @@ namespace validate
      */
     struct RoleFullKeys
     {
+        RoleFullKeys() = default;
+        RoleFullKeys(const std::map<std::string, Key>& keys_, const std::size_t& threshold_);
+
         std::map<std::string, Key> keys;
         std::size_t threshold;
 
@@ -604,6 +612,8 @@ namespace validate
         public:
             void set_timestamp(const std::string& ts);
 
+            std::string timestamp() const;
+
         protected:
             std::string m_timestamp;
 
@@ -619,11 +629,12 @@ namespace validate
          */
         class RootImpl final
             : public RootRole
-            , protected V06RoleBaseExtension
+            , public V06RoleBaseExtension
         {
         public:
             RootImpl(const fs::path& p);
             RootImpl(const json& j);
+            RootImpl(const std::string& json_str);
 
             /**
              * Return a ``RepoIndexChecker`` implementation (derived class)
@@ -670,6 +681,16 @@ namespace validate
             , public V06RoleBaseExtension
         {
         public:
+            KeyMgrRole(const fs::path& p,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(const json& j,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(const std::string& json_str,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+
             // std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
 
@@ -687,12 +708,6 @@ namespace validate
 
         private:
             KeyMgrRole() = delete;
-            KeyMgrRole(const fs::path& p,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
-            KeyMgrRole(const json& j,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
 
             void load_from_json(const json& j);
 
@@ -703,8 +718,6 @@ namespace validate
             std::set<std::string> optionally_defined_roles() const override;
 
             void set_defined_roles(std::map<std::string, RolePubKeys> keys);
-
-            friend class RootImpl;
         };
 
 
@@ -721,8 +734,13 @@ namespace validate
         {
         public:
             PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
-
+            PkgMgrRole(const fs::path& p,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
             PkgMgrRole(const json& j,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(const std::string& json_str,
                        const RoleFullKeys& keys,
                        const std::shared_ptr<SpecBase> spec);
 

@@ -216,6 +216,21 @@ namespace validate
         return 1;
     }
 
+    std::pair<std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
+              std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    generate_ed25519_keypair()
+    {
+        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+        generate_ed25519_keypair(pk.data(), sk.data());
+        return { pk, sk };
+    }
+
+    std::pair<std::string, std::string> generate_ed25519_keypair_hex()
+    {
+        auto pair = generate_ed25519_keypair();
+        return { ::mamba::hex_string(pair.first), ::mamba::hex_string(pair.second) };
+    }
+
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature)
     {
         std::size_t msg_len = data.size();
@@ -249,6 +264,25 @@ namespace validate
 
         EVP_MD_CTX_free(md_ctx);
         return 1;
+    }
+
+    int sign(const std::string& data, const std::string& sk, std::string& signature)
+    {
+        int error_code = 0;
+
+        auto bin_sk = ed25519_key_hex_to_bytes(sk, error_code);
+        if (error_code != 0)
+        {
+            LOG_DEBUG << "Invalid secret key";
+            return 0;
+        }
+
+        std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
+
+        error_code = sign(data, bin_sk.data(), sig.data());
+        signature = ::mamba::hex_string(sig, MAMBA_ED25519_SIGSIZE_BYTES);
+
+        return error_code;
     }
 
     int verify(const unsigned char* data,
@@ -393,6 +427,11 @@ namespace validate
     {
         return { pubkeys, threshold };
     }
+
+    RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_,
+                               const std::size_t& threshold_)
+        : keys(keys_)
+        , threshold(threshold_){};
 
     std::map<std::string, Key> RoleFullKeys::to_keys() const
     {
@@ -1196,10 +1235,9 @@ namespace validate
             m_timestamp = ts;
         }
 
-        RootImpl::RootImpl(const json& j)
-            : RootRole(std::make_shared<SpecImpl>())
+        std::string V06RoleBaseExtension::timestamp() const
         {
-            load_from_json(j);
+            return m_timestamp;
         }
 
         RootImpl::RootImpl(const fs::path& path)
@@ -1207,6 +1245,18 @@ namespace validate
         {
             auto j = read_json_file(path);
             load_from_json(j);
+        }
+
+        RootImpl::RootImpl(const json& j)
+            : RootRole(std::make_shared<SpecImpl>())
+        {
+            load_from_json(j);
+        }
+
+        RootImpl::RootImpl(const std::string& json_str)
+            : RootRole(std::make_shared<SpecImpl>())
+        {
+            load_from_json(json::parse(json_str));
         }
 
         std::unique_ptr<RootRole> RootImpl::create_update(const json& j)
@@ -1420,6 +1470,15 @@ namespace validate
             load_from_json(j);
         }
 
+        KeyMgrRole::KeyMgrRole(const std::string& json_str,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("key_mgr", spec)
+            , m_keys(keys)
+        {
+            load_from_json(json::parse(json_str));
+        }
+
         void KeyMgrRole::load_from_json(const json& j)
         {
             from_json(j, *this);
@@ -1521,6 +1580,16 @@ namespace validate
         {
         }
 
+        PkgMgrRole::PkgMgrRole(const fs::path& p,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+            auto j = read_json_file(p);
+            load_from_json(j);
+        }
+
         PkgMgrRole::PkgMgrRole(const json& j,
                                const RoleFullKeys& keys,
                                const std::shared_ptr<SpecBase> spec)
@@ -1528,6 +1597,15 @@ namespace validate
             , m_keys(keys)
         {
             load_from_json(j);
+        }
+
+        PkgMgrRole::PkgMgrRole(const std::string& json_str,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+            load_from_json(json::parse(json_str));
         }
 
         void PkgMgrRole::load_from_json(const json& j)
@@ -1563,6 +1641,8 @@ namespace validate
             {
                 from_json(j_signed, static_cast<RoleBase*>(&role));
 
+                role.set_timestamp(j_signed.at("timestamp").get<std::string>());
+
                 auto type = j_signed.at("type").get<std::string>();
                 if (type != role.type())
                 {
@@ -1591,6 +1671,8 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
+            role.check_timestamp_format();
             role.check_defined_roles();
         }
 

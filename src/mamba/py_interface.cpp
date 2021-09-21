@@ -8,6 +8,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "nlohmann/json.hpp"
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_handling.hpp"
@@ -20,7 +22,10 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
+
+#include <stdexcept>
 
 namespace py = pybind11;
 
@@ -245,6 +250,93 @@ PYBIND11_MODULE(mamba_api, m)
         .def(py::init<const std::string&>())
         .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
         .def_readwrite("name", &PackageInfo::name);
+
+    // Content trust - Package signature and verification
+    m.def("generate_ed25519_keypair", &validate::generate_ed25519_keypair_hex);
+    m.def(
+        "sign",
+        [](const std::string& data, const std::string& sk) {
+            std::string signature;
+            if (!validate::sign(data, sk, signature))
+                throw std::runtime_error("Signing failed");
+            return signature;
+        },
+        py::arg("data"),
+        py::arg("secret_key"));
+
+    py::class_<validate::Key>(m, "Key")
+        .def_readwrite("keytype", &validate::Key::keytype)
+        .def_readwrite("scheme", &validate::Key::scheme)
+        .def_readwrite("keyval", &validate::Key::keyval)
+        .def_property_readonly("json_str",
+                               [](const validate::Key& key) {
+                                   nlohmann::json j;
+                                   validate::to_json(j, key);
+                                   return j.dump();
+                               })
+        .def_static("from_ed25519", &validate::Key::from_ed25519);
+
+    py::class_<validate::RoleFullKeys>(m, "RoleFullKeys")
+        .def(py::init<>())
+        .def(py::init<const std::map<std::string, validate::Key>&, const std::size_t&>(),
+             py::arg("keys"),
+             py::arg("threshold"))
+        .def_readwrite("keys", &validate::RoleFullKeys::keys)
+        .def_readwrite("threshold", &validate::RoleFullKeys::threshold);
+
+    py::class_<validate::SpecBase, std::shared_ptr<validate::SpecBase>>(m, "SpecBase");
+
+    py::class_<validate::RoleBase, std::shared_ptr<validate::RoleBase>>(m, "RoleBase")
+        .def_property_readonly("type", &validate::RoleBase::type)
+        .def_property_readonly("version", &validate::RoleBase::version)
+        .def_property_readonly("spec_version", &validate::RoleBase::spec_version)
+        .def_property_readonly("file_ext", &validate::RoleBase::file_ext)
+        .def_property_readonly("expires", &validate::RoleBase::expires)
+        .def_property_readonly("expired", &validate::RoleBase::expired)
+        .def("all_keys", &validate::RoleBase::all_keys);
+
+    py::class_<validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::V06RoleBaseExtension>>(m, "RoleBaseExtension")
+        .def_property_readonly("timestamp", &validate::v06::V06RoleBaseExtension::timestamp);
+
+    py::class_<validate::v06::SpecImpl,
+               validate::SpecBase,
+               std::shared_ptr<validate::v06::SpecImpl>>(m, "SpecImpl")
+        .def(py::init<>());
+
+    py::class_<validate::v06::KeyMgrRole,
+               validate::RoleBase,
+               validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::KeyMgrRole>>(m, "KeyMgr")
+        .def(py::init<const std::string&,
+                      const validate::RoleFullKeys&,
+                      const std::shared_ptr<validate::SpecBase>>());
+
+    py::class_<validate::v06::PkgMgrRole,
+               validate::RoleBase,
+               validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::PkgMgrRole>>(m, "PkgMgr")
+        .def(py::init<const std::string&,
+                      const validate::RoleFullKeys&,
+                      const std::shared_ptr<validate::SpecBase>>());
+
+    py::class_<validate::v06::RootImpl,
+               validate::RoleBase,
+               validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::RootImpl>>(m, "RootImpl")
+        .def(py::init<const std::string&>(), py::arg("json_str"))
+        .def(
+            "update",
+            [](validate::v06::RootImpl& role, const std::string& json_str) {
+                return role.update(nlohmann::json::parse(json_str));
+            },
+            py::arg("json_str"))
+        .def(
+            "create_key_mgr",
+            [](validate::v06::RootImpl& role, const std::string& json_str) {
+                return role.create_key_mgr(nlohmann::json::parse(json_str));
+            },
+            py::arg("json_str"));
 
     py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel")
         .def(py::init(

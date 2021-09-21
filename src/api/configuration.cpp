@@ -11,6 +11,7 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/output.hpp"
 
 #include <reproc++/run.hpp>
 
@@ -18,6 +19,8 @@
 
 #include <algorithm>
 #include <stdexcept>
+
+#include "thirdparty/termcolor.hpp"
 
 
 namespace mamba
@@ -361,7 +364,11 @@ namespace mamba
         void experimental_hook(bool& value)
         {
             if (value)
+            {
+                Console::stream() << termcolor::yellow << "Experimental mode enabled!"
+                                  << termcolor::reset;
                 LOG_WARNING << "Experimental mode enabled";
+            }
         }
 
         void debug_hook(bool& value)

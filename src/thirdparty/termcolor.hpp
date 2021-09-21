@@ -45,10 +45,7 @@ namespace termcolor
     // All comments are below.
     namespace _internal
     {
-        // An index to be used to access a private storage of I/O streams. See
-        // colorize / nocolorize I/O manipulators for details.
-        static int colorize_index = std::ios_base::xalloc();
-
+        inline int colorize_index();
         inline FILE* get_standard_stream(const std::ostream& stream);
         inline bool is_colorized(std::ostream& stream);
         inline bool is_atty(const std::ostream& stream);
@@ -62,13 +59,13 @@ namespace termcolor
 
     inline std::ostream& colorize(std::ostream& stream)
     {
-        stream.iword(_internal::colorize_index) = 1L;
+        stream.iword(_internal::colorize_index()) = 1L;
         return stream;
     }
 
     inline std::ostream& nocolorize(std::ostream& stream)
     {
-        stream.iword(_internal::colorize_index) = 0L;
+        stream.iword(_internal::colorize_index()) = 0L;
         return stream;
     }
 
@@ -433,6 +430,17 @@ namespace termcolor
     //! the user code.
     namespace _internal
     {
+        // An index to be used to access a private storage of I/O streams. See
+        // colorize / nocolorize I/O manipulators for details. Due to the fact
+        // that static variables ain't shared between translation units, inline
+        // function with local static variable is used to do the trick and share
+        // the variable value between translation units.
+        inline int colorize_index()
+        {
+            static int colorize_index = std::ios_base::xalloc();
+            return colorize_index;
+        }
+
         //! Since C++ hasn't a true way to extract stream handler
         //! from the a given `std::ostream` object, I have to write
         //! this kind of hack.
@@ -451,7 +459,7 @@ namespace termcolor
         // colorize flag.
         inline bool is_colorized(std::ostream& stream)
         {
-            return is_atty(stream) || static_cast<bool>(stream.iword(colorize_index));
+            return is_atty(stream) || static_cast<bool>(stream.iword(colorize_index()));
         }
 
         //! Test whether a given `std::ostream` object refers to

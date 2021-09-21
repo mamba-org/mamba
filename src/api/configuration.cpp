@@ -514,6 +514,11 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Packages specification"));
 
+        insert(Configurable("others_pkg_mgrs_specs", std::vector<detail::other_pkg_mgr_spec>({}))
+                   .group("Basic")
+                   .set_single_op_lifetime()
+                   .description("Others package managers specifications"));
+
         insert(Configurable("experimental", &ctx.experimental)
                    .group("Basic")
                    .description("Enable experimental features")

@@ -27,12 +27,15 @@
 
 namespace mamba
 {
-    static std::vector<std::tuple<std::string, std::vector<std::string>>> other_pkg_mgr_specs;
     static std::map<std::string, std::string> other_pkg_mgr_install_instructions
         = { { "pip", "pip install -r {0} --no-input" } };
 
-    auto install_for_other_pkgmgr(const std::string& pkg_mgr, const std::vector<std::string>& deps)
+    auto install_for_other_pkgmgr(const detail::other_pkg_mgr_spec& other_spec)
     {
+        const auto& pkg_mgr = other_spec.pkg_mgr;
+        const auto& deps = other_spec.deps;
+        const auto& cwd = other_spec.cwd;
+
         std::string install_instructions = other_pkg_mgr_install_instructions[pkg_mgr];
 
         TemporaryFile specs;
@@ -53,6 +56,7 @@ namespace mamba
 
         reproc::options options;
         options.redirect.parent = true;
+        options.working_directory = cwd.c_str();
 
         std::cout << "\n"
                   << termcolor::cyan << "Installing " << pkg_mgr
@@ -132,7 +136,7 @@ namespace mamba
             YAML::Node deps = f["dependencies"];
             YAML::Node final_deps;
 
-            std::vector<std::string> pip_deps;
+            bool has_pip_deps = false;
             for (auto it = deps.begin(); it != deps.end(); ++it)
             {
                 if (it->IsScalar())
@@ -164,9 +168,11 @@ namespace mamba
                         }
                         else if (key == "pip")
                         {
-                            result.other_pkg_mgr_specs.push_back(std::make_tuple(
-                                std::string("pip"), map_el.second.as<std::vector<std::string>>()));
-                            pip_deps = map_el.second.as<std::vector<std::string>>();
+                            result.others_pkg_mgrs_specs.push_back(
+                                { "pip",
+                                  map_el.second.as<std::vector<std::string>>(),
+                                  fs::absolute(yaml_file.parent_path()) });
+                            has_pip_deps = true;
                         }
                     }
                 }
@@ -174,13 +180,9 @@ namespace mamba
 
             std::vector<std::string> dependencies = final_deps.as<std::vector<std::string>>();
 
-            if (!pip_deps.empty())
-            {
-                if (!std::count(dependencies.begin(), dependencies.end(), "pip"))
-                {
-                    dependencies.push_back("pip");
-                }
-            }
+            if (has_pip_deps && !std::count(dependencies.begin(), dependencies.end(), "pip"))
+                dependencies.push_back("pip");
+
             result.dependencies = dependencies;
 
             if (f["channels"])
@@ -237,6 +239,11 @@ namespace mamba
                 ms_result.push_back(ms);
             }
             return std::make_tuple(pi_result, ms_result);
+        }
+
+        bool operator==(const other_pkg_mgr_spec& s1, const other_pkg_mgr_spec& s2)
+        {
+            return (s1.pkg_mgr == s2.pkg_mgr) && (s1.deps == s2.deps) && (s1.cwd == s2.cwd);
         }
     }
 
@@ -531,9 +538,10 @@ namespace mamba
                 LockFile(pkgs_dirs / "mamba.lock");
                 trans.execute(prefix_data);
             }
-            for (const auto& [pkg_mgr, deps] : other_pkg_mgr_specs)
+            for (auto other_spec : config.at("others_pkg_mgrs_specs")
+                                       .value<std::vector<detail::other_pkg_mgr_spec>>())
             {
-                mamba::install_for_other_pkgmgr(pkg_mgr, deps);
+                install_for_other_pkgmgr(other_spec);
             }
         }
     }
@@ -600,6 +608,7 @@ namespace mamba
             auto& config = Configuration::instance();
             auto& env_name = config.at("spec_file_env_name");
             auto& specs = config.at("specs");
+            auto& others_pkg_mgrs_specs = config.at("others_pkg_mgrs_specs");
             auto& channels = config.at("channels");
 
             if (file_specs.size() == 0)
@@ -653,10 +662,7 @@ namespace mamba
                         specs.set_cli_yaml_value(updated_specs);
                     }
 
-                    if (parse_result.other_pkg_mgr_specs.size())
-                    {
-                        other_pkg_mgr_specs = parse_result.other_pkg_mgr_specs;
-                    }
+                    others_pkg_mgrs_specs.set_value(parse_result.others_pkg_mgrs_specs);
                 }
                 else
                 {

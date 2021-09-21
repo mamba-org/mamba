@@ -688,8 +688,7 @@ namespace validate
                     { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 2 }
                     ])"_json;
 
-                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
-                             threshold_error);
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)), role_error);
             }
 
             TEST_F(RootImplT_v06, expires)
@@ -1740,8 +1739,7 @@ namespace validate
                     { "op": "replace", "path": "/signed/roles/root/threshold", "value": 2 }
                     ])"_json;
 
-                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
-                             threshold_error);
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)), role_error);
             }
 
             TEST_F(RootImplT_v1, expires)

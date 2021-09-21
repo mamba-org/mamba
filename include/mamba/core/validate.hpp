@@ -202,6 +202,16 @@ namespace validate
         virtual ~package_error() = default;
     };
 
+    /**
+     * Error raised when signatures threshold
+     * is not met for a trust role.
+     */
+    class role_error : public trust_error
+    {
+    public:
+        role_error() noexcept;
+        virtual ~role_error() = default;
+    };
 
     /**
      * Error raised when an invalid package

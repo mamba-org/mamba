@@ -73,7 +73,12 @@ namespace validate
     }
 
     package_error::package_error() noexcept
-        : trust_error("Invalid package metadata")
+        : trust_error("Invalid package")
+    {
+    }
+
+    role_error::role_error() noexcept
+        : trust_error("Invalid role")
     {
     }
 
@@ -915,7 +920,15 @@ namespace validate
         auto signatures = role.signatures(data);
         auto k = self_keys();
 
-        check_signatures(signed_data, signatures, k);
+        try
+        {
+            check_signatures(signed_data, signatures, k);
+        }
+        catch (const threshold_error& e)
+        {
+            LOG_ERROR << "Validation failed on role '" << type() << "'";
+            throw role_error();
+        }
     }
 
     void RoleBase::check_signatures(const std::string& signed_data,
@@ -960,8 +973,8 @@ namespace validate
 
         if (valid_sig < keyring.threshold)
         {
-            LOG_ERROR << "Threshold of valid signatures for '" << type()
-                      << "' metadata is not met (" << valid_sig << "/" << keyring.threshold << ")";
+            LOG_ERROR << "Threshold of valid signatures is not met (" << valid_sig << "/"
+                      << keyring.threshold << ")";
             throw threshold_error();
         }
     }

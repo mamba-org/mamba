@@ -14,6 +14,8 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
 
+#include <yaml-cpp/yaml.h>
+
 #include <string>
 #include <vector>
 
@@ -43,11 +45,20 @@ namespace mamba
 
         bool download_explicit(const std::vector<PackageInfo>& pkgs);
 
+        struct other_pkg_mgr_spec
+        {
+            std::string pkg_mgr;
+            std::vector<std::string> deps;
+            std::string cwd;
+        };
+
+        bool operator==(const other_pkg_mgr_spec& s1, const other_pkg_mgr_spec& s2);
+
         struct yaml_file_contents
         {
             std::string name;
             std::vector<std::string> dependencies, channels;
-            std::vector<std::tuple<std::string, std::vector<std::string>>> other_pkg_mgr_specs;
+            std::vector<other_pkg_mgr_spec> others_pkg_mgrs_specs;
         };
 
         bool eval_selector(const std::string& selector);
@@ -57,6 +68,23 @@ namespace mamba
         std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
             const std::vector<std::string>& urls);
     }
+}
+
+namespace YAML
+{
+    template <>
+    struct convert<mamba::detail::other_pkg_mgr_spec>
+    {
+        static Node encode(const mamba::detail::other_pkg_mgr_spec& rhs)
+        {
+            return Node();
+        }
+
+        static bool decode(const Node& node, mamba::detail::other_pkg_mgr_spec& rhs)
+        {
+            return true;
+        }
+    };
 }
 
 #endif

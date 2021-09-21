@@ -38,7 +38,7 @@ namespace mamba
         EXPECT_EQ(res.name, "env_1");
         EXPECT_EQ(res.channels, V({ "conda-forge", "bioconda" }));
         EXPECT_EQ(res.dependencies, V({ "test1", "test2", "test3" }));
-        EXPECT_FALSE(res.other_pkg_mgr_specs.size());
+        EXPECT_FALSE(res.others_pkg_mgrs_specs.size());
 
         auto res2 = detail::read_yaml_file("env_file_test/env_2.yaml");
         EXPECT_EQ(res2.name, "env_2");
@@ -50,7 +50,7 @@ namespace mamba
 #elif _WIN32
         EXPECT_EQ(res2.dependencies, V({ "test1-win", "test4" }));
 #endif
-        EXPECT_FALSE(res2.other_pkg_mgr_specs.size());
+        EXPECT_FALSE(res2.others_pkg_mgrs_specs.size());
     }
 
     TEST(env_file_reading, external_pkg_mgrs)
@@ -60,12 +60,12 @@ namespace mamba
         EXPECT_EQ(res.name, "env_3");
         EXPECT_EQ(res.channels, V({ "conda-forge", "bioconda" }));
         EXPECT_EQ(res.dependencies, V({ "test1", "test2", "test3", "pip" }));
-        EXPECT_TRUE(res.other_pkg_mgr_specs.size());
 
-        EXPECT_EQ(res.other_pkg_mgr_specs.size(), 1);
-        auto o = res.other_pkg_mgr_specs[0];
-        EXPECT_EQ(std::get<0>(o), "pip");
-        EXPECT_EQ(std::get<1>(o), V({ "pytest", "numpy" }));
+        EXPECT_EQ(res.others_pkg_mgrs_specs.size(), 1);
+        auto o = res.others_pkg_mgrs_specs[0];
+        EXPECT_EQ(o.pkg_mgr, "pip");
+        EXPECT_EQ(o.deps, V({ "pytest", "numpy" }));
+        EXPECT_EQ(o.cwd, fs::absolute("env_file_test"));
     }
 
 }  // namespace mamba

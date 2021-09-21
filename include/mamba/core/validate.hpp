@@ -423,7 +423,7 @@ namespace validate
 
         // Check role
         void check_expiration_format() const;
-        void check_defined_roles() const;
+        void check_defined_roles(bool allow_any = false) const;
 
         std::map<std::string, RoleFullKeys> m_defined_roles;
 
@@ -720,18 +720,30 @@ namespace validate
             , public RepoIndexChecker
         {
         public:
+            PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+
+            PkgMgrRole(const json& j,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+
             void verify_index(const fs::path& p) const override;
             void verify_index(const json& j) const override;
             void verify_package(const fs::path& index_path,
                                 const std::string& pkg_name) const override;
 
+            friend void to_json(json& j, const PkgMgrRole& r);
+            friend void from_json(const json& j, PkgMgrRole& r);
+
         private:
             PkgMgrRole() = delete;
-            PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+
+            void load_from_json(const json& j);
 
             RoleFullKeys self_keys() const override;
             std::set<RoleSignature> pkg_signatures(const json& j) const;
             void check_pkg_signatures(const json& signed_data, const json& signatures) const;
+
+            void set_defined_roles(std::map<std::string, RolePubKeys> keys);
 
             RoleFullKeys m_keys;
 

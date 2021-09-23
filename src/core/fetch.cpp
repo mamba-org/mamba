@@ -13,6 +13,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/version.hpp"
 
 namespace mamba
 {
@@ -226,6 +227,11 @@ namespace mamba
                 m_handle, CURLOPT_ACCEPT_ENCODING, "gzip, deflate, compress, identity");
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
+
+        static std::string user_agent
+            = std::string("User-Agent: mamba/" MAMBA_VERSION_STRING " ") + curl_version();
+
+        m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
     }

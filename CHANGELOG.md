@@ -1,3 +1,20 @@
+0.16.0 (September 27, 2021)
+===========================
+
+- Add a User-Agent header to all requests (mamba/0.16.0) (thanks @shankerwangmiao)
+- Add `micromamba env export (--explicit)` to micromamba
+- Do not display banner with `mamba list` (thanks @madhur-tandon)
+- Use directory of environment.yml as cwd when creating environment (thanks @marscher & @adriendelsalle)
+- Improve outputs
+- content-trust: Add Python bindings for content-trust API
+- content-trust: Load PkgMgr definitions from file
+- content-trust: Improve HEAD request fallback handling
+- export Transaction.find_python_version to Python
+- Continue `shell init` when we can't create the prefix script dir (thanks @maresb)
+- Implement support for `fish` shell in `micromamba` (thanks @soraxas)
+- Add constraint with pin when updating
+- Expose methods for virtual packages to Python (thanks @madhur-tandon)
+
 0.15.3 (August 18, 2021)
 ========================
 

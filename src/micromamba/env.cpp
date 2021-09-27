@@ -2,6 +2,7 @@
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/channel.hpp"
 
 #include "mamba/api/configuration.hpp"
 
@@ -40,11 +41,17 @@ set_env_command(CLI::App* com)
     static bool explicit_format;
     static bool no_md5;
 
+    static bool no_build = false;
+    static bool from_history = false;
+
     auto* export_subcom = com->add_subcommand("export", "Export environment");
     init_general_options(export_subcom);
     init_prefix_options(export_subcom);
     export_subcom->add_flag("-e,--explicit", explicit_format, "Use explicit format");
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
+    export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
+    export_subcom->add_flag(
+        "--from-history", from_history, "Build environment spec from explicit specs in history");
 
     export_subcom->callback([]() {
         auto& ctx = Context::instance();
@@ -74,20 +81,45 @@ set_env_command(CLI::App* com)
         }
         else
         {
-            History hist(ctx.target_prefix);
             PrefixData pd(ctx.target_prefix);
             pd.load();
+            History& hist = pd.history();
+
             auto versions_map = pd.records();
-            auto m = hist.get_requested_specs_map();
-            for (auto& [k, v] : m)
+
+            std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
+            std::cout << "channels:\n";
+
+            auto requested_specs_map = hist.get_requested_specs_map();
+            std::stringstream dependencies;
+            std::set<std::string> channels;
+            for (auto& [k, v] : versions_map)
             {
-                auto it = versions_map.find(k);
-                if (it != versions_map.end())
+                if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    continue;
+
+                if (from_history)
                 {
-                    std::cout << "- " << it->second.name << "=" << it->second.version << "="
-                              << it->second.build_string << "\n";
+                    dependencies << "- " << requested_specs_map[k].str() << "\n";
                 }
+                else
+                {
+                    dependencies << "- " << v.name << "=" << v.version;
+                    if (!no_build)
+                        dependencies << "=" << v.build_string;
+                    dependencies << "\n";
+                }
+
+                auto& c = make_channel(v.url);
+
+                // remove platform
+                auto u = c.base_url();
+                channels.insert(rsplit(u, "/", 1)[0]);
             }
+
+            for (auto& c : channels)
+                std::cout << "- " << c << "\n";
+            std::cout << "dependencies:\n" << dependencies.str() << std::endl;
             std::cout.flush();
         }
     });

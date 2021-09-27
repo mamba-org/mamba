@@ -863,6 +863,9 @@ def _wrapped_main(*args, **kwargs):
     elif "MAMBA_NO_BANNER" in os.environ:
         print_banner = False
 
+    if "list" in argv:
+        print_banner = False
+
     args = argv
 
     p = generate_parser()

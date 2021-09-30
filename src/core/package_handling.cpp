@@ -99,12 +99,21 @@ namespace mamba
             archive_write_set_format_gnutar(a);
             archive_write_set_format_pax_restricted(a);  // Note 1
             archive_write_add_filter_bzip2(a);
+
+            if (compression_level < 0 || compression_level > 9)
+                throw std::runtime_error("bzip2 compression level should be between 0 and 9");
+            std::string comp_level
+                = std::string("bzip2:compression-level=") + std::to_string(compression_level);
+            archive_write_set_options(a, comp_level.c_str());
         }
         if (ca == compression_algorithm::zip)
         {
+            archive_write_set_format_zip(a);
+
+            if (compression_level < 0 || compression_level > 9)
+                throw std::runtime_error("zip compression level should be between 0 and 9");
             std::string comp_level
                 = std::string("zip:compression-level=") + std::to_string(compression_level);
-            archive_write_set_format_zip(a);
             archive_write_set_options(a, comp_level.c_str());
         }
         if (ca == compression_algorithm::zstd)
@@ -112,6 +121,9 @@ namespace mamba
             archive_write_set_format_gnutar(a);
             archive_write_set_format_pax_restricted(a);  // Note 1
             archive_write_add_filter_zstd(a);
+
+            if (compression_level < 1 || compression_level > 22)
+                throw std::runtime_error("zip compression level should be between 1 and 22");
             std::string comp_level
                 = std::string("zstd:compression-level=") + std::to_string(compression_level);
             archive_write_set_options(a, comp_level.c_str());

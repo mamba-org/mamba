@@ -147,7 +147,7 @@ init_channel_parser(CLI::App* subcom)
 
     auto& override_channels = config.insert(Configurable("override_channels", false)
                                                 .group("cli")
-                                                .set_env_var_name()
+                                                .set_env_var_names()
                                                 .description("Override channels")
                                                 .needs({ "override_channels_enabled" })
                                                 .set_post_build_hook(override_channels_hook),

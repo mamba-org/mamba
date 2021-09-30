@@ -573,7 +573,7 @@ namespace mamba
 
         self_type& clear_rc_values();
 
-        self_type& clear_env_value();
+        self_type& clear_env_values();
 
         self_type& clear_cli_value();
 
@@ -583,7 +583,7 @@ namespace mamba
 
         self_type& set_single_op_lifetime();
 
-        self_type& set_env_var_name(const std::string& name = "");
+        self_type& set_env_var_names(const std::vector<std::string>& names = {});
 
         self_type& group(const std::string& group);
 
@@ -625,7 +625,7 @@ namespace mamba
         std::string m_group = "Default";
         std::string m_description = "No description provided";
         std::string m_long_description = "";
-        std::string m_env_var = "";
+        std::vector<std::string> m_env_var_names = {};
 
         bool m_rc_configurable = false;
         bool m_rc_configured = false;
@@ -740,7 +740,14 @@ namespace mamba
     template <class T>
     bool Configurable<T>::env_var_configured() const
     {
-        return !m_env_var.empty() && !Context::instance().no_env && !env::get(m_env_var).empty();
+        if (Context::instance().no_env)
+            return false;
+
+        for (const auto& env_var : m_env_var_names)
+            if (!env::get(env_var).empty())
+                return true;
+
+        return false;
     };
 
     template <class T>
@@ -872,15 +879,15 @@ namespace mamba
     }
 
     template <class T>
-    auto Configurable<T>::set_env_var_name(const std::string& name) -> self_type&
+    auto Configurable<T>::set_env_var_names(const std::vector<std::string>& names) -> self_type&
     {
-        if (name.empty())
+        if (names.empty())
         {
-            m_env_var = "MAMBA_" + to_upper(m_name);
+            m_env_var_names = { "MAMBA_" + to_upper(m_name) };
         }
         else
         {
-            m_env_var = name;
+            m_env_var_names = names;
         }
         m_needed_configs.insert("no_env");
 
@@ -897,10 +904,11 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::clear_env_value() -> self_type&
+    auto Configurable<T>::clear_env_values() -> self_type&
     {
         if (env_var_configured())
-            env::set(m_env_var, "");
+            for (const auto& ev : m_env_var_names)
+                env::set(ev, "");
         return *this;
     };
 
@@ -922,7 +930,7 @@ namespace mamba
     auto Configurable<T>::clear_values() -> self_type&
     {
         clear_rc_values();
-        clear_env_value();
+        clear_env_values();
         clear_cli_value();
         clear_api_value();
         m_value = m_default_value;
@@ -941,7 +949,6 @@ namespace mamba
     auto Configurable<T>::set_rc_configurable() -> self_type&
     {
         m_rc_configurable = true;
-        m_needed_configs.insert("rc_file");
         return *this;
     };
 
@@ -1078,7 +1085,7 @@ namespace mamba
 
             virtual void clear_rc_values() = 0;
 
-            virtual void clear_env_value() = 0;
+            virtual void clear_env_values() = 0;
 
             virtual void clear_cli_value() = 0;
 
@@ -1088,7 +1095,7 @@ namespace mamba
 
             virtual void set_context() = 0;
 
-            virtual void set_env_var_name(const std::string& name) = 0;
+            virtual void set_env_var_names(const std::vector<std::string>& names) = 0;
 
             virtual void group(const std::string& name) = 0;
 
@@ -1286,9 +1293,9 @@ namespace mamba
                 p_wrapped->clear_rc_values();
             };
 
-            void clear_env_value()
+            void clear_env_values()
             {
-                p_wrapped->clear_env_value();
+                p_wrapped->clear_env_values();
             };
 
             void clear_cli_value()
@@ -1311,9 +1318,9 @@ namespace mamba
                 p_wrapped->set_context();
             };
 
-            void set_env_var_name(const std::string& name)
+            void set_env_var_names(const std::vector<std::string>& names)
             {
-                p_wrapped->set_env_var_name(name);
+                p_wrapped->set_env_var_names(names);
             };
 
             void group(const std::string& name)
@@ -1564,9 +1571,9 @@ namespace mamba
             return *this;
         };
 
-        self_type& clear_env_value()
+        self_type& clear_env_values()
         {
-            p_impl->clear_env_value();
+            p_impl->clear_env_values();
             return *this;
         };
 
@@ -1594,9 +1601,9 @@ namespace mamba
             return *this;
         };
 
-        self_type& set_env_var_name(const std::string& name = "")
+        self_type& set_env_var_names(const std::vector<std::string>& names = {})
         {
-            p_impl->set_env_var_name(name);
+            p_impl->set_env_var_names(names);
             return *this;
         };
 
@@ -1765,8 +1772,10 @@ namespace mamba
 
         if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
         {
-            m_sources.push_back(m_env_var);
-            m_values.insert({ m_env_var, detail::Source<T>::deserialize(env::get(m_env_var)) });
+            m_sources.insert(m_sources.end(), m_env_var_names.begin(), m_env_var_names.end());
+
+            for (const auto& env_var : m_env_var_names)
+                m_values.insert({ env_var, detail::Source<T>::deserialize(env::get(env_var)) });
         }
 
         if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))

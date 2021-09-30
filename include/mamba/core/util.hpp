@@ -7,6 +7,11 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/output.hpp"
+
+#include "nlohmann/json.hpp"
+
 #include <array>
 #include <iomanip>
 #include <limits>
@@ -18,11 +23,7 @@
 #include <time.h>
 #include <vector>
 #include <regex>
-
-#include "nlohmann/json.hpp"
-
-#include "mamba_fs.hpp"
-#include "output.hpp"
+#include <chrono>
 
 
 namespace mamba
@@ -132,28 +133,72 @@ namespace mamba
         fs::path m_path;
     };
 
+    class Lock;
+
     class LockFile
     {
     public:
-        LockFile(const fs::path& path);
+        // LockFile(const fs::path& path);
+        LockFile(const fs::path& path, const std::chrono::seconds& timeout);
         ~LockFile();
 
-        LockFile(const LockFile&) = delete;
-        LockFile& operator=(const LockFile&) = delete;
-        LockFile& operator=(LockFile&&) = default;
+        int fd() const;
 
-        fs::path& path();
-        operator fs::path();
+#ifdef _WIN32
+        // Using file descriptor on Windows may cause false negative
+        static bool is_locked(const fs::path& path);
+#else
+        // Opening a new file descriptor on Unix would clear locks
+        static bool is_locked(int fd);
+#endif
+        static int read_pid(int fd);
 
     private:
         fs::path m_path;
-        int m_fd;
+        std::chrono::seconds m_timeout;
+        int m_fd = -1;
+
+        bool set_lock(bool blocking) const;
+
+        int read_pid() const;
+        bool write_pid(int pid) const;
+        bool locked() const;
+        bool lock(int pid, bool blocking) const;
+        bool unlock() const;
+        int close_fd();
+        void remove() noexcept;
+
+        friend class Lock;
+    };
+
+    class Lock
+    {
+    public:
+        Lock(const fs::path& path);
+        ~Lock();
+
+        Lock(const Lock&) = delete;
+        Lock& operator=(const Lock&) = delete;
+        Lock& operator=(Lock&&) = default;
+
+        bool locked() const;
+        int fd() const;
+        fs::path path() const;
+
+    private:
+        fs::path m_path;
+        fs::path m_lock;
+        std::unique_ptr<LockFile> p_lock_file;
+        bool m_locked;
 
 #if defined(__APPLE__) or defined(__linux__)
         pid_t m_pid;
 #else
         int m_pid;
 #endif
+
+        bool try_lock();
+        bool lock();
     };
 
     /*************************

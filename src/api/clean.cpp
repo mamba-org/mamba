@@ -8,6 +8,7 @@
 #include "mamba/api/configuration.hpp"
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 
 
@@ -25,21 +26,22 @@ namespace mamba
         bool clean_index = options & MAMBA_CLEAN_INDEX;
         bool clean_pkgs = options & MAMBA_CLEAN_PKGS;
         bool clean_tarballs = options & MAMBA_CLEAN_TARBALLS;
+        bool clean_locks = options & MAMBA_CLEAN_LOCKS;
 
-        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs))
+        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks))
         {
-            std::cout << "Nothing to do." << std::endl;
+            Console::stream() << "Nothing to do." << std::endl;
             return;
         }
 
-        Console::print("Collect information..");
+        Console::stream() << "Collect information..";
 
         std::vector<fs::path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs);
         if (!ctx.dry_run && (clean_index || clean_all))
         {
-            Console::print("Cleaning index cache..");
+            Console::stream() << "Cleaning index cache..";
 
             for (auto* pkg_cache : caches.writable_caches())
                 if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
@@ -53,6 +55,50 @@ namespace mamba
                         LOG_WARNING << "Could not clean " << pkg_cache->get_pkgs_dir() / "cache";
                     }
                 }
+        }
+
+        if (!ctx.dry_run && (clean_locks || clean_all))
+        {
+            Console::stream() << "Cleaning lock files..";
+
+            for (auto* pkg_cache : caches.writable_caches())
+            {
+                if (fs::exists(pkg_cache->get_pkgs_dir()))
+                    for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                    {
+                        if (p.exists() && ends_with(p.path().string(), ".lock")
+                            && fs::exists(rstrip(p.path().string(), ".lock")))
+                        {
+                            try
+                            {
+                                fs::remove(p);
+                            }
+                            catch (...)
+                            {
+                                LOG_WARNING << "Could not clean lock file '" << p.path().string()
+                                            << "'";
+                            }
+                        }
+                    }
+
+                if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
+                    for (auto& p :
+                         fs::recursive_directory_iterator(pkg_cache->get_pkgs_dir() / "cache"))
+                    {
+                        if (p.exists() && ends_with(p.path().string(), ".lock"))
+                        {
+                            try
+                            {
+                                fs::remove(p);
+                            }
+                            catch (...)
+                            {
+                                LOG_WARNING << "Could not clean lock file '" << p.path().string()
+                                            << "'";
+                            }
+                        }
+                    }
+            }
         }
 
         if (fs::exists(ctx.root_prefix / "conda-meta"))

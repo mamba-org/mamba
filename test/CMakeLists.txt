@@ -21,6 +21,7 @@ set(TEST_SRCS
     test_validate.cpp
     test_virtual_packages.cpp
     test_env_file_reading.cpp
+    test_lockfile.cpp
 )
 
 add_executable(test_mamba ${TEST_SRCS})
@@ -43,3 +44,8 @@ target_link_libraries(test_mamba PUBLIC mamba-static)
 set_property(TARGET test_mamba PROPERTY CXX_STANDARD 17)
 
 add_custom_target(test COMMAND test_mamba DEPENDS test_mamba)
+
+add_executable(test_mamba_lock testing/lock.cpp)
+target_link_libraries(test_mamba_lock PRIVATE GTest::GTest GTest::Main ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_mamba_lock PUBLIC mamba-static)
+set_property(TARGET test_mamba_lock PROPERTY CXX_STANDARD 17)

@@ -15,7 +15,7 @@ dependencies:
   - cxx-compiler
   - gtest
   - gmock
-  - cpp-filesystem
+  - cpp-filesystem >=1.5.8
   - reproc-cpp
   - yaml-cpp
   - pyyaml

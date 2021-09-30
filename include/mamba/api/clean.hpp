@@ -14,6 +14,7 @@ namespace mamba
     const int MAMBA_CLEAN_INDEX = 1 << 1;
     const int MAMBA_CLEAN_PKGS = 1 << 2;
     const int MAMBA_CLEAN_TARBALLS = 1 << 3;
+    const int MAMBA_CLEAN_LOCKS = 1 << 4;
 
     void clean(int options);
 }

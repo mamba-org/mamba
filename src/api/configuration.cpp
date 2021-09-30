@@ -814,6 +814,16 @@ namespace mamba
                         Spend extra time validating package contents. It consists of running
                         cryptographic verifications on channels and packages metadata.)")));
 
+        insert(Configurable("lock_timeout", &ctx.lock_timeout)
+                   .group("Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Lock timeout")
+                   .long_description(unindent(R"(
+                        Lock timeout for blocking mode when waiting for another process
+                        to release the path.
+                        Not configurable on Windows: set to 10s by WinAPI)")));
+
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &ctx.always_yes)
                    .group("Output, Prompt and Flow Control")

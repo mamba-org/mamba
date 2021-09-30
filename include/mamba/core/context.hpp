@@ -163,6 +163,8 @@ namespace mamba
         bool no_rc = false;
         bool no_env = false;
 
+        std::size_t lock_timeout = 0;
+
         // Conda compat
         bool add_pip_as_python_dependency = true;
 

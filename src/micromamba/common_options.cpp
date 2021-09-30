@@ -325,6 +325,10 @@ init_install_options(CLI::App* subcom)
                      extra_safety_checks.set_cli_config(0),
                      extra_safety_checks.description());
 
+    auto& lock_timeout = config.at("lock_timeout").get_wrapped<std::size_t>();
+    subcom->add_option(
+        "--lock-timeout", lock_timeout.set_cli_config(-1), lock_timeout.description());
+
     auto& shortcuts = config.at("shortcuts").get_wrapped<bool>();
     subcom->add_flag(
         "--shortcuts,!--no-shortcuts", shortcuts.set_cli_config(0), shortcuts.description());

@@ -449,7 +449,7 @@ namespace mamba
         // Basic
         insert(Configurable("root_prefix", &ctx.root_prefix)
                    .group("Basic")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .needs({ "verbose", "create_base" })
                    .description("Path to the root prefix")
                    .set_post_build_hook(detail::root_prefix_hook));
@@ -461,7 +461,7 @@ namespace mamba
 
         insert(Configurable("target_prefix", &ctx.target_prefix)
                    .group("Basic")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .needs({ "root_prefix",
                             "env_name",
                             "spec_file_env_name",
@@ -494,7 +494,7 @@ namespace mamba
         insert(Configurable("platform", &ctx.platform)
                    .group("Basic")
                    .set_rc_configurable()
-                   .set_env_var_name("CONDA_SUBDIR")
+                   .set_env_var_names({ "CONDA_SUBDIR" })
                    .description("The platform description")
                    .long_description(unindent(R"(
                         The plaftorm description points what channels
@@ -523,7 +523,7 @@ namespace mamba
                    .group("Basic")
                    .description("Enable experimental features")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .long_description(unindent(R"(
                         Enable experimental features that may be still.
                         under active development and not stable yet.)"))
@@ -531,7 +531,7 @@ namespace mamba
 
         insert(Configurable("debug", &ctx.debug)
                    .group("Basic")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Turn on the debug mode")
                    .long_description(unindent(R"(
                         Turn on the debug mode that allow introspection
@@ -544,7 +544,7 @@ namespace mamba
         insert(Configurable("channels", &ctx.channels)
                    .group("Channels")
                    .set_rc_configurable()
-                   .set_env_var_name("CONDA_CHANNELS")
+                   .set_env_var_names({ "CONDA_CHANNELS" })
                    .description("Define the list of channels")
                    .needs({ "file_specs" })
                    .long_description(unindent(R"(
@@ -554,13 +554,13 @@ namespace mamba
         insert(Configurable("channel_alias", &ctx.channel_alias)
                    .group("Channels")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("The prepended url location to associate with channel names"));
 
         insert(Configurable("default_channels", &ctx.default_channels)
                    .group("Channels")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Default channels used")
                    .long_description(unindent(R"(
                         The list of channel names and/or urls used for the 'defaults'
@@ -569,21 +569,21 @@ namespace mamba
         insert(Configurable("custom_channels", &ctx.custom_channels)
                    .group("Channels")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Custom channels")
                    .long_description("A dictionary with name: url to use for custom channels."));
 
         insert(Configurable("override_channels_enabled", &ctx.override_channels_enabled)
                    .group("Channels")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Permit use of the --overide-channels command-line flag"));
 
         // Network
         insert(Configurable("cacert_path", std::string(""))
                    .group("Network")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Path (file or directory) SSL certificate(s)")
                    .long_description(unindent(R"(
                         Path (file or directory) SSL certificate(s) to use whe
@@ -606,13 +606,13 @@ namespace mamba
         insert(Configurable("offline", &ctx.offline)
                    .group("Network")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Force use cached repodata"));
 
         insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("SSL certificate revocation checks")
                    .long_description(unindent(R"(
                         This option tells curl to disable certificate revocation checks.
@@ -622,7 +622,7 @@ namespace mamba
         insert(Configurable("ssl_verify", &ctx.ssl_verify)
                    .group("Network")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Verify SSL certificates for HTTPS requests")
                    .long_description(unindent(R"(
                         'ssl_verify' can be either an empty string (regular SSL verification),
@@ -635,7 +635,7 @@ namespace mamba
         insert(Configurable("channel_priority", &ctx.channel_priority)
                    .group("Solver")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Define the channel priority ('strict' or 'disabled')")
                    .long_description(unindent(R"(
                         Accepts values of 'strict' and 'disabled'. The default
@@ -658,13 +658,13 @@ namespace mamba
 
         insert(Configurable("no_pin", false)
                    .group("Solver")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Ignore pinned packages"));
 
         insert(Configurable("no_py_pin", false)
                    .group("Solver")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Do not automatically pin Python")
                    .long_description(unindent(R"(
                         Do not automatically pin Python when not present in
@@ -674,7 +674,7 @@ namespace mamba
         insert(Configurable("pinned_packages", &ctx.pinned_packages)
                    .group("Solver")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("A list of package specs to pin for every environment resolution"));
 
         insert(Configurable("freeze_installed", &ctx.freeze_installed)
@@ -683,14 +683,14 @@ namespace mamba
 
         insert(Configurable("retry_clean_cache", false)
                    .group("Solver")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("If solve fails, try to fetch updated repodata"));
 
         // Link & Install
         insert(Configurable("allow_softlinks", &ctx.allow_softlinks)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Allow to use soft-links when hard-links are not possible")
                    .long_description(unindent(R"(
                         Allow to use soft-links (symlinks) when hard-links are not possible,
@@ -700,7 +700,7 @@ namespace mamba
         insert(Configurable("always_copy", &ctx.always_copy)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Use copy instead of hard-link")
                    .long_description(unindent(R"(
                         Register a preference that files be copied into a prefix during
@@ -709,7 +709,7 @@ namespace mamba
         insert(Configurable("always_softlink", &ctx.always_softlink)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .needs({ "always_copy" })
                    .set_post_build_hook(detail::always_softlink_hook)
                    .description("Use soft-link instead of hard-link")
@@ -724,14 +724,14 @@ namespace mamba
             Configurable("shortcuts", &ctx.shortcuts)
                 .group("Link & Install")
                 .set_rc_configurable()
-                .set_env_var_name()
+                .set_env_var_names()
                 .description(
                     "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"));
 
         insert(Configurable("safety_checks", &ctx.safety_checks)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Safety checks policy ('enabled', 'warn', or 'disabled')")
                    .long_description(unindent(R"(
                         Enforce available safety guarantees during package installation. The
@@ -740,7 +740,7 @@ namespace mamba
         insert(Configurable("extra_safety_checks", &ctx.extra_safety_checks)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Run extra verifications on packages")
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. Currently, runs sha256
@@ -749,7 +749,7 @@ namespace mamba
         insert(Configurable("verify_artifacts", &ctx.verify_artifacts)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Run verifications on packages signatures")
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. It consists of running
@@ -759,13 +759,13 @@ namespace mamba
         insert(Configurable("always_yes", &ctx.always_yes)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Automatically answer yes on prompted questions"));
 
         insert(Configurable("auto_activate_base", &ctx.auto_activate_base)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Automatically activate the base env")
                    .long_description(unindent(R"(
                         Automatically activate the base environment during shell
@@ -773,12 +773,12 @@ namespace mamba
 
         insert(Configurable("dry_run", &ctx.dry_run)
                    .group("Output, Prompt and Flow Control")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Only display what would have been done"));
         /*
                 insert(Configurable("log_level", &ctx.verbosity)
                            .group("Output, Prompt and Flow Control")
-                           .set_env_var_name()
+                           .set_env_var_names()
                            .description("Set the log level")
                            .long_description(unindent(R"(
                             Set the log level. Log level can be one of {'off', 'fatal',
@@ -788,7 +788,7 @@ namespace mamba
         insert(Configurable("json", &ctx.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Report all output as json"));
 
         insert(Configurable("print_config_only", false)
@@ -838,7 +838,7 @@ namespace mamba
         insert(Configurable("quiet", &ctx.quiet)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .needs({ "json" })
                    .implies({ "show_banner" })
                    .description("Set quiet mode (print less output)"));
@@ -857,19 +857,19 @@ namespace mamba
         // Config
         insert(Configurable("rc_file", std::vector<fs::path>({}))
                    .group("Config sources")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .needs({ "no_rc", "target_prefix", "root_prefix" })
                    .set_post_build_hook(detail::rc_file_hook)
                    .description("Path to the unique configuration file to use"));
 
         insert(Configurable("no_rc", &ctx.no_rc)
                    .group("Config sources")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Disable the use of configuration files"));
 
         insert(Configurable("no_env", &ctx.no_env)
                    .group("Config sources")
-                   .set_env_var_name()
+                   .set_env_var_names()
                    .description("Disable the use of environment variables"));
     }
 

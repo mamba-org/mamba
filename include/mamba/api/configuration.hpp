@@ -492,7 +492,8 @@ namespace mamba
         kApi = 0,
         kCli = 1,
         kEnvVar = 2,
-        kFile = 3
+        kFile = 3,
+        kDefault = 4
     };
 
     int const MAMBA_NO_PREFIX_CHECK = 1 << 0;
@@ -513,6 +514,7 @@ namespace mamba
     template <class T>
     class Configurable
     {
+        using value_hook_type = std::function<T()>;
         using post_merge_hook_type = std::function<void(T&)>;
         using post_context_hook_type = std::function<void()>;
 
@@ -598,6 +600,10 @@ namespace mamba
 
         self_type& long_description(const std::string& desc);
 
+        self_type& set_default_value_hook(value_hook_type hook);
+
+        self_type& set_fallback_value_hook(value_hook_type hook);
+
         self_type& set_post_merge_hook(post_merge_hook_type hook);
 
         self_type& set_post_context_hook(post_context_hook_type hook);
@@ -607,7 +613,7 @@ namespace mamba
         cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
 
         self_type& compute(const int options = 0,
-                           const ConfigurationLevel& level = ConfigurationLevel::kFile);
+                           const ConfigurationLevel& level = ConfigurationLevel::kDefault);
 
         bool is_valid_serialization(const std::string& value) const;
 
@@ -642,11 +648,13 @@ namespace mamba
         std::map<std::string, T> m_rc_values, m_values;
         std::vector<std::string> m_rc_sources, m_sources;
 
-        T m_value, m_default_value;
+        T m_value, m_init_value, m_default_value;
         std::vector<std::string> m_source;
 
         std::shared_ptr<cli_config_type> p_cli_config = 0;
         T* p_context = 0;
+
+        value_hook_type p_default_value_hook, p_fallback_value_hook;
         post_merge_hook_type p_post_merge_hook;
         post_context_hook_type p_post_ctx_hook;
 
@@ -661,7 +669,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, T* context)
         : m_name(name)
         , m_value(*context)
-        , m_default_value(*context)
+        , m_init_value(*context)
         , m_source(detail::Source<T>::default_value(*context))
         , p_context(context){};
 
@@ -669,7 +677,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, const T& init)
         : m_name(name)
         , m_value(init)
-        , m_default_value(init)
+        , m_init_value(init)
         , m_source(detail::Source<T>::default_value(init)){};
 
     template <class T>
@@ -937,7 +945,7 @@ namespace mamba
         clear_env_values();
         clear_cli_value();
         clear_api_value();
-        m_value = m_default_value;
+        m_value = m_init_value;
 
         return *this;
     };
@@ -995,6 +1003,20 @@ namespace mamba
         m_long_description = desc;
         return *this;
     };
+
+    template <class T>
+    auto Configurable<T>::set_default_value_hook(value_hook_type hook) -> self_type&
+    {
+        p_default_value_hook = hook;
+        return *this;
+    }
+
+    template <class T>
+    auto Configurable<T>::set_fallback_value_hook(value_hook_type hook) -> self_type&
+    {
+        p_fallback_value_hook = hook;
+        return *this;
+    }
 
     template <class T>
     auto Configurable<T>::set_post_merge_hook(post_merge_hook_type hook) -> self_type&
@@ -1624,7 +1646,7 @@ namespace mamba
         };
 
         self_type& compute(const int options = 0,
-                           const ConfigurationLevel& level = ConfigurationLevel::kFile)
+                           const ConfigurationLevel& level = ConfigurationLevel::kDefault)
         {
             p_impl->compute(options, level);
             return *this;
@@ -1672,8 +1694,8 @@ namespace mamba
         bool is_loading();
 
         void clear_rc_values();
-
         void clear_cli_values();
+        void clear_values();
 
         /**
          * Pop values that should have a single operation lifetime to avoid memroy effect
@@ -1782,10 +1804,25 @@ namespace mamba
             m_values.insert(m_rc_values.begin(), m_rc_values.end());
         }
 
-        m_value = m_default_value;
+        if ((p_default_value_hook != NULL) && (level >= ConfigurationLevel::kDefault))
+        {
+            m_sources.push_back("default");
+            m_values.insert({ "default", p_default_value_hook() });
+        }
+
+        if (m_sources.empty() && (p_fallback_value_hook != NULL))
+        {
+            m_sources.push_back("fallback");
+            m_values.insert({ "fallback", p_fallback_value_hook() });
+        }
 
         if (!m_sources.empty())
             detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
+        else
+        {
+            m_value = m_init_value;
+            m_source = detail::Source<T>::default_value(m_init_value);
+        }
 
         if (!hook_disabled && (p_post_merge_hook != NULL))
             p_post_merge_hook(m_value);

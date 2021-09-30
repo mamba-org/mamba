@@ -513,7 +513,8 @@ namespace mamba
     template <class T>
     class Configurable
     {
-        using hook_type = std::function<void(T&)>;
+        using post_merge_hook_type = std::function<void(T&)>;
+        using post_context_hook_type = std::function<void()>;
 
     public:
         using self_type = Configurable<T>;
@@ -597,7 +598,9 @@ namespace mamba
 
         self_type& long_description(const std::string& desc);
 
-        self_type& set_post_build_hook(hook_type hook);
+        self_type& set_post_merge_hook(post_merge_hook_type hook);
+
+        self_type& set_post_context_hook(post_context_hook_type hook);
 
         self_type& set_cli_value(const cli_config_storage_type& value);
 
@@ -644,7 +647,8 @@ namespace mamba
 
         std::shared_ptr<cli_config_type> p_cli_config = 0;
         T* p_context = 0;
-        hook_type p_hook;
+        post_merge_hook_type p_post_merge_hook;
+        post_context_hook_type p_post_ctx_hook;
 
         self_type& set_context();
     };
@@ -993,9 +997,16 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::set_post_build_hook(hook_type hook) -> self_type&
+    auto Configurable<T>::set_post_merge_hook(post_merge_hook_type hook) -> self_type&
     {
-        p_hook = hook;
+        p_post_merge_hook = hook;
+        return *this;
+    }
+
+    template <class T>
+    auto Configurable<T>::set_post_context_hook(post_context_hook_type hook) -> self_type&
+    {
+        p_post_ctx_hook = hook;
         return *this;
     }
 
@@ -1776,11 +1787,15 @@ namespace mamba
         if (!m_sources.empty())
             detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
 
-        if (!hook_disabled && (p_hook != NULL))
-            p_hook(m_value);
+        if (!hook_disabled && (p_post_merge_hook != NULL))
+            p_post_merge_hook(m_value);
 
         ++m_compute_counter;
         set_context();
+
+        if (p_post_ctx_hook != NULL)
+            p_post_ctx_hook();
+
         return *this;
     }
 

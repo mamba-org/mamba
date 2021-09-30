@@ -354,10 +354,10 @@ namespace mamba
             if (!ctx.no_rc)
             {
                 config.load_rc_files();
-                config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE).set_context();
-                config.at("always_yes").compute(MAMBA_CONF_FORCE_COMPUTE).set_context();
-                config.at("quiet").compute(MAMBA_CONF_FORCE_COMPUTE).set_context();
-                config.at("json").compute(MAMBA_CONF_FORCE_COMPUTE).set_context();
+                config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
+                config.at("always_yes").compute(MAMBA_CONF_FORCE_COMPUTE);
+                config.at("quiet").compute(MAMBA_CONF_FORCE_COMPUTE);
+                config.at("json").compute(MAMBA_CONF_FORCE_COMPUTE);
             }
         }
 
@@ -966,7 +966,7 @@ namespace mamba
         m_load_lock = true;
         for (auto& c : m_loading_sequence)
         {
-            at(c).compute().set_context();
+            at(c).compute();
         }
         m_load_lock = false;
         CONFIG_DEBUGGING;

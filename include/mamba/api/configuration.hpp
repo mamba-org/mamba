@@ -599,8 +599,6 @@ namespace mamba
 
         self_type& set_post_build_hook(hook_type hook);
 
-        self_type& set_context();
-
         self_type& set_cli_value(const cli_config_storage_type& value);
 
         cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
@@ -647,6 +645,8 @@ namespace mamba
         std::shared_ptr<cli_config_type> p_cli_config = 0;
         T* p_context = 0;
         hook_type p_hook;
+
+        self_type& set_context();
     };
 
     /*********************
@@ -1093,8 +1093,6 @@ namespace mamba
 
             virtual void clear_values() = 0;
 
-            virtual void set_context() = 0;
-
             virtual void set_env_var_names(const std::vector<std::string>& names) = 0;
 
             virtual void group(const std::string& name) = 0;
@@ -1311,11 +1309,6 @@ namespace mamba
             void clear_values()
             {
                 p_wrapped->clear_values();
-            };
-
-            void set_context()
-            {
-                p_wrapped->set_context();
             };
 
             void set_env_var_names(const std::vector<std::string>& names)
@@ -1595,12 +1588,6 @@ namespace mamba
             return *this;
         };
 
-        self_type& set_context()
-        {
-            p_impl->set_context();
-            return *this;
-        };
-
         self_type& set_env_var_names(const std::vector<std::string>& names = {})
         {
             p_impl->set_env_var_names(names);
@@ -1793,6 +1780,7 @@ namespace mamba
             p_hook(m_value);
 
         ++m_compute_counter;
+        set_context();
         return *this;
     }
 

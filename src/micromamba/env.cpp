@@ -5,6 +5,9 @@
 #include "mamba/core/channel.hpp"
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/transaction.hpp"
+#include "mamba/core/repo.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -67,17 +70,58 @@ set_env_command(CLI::App* com)
                       << "# $ conda create --name <env> --file <this file>\n"
                       << "# platform: " << Context::instance().platform << "\n"
                       << "@EXPLICIT\n";
-            for (auto& [k, record] : pd.records())
+
+            MPool pool;
+            // prefix_data.add_virtual_packages(get_virtual_packages());
+
+            auto repo = MRepo(pool, pd);
+
+            Queue q;
+            queue_init(&q);
+
+            Solvable* s;
+            Id pkg_id;
+            pool_createwhatprovides(pool);
+            FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
             {
-                std::string clean_url, token;
-                split_anaconda_token(record.url, clean_url, token);
-                std::cout << clean_url;
-                if (!no_md5)
-                {
-                    std::cout << "#" << record.md5;
-                }
-                std::cout << "\n";
+                queue_push(&q, pkg_id);
             }
+            Pool* pp = pool;
+            pp->installed = nullptr;
+            Transaction* t = transaction_create_decisionq(pool, &q, nullptr);
+            transaction_order(t, 0);
+
+            // TODO add prereq marker to `pip` if it's part of the installed packages
+            // so that it gets installed after Python.
+
+            for (int i = 0; i < t->steps.count; i++)
+            {
+                Id p = t->steps.elements[i];
+                Id ttype = transaction_type(t, p, SOLVER_TRANSACTION_SHOW_ALL);
+                Solvable* s = pool_id2solvable(t->pool, p);
+
+                switch (ttype)
+                {
+                    case SOLVER_TRANSACTION_INSTALL:
+                        std::cout << pool_id2str(pool, s->name) << std::endl;
+                        break;
+                    default:
+                        LOG_ERROR << "Exec case not handled: " << ttype;
+                        break;
+                }
+            }
+
+            // for (auto& [k, record] : pd.records())
+            // {
+            //     std::string clean_url, token;
+            //     split_anaconda_token(record.url, clean_url, token);
+            //     std::cout << clean_url;
+            //     if (!no_md5)
+            //     {
+            //         std::cout << "#" << record.md5;
+            //     }
+            //     std::cout << "\n";
+            // }
         }
         else
         {

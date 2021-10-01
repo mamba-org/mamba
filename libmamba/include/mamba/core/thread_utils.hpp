@@ -15,6 +15,7 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+#include <iostream>
 
 namespace mamba
 {
@@ -142,6 +143,62 @@ namespace mamba
         m_cleanup_function = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
     }
 
+    class counting_semaphore
+    {
+    public:
+        inline counting_semaphore(std::ptrdiff_t max = 0);
+        inline void lock();
+        inline void unlock();
+        inline void set_max(std::ptrdiff_t value);
+
+    private:
+        std::ptrdiff_t m_value, m_max;
+        std::mutex m_access_mutex;
+        std::condition_variable m_cv;
+    };
+
+    /*************************************
+     * counting_semaphore implementation *
+     *************************************/
+
+    inline counting_semaphore::counting_semaphore(std::ptrdiff_t max)
+    {
+        set_max(max);
+        m_value = m_max;
+    }
+
+    inline void counting_semaphore::lock()
+    {
+        std::unique_lock<std::mutex> lock(m_access_mutex);
+        m_cv.wait(lock, [&]() { return m_value > 0; });
+        --m_value;
+    }
+
+    inline void counting_semaphore::unlock()
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_access_mutex);
+            if (++m_value <= 0)
+            {
+                return;
+            }
+        }
+        m_cv.notify_all();
+    }
+
+    inline void counting_semaphore::set_max(std::ptrdiff_t value)
+    {
+        std::ptrdiff_t new_max;
+        if (value == 0)
+            new_max = std::thread::hardware_concurrency();
+        else if (value < 0)
+            new_max = std::thread::hardware_concurrency() + value;
+        else
+            new_max = value;
+
+        m_value += new_max - m_max;
+        m_max = new_max;
+    }
 }  // namespace mamba
 
 #endif

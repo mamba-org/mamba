@@ -964,3 +964,7 @@ def main(*args, **kwargs):
     from conda.exceptions import conda_exception_handler
 
     return conda_exception_handler(exception_converter, *args, **kwargs)
+
+
+if __name__ == "__main__":
+    main()

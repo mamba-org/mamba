@@ -24,6 +24,7 @@
 #include "package_handling.hpp"
 #include "prefix_data.hpp"
 #include "repo.hpp"
+#include "thread_utils.hpp"
 #include "transaction_context.hpp"
 
 extern "C"
@@ -87,7 +88,17 @@ namespace mamba
         std::future<bool> m_extract_future;
 
         VALIDATION_RESULT m_validation_result = VALIDATION_RESULT::UNDEFINED;
-        static std::mutex extract_mutex;
+    };
+
+    class DownloadExtractSemaphore
+    {
+    public:
+        static void set_max(int value);
+
+    private:
+        static counting_semaphore semaphore;
+
+        friend class PackageDownloadExtractTarget;
     };
 
     class MTransaction

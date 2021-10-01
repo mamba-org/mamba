@@ -42,7 +42,12 @@ namespace mamba
      * PackageDownloadExtractTarget *
      ********************************/
 
-    std::mutex PackageDownloadExtractTarget::extract_mutex;
+    counting_semaphore DownloadExtractSemaphore::semaphore(0);
+
+    void DownloadExtractSemaphore::set_max(int value)
+    {
+        DownloadExtractSemaphore::semaphore.set_max(value);
+    }
 
     static std::mutex lookup_checksum_mutex;
     std::string lookup_checksum(Solvable* s, Id checksum_type)
@@ -93,8 +98,10 @@ namespace mamba
         repodata_record << index.dump(4);
     }
 
+    static std::mutex urls_txt_mutex;
     void PackageDownloadExtractTarget::add_url()
     {
+        std::lock_guard<std::mutex> lock(urls_txt_mutex);
         std::ofstream urls_txt(m_cache_path / "urls.txt", std::ios::app);
         urls_txt << m_url << std::endl;
     }
@@ -146,7 +153,7 @@ namespace mamba
         LOG_DEBUG << "Waiting for decompression " << m_tarball_path;
         m_progress_proxy.set_postfix("Waiting...");
         {
-            std::lock_guard<std::mutex> lock(PackageDownloadExtractTarget::extract_mutex);
+            std::lock_guard<counting_semaphore> lock(DownloadExtractSemaphore::semaphore);
             interruption_point();
             m_progress_proxy.set_postfix("Decompressing...");
             LOG_DEBUG << "Decompressing '" << m_tarball_path.string() << "'";
@@ -163,7 +170,6 @@ namespace mamba
                     LOG_ERROR << "Unknown package format '" << m_filename << "'";
                     throw std::runtime_error("Unknown package format.");
                 }
-
                 // Be sure the first writable cache doesn't contain invalid extracted package
                 extract_path = m_cache_path / fn;
                 if (fs::exists(extract_path))
@@ -173,7 +179,8 @@ namespace mamba
                     remove_all(extract_path);
                 }
 
-                mamba::extract(m_tarball_path, extract_path);
+                mamba::extract_subproc(m_tarball_path, extract_path);
+                // mamba::extract(m_tarball_path, extract_path);
                 interruption_point();
                 LOG_DEBUG << "Extracted to '" << extract_path.string() << "'";
                 write_repodata_record(extract_path);
@@ -189,7 +196,6 @@ namespace mamba
                 return false;
             }
         }
-
         m_finished = true;
         return m_finished;
     }

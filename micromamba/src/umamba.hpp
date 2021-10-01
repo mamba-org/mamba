@@ -47,7 +47,7 @@ void
 set_shell_command(CLI::App* subcom);
 
 void
-set_package_command(CLI::App* subcom);
+set_archive_command(CLI::App* subcom);
 
 void
 set_umamba_command(CLI::App* com);

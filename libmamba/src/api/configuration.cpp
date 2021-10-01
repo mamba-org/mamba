@@ -12,6 +12,7 @@
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/transaction.hpp"
 
 #include <reproc++/run.hpp>
 
@@ -445,6 +446,11 @@ namespace mamba
                 }
             }
         }
+
+        void extract_threads_hook()
+        {
+            DownloadExtractSemaphore::set_max(Context::instance().extract_threads);
+        }
     }
 
     fs::path get_conda_root_prefix()
@@ -766,9 +772,21 @@ namespace mamba
                    .set_env_var_names()
                    .description("If solve fails, try to fetch updated repodata"));
 
-        // Link & Install
+        // Extract, Link & Install
+        insert(Configurable("extract_threads", &ctx.extract_threads)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .set_post_context_hook(detail::extract_threads_hook)
+                   .description("Defines the number of threads for package extraction")
+                   .long_description(unindent(R"(
+                        Defines the number of threads for package extraction.
+                        Positive number gives the number of threads, negative number gives
+                        host max concurrency minus the value, zero (default) is the host max
+                        concurrency value.)")));
+
         insert(Configurable("allow_softlinks", &ctx.allow_softlinks)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Allow to use soft-links when hard-links are not possible")
@@ -778,7 +796,7 @@ namespace mamba
                         the package cache is on.)")));
 
         insert(Configurable("always_copy", &ctx.always_copy)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Use copy instead of hard-link")
@@ -787,7 +805,7 @@ namespace mamba
                         install rather than hard-linked.)")));
 
         insert(Configurable("always_softlink", &ctx.always_softlink)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
@@ -802,14 +820,14 @@ namespace mamba
 
         insert(
             Configurable("shortcuts", &ctx.shortcuts)
-                .group("Link & Install")
+                .group("Extract, Link & Install")
                 .set_rc_configurable()
                 .set_env_var_names()
                 .description(
                     "Install start-menu shortcuts on Windows (not implemented on Linux / macOS)"));
 
         insert(Configurable("safety_checks", &ctx.safety_checks)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS" })
                    .description("Safety checks policy ('enabled', 'warn', or 'disabled')")
@@ -818,7 +836,7 @@ namespace mamba
                         value must be one of 'enabled', 'warn', or 'disabled'.)")));
 
         insert(Configurable("extra_safety_checks", &ctx.extra_safety_checks)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS" })
                    .description("Run extra verifications on packages")
@@ -827,7 +845,7 @@ namespace mamba
                         verification on every file within each package during installation.)")));
 
         insert(Configurable("verify_artifacts", &ctx.verify_artifacts)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Run verifications on packages signatures")
@@ -836,7 +854,7 @@ namespace mamba
                         cryptographic verifications on channels and packages metadata.)")));
 
         insert(Configurable("lock_timeout", &ctx.lock_timeout)
-                   .group("Link & Install")
+                   .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("LockFile timeout")

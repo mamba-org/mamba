@@ -21,11 +21,13 @@ set(MICROMAMBA_LINKAGE "DYNAMIC" CACHE STRING "micromamba linkage against librar
 # ============
 
 set(MICROMAMBA_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/archive.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/clean.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/completer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/constructor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/create.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/env.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/info.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/install.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/list.cpp
@@ -35,8 +37,6 @@ set(MICROMAMBA_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/shell.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/update.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/env.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/package.cpp
 )
 
 set(MICROMAMBA_HEADERS

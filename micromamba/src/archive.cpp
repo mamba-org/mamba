@@ -12,16 +12,18 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_package_command(CLI::App* subcom)
+set_archive_command(CLI::App* subcom)
 {
     static std::string infile, dest;
     static int compression_level = -1;
 
     auto extract_subcom = subcom->add_subcommand("extract");
     extract_subcom->add_option("archive", infile, "Archive to extract");
+    extract_subcom->add_option("dest", dest, "Destination folder");
     extract_subcom->callback([&]() {
-        std::cout << "Extracting " << fs::absolute(infile) << std::endl;
-        extract(fs::absolute(infile));
+        std::cout << "Extracting " << fs::absolute(infile) << " to " << fs::absolute(dest)
+                  << std::endl;
+        extract(fs::absolute(infile), fs::absolute(dest));
     });
 
     auto compress_subcom = subcom->add_subcommand("compress");

@@ -16,7 +16,6 @@ class TestCreate:
 
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
-    cache = os.path.join(current_root_prefix, "pkgs")
 
     env_name = random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
@@ -30,11 +29,6 @@ class TestCreate:
     @classmethod
     def setup_class(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestCreate.root_prefix
-        os.environ["CONDA_PREFIX"] = TestCreate.prefix
-
-        # speed-up the tests
-        os.environ["CONDA_PKGS_DIRS"] = TestCreate.cache
-
         os.makedirs(TestCreate.spec_files_location, exist_ok=True)
 
     @classmethod
@@ -60,7 +54,7 @@ class TestCreate:
             shutil.rmtree(TestCreate.other_prefix)
 
     @classmethod
-    def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
+    def config_tests(cls, res, root_prefix, target_prefix):
         assert res["root_prefix"] == root_prefix
         assert res["target_prefix"] == target_prefix
         assert not res["use_target_prefix_fallback"]
@@ -84,7 +78,7 @@ class TestCreate:
             ("both", "yaml"),
         ],
     )
-    def test_specs(self, source, file_type):
+    def test_specs(self, source, file_type, existing_cache):
         cmd = ["-p", TestCreate.prefix]
         specs = []
 
@@ -119,7 +113,7 @@ class TestCreate:
 
         res = create(*cmd, "--print-config-only")
 
-        TestCreate.config_tests(res)
+        TestCreate.config_tests(res, TestCreate.root_prefix, TestCreate.prefix)
         assert res["env_name"] == ""
         assert res["specs"] == specs
 
@@ -145,6 +139,7 @@ class TestCreate:
         fallback,
         similar_non_canonical,
         non_canonical_position,
+        existing_cache,
     ):
         cmd = []
 
@@ -221,7 +216,7 @@ class TestCreate:
     @pytest.mark.parametrize("yaml", (False, True))
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("rc_file", (False, True))
-    def test_channels(self, cli, yaml, env_var, rc_file):
+    def test_channels(self, cli, yaml, env_var, rc_file, existing_cache):
         cmd = ["-p", TestCreate.prefix]
         expected_channels = []
 
@@ -261,14 +256,14 @@ class TestCreate:
         res = create(
             *cmd, "--print-config-only", no_rc=not rc_file, default_channel=False
         )
-        TestCreate.config_tests(res)
+        TestCreate.config_tests(res, TestCreate.root_prefix, TestCreate.prefix)
         if expected_channels:
             assert res["channels"] == expected_channels
         else:
             assert res["channels"] is None
 
     @pytest.mark.parametrize("type", ("yaml", "classic", "explicit"))
-    def test_multiple_spec_files(self, type):
+    def test_multiple_spec_files(self, type, existing_cache):
         cmd = ["-p", TestCreate.prefix]
         specs = ["xtensor", "xsimd"]
         explicit_specs = [
@@ -311,9 +306,7 @@ class TestCreate:
         "already_exists, is_conda_env", ((False, False), (True, False), (True, True))
     )
     @pytest.mark.parametrize("has_specs", (False, True))
-    def test_create_base(
-        self, already_exists, is_conda_env, has_specs,
-    ):
+    def test_create_base(self, already_exists, is_conda_env, has_specs, existing_cache):
         if already_exists:
             if is_conda_env:
                 os.makedirs(
@@ -337,7 +330,7 @@ class TestCreate:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     @pytest.mark.parametrize("outside_root_prefix", (False, True))
-    def test_classic_specs(self, outside_root_prefix):
+    def test_classic_specs(self, outside_root_prefix, existing_cache):
         if outside_root_prefix:
             p = TestCreate.other_prefix
         else:
@@ -360,16 +353,14 @@ class TestCreate:
 
         if dry_run_tests == DryRun.OFF:
             pkg_name = get_concrete_pkg(res, "xtensor")
-            orig_file_path = get_pkg(
-                pkg_name, xtensor_hpp, TestCreate.current_root_prefix
-            )
-            assert orig_file_path.exists()
+            cached_file = existing_cache / pkg_name / xtensor_hpp
+            assert cached_file.exists()
 
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     @pytest.mark.parametrize("valid", [False, True])
-    def test_explicit_specs(self, valid):
+    def test_explicit_specs(self, valid, existing_cache):
         spec_file_content = [
             "@EXPLICIT",
             "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
@@ -384,8 +375,7 @@ class TestCreate:
         cmd = ("-p", TestCreate.prefix, "-q", "-f", spec_file)
 
         if valid:
-            res = create(*cmd, default_channel=False)
-            assert res.splitlines() == ["Linking xtensor-0.21.5-hc9558a2_0"]
+            create(*cmd, default_channel=False)
 
             list_res = umamba_list("-p", TestCreate.prefix, "--json")
             assert len(list_res) == 1
@@ -401,7 +391,7 @@ class TestCreate:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     @pytest.mark.parametrize("prefix_selector", [None, "prefix", "name"])
-    def test_create_empty(self, prefix_selector):
+    def test_create_empty(self, prefix_selector, existing_cache):
 
         if prefix_selector == "name":
             cmd = ("-n", TestCreate.env_name, "--json")
@@ -424,7 +414,7 @@ class TestCreate:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     @pytest.mark.parametrize("source", ["cli", "env_var", "rc_file"])
-    def test_always_yes(self, source):
+    def test_always_yes(self, source, existing_cache):
         create("-n", TestCreate.env_name, "xtensor", no_dry_run=True)
 
         if source == "cli":
@@ -470,7 +460,7 @@ class TestCreate:
             "https://repo.mamba.pm",
         ],
     )
-    def test_channel_alias(self, alias):
+    def test_channel_alias(self, alias, existing_cache):
         if alias:
             res = create(
                 "-n",
@@ -489,7 +479,7 @@ class TestCreate:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
 
-    def test_spec_with_channel(self):
+    def test_spec_with_channel(self, existing_cache):
         res = create("-n", TestCreate.env_name, "bokeh::bokeh", "--json", "--dry-run")
         ca = "https://conda.anaconda.org"
 

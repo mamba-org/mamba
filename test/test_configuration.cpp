@@ -26,7 +26,7 @@ namespace mamba
                     .get_wrapped<bool>()
                     .set_value(false);
                 mamba::Configuration::instance()
-                    .at("rc_file")
+                    .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value({ fs::path(unique_location) });
                 mamba::Configuration::instance().load();
@@ -55,7 +55,7 @@ namespace mamba
                     .get_wrapped<bool>()
                     .set_value(false);
                 mamba::Configuration::instance()
-                    .at("rc_file")
+                    .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value(sources);
                 mamba::Configuration::instance().load();
@@ -441,6 +441,70 @@ namespace mamba
             EXPECT_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
 
             env::set("MAMBA_CHANNEL_ALIAS", "");
+        }
+
+        TEST_F(Configuration, pkgs_dirs)
+        {
+            std::string cache1 = (env::home_directory() / "foo").string();
+            std::string cache2 = (env::home_directory() / "bar").string();
+
+            std::string rc1 = "pkgs_dirs:\n  - " + cache1;
+            std::string rc2 = "pkgs_dirs:\n  - " + cache2;
+
+            load_test_config({ rc1, rc2 });
+            EXPECT_EQ(config.dump(), "pkgs_dirs:\n  - " + cache1 + "\n  - " + cache2);
+
+            load_test_config({ rc2, rc1 });
+            EXPECT_EQ(config.dump(), "pkgs_dirs:\n  - " + cache2 + "\n  - " + cache1);
+
+            std::string cache3 = (env::home_directory() / "baz").string();
+            env::set("CONDA_PKGS_DIRS", cache3);
+            load_test_config(rc1);
+            EXPECT_EQ(config.dump(), "pkgs_dirs:\n  - " + cache3 + "\n  - " + cache1);
+
+            ASSERT_EQ(config.sources().size(), 1);
+            ASSERT_EQ(config.valid_sources().size(), 1);
+            std::string src1 = shrink_source(0);
+
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      unindent((R"(
+                                pkgs_dirs:
+                                  - )"
+                                + cache3 + R"(  # 'CONDA_PKGS_DIRS'
+                                  - )"
+                                + cache1 + "  # '" + src1 + "'")
+                                   .c_str()));
+
+            env::set("CONDA_PKGS_DIRS", "");
+
+            std::string empty_rc = "";
+            std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
+            env::set("MAMBA_ROOT_PREFIX", root_prefix_str);
+            load_test_config(empty_rc);
+            EXPECT_EQ(
+                config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
+                                | MAMBA_SHOW_ALL_CONFIGS,
+                            { "pkgs_dirs" }),
+                unindent((R"(
+                                pkgs_dirs:
+                                  - )"
+                          + (fs::path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback')")
+                             .c_str()));
+            EXPECT_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::path>>());
+
+            std::string cache4 = (env::home_directory() / "babaz").string();
+            env::set("CONDA_PKGS_DIRS", cache4);
+            load_test_config(empty_rc);
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      unindent((R"(
+                                pkgs_dirs:
+                                  - )"
+                                + cache4 + "  # 'CONDA_PKGS_DIRS'")
+                                   .c_str()));
+
+            env::set("CONDA_PKGS_DIRS", "");
+            env::set("MAMBA_ROOT_PREFIX", "");
+            config.clear_values();
         }
 
         TEST_F(Configuration, ssl_verify)

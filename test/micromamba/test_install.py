@@ -16,7 +16,6 @@ class TestInstall:
 
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
-    cache = os.path.join(current_root_prefix, "pkgs")
 
     env_name = random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
@@ -27,9 +26,8 @@ class TestInstall:
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
 
-        # speed-up the tests
-        os.environ["CONDA_PKGS_DIRS"] = TestInstall.cache
-
+    @classmethod
+    def setup(cls):
         create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
 
     @classmethod
@@ -46,18 +44,8 @@ class TestInstall:
             if v in os.environ:
                 os.environ.pop(v)
 
-        if Path(os.path.join(TestInstall.root_prefix, "conda-meta")).exists():
-            remove("-n", "base", "-a", no_dry_run=True)
-
-        if not Path(TestInstall.prefix).exists():
-            create("-n", TestInstall.env_name, "--offline", no_dry_run=True)
-        else:
-            remove(
-                "-n", TestInstall.env_name, "-a", no_dry_run=True,
-            )
-
-        res = umamba_list("xtensor", "-n", TestInstall.env_name, "--json")
-        assert len(res) == 0
+        if Path(TestInstall.prefix).exists():
+            rmtree(TestInstall.prefix)
 
     @classmethod
     def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
@@ -84,7 +72,7 @@ class TestInstall:
             ("both", "yaml"),
         ],
     )
-    def test_specs(self, source, file_type):
+    def test_specs(self, source, file_type, existing_cache):
         cmd = []
         specs = []
 
@@ -138,6 +126,7 @@ class TestInstall:
         yaml_name,
         env_var,
         fallback,
+        existing_cache,
     ):
         cmd = []
 
@@ -209,7 +198,7 @@ class TestInstall:
     @pytest.mark.parametrize("yaml", (False, True))
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("rc_file", (False, True))
-    def test_channels(self, cli, yaml, env_var, rc_file):
+    def test_channels(self, cli, yaml, env_var, rc_file, existing_cache):
         cmd = []
         expected_channels = []
 
@@ -256,7 +245,7 @@ class TestInstall:
             assert res["channels"] is None
 
     @pytest.mark.parametrize("type", ("yaml", "classic", "explicit"))
-    def test_multiple_spec_files(self, type):
+    def test_multiple_spec_files(self, type, existing_cache):
         cmd = []
         specs = ["xtensor", "xsimd"]
         explicit_specs = [
@@ -295,7 +284,9 @@ class TestInstall:
     @pytest.mark.parametrize("priority", (None, "disabled", "flexible", "strict"))
     @pytest.mark.parametrize("no_priority", (None, True))
     @pytest.mark.parametrize("strict_priority", (None, True))
-    def test_channel_priority(self, priority, no_priority, strict_priority):
+    def test_channel_priority(
+        self, priority, no_priority, strict_priority, existing_cache
+    ):
         cmd = ["-p", TestInstall.prefix, "xtensor"]
         expected_priority = "flexible"
 
@@ -323,13 +314,13 @@ class TestInstall:
             res = install(*cmd, "--print-config-only")
             assert res["channel_priority"] == expected_priority
 
-    def test_quotes(self):
+    def test_quotes(self, existing_cache):
         cmd = ["-p", f"{TestInstall.prefix}", "xtensor", "--print-config-only"]
         res = install(*cmd)
         assert res["target_prefix"] == TestInstall.prefix
 
     @pytest.mark.parametrize("prefix", ("target", "root"))
-    def test_expand_user(self, prefix):
+    def test_expand_user(self, prefix, existing_cache):
         if prefix == "target":
             r = TestInstall.root_prefix
             p = TestInstall.prefix.replace(os.path.expanduser("~"), "~")
@@ -349,14 +340,14 @@ class TestInstall:
         assert res["target_prefix"] == TestInstall.prefix
         assert res["root_prefix"] == TestInstall.root_prefix
 
-    def test_empty_specs(self):
+    def test_empty_specs(self, existing_cache):
         assert "Nothing to do." in install().strip()
 
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     @pytest.mark.parametrize("already_installed", [False, True])
-    def test_non_explicit_spec(self, already_installed):
+    def test_non_explicit_spec(self, already_installed, existing_cache):
         cmd = ["-p", TestInstall.prefix, "xtensor", "--json"]
 
         if already_installed:
@@ -392,7 +383,7 @@ class TestInstall:
     )
     @pytest.mark.parametrize("already_installed", [False, True])
     @pytest.mark.parametrize("valid", [False, True])
-    def test_explicit_specs(self, already_installed, valid):
+    def test_explicit_specs(self, already_installed, valid, existing_cache):
         spec_file_content = [
             "@EXPLICIT",
             "https://conda.anaconda.org/conda-forge/linux-64/xtensor-0.21.5-hc9558a2_0.tar.bz2#d330e02e5ed58330638a24601b7e4887",
@@ -407,8 +398,7 @@ class TestInstall:
         cmd = ("-p", TestInstall.prefix, "-q", "-f", spec_file)
 
         if valid:
-            res = install(*cmd, default_channel=False)
-            assert res.splitlines() == ["Linking xtensor-0.21.5-hc9558a2_0"]
+            install(*cmd, default_channel=False)
 
             list_res = umamba_list("-p", TestInstall.prefix, "--json")
             assert len(list_res) == 1
@@ -432,7 +422,7 @@ class TestInstall:
             "https://repo.mamba.pm",
         ],
     )
-    def test_channel_alias(self, alias):
+    def test_channel_alias(self, alias, existing_cache):
         if alias:
             res = install("xtensor", "--json", "--channel-alias", alias)
             ca = alias.rstrip("/")
@@ -447,7 +437,7 @@ class TestInstall:
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
-    def test_python_pinning(self):
+    def test_python_pinning(self, existing_cache):
         install("python=3.9", no_dry_run=True)
         res = install("setuptools=28.4.0", "--no-py-pin", "--json")
 
@@ -472,7 +462,7 @@ class TestInstall:
     @pytest.mark.skipif(
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
-    def test_freeze_installed(self):
+    def test_freeze_installed(self, existing_cache):
         install("xtensor=0.20", no_dry_run=True)
         res = install("xframe", "--freeze-installed", "--json")
 
@@ -488,7 +478,7 @@ class TestInstall:
         assert expected_packages == link_packages
         assert res["actions"]["LINK"][0]["version"] == "0.2.0"
 
-    def test_channel_specific(self):
+    def test_channel_specific(self, existing_cache):
         res = install(
             "conda-forge::xtensor", "--json", default_channel=False, no_rc=True
         )

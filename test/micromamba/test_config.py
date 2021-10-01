@@ -188,21 +188,28 @@ class TestConfigList:
         if rc_flag == "--rc-file=":
             rc_flag += str(rc_file)
 
-        assert config("list", rc_flag).splitlines() == expected[rc_flag].splitlines()
+        assert (
+            config("list", "--no-env", rc_flag).splitlines()
+            == expected[rc_flag].splitlines()
+        )
 
     @pytest.mark.parametrize("source_flag", ["--sources", "-s"])
     def test_list_with_sources(self, rc_file, source_flag):
         home_folder = os.path.expanduser("~")
         src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
         assert (
-            config("list", "--rc-file=" + str(rc_file), source_flag).splitlines()
+            config(
+                "list", "--no-env", "--rc-file=" + str(rc_file), source_flag
+            ).splitlines()
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )
 
     @pytest.mark.parametrize("desc_flag", ["--descriptions", "-d"])
     def test_list_with_descriptions(self, rc_file, desc_flag):
         assert (
-            config("list", "--rc-file=" + str(rc_file), desc_flag).splitlines()
+            config(
+                "list", "--no-env", "--rc-file=" + str(rc_file), desc_flag
+            ).splitlines()
             == f"# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -210,7 +217,9 @@ class TestConfigList:
     @pytest.mark.parametrize("desc_flag", ["--long-descriptions", "-l"])
     def test_list_with_long_descriptions(self, rc_file, desc_flag):
         assert (
-            config("list", "--rc-file=" + str(rc_file), desc_flag).splitlines()
+            config(
+                "list", "--no-env", "--rc-file=" + str(rc_file), desc_flag
+            ).splitlines()
             == f"# channels\n#   The list of channels where the packages will be searched for.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
@@ -224,7 +233,9 @@ class TestConfigList:
         )
 
         assert (
-            config("list", "--rc-file=" + str(rc_file), "-d", group_flag).splitlines()
+            config(
+                "list", "--no-env", "--rc-file=" + str(rc_file), "-d", group_flag
+            ).splitlines()
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -333,7 +344,8 @@ class TestConfigModifiers:
         os.path.join("~", "mamba_spec_files_test_" + random_string())
     )
 
-    def setup_method(cls):
+    @classmethod
+    def setup(cls):
         # setup for --env
         os.environ["MAMBA_ROOT_PREFIX"] = TestConfigModifiers.root_prefix
         os.environ["CONDA_PREFIX"] = TestConfigModifiers.prefix
@@ -348,7 +360,8 @@ class TestConfigModifiers:
         with open(TestConfigModifiers.home_rc_path, "a"):
             os.utime(TestConfigModifiers.home_rc_path)
 
-    def teardown_method(cls):
+    @classmethod
+    def teardown(cls):
         # teardown for --env
         os.environ["MAMBA_ROOT_PREFIX"] = TestConfigModifiers.root_prefix
         os.environ["CONDA_PREFIX"] = TestConfigModifiers.prefix

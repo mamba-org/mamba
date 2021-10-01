@@ -17,7 +17,7 @@ init_rc_options(CLI::App* subcom)
     auto& config = Configuration::instance();
     std::string cli_group = "Configuration options";
 
-    auto& rc_files = config.at("rc_file").get_wrapped<std::vector<fs::path>>();
+    auto& rc_files = config.at("rc_files").get_wrapped<std::vector<fs::path>>();
     subcom->add_option("--rc-file", rc_files.set_cli_config({}), rc_files.description())
         ->group(cli_group);
 

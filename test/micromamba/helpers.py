@@ -3,11 +3,13 @@ import json
 import os
 import platform
 import random
+import shutil
 import string
 import subprocess
 from enum import Enum
 from pathlib import Path
 
+import pytest
 import yaml
 
 
@@ -198,7 +200,7 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
                 print(f"Error when loading JSON output from {res}")
                 raise (e)
         print(f"Error when executing '{' '.join(cmd)}'")
-        raise (e)
+        raise
 
         return res.decode()
     except subprocess.CalledProcessError as e:
@@ -316,3 +318,83 @@ def write_windows_registry(target_path, value_value, value_type):  # pragma: no 
         winreg.SetValueEx(key, value_name, 0, value_type, value_value)
     finally:
         winreg.CloseKey(key)
+
+
+@pytest.fixture(scope="session")
+def cache_warming():
+    cache = Path(os.path.expanduser(os.path.join("~", "cache" + random_string())))
+    os.makedirs(cache)
+
+    os.environ["CONDA_PKGS_DIRS"] = str(cache)
+    tmp_prefix = os.path.expanduser(os.path.join("~", "tmpprefix" + random_string()))
+
+    res = create("-p", tmp_prefix, "xtensor", "--json", no_dry_run=True)
+    pkg_name = get_concrete_pkg(res, "xtensor")
+
+    yield cache, pkg_name
+
+    if "CONDA_PKGS_DIRS" in os.environ:
+        os.environ.pop("CONDA_PKGS_DIRS")
+    rmtree(cache)
+    rmtree(tmp_prefix)
+
+
+@pytest.fixture(scope="session")
+def existing_cache(cache_warming):
+    yield cache_warming[0]
+
+
+@pytest.fixture(scope="session")
+def repodata_files(existing_cache):
+    yield [f for f in existing_cache.iterdir() if f.is_file() and f.suffix == ".json"]
+
+
+@pytest.fixture(scope="session")
+def test_pkg(cache_warming):
+    yield cache_warming[1]
+
+
+@pytest.fixture
+def first_cache_is_writable():
+    return True
+
+
+def link_dir(new_dir, existing_dir, prefixes=None):
+
+    for i in existing_dir.iterdir():
+        if i.is_dir():
+            subdir = new_dir / i.name
+            os.makedirs(subdir, exist_ok=True)
+            link_dir(subdir, i)
+        elif i.is_symlink():
+            linkto = os.readlink(i)
+            os.symlink(linkto, new_dir / i.name)
+        elif i.is_file():
+            os.makedirs(new_dir, exist_ok=True)
+            name = i.name
+            os.link(i, new_dir / name)
+
+
+def recursive_chmod(path: Path, permission, is_root=True):
+    p = Path(path)
+
+    if not p.is_symlink():
+        os.chmod(p, permission)
+
+    if p.is_dir():
+        for i in p.iterdir():
+            recursive_chmod(i, permission, is_root=False)
+
+
+def rmtree(path: Path):
+    p = Path(path)
+    recursive_chmod(p, 0o700)
+
+    def handleError(func, path, exc_info):
+        recursive_chmod(path, 0o700)
+        func(path)
+
+    if p.is_dir():
+        shutil.rmtree(p, onerror=handleError)
+    else:
+        os.remove(p)

@@ -320,5 +320,3 @@ If the ``Id's`` are different then it can be a downgrade or upgrade operation (f
 Another crucial libsolv function is ``transaction_order`` to order the transaction in a way that they are installed with the lowest dependency first (topological sort). This ensures that e.g. ``python`` is installed before any packages depending on ``python`` as they are sometimes needed during installation (for example for ``noarch`` packages with ``entry_points``).
 
 Lastly, we can force installation or explicitly install from URL's by crafting transactions without using the solver – just by adding the correct ``Id's`` into the Transaction queue.
-
-

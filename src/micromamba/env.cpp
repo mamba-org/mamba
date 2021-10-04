@@ -5,6 +5,9 @@
 #include "mamba/core/channel.hpp"
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/pool.hpp"
+#include "mamba/core/transaction.hpp"
+#include "mamba/core/repo.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -63,11 +66,13 @@ set_env_command(CLI::App* com)
         {
             PrefixData pd(ctx.target_prefix);
             pd.load();
+            auto records = pd.sorted_records();
             std::cout << "# This file may be used to create an environment using:\n"
                       << "# $ conda create --name <env> --file <this file>\n"
                       << "# platform: " << Context::instance().platform << "\n"
                       << "@EXPLICIT\n";
-            for (auto& [k, record] : pd.records())
+
+            for (auto& record : records)
             {
                 std::string clean_url, token;
                 split_anaconda_token(record.url, clean_url, token);

@@ -107,7 +107,12 @@ namespace mamba
             s->provides = repo_addid_dep(
                 m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
         }
-        LOG_INFO << "Internalizing";
+
+        if (Context::instance().add_pip_as_python_dependency)
+        {
+            add_pip_as_python_dependency();
+        }
+
         repodata_internalize(data);
         set_installed();
     }
@@ -161,6 +166,33 @@ namespace mamba
     const std::string& MRepo::index_file()
     {
         return m_json_file;
+    }
+
+    void MRepo::add_pip_as_python_dependency()
+    {
+        Id pkg_id;
+        Solvable* pkg_s;
+        Id python = pool_str2id(m_repo->pool, "python", 0);
+        Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
+        Id pip = pool_str2id(m_repo->pool, "pip", 0);
+        Id python_dep = pool_conda_matchspec(m_repo->pool, "python");
+
+        FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
+        {
+            if (pkg_s->name == python)
+            {
+                const char* version = pool_id2str(m_repo->pool, pkg_s->evr);
+                if (version && version[0] >= '2')
+                {
+                    pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
+                }
+            }
+            if (pkg_s->name == pip)
+            {
+                pkg_s->requires = repo_addid_dep(
+                    m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
+            }
+        }
     }
 
     bool MRepo::read_file(const std::string& filename)
@@ -269,29 +301,7 @@ namespace mamba
         // TODO move this to a more structured approach for repodata patching?
         if (Context::instance().add_pip_as_python_dependency)
         {
-            Id pkg_id;
-            Solvable* pkg_s;
-            Id python = pool_str2id(m_repo->pool, "python", 0);
-            Id pip_dep = pool_conda_matchspec(m_repo->pool, "pip");
-            Id pip = pool_str2id(m_repo->pool, "pip", 0);
-            Id python_dep = pool_conda_matchspec(m_repo->pool, "python");
-
-            FOR_REPO_SOLVABLES(m_repo, pkg_id, pkg_s)
-            {
-                if (pkg_s->name == python)
-                {
-                    const char* version = pool_id2str(m_repo->pool, pkg_s->evr);
-                    if (version && version[0] >= '2')
-                    {
-                        pkg_s->requires = repo_addid_dep(m_repo, pkg_s->requires, pip_dep, 0);
-                    }
-                }
-                if (pkg_s->name == pip)
-                {
-                    pkg_s->requires = repo_addid_dep(
-                        m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
-                }
-            }
+            add_pip_as_python_dependency();
         }
 
         repo_internalize(m_repo);

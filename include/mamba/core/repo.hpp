@@ -87,6 +87,8 @@ namespace mamba
         void set_installed();
         void set_priority(int priority, int subpriority);
 
+        void add_pip_as_python_dependency();
+
         const std::string& index_file();
 
         std::string name() const;

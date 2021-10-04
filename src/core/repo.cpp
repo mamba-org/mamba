@@ -189,8 +189,8 @@ namespace mamba
             }
             if (pkg_s->name == pip)
             {
-                pkg_s->requires = repo_addid_dep(
-                    m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
+                pkg_s->requires
+                    = repo_addid_dep(m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
             }
         }
     }

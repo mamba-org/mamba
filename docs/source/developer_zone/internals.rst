@@ -308,3 +308,17 @@ Example:
 - the install spec is to install ``p1`` provided by a single solvable ``s1``: ``r1=(s1)``
 - ``s1`` depends on spec ``p2``, provided by ``s21`` or ``s22``: ``r2=(-s1|s21|s22)``
 - decision to install ``s1`` triggers rule ``r2``
+
+Transaction
+***********
+
+Another important part of libsolv is the ``Transaction``. A transaction governs what packages are installed or removed, and a transaction is the result of a successful solve process.
+
+A transaction in libsolv is a single list (Queue) of Solvable ``Id's`` and is thus rather simple. The Queue contains either a positive or negative ``Id``. Each negative ``Id`` is ``uninstalled`` from the environment, and each positive ``Id`` is to be ``installed``. libsolv classifies the entire range of Id's into different types of transaction operations. For example, if we have ``{ -5, 5 }`` that would be a reinstall transaction for the Solvable with ``Id == 5``.
+If the ``Id's`` are different then it can be a downgrade or upgrade operation (first, the previous package needs removal before the higher or lower version can be installed). The ``transaction_classify`` and ``transaction_classify_pkgs`` functions of libsolv take care of this classification to present a nice output to the user.
+
+Another crucial libsolv function is ``transaction_order`` to order the transaction in a way that they are installed with the lowest dependency first (topological sort). This ensures that e.g. ``python`` is installed before any packages depending on ``python`` as they are sometimes needed during installation (for example for ``noarch`` packages with ``entry_points``).
+
+Lastly, we can force installation or explicitly install from URL's by crafting transactions without using the solver – just by adding the correct ``Id's`` into the Transaction queue.
+
+

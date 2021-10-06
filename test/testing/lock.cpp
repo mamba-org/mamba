@@ -27,7 +27,7 @@ is_locked(const fs::path& path)
     // From another process than the lockfile one, we can open/close
     // a new file descriptor without risk to clear locks
     int fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
-    bool is_locked = mamba::LockFile::is_locked(fd);
+    bool is_locked = mamba::Lock::is_locked(fd);
     close(fd);
     return is_locked;
 #endif
@@ -48,7 +48,7 @@ main(int argc, char** argv)
         try
         {
             mamba::Lock lock(path);
-            std::cout << lock.locked();
+            std::cout << 1;
         }
         catch (std::runtime_error&)
         {

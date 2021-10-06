@@ -135,16 +135,20 @@ namespace mamba
 
     const std::size_t MAMBA_LOCK_POS = 21;
 
-    class Lock;
-
-    class LockFile
+    class Lock
     {
     public:
-        // LockFile(const fs::path& path);
-        LockFile(const fs::path& path, const std::chrono::seconds& timeout);
-        ~LockFile();
+        Lock(const fs::path& path);
+        Lock(const fs::path& path, const std::chrono::seconds& timeout);
+        ~Lock();
+
+        Lock(const Lock&) = delete;
+        Lock& operator=(const Lock&) = delete;
+        Lock& operator=(Lock&&) = default;
 
         int fd() const;
+        fs::path path() const;
+        fs::path lockfile_path() const;
 
 #ifdef _WIN32
         // Using file descriptor on Windows may cause false negative
@@ -157,47 +161,26 @@ namespace mamba
 
     private:
         fs::path m_path;
+        fs::path m_lock;
         std::chrono::seconds m_timeout;
         int m_fd = -1;
-
-        bool set_lock(bool blocking) const;
-
-        int read_pid() const;
-        bool write_pid(int pid) const;
-        bool locked() const;
-        bool lock(int pid, bool blocking) const;
-        bool unlock() const;
-        int close_fd();
-        void remove() noexcept;
-
-        friend class Lock;
-    };
-
-    class Lock
-    {
-    public:
-        Lock(const fs::path& path);
-        ~Lock();
-
-        Lock(const Lock&) = delete;
-        Lock& operator=(const Lock&) = delete;
-        Lock& operator=(Lock&&) = default;
-
-        bool locked() const;
-        int fd() const;
-        fs::path path() const;
-
-    private:
-        fs::path m_path;
-        fs::path m_lock;
-        std::unique_ptr<LockFile> p_lock_file;
         bool m_locked;
+        bool m_lockfile_existed;
 
 #if defined(__APPLE__) or defined(__linux__)
         pid_t m_pid;
 #else
         int m_pid;
 #endif
+
+        bool set_lock(bool blocking) const;
+
+        int read_pid() const;
+        bool write_pid(int pid) const;
+        bool lock(int pid, bool blocking) const;
+        bool unlock();
+        int close_fd();
+        void remove_lockfile() noexcept;
 
         bool try_lock();
         bool lock();

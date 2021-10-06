@@ -26,13 +26,13 @@ namespace mamba
      ***********************/
 
 #ifndef _WIN32
-    void set_default_signal_handler();
     void set_signal_handler(const std::function<void(sigset_t)>& handler);
 
     int stop_receiver_thread();
     void reset_sig_interrupted();
 #endif
 
+    void set_default_signal_handler();
     bool is_sig_interrupted() noexcept;
     void set_sig_interrupted() noexcept;
 

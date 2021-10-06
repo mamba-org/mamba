@@ -901,6 +901,7 @@ namespace mamba
             std::unique_lock<std::mutex> l(m);
             if (cv.wait_for(l, timeout) == std::cv_status::timeout)
             {
+                pthread_cancel(th);
                 kill_receiver_thread();
                 err = EINTR;
                 ret = -1;

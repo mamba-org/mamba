@@ -863,6 +863,9 @@ namespace mamba
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 timer += std::chrono::seconds(1);
             }
+
+            if (has_timeout && (timer >= m_timeout) && (ret == -1))
+                errno = EINTR;
         }
         else
             ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);

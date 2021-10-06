@@ -35,6 +35,17 @@ namespace mamba
         set_default_signal_handler();
     }
 
+    int kill_receiver_thread()
+    {
+        if (receiver_exists.load())
+        {
+            pthread_cancel(sig_recv_thread);
+            receiver_exists.store(false);
+            return 0;
+        }
+        return -1;
+    }
+
     int stop_receiver_thread()
     {
         if (receiver_exists.load())

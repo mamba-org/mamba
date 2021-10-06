@@ -653,7 +653,7 @@ namespace mamba
         return prepend(p.c_str(), start, newline);
     }
 
-    Lock::Lock(const fs::path& path, const std::chrono::seconds& timeout)
+    LockFile::LockFile(const fs::path& path, const std::chrono::seconds& timeout)
         : m_path(path)
         , m_timeout(timeout)
         , m_locked(false)
@@ -661,7 +661,7 @@ namespace mamba
         if (!fs::exists(path))
         {
             LOG_ERROR << "Could not lock non-existing path '" << path.string() << "'";
-            throw std::runtime_error("Lock error. Aborting.");
+            throw std::runtime_error("LockFile error. Aborting.");
         }
 
         if (fs::is_directory(path))
@@ -682,7 +682,7 @@ namespace mamba
         {
             LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";
             unlock();
-            throw std::runtime_error("Lock error. Aborting.");
+            throw std::runtime_error("LockFile error. Aborting.");
         }
         else
         {
@@ -702,27 +702,27 @@ namespace mamba
             }
             else
             {
-                LOG_ERROR << "Lock can't be set at '" << m_path.string() << "'\n"
+                LOG_ERROR << "LockFile can't be set at '" << m_path.string() << "'\n"
                           << "This could be fixed by changing the locks' timeout or "
                           << "cleaning your environment from previous runs";
                 unlock();
-                throw std::runtime_error("Lock error. Aborting.");
+                throw std::runtime_error("LockFile error. Aborting.");
             }
         }
     }
 
-    Lock::Lock(const fs::path& path)
-        : Lock(path, std::chrono::seconds(Context::instance().lock_timeout))
+    LockFile::LockFile(const fs::path& path)
+        : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
     {
     }
 
-    Lock::~Lock()
+    LockFile::~LockFile()
     {
         LOG_DEBUG << "Unlocking '" << m_path.string() << "'";
         unlock();
     }
 
-    void Lock::remove_lockfile() noexcept
+    void LockFile::remove_lockfile() noexcept
     {
         close_fd();
 
@@ -740,7 +740,7 @@ namespace mamba
         }
     }
 
-    int Lock::close_fd()
+    int LockFile::close_fd()
     {
         int ret = 0;
         if (m_fd > -1)
@@ -751,7 +751,7 @@ namespace mamba
         return ret;
     }
 
-    bool Lock::unlock()
+    bool LockFile::unlock()
     {
         int ret = 0;
 
@@ -767,7 +767,7 @@ namespace mamba
         return ret == 0;
     }
 
-    int Lock::read_pid(int fd)
+    int LockFile::read_pid(int fd)
     {
         char pid_buffer[20] = "";
 
@@ -801,13 +801,13 @@ namespace mamba
         return pid;
     }
 
-    int Lock::read_pid() const
+    int LockFile::read_pid() const
     {
         return read_pid(m_fd);
     }
 
 #ifdef _WIN32
-    bool Lock::is_locked(const fs::path& path)
+    bool LockFile::is_locked(const fs::path& path)
     {
         // Windows locks are isolated between file descriptor
         // We can then test if locked by opening a new one
@@ -821,7 +821,7 @@ namespace mamba
 #endif
 
 #ifndef _WIN32
-    bool Lock::is_locked(int fd)
+    bool LockFile::is_locked(int fd)
     {
         // UNIX/POSIX record locks can't be checked from current process: opening
         // then closing a new file descriptor would unset the locks
@@ -849,13 +849,14 @@ namespace mamba
         fcntl(fd, F_GETLK, &lock);
 
         if ((lock.l_type == F_UNLCK) && (pid != lock.l_pid))
-            LOG_ERROR << "Lock file has wrong owner PID " << pid << ", actual is " << lock.l_pid;
+            LOG_ERROR << "LockFile file has wrong owner PID " << pid << ", actual is "
+                      << lock.l_pid;
 
         return lock.l_type != F_UNLCK;
     }
 #endif
 
-    bool Lock::write_pid(int pid) const
+    bool LockFile::write_pid(int pid) const
     {
         auto pid_s = std::to_string(pid);
 #ifdef _WIN32
@@ -900,7 +901,7 @@ namespace mamba
             std::unique_lock<std::mutex> l(m);
             if (cv.wait_for(l, timeout) == std::cv_status::timeout)
             {
-                pthread_cancel(th);
+                kill_receiver_thread();
                 err = EINTR;
                 ret = -1;
             }
@@ -912,7 +913,7 @@ namespace mamba
     }
 #endif
 
-    bool Lock::set_lock(bool blocking) const
+    bool LockFile::set_lock(bool blocking) const
     {
         int ret;
 #ifdef _WIN32
@@ -957,7 +958,7 @@ namespace mamba
         return ret == 0;
     }
 
-    bool Lock::lock(int pid, bool blocking) const
+    bool LockFile::lock(int pid, bool blocking) const
     {
         if (!set_lock(blocking))
         {
@@ -974,17 +975,17 @@ namespace mamba
         return true;
     }
 
-    int Lock::fd() const
+    int LockFile::fd() const
     {
         return m_fd;
     }
 
-    bool Lock::lock()
+    bool LockFile::lock()
     {
         return lock(m_pid, true);
     }
 
-    bool Lock::try_lock()
+    bool LockFile::try_lock()
     {
         int old_pid = read_pid();
         if (old_pid > 0)
@@ -993,7 +994,7 @@ namespace mamba
             {
                 LOG_ERROR << "Path already locked by the same PID";
                 unlock();
-                throw std::logic_error("Lock error.");
+                throw std::logic_error("LockFile error.");
             }
 
             LOG_TRACE << "File currently locked by PID " << old_pid;
@@ -1009,12 +1010,12 @@ namespace mamba
         return lock(m_pid, false);
     }
 
-    fs::path Lock::path() const
+    fs::path LockFile::path() const
     {
         return m_path;
     }
 
-    fs::path Lock::lockfile_path() const
+    fs::path LockFile::lockfile_path() const
     {
         return m_lock;
     }

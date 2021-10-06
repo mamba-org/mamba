@@ -135,16 +135,16 @@ namespace mamba
 
     const std::size_t MAMBA_LOCK_POS = 21;
 
-    class Lock
+    class LockFile
     {
     public:
-        Lock(const fs::path& path);
-        Lock(const fs::path& path, const std::chrono::seconds& timeout);
-        ~Lock();
+        LockFile(const fs::path& path);
+        LockFile(const fs::path& path, const std::chrono::seconds& timeout);
+        ~LockFile();
 
-        Lock(const Lock&) = delete;
-        Lock& operator=(const Lock&) = delete;
-        Lock& operator=(Lock&&) = default;
+        LockFile(const LockFile&) = delete;
+        LockFile& operator=(const LockFile&) = delete;
+        LockFile& operator=(LockFile&&) = default;
 
         int fd() const;
         fs::path path() const;

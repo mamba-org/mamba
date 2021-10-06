@@ -22,12 +22,12 @@ bool
 is_locked(const fs::path& path)
 {
 #ifdef _WIN32
-    return mamba::Lock::is_locked(path);
+    return mamba::LockFile::is_locked(path);
 #else
     // From another process than the lockfile one, we can open/close
     // a new file descriptor without risk to clear locks
     int fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
-    bool is_locked = mamba::Lock::is_locked(fd);
+    bool is_locked = mamba::LockFile::is_locked(fd);
     close(fd);
     return is_locked;
 #endif
@@ -47,10 +47,10 @@ main(int argc, char** argv)
         mamba::Context::instance().lock_timeout = timeout;
         try
         {
-            mamba::Lock lock(path);
+            mamba::LockFile lock(path);
             std::cout << 1;
         }
-        catch (std::runtime_error&)
+        catch (...)
         {
             std::cout << 0;
         }

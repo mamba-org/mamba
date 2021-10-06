@@ -339,10 +339,10 @@ namespace mamba
 
         std::vector<std::shared_ptr<MSubdirData>> subdirs;
         MultiDownloadTarget multi_dl;
-        std::unique_ptr<Lock> subdir_download_lock;
+        std::unique_ptr<LockFile> subdir_download_lock;
         if (!ctx.offline)
         {
-            subdir_download_lock = std::make_unique<Lock>(cache_dir);
+            subdir_download_lock = std::make_unique<LockFile>(cache_dir);
         }
 
         std::vector<std::pair<int, int>> priorities;
@@ -535,7 +535,7 @@ namespace mamba
                 detail::create_target_directory(ctx.target_prefix);
             }
             {
-                Lock pkgs_dirs_lock(pkgs_dirs);
+                LockFile pkgs_dirs_lock(pkgs_dirs);
                 trans.execute(prefix_data);
             }
             for (auto other_spec : config.at("others_pkg_mgrs_specs")
@@ -774,7 +774,7 @@ namespace mamba
                 fs::create_directories(pkgs_dirs);
             }
 
-            Lock pkgs_dirs_lock(pkgs_dirs);
+            LockFile pkgs_dirs_lock(pkgs_dirs);
 
             std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
             MultiDownloadTarget multi_dl;

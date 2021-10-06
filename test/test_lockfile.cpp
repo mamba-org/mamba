@@ -26,9 +26,9 @@ namespace mamba
     namespace testing
     {
 #ifdef _WIN32
-#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::Lock::is_locked(lock.lockfile_path()));
+#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::LockFile::is_locked(lock.lockfile_path()));
 #else
-#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::Lock::is_locked(lock.fd()));
+#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::LockFile::is_locked(lock.fd()));
 #endif
 
         class LockDirTest : public ::testing::Test
@@ -54,10 +54,10 @@ namespace mamba
         TEST_F(LockDirTest, same_pid)
         {
             {
-                auto lock = Lock(tempdir_path);
+                auto lock = LockFile(tempdir_path);
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
-                EXPECT_THROW(Lock lock2(tempdir_path), std::logic_error);
+                EXPECT_THROW(LockFile lock2(tempdir_path), std::logic_error);
 
                 // check the first lock is still locked
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
@@ -78,12 +78,12 @@ namespace mamba
 #endif
 
             {
-                auto lock = Lock(tempdir_path);
+                auto lock = LockFile(tempdir_path);
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
                 // Check lock PID
                 int pid = getpid();
-                EXPECT_EQ(mamba::Lock::read_pid(lock.fd()), pid);
+                EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
 
                 // Check lock status
                 EXPECT_LOCKED(lock);
@@ -102,6 +102,7 @@ namespace mamba
                 }
                 catch (...)
                 {
+                    std::cout << "convertion error" << std::endl;
                 }
                 EXPECT_TRUE(is_locked);
 
@@ -119,11 +120,12 @@ namespace mamba
                 }
                 catch (...)
                 {
+                    std::cout << "convertion error" << std::endl;
                 }
                 EXPECT_FALSE(new_lock_created);
 
                 // Check the PID hasn't changed
-                EXPECT_EQ(mamba::Lock::read_pid(lock.fd()), pid);
+                EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
             }
 
             fs::path lock_path = tempdir_path / "mamba.lock";
@@ -169,10 +171,10 @@ namespace mamba
         TEST_F(LockFileTest, same_pid)
         {
             {
-                auto lock = Lock(tempfile_path);
+                auto lock = LockFile(tempfile_path);
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
-                EXPECT_THROW(Lock lock2(tempfile_path), std::logic_error);
+                EXPECT_THROW(LockFile lock2(tempfile_path), std::logic_error);
 
                 // check the first lock is still locked
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
@@ -193,12 +195,12 @@ namespace mamba
 #endif
             {
                 // Create a lock
-                auto lock = Lock(tempfile_path);
+                auto lock = LockFile(tempfile_path);
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
                 // Check lock PID
                 int pid = getpid();
-                EXPECT_EQ(mamba::Lock::read_pid(lock.fd()), pid);
+                EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
 
                 // Check lock status from current PID
                 EXPECT_LOCKED(lock);
@@ -217,6 +219,7 @@ namespace mamba
                 }
                 catch (...)
                 {
+                    std::cout << "convertion error" << std::endl;
                 }
                 EXPECT_TRUE(is_locked);
 
@@ -234,11 +237,12 @@ namespace mamba
                 }
                 catch (...)
                 {
+                    std::cout << "convertion error" << std::endl;
                 }
                 EXPECT_FALSE(new_lock_created);
 
                 // Check the PID hasn't changed
-                EXPECT_EQ(mamba::Lock::read_pid(lock.fd()), pid);
+                EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
             }
 
             fs::path lock_path = tempfile_path.string() + ".lock";

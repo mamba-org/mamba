@@ -818,11 +818,10 @@ namespace mamba
                    .group("Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Lock timeout")
+                   .description("LockFile timeout")
                    .long_description(unindent(R"(
-                        Lock timeout for blocking mode when waiting for another process
-                        to release the path.
-                        Not configurable on Windows: set to 10s by WinAPI)")));
+                        LockFile timeout for blocking mode when waiting for another process
+                        to release the path. Default is 0 (no timeout))")));
 
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &ctx.always_yes)

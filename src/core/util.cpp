@@ -852,16 +852,16 @@ namespace mamba
 
         if (blocking)
         {
-            std::size_t timer = 0;
+            std::chrono::seconds timer(0);
             bool has_timeout = m_timeout.count() > 0;
 
-            while (!has_timeout || (timer < timeout))
+            while (!has_timeout || (timer < m_timeout))
             {
                 ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
                 if (ret == 0)
                     break;
                 std::this_thread::sleep_for(std::chrono::seconds(1));
-                timer += 1;
+                timer += std::chrono::seconds(1);
             }
         }
         else

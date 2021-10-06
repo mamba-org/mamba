@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 #include "mamba/core/thread_utils.hpp"
+#include <iostream>
 
 #ifndef _WIN32
 #include <signal.h>
@@ -25,6 +26,7 @@ namespace mamba
     namespace
     {
         std::thread::native_handle_type sig_recv_thread;
+        std::atomic<bool> receiver_exists(false);
     }
 
     void reset_sig_interrupted()
@@ -33,9 +35,15 @@ namespace mamba
         set_default_signal_handler();
     }
 
-    std::thread::native_handle_type get_signal_receiver_thread_id()
+    int stop_receiver_thread()
     {
-        return sig_recv_thread;
+        if (receiver_exists.load())
+        {
+            pthread_kill(sig_recv_thread, SIGINT);
+            receiver_exists.store(false);
+            return 0;
+        }
+        return -1;
     }
 
     int default_signal_handler(sigset_t sigset)
@@ -47,8 +55,10 @@ namespace mamba
         return signum;
     }
 
-    void set_default_signal_handler()
+    void set_signal_handler(const std::function<void(sigset_t)>& handler)
     {
+        stop_receiver_thread();
+
         // block signals in this thread and subsequently
         // spawned threads
         sigset_t sigset;
@@ -56,9 +66,15 @@ namespace mamba
         sigaddset(&sigset, SIGINT);
         // sigaddset(&sigset, SIGTERM);
         pthread_sigmask(SIG_BLOCK, &sigset, nullptr);
-        std::thread receiver(default_signal_handler, sigset);
+        std::thread receiver(handler, sigset);
         sig_recv_thread = receiver.native_handle();
+        receiver_exists.store(true);
         receiver.detach();
+    }
+
+    void set_default_signal_handler()
+    {
+        set_signal_handler(default_signal_handler);
     }
 #else
     void set_default_signal_handler()
@@ -146,6 +162,11 @@ namespace mamba
     void thread::detach()
     {
         m_thread.detach();
+    }
+
+    std::thread::native_handle_type thread::native_handle()
+    {
+        return m_thread.native_handle();
     }
 
     /**********************

@@ -42,6 +42,8 @@ extern "C"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/thread_utils.hpp"
+
 
 namespace mamba
 {
@@ -822,12 +824,24 @@ namespace mamba
         std::mutex m;
         std::condition_variable cv;
 
-        std::thread t([&cv, &ret, &fd, &lock]() {
+        thread t([&cv, &ret, &fd, &lock]() {
             ret = fcntl(fd, F_SETLKW, &lock);
             cv.notify_one();
         });
 
-        pthread_t th = t.native_handle();
+        auto th = t.native_handle();
+
+        int err = 0;
+        set_signal_handler([&th, &cv, &ret, &err](sigset_t sigset) -> int {
+            int signum = 0;
+            sigwait(&sigset, &signum);
+            pthread_cancel(th);
+            err = EINTR;
+            ret = -1;
+            cv.notify_one();
+            return signum;
+        });
+
         t.detach();
 
         {
@@ -836,9 +850,11 @@ namespace mamba
             {
                 pthread_cancel(th);
                 errno = EINTR;
-                return -1;
+                ret = -1;
             }
         }
+        set_default_signal_handler();
+        errno = err;
 
         return ret;
     }

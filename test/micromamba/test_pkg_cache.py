@@ -284,14 +284,17 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_dev == cache_file.stat().st_dev
         assert linked_file.stat().st_ino == cache_file.stat().st_ino
 
-    @pytest.mark.parametrize("first_is_writable", (False, True))
-    def test_first_writable(
-        self, first_is_writable, cache1, cache2, used_cache, unused_cache
-    ):
+    def test_first_writable(self, cache1, cache2, used_cache, unused_cache):
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
-        res = create("-n", env_name, "xtensor", "--json", no_dry_run=True,)
+        res = create(
+            "-n",
+            env_name,
+            "xtensor",
+            "--json",
+            no_dry_run=True,
+        )
 
         linked_file = get_env(env_name, xtensor_hpp)
         assert linked_file.exists()
@@ -303,88 +306,3 @@ class TestMultiplePkgCaches:
 
         assert linked_file.stat().st_dev == cache_file.stat().st_dev
         assert linked_file.stat().st_ino == cache_file.stat().st_ino
-
-    def test_extracted_tarball_only_in_non_writable_cache(
-        self, cache1, cache2, test_pkg, repodata_files
-    ):
-        tarball = cache1 / Path(str(test_pkg) + ".tar.bz2")
-        rmtree(tarball)
-        # this will chmod 700 the hardlinks and have to be done before chmod cache1
-        rmtree(cache2)
-        recursive_chmod(cache1, 0o500)
-
-        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
-        env_name = TestMultiplePkgCaches.env_name
-
-        create("-n", env_name, "xtensor", "--json", no_dry_run=True)
-
-        linked_file = get_env(env_name, xtensor_hpp)
-        assert linked_file.exists()
-
-        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
-        writable_cache_file = cache2 / test_pkg / xtensor_hpp
-
-        # check repodata files
-        for f in repodata_files:
-            for ext in ["json", "solv"]:
-                assert (cache1 / "cache" / (f + "." + ext)).exists()
-                assert not (cache2 / "cache" / (f + "." + ext)).exists()
-
-        # check tarballs
-        assert not (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
-
-        # check extracted files
-        assert non_writable_cache_file.exists()
-        assert not writable_cache_file.exists()
-
-        # check linked files
-        assert linked_file.stat().st_dev == non_writable_cache_file.stat().st_dev
-        assert linked_file.stat().st_ino == non_writable_cache_file.stat().st_ino
-
-    def test_expired_but_valid_repodata_in_non_writable_cache(
-        self, cache1, cache2, test_pkg, repodata_files
-    ):
-        rmtree(cache2)
-        recursive_chmod(cache1, 0o500)
-
-        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
-        env_name = TestMultiplePkgCaches.env_name
-
-        create(
-            "-n",
-            env_name,
-            "xtensor",
-            "-vv",
-            "--json",
-            "--repodata-ttl=0",
-            no_dry_run=True,
-        )
-
-        linked_file = get_env(env_name, xtensor_hpp)
-        assert linked_file.exists()
-
-        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
-        writable_cache_file = cache2 / test_pkg / xtensor_hpp
-
-        # check repodata files
-        for f in repodata_files:
-            for ext in ["json", "solv"]:
-                assert (cache1 / "cache" / (f + "." + ext)).exists()
-                assert (cache2 / "cache" / (f + "." + ext)).exists()
-
-        # check tarballs
-        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
-        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
-
-        # check extracted dir
-        assert (cache1 / test_pkg).exists()
-        assert not (cache2 / test_pkg).exists()
-
-        # check extracted files
-        assert non_writable_cache_file.exists()
-        assert not writable_cache_file.exists()
-
-        # check linked files
-        assert linked_file.stat().st_dev == non_writable_cache_file.stat().st_dev
-        assert linked_file.stat().st_ino == non_writable_cache_file.stat().st_ino

@@ -660,8 +660,8 @@ namespace mamba
     {
         if (!fs::exists(path))
         {
-            LOG_DEBUG << "Could not lock non-existing path '" << path.string() << "'";
-            return;
+            LOG_ERROR << "Could not lock non-existing path '" << path.string() << "'";
+            throw std::runtime_error("Lock error. Aborting.");
         }
 
         if (fs::is_directory(path))
@@ -680,7 +680,7 @@ namespace mamba
 
         if (m_fd <= 0)
         {
-            LOG_DEBUG << "Could not open lockfile '" << m_lock.string() << "'";
+            LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";
             unlock();
             throw std::runtime_error("Lock error. Aborting.");
         }
@@ -901,7 +901,7 @@ namespace mamba
             if (cv.wait_for(l, timeout) == std::cv_status::timeout)
             {
                 pthread_cancel(th);
-                errno = EINTR;
+                err = EINTR;
                 ret = -1;
             }
         }

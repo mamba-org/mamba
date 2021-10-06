@@ -26,7 +26,7 @@ namespace mamba
     namespace testing
     {
 #ifdef _WIN32
-#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::Lock::is_locked(lock.path()));
+#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::Lock::is_locked(lock.lockfile_path()));
 #else
 #define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::Lock::is_locked(lock.fd()));
 #endif
@@ -104,7 +104,6 @@ namespace mamba
                 {
                 }
                 EXPECT_TRUE(is_locked);
-
 
                 // Try to lock from another process
                 args = { lock_cli, "lock", "--timeout=1", tempdir_path };

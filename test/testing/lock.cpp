@@ -22,7 +22,7 @@ bool
 is_locked(const fs::path& path)
 {
 #ifdef _WIN32
-    return mamba::LockFile::is_locked(path);
+    return mamba::Lock::is_locked(path);
 #else
     // From another process than the lockfile one, we can open/close
     // a new file descriptor without risk to clear locks

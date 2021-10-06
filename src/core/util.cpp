@@ -675,7 +675,7 @@ namespace mamba
         if (ec)
         {
             LOG_ERROR << "Removing lock file '" << m_path.string() << "' failed\n"
-                      << "You may need to remove it later";
+                      << "You may need to remove it manually";
         }
     }
 
@@ -694,9 +694,11 @@ namespace mamba
     {
         int ret = 0;
 
+        // POSIX systems automatically remove locks when closing any file
+        // descriptor related to the file
 #ifdef _WIN32
         LOG_TRACE << "Removing lock on '" << m_path.string() << "'";
-        _lseek(m_fd, 21, SEEK_SET);
+        _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
         ret = _locking(m_fd, LK_UNLCK, 1 /*lock_file_contents_length()*/);
 #endif
         return ret == 0;
@@ -747,7 +749,7 @@ namespace mamba
         // Windows locks are isolated between file descriptor
         // We can then test if locked by opening a new one
         int fd = _open(path.c_str(), O_RDWR | O_CREAT, 0666);
-        _lseek(fd, 21L, SEEK_SET);
+        _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
         char buffer[1];
         bool is_locked = _read(fd, buffer, 1) == -1;
         _close(fd);
@@ -779,7 +781,7 @@ namespace mamba
         struct flock lock;
         lock.l_type = F_WRLCK;
         lock.l_whence = SEEK_SET;
-        lock.l_start = 21;
+        lock.l_start = MAMBA_LOCK_POS;
         lock.l_len = 1;
         fcntl(fd, F_GETLK, &lock);
 
@@ -846,17 +848,21 @@ namespace mamba
     {
         int ret;
 #ifdef _WIN32
-        _lseek(m_fd, 21, SEEK_SET);
+        _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
 
         if (blocking)
         {
-            if (m_timeout.count())
-                LOG_WARNING << "Lock timeout can't be set on Windows\n"
-                            << "Timeout value is defined by WinAPI to 10s";
-            else  // default value is 0
-                LOG_DEBUG << "Lock timeout can't be set on Windows\n"
-                          << "Timeout value is defined by WinAPI to 10s";
-            ret = _locking(m_fd, LK_LOCK, 1 /*lock_file_contents_length()*/);
+            std::size_t timer = 0;
+            bool has_timeout = m_timeout.count() > 0;
+
+            while (!has_timeout || (timer < timeout))
+            {
+                ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
+                if (ret == 0)
+                    break;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                timer += 1;
+            }
         }
         else
             ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
@@ -864,7 +870,7 @@ namespace mamba
         struct flock lock;
         lock.l_type = F_WRLCK;
         lock.l_whence = SEEK_SET;
-        lock.l_start = 21;
+        lock.l_start = MAMBA_LOCK_POS;
         lock.l_len = 1;
 
         if (blocking)

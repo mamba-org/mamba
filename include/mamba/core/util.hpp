@@ -133,6 +133,8 @@ namespace mamba
         fs::path m_path;
     };
 
+    const std::size_t MAMBA_LOCK_POS = 21;
+
     class Lock;
 
     class LockFile

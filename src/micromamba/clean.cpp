@@ -32,12 +32,16 @@ init_clean_parser(CLI::App* subcom)
     auto& clean_tarballs = config.insert(Configurable("clean_tarballs", false)
                                              .group("cli")
                                              .description("Remove cached package tarballs"));
+    auto& clean_locks = config.insert(Configurable("clean_locks", false)
+                                          .group("cli")
+                                          .description("Remove lock files from caches"));
 
     subcom->add_flag("-a,--all", clean_all.set_cli_config(0), clean_all.description());
     subcom->add_flag("-i,--index-cache", clean_index.set_cli_config(0), clean_index.description());
     subcom->add_flag("-p,--packages", clean_pkgs.set_cli_config(0), clean_pkgs.description());
     subcom->add_flag(
         "-t,--tarballs", clean_tarballs.set_cli_config(0), clean_tarballs.description());
+    subcom->add_flag("-l,--locks", clean_locks.set_cli_config(0), clean_locks.description());
 }
 
 void
@@ -57,6 +61,8 @@ set_clean_command(CLI::App* subcom)
             options = options | MAMBA_CLEAN_PKGS;
         if (config.at("clean_tarballs").compute().value<bool>())
             options = options | MAMBA_CLEAN_TARBALLS;
+        if (config.at("clean_locks").compute().value<bool>())
+            options = options | MAMBA_CLEAN_LOCKS;
 
         clean(options);
     });

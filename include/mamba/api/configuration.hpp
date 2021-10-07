@@ -1835,10 +1835,15 @@ namespace mamba
 
         if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
         {
-            m_sources.insert(m_sources.end(), m_env_var_names.begin(), m_env_var_names.end());
-
             for (const auto& env_var : m_env_var_names)
-                m_values.insert({ env_var, detail::Source<T>::deserialize(env::get(env_var)) });
+            {
+                auto env_var_value = env::get(env_var);
+                if (!env_var_value.empty())
+                {
+                    m_sources.push_back(env_var);
+                    m_values.insert({ env_var, detail::Source<T>::deserialize(env_var_value) });
+                }
+            }
         }
 
         if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))

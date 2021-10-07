@@ -34,41 +34,46 @@ namespace mamba
     class PackageCacheData
     {
     public:
-        PackageCacheData(const fs::path& pkgs_dir);
+        PackageCacheData(const fs::path& path);
 
         bool create_directory();
         void set_writable(Writable writable);
         Writable is_writable();
-        fs::path get_pkgs_dir() const;
+        fs::path path() const;
         void clear_query_cache(const PackageInfo& s);
 
-        bool query(const PackageInfo& s);
-
-        static PackageCacheData first_writable(const std::vector<fs::path>* pkgs_dirs = nullptr);
+        bool has_valid_tarball(const PackageInfo& s);
+        bool has_valid_extracted_dir(const PackageInfo& s);
 
     private:
         void check_writable();
 
-        std::map<std::string, bool> m_valid_cache;
+        std::map<std::string, bool> m_valid_tarballs;
+        std::map<std::string, bool> m_valid_extracted_dir;
         Writable m_writable = Writable::UNKNOWN;
-        fs::path m_pkgs_dir;
+        fs::path m_path;
     };
 
     class MultiPackageCache
     {
     public:
         MultiPackageCache(const std::vector<fs::path>& pkgs_dirs);
-        PackageCacheData& first_writable();
 
-        fs::path query(const PackageInfo& s);
-        fs::path first_cache_path(const PackageInfo& s, bool return_empty = true);
+        std::vector<fs::path> paths() const;
+
+        fs::path get_tarball_path(const PackageInfo& s, bool return_empty = true);
+        fs::path get_extracted_dir_path(const PackageInfo& s, bool return_empty = true);
+
+        fs::path first_writable_path();
+        PackageCacheData& first_writable_cache(bool create = false);
         std::vector<PackageCacheData*> writable_caches();
 
         void clear_query_cache(const PackageInfo& s);
 
     private:
         std::vector<PackageCacheData> m_caches;
-        std::map<std::string, std::string> m_path_cache;
+        std::map<std::string, fs::path> m_cached_tarballs;
+        std::map<std::string, fs::path> m_cached_extracted_dirs;
     };
 }  // namespace mamba
 

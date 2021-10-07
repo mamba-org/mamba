@@ -7,11 +7,13 @@
 #ifndef MAMBA_CORE_FS_UTIL
 #define MAMBA_CORE_FS_UTIL
 
-#include <string>
-
 #include "environment.hpp"
 #include "mamba_fs.hpp"
 #include "util.hpp"
+
+#include <iostream>
+#include <string>
+#include <system_error>
 
 namespace mamba
 {
@@ -69,7 +71,11 @@ namespace mamba
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream(path, std::ios::out);
+                std::ofstream ostream(path, std::ios::out);
+                if (ostream.fail())
+                    throw fs::filesystem_error("File creation failed",
+                                               std::make_error_code(std::errc::permission_denied));
+
                 return false;
             }
         }
@@ -80,7 +86,7 @@ namespace mamba
             {
                 bool path_existed = lexists(path);
                 std::ofstream test;
-                test.open(path);
+                test.open(path, std::ios_base::out | std::ios_base::app);
                 bool is_writable = test.is_open();
                 if (!path_existed)
                 {

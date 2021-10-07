@@ -58,9 +58,9 @@ namespace mamba
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 
-        std::cout << "\n"
-                  << termcolor::cyan << "Installing " << pkg_mgr
-                  << " packages: " << join(", ", deps) << termcolor::reset << std::endl;
+        Console::stream() << "\n"
+                          << termcolor::cyan << "Installing " << pkg_mgr
+                          << " packages: " << join(", ", deps) << termcolor::reset;
         LOG_INFO << "Calling: " << join(" ", install_args);
 
         auto [_, ec] = reproc::run(wrapped_command, options);
@@ -295,8 +295,6 @@ namespace mamba
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        fs::path pkgs_dirs = ctx.pkgs_dirs.at(0);
-
         if (ctx.target_prefix.empty())
         {
             throw std::runtime_error("No active target prefix");
@@ -307,15 +305,7 @@ namespace mamba
             exit(1);
         }
 
-        fs::path cache_dir = pkgs_dirs / "cache";
-        try
-        {
-            fs::create_directories(cache_dir);
-        }
-        catch (...)
-        {
-            throw std::runtime_error("Could not create `pkgs/cache/` dirs");
-        }
+        MultiPackageCache package_caches(ctx.pkgs_dirs);
 
         // add channels from specs
         std::vector<mamba::MatchSpec> match_specs(specs.begin(), specs.end());
@@ -339,11 +329,6 @@ namespace mamba
 
         std::vector<std::shared_ptr<MSubdirData>> subdirs;
         MultiDownloadTarget multi_dl;
-        std::unique_ptr<LockFile> subdir_download_lock;
-        if (!ctx.offline)
-        {
-            subdir_download_lock = std::make_unique<LockFile>(cache_dir);
-        }
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());
@@ -363,7 +348,8 @@ namespace mamba
                 auto sdir = std::make_shared<MSubdirData>(
                     concat(channel->canonical_name(), "/", platform),
                     repodata_full_url,
-                    cache_dir / cache_fn_url(repodata_full_url),
+                    cache_fn_url(repodata_full_url),
+                    package_caches,
                     platform == "noarch");
 
                 sdir->load();
@@ -387,7 +373,6 @@ namespace mamba
         if (!ctx.offline)
         {
             multi_dl.download(true);
-            subdir_download_lock.reset();
         }
 
         std::vector<MRepo> repos;
@@ -395,7 +380,8 @@ namespace mamba
         if (ctx.offline)
         {
             LOG_INFO << "Creating repo from pkgs_dir for offline";
-            repos.push_back(detail::create_repo_from_pkgs_dir(pool, pkgs_dirs));
+            for (const auto& c : ctx.pkgs_dirs)
+                repos.push_back(detail::create_repo_from_pkgs_dir(pool, c));
         }
         PrefixData prefix_data(ctx.target_prefix);
         prefix_data.load();
@@ -443,9 +429,9 @@ namespace mamba
                     throw std::runtime_error(ss.str());
                 }
 
-                std::cout << termcolor::yellow << "Could not load repodata.json for "
-                          << subdir->name() << ". Deleting cache, and retrying." << termcolor::reset
-                          << std::endl;
+                Console::stream() << termcolor::yellow << "Could not load repodata.json for "
+                                  << subdir->name() << ". Deleting cache, and retrying."
+                                  << termcolor::reset;
                 subdir->clear_cache();
                 loading_failed = true;
             }
@@ -499,7 +485,7 @@ namespace mamba
         bool success = solver.solve();
         if (!success)
         {
-            std::cout << solver.problems_to_str() << std::endl;
+            Console::stream() << solver.problems_to_str();
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
@@ -511,8 +497,7 @@ namespace mamba
             throw std::runtime_error("Could not solve for environment specs");
         }
 
-        MultiPackageCache package_caches({ pkgs_dirs });
-        MTransaction trans(solver, package_caches, pkgs_dirs);
+        MTransaction trans(solver, package_caches);
 
         if (ctx.json)
         {
@@ -525,19 +510,16 @@ namespace mamba
             repo_ptrs.push_back(&r);
         }
 
-        std::cout << std::endl;
+        Console::stream();
 
         bool yes = trans.prompt(repo_ptrs);
         if (yes)
         {
             if (create_env && !Context::instance().dry_run)
-            {
                 detail::create_target_directory(ctx.target_prefix);
-            }
-            {
-                LockFile pkgs_dirs_lock(pkgs_dirs);
-                trans.execute(prefix_data);
-            }
+
+            trans.execute(prefix_data);
+
             for (auto other_spec : config.at("others_pkg_mgrs_specs")
                                        .value<std::vector<detail::other_pkg_mgr_spec>>())
             {
@@ -564,7 +546,9 @@ namespace mamba
             }
         }
 
-        if (!Context::instance().dry_run && detail::download_explicit(pkg_infos))
+        MultiPackageCache pkg_caches(Context::instance().pkgs_dirs);
+
+        if (!Context::instance().dry_run && detail::download_explicit(pkg_infos, pkg_caches))
         {
             auto& ctx = Context::instance();
             // pkgs can now be linked
@@ -573,8 +557,8 @@ namespace mamba
             TransactionContext tctx(ctx.target_prefix, python_version);
             for (auto& pkg : pkg_infos)
             {
-                LinkPackage lp(pkg, ctx.root_prefix / "pkgs", &tctx);
-                std::cout << "Linking " << pkg.str() << "\n";
+                LinkPackage lp(pkg, pkg_caches.first_writable_path(), &tctx);
+                Console::stream() << "Linking " << pkg.str();
                 hist_entry.link_dists.push_back(pkg.long_str());
                 lp.execute();
             }
@@ -754,37 +738,26 @@ namespace mamba
             return MRepo(pool, prefix_data);
         }
 
-        bool download_explicit(const std::vector<PackageInfo>& pkgs)
+        bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches)
         {
-            fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
-            // fs::path pkgs_dirs;
-            // if (std::getenv("CONDA_PKGS_DIRS") != nullptr)
-            // {
-            //     pkgs_dirs = fs::path(std::getenv("CONDA_PKGS_DIRS"));
-            // }
-            // else
-            // {
-            //     pkgs_dirs = ctx.root_prefix / "pkgs";
-            // }
+            fs::path pkgs_cache = pkg_caches.first_writable_path();
 
-            // TODO better error handling for checking that cache path is
-            // directory and writable etc.
-            if (!fs::exists(pkgs_dirs))
+            if (!fs::exists(pkgs_cache))
             {
-                fs::create_directories(pkgs_dirs);
+                fs::create_directories(pkgs_cache);
             }
 
-            LockFile pkgs_dirs_lock(pkgs_dirs);
+            LockFile pkgs_cache_lock(pkgs_cache);
 
             std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
             MultiDownloadTarget multi_dl;
             Console::instance().init_multi_progress(ProgressBarMode::aggregated);
-            MultiPackageCache pkg_cache({ Context::instance().root_prefix / "pkgs" });
+
 
             for (auto& pkg : pkgs)
             {
                 targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(pkg));
-                multi_dl.add(targets[targets.size() - 1]->target(pkgs_dirs, pkg_cache));
+                multi_dl.add(targets[targets.size() - 1]->target(pkg_caches));
             }
 
             interruption_guard g([]() { Console::instance().init_multi_progress(); });

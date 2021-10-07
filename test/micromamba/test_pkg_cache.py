@@ -181,15 +181,28 @@ class TestPkgCache:
         assert cached_file.stat().st_ino == linked_file_stats.st_ino
         assert old_ino != linked_file_stats.st_ino
 
-    def test_extracted_file_corrupted_no_perm(self, cache, cached_file, test_pkg):
+    @pytest.mark.parametrize("safety_checks", ("disabled", "warn", "enabled"))
+    def test_extracted_file_corrupted_no_perm(
+        self, cache, cached_file, test_pkg, safety_checks
+    ):
         with open(cached_file, "w") as f:
             f.write("//corruption")
         recursive_chmod(cache / test_pkg, 0o500)
+        old_ino = cached_file.stat().st_ino
 
         env = "x1"
-        cmd_args = ("xtensor", "-n", env, "--json", "-vv")
+        cmd_args = (
+            "xtensor",
+            "-n",
+            "--safety-checks",
+            safety_checks,
+            env,
+            "--json",
+            "-vv",
+        )
 
-        create(*cmd_args, no_dry_run=True)
+        with pytest.raises(subprocess.CalledProcessError):
+            create(*cmd_args, no_dry_run=True)
 
 
 class TestMultiplePkgCaches:
@@ -284,7 +297,10 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_dev == cache_file.stat().st_dev
         assert linked_file.stat().st_ino == cache_file.stat().st_ino
 
-    def test_first_writable(self, cache1, cache2, used_cache, unused_cache):
+    @pytest.mark.parametrize("first_cache_is_writable", (False, True))
+    def test_first_writable(
+        self, first_cache_is_writable, cache1, cache2, used_cache, unused_cache
+    ):
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
@@ -300,3 +316,228 @@ class TestMultiplePkgCaches:
 
         assert linked_file.stat().st_dev == cache_file.stat().st_dev
         assert linked_file.stat().st_ino == cache_file.stat().st_ino
+
+    def test_no_writable(self, cache1, cache2, test_pkg):
+        rmtree(cache1 / test_pkg)
+        # will also chmod cache2 since they are both
+        # hardlinks to the same files
+        recursive_chmod(cache1, 0o500)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+
+    def test_no_writable_extracted_dir_corrupted(
+        self, cache1, test_pkg, repodata_files
+    ):
+        # will also chmod cache2 since they are both
+        # hardlinks to the same files
+        rmtree(cache1 / test_pkg / xtensor_hpp)
+        recursive_chmod(cache1, 0o500)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        with pytest.raises(subprocess.CalledProcessError):
+            create("-n", env_name, "xtensor", "-vv", "--json", no_dry_run=True)
+
+    def test_first_writable_extracted_dir_corrupted(
+        self, cache1, cache2, test_pkg, repodata_files
+    ):
+        rmtree(cache1)  # convenience for cache teardown
+        os.makedirs(cache1)
+        open(cache1 / "urls.txt", "w")  # chmod only set read-only flag on Windows
+        recursive_chmod(cache1, 0o500)
+        rmtree(cache2 / test_pkg / xtensor_hpp)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        create("-n", env_name, "xtensor", "-vv", "--json", no_dry_run=True)
+
+        linked_file = get_env(env_name, xtensor_hpp)
+        assert linked_file.exists()
+
+        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
+        writable_cache_file = cache2 / test_pkg / xtensor_hpp
+
+        # check repodata files
+        for f in repodata_files:
+            for ext in ["json", "solv"]:
+                assert not (cache1 / "cache" / (f + "." + ext)).exists()
+                assert (cache2 / "cache" / (f + "." + ext)).exists()
+
+        # check tarballs
+        assert not (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+
+        # check extracted files
+        assert not non_writable_cache_file.exists()
+        assert writable_cache_file.exists()
+
+        # check linked files
+        assert linked_file.stat().st_dev == writable_cache_file.stat().st_dev
+        assert linked_file.stat().st_ino == writable_cache_file.stat().st_ino
+
+    def test_extracted_tarball_only_in_non_writable_cache(
+        self, cache1, cache2, test_pkg, repodata_files
+    ):
+        tarball = cache1 / Path(str(test_pkg) + ".tar.bz2")
+        rmtree(tarball)
+        # this will chmod 700 the hardlinks and have to be done before chmod cache1
+        rmtree(cache2)
+        recursive_chmod(cache1, 0o500)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+
+        linked_file = get_env(env_name, xtensor_hpp)
+        assert linked_file.exists()
+
+        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
+        writable_cache_file = cache2 / test_pkg / xtensor_hpp
+
+        # check repodata files
+        for f in repodata_files:
+            for ext in ["json", "solv"]:
+                assert (cache1 / "cache" / (f + "." + ext)).exists()
+                assert not (cache2 / "cache" / (f + "." + ext)).exists()
+
+        # check tarballs
+        assert not (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+
+        # check extracted files
+        assert non_writable_cache_file.exists()
+        assert not writable_cache_file.exists()
+
+        # check linked files
+        assert linked_file.stat().st_dev == non_writable_cache_file.stat().st_dev
+        assert linked_file.stat().st_ino == non_writable_cache_file.stat().st_ino
+
+    def test_missing_extracted_dir_in_non_writable_cache(
+        self, cache1, cache2, test_pkg, repodata_files
+    ):
+        rmtree(cache1 / test_pkg)
+        rmtree(cache2)
+        recursive_chmod(cache1, 0o500)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+
+        linked_file = get_env(env_name, xtensor_hpp)
+        assert linked_file.exists()
+
+        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
+        writable_cache_file = cache2 / test_pkg / xtensor_hpp
+
+        # check repodata files
+        for f in repodata_files:
+            for ext in ["json", "solv"]:
+                assert (cache1 / "cache" / (f + "." + ext)).exists()
+                assert not (cache2 / "cache" / (f + "." + ext)).exists()
+
+        # check tarballs
+        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+
+        # check extracted files
+        assert not non_writable_cache_file.exists()
+        assert writable_cache_file.exists()
+
+        # check linked files
+        assert linked_file.stat().st_dev == writable_cache_file.stat().st_dev
+        assert linked_file.stat().st_ino == writable_cache_file.stat().st_ino
+
+    def test_corrupted_extracted_dir_in_non_writable_cache(
+        self, cache1, cache2, test_pkg, repodata_files
+    ):
+        rmtree(cache1 / test_pkg / xtensor_hpp)
+        rmtree(cache2)  # convenience for cache teardown
+        os.makedirs(cache2)
+        recursive_chmod(cache1, 0o500)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        create("-n", env_name, "-vv", "xtensor", "--json", no_dry_run=True)
+
+        linked_file = get_env(env_name, xtensor_hpp)
+        assert linked_file.exists()
+
+        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
+        writable_cache_file = cache2 / test_pkg / xtensor_hpp
+
+        # check repodata files
+        for f in repodata_files:
+            for ext in ["json", "solv"]:
+                assert (cache1 / "cache" / (f + "." + ext)).exists()
+                assert not (cache2 / "cache" / (f + "." + ext)).exists()
+
+        # check tarballs
+        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+
+        # check extracted dir
+        assert (cache1 / test_pkg).exists()
+        assert (cache2 / test_pkg).exists()
+
+        # check extracted files
+        assert not non_writable_cache_file.exists()
+        assert writable_cache_file.exists()
+
+        # check linked files
+        assert linked_file.stat().st_dev == writable_cache_file.stat().st_dev
+        assert linked_file.stat().st_ino == writable_cache_file.stat().st_ino
+
+    def test_expired_but_valid_repodata_in_non_writable_cache(
+        self, cache1, cache2, test_pkg, repodata_files
+    ):
+        rmtree(cache2)
+        recursive_chmod(cache1, 0o500)
+
+        os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
+        env_name = TestMultiplePkgCaches.env_name
+
+        create(
+            "-n",
+            env_name,
+            "xtensor",
+            "-vv",
+            "--json",
+            "--repodata-ttl=0",
+            no_dry_run=True,
+        )
+
+        linked_file = get_env(env_name, xtensor_hpp)
+        assert linked_file.exists()
+
+        non_writable_cache_file = cache1 / test_pkg / xtensor_hpp
+        writable_cache_file = cache2 / test_pkg / xtensor_hpp
+
+        # check repodata files
+        for f in repodata_files:
+            for ext in ["json", "solv"]:
+                assert (cache1 / "cache" / (f + "." + ext)).exists()
+                assert (cache2 / "cache" / (f + "." + ext)).exists()
+
+        # check tarballs
+        assert (cache1 / Path(str(test_pkg) + ".tar.bz2")).exists()
+        assert not (cache2 / Path(str(test_pkg) + ".tar.bz2")).exists()
+
+        # check extracted dir
+        assert (cache1 / test_pkg).exists()
+        assert not (cache2 / test_pkg).exists()
+
+        # check extracted files
+        assert non_writable_cache_file.exists()
+        assert not writable_cache_file.exists()
+
+        # check linked files
+        assert linked_file.stat().st_dev == non_writable_cache_file.stat().st_dev
+        assert linked_file.stat().st_ino == non_writable_cache_file.stat().st_ino

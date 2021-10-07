@@ -146,6 +146,8 @@ namespace mamba
         LockFile& operator=(const LockFile&) = delete;
         LockFile& operator=(LockFile&&) = default;
 
+        static std::unique_ptr<LockFile> try_lock(const fs::path& path) noexcept;
+
         int fd() const;
         fs::path path() const;
         fs::path lockfile_path() const;
@@ -172,18 +174,17 @@ namespace mamba
 #else
         int m_pid;
 #endif
-
-        bool set_lock(bool blocking) const;
-
         int read_pid() const;
         bool write_pid(int pid) const;
-        bool lock(int pid, bool blocking) const;
-        bool unlock();
-        int close_fd();
-        void remove_lockfile() noexcept;
 
-        bool try_lock();
-        bool lock();
+        bool set_fd_lock(bool blocking) const;
+        bool lock_non_blocking();
+        bool lock_blocking();
+        bool lock(int pid, bool blocking) const;
+
+        void remove_lockfile() noexcept;
+        int close_fd();
+        bool unlock();
     };
 
     /*************************

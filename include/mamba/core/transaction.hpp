@@ -57,7 +57,7 @@ namespace mamba
         auto validation_result() const;
         void clear_cache() const;
 
-        DownloadTarget* target(const fs::path& cache_path, MultiPackageCache& cache);
+        DownloadTarget* target(MultiPackageCache& cache);
 
         enum VALIDATION_RESULT
         {
@@ -100,7 +100,7 @@ namespace mamba
             ignore
         };
 
-        MTransaction(MSolver& solver, MultiPackageCache& cache, const std::string& cache_dir);
+        MTransaction(MSolver& solver, MultiPackageCache& caches);
         ~MTransaction();
 
         MTransaction(const MTransaction&) = delete;

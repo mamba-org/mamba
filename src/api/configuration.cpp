@@ -730,6 +730,13 @@ namespace mamba
                         the packages specifications, which is the default
                         behavior.)")));
 
+        insert(Configurable("add_pip_as_python_dependency", &ctx.add_pip_as_python_dependency)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Add pip as a Python dependency")
+                   .long_description("Automatically add pip as a Python dependency"));
+
         insert(Configurable("pinned_packages", &ctx.pinned_packages)
                    .group("Solver")
                    .set_rc_configurable()

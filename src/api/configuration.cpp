@@ -790,7 +790,7 @@ namespace mamba
         insert(Configurable("safety_checks", &ctx.safety_checks)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_names({"CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS"})
+                   .set_env_var_names({ "CONDA_SAFETY_CHECKS", "MAMBA_SAFETY_CHECKS" })
                    .description("Safety checks policy ('enabled', 'warn', or 'disabled')")
                    .long_description(unindent(R"(
                         Enforce available safety guarantees during package installation. The
@@ -799,7 +799,7 @@ namespace mamba
         insert(Configurable("extra_safety_checks", &ctx.extra_safety_checks)
                    .group("Link & Install")
                    .set_rc_configurable()
-                   .set_env_var_names({"CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS"})
+                   .set_env_var_names({ "CONDA_EXTRA_SAFETY_CHECKS", "MAMBA_EXTRA_SAFETY_CHECKS" })
                    .description("Run extra verifications on packages")
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. Currently, runs sha256

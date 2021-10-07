@@ -777,6 +777,22 @@ namespace mamba
             auto res = m_custom_channels.emplace(n, std::move(channel));
         }
 
+        auto& multichannels = Context::instance().custom_multichannels;
+        for (auto& [multichannelname, urllist] : multichannels)
+        {
+            std::vector<std::string> names(urllist.size());
+            auto name_iter = names.begin();
+            for (auto& url : urllist)
+            {
+                auto channel = ChannelInternal::make_simple_channel(
+                    m_channel_alias, url, "", multichannelname);
+                std::string name = channel.name();
+                auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
+                *name_iter++ = url;
+            }
+            m_custom_multichannels.emplace(multichannelname, std::move(names));
+        }
+
         /*******************
          * SIMPLE CHANNELS *
          *******************/

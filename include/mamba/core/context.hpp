@@ -176,6 +176,7 @@ namespace mamba
 
         std::vector<std::string> channels;
         std::map<std::string, std::string> custom_channels;
+        std::map<std::string, std::vector<std::string>> custom_multichannels;
 
         std::vector<std::string> default_channels = {
 #ifdef _WIN32

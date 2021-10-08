@@ -296,8 +296,10 @@ namespace mamba
         archive_write_disk_set_options(ext, flags);
         archive_write_disk_set_standard_lookup(ext);
 
-        if ((r = archive_read_open_filename(a, file.c_str(), 10240)))
+        r = archive_read_open_filename(a, file.c_str(), 10240);
+        if (r != ARCHIVE_OK)
         {
+            LOG_ERROR << "Error opening archive: " << archive_error_string(a);
             throw std::runtime_error(std::string(file) + ": Could not open archive for reading.");
         }
 

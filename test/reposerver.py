@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import socketserver
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
@@ -289,7 +290,6 @@ PORT = args.port
 
 server = HTTPServer(("", PORT), handler)
 print("Server started at localhost:" + str(PORT))
-
 try:
     server.serve_forever()
 except:

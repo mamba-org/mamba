@@ -75,13 +75,15 @@ def get_index(
         return spec
 
     all_channels = list(map(fixup_channel_spec, all_channels))
+    pkgs_dirs = api.MultiPackageCache(context.pkgs_dirs)
+    cache_dir = api.create_cache_dir(str(pkgs_dirs.first_writable_path))
 
     for channel in api.get_channels(all_channels):
         for channel_platform, url in channel.platform_urls(with_credentials=True):
             full_url = CondaHttpAuth.add_binstar_token(url + "/" + repodata_fn)
 
             full_path_cache = os.path.join(
-                api.create_cache_dir(), api.cache_fn_url(full_url)
+                str(pkgs_dirs.first_writable_path), api.cache_fn_url(full_url)
             )
             name = None
             if channel.name:
@@ -91,7 +93,11 @@ def get_index(
 
             with FileLock(full_path_cache):
                 sd = api.SubdirData(
-                    name, full_url, full_path_cache, channel_platform == "noarch"
+                    name,
+                    full_url,
+                    api.cache_fn_url(full_url),
+                    pkgs_dirs,
+                    channel_platform == "noarch",
                 )
                 sd.load()
 
@@ -100,7 +106,7 @@ def get_index(
             )
             dlist.add(sd)
 
-    with FileLock(api.create_cache_dir()):
+    with FileLock(cache_dir):
         is_downloaded = dlist.download(True)
 
     if not is_downloaded:
@@ -216,6 +222,16 @@ def init_api_context(use_mamba_experimental=False):
                 context.custom_channels[el].url(with_credentials=True), el
             )
     api_ctx.custom_channels = additional_custom_channels
+
+    additional_custom_multichannels = {}
+    for el in context.custom_multichannels:
+        if el not in ["defaults", "local"]:
+            additional_custom_multichannels[el] = []
+            for c in context.custom_multichannels[el]:
+                additional_custom_multichannels[el].append(
+                    get_base_url(c.url(with_credentials=True))
+                )
+    api_ctx.custom_multichannels = additional_custom_multichannels
 
     api_ctx.default_channels = [x.base_url for x in context.default_channels]
 

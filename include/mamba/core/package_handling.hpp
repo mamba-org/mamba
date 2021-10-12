@@ -32,6 +32,7 @@ namespace mamba
     void extract_conda(const fs::path& file,
                        const fs::path& dest_dir,
                        const std::vector<std::string>& parts = { "info", "pkg" });
+    void extract(const fs::path& file, const fs::path& destination);
     fs::path extract(const fs::path& file);
     bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level);
     bool validate(const fs::path& pkg_folder);

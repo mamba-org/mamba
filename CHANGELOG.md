@@ -1,3 +1,32 @@
+0.16.0 (September 27, 2021)
+===========================
+
+- Add a User-Agent header to all requests (mamba/0.16.0) (thanks @shankerwangmiao)
+- Add `micromamba env export (--explicit)` to micromamba
+- Do not display banner with `mamba list` (thanks @madhur-tandon)
+- Use directory of environment.yml as cwd when creating environment (thanks @marscher & @adriendelsalle)
+- Improve outputs
+- content-trust: Add Python bindings for content-trust API
+- content-trust: Load PkgMgr definitions from file
+- content-trust: Improve HEAD request fallback handling
+- export Transaction.find_python_version to Python
+- Continue `shell init` when we can't create the prefix script dir (thanks @maresb)
+- Implement support for `fish` shell in `micromamba` (thanks @soraxas)
+- Add constraint with pin when updating
+- Expose methods for virtual packages to Python (thanks @madhur-tandon)
+
+0.15.3 (August 18, 2021)
+========================
+
+- change token regex to work with edge-cases (underscores in user name) (#1122)
+- only pin major.minor version of python for update --all (#1101, thanks @mparry!)
+- add mamba init to the activate message (#1124, thanks @isuruf)
+- hide tokens in logs (#1121)
+- add lockfiles for repodata and pkgs download (#1105, thanks @jaimergp)
+- log actual SHA256/MD5/file size when failing to avlidate (#1095, thanks @johnhany97)
+- Add mamba.bat in front of PATH (#1112, thanks @isuruf)
+- Fix mamba not writable cache errors (#1108)
+
 0.15.2 (July 16, 2021)
 ======================
 

@@ -262,9 +262,7 @@ def remove(args, parser):
 
         with FileLock(PackageCacheData.first_writable().pkgs_dir):
             package_cache = api.MultiPackageCache(context.pkgs_dirs)
-            transaction = api.Transaction(
-                solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-            )
+            transaction = api.Transaction(solver, package_cache)
             downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
@@ -601,9 +599,7 @@ def install(args, parser, command="install"):
 
         with FileLock(PackageCacheData.first_writable().pkgs_dir):
             package_cache = api.MultiPackageCache(context.pkgs_dirs)
-            transaction = api.Transaction(
-                solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-            )
+            transaction = api.Transaction(solver, package_cache)
             mmb_specs, to_link, to_unlink = transaction.to_conda()
 
             specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
@@ -861,6 +857,9 @@ def _wrapped_main(*args, **kwargs):
         print_banner = False
         argv.remove("--no-banner")
     elif "MAMBA_NO_BANNER" in os.environ:
+        print_banner = False
+
+    if "list" in argv:
         print_banner = False
 
     args = argv

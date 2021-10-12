@@ -59,7 +59,7 @@ class TestShell:
             shutil.rmtree(TestShell.root_prefix)
 
     @pytest.mark.parametrize(
-        "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh"]
+        "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish"]
     )
     def test_hook(self, shell_type):
         res = shell("hook", "-s", shell_type)
@@ -76,6 +76,8 @@ class TestShell:
             assert res.count(mamba_exe) == 5
         elif shell_type == "xonsh":
             assert res.count(mamba_exe) == 8
+        elif shell_type == "fish":
+            assert res.count(mamba_exe) == 5
         elif shell_type == "cmd.exe":
             assert res == ""
 

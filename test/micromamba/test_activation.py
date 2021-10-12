@@ -4,6 +4,7 @@ import shutil
 import string
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -22,28 +23,50 @@ elif platform.system() == "Windows":
     running_os = "win"
 
 
-clean_env = os.environ.copy()
-clean_env = {
-    k: v for k, v in clean_env.items() if not (k.startswith(("CONDA", "MAMBA")))
-}
+@pytest.fixture
+def keep_cache(existing_cache):
+    yield True
 
-path = clean_env.get("PATH")
-elems = path.split(os.pathsep)
-elems = [e for e in elems if not "condabin" in e]
-clean_env["PATH"] = os.pathsep.join(elems)
+
+@pytest.fixture
+def clean_env(keep_cache):
+    clean_env = os.environ.copy()
+    clean_env = {
+        k: v
+        for k, v in clean_env.items()
+        if not k.startswith(("CONDA", "MAMBA"))
+        or (k == "CONDA_PKGS_DIRS" and keep_cache)
+    }
+
+    path = clean_env.get("PATH")
+    elems = path.split(os.pathsep)
+    elems = [e for e in elems if not "condabin" in e]
+    clean_env["PATH"] = os.pathsep.join(elems)
+
+    yield clean_env
+
 
 suffixes = {
     "cmdexe": ".bat",
     "bash": ".sh",
     "zsh": ".sh",
     "xonsh": ".sh",
+    "fish": ".fish",
     "powershell": ".ps1",
 }
 
 paths = {
     "win": {"powershell": None, "cmdexe": None},
-    "osx": {"zsh": "~/.zshrc", "bash": "~/.bash_profile"},
-    "linux": {"zsh": "~/.zshrc", "bash": "~/.bashrc"},
+    "osx": {
+        "zsh": "~/.zshrc",
+        "bash": "~/.bash_profile",
+        "fish": "~/.config/fish/config.fish",
+    },
+    "linux": {
+        "zsh": "~/.zshrc",
+        "bash": "~/.bashrc",
+        "fish": "~/.config/fish/config.fish",
+    },
 }
 
 if plat == "win":
@@ -67,15 +90,21 @@ def emit_check(cond):
     return cmds.if_(cond).then_(cmds.echo("YES")).else_(cmds.echo("NOPE"))
 
 
-enable_on_os = {
+possible_interpreters = {
     "win": {"powershell", "cmdexe"},
     # 'unix': {'bash', 'zsh', 'xonsh'},
-    "unix": {"bash", "zsh"},
+    "unix": {"bash", "zsh", "fish"},
 }
 
 shell_files = [
     Path(x).expanduser()
-    for x in ["~/.bashrc", "~/.bash_profile", "~/.zshrc", "~/.zsh_profile"]
+    for x in [
+        "~/.bashrc",
+        "~/.bash_profile",
+        "~/.zshrc",
+        "~/.zsh_profile",
+        "~/.config/fish/config.fish",
+    ]
 ]
 
 if plat == "win":
@@ -144,7 +173,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         s = mods
     f = write_script(interpreter, s, tmp_path)
 
-    if interpreter not in enable_on_os[running_os]:
+    if interpreter not in possible_interpreters[running_os]:
         return None, None
 
     if interpreter == "cmdexe":
@@ -172,7 +201,25 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
 
 
 def get_interpreters(exclude=[]):
-    return [x for x in enable_on_os[running_os] if x not in exclude]
+    return [x for x in possible_interpreters[running_os] if x not in exclude]
+
+
+def get_valid_interpreters():
+    valid_interpreters = []
+    s = ["echo 'hello world'"]
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        for interpreter in possible_interpreters[running_os]:
+            try:
+                stdout, _ = call_interpreter(s, tmpdirname, interpreter)
+                assert stdout == "hello world"
+                valid_interpreters.append(interpreter)
+            except:
+                pass
+
+    return valid_interpreters
+
+
+valid_interpreters = get_valid_interpreters()
 
 
 def shvar(v, interpreter):
@@ -182,13 +229,14 @@ def shvar(v, interpreter):
         return f"$Env:{v}"
     elif interpreter == "cmdexe":
         return f"%{v}%"
+    elif interpreter == "fish":
+        return f"${v}"
 
 
 class TestActivation:
 
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
-    cache = os.path.join(current_root_prefix, "pkgs")
 
     env_name = random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
@@ -200,29 +248,40 @@ class TestActivation:
         root_prefix, *["some_very_long_prefix" for i in range(20)], env_name
     )
 
-    @classmethod
-    def setup_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = cls.root_prefix
-        os.environ["CONDA_PREFIX"] = cls.prefix
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def new_root_prefix(existing_cache):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestActivation.root_prefix
+        os.environ["CONDA_PREFIX"] = TestActivation.prefix
+        create("-n", "base", no_dry_run=True)
+        create("xtensor", "-n", TestActivation.env_name, no_dry_run=True)
 
-    @classmethod
-    def teardown_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = cls.current_root_prefix
-        os.environ["CONDA_PREFIX"] = cls.current_prefix
+        yield
 
-        if os.path.exists(cls.root_prefix):
-            shutil.rmtree(cls.root_prefix)
-        if os.path.exists(cls.other_root_prefix):
-            shutil.rmtree(cls.other_root_prefix)
+        os.environ["MAMBA_ROOT_PREFIX"] = TestActivation.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestActivation.current_prefix
+
+        if os.path.exists(TestActivation.root_prefix):
+            if platform.system() == "Windows":
+                p = r"\\?\ ".strip() + TestActivation.root_prefix
+            else:
+                p = TestActivation.root_prefix
+            shutil.rmtree(p)
+
+        if os.path.exists(TestActivation.other_root_prefix):
+            if platform.system() == "Windows":
+                p = r"\\?\ ".strip() + TestActivation.other_root_prefix
+            else:
+                p = TestActivation.other_root_prefix
+            shutil.rmtree(p)
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_hello_world(self, tmp_path, interpreter):
-        s = ["echo 'hello world'"]
-        stdout, stderr = call_interpreter(s, tmp_path, interpreter)
-        assert stdout == "hello world"
+    def test_shell_init(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
 
-    @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_shell_init(self, tmp_path, interpreter, clean_shell_files):
         cwd = os.getcwd()
         umamba = get_umamba(cwd=cwd)
         env = {"MAMBA_ROOT_PREFIX": self.root_prefix}
@@ -312,7 +371,12 @@ class TestActivation:
                 assert not find_path_in_str(self.root_prefix, x)
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_activation(self, tmp_path, interpreter, clean_shell_files):
+    def test_activation(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
         cwd = os.getcwd()
         umamba = get_umamba(cwd=cwd)
 
@@ -329,6 +393,8 @@ class TestActivation:
             extract_vars = lambda vxs: [f"echo {v}=%{v}%" for v in vxs]
         elif interpreter in ["powershell"]:
             extract_vars = lambda vxs: [f"echo {v}=$Env:{v}" for v in vxs]
+        elif interpreter in ["fish"]:
+            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
 
         def to_dict(out):
             return {k: v for k, v in [x.split("=", 1) for x in out.splitlines()]}
@@ -344,10 +410,10 @@ class TestActivation:
         if interpreter in ["bash", "zsh", "powershell", "cmdexe"]:
             stdout, stderr = call(evars)
 
-            s = [f"micromamba --help"]
+            s = [f"{umamba} --help"]
             stdout, stderr = call(s)
 
-            s = [f"micromamba activate"] + evars
+            s = ["micromamba activate"] + evars
             stdout, stderr = call(s)
             res = to_dict(stdout)
 
@@ -357,20 +423,20 @@ class TestActivation:
             assert f"CONDA_SHLVL=1" in stdout.splitlines()
 
             # throw with non-existent
-            s = [f"micromamba activate nonexistent"]
+            s = ["micromamba activate nonexistent"]
             if not interpreter == "powershell":
                 with pytest.raises(subprocess.CalledProcessError):
                     stdout, stderr = call(s)
 
-            s1 = [f"micromamba create -n abc"]
-            s2 = [f"micromamba create -n xyz"]
+            s1 = ["micromamba create -n abc"]
+            s2 = ["micromamba create -n xyz"]
             call(s1)
             call(s2)
 
             s = [
-                f"micromamba activate",
-                f"micromamba activate abc",
-                f"micromamba activate xyz",
+                "micromamba activate",
+                "micromamba activate abc",
+                "micromamba activate xyz",
             ] + evars
             stdout, stderr = call(s)
             res = to_dict(stdout)
@@ -382,25 +448,27 @@ class TestActivation:
 
             # long paths
             s = [
-                f"micromamba create -p {TestActivation.long_prefix} xtensor six -y -c conda-forge"
+                f"micromamba create -p {TestActivation.long_prefix} -vvv xtensor six -y -c conda-forge"
             ]
             call(s)
 
             s = [
-                f"micromamba activate",
+                "micromamba activate",
                 f"micromamba activate {TestActivation.long_prefix}",
             ] + evars
             stdout, stderr = call(s)
             res = to_dict(stdout)
+
+            print(res["PATH"])
 
             assert find_path_in_str(str(rp / "condabin"), res["PATH"])
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(TestActivation.long_prefix, res["PATH"])
 
             s = [
-                f"micromamba activate",
-                f"micromamba activate abc",
-                f"micromamba activate xyz --stack",
+                "micromamba activate",
+                "micromamba activate abc",
+                "micromamba activate xyz --stack",
             ] + evars
             stdout, stderr = call(s)
             res = to_dict(stdout)
@@ -410,9 +478,9 @@ class TestActivation:
             assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
 
             s = [
-                f"micromamba activate",
-                f"micromamba activate abc",
-                f"micromamba activate --stack xyz",
+                "micromamba activate",
+                "micromamba activate abc",
+                "micromamba activate --stack xyz",
             ] + evars
             stdout, stderr = call(s)
             res = to_dict(stdout)

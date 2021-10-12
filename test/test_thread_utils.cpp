@@ -20,7 +20,7 @@ namespace mamba
         Console::instance().init_multi_progress();
         {
             interruption_guard g([&res]() {
-                // Test for double free (segfault if that happends)
+                // Test for double free (segfault if that happens)
                 std::cout << "Interruption guard is interrupting" << std::endl;
                 Console::instance().init_multi_progress();
                 {
@@ -43,9 +43,8 @@ namespace mamba
             }
             if (interrupt)
             {
-                pthread_kill(get_signal_receiver_thread_id(), SIGINT);
-                // sleep before resetting sig_interrupted
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                stop_receiver_thread();
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         }
         return res;

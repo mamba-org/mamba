@@ -36,8 +36,13 @@ namespace validate
     const std::size_t MAMBA_ED25519_SIGSIZE_BYTES = 64;
 
     int generate_ed25519_keypair(unsigned char* pk, unsigned char* sk);
+    std::pair<std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
+              std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    generate_ed25519_keypair();
+    std::pair<std::string, std::string> generate_ed25519_keypair_hex();
 
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature);
+    int sign(const std::string& data, const std::string& sk, std::string& signature);
 
     std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> ed25519_sig_hex_to_bytes(
         const std::string& sig_hex) noexcept;
@@ -197,6 +202,16 @@ namespace validate
         virtual ~package_error() = default;
     };
 
+    /**
+     * Error raised when signatures threshold
+     * is not met for a trust role.
+     */
+    class role_error : public trust_error
+    {
+    public:
+        role_error() noexcept;
+        virtual ~role_error() = default;
+    };
 
     /**
      * Error raised when an invalid package
@@ -209,6 +224,7 @@ namespace validate
         virtual ~index_error() = default;
     };
 
+    void check_timestamp_metadata_format(const std::string& ts);
 
     /**
      * Representation of the public part of a
@@ -285,6 +301,9 @@ namespace validate
      */
     struct RoleFullKeys
     {
+        RoleFullKeys() = default;
+        RoleFullKeys(const std::map<std::string, Key>& keys_, const std::size_t& threshold_);
+
         std::map<std::string, Key> keys;
         std::size_t threshold;
 
@@ -419,8 +438,10 @@ namespace validate
         virtual std::set<std::string> mandatory_defined_roles() const;
         // Optional roles defined by the current role
         virtual std::set<std::string> optionally_defined_roles() const;
-        // Checks on the defined roles
-        void check_defined_roles() const;
+
+        // Check role
+        void check_expiration_format() const;
+        void check_defined_roles(bool allow_any = false) const;
 
         std::map<std::string, RoleFullKeys> m_defined_roles;
 
@@ -470,8 +491,7 @@ namespace validate
         virtual ~RepoIndexChecker() = default;
         virtual void verify_index(const json& j) const = 0;
         virtual void verify_index(const fs::path& p) const = 0;
-        virtual void verify_package(const fs::path& index_path,
-                                    const std::string& pkg_name) const = 0;
+        virtual void verify_package(const json& signed_data, const json& signatures) const = 0;
 
     protected:
         RepoIndexChecker() = default;
@@ -499,7 +519,7 @@ namespace validate
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const json& j) const;
         void verify_index(const fs::path& p) const;
-        void verify_package(const fs::path& index_path, const std::string& pkg_name) const;
+        void verify_package(const json& signed_data, const json& signatures) const;
 
         void generate_index_checker();
 
@@ -596,17 +616,34 @@ namespace validate
             bool upgradable() const override;
         };
 
+        class V06RoleBaseExtension
+        {
+        public:
+            void set_timestamp(const std::string& ts);
+
+            std::string timestamp() const;
+
+        protected:
+            std::string m_timestamp;
+
+            void check_timestamp_format() const;
+        };
+
+
         // Forward declaration of KeyMgrRole.
         class KeyMgrRole;
 
         /**
          * 'root' role implementation.
          */
-        class RootImpl final : public RootRole
+        class RootImpl final
+            : public RootRole
+            , public V06RoleBaseExtension
         {
         public:
             RootImpl(const fs::path& p);
             RootImpl(const json& j);
+            RootImpl(const std::string& json_str);
 
             /**
              * Return a ``RepoIndexChecker`` implementation (derived class)
@@ -648,9 +685,21 @@ namespace validate
         /**
          * 'key_mgr' role implementation.
          */
-        class KeyMgrRole final : public RoleBase
+        class KeyMgrRole final
+            : public RoleBase
+            , public V06RoleBaseExtension
         {
         public:
+            KeyMgrRole(const fs::path& p,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(const json& j,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            KeyMgrRole(const std::string& json_str,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+
             // std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
 
@@ -668,12 +717,6 @@ namespace validate
 
         private:
             KeyMgrRole() = delete;
-            KeyMgrRole(const fs::path& p,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
-            KeyMgrRole(const json& j,
-                       const RoleFullKeys& keys,
-                       const std::shared_ptr<SpecBase> spec);
 
             void load_from_json(const json& j);
 
@@ -684,8 +727,6 @@ namespace validate
             std::set<std::string> optionally_defined_roles() const override;
 
             void set_defined_roles(std::map<std::string, RolePubKeys> keys);
-
-            friend class RootImpl;
         };
 
 
@@ -697,21 +738,38 @@ namespace validate
          */
         class PkgMgrRole final
             : public RoleBase
+            , public V06RoleBaseExtension
             , public RepoIndexChecker
         {
         public:
+            PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(const fs::path& p,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(const json& j,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+            PkgMgrRole(const std::string& json_str,
+                       const RoleFullKeys& keys,
+                       const std::shared_ptr<SpecBase> spec);
+
             void verify_index(const fs::path& p) const override;
             void verify_index(const json& j) const override;
-            void verify_package(const fs::path& index_path,
-                                const std::string& pkg_name) const override;
+            void verify_package(const json& signed_data, const json& signatures) const override;
+
+            friend void to_json(json& j, const PkgMgrRole& r);
+            friend void from_json(const json& j, PkgMgrRole& r);
 
         private:
             PkgMgrRole() = delete;
-            PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
+
+            void load_from_json(const json& j);
 
             RoleFullKeys self_keys() const override;
             std::set<RoleSignature> pkg_signatures(const json& j) const;
             void check_pkg_signatures(const json& signed_data, const json& signatures) const;
+
+            void set_defined_roles(std::map<std::string, RolePubKeys> keys);
 
             RoleFullKeys m_keys;
 

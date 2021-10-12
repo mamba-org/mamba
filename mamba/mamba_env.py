@@ -8,7 +8,6 @@ from __future__ import absolute_import, print_function
 import sys
 
 from conda.base.context import context
-from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import get_pinned_specs
 from conda.models.match_spec import MatchSpec
@@ -112,9 +111,7 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
         exit(1)
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
-    transaction = api.Transaction(
-        solver, package_cache, PackageCacheData.first_writable().pkgs_dir
-    )
+    transaction = api.Transaction(solver, package_cache)
     if not (context.quiet or context.json):
         transaction.print()
     mmb_specs, to_link, to_unlink = transaction.to_conda()

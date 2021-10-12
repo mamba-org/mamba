@@ -110,7 +110,7 @@ def shell_init(args):
                 changed = True
     if changed:
         print(
-            "\n==> For changes to take effect, close"
+            "\n==> For changes to take effect, close "
             "and re-open your current shell. <==\n"
         )
     return exit_code

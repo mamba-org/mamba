@@ -25,10 +25,18 @@ namespace mamba
      * thread interruption *
      ***********************/
 
-    void set_default_signal_handler();
+#ifndef _WIN32
+    void set_signal_handler(const std::function<void(sigset_t)>& handler);
 
+    int stop_receiver_thread();
+    int kill_receiver_thread();
+    void reset_sig_interrupted();
+#endif
+
+    void set_default_signal_handler();
     bool is_sig_interrupted() noexcept;
     void set_sig_interrupted() noexcept;
+
 
     void interruption_point();
 
@@ -55,9 +63,6 @@ namespace mamba
     // it won't free ressources that could be required
     // by threads still active.
     void wait_for_all_threads();
-
-    std::thread::native_handle_type get_signal_receiver_thread_id();
-    void reset_sig_interrupted();
 
     /**********
      * thread *
@@ -86,6 +91,7 @@ namespace mamba
 
         void join();
         void detach();
+        std::thread::native_handle_type native_handle();
 
     private:
         std::thread m_thread;
@@ -103,6 +109,7 @@ namespace mamba
             }
             catch (thread_interrupted&)
             {
+                errno = EINTR;
             }
             decrease_thread_count();
         });

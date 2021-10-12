@@ -661,9 +661,9 @@ namespace mamba
         return out;
     }
 
-    nl::json query_result::json() const
+    nlohmann::json query_result::json() const
     {
-        nl::json j;
+        nlohmann::json j;
         std::string query_type = m_type == QueryType::Search
                                      ? "search"
                                      : (m_type == QueryType::Depends ? "depends" : "whoneeds");
@@ -676,15 +676,15 @@ namespace mamba
         j["result"]["pkgs"] = nlohmann::json::array();
         for (size_t i = 0; i < m_pkg_view_list.size(); ++i)
         {
-            j["result"]["pkgs"].push_back(m_pkg_view_list[i]->json());
+            j["result"]["pkgs"].push_back(m_pkg_view_list[i]->json_record());
         }
 
         if (m_type != QueryType::Search && !m_pkg_view_list.empty())
         {
             bool has_root = !m_dep_graph.get_edge_list(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
-            j["result"]["graph_roots"].push_back(has_root ? m_dep_graph.get_node_list()[0].json()
-                                                          : nl::json(m_query));
+            j["result"]["graph_roots"].push_back(
+                has_root ? m_dep_graph.get_node_list()[0].json_record() : nlohmann::json(m_query));
         }
         return j;
     }

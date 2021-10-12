@@ -268,6 +268,7 @@ namespace validate
                     root1_json["signed"]["version"] = 1;
                     root1_json["signed"]["metadata_spec_version"] = "0.6.0";
                     root1_json["signed"]["type"] = "root";
+                    root1_json["signed"]["timestamp"] = timestamp(utc_time_now());
                     root1_json["signed"]["expiration"] = timestamp(utc_time_now() + 3600);
                     root1_json["signatures"] = sign_root_meta(root1_json["signed"]);
 
@@ -363,6 +364,16 @@ namespace validate
             TEST_F(RootImplT_v06, ctor_from_json)
             {
                 RootImpl root(root1_json);
+
+                EXPECT_EQ(root.type(), "root");
+                EXPECT_EQ(root.file_ext(), "json");
+                EXPECT_EQ(root.spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(root.version(), 1);
+            }
+
+            TEST_F(RootImplT_v06, ctor_from_json_str)
+            {
+                RootImpl root(root1_json.dump());
 
                 EXPECT_EQ(root.type(), "root");
                 EXPECT_EQ(root.file_ext(), "json");
@@ -542,7 +553,7 @@ namespace validate
                              role_file_error);
             }
 
-            TEST_F(RootImplT_v06, hillformed_filename_version)
+            TEST_F(RootImplT_v06, illformed_filename_version)
             {
                 RootImpl root(root1_json);
 
@@ -677,8 +688,7 @@ namespace validate
                     { "op": "replace", "path": "/signed/delegations/root/threshold", "value": 2 }
                     ])"_json;
 
-                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
-                             threshold_error);
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)), role_error);
             }
 
             TEST_F(RootImplT_v06, expires)
@@ -701,6 +711,34 @@ namespace validate
 
                 auto testing_root = static_cast<RootImpl*>(updated_root.get());
                 EXPECT_FALSE(testing_root->expired());
+            }
+
+            TEST_F(RootImplT_v06, timestamp)
+            {
+                RootImpl root(root1_json);
+
+                json patch;
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09+0030" },
+                    { "op": "replace", "path": "/signed/version", "value": 2 }
+                    ])");
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
+                             role_metadata_error);
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09D" },
+                    { "op": "replace", "path": "/signed/version", "value": 2 }
+                    ])");
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
+                             role_metadata_error);
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09.000" },
+                    { "op": "replace", "path": "/signed/version", "value": 2 }
+                    ])");
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootImplT_v06, possible_update_files)
@@ -847,6 +885,7 @@ namespace validate
                     key_mgr_json["signed"]["metadata_spec_version"] = "0.6.0";
                     key_mgr_json["signed"]["type"] = "key_mgr";
 
+                    key_mgr_json["signed"]["timestamp"] = timestamp(utc_time_now());
                     key_mgr_json["signed"]["expiration"] = timestamp(utc_time_now() + 3600);
                     key_mgr_json["signatures"] = sign_key_mgr_meta(key_mgr_json["signed"]);
                 }
@@ -903,6 +942,17 @@ namespace validate
             {
                 RootImpl root(root1_json);
                 auto key_mgr = root.create_key_mgr(key_mgr_json);
+
+                EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
+                EXPECT_EQ(key_mgr.version(), 1);
+            }
+
+            TEST_F(KeyMgrT_v06, ctor_from_json_str)
+            {
+                RootImpl root(root1_json);
+                auto key_mgr = KeyMgrRole(key_mgr_json.dump(),
+                                          root.all_keys()["key_mgr"],
+                                          std::make_shared<SpecImpl>(SpecImpl()));
 
                 EXPECT_EQ(key_mgr.spec_version(), SpecImpl("0.6.0"));
                 EXPECT_EQ(key_mgr.version(), 1);
@@ -1019,6 +1069,31 @@ namespace validate
                 EXPECT_TRUE(root.expired());
             }
 
+            TEST_F(KeyMgrT_v06, timestamp)
+            {
+                RootImpl root(root1_json);
+
+                json patch;
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09+0030" },
+                    { "op": "replace", "path": "/signed/version", "value": 1 }
+                    ])");
+
+                EXPECT_THROW(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09D" },
+                    { "op": "replace", "path": "/signed/version", "value": 1 }
+                    ])");
+                EXPECT_THROW(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/timestamp", "value": "2021-09-20T07:07:09.000" },
+                    { "op": "replace", "path": "/signed/version", "value": 1 }
+                    ])");
+                EXPECT_THROW(root.create_key_mgr(patched_key_mgr_json(patch)), role_metadata_error);
+            }
 
             class PkgMgrT_v06 : public KeyMgrT_v06
             {
@@ -1124,15 +1199,15 @@ namespace validate
                              package_error);
             }
 
-            TEST_F(PkgMgrT_v06, hillformed_repodata)
+            TEST_F(PkgMgrT_v06, illformed_repodata)
             {
                 auto key_mgr = root->create_key_mgr(key_mgr_json);
                 auto pkg_mgr = key_mgr.create_pkg_mgr();
 
-                json hillformed_pkg_patch = R"([
+                json illformed_pkg_patch = R"([
                             { "op": "remove", "path": "/signatures"}
                             ])"_json;
-                EXPECT_THROW(pkg_mgr.verify_index(signed_repodata_json.patch(hillformed_pkg_patch)),
+                EXPECT_THROW(pkg_mgr.verify_index(signed_repodata_json.patch(illformed_pkg_patch)),
                              index_error);
             }
 
@@ -1232,15 +1307,15 @@ namespace validate
                              package_error);
             }
 
-            TEST_F(RepoCheckerT, hillformed_repodata)
+            TEST_F(RepoCheckerT, illformed_repodata)
             {
                 RepoChecker checker(m_repo_base_url, m_ref_path);
 
-                json hillformed_pkg_patch = R"([
+                json illformed_pkg_patch = R"([
                             { "op": "remove", "path": "/signatures"}
                             ])"_json;
                 checker.generate_index_checker();
-                EXPECT_THROW(checker.verify_index(signed_repodata_json.patch(hillformed_pkg_patch)),
+                EXPECT_THROW(checker.verify_index(signed_repodata_json.patch(illformed_pkg_patch)),
                              index_error);
             }
         }  // namespace testing
@@ -1504,7 +1579,7 @@ namespace validate
                 EXPECT_THROW(root.update(create_root_update("2.sv0.6.root.json")), role_file_error);
             }
 
-            TEST_F(RootImplT_v1, hillformed_filename_version)
+            TEST_F(RootImplT_v1, illformed_filename_version)
             {
                 RootImpl root(root1_json);
 
@@ -1664,8 +1739,7 @@ namespace validate
                     { "op": "replace", "path": "/signed/roles/root/threshold", "value": 2 }
                     ])"_json;
 
-                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
-                             threshold_error);
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)), role_error);
             }
 
             TEST_F(RootImplT_v1, expires)
@@ -1688,6 +1762,27 @@ namespace validate
 
                 auto testing_root = static_cast<RootImpl*>(updated_root.get());
                 EXPECT_FALSE(testing_root->expired());
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09+0030" },
+                    { "op": "replace", "path": "/signed/version", "value": 2 }
+                    ])");
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
+                             role_metadata_error);
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09D" },
+                    { "op": "replace", "path": "/signed/version", "value": 2 }
+                    ])");
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
+                             role_metadata_error);
+
+                patch = json::parse(R"([
+                    { "op": "replace", "path": "/signed/expires", "value": "2051-10-08T07:07:09.000" },
+                    { "op": "replace", "path": "/signed/version", "value": 2 }
+                    ])");
+                EXPECT_THROW(root.update(create_root_update("2.root.json", patch)),
+                             role_metadata_error);
             }
 
             TEST_F(RootImplT_v1, possible_update_files)

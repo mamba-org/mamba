@@ -59,13 +59,7 @@ namespace mamba
         , m_token(token)
         , m_package_filename(package_filename)
         , m_canonical_name(canonical_name)
-        , m_repo_checker(base_url(),
-                         Context::instance().root_prefix / "etc" / "trusted-repos"
-                             / cache_name_from_url(base_url()),
-                         PackageCacheData::first_writable().get_pkgs_dir() / "cache"
-                             / cache_name_from_url(base_url()))
     {
-        fs::create_directories(m_repo_checker.cache_path());
     }
 
     const std::string& Channel::scheme() const
@@ -103,10 +97,21 @@ namespace mamba
         return m_package_filename;
     }
 
-    const validate::RepoChecker& Channel::repo_checker() const
+    const validate::RepoChecker& Channel::repo_checker(MultiPackageCache& caches) const
     {
-        m_repo_checker.generate_index_checker();
-        return m_repo_checker;
+        if (p_repo_checker == nullptr)
+        {
+            p_repo_checker = std::make_unique<validate::RepoChecker>(
+                rsplit(base_url(), "/", 1).front(),
+                Context::instance().root_prefix / "etc" / "trusted-repos"
+                    / cache_name_from_url(base_url()),
+                caches.first_writable_path() / "cache" / cache_name_from_url(base_url()));
+
+            fs::create_directories(p_repo_checker->cache_path());
+            p_repo_checker->generate_index_checker();
+        }
+
+        return *p_repo_checker;
     }
 
     const std::string& Channel::canonical_name() const
@@ -776,6 +781,22 @@ namespace mamba
             auto channel
                 = ChannelInternal::make_simple_channel(m_channel_alias, join_url(url, n), "", n);
             auto res = m_custom_channels.emplace(n, std::move(channel));
+        }
+
+        auto& multichannels = Context::instance().custom_multichannels;
+        for (auto& [multichannelname, urllist] : multichannels)
+        {
+            std::vector<std::string> names(urllist.size());
+            auto name_iter = names.begin();
+            for (auto& url : urllist)
+            {
+                auto channel = ChannelInternal::make_simple_channel(
+                    m_channel_alias, url, "", multichannelname);
+                std::string name = channel.name();
+                auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
+                *name_iter++ = url;
+            }
+            m_custom_multichannels.emplace(multichannelname, std::move(names));
         }
 
         /*******************

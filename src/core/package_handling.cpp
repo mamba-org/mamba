@@ -99,12 +99,21 @@ namespace mamba
             archive_write_set_format_gnutar(a);
             archive_write_set_format_pax_restricted(a);  // Note 1
             archive_write_add_filter_bzip2(a);
+
+            if (compression_level < 0 || compression_level > 9)
+                throw std::runtime_error("bzip2 compression level should be between 0 and 9");
+            std::string comp_level
+                = std::string("bzip2:compression-level=") + std::to_string(compression_level);
+            archive_write_set_options(a, comp_level.c_str());
         }
         if (ca == compression_algorithm::zip)
         {
+            archive_write_set_format_zip(a);
+
+            if (compression_level < 0 || compression_level > 9)
+                throw std::runtime_error("zip compression level should be between 0 and 9");
             std::string comp_level
                 = std::string("zip:compression-level=") + std::to_string(compression_level);
-            archive_write_set_format_zip(a);
             archive_write_set_options(a, comp_level.c_str());
         }
         if (ca == compression_algorithm::zstd)
@@ -112,6 +121,9 @@ namespace mamba
             archive_write_set_format_gnutar(a);
             archive_write_set_format_pax_restricted(a);  // Note 1
             archive_write_add_filter_zstd(a);
+
+            if (compression_level < 1 || compression_level > 22)
+                throw std::runtime_error("zip compression level should be between 1 and 22");
             std::string comp_level
                 = std::string("zstd:compression-level=") + std::to_string(compression_level);
             archive_write_set_options(a, comp_level.c_str());
@@ -284,8 +296,10 @@ namespace mamba
         archive_write_disk_set_options(ext, flags);
         archive_write_disk_set_standard_lookup(ext);
 
-        if ((r = archive_read_open_filename(a, file.c_str(), 10240)))
+        r = archive_read_open_filename(a, file.c_str(), 10240);
+        if (r != ARCHIVE_OK)
         {
+            LOG_ERROR << "Error opening archive: " << archive_error_string(a);
             throw std::runtime_error(std::string(file) + ": Could not open archive for reading.");
         }
 
@@ -379,23 +393,31 @@ namespace mamba
         }
     }
 
+    void extract(const fs::path& file, const fs::path& dest)
+    {
+        if (ends_with(file.string(), ".tar.bz2"))
+            extract_archive(file, dest);
+        else if (ends_with(file.string(), ".conda"))
+            extract_conda(file, dest);
+        else
+        {
+            LOG_ERROR << "Unknown package format '" << file.string() << "'";
+            throw std::runtime_error("Unknown package format.");
+        }
+    }
+
     fs::path extract(const fs::path& file)
     {
         std::string dest_dir = file;
         if (ends_with(dest_dir, ".tar.bz2"))
         {
             dest_dir = dest_dir.substr(0, dest_dir.size() - 8);
-            extract_archive(file, dest_dir);
         }
         else if (ends_with(dest_dir, ".conda"))
         {
             dest_dir = dest_dir.substr(0, dest_dir.size() - 6);
-            extract_conda(file, dest_dir);
         }
-        else
-        {
-            throw std::runtime_error("Unknown package format (" + file.string() + ")");
-        }
+        extract(file, dest_dir);
         return dest_dir;
     }
 

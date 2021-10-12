@@ -492,8 +492,19 @@ namespace mamba
         kApi = 0,
         kCli = 1,
         kEnvVar = 2,
-        kFile = 3
+        kFile = 3,
+        kDefault = 4
     };
+
+
+    enum class RCConfigLevel
+    {
+        kSystemDir = 0,
+        kRootPrefix = 1,
+        kHomeDir = 2,
+        kTargetPrefix = 3
+    };
+
 
     int const MAMBA_NO_PREFIX_CHECK = 1 << 0;
     int const MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1;
@@ -513,7 +524,9 @@ namespace mamba
     template <class T>
     class Configurable
     {
-        using hook_type = std::function<void(T&)>;
+        using value_hook_type = std::function<T()>;
+        using post_merge_hook_type = std::function<void(T&)>;
+        using post_context_hook_type = std::function<void()>;
 
     public:
         using self_type = Configurable<T>;
@@ -552,6 +565,8 @@ namespace mamba
 
         bool rc_configurable() const;
 
+        RCConfigLevel rc_configurable_level() const;
+
         bool rc_configured() const;
 
         bool env_var_configured() const;
@@ -573,7 +588,7 @@ namespace mamba
 
         self_type& clear_rc_values();
 
-        self_type& clear_env_value();
+        self_type& clear_env_values();
 
         self_type& clear_cli_value();
 
@@ -583,7 +598,7 @@ namespace mamba
 
         self_type& set_single_op_lifetime();
 
-        self_type& set_env_var_name(const std::string& name = "");
+        self_type& set_env_var_names(const std::vector<std::string>& names = {});
 
         self_type& group(const std::string& group);
 
@@ -591,22 +606,26 @@ namespace mamba
 
         self_type& implies(const std::set<std::string>& names);
 
-        self_type& set_rc_configurable();
+        self_type& set_rc_configurable(RCConfigLevel level = RCConfigLevel::kTargetPrefix);
 
         self_type& description(const std::string& desc);
 
         self_type& long_description(const std::string& desc);
 
-        self_type& set_post_build_hook(hook_type hook);
+        self_type& set_default_value_hook(value_hook_type hook);
 
-        self_type& set_context();
+        self_type& set_fallback_value_hook(value_hook_type hook);
+
+        self_type& set_post_merge_hook(post_merge_hook_type hook);
+
+        self_type& set_post_context_hook(post_context_hook_type hook);
 
         self_type& set_cli_value(const cli_config_storage_type& value);
 
         cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
 
         self_type& compute(const int options = 0,
-                           const ConfigurationLevel& level = ConfigurationLevel::kFile);
+                           const ConfigurationLevel& level = ConfigurationLevel::kDefault);
 
         bool is_valid_serialization(const std::string& value) const;
 
@@ -625,9 +644,10 @@ namespace mamba
         std::string m_group = "Default";
         std::string m_description = "No description provided";
         std::string m_long_description = "";
-        std::string m_env_var = "";
+        std::vector<std::string> m_env_var_names = {};
 
         bool m_rc_configurable = false;
+        RCConfigLevel m_rc_configurable_policy = RCConfigLevel::kTargetPrefix;
         bool m_rc_configured = false;
         bool m_api_configured = false;
 
@@ -641,12 +661,17 @@ namespace mamba
         std::map<std::string, T> m_rc_values, m_values;
         std::vector<std::string> m_rc_sources, m_sources;
 
-        T m_value, m_default_value;
+        T m_value, m_init_value, m_default_value;
         std::vector<std::string> m_source;
 
         std::shared_ptr<cli_config_type> p_cli_config = 0;
         T* p_context = 0;
-        hook_type p_hook;
+
+        value_hook_type p_default_value_hook, p_fallback_value_hook;
+        post_merge_hook_type p_post_merge_hook;
+        post_context_hook_type p_post_ctx_hook;
+
+        self_type& set_context();
     };
 
     /*********************
@@ -657,7 +682,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, T* context)
         : m_name(name)
         , m_value(*context)
-        , m_default_value(*context)
+        , m_init_value(*context)
         , m_source(detail::Source<T>::default_value(*context))
         , p_context(context){};
 
@@ -665,7 +690,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, const T& init)
         : m_name(name)
         , m_value(init)
-        , m_default_value(init)
+        , m_init_value(init)
         , m_source(detail::Source<T>::default_value(init)){};
 
     template <class T>
@@ -732,6 +757,12 @@ namespace mamba
     };
 
     template <class T>
+    RCConfigLevel Configurable<T>::rc_configurable_level() const
+    {
+        return m_rc_configurable_policy;
+    };
+
+    template <class T>
     bool Configurable<T>::rc_configured() const
     {
         return m_rc_configured && !Context::instance().no_rc;
@@ -740,7 +771,14 @@ namespace mamba
     template <class T>
     bool Configurable<T>::env_var_configured() const
     {
-        return !m_env_var.empty() && !Context::instance().no_env && !env::get(m_env_var).empty();
+        if (Context::instance().no_env)
+            return false;
+
+        for (const auto& env_var : m_env_var_names)
+            if (!env::get(env_var).empty())
+                return true;
+
+        return false;
     };
 
     template <class T>
@@ -872,15 +910,15 @@ namespace mamba
     }
 
     template <class T>
-    auto Configurable<T>::set_env_var_name(const std::string& name) -> self_type&
+    auto Configurable<T>::set_env_var_names(const std::vector<std::string>& names) -> self_type&
     {
-        if (name.empty())
+        if (names.empty())
         {
-            m_env_var = "MAMBA_" + to_upper(m_name);
+            m_env_var_names = { "MAMBA_" + to_upper(m_name) };
         }
         else
         {
-            m_env_var = name;
+            m_env_var_names = names;
         }
         m_needed_configs.insert("no_env");
 
@@ -897,10 +935,11 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::clear_env_value() -> self_type&
+    auto Configurable<T>::clear_env_values() -> self_type&
     {
         if (env_var_configured())
-            env::set(m_env_var, "");
+            for (const auto& ev : m_env_var_names)
+                env::set(ev, "");
         return *this;
     };
 
@@ -922,10 +961,10 @@ namespace mamba
     auto Configurable<T>::clear_values() -> self_type&
     {
         clear_rc_values();
-        clear_env_value();
+        clear_env_values();
         clear_cli_value();
         clear_api_value();
-        m_value = m_default_value;
+        m_value = m_init_value;
 
         return *this;
     };
@@ -938,10 +977,16 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::set_rc_configurable() -> self_type&
+    auto Configurable<T>::set_rc_configurable(RCConfigLevel level) -> self_type&
     {
         m_rc_configurable = true;
-        m_needed_configs.insert("rc_file");
+        m_rc_configurable_policy = level;
+
+        if (level == RCConfigLevel::kTargetPrefix)
+            m_needed_configs.insert("target_prefix");
+        else
+            m_needed_configs.insert("root_prefix");
+
         return *this;
     };
 
@@ -986,9 +1031,30 @@ namespace mamba
     };
 
     template <class T>
-    auto Configurable<T>::set_post_build_hook(hook_type hook) -> self_type&
+    auto Configurable<T>::set_default_value_hook(value_hook_type hook) -> self_type&
     {
-        p_hook = hook;
+        p_default_value_hook = hook;
+        return *this;
+    }
+
+    template <class T>
+    auto Configurable<T>::set_fallback_value_hook(value_hook_type hook) -> self_type&
+    {
+        p_fallback_value_hook = hook;
+        return *this;
+    }
+
+    template <class T>
+    auto Configurable<T>::set_post_merge_hook(post_merge_hook_type hook) -> self_type&
+    {
+        p_post_merge_hook = hook;
+        return *this;
+    }
+
+    template <class T>
+    auto Configurable<T>::set_post_context_hook(post_context_hook_type hook) -> self_type&
+    {
+        p_post_ctx_hook = hook;
         return *this;
     }
 
@@ -1044,6 +1110,8 @@ namespace mamba
 
             virtual bool rc_configurable() const = 0;
 
+            virtual RCConfigLevel rc_configurable_level() const = 0;
+
             virtual const std::set<std::string>& needed() const = 0;
 
             virtual const std::set<std::string>& implied() const = 0;
@@ -1078,7 +1146,7 @@ namespace mamba
 
             virtual void clear_rc_values() = 0;
 
-            virtual void clear_env_value() = 0;
+            virtual void clear_env_values() = 0;
 
             virtual void clear_cli_value() = 0;
 
@@ -1086,9 +1154,7 @@ namespace mamba
 
             virtual void clear_values() = 0;
 
-            virtual void set_context() = 0;
-
-            virtual void set_env_var_name(const std::string& name) = 0;
+            virtual void set_env_var_names(const std::vector<std::string>& names) = 0;
 
             virtual void group(const std::string& name) = 0;
 
@@ -1181,6 +1247,11 @@ namespace mamba
             bool rc_configurable() const
             {
                 return p_wrapped->rc_configurable();
+            };
+
+            RCConfigLevel rc_configurable_level() const
+            {
+                return p_wrapped->rc_configurable_level();
             };
 
             const std::set<std::string>& needed() const
@@ -1286,9 +1357,9 @@ namespace mamba
                 p_wrapped->clear_rc_values();
             };
 
-            void clear_env_value()
+            void clear_env_values()
             {
-                p_wrapped->clear_env_value();
+                p_wrapped->clear_env_values();
             };
 
             void clear_cli_value()
@@ -1306,14 +1377,9 @@ namespace mamba
                 p_wrapped->clear_values();
             };
 
-            void set_context()
+            void set_env_var_names(const std::vector<std::string>& names)
             {
-                p_wrapped->set_context();
-            };
-
-            void set_env_var_name(const std::string& name)
-            {
-                p_wrapped->set_env_var_name(name);
+                p_wrapped->set_env_var_names(names);
             };
 
             void group(const std::string& name)
@@ -1463,6 +1529,11 @@ namespace mamba
             return p_impl->rc_configurable();
         };
 
+        RCConfigLevel rc_configurable_level() const
+        {
+            return p_impl->rc_configurable_level();
+        };
+
         const std::set<std::string>& needed() const
         {
             return p_impl->needed();
@@ -1564,9 +1635,9 @@ namespace mamba
             return *this;
         };
 
-        self_type& clear_env_value()
+        self_type& clear_env_values()
         {
-            p_impl->clear_env_value();
+            p_impl->clear_env_values();
             return *this;
         };
 
@@ -1588,15 +1659,9 @@ namespace mamba
             return *this;
         };
 
-        self_type& set_context()
+        self_type& set_env_var_names(const std::vector<std::string>& names = {})
         {
-            p_impl->set_context();
-            return *this;
-        };
-
-        self_type& set_env_var_name(const std::string& name = "")
-        {
-            p_impl->set_env_var_name(name);
+            p_impl->set_env_var_names(names);
             return *this;
         };
 
@@ -1619,7 +1684,7 @@ namespace mamba
         };
 
         self_type& compute(const int options = 0,
-                           const ConfigurationLevel& level = ConfigurationLevel::kFile)
+                           const ConfigurationLevel& level = ConfigurationLevel::kDefault)
         {
             p_impl->compute(options, level);
             return *this;
@@ -1657,18 +1722,15 @@ namespace mamba
         std::vector<fs::path> sources();
         std::vector<fs::path> valid_sources();
 
-        void set_possible_rc_sources();
-        void set_possible_rc_sources(const std::vector<fs::path>& sources);
-
-        void load_rc_files();
+        void set_rc_values(std::vector<fs::path> possible_rc_paths, const RCConfigLevel& level);
 
         void load();
 
         bool is_loading();
 
         void clear_rc_values();
-
         void clear_cli_values();
+        void clear_values();
 
         /**
          * Pop values that should have a single operation lifetime to avoid memroy effect
@@ -1701,14 +1763,22 @@ namespace mamba
 
         void compute_loading_sequence();
 
-        void add_to_loading_sequence(std::vector<std::string>& seq, const std::string& name);
+        void clear_rc_sources();
+
+        void add_to_loading_sequence(std::vector<std::string>& seq,
+                                     const std::string& name,
+                                     std::vector<std::string>&);
 
         static YAML::Node load_rc_file(const fs::path& file);
 
-        void update_sources();
+        static std::vector<fs::path> compute_default_rc_sources(const RCConfigLevel& level);
+
+        std::vector<fs::path> get_existing_rc_sources(
+            const std::vector<fs::path>& possible_rc_paths);
 
         std::vector<fs::path> m_sources;
         std::vector<fs::path> m_valid_sources;
+        std::map<fs::path, YAML::Node> m_rc_yaml_nodes_cache;
 
         bool m_load_lock = false;
 
@@ -1765,8 +1835,15 @@ namespace mamba
 
         if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
         {
-            m_sources.push_back(m_env_var);
-            m_values.insert({ m_env_var, detail::Source<T>::deserialize(env::get(m_env_var)) });
+            for (const auto& env_var : m_env_var_names)
+            {
+                auto env_var_value = env::get(env_var);
+                if (!env_var_value.empty())
+                {
+                    m_sources.push_back(env_var);
+                    m_values.insert({ env_var, detail::Source<T>::deserialize(env_var_value) });
+                }
+            }
         }
 
         if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
@@ -1775,15 +1852,35 @@ namespace mamba
             m_values.insert(m_rc_values.begin(), m_rc_values.end());
         }
 
-        m_value = m_default_value;
+        if ((p_default_value_hook != NULL) && (level >= ConfigurationLevel::kDefault))
+        {
+            m_sources.push_back("default");
+            m_values.insert({ "default", p_default_value_hook() });
+        }
+
+        if (m_sources.empty() && (p_fallback_value_hook != NULL))
+        {
+            m_sources.push_back("fallback");
+            m_values.insert({ "fallback", p_fallback_value_hook() });
+        }
 
         if (!m_sources.empty())
             detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
+        else
+        {
+            m_value = m_init_value;
+            m_source = detail::Source<T>::default_value(m_init_value);
+        }
 
-        if (!hook_disabled && (p_hook != NULL))
-            p_hook(m_value);
+        if (!hook_disabled && (p_post_merge_hook != NULL))
+            p_post_merge_hook(m_value);
 
         ++m_compute_counter;
+        set_context();
+
+        if (p_post_ctx_hook != NULL)
+            p_post_ctx_hook();
+
         return *this;
     }
 

@@ -55,6 +55,10 @@ set_umamba_command(CLI::App* com)
     CLI::App* list_subcom = com->add_subcommand("list", "List packages in active environment");
     set_list_command(list_subcom);
 
+    CLI::App* package_subcom
+        = com->add_subcommand("package", "Extract a package or bundle files into an archive");
+    set_package_command(package_subcom);
+
     CLI::App* clean_subcom = com->add_subcommand("clean", "Clean package cache");
     set_clean_command(clean_subcom);
 
@@ -82,7 +86,7 @@ set_umamba_command(CLI::App* com)
         << "# notice the missing dot in front of the command\n\n"
         << "To permanently initialize your shell, use shell init like so:\n\n"
         << "    $ ./micromamba shell init -s bash -p /home/$USER/micromamba \n\n"
-        << "and restart your shell. Supported shells are bash, zsh, xonsh, cmd.exe, and powershell."
+        << "and restart your shell. Supported shells are bash, zsh, xonsh, cmd.exe, powershell, and fish."
         << termcolor::reset;
 
     com->footer(footer.str());

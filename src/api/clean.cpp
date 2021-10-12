@@ -8,6 +8,7 @@
 #include "mamba/api/configuration.hpp"
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 
 
@@ -25,34 +26,78 @@ namespace mamba
         bool clean_index = options & MAMBA_CLEAN_INDEX;
         bool clean_pkgs = options & MAMBA_CLEAN_PKGS;
         bool clean_tarballs = options & MAMBA_CLEAN_TARBALLS;
+        bool clean_locks = options & MAMBA_CLEAN_LOCKS;
 
-        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs))
+        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks))
         {
-            std::cout << "Nothing to do." << std::endl;
+            Console::stream() << "Nothing to do." << std::endl;
             return;
         }
 
-        Console::print("Collect information..");
+        Console::stream() << "Collect information..";
 
         std::vector<fs::path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs);
         if (!ctx.dry_run && (clean_index || clean_all))
         {
-            Console::print("Cleaning index cache..");
+            Console::stream() << "Cleaning index cache..";
 
             for (auto* pkg_cache : caches.writable_caches())
-                if (fs::exists(pkg_cache->get_pkgs_dir() / "cache"))
+                if (fs::exists(pkg_cache->path() / "cache"))
                 {
                     try
                     {
-                        fs::remove_all(pkg_cache->get_pkgs_dir() / "cache");
+                        fs::remove_all(pkg_cache->path() / "cache");
                     }
                     catch (...)
                     {
-                        LOG_WARNING << "Could not clean " << pkg_cache->get_pkgs_dir() / "cache";
+                        LOG_WARNING << "Could not clean " << pkg_cache->path() / "cache";
                     }
                 }
+        }
+
+        if (!ctx.dry_run && (clean_locks || clean_all))
+        {
+            Console::stream() << "Cleaning lock files..";
+
+            for (auto* pkg_cache : caches.writable_caches())
+            {
+                if (fs::exists(pkg_cache->path()))
+                    for (auto& p : fs::directory_iterator(pkg_cache->path()))
+                    {
+                        if (p.exists() && ends_with(p.path().string(), ".lock")
+                            && fs::exists(rstrip(p.path().string(), ".lock")))
+                        {
+                            try
+                            {
+                                fs::remove(p);
+                            }
+                            catch (...)
+                            {
+                                LOG_WARNING << "Could not clean lock file '" << p.path().string()
+                                            << "'";
+                            }
+                        }
+                    }
+
+                if (fs::exists(pkg_cache->path() / "cache"))
+                    for (auto& p : fs::recursive_directory_iterator(pkg_cache->path() / "cache"))
+                    {
+                        if (p.exists() && ends_with(p.path().string(), ".lock"))
+                        {
+                            try
+                            {
+                                fs::remove(p);
+                            }
+                            catch (...)
+                            {
+                                LOG_WARNING << "Could not clean lock file '" << p.path().string()
+                                            << "'";
+                            }
+                        }
+                    }
+            }
         }
 
         if (fs::exists(ctx.root_prefix / "conda-meta"))
@@ -103,9 +148,9 @@ namespace mamba
             for (auto* pkg_cache : caches.writable_caches())
             {
                 std::string header_line
-                    = concat("Package cache folder: ", pkg_cache->get_pkgs_dir().string());
+                    = concat("Package cache folder: ", pkg_cache->path().string());
                 std::vector<std::vector<printers::FormattedString>> rows;
-                for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
                     std::string fname = p.path().filename();
                     if (!p.is_directory()
@@ -121,7 +166,7 @@ namespace mamba
                 std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
                     return a[0].s < b[0].s;
                 });
-                t.add_rows(pkg_cache->get_pkgs_dir().string(), rows);
+                t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
             {
@@ -175,9 +220,9 @@ namespace mamba
             for (auto* pkg_cache : caches.writable_caches())
             {
                 std::string header_line
-                    = concat("Package cache folder: ", pkg_cache->get_pkgs_dir().string());
+                    = concat("Package cache folder: ", pkg_cache->path().string());
                 std::vector<std::vector<printers::FormattedString>> rows;
-                for (auto& p : fs::directory_iterator(pkg_cache->get_pkgs_dir()))
+                for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
                     std::string fname = p.path().filename();
                     if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
@@ -197,7 +242,7 @@ namespace mamba
                 std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
                     return a[0].s < b[0].s;
                 });
-                t.add_rows(pkg_cache->get_pkgs_dir().string(), rows);
+                t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
             {

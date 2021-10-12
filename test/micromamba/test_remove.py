@@ -21,32 +21,28 @@ class TestRemove:
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
-    @classmethod
-    def setup_class(cls):
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def root(existing_cache):
         os.environ["MAMBA_ROOT_PREFIX"] = TestRemove.root_prefix
         os.environ["CONDA_PREFIX"] = TestRemove.prefix
-
-        # speed-up the tests
-        os.environ["CONDA_PKGS_DIRS"] = TestRemove.cache
-
         create("-n", "base", no_dry_run=True)
         create("xtensor", "-n", TestRemove.env_name, no_dry_run=True)
 
-    @classmethod
-    def setup(cls):
-        if dry_run_tests == DryRun.OFF:
-            install("xtensor", "-n", TestRemove.env_name)
-        res = umamba_list("xtensor", "-n", TestRemove.env_name, "--json")
-        assert len(res) == 1
+        yield
 
-    @classmethod
-    def teardown_class(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestRemove.current_root_prefix
         os.environ["CONDA_PREFIX"] = TestRemove.current_prefix
         shutil.rmtree(TestRemove.root_prefix)
 
+    @staticmethod
+    @pytest.fixture
+    def env_created(root):
+        if dry_run_tests == DryRun.OFF:
+            install("xtensor", "-n", TestRemove.env_name)
+
     @pytest.mark.parametrize("env_selector", ["", "name", "prefix"])
-    def test_remove(self, env_selector):
+    def test_remove(self, env_selector, env_created):
         env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
 
         if env_selector == "prefix":
@@ -64,7 +60,7 @@ class TestRemove:
             assert p["name"] in env_pkgs
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
-    def test_remove_orphaned(self):
+    def test_remove_orphaned(self, env_created):
         env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
         install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
 
@@ -99,29 +95,31 @@ class TestRemoveConfig:
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
-    @classmethod
-    def setup_class(cls):
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def root(existing_cache):
         os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.root_prefix
         os.environ["CONDA_PREFIX"] = TestRemoveConfig.prefix
-
         create("-n", "base", no_dry_run=True)
         create("-n", TestRemoveConfig.env_name, "--offline", no_dry_run=True)
 
-    @classmethod
-    def teardown(cls):
+        yield
+
+        os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestRemoveConfig.current_prefix
+        shutil.rmtree(TestRemoveConfig.root_prefix)
+
+    @staticmethod
+    @pytest.fixture
+    def env_created(root):
         os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.root_prefix
         os.environ["CONDA_PREFIX"] = TestRemoveConfig.prefix
+
+        yield
 
         for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
             if v in os.environ:
                 os.environ.pop(v)
-
-    @classmethod
-    def teardown_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestRemoveConfig.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestRemoveConfig.current_prefix
-
-        shutil.rmtree(TestRemoveConfig.root_prefix)
 
     @classmethod
     def common_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
@@ -136,7 +134,7 @@ class TestRemoveConfig:
         )
         assert res["target_prefix_checks"] == checks
 
-    def test_specs(self):
+    def test_specs(self, env_created):
         specs = ["xframe", "xtl"]
         cmd = list(specs)
 
@@ -153,7 +151,14 @@ class TestRemoveConfig:
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("fallback", (False, True))
     def test_target_prefix(
-        self, root_prefix, target_is_root, cli_prefix, cli_env_name, env_var, fallback,
+        self,
+        root_prefix,
+        target_is_root,
+        cli_prefix,
+        cli_env_name,
+        env_var,
+        fallback,
+        env_created,
     ):
         cmd = []
 

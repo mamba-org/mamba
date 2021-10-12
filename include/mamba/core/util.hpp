@@ -7,6 +7,11 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/output.hpp"
+
+#include "nlohmann/json.hpp"
+
 #include <array>
 #include <iomanip>
 #include <limits>
@@ -18,11 +23,7 @@
 #include <time.h>
 #include <vector>
 #include <regex>
-
-#include "nlohmann/json.hpp"
-
-#include "mamba_fs.hpp"
-#include "output.hpp"
+#include <chrono>
 
 
 namespace mamba
@@ -132,28 +133,58 @@ namespace mamba
         fs::path m_path;
     };
 
+    const std::size_t MAMBA_LOCK_POS = 21;
+
     class LockFile
     {
     public:
         LockFile(const fs::path& path);
+        LockFile(const fs::path& path, const std::chrono::seconds& timeout);
         ~LockFile();
 
         LockFile(const LockFile&) = delete;
         LockFile& operator=(const LockFile&) = delete;
         LockFile& operator=(LockFile&&) = default;
 
-        fs::path& path();
-        operator fs::path();
+        static std::unique_ptr<LockFile> try_lock(const fs::path& path) noexcept;
+
+        int fd() const;
+        fs::path path() const;
+        fs::path lockfile_path() const;
+
+#ifdef _WIN32
+        // Using file descriptor on Windows may cause false negative
+        static bool is_locked(const fs::path& path);
+#else
+        // Opening a new file descriptor on Unix would clear locks
+        static bool is_locked(int fd);
+#endif
+        static int read_pid(int fd);
 
     private:
         fs::path m_path;
-        int m_fd;
+        fs::path m_lock;
+        std::chrono::seconds m_timeout;
+        int m_fd = -1;
+        bool m_locked;
+        bool m_lockfile_existed;
 
 #if defined(__APPLE__) or defined(__linux__)
         pid_t m_pid;
 #else
         int m_pid;
 #endif
+        int read_pid() const;
+        bool write_pid(int pid) const;
+
+        bool set_fd_lock(bool blocking) const;
+        bool lock_non_blocking();
+        bool lock_blocking();
+        bool lock(int pid, bool blocking) const;
+
+        void remove_lockfile() noexcept;
+        int close_fd();
+        bool unlock();
     };
 
     /*************************

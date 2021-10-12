@@ -153,6 +153,98 @@ namespace mamba
         ChannelContext::instance().reset();
     }
 
+    TEST(ChannelContext, custom_multichannels)
+    {
+        // ChannelContext builds its custom channels with
+        // make_simple_channel
+        auto& ctx = Context::instance();
+        ctx.custom_multichannels["xtest"]
+            = std::vector<std::string>{ "https://mydomain.com/conda-forge",
+                                        "https://mydomain.com/bioconda",
+                                        "https://mydomain.com/snakepit" };
+        ctx.custom_multichannels["ytest"]
+            = std::vector<std::string>{ "https://otherdomain.com/conda-forge",
+                                        "https://otherdomain.com/bioconda",
+                                        "https://otherdomain.com/snakepit" };
+
+        ChannelContext::instance().reset();
+
+        auto x = get_channels({ "xtest" });
+
+        EXPECT_EQ(x.size(), 3);
+        auto* c1 = x[0];
+        auto* c2 = x[1];
+        auto* c3 = x[2];
+
+        std::vector<std::string> exp_urls(
+            { std::string("https://mydomain.com/conda-forge/") + platform,
+              std::string("https://mydomain.com/conda-forge/noarch") });
+
+        EXPECT_EQ(c1->urls(), exp_urls);
+
+        std::vector<std::string> exp_urlsy3(
+            { std::string("https://otherdomain.com/snakepit/") + platform,
+              std::string("https://otherdomain.com/snakepit/noarch") });
+
+        auto y = get_channels({ "ytest" });
+        auto* y1 = y[0];
+        auto* y2 = y[1];
+        auto* y3 = y[2];
+
+        EXPECT_EQ(y3->urls(), exp_urlsy3);
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ctx.custom_multichannels.clear();
+        ChannelContext::instance().reset();
+    }
+
+    TEST(ChannelContext, custom_extended_multichannels)
+    {
+        // ChannelContext builds its custom channels with
+        // make_simple_channel
+        auto& ctx = Context::instance();
+
+        ctx.channel_alias = "https://condaforge.org/channels/";
+
+        ctx.custom_channels["xyz"] = "https://mydomain.xyz/xyzchannel";
+
+        ctx.custom_multichannels["everything"]
+            = std::vector<std::string>{ "conda-forge", "https://mydomain.com/bioconda", "xyz" };
+
+        ChannelContext::instance().reset();
+
+        auto x = get_channels({ "everything" });
+
+        EXPECT_EQ(x.size(), 3);
+        auto* c1 = x[0];
+        auto* c2 = x[1];
+        auto* c3 = x[2];
+
+        std::vector<std::string> exp_urls(
+            { std::string("https://condaforge.org/channels/conda-forge/") + platform,
+              std::string("https://condaforge.org/channels/conda-forge/noarch") });
+
+        EXPECT_EQ(c1->urls(), exp_urls);
+
+        std::vector<std::string> exp_urls2(
+            { std::string("https://mydomain.com/bioconda/") + platform,
+              std::string("https://mydomain.com/bioconda/noarch") });
+
+        EXPECT_EQ(c2->urls(), exp_urls2);
+
+        std::vector<std::string> exp_urls3(
+            { std::string("https://mydomain.xyz/xyzchannel/xyz/") + platform,
+              std::string("https://mydomain.xyz/xyzchannel/xyz/noarch") });
+
+        EXPECT_EQ(c3->urls(), exp_urls3);
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ctx.custom_multichannels.clear();
+        ctx.custom_channels.clear();
+        ChannelContext::instance().reset();
+    }
+
+
     TEST(ChannelContext, default_channels)
     {
         auto& ctx = Context::instance();

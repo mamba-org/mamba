@@ -13,7 +13,6 @@ class TestUpdate:
 
     current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
     current_prefix = os.environ["CONDA_PREFIX"]
-    cache = os.path.join(current_root_prefix, "pkgs")
 
     env_name = random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
@@ -21,15 +20,13 @@ class TestUpdate:
     old_version = "0.18.3"
     medium_old_version = "0.20"
 
-    @classmethod
-    def setup_class(cls):
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def root(existing_cache):
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdate.prefix
 
-        # speed-up the tests
-        os.environ["CONDA_PKGS_DIRS"] = TestUpdate.cache
-
-        res = create(
+        create(
             f"xtensor={TestUpdate.old_version}",
             "-n",
             TestUpdate.env_name,
@@ -37,13 +34,15 @@ class TestUpdate:
             no_dry_run=True,
         )
 
-        pkg = get_concrete_pkg(res, "xtensor")
-        pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
-        version = pkg_info["version"]
-        assert version.startswith(TestUpdate.old_version)
+        yield
 
-    @classmethod
-    def setup(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestUpdate.current_prefix
+        shutil.rmtree(TestUpdate.root_prefix)
+
+    @staticmethod
+    @pytest.fixture
+    def env_created(root):
         if dry_run_tests == DryRun.OFF:
             install(
                 f"xtensor={TestUpdate.old_version}",
@@ -56,14 +55,14 @@ class TestUpdate:
         assert len(res) == 1
         assert res[0]["version"].startswith(TestUpdate.old_version)
 
-    @classmethod
-    def teardown_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdate.current_prefix
-        os.environ.pop("CONDA_PKGS_DIRS")
-        shutil.rmtree(TestUpdate.root_prefix)
+        return
 
-    def test_constrained_update(self):
+    def test_constrained_update(self, env_created):
+        print(Path(TestUpdate.root_prefix).exists())
+        print(Path(TestUpdate.prefix).exists())
+        print(os.environ["MAMBA_ROOT_PREFIX"])
+        print(os.environ["CONDA_PREFIX"])
+
         update_res = update("xtensor<=" + self.medium_old_version, "--json")
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
@@ -71,7 +70,7 @@ class TestUpdate:
 
         assert xtensor_link["version"].startswith(self.medium_old_version)
 
-    def test_further_constrained_update(self):
+    def test_further_constrained_update(self, env_created):
         update_res = update("xtensor==0.21.1=*_0", "--json")
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
@@ -80,7 +79,11 @@ class TestUpdate:
         assert xtensor_link["version"] == "0.21.1"
         assert xtensor_link["build_number"] == 0
 
-    def test_classic_spec(self):
+    def test_classic_spec(self, env_created):
+        print(Path(TestUpdate.root_prefix).exists())
+        print(Path(TestUpdate.prefix).exists())
+        print(os.environ["MAMBA_ROOT_PREFIX"])
+        print(os.environ["CONDA_PREFIX"])
         update_res = update("xtensor", "--json")
 
         xtensor_link = [
@@ -112,7 +115,7 @@ class TestUpdate:
             "https://repo.mamba.pm",
         ],
     )
-    def test_channel_alias(self, alias):
+    def test_channel_alias(self, alias, env_created):
         if alias:
             res = update(
                 "-n",
@@ -142,29 +145,31 @@ class TestUpdateConfig:
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
-    @classmethod
-    def setup_class(cls):
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def root(existing_cache):
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdateConfig.prefix
-
-        os.makedirs(TestUpdateConfig.root_prefix, exist_ok=False)
+        create("-n", "base", no_dry_run=True)
         create("-n", TestUpdateConfig.env_name, "--offline", no_dry_run=True)
 
-    @classmethod
-    def teardown(cls):
+        yield
+
+        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestUpdateConfig.current_prefix
+        shutil.rmtree(TestUpdateConfig.root_prefix)
+
+    @staticmethod
+    @pytest.fixture
+    def env_created(root):
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdateConfig.prefix
+
+        yield
 
         for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
             if v in os.environ:
                 os.environ.pop(v)
-
-    @classmethod
-    def teardown_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdateConfig.current_prefix
-
-        shutil.rmtree(TestUpdateConfig.root_prefix)
 
     @classmethod
     def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
@@ -191,7 +196,7 @@ class TestUpdateConfig:
             ("both", "yaml"),
         ],
     )
-    def test_specs(self, source, file_type):
+    def test_specs(self, source, file_type, env_created):
         cmd = []
         specs = []
 
@@ -245,6 +250,7 @@ class TestUpdateConfig:
         yaml_name,
         env_var,
         fallback,
+        env_created,
     ):
         cmd = []
 
@@ -318,7 +324,7 @@ class TestUpdateConfig:
     @pytest.mark.parametrize("yaml", (False, True))
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("rc_file", (False, True))
-    def test_channels(self, cli, yaml, env_var, rc_file):
+    def test_channels(self, cli, yaml, env_var, rc_file, env_created):
         cmd = []
         expected_channels = []
 
@@ -365,7 +371,7 @@ class TestUpdateConfig:
             assert res["channels"] is None
 
     @pytest.mark.parametrize("type", ("yaml", "classic", "explicit"))
-    def test_multiple_spec_files(self, type):
+    def test_multiple_spec_files(self, type, env_created):
         cmd = []
         specs = ["xtensor", "xsimd"]
         explicit_specs = [
@@ -401,7 +407,7 @@ class TestUpdateConfig:
             else:  # explicit
                 assert res["specs"] == [explicit_specs[0]]
 
-    def test_channel_specific(self):
+    def test_channel_specific(self, env_created):
         install("quantstack::sphinx", no_dry_run=True)
         res = update("quantstack::sphinx", "-c", "conda-forge", "--json")
         assert "actions" not in res

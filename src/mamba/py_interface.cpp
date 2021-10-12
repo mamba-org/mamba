@@ -8,6 +8,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "nlohmann/json.hpp"
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_handling.hpp"
@@ -20,6 +22,10 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/validate.hpp"
+#include "mamba/core/virtual_packages.hpp"
+
+#include <stdexcept>
 
 namespace py = pybind11;
 
@@ -40,6 +46,7 @@ PYBIND11_MODULE(mamba_api, m)
 
     py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())
+        .def("__str__", [](fs::path& self) -> std::string { return self.string(); })
         .def("__repr__", [](fs::path& self) -> std::string {
             return std::string("fs::path[") + std::string(self) + "]";
         });
@@ -56,7 +63,8 @@ PYBIND11_MODULE(mamba_api, m)
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<std::vector<fs::path>>())
-        .def("query", &MultiPackageCache::query);
+        .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
+        .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
@@ -69,12 +77,13 @@ PYBIND11_MODULE(mamba_api, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&, MultiPackageCache&, const std::string&>())
+        .def(py::init<MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
+        .def("find_python_version", &MTransaction::find_python_version)
         .def("execute", [](MTransaction& self, PrefixData& target_prefix) -> bool {
             return self.execute(target_prefix);
         });
@@ -179,7 +188,11 @@ PYBIND11_MODULE(mamba_api, m)
              });
 
     py::class_<MSubdirData>(m, "SubdirData")
-        .def(py::init<const std::string&, const std::string&, const std::string&, bool>())
+        .def(py::init<const std::string&,
+                      const std::string&,
+                      const std::string&,
+                      MultiPackageCache&,
+                      bool>())
         .def("create_repo", &MSubdirData::create_repo)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
@@ -227,6 +240,7 @@ PYBIND11_MODULE(mamba_api, m)
         .def("set_verbosity", &Context::set_verbosity)
         .def_readwrite("channels", &Context::channels)
         .def_readwrite("custom_channels", &Context::custom_channels)
+        .def_readwrite("custom_multichannels", &Context::custom_multichannels)
         .def_readwrite("default_channels", &Context::default_channels)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
@@ -235,13 +249,101 @@ PYBIND11_MODULE(mamba_api, m)
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())
         .def_readwrite("package_records", &PrefixData::m_package_records)
-        .def("load", &PrefixData::load);
+        .def("load", &PrefixData::load)
+        .def("add_virtual_packages", &PrefixData::add_virtual_packages);
 
     py::class_<PackageInfo>(m, "PackageInfo")
         .def(py::init<Solvable*>())
         .def(py::init<const std::string&>())
         .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
         .def_readwrite("name", &PackageInfo::name);
+
+    // Content trust - Package signature and verification
+    m.def("generate_ed25519_keypair", &validate::generate_ed25519_keypair_hex);
+    m.def(
+        "sign",
+        [](const std::string& data, const std::string& sk) {
+            std::string signature;
+            if (!validate::sign(data, sk, signature))
+                throw std::runtime_error("Signing failed");
+            return signature;
+        },
+        py::arg("data"),
+        py::arg("secret_key"));
+
+    py::class_<validate::Key>(m, "Key")
+        .def_readwrite("keytype", &validate::Key::keytype)
+        .def_readwrite("scheme", &validate::Key::scheme)
+        .def_readwrite("keyval", &validate::Key::keyval)
+        .def_property_readonly("json_str",
+                               [](const validate::Key& key) {
+                                   nlohmann::json j;
+                                   validate::to_json(j, key);
+                                   return j.dump();
+                               })
+        .def_static("from_ed25519", &validate::Key::from_ed25519);
+
+    py::class_<validate::RoleFullKeys>(m, "RoleFullKeys")
+        .def(py::init<>())
+        .def(py::init<const std::map<std::string, validate::Key>&, const std::size_t&>(),
+             py::arg("keys"),
+             py::arg("threshold"))
+        .def_readwrite("keys", &validate::RoleFullKeys::keys)
+        .def_readwrite("threshold", &validate::RoleFullKeys::threshold);
+
+    py::class_<validate::SpecBase, std::shared_ptr<validate::SpecBase>>(m, "SpecBase");
+
+    py::class_<validate::RoleBase, std::shared_ptr<validate::RoleBase>>(m, "RoleBase")
+        .def_property_readonly("type", &validate::RoleBase::type)
+        .def_property_readonly("version", &validate::RoleBase::version)
+        .def_property_readonly("spec_version", &validate::RoleBase::spec_version)
+        .def_property_readonly("file_ext", &validate::RoleBase::file_ext)
+        .def_property_readonly("expires", &validate::RoleBase::expires)
+        .def_property_readonly("expired", &validate::RoleBase::expired)
+        .def("all_keys", &validate::RoleBase::all_keys);
+
+    py::class_<validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::V06RoleBaseExtension>>(m, "RoleBaseExtension")
+        .def_property_readonly("timestamp", &validate::v06::V06RoleBaseExtension::timestamp);
+
+    py::class_<validate::v06::SpecImpl,
+               validate::SpecBase,
+               std::shared_ptr<validate::v06::SpecImpl>>(m, "SpecImpl")
+        .def(py::init<>());
+
+    py::class_<validate::v06::KeyMgrRole,
+               validate::RoleBase,
+               validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::KeyMgrRole>>(m, "KeyMgr")
+        .def(py::init<const std::string&,
+                      const validate::RoleFullKeys&,
+                      const std::shared_ptr<validate::SpecBase>>());
+
+    py::class_<validate::v06::PkgMgrRole,
+               validate::RoleBase,
+               validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::PkgMgrRole>>(m, "PkgMgr")
+        .def(py::init<const std::string&,
+                      const validate::RoleFullKeys&,
+                      const std::shared_ptr<validate::SpecBase>>());
+
+    py::class_<validate::v06::RootImpl,
+               validate::RoleBase,
+               validate::v06::V06RoleBaseExtension,
+               std::shared_ptr<validate::v06::RootImpl>>(m, "RootImpl")
+        .def(py::init<const std::string&>(), py::arg("json_str"))
+        .def(
+            "update",
+            [](validate::v06::RootImpl& role, const std::string& json_str) {
+                return role.update(nlohmann::json::parse(json_str));
+            },
+            py::arg("json_str"))
+        .def(
+            "create_key_mgr",
+            [](validate::v06::RootImpl& role, const std::string& json_str) {
+                return role.create_key_mgr(nlohmann::json::parse(json_str));
+            },
+            py::arg("json_str"));
 
     py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel")
         .def(py::init(
@@ -278,6 +380,8 @@ PYBIND11_MODULE(mamba_api, m)
     m.def("get_channels", &get_channels);
 
     m.def("transmute", &transmute);
+
+    m.def("get_virtual_packages", &get_virtual_packages);
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

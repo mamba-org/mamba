@@ -26,7 +26,7 @@ namespace mamba
                     .get_wrapped<bool>()
                     .set_value(false);
                 mamba::Configuration::instance()
-                    .at("rc_file")
+                    .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value({ fs::path(unique_location) });
                 mamba::Configuration::instance().load();
@@ -55,7 +55,7 @@ namespace mamba
                     .get_wrapped<bool>()
                     .set_value(false);
                 mamba::Configuration::instance()
-                    .at("rc_file")
+                    .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value(sources);
                 mamba::Configuration::instance().load();
@@ -151,7 +151,7 @@ namespace mamba
                                 + src1 + "'")
                                    .c_str()));
 
-            // hill-formed key
+            // ill-formed key
             std::string rc3 = unindent(R"(
                 channels:
                     - test3
@@ -186,7 +186,7 @@ namespace mamba
                                 + src1 + "'")
                                    .c_str()));
 
-            // hill-formed file
+            // ill-formed file
             std::string rc4 = unindent(R"(
                 channels:
                   - test3
@@ -323,8 +323,7 @@ namespace mamba
 
             config.at("channels")
                 .set_yaml_value("https://my.channel, https://my2.channel")
-                .compute()
-                .set_context();
+                .compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 channels:
@@ -393,8 +392,7 @@ namespace mamba
 
             config.at("default_channels")
                 .set_yaml_value("https://my.channel, https://my2.channel")
-                .compute()
-                .set_context();
+                .compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 default_channels:
@@ -436,13 +434,87 @@ namespace mamba
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_alias: https://foo.bar  # 'MAMBA_CHANNEL_ALIAS' > '" + src1 + "'");
 
-            config.at("channel_alias").set_yaml_value("https://my.channel").compute().set_context();
+            config.at("channel_alias").set_yaml_value("https://my.channel").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_alias: https://my.channel  # 'API' > 'MAMBA_CHANNEL_ALIAS' > '"
                           + src1 + "'");
             EXPECT_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
 
             env::set("MAMBA_CHANNEL_ALIAS", "");
+        }
+
+        TEST_F(Configuration, pkgs_dirs)
+        {
+            std::string cache1 = (env::home_directory() / "foo").string();
+            std::string cache2 = (env::home_directory() / "bar").string();
+
+            std::string rc1 = "pkgs_dirs:\n  - " + cache1;
+            std::string rc2 = "pkgs_dirs:\n  - " + cache2;
+
+            load_test_config({ rc1, rc2 });
+            EXPECT_EQ(config.dump(), "pkgs_dirs:\n  - " + cache1 + "\n  - " + cache2);
+
+            load_test_config({ rc2, rc1 });
+            EXPECT_EQ(config.dump(), "pkgs_dirs:\n  - " + cache2 + "\n  - " + cache1);
+
+            std::string cache3 = (env::home_directory() / "baz").string();
+            env::set("CONDA_PKGS_DIRS", cache3);
+            load_test_config(rc1);
+            EXPECT_EQ(config.dump(), "pkgs_dirs:\n  - " + cache3 + "\n  - " + cache1);
+
+            ASSERT_EQ(config.sources().size(), 1);
+            ASSERT_EQ(config.valid_sources().size(), 1);
+            std::string src1 = shrink_source(0);
+
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      unindent((R"(
+                                pkgs_dirs:
+                                  - )"
+                                + cache3 + R"(  # 'CONDA_PKGS_DIRS'
+                                  - )"
+                                + cache1 + "  # '" + src1 + "'")
+                                   .c_str()));
+
+            env::set("CONDA_PKGS_DIRS", "");
+
+            std::string empty_rc = "";
+            std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
+            env::set("MAMBA_ROOT_PREFIX", root_prefix_str);
+            load_test_config(empty_rc);
+
+#ifdef _WIN32
+            std::string extra_cache = "\n  - "
+                                      + (fs::path(env::get("APPDATA")) / ".mamba" / "pkgs").string()
+                                      + "  # 'fallback'";
+#else
+            std::string extra_cache = "";
+#endif
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
+                                      | MAMBA_SHOW_ALL_CONFIGS,
+                                  { "pkgs_dirs" }),
+                      unindent((R"(
+                                pkgs_dirs:
+                                  - )"
+                                + (fs::path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
+                                  - )"
+                                + (env::home_directory() / ".mamba" / "pkgs").string()
+                                + R"(  # 'fallback')" + extra_cache)
+                                   .c_str()));
+            EXPECT_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::path>>());
+
+            std::string cache4 = (env::home_directory() / "babaz").string();
+            env::set("CONDA_PKGS_DIRS", cache4);
+            load_test_config(empty_rc);
+            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                      unindent((R"(
+                                pkgs_dirs:
+                                  - )"
+                                + cache4 + "  # 'CONDA_PKGS_DIRS'")
+                                   .c_str()));
+
+            env::set("CONDA_PKGS_DIRS", "");
+            env::set("MAMBA_ROOT_PREFIX", "");
+            config.clear_values();
         }
 
         TEST_F(Configuration, ssl_verify)
@@ -505,7 +577,7 @@ namespace mamba
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "ssl_verify: /env/bar/baz  # 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
-            config.at("ssl_verify").set_yaml_value("/new/test").compute().set_context();
+            config.at("ssl_verify").set_yaml_value("/new/test").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
@@ -537,7 +609,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
 
-            config.at("cacert_path").set_yaml_value("/new/test").compute().set_context();
+            config.at("cacert_path").set_yaml_value("/new/test").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
@@ -547,7 +619,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.ssl_verify, "/env/ca/baz");
 
-            config.at("ssl_verify").compute().set_context();
+            config.at("ssl_verify").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 cacert_path: /new/test  # 'API' > 'MAMBA_CACERT_PATH' > ')"
@@ -638,7 +710,7 @@ namespace mamba
         {                                                                                          \
             expected = std::string(#NAME) + ": true  # 'API' > '" + env_name + "'";                \
         }                                                                                          \
-        config.at(#NAME).set_yaml_value("true").compute().set_context();                           \
+        config.at(#NAME).set_yaml_value("true").compute();                                         \
         EXPECT_EQ((config.dump(dump_opts, { #NAME })), expected);                                  \
         EXPECT_TRUE(config.at(#NAME).value<bool>());                                               \
         EXPECT_TRUE(CTX);                                                                          \
@@ -690,7 +762,7 @@ namespace mamba
                       ChannelPriority::kStrict);
             EXPECT_EQ(ctx.channel_priority, ChannelPriority::kStrict);
 
-            config.at("channel_priority").set_yaml_value("flexible").compute().set_context();
+            config.at("channel_priority").set_yaml_value("flexible").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src
                           + "'");
@@ -763,7 +835,7 @@ namespace mamba
                 ctx.pinned_packages,
                 std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
 
-            config.at("pinned_packages").set_yaml_value("pytest").compute().set_context();
+            config.at("pinned_packages").set_yaml_value("pytest").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       unindent((R"(
                                 pinned_packages:
@@ -840,7 +912,7 @@ namespace mamba
                       VerificationLevel::kWarn);
             EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
-            config.at("safety_checks").set_yaml_value("disabled").compute().set_context();
+            config.at("safety_checks").set_yaml_value("disabled").compute();
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
             EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),

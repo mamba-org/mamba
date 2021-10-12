@@ -30,6 +30,7 @@ namespace mamba
 
         History& history();
         const fs::path& path() const;
+        std::vector<PackageInfo> sorted_records() const;
 
         History m_history;
         std::unordered_map<std::string, PackageInfo> m_package_records;

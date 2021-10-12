@@ -119,6 +119,7 @@ ext_modules = [
             "src/core/validate.cpp",
             "src/core/version.cpp",
             "src/core/link.cpp",
+            "src/core/virtual_packages.cpp",
         ],
         include_dirs=[
             get_pybind_include(),
@@ -208,7 +209,7 @@ setup(
     long_description="A (hopefully faster) reimplementation of the slow bits of conda.",
     ext_modules=ext_modules,
     install_requires=[],
-    extras_require={"test": ["pytest"]},
+    extras_require={"test": ["pytest", "pytest-lazy-fixture"]},
     cmdclass={"build_ext": BuildExt},
     data_files=data_files,
     include_package_data=True,

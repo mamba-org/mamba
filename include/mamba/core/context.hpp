@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "mamba_fs.hpp"
+#include "mamba/core/mamba_fs.hpp"
 
 #define ROOT_ENV_NAME "base"
 
@@ -109,7 +109,15 @@ namespace mamba
 
         // TODO check writable and add other potential dirs
         std::vector<fs::path> envs_dirs = { root_prefix / "envs" };
-        std::vector<fs::path> pkgs_dirs = { root_prefix / "pkgs" };
+        std::vector<fs::path> pkgs_dirs
+            = { root_prefix / "pkgs",
+                fs::path("~") / ".mamba" / "pkgs"
+#ifdef _WIN32
+                ,
+                fs::path(std::getenv("APPDATA") ? std::getenv("APPDATA") : "") / ".mamba" / "pkgs"
+#endif
+              };
+
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
@@ -163,6 +171,8 @@ namespace mamba
         bool no_rc = false;
         bool no_env = false;
 
+        std::size_t lock_timeout = 0;
+
         // Conda compat
         bool add_pip_as_python_dependency = true;
 
@@ -174,6 +184,7 @@ namespace mamba
 
         std::vector<std::string> channels;
         std::map<std::string, std::string> custom_channels;
+        std::map<std::string, std::vector<std::string>> custom_multichannels;
 
         std::vector<std::string> default_channels = {
 #ifdef _WIN32

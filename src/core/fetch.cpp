@@ -13,6 +13,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/version.hpp"
 
 namespace mamba
 {
@@ -226,6 +227,11 @@ namespace mamba
                 m_handle, CURLOPT_ACCEPT_ENCODING, "gzip, deflate, compress, identity");
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
+
+        static std::string user_agent
+            = std::string("User-Agent: mamba/" MAMBA_VERSION_STRING " ") + curl_version();
+
+        m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
     }
@@ -434,12 +440,20 @@ namespace mamba
         if (curl_easy_perform(handle) == CURLE_OK)
             return true;
 
-        // Some servers don't support HEAD, try a GET if the HEAD fails
-        curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
-        // Prevent output of data
-        curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+        long response_code;
+        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
 
-        return curl_easy_perform(handle) == CURLE_OK;
+        if (response_code == 405)
+        {
+            // Method not allowed
+            // Some servers don't support HEAD, try a GET if the HEAD fails
+            curl_easy_setopt(handle, CURLOPT_NOBODY, 0L);
+            // Prevent output of data
+            curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &discard);
+            return curl_easy_perform(handle) == CURLE_OK;
+        }
+        else
+            return false;
     }
 
     bool DownloadTarget::perform()

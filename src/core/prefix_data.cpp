@@ -7,6 +7,10 @@
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/output.hpp"
 
+#include "mamba/core/pool.hpp"
+#include "mamba/core/repo.hpp"
+#include "mamba/core/transaction.hpp"
+
 
 namespace mamba
 {
@@ -44,6 +48,58 @@ namespace mamba
     const PrefixData::package_map& PrefixData::records() const
     {
         return m_package_records;
+    }
+
+    std::vector<PackageInfo> PrefixData::sorted_records() const
+    {
+        std::vector<PackageInfo> result;
+        MPool pool;
+
+        // TODO check prereq marker to `pip` if it's part of the installed packages
+        // so that it gets installed after Python.
+        auto repo = MRepo(pool, *this);
+
+        Queue q;
+        queue_init(&q);
+
+        Solvable* s;
+        Id pkg_id;
+        pool_createwhatprovides(pool);
+
+        FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
+        {
+            queue_push(&q, pkg_id);
+        }
+
+        Pool* pp = pool;
+        pp->installed = nullptr;
+
+        Transaction* t = transaction_create_decisionq(pool, &q, nullptr);
+        transaction_order(t, 0);
+
+        for (int i = 0; i < t->steps.count; i++)
+        {
+            Id p = t->steps.elements[i];
+            Id ttype = transaction_type(t, p, SOLVER_TRANSACTION_SHOW_ALL);
+            Solvable* s = pool_id2solvable(t->pool, p);
+
+            package_map::const_iterator it, end = m_package_records.end();
+            switch (ttype)
+            {
+                case SOLVER_TRANSACTION_INSTALL:
+                    it = m_package_records.find(pool_id2str(pool, s->name));
+                    if (it != end)
+                    {
+                        result.push_back(it->second);
+                        break;
+                    }
+                default:
+                    throw std::runtime_error(
+                        "Package not found in prefix records or other unexpected condition");
+            }
+        }
+        queue_free(&q);
+        return result;
     }
 
     History& PrefixData::history()

@@ -18,102 +18,106 @@ else:
 
 
 class TestLinking:
-    def test_link(self):
-        res = create("xtensor", "-n", "x1", "--json", no_dry_run=True)
-        xf = get_env("x1", xtensor_hpp)
-        assert xf.exists()
-        stat_xf = xf.stat()
 
-        pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
+    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    current_prefix = os.environ["CONDA_PREFIX"]
 
-        stat_orig = orig_file_path.stat()
-        assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
-        assert not xf.is_symlink()
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
 
-        shutil.rmtree(get_env("x1"))
+    @classmethod
+    def setup_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestLinking.root_prefix
 
-    def test_copy(self):
-        env = "x2"
-        res = create("xtensor", "-n", env, "--json", "--always-copy", no_dry_run=True)
-        xf = get_env(env, xtensor_hpp)
-        assert xf.exists()
-        stat_xf = xf.stat()
+    @classmethod
+    def teardown_class(cls):
+        os.environ["MAMBA_ROOT_PREFIX"] = TestLinking.current_root_prefix
+        os.environ["CONDA_PREFIX"] = TestLinking.current_prefix
 
-        pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
+        if Path(TestLinking.root_prefix).exists():
+            rmtree(TestLinking.root_prefix)
 
-        assert not xf.is_symlink()
+    @classmethod
+    def teardown(cls):
+        if Path(TestLinking.prefix).exists():
+            rmtree(TestLinking.prefix)
 
-        stat_orig = orig_file_path.stat()
-        assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino != stat_xf.st_ino
+    def test_link(self, existing_cache, test_pkg):
+        create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
 
-        shutil.rmtree(get_env(env))
+        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        assert linked_file.exists()
+        assert not linked_file.is_symlink()
+
+        cache_file = existing_cache / test_pkg / xtensor_hpp
+        assert cache_file.stat().st_dev == linked_file.stat().st_dev
+        assert cache_file.stat().st_ino == linked_file.stat().st_ino
+
+    def test_copy(self, existing_cache, test_pkg):
+        create(
+            "xtensor",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            "--always-copy",
+            no_dry_run=True,
+        )
+        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        assert linked_file.exists()
+        assert not linked_file.is_symlink()
+
+        cache_file = existing_cache / test_pkg / xtensor_hpp
+        assert cache_file.stat().st_dev == linked_file.stat().st_dev
+        assert cache_file.stat().st_ino != linked_file.stat().st_ino
 
     @pytest.mark.skipif(
         platform.system() == "Windows",
         reason="Softlinking needs admin privileges on win",
     )
-    def test_always_softlink(self):
-        env = "x3"
-        res = create(
-            "xtensor", "-n", env, "--json", "--always-softlink", no_dry_run=True
+    def test_always_softlink(self, existing_cache, test_pkg):
+        create(
+            "xtensor",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            "--always-softlink",
+            no_dry_run=True,
         )
-        xf = get_env(env, xtensor_hpp)
-        assert xf.exists()
-        stat_xf = xf.stat()
+        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
 
-        pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
+        assert linked_file.exists()
+        assert linked_file.is_symlink()
 
-        stat_orig = orig_file_path.stat()
-        assert stat_orig.st_dev == stat_xf.st_dev and stat_orig.st_ino == stat_xf.st_ino
-        assert xf.is_symlink()
+        cache_file = existing_cache / test_pkg / xtensor_hpp
 
-        assert os.readlink(xf) == str(orig_file_path)
-
-        shutil.rmtree(get_env(env))
+        assert cache_file.stat().st_dev == linked_file.stat().st_dev
+        assert cache_file.stat().st_ino == linked_file.stat().st_ino
+        assert os.readlink(linked_file) == str(cache_file)
 
     @pytest.mark.parametrize("allow_softlinks", [True, False])
     @pytest.mark.parametrize("always_copy", [True, False])
-    def test_cross_device(self, allow_softlinks, always_copy):
+    def test_cross_device(self, allow_softlinks, always_copy, existing_cache, test_pkg):
         if platform.system() != "Linux":
             pytest.skip("o/s is not linux")
 
-        with open("/tmp/test", "w") as f:
-            f.write("abc")
-        p = Path("/tmp/test")
-        dev_tmp = p.stat().st_dev
-
-        check_file = get_pkg("test.xyz")
-        with open(check_file, "w") as f:
-            f.write("abc")
-        chk_stat = check_file.stat()
-        tmp_stat = p.stat()
-
-        os.remove("/tmp/test")
-
-        if tmp_stat.st_dev == chk_stat.st_dev:
-            pytest.skip("/tmp is on the same file system as root_prefix")
-
-        env = "/tmp/testenv"
-
-        create_args = ["xtensor", "-p", "/tmp/testenv", "--json"]
+        create_args = ["xtensor", "-n", TestLinking.env_name, "--json"]
         if allow_softlinks:
             create_args.append("--allow-softlinks")
         if always_copy:
             create_args.append("--always-copy")
-        res = create(*create_args, no_dry_run=True)
+        create(*create_args, no_dry_run=True)
 
-        xf = Path(env) / xtensor_hpp
-        assert xf.exists()
-        stat_xf = xf.stat()
+        same_device = (
+            existing_cache.stat().st_dev == Path(TestLinking.prefix).stat().st_dev
+        )
+        is_softlink = not same_device and allow_softlinks and not always_copy
+        is_hardlink = same_device and not always_copy
 
-        pkg_name = get_concrete_pkg(res, "xtensor")
-        orig_file_path = get_pkg(pkg_name, xtensor_hpp)
+        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        assert linked_file.exists()
 
-        stat_orig = orig_file_path.stat()
-        assert stat_orig.st_dev != stat_xf.st_dev and stat_orig.st_ino != stat_xf.st_ino
-        assert xf.is_symlink() == (allow_softlinks and not always_copy)
-
-        shutil.rmtree("/tmp/testenv")
+        cache_file = existing_cache / test_pkg / xtensor_hpp
+        assert cache_file.stat().st_dev == linked_file.stat().st_dev
+        assert (cache_file.stat().st_ino == linked_file.stat().st_ino) == is_hardlink
+        assert linked_file.is_symlink() == is_softlink

@@ -73,7 +73,12 @@ namespace validate
     }
 
     package_error::package_error() noexcept
-        : trust_error("Invalid package metadata")
+        : trust_error("Invalid package")
+    {
+    }
+
+    role_error::role_error() noexcept
+        : trust_error("Invalid role")
     {
     }
 
@@ -216,6 +221,21 @@ namespace validate
         return 1;
     }
 
+    std::pair<std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>,
+              std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
+    generate_ed25519_keypair()
+    {
+        std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> pk, sk;
+        generate_ed25519_keypair(pk.data(), sk.data());
+        return { pk, sk };
+    }
+
+    std::pair<std::string, std::string> generate_ed25519_keypair_hex()
+    {
+        auto pair = generate_ed25519_keypair();
+        return { ::mamba::hex_string(pair.first), ::mamba::hex_string(pair.second) };
+    }
+
     int sign(const std::string& data, const unsigned char* sk, unsigned char* signature)
     {
         std::size_t msg_len = data.size();
@@ -249,6 +269,25 @@ namespace validate
 
         EVP_MD_CTX_free(md_ctx);
         return 1;
+    }
+
+    int sign(const std::string& data, const std::string& sk, std::string& signature)
+    {
+        int error_code = 0;
+
+        auto bin_sk = ed25519_key_hex_to_bytes(sk, error_code);
+        if (error_code != 0)
+        {
+            LOG_DEBUG << "Invalid secret key";
+            return 0;
+        }
+
+        std::array<unsigned char, MAMBA_ED25519_SIGSIZE_BYTES> sig;
+
+        error_code = sign(data, bin_sk.data(), sig.data());
+        signature = ::mamba::hex_string(sig, MAMBA_ED25519_SIGSIZE_BYTES);
+
+        return error_code;
     }
 
     int verify(const unsigned char* data,
@@ -394,6 +433,11 @@ namespace validate
         return { pubkeys, threshold };
     }
 
+    RoleFullKeys::RoleFullKeys(const std::map<std::string, Key>& keys_,
+                               const std::size_t& threshold_)
+        : keys(keys_)
+        , threshold(threshold_){};
+
     std::map<std::string, Key> RoleFullKeys::to_keys() const
     {
         return keys;
@@ -433,6 +477,19 @@ namespace validate
     std::string TimeRef::timestamp()
     {
         return mamba::timestamp(m_time_ref);
+    }
+
+    void check_timestamp_metadata_format(const std::string& ts)
+    {
+        std::regex timestamp_re("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$");
+
+        if (!std::regex_match(ts, timestamp_re))
+        {
+            mamba::Console::stream() << "Invalid timestamp in content trust metadata";
+            LOG_ERROR << "Invalid timestamp format '" << ts
+                      << "', should be UTC ISO8601 ('<YYYY>-<MM>-<DD>T<HH>:<MM>:<SS>Z')";
+            throw role_metadata_error();
+        }
     }
 
     SpecBase::SpecBase(const std::string& spec_version)
@@ -659,21 +716,28 @@ namespace validate
         return {};
     }
 
-    void RoleBase::check_defined_roles() const
+    void RoleBase::check_expiration_format() const
+    {
+        check_timestamp_metadata_format(m_expires);
+    }
+
+    void RoleBase::check_defined_roles(bool allow_any) const
     {
         auto mandatory_roles = mandatory_defined_roles();
         auto optional_roles = optionally_defined_roles();
         auto all_roles = mandatory_roles;
         all_roles.insert(optional_roles.cbegin(), optional_roles.cend());
 
-        for (const auto& r : roles())
-        {
-            if (all_roles.find(r) == all_roles.end())
+        if (!allow_any)
+            for (const auto& r : roles())
             {
-                LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r << "'";
-                throw role_metadata_error();
+                if (all_roles.find(r) == all_roles.end())
+                {
+                    LOG_ERROR << "Invalid role defined in '" << type() << "' metadata: '" << r
+                              << "'";
+                    throw role_metadata_error();
+                }
             }
-        }
 
         auto current_roles = roles();
         if (!std::includes(current_roles.begin(),
@@ -856,7 +920,15 @@ namespace validate
         auto signatures = role.signatures(data);
         auto k = self_keys();
 
-        check_signatures(signed_data, signatures, k);
+        try
+        {
+            check_signatures(signed_data, signatures, k);
+        }
+        catch (const threshold_error& e)
+        {
+            LOG_ERROR << "Validation failed on role '" << type() << "'";
+            throw role_error();
+        }
     }
 
     void RoleBase::check_signatures(const std::string& signed_data,
@@ -901,8 +973,8 @@ namespace validate
 
         if (valid_sig < keyring.threshold)
         {
-            LOG_ERROR << "Threshold of valid signatures for '" << type()
-                      << "' metadata is not met (" << valid_sig << "/" << keyring.threshold << ")";
+            LOG_ERROR << "Threshold of valid signatures is not met (" << valid_sig << "/"
+                      << keyring.threshold << ")";
             throw threshold_error();
         }
     }
@@ -1114,6 +1186,7 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
             role.check_defined_roles();
         }
     }  // namespace v1
@@ -1165,10 +1238,19 @@ namespace validate
             return j.dump(2);
         }
 
-        RootImpl::RootImpl(const json& j)
-            : RootRole(std::make_shared<SpecImpl>())
+        void V06RoleBaseExtension::check_timestamp_format() const
         {
-            load_from_json(j);
+            check_timestamp_metadata_format(m_timestamp);
+        }
+
+        void V06RoleBaseExtension::set_timestamp(const std::string& ts)
+        {
+            m_timestamp = ts;
+        }
+
+        std::string V06RoleBaseExtension::timestamp() const
+        {
+            return m_timestamp;
         }
 
         RootImpl::RootImpl(const fs::path& path)
@@ -1176,6 +1258,18 @@ namespace validate
         {
             auto j = read_json_file(path);
             load_from_json(j);
+        }
+
+        RootImpl::RootImpl(const json& j)
+            : RootRole(std::make_shared<SpecImpl>())
+        {
+            load_from_json(j);
+        }
+
+        RootImpl::RootImpl(const std::string& json_str)
+            : RootRole(std::make_shared<SpecImpl>())
+        {
+            load_from_json(json::parse(json_str));
         }
 
         std::unique_ptr<RootRole> RootImpl::create_update(const json& j)
@@ -1343,6 +1437,8 @@ namespace validate
             {
                 from_json(j_signed, static_cast<RoleBase*>(&role));
 
+                role.set_timestamp(j_signed.at("timestamp").get<std::string>());
+
                 auto type = j_signed.at("type").get<std::string>();
                 if (type != role.type())
                 {
@@ -1363,6 +1459,8 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
+            role.check_timestamp_format();
             role.check_defined_roles();
         }
 
@@ -1383,6 +1481,15 @@ namespace validate
             , m_keys(keys)
         {
             load_from_json(j);
+        }
+
+        KeyMgrRole::KeyMgrRole(const std::string& json_str,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("key_mgr", spec)
+            , m_keys(keys)
+        {
+            load_from_json(json::parse(json_str));
         }
 
         void KeyMgrRole::load_from_json(const json& j)
@@ -1445,6 +1552,8 @@ namespace validate
             {
                 from_json(j_signed, static_cast<RoleBase*>(&role));
 
+                role.set_timestamp(j_signed.at("timestamp").get<std::string>());
+
                 auto type = j_signed.at("type").get<std::string>();
                 if (type != role.type())
                 {
@@ -1473,6 +1582,8 @@ namespace validate
                 throw role_metadata_error();
             }
 
+            role.check_expiration_format();
+            role.check_timestamp_format();
             role.check_defined_roles();
         }
 
@@ -1480,6 +1591,102 @@ namespace validate
             : RoleBase("pkg_mgr", spec)
             , m_keys(keys)
         {
+        }
+
+        PkgMgrRole::PkgMgrRole(const fs::path& p,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+            auto j = read_json_file(p);
+            load_from_json(j);
+        }
+
+        PkgMgrRole::PkgMgrRole(const json& j,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+            load_from_json(j);
+        }
+
+        PkgMgrRole::PkgMgrRole(const std::string& json_str,
+                               const RoleFullKeys& keys,
+                               const std::shared_ptr<SpecBase> spec)
+            : RoleBase("pkg_mgr", spec)
+            , m_keys(keys)
+        {
+            load_from_json(json::parse(json_str));
+        }
+
+        void PkgMgrRole::load_from_json(const json& j)
+        {
+            from_json(j, *this);
+            // Check signatures against keyids and threshold
+            check_role_signatures(j, *this);
+        }
+
+        void PkgMgrRole::set_defined_roles(std::map<std::string, RolePubKeys> keys)
+        {
+            m_defined_roles.clear();
+            for (auto& it : keys)
+            {
+                std::map<std::string, Key> role_keys;
+                for (auto& key : it.second.pubkeys)
+                {
+                    role_keys.insert({ key, Key::from_ed25519(key) });
+                }
+                m_defined_roles.insert({ it.first, { role_keys, it.second.threshold } });
+            }
+        }
+
+        void to_json(json& j, const PkgMgrRole& r)
+        {
+            to_json(j, static_cast<const RoleBase*>(&r));
+        }
+
+        void from_json(const json& j, PkgMgrRole& role)
+        {
+            auto j_signed = j.at("signed");
+            try
+            {
+                from_json(j_signed, static_cast<RoleBase*>(&role));
+
+                role.set_timestamp(j_signed.at("timestamp").get<std::string>());
+
+                auto type = j_signed.at("type").get<std::string>();
+                if (type != role.type())
+                {
+                    LOG_ERROR << "Wrong 'type' found in 'pkg_mgr' metadata, should be 'pkg_mgr': '"
+                              << type << "'";
+                    throw role_metadata_error();
+                }
+
+                auto new_spec_version
+                    = j_signed.at(role.spec_version().json_key()).get<std::string>();
+                if (role.spec_version() != SpecImpl(new_spec_version))
+                {
+                    LOG_ERROR
+                        << "Invalid spec version '" << new_spec_version
+                        << "' in 'pkg_mgr' metadata, it should match exactly 'root' spec version: '"
+                        << role.spec_version().version_str() << "'";
+                    throw spec_version_error();
+                }
+
+                role.set_defined_roles(
+                    j_signed.at("delegations").get<std::map<std::string, RolePubKeys>>());
+            }
+            catch (const json::exception& e)
+            {
+                LOG_ERROR << "Invalid 'pkg_mgr' metadata: " << e.what();
+                throw role_metadata_error();
+            }
+
+            role.check_expiration_format();
+            role.check_timestamp_format();
+            role.check_defined_roles();
         }
 
         RoleFullKeys PkgMgrRole::self_keys() const
@@ -1567,37 +1774,16 @@ namespace validate
                 throw index_error();
             }
         }
-        void PkgMgrRole::verify_package(const fs::path& index_path,
-                                        const std::string& pkg_name) const
+        void PkgMgrRole::verify_package(const json& signed_data, const json& signatures) const
         {
-            if (!fs::exists(index_path))
-            {
-                LOG_ERROR << "'repodata' file not found at: " << index_path.string();
-                throw index_error();
-            }
-
-            std::ifstream i(index_path);
-            json j;
-            i >> j;
-
             try
             {
-                auto pkg_meta = j.at("packages").at(pkg_name).get<json::object_t>();
-                auto pkg_sigs = j.at("signatures").at(pkg_name).get<json::object_t>();
-                try
-                {
-                    check_pkg_signatures(pkg_meta, pkg_sigs);
-                }
-                catch (const threshold_error& e)
-                {
-                    LOG_ERROR << "Validation failed on package: '" << pkg_name << "'";
-                    throw package_error();
-                }
+                check_pkg_signatures(signed_data, signatures);
             }
-            catch (const json::exception& e)
+            catch (const threshold_error& e)
             {
-                LOG_ERROR << "Invalid package index metadata: " << e.what();
-                throw index_error();
+                LOG_ERROR << "Validation failed on package: '" << signed_data.at("name") << "'";
+                throw package_error();
             }
         }
     }  // namespace v06
@@ -1712,9 +1898,9 @@ namespace validate
         p_index_checker->verify_index(p);
     }
 
-    void RepoChecker::verify_package(const fs::path& index_path, const std::string& pkg_name) const
+    void RepoChecker::verify_package(const json& signed_data, const json& signatures) const
     {
-        p_index_checker->verify_package(index_path, pkg_name);
+        p_index_checker->verify_package(signed_data, signatures);
     }
 
     std::size_t RepoChecker::root_version()
@@ -1835,6 +2021,7 @@ namespace validate
             // Updated 'root' metadata are persisted in a cache directory
             persist_file(tmp_file_path);
 
+            // Set the next possible files
             update_files = updated_root->possible_update_files();
         }
         // TUF spec 5.3.9 - Repeat steps 5.3.2 to 5.3.9

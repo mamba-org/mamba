@@ -119,7 +119,33 @@ namespace mamba
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
             valid = s.size == 0 || validate::file_size(tarball_path, s.size);
-            valid = valid && (s.md5.empty() || validate::md5(tarball_path, s.md5));
+            if (!s.md5.empty())
+            {
+                valid = valid && validate::md5(tarball_path, s.md5);
+            }
+            else if (!s.sha256.empty())
+            {
+                valid = valid && validate::sha256(tarball_path, s.md5);
+            }
+            else
+            {
+                if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                {
+                    // we cannot validate this archive, but we could also not validate a downloaded
+                    // archive since we just don't know the sha256 or md5 sum
+                    throw std::runtime_error(
+                        "Could not validate package '" + tarball_path.string()
+                        + "': md5 and sha256 sum unknown.\n"
+                          "Set safety_checks to warn or disabled to override this error.");
+                }
+                if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                {
+                    LOG_WARNING << "Could not validate package '" + tarball_path.string()
+                                       + "': md5 and sha256 sum unknown.\n"
+                                         "Set safety_checks to disabled to override this warning.";
+                }
+            }
+
             if (valid)
                 LOG_TRACE << "Package tarball '" << tarball_path.string() << "' is valid";
             else
@@ -161,10 +187,23 @@ namespace mamba
                     valid = true;
 
                     // we can only validate if we have at least one data point of these three
-                    can_validate = s.size != 0 || !s.md5.empty() || !s.sha256.empty();
+                can_validate = s.md5.empty() || s.sha256.empty();
                     if (!can_validate)
                     {
-                        LOG_WARNING << "repodata_record.json contains neither file size, md5 nor sha256 sum for validation of '" << pkg_name.string() << "''";
+                        if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                        {
+                            LOG_WARNING
+                                << "Could not validate package '" + repodata_record_path.string()
+                                       + "': md5 and sha256 sum unknown.\n"
+                                         "Set safety_checks to disabled to override this warning.";
+                        }
+                        else if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                        {
+                            throw std::runtime_error(
+                                "Could not validate package '" + repodata_record_path.string()
+                                + "': md5 and sha256 sum unknown.\n"
+                                  "Set safety_checks to warn or disabled to override this error.");
+                        }
                     }
 
                     // Validate size
@@ -181,6 +220,7 @@ namespace mamba
                     // Validate checksum
                     if (!s.sha256.empty())
                     {
+                        // TODO handle case if repodata_record __does not__ contain any value
                         if (s.sha256 != repodata_record["sha256"].get<std::string>())
                         {
                             valid = false;
@@ -196,6 +236,7 @@ namespace mamba
                     }
                     else if (!s.md5.empty())
                     {
+                        // TODO handle case if repodata_record __does not__ contain any value
                         if (s.md5 != repodata_record["md5"].get<std::string>())
                         {
                             LOG_WARNING << "Extracted package cache '" << extracted_dir.string()

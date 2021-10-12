@@ -103,7 +103,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                     {
                         index["url"] = pkg_info.url;
                         index["channel"] = pkg_info.channel;
-                        index["size"] = pkg_info.size;
+                        index["size"] = fs::file_size(entry.path());
                         if (!pkg_info.md5.empty())
                         {
                             index["md5"] = pkg_info.md5;

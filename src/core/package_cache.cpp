@@ -117,8 +117,35 @@ namespace mamba
         {
             fs::path tarball_path = m_path / s.fn;
             // validate that this tarball has the right size and MD5 sum
-            valid = validate::file_size(tarball_path, s.size);
-            valid = (valid || s.size == 0) && validate::md5(tarball_path, s.md5);
+            // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
+            valid = s.size == 0 || validate::file_size(tarball_path, s.size);
+            if (!s.md5.empty())
+            {
+                valid = valid && validate::md5(tarball_path, s.md5);
+            }
+            else if (!s.sha256.empty())
+            {
+                valid = valid && validate::sha256(tarball_path, s.md5);
+            }
+            else
+            {
+                if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                {
+                    LOG_WARNING << "Could not validate package '" + tarball_path.string()
+                                       + "': md5 and sha256 sum unknown.\n"
+                                         "Set safety_checks to disabled to override this warning.";
+                }
+                else if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                {
+                    // we cannot validate this archive, but we could also not validate a downloaded
+                    // archive since we just don't know the sha256 or md5 sum
+                    throw std::runtime_error(
+                        "Could not validate package '" + tarball_path.string()
+                        + "': md5 and sha256 sum unknown.\n"
+                          "Set safety_checks to warn or disabled to override this error.");
+                }
+            }
+
             if (valid)
                 LOG_TRACE << "Package tarball '" << tarball_path.string() << "' is valid";
             else
@@ -133,7 +160,7 @@ namespace mamba
 
     bool PackageCacheData::has_valid_extracted_dir(const PackageInfo& s)
     {
-        bool valid = false;
+        bool valid = false, can_validate = false;
 
         std::string pkg = s.str();
         if (m_valid_extracted_dir.find(pkg) != m_valid_extracted_dir.end())
@@ -156,10 +183,31 @@ namespace mamba
                     std::ifstream repodata_record_f(repodata_record_path);
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
-                    valid = s.size != 0;
+
+                    valid = true;
+
+                    // we can only validate if we have at least one data point of these three
+                    can_validate = !s.md5.empty() || !s.sha256.empty();
+                    if (!can_validate)
+                    {
+                        if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                        {
+                            LOG_WARNING
+                                << "Could not validate package '" + repodata_record_path.string()
+                                       + "': md5 and sha256 sum unknown.\n"
+                                         "Set safety_checks to disabled to override this warning.";
+                        }
+                        else if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                        {
+                            throw std::runtime_error(
+                                "Could not validate package '" + repodata_record_path.string()
+                                + "': md5 and sha256 sum unknown.\n"
+                                  "Set safety_checks to warn or disabled to override this error.");
+                        }
+                    }
 
                     // Validate size
-                    if (valid)
+                    if (s.size != 0)
                     {
                         valid = repodata_record["size"].get<std::size_t>() == s.size;
                         if (!valid)
@@ -170,45 +218,44 @@ namespace mamba
                     }
 
                     // Validate checksum
-                    if (valid)
+                    if (!s.sha256.empty())
                     {
-                        if (!s.sha256.empty())
+                        // TODO handle case if repodata_record __does not__ contain any value
+                        if (s.sha256 != repodata_record["sha256"].get<std::string>())
                         {
-                            if (s.sha256 != repodata_record["sha256"].get<std::string>())
-                            {
-                                valid = false;
-                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                            << "' has invalid SHA-256 checksum";
-                            }
-                            else if (s.size == 0)
-                            {
-                                // in case we have no s.size
-                                // set valid true here
-                                valid = true;
-                            }
-                        }
-                        else if (!s.md5.empty())
-                        {
-                            if (s.md5 != repodata_record["md5"].get<std::string>())
-                            {
-                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                            << "' has invalid MD5 checksum";
-                                valid = false;
-                            }
-                            else if (s.size == 0)
-                            {
-                                // for explicit env, we have no size, nor sha256 so we need to
-                                // set valid true here
-                                valid = true;
-                            }
-                        }
-                        else
-                        {
-                            // cannot validate if we don't know either md5 or sha256
+                            valid = false;
                             LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                        << "' has no checksum";
+                                        << "' has invalid SHA-256 checksum";
+                        }
+                        else if (s.size == 0)
+                        {
+                            // in case we have no s.size
+                            // set valid true here
+                            valid = true;
+                        }
+                    }
+                    else if (!s.md5.empty())
+                    {
+                        // TODO handle case if repodata_record __does not__ contain any value
+                        if (s.md5 != repodata_record["md5"].get<std::string>())
+                        {
+                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                        << "' has invalid MD5 checksum";
                             valid = false;
                         }
+                        else if (s.size == 0)
+                        {
+                            // for explicit env, we have no size, nor sha256 so we need to
+                            // set valid true here
+                            valid = true;
+                        }
+                    }
+                    else if (s.size != 0)
+                    {
+                        // cannot validate if we don't know either md5 or sha256
+                        LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                    << "' has no checksum";
+                        valid = false;
                     }
 
                     // Validate URL

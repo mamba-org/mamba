@@ -9,7 +9,7 @@ export TESTPWD=":test"
 python reposerver.py -d repo/ --auth basic --port 8005 & PID=$!
 python reposerver.py -d repo/ --auth basic --port 8006 & PID=$!
 python reposerver.py -d repo/ --auth basic --port 8007 & PID=$!
-mamba create -y -k -q -n $ENV_NAME --override-channels -c https://:test@localhost:8005/ -c https://:test@localhost:8006/ -c https://:test@localhost:8007/ test-package --json
+mamba create -y -k -vvv -n $ENV_NAME --override-channels -c http://:test@localhost:8005/ -c http://:test@localhost:8006/ -c http://:test@localhost:8007/ test-package --json
 kill -TERM $PID
 kill -TERM $PID2
 kill -TERM $PID3

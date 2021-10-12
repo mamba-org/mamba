@@ -5,10 +5,8 @@ import json
 import os
 import re
 import shutil
-import socketserver
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
-import ssl
 
 import conda_content_trust.authentication as cct_authentication
 import conda_content_trust.common as cct_common
@@ -289,13 +287,8 @@ elif not args.auth or args.auth == "token":
 
 PORT = args.port
 
-server = HTTPServer(('localhost', PORT), handler)
+server = HTTPServer(("", PORT), handler)
 print("Server started at localhost:" + str(PORT))
-
-server.auth = "test"
-server.socket = ssl.wrap_socket (server.socket, 
-        keyfile="/Volumes/git/mamba/test/new_aps_key.pem", 
-        certfile='/Volumes/git/mamba/test/cert.pem', server_side=True)
 
 try:
     server.serve_forever()

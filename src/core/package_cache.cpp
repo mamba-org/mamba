@@ -117,8 +117,9 @@ namespace mamba
         {
             fs::path tarball_path = m_path / s.fn;
             // validate that this tarball has the right size and MD5 sum
-            valid = validate::file_size(tarball_path, s.size);
-            valid = (valid || s.size == 0) && validate::md5(tarball_path, s.md5);
+            // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
+            valid = s.size == 0 || validate::file_size(tarball_path, s.size);
+            valid = valid && (s.md5.empty() || validate::md5(tarball_path, s.md5));
             if (valid)
                 LOG_TRACE << "Package tarball '" << tarball_path.string() << "' is valid";
             else
@@ -133,7 +134,7 @@ namespace mamba
 
     bool PackageCacheData::has_valid_extracted_dir(const PackageInfo& s)
     {
-        bool valid = false;
+        bool valid = false, can_validate = false;
 
         std::string pkg = s.str();
         if (m_valid_extracted_dir.find(pkg) != m_valid_extracted_dir.end())
@@ -156,10 +157,18 @@ namespace mamba
                     std::ifstream repodata_record_f(repodata_record_path);
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
-                    valid = s.size != 0;
+
+                    valid = true;
+
+                    // we can only validate if we have at least one data point of these three
+                    can_validate = s.size != 0 || !s.md5.empty() || !s.sha256.empty();
+                    if (!can_validate)
+                    {
+                        LOG_WARNING << "repodata_record.json contains neither file size, md5 nor sha256 sum for validation of '" << pkg_name.string() << "''";
+                    }
 
                     // Validate size
-                    if (valid)
+                    if (s.size != 0)
                     {
                         valid = repodata_record["size"].get<std::size_t>() == s.size;
                         if (!valid)
@@ -170,45 +179,42 @@ namespace mamba
                     }
 
                     // Validate checksum
-                    if (valid)
+                    if (!s.sha256.empty())
                     {
-                        if (!s.sha256.empty())
+                        if (s.sha256 != repodata_record["sha256"].get<std::string>())
                         {
-                            if (s.sha256 != repodata_record["sha256"].get<std::string>())
-                            {
-                                valid = false;
-                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                            << "' has invalid SHA-256 checksum";
-                            }
-                            else if (s.size == 0)
-                            {
-                                // in case we have no s.size
-                                // set valid true here
-                                valid = true;
-                            }
-                        }
-                        else if (!s.md5.empty())
-                        {
-                            if (s.md5 != repodata_record["md5"].get<std::string>())
-                            {
-                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                            << "' has invalid MD5 checksum";
-                                valid = false;
-                            }
-                            else if (s.size == 0)
-                            {
-                                // for explicit env, we have no size, nor sha256 so we need to
-                                // set valid true here
-                                valid = true;
-                            }
-                        }
-                        else
-                        {
-                            // cannot validate if we don't know either md5 or sha256
+                            valid = false;
                             LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                        << "' has no checksum";
+                                        << "' has invalid SHA-256 checksum";
+                        }
+                        else if (s.size == 0)
+                        {
+                            // in case we have no s.size
+                            // set valid true here
+                            valid = true;
+                        }
+                    }
+                    else if (!s.md5.empty())
+                    {
+                        if (s.md5 != repodata_record["md5"].get<std::string>())
+                        {
+                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                        << "' has invalid MD5 checksum";
                             valid = false;
                         }
+                        else if (s.size == 0)
+                        {
+                            // for explicit env, we have no size, nor sha256 so we need to
+                            // set valid true here
+                            valid = true;
+                        }
+                    }
+                    else if (s.size != 0)
+                    {
+                        // cannot validate if we don't know either md5 or sha256
+                        LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                    << "' has no checksum";
+                        valid = false;
                     }
 
                     // Validate URL

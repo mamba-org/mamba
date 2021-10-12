@@ -187,7 +187,7 @@ namespace mamba
                     valid = true;
 
                     // we can only validate if we have at least one data point of these three
-                can_validate = s.md5.empty() || s.sha256.empty();
+                    can_validate = s.md5.empty() || s.sha256.empty();
                     if (!can_validate)
                     {
                         if (Context::instance().safety_checks == VerificationLevel::kWarn)

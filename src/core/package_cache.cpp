@@ -129,7 +129,13 @@ namespace mamba
             }
             else
             {
-                if (Context::instance().safety_checks == VerificationLevel::kEnabled)
+                if (Context::instance().safety_checks == VerificationLevel::kWarn)
+                {
+                    LOG_WARNING << "Could not validate package '" + tarball_path.string()
+                                       + "': md5 and sha256 sum unknown.\n"
+                                         "Set safety_checks to disabled to override this warning.";
+                }
+                else if (Context::instance().safety_checks == VerificationLevel::kEnabled)
                 {
                     // we cannot validate this archive, but we could also not validate a downloaded
                     // archive since we just don't know the sha256 or md5 sum
@@ -137,12 +143,6 @@ namespace mamba
                         "Could not validate package '" + tarball_path.string()
                         + "': md5 and sha256 sum unknown.\n"
                           "Set safety_checks to warn or disabled to override this error.");
-                }
-                if (Context::instance().safety_checks == VerificationLevel::kWarn)
-                {
-                    LOG_WARNING << "Could not validate package '" + tarball_path.string()
-                                       + "': md5 and sha256 sum unknown.\n"
-                                         "Set safety_checks to disabled to override this warning.";
                 }
             }
 
@@ -187,7 +187,7 @@ namespace mamba
                     valid = true;
 
                     // we can only validate if we have at least one data point of these three
-                    can_validate = s.md5.empty() || s.sha256.empty();
+                    can_validate = !s.md5.empty() || !s.sha256.empty();
                     if (!can_validate)
                     {
                         if (Context::instance().safety_checks == VerificationLevel::kWarn)

@@ -1703,6 +1703,7 @@ namespace mamba
     int const MAMBA_SHOW_CONFIG_LONG_DESCS = 1 << 3;
     int const MAMBA_SHOW_CONFIG_GROUPS = 1 << 4;
     int const MAMBA_SHOW_ALL_CONFIGS = 1 << 5;
+    int const MAMBA_SHOW_ALL_RC_CONFIGS = 1 << 6;
 
 
     /*****************

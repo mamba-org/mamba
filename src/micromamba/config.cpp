@@ -105,7 +105,7 @@ init_config_describe_options(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& specs = config.at("specs").get_wrapped<std::vector<std::string>>();
-    subcom->add_option("specs", specs.set_cli_config({}), specs.description());
+    subcom->add_option("configs", specs.set_cli_config({}), "Configuration keys");
 
     auto& show_long_descriptions = config.at("show_config_long_descriptions").get_wrapped<bool>();
     subcom->add_flag("-l,--long-descriptions",
@@ -127,7 +127,7 @@ init_config_list_options(CLI::App* subcom)
     auto& show_sources = config.at("show_config_sources").get_wrapped<bool>();
     subcom->add_flag("-s,--sources", show_sources.set_cli_config(0), show_sources.description());
 
-    auto& show_all = config.at("show_all_configs").get_wrapped<bool>();
+    auto& show_all = config.at("show_all_rc_configs").get_wrapped<bool>();
     subcom->add_flag("-a,--all", show_all.set_cli_config(0), show_all.description());
 
     auto& show_descriptions = config.at("show_config_descriptions").get_wrapped<bool>();

@@ -47,6 +47,8 @@ namespace mamba
         auto show_sources
             = config.at("show_config_sources").value<bool>() ? MAMBA_SHOW_CONFIG_SRCS : 0;
         auto show_all = config.at("show_all_configs").value<bool>() ? MAMBA_SHOW_ALL_CONFIGS : 0;
+        auto show_all_rcs
+            = config.at("show_all_rc_configs").value<bool>() ? MAMBA_SHOW_ALL_RC_CONFIGS : 0;
         auto show_group
             = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
         auto show_desc
@@ -56,7 +58,7 @@ namespace mamba
                                   : 0;
         auto specs = config.at("specs").value<std::vector<std::string>>();
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | show_sources | show_desc | show_long_desc
-                        | show_group | show_all;
+                        | show_group | show_all_rcs | show_all;
 
         std::cout << config.dump(dump_opts, specs) << std::endl;
 

@@ -1,3 +1,14 @@
+0.17.0 (October 13, 2021)
+=========================
+
+- Improve micromamba lockfiles and add many tests (thanks @adriendelsalle)
+- Support multiple package caches in micromamba (thanks @adriendelsalle)
+- Order explicit envs in micromamba (also added some text to the docs about libsolv transactions)
+- Add `micromamba package` subcommand to extract, create and transmute packages
+- Improve micromamba configuration to support multi-stage loading of RC files (thanks @adriendelsalle)
+- Add handling of `CONDA_SAFETY_CHECKS` to micromamba (thanks @isuruf)
+- Improve mamba messaging (thanks @wkusnierczyk)
+
 0.16.0 (September 27, 2021)
 ===========================
 

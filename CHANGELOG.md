@@ -1,3 +1,23 @@
+0.17.0 (October 13, 2021)
+=========================
+
+API Breaking changes:
+
+The Transaction and the Subdir interface have slightly changed (no more explicit setting of the writable
+packages dir is necessary, this value is taken directly from the MultiPackagesCache now)
+
+- improve listing of (RC-) configurable values in `micromamba` #1210 (thanks @adriendelsalle)
+- Improve micromamba lockfiles and add many tests #1193 (thanks @adriendelsalle)
+- Support multiple package caches in micromamba (thanks @adriendelsalle) #1109
+- Order explicit envs in micromamba (also added some text to the docs about libsolv transactions) #1198
+- Add `micromamba package` subcommand to extract, create and transmute packages #1187
+- Improve micromamba configuration to support multi-stage loading of RC files (thanks @adriendelsalle) #1189 #1190 #1191 #1188
+- Add handling of `CONDA_SAFETY_CHECKS` to micromamba #1143 (thanks @isuruf)
+- Improve mamba messaging by adding a space #1186 (thanks @wkusnierczyk)
+- Add support for `custom_multichannels` #1142
+- micromamba: expose setting for `add_pip_as_python_dependency` #1203
+- stop displaying banner when running `mamba list` #1184 (thanks @madhur-thandon)
+
 0.16.0 (September 27, 2021)
 ===========================
 

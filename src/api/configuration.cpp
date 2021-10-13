@@ -895,27 +895,31 @@ namespace mamba
 
         insert(Configurable("show_all_configs", false)
                    .group("Output, Prompt and Flow Control")
-                   .description("Display all configurables, including not rc configurable"));
+                   .description("Display all configs, including not rc configurable"));
+
+        insert(Configurable("show_all_rc_configs", false)
+                   .group("Output, Prompt and Flow Control")
+                   .description("Display all rc configurable configs"));
 
         insert(Configurable("show_config_descriptions", false)
                    .group("Output, Prompt and Flow Control")
-                   .description("Display configurables descriptions"));
+                   .description("Display configs descriptions"));
 
         insert(Configurable("show_config_groups", false)
                    .group("Output, Prompt and Flow Control")
-                   .description("Display configurables groups"));
+                   .description("Display configs groups"));
 
         insert(Configurable("show_config_long_descriptions", false)
                    .group("Output, Prompt and Flow Control")
-                   .description("Display configurables long descriptions"));
+                   .description("Display configs long descriptions"));
 
         insert(Configurable("show_config_sources", false)
                    .group("Output, Prompt and Flow Control")
-                   .description("Display all identified configuration sources"));
+                   .description("Display all configs sources"));
 
         insert(Configurable("show_config_values", false)
                    .group("Output, Prompt and Flow Control")
-                   .description("Display configurables values"));
+                   .description("Display configs values"));
 
         insert(Configurable("quiet", &ctx.quiet)
                    .group("Output, Prompt and Flow Control")
@@ -1294,6 +1298,7 @@ namespace mamba
         bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
         bool show_long_descs = opts & MAMBA_SHOW_CONFIG_LONG_DESCS;
         bool show_groups = opts & MAMBA_SHOW_CONFIG_GROUPS;
+        bool show_all_rcs = opts & MAMBA_SHOW_ALL_RC_CONFIGS;
         bool show_all = opts & MAMBA_SHOW_ALL_CONFIGS;
 
         bool first_config = true;
@@ -1314,7 +1319,8 @@ namespace mamba
                     continue;
                 }
 
-                if ((c->rc_configurable() && c->configured()) || is_required || show_all)
+                if ((c->rc_configurable() && (c->configured() || show_all_rcs)) || is_required
+                    || show_all)
                 {
                     if (show_descs || show_long_descs)
                     {

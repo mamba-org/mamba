@@ -8,6 +8,7 @@
 #include <map>
 
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 
@@ -115,12 +116,21 @@ namespace mamba
         if (solvable_lookup_str(s, real_repo_key))
         {
             url = solvable_lookup_str(s, real_repo_key);
+            channel = make_channel(url).canonical_name();
         }
         else
         {
-            channel = s->repo->name;  // note this can and should be <unknown> when e.g.
-                                      // installing from a tarball
-            url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
+            if (!s->repo || strcmp(s->repo->name, "__explicit_specs__") == 0)
+            {
+                url = solvable_lookup_location(s, 0);
+                channel = make_channel(url).canonical_name();
+            }
+            else
+            {
+                channel = s->repo->name;  // note this can and should be <unknown> when e.g.
+                                          // installing from a tarball
+                url = channel + "/" + check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
+            }
         }
 
         subdir = check_char(solvable_lookup_str(s, SOLVABLE_MEDIADIR));
@@ -128,7 +138,7 @@ namespace mamba
         str = check_char(solvable_lookup_str(s, SOLVABLE_LICENSE));
         if (str)
             license = str;
-        size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
+        size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, 0);
         timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0);
         str = solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type);
         if (str)

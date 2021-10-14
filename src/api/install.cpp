@@ -265,7 +265,7 @@ namespace mamba
         {
             if (use_explicit)
             {
-                install_explicit_specs(install_specs);
+                install_explicit_specs(install_specs, false);
             }
             else
             {
@@ -529,41 +529,27 @@ namespace mamba
     }
 
 
-    void install_explicit_specs(const std::vector<std::string>& specs)
+    void install_explicit_specs(const std::vector<std::string>& specs, bool create_env)
     {
-        mamba::History hist(Context::instance().target_prefix);
-        auto hist_entry = History::UserRequest::prefilled();
-        std::string python_version;  // for pyc compilation
-        // TODO unify this
+        MPool pool;
+        auto& ctx = Context::instance();
+        PrefixData prefix_data(ctx.target_prefix);
+        fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
+        MultiPackageCache pkg_caches({ pkgs_dirs });
+        auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
 
-        auto [pkg_infos, match_specs] = detail::parse_urls_to_package_info(specs);
-        for (auto& ms : match_specs)
+        std::vector<MRepo*> repo_ptrs;
+
+        if (ctx.json)
+            transaction.log_json();
+
+        bool yes = transaction.prompt(repo_ptrs);
+        if (yes)
         {
-            hist_entry.update.push_back(ms.str());
-            if (ms.name == "python")
-            {
-                python_version = ms.version;
-            }
-        }
+            if (create_env && !Context::instance().dry_run)
+                detail::create_target_directory(ctx.target_prefix);
 
-        MultiPackageCache pkg_caches(Context::instance().pkgs_dirs);
-
-        if (!Context::instance().dry_run && detail::download_explicit(pkg_infos, pkg_caches))
-        {
-            auto& ctx = Context::instance();
-            // pkgs can now be linked
-            fs::create_directories(ctx.target_prefix / "conda-meta");
-
-            TransactionContext tctx(ctx.target_prefix, python_version);
-            for (auto& pkg : pkg_infos)
-            {
-                LinkPackage lp(pkg, pkg_caches.first_writable_path(), &tctx);
-                Console::stream() << "Linking " << pkg.str();
-                hist_entry.link_dists.push_back(pkg.long_str());
-                lp.execute();
-            }
-
-            hist.add_entry(hist_entry);
+            transaction.execute(prefix_data);
         }
     }
 
@@ -736,58 +722,6 @@ namespace mamba
                 prefix_data.load_single_record(repodata_record_json);
             }
             return MRepo(pool, prefix_data);
-        }
-
-        bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches)
-        {
-            fs::path pkgs_cache = pkg_caches.first_writable_path();
-
-            if (!fs::exists(pkgs_cache))
-            {
-                fs::create_directories(pkgs_cache);
-            }
-
-            LockFile pkgs_cache_lock(pkgs_cache);
-
-            std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
-            MultiDownloadTarget multi_dl;
-            Console::instance().init_multi_progress(ProgressBarMode::aggregated);
-
-
-            for (auto& pkg : pkgs)
-            {
-                targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(pkg));
-                multi_dl.add(targets[targets.size() - 1]->target(pkg_caches));
-            }
-
-            interruption_guard g([]() { Console::instance().init_multi_progress(); });
-
-            bool downloaded = multi_dl.download(true);
-
-            if (!downloaded)
-            {
-                LOG_ERROR << "Download didn't finish!";
-                return false;
-            }
-            // make sure that all targets have finished extracting
-            while (!is_sig_interrupted())
-            {
-                bool all_finished = true;
-                for (const auto& t : targets)
-                {
-                    if (!t->finished())
-                    {
-                        all_finished = false;
-                        break;
-                    }
-                }
-                if (all_finished)
-                {
-                    break;
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-            return !is_sig_interrupted() && downloaded;
         }
     }  // detail
 }  // mamba

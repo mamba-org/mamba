@@ -13,7 +13,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-init_remove_parser(CLI::App* subcom)
+set_remove_command(CLI::App* subcom)
 {
     init_general_options(subcom);
     init_prefix_options(subcom);
@@ -23,20 +23,22 @@ init_remove_parser(CLI::App* subcom)
     auto& specs = config.at("specs").get_wrapped<std::vector<std::string>>();
     subcom->add_option("specs", specs.set_cli_config({}), "Specs to remove from the environment");
 
-    auto& remove_all = config.insert(Configurable("remove_all", false)
-                                         .group("cli")
-                                         .description("Remove all packages in the environment"));
-    subcom->add_flag("-a, --all", remove_all.set_cli_config(0), remove_all.description());
-}
-
-
-void
-set_remove_command(CLI::App* subcom)
-{
-    init_remove_parser(subcom);
+    static bool remove_all = false, force = false, prune = true;
+    subcom->add_flag("-a,--all", remove_all, "Remove all packages in the environment");
+    subcom->add_flag(
+        "-f,--force",
+        force,
+        "Force removal of package (note: consistency of environment is not guaranteed!");
+    subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
 
     subcom->callback([&]() {
-        auto& remove_all = Configuration::instance().at("remove_all").compute().value<bool>();
-        remove(remove_all);
+        int flags = 0;
+        if (prune)
+            flags |= MAMBA_REMOVE_PRUNE;
+        if (force)
+            flags |= MAMBA_REMOVE_FORCE;
+        if (remove_all)
+            flags |= MAMBA_REMOVE_ALL;
+        remove(flags);
     });
 }

@@ -58,7 +58,7 @@ namespace mamba
 
             if (use_explicit)
             {
-                install_explicit_specs(create_specs);
+                install_explicit_specs(create_specs, true);
             }
             else
             {

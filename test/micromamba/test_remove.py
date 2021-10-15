@@ -85,6 +85,36 @@ class TestRemove:
             assert p["name"] in env_pkgs
         assert res["actions"]["PREFIX"] == TestRemove.prefix
 
+    def test_remove_force(self, env_created):
+        # check that we can remove a package without solving the environment (putting
+        # it in a bad state, actually)
+        env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
+        install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
+
+        res = remove("xtl", "-p", TestRemove.prefix, "--json", "--force")
+
+        keys = {"dry_run", "success", "prefix", "actions"}
+        assert keys.issubset(set(res.keys()))
+        assert res["success"]
+        assert len(res["actions"]["UNLINK"]) == 1
+        assert res["actions"]["UNLINK"][0]["name"] == "xtl"
+        assert res["actions"]["PREFIX"] == TestRemove.prefix
+
+    def test_remove_noprune(self, env_created):
+        env_pkgs = [p["name"] for p in umamba_list("-p", TestRemove.prefix, "--json")]
+        install("xframe", "-n", TestRemove.env_name, no_dry_run=True)
+
+        res = remove("xtensor", "-p", TestRemove.prefix, "--json", "--no-prune")
+
+        keys = {"dry_run", "success", "prefix", "actions"}
+        assert keys.issubset(set(res.keys()))
+        assert res["success"]
+        assert len(res["actions"]["UNLINK"]) == 2
+        removed_names = [x["name"] for x in res["actions"]["UNLINK"]]
+        assert "xtensor" in removed_names
+        assert "xframe" in removed_names
+        assert res["actions"]["PREFIX"] == TestRemove.prefix
+
 
 class TestRemoveConfig:
 

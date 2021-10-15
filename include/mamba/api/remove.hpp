@@ -10,14 +10,15 @@
 #include <string>
 #include <vector>
 
+#include "mamba/api/constants.hpp"
 
 namespace mamba
 {
-    void remove(bool remove_all = false);
+    void remove(int flags = MAMBA_REMOVE_PRUNE);
 
     namespace detail
     {
-        void remove_specs(const std::vector<std::string>& specs);
+        void remove_specs(const std::vector<std::string>& specs, bool prune, bool force);
     }
 }
 

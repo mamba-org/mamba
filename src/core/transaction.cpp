@@ -17,6 +17,11 @@
 
 #include "thirdparty/termcolor.hpp"
 
+extern "C"
+{
+#include "solv/selection.h"
+}
+
 namespace
 {
     bool need_pkg_download(const mamba::PackageInfo& pkg_info, mamba::MultiPackageCache& caches)
@@ -78,6 +83,11 @@ namespace mamba
 
         solvable_json = m_package_info.json_record();
         index.insert(solvable_json.cbegin(), solvable_json.cend());
+
+        if (index.find("size") == index.end() || index["size"] == 0)
+        {
+            index["size"] = fs::file_size(m_tarball_path);
+        }
 
         std::ofstream repodata_record(repodata_record_path);
         repodata_record << index.dump(4);
@@ -266,7 +276,6 @@ namespace mamba
     // todo remove cache from this interface
     DownloadTarget* PackageDownloadExtractTarget::target(MultiPackageCache& caches)
     {
-        //
         // tarball can be removed, it's fine if only the correct dest dir exists
         // 1. If there is extracted cache, use it, otherwise next.
         // 2. If there is valid tarball, extract it, otherwise next.
@@ -331,6 +340,109 @@ namespace mamba
             return !spec_in_filter;
         }
     }
+
+    MTransaction::MTransaction(MPool& pool,
+                               const std::vector<MatchSpec>& specs_to_remove,
+                               const std::vector<MatchSpec>& specs_to_install,
+                               MultiPackageCache& caches)
+        : m_multi_cache(caches)
+    {
+        // auto& ctx = Context::instance();
+        std::vector<PackageInfo> pi_result;
+
+        for (auto& ms : specs_to_install)
+        {
+            PackageInfo p(ms.name);
+            p.url = ms.url;
+            p.build_string = ms.build;
+            p.version = ms.version;
+            p.channel = ms.channel;
+            p.fn = ms.fn;
+            if (ms.brackets.find("md5") != ms.brackets.end())
+            {
+                p.md5 = ms.brackets.at("md5");
+            }
+            if (ms.brackets.find("sha256") != ms.brackets.end())
+            {
+                p.sha256 = ms.brackets.at("sha256");
+            }
+            pi_result.push_back(p);
+        }
+
+        MRepo mrepo(pool, "__explicit_specs__", pi_result);
+
+        pool.create_whatprovides();
+
+        // Just add the packages we want to remove directly to the transaction
+        Queue q, job, decision;
+        queue_init(&q);
+        queue_init(&job);
+        queue_init(&decision);
+
+        std::vector<std::string> not_found;
+        for (auto& s : specs_to_remove)
+        {
+            queue_empty(&job);
+            queue_empty(&q);
+            Id id = pool_conda_matchspec((Pool*) pool, s.conda_build_form().c_str());
+            if (id)
+            {
+                queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+            }
+            selection_solvables((Pool*) pool, &job, &q);
+
+            if (q.count == 0)
+            {
+                not_found.push_back("\n - " + s.str());
+            }
+            for (std::size_t i = 0; i < q.count; i++)
+            {
+                // To remove, these have to be negative
+                queue_push(&decision, -q.elements[i]);
+            }
+        }
+
+        if (!not_found.empty())
+        {
+            LOG_ERROR << "Could not find packages to remove:" + join("", not_found) << std::endl;
+            throw std::runtime_error("Could not find packages to remove:" + join("", not_found));
+        }
+
+        selection_solvables((Pool*) pool, &job, &q);
+        bool remove_success = q.count >= specs_to_remove.size();
+        JsonLogger::instance().json_write({ { "success", remove_success } });
+        Id pkg_id;
+        Solvable* solvable;
+
+        // find repo __explicit_specs__ and install all packages from it
+        FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
+        {
+            queue_push(&decision, pkg_id);
+        }
+
+        queue_free(&job);
+
+        m_transaction = transaction_create_decisionq((Pool*) pool, &decision, nullptr);
+        init();
+
+        m_history_entry = History::UserRequest::prefilled();
+
+        for (auto& s : specs_to_remove)
+            m_history_entry.remove.push_back(s.str());
+        for (auto& s : specs_to_install)
+            m_history_entry.update.push_back(s.str());
+
+        // if no action required, don't even start logging them
+        if (!empty())
+        {
+            JsonLogger::instance().json_down("actions");
+            JsonLogger::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
+        }
+        queue_free(&q);
+        queue_free(&decision);
+        queue_free(&job);
+    }
+
 
     MTransaction::MTransaction(MSolver& solver, MultiPackageCache& caches)
         : m_multi_cache(caches)
@@ -774,14 +886,13 @@ namespace mamba
                     break;
                 }
             }
-            if (mamba_repo == nullptr)
+            if (mamba_repo == nullptr || mamba_repo->url() == "")
             {
-                throw std::runtime_error("Repo not associated.");
-            }
-            if (mamba_repo->url() == "")
-            {
-                // TODO: comment which use case it represents
-                continue;
+                // use fallback mediadir / mediafile
+                // this happens with explicit transactions
+                url = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
+                if (url.empty())
+                    throw std::runtime_error("Repo not associated.");
             }
 
             if (ctx.experimental && ctx.verify_artifacts)
@@ -977,12 +1088,25 @@ namespace mamba
             Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
             if (solvable_lookup_str(s, real_repo_key))
             {
-                channel = solvable_lookup_str(s, real_repo_key);
+                std::string repo_key = solvable_lookup_str(s, real_repo_key);
+                if (repo_key == "explicit_specs")
+                {
+                    channel = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
+                }
+                else
+                {
+                    channel = make_channel(repo_key).canonical_name();
+                }
             }
             else
             {
                 channel = s->repo->name;  // note this can and should be <unknown> when
                                           // e.g. installing from a tarball
+                if (channel == "__explicit_specs__")
+                {
+                    channel
+                        = make_channel(solvable_lookup_str(s, SOLVABLE_MEDIADIR)).canonical_name();
+                }
             }
 
             r.push_back({ name,
@@ -1099,5 +1223,36 @@ namespace mamba
         summary << "\n";
         t.add_row({ summary.str() });
         t.print(std::cout);
+    }
+
+    MTransaction create_explicit_transaction_from_urls(MPool& pool,
+                                                       const std::vector<std::string>& urls,
+                                                       MultiPackageCache& package_caches)
+    {
+        std::vector<MatchSpec> specs_to_install;
+        for (auto& u : urls)
+        {
+            std::string x(strip(u));
+            if (x.empty())
+                continue;
+
+            std::size_t hash = u.find_first_of('#');
+            MatchSpec ms(u.substr(0, hash));
+
+            if (hash != std::string::npos)
+            {
+                std::string s_hash = u.substr(hash + 1);
+                if (starts_with(s_hash, "sha256:"))
+                {
+                    ms.brackets["sha256"] = s_hash.substr(7);
+                }
+                else
+                {
+                    ms.brackets["md5"] = s_hash;
+                }
+            }
+            specs_to_install.push_back(ms);
+        }
+        return MTransaction(pool, {}, specs_to_install, package_caches);
     }
 }  // namespace mamba

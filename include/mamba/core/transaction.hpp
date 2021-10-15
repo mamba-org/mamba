@@ -100,7 +100,12 @@ namespace mamba
             ignore
         };
 
+        MTransaction(MPool& pool,
+                     const std::vector<MatchSpec>& specs_to_remove,
+                     const std::vector<MatchSpec>& specs_to_install,
+                     MultiPackageCache& caches);
         MTransaction(MSolver& solver, MultiPackageCache& caches);
+
         ~MTransaction();
 
         MTransaction(const MTransaction&) = delete;
@@ -138,6 +143,10 @@ namespace mamba
 
         bool m_force_reinstall = false;
     };
+
+    MTransaction create_explicit_transaction_from_urls(MPool& pool,
+                                                       const std::vector<std::string>& urls,
+                                                       MultiPackageCache& package_caches);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

@@ -30,7 +30,7 @@ namespace mamba
                        int solver_flag = SOLVER_INSTALL,
                        int is_retry = 0);
 
-    void install_explicit_specs(const std::vector<std::string>& specs);
+    void install_explicit_specs(const std::vector<std::string>& specs, bool create_env = false);
 
     namespace detail
     {

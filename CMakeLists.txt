@@ -172,6 +172,7 @@ set(MAMBA_HEADERS
     ${MAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/config.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
+    ${MAMBA_INCLUDE_DIR}/mamba/api/constants.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/create.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/info.hpp
     ${MAMBA_INCLUDE_DIR}/mamba/api/install.hpp

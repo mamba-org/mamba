@@ -14,11 +14,14 @@
 #include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
 
-
 namespace mamba
 {
-    void remove(bool remove_all)
+    void remove(int flags)
     {
+        bool prune = flags & MAMBA_REMOVE_PRUNE;
+        bool force = flags & MAMBA_REMOVE_FORCE;
+        bool remove_all = flags & MAMBA_REMOVE_ALL;
+
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
 
@@ -43,7 +46,7 @@ namespace mamba
 
         if (!remove_specs.empty())
         {
-            detail::remove_specs(remove_specs);
+            detail::remove_specs(remove_specs, prune, force);
         }
         else
         {
@@ -55,7 +58,7 @@ namespace mamba
 
     namespace detail
     {
-        void remove_specs(const std::vector<std::string>& specs)
+        void remove_specs(const std::vector<std::string>& specs, bool prune, bool force)
         {
             auto& ctx = Context::instance();
 
@@ -72,30 +75,9 @@ namespace mamba
             auto repo = MRepo(pool, prefix_data);
             repos.push_back(repo);
 
-            MSolver solver(pool,
-                           { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
-                             { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
-                             { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                               ctx.channel_priority == ChannelPriority::kStrict } });
+            const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
+            MultiPackageCache package_caches({ pkgs_dirs });
 
-            History history(ctx.target_prefix);
-            auto hist_map = history.get_requested_specs_map();
-            std::vector<std::string> keep_specs;
-            for (auto& it : hist_map)
-                keep_specs.push_back(it.second.conda_build_form());
-
-            solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
-
-            solver.add_jobs(specs, SOLVER_ERASE | SOLVER_CLEANDEPS);
-            solver.solve();
-
-            MultiPackageCache package_caches(ctx.pkgs_dirs);
-            MTransaction trans(solver, package_caches);
-
-            if (ctx.json)
-            {
-                trans.log_json();
-            }
             // TODO this is not so great
             std::vector<MRepo*> repo_ptrs;
             for (auto& r : repos)
@@ -103,9 +85,48 @@ namespace mamba
                 repo_ptrs.push_back(&r);
             }
 
-            bool yes = trans.prompt(repo_ptrs);
-            if (yes)
-                trans.execute(prefix_data);
+            auto execute_transaction = [&](MTransaction& transaction) {
+                if (ctx.json)
+                    transaction.log_json();
+
+                bool yes = transaction.prompt(repo_ptrs);
+                if (yes)
+                    transaction.execute(prefix_data);
+            };
+
+            if (force)
+            {
+                std::vector<MatchSpec> mspecs(specs.begin(), specs.end());
+                auto transaction = MTransaction(pool, mspecs, {}, package_caches);
+                execute_transaction(transaction);
+            }
+            else
+            {
+                MSolver solver(pool,
+                               { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
+                                 { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
+                                 { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                                   ctx.channel_priority == ChannelPriority::kStrict } });
+
+                History history(ctx.target_prefix);
+                auto hist_map = history.get_requested_specs_map();
+                std::vector<std::string> keep_specs;
+                for (auto& it : hist_map)
+                    keep_specs.push_back(it.second.conda_build_form());
+
+                solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
+
+                int solver_flag = SOLVER_ERASE;
+
+                if (prune)
+                    solver_flag |= SOLVER_CLEANDEPS;
+
+                solver.add_jobs(specs, solver_flag);
+                solver.solve();
+
+                MTransaction transaction(solver, package_caches);
+                execute_transaction(transaction);
+            }
         }
     }
 }  // mamba

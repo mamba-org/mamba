@@ -82,11 +82,19 @@ namespace mamba
               const fs::path& filename,
               const RepoMetadata& meta);
 
+        /**
+         * Constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name
+         * @param uris Matchspecs pointing to unique resources (URL or files)
+         */
+        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
+
         ~MRepo();
 
         void set_installed();
         void set_priority(int priority, int subpriority);
-
+        void add_package_info(Repodata*, const PackageInfo& pkg_info);
         void add_pip_as_python_dependency();
 
         const std::string& index_file();

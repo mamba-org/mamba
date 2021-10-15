@@ -106,7 +106,7 @@ It is a pure C++ package with a separate command line interface.
 It can be used to bootstrap environments (as an alternative to miniconda), but it's currently experimental.
 The benefit is that it's very tiny and does not come with a default version of Python.
 
-`micromamba` works in the bash & zsh shell on Linux & OS X.
+`micromamba` works in the bash, zsh, and fish shells on Linux & OS X.
 It's completely statically linked, which allows you to drop it in some place and just execute it.
 
 Note: it's advised to use micromamba in containers & CI only.

@@ -68,14 +68,14 @@ Build ``micromamba``
 Dynamically linked
 ******************
 
-To build ``micromamba``, just activate the ``BUILD_EXE`` flag in ``cmake`` command:
+To build ``micromamba``, just activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` command:
 
 .. code:: bash
 
     mkdir -p build
     cd build
     cmake .. \
-        -BUILD_EXE=ON
+        -BUILD_MICROMAMBA=ON
     cmake --build . -j
 
 .. note::
@@ -109,7 +109,6 @@ Now you can run ``cmake`` with the additional flag ``STATIC_DEPENDENCIES`` turne
     mkdir -p build
     cd build
     cmake .. \
-        -DBUILD_EXE=ON \
         -DSTATIC_DEPENDENCIES=ON
     cmake --build . -j
 

@@ -1,0 +1,2 @@
+include libmambapy/bindings*
+exclude src/

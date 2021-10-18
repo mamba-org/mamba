@@ -54,6 +54,7 @@ Now you are ready to install packages with
 ```bash
 mamba install xtensor-r -c conda-forge
 ```
+
 for example.
 
 ### Additional features
@@ -98,7 +99,6 @@ $ mamba repoquery whoneeds ipython
 
 With the `--tree` (or `-t`) flag, you can get the same information in a tree.
 
-
 ## micromamba
 
 `micromamba` is a tiny version of the `mamba` package manager.
@@ -140,43 +140,7 @@ For more instructions (including OS X) check out https://gist.github.com/wolfv/f
 
 ### Development installation
 
-Make sure you install mamba's requirements in your conda environment:
-
-`mamba env update --name <conda_env> --file environment-dev.yml`
-
-If you build mamba in a different environment than base, you must also install conda in
-that environment:
-
-`mamba install conda -c conda-forge`
-
-For a local (dev) build, run `pip install -e .`. This will build and install mamba
-in the conda environment.
-
-#### cmake based build
-
-You will additionally need to install cmake and cli11 for micromamba:
-
-```bash
-mamba install -c conda-forge cli11 cmake
-```
-
-For the C++ tests, you need Google Test and Google Mock installed (e.g. `mamba install gtest gmock`).
-To build the program using CMake, the following lines need to be used:
-
-```bash
-mkdir -p build
-cd build
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-    -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
-    -DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
-    -DENABLE_TESTS=ON
-cmake --build . -j
-```
-
-This would generate the test program `./test/test_mamba` under the `build`
-directory which you can execute with `make test`. To generate the executable
-`micromamba` also include the CMake option `-DBUILD_EXE=ON` in the above step.
+Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/build_locally.html#).
 
 ### Support us
 

@@ -173,7 +173,7 @@ def test_no_empty_subdir(tmpdir):
 
     mamba_cmd = f"mamba create --dry-run -y --json -p {env_dir} python=3.8"
 
-    output = subprocess.check_output(mamba_cmd, shell=True).decode()
+    output = json.loads(subprocess.check_output(mamba_cmd, shell=True).decode())
 
     subdirs = {x["subdir"] for x in output["actions"]["FETCH"]}
     assert not any(subdir == "" for subdir in set(subdirs))

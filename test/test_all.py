@@ -168,9 +168,9 @@ def test_create_files(tmpdir):
     assert names == {"a", "b"}
 
 
-def test_no_empty_subdir():
-    mamba_cmd = f"mamba install --dry-run -y --json python=3.8"
-
+def test_no_empty_subdir(tmpdir):
+    env_dir = tmpdir / str(uuid.uuid1())
+    mamba_cmd = f"mamba create --dry-run -y  --override-channels -c https://repo.continuum.io/pkgs/free -k --json affine -p {env_dir}"
     output = json.loads(subprocess.check_output(mamba_cmd, shell=True).decode())
 
     subdirs = {x["subdir"] for x in output["actions"]["FETCH"]}

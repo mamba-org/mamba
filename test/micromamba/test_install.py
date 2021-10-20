@@ -406,6 +406,7 @@ class TestInstall:
             assert pkg["name"] == "xtensor"
             assert pkg["version"] == "0.21.5"
             assert pkg["build_string"] == "hc9558a2_0"
+            assert pkg["subdir"] == "linux-64"
         else:
             with pytest.raises(subprocess.CalledProcessError):
                 install(*cmd, default_channel=False)

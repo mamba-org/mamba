@@ -229,6 +229,7 @@ namespace mamba
                 p.version = ms.version;
                 p.channel = ms.channel;
                 p.fn = ms.fn;
+                p.subdir = ms.subdir
 
                 if (hash != std::string::npos)
                 {

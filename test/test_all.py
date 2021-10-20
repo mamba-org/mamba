@@ -166,3 +166,14 @@ def test_create_files(tmpdir):
     output = json.loads(output)
     names = {x["name"] for x in output["actions"]["FETCH"]}
     assert names == {"a", "b"}
+
+
+def test_no_empty_subdir(tmpdir):
+    env_dir = tmpdir / str(uuid.uuid1())
+
+    mamba_cmd = f"mamba create --dry-run -y --json -p {env_dir} python=3.8"
+
+    output = subprocess.check_output(mamba_cmd, shell=True).decode()
+
+    subdirs = {x["subdir"] for x in output["actions"]["FETCH"]}
+    assert not any(subdir == "" for subdir in set(subdirs))

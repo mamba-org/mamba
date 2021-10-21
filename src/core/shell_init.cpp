@@ -645,21 +645,24 @@ namespace mamba
                 }
             };
 
-            std::string profile_path, exe;
-            for (auto& iter_exe : std::vector<std::string>{ "powershell", "pwsh", "pwsh-preview" })
+            std::set<std::string> pwsh_profiles;
+            for (auto& exe : std::vector<std::string>{ "powershell", "pwsh", "pwsh-preview" })
             {
-                auto res = find_powershell_paths(iter_exe);
-                if (!res.empty())
+                auto profile_path = find_powershell_paths(exe);
+                if (!profile_path.empty())
                 {
-                    profile_path = res;
-                    exe = iter_exe;
-                    break;
+                    if (pwsh_profiles.count(profile_path))
+                        Console::stream()
+                            << exe << " profile already initialized at '" << profile_path << "'";
+                    else
+                    {
+                        pwsh_profiles.insert(profile_path);
+                        Console::stream()
+                            << "Init " << exe << " profile at '" << profile_path << "'";
+                        init_powershell(profile_path, conda_prefix, false);
+                    }
                 }
             }
-            std::cout << "Found powershell at " << exe << " and user profile at " << profile_path
-                      << std::endl;
-
-            init_powershell(profile_path, conda_prefix, false);
         }
         else
         {

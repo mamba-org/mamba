@@ -163,7 +163,22 @@ namespace mamba
     // this function calls cygpath to convert win path to unix
     std::string native_path_to_unix(const std::string& path, bool is_a_path_env)
     {
-        fs::path bash = env::which("bash");
+        /*
+          It is very easy to end up with a bash in one place and a cygpath in another (e.g. git bash
+          + cygpath installed in the env from m2w64 packages). In that case, reactivating from that
+          env will replace <prefix> or <prefix>/Library (Windows) by a POSIX root '/', breaking the
+          PATH.
+        */
+        fs::path bash;
+        fs::path parent_process_name = get_process_name_by_pid(getppid());
+        if (contains(parent_process_name.filename().string(), "bash"))
+            bash = parent_process_name;
+        else
+#ifdef _WIN32
+            bash = env::which("bash.exe");
+#else
+            bash = env::which("bash");
+#endif
         std::string command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
         std::string out, err;
         try

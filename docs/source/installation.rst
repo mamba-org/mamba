@@ -160,7 +160,7 @@ To activate it, it's as simple as running:
   micromamba shell completion
 
 .. note::
-  This command will not work if you're not using ``bash``
+  This command will only work on ``bash``
 
 The completion is now available in any new shell opened or in the current shell after running ``source ~/.bashrc`` to take modifications into account.
 

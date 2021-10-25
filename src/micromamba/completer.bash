@@ -5,6 +5,6 @@ _umamba_completions()
   COMPREPLY=($(micromamba completer "${COMP_WORDS[@]:1}"))
 }
 
-complete -F _umamba_completions micromamba
+complete -o default -F _umamba_completions micromamba
 # <<< umamba completion <<<
 )MAMBARAW"

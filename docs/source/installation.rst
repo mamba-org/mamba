@@ -144,3 +144,29 @@ Windows
   # and use micromamba directly
   micromamba create -f ./test/env_win.yaml -y
   micromamba activate yourenv
+
+
+.. _shell_completion:
+
+Shell completion
+================
+
+For now, only ``micromamba`` provides shell completion on ``bash``.
+
+To activate it, it's as simple as running:
+
+.. code::
+
+  micromamba shell completion
+
+.. note::
+  This command will not work if you're not using ``bash``
+
+The completion is now available in any new shell opened or in the current shell after running ``source ~/.bashrc`` to take modifications into account.
+
+| Just hit ``<TAB><TAB>`` to get completion when typing your command.
+| For example the following command will help you to pick a named environment to activate:
+
+.. code::
+
+  micromamba activate <TAB><TAB>

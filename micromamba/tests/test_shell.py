@@ -116,7 +116,7 @@ class TestShell:
                 cmd = [shell, f_name]
                 if platform.system() == "Windows":  # bash on Windows
                     with open(f_name, "w") as f:
-                        f.write("build/umamba/micromamba.exe shell hook --json")
+                        f.write("build/micromamba/micromamba.exe shell hook --json")
                 else:
                     with open(f_name, "w") as f:
                         f.write(f"{umamba} shell hook --json")

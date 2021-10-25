@@ -187,7 +187,8 @@ namespace mamba
                     valid = true;
 
                     // we can only validate if we have at least one data point of these three
-                    can_validate = !s.md5.empty() || !s.sha256.empty();
+                    can_validate = (!s.md5.empty() && repodata_record.contains("md5"))
+                                   || (!s.sha256.empty() && repodata_record.contains("sha256"));
                     if (!can_validate)
                     {
                         if (Context::instance().safety_checks == VerificationLevel::kWarn)
@@ -218,7 +219,7 @@ namespace mamba
                     }
 
                     // Validate checksum
-                    if (!s.sha256.empty())
+                    if (!s.sha256.empty() && repodata_record.contains("sha256"))
                     {
                         // TODO handle case if repodata_record __does not__ contain any value
                         if (s.sha256 != repodata_record["sha256"].get<std::string>())
@@ -234,7 +235,7 @@ namespace mamba
                             valid = true;
                         }
                     }
-                    else if (!s.md5.empty())
+                    else if (!s.md5.empty() && repodata_record.contains("md5"))
                     {
                         // TODO handle case if repodata_record __does not__ contain any value
                         if (s.md5 != repodata_record["md5"].get<std::string>())

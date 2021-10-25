@@ -126,7 +126,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./umamba/environment-dev.yml
+          environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
       - name: build micromamba
         shell: bash -l {0}
@@ -154,9 +154,9 @@ jobs:
       - name: micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |
-          export TEST_MAMBA_EXE=$(pwd)/build/umamba/micromamba
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           micromamba activate build_env
-          pytest ./umamba/tests/
+          pytest ./micromamba/tests/
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -449,7 +449,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./umamba/environment-dev.yml
+          environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
       - name: build micromamba
         shell: cmd /C call {0}
@@ -463,9 +463,9 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache
           ninja -j2
-          .\umamba\micromamba.exe --help
+          .\micromamba\micromamba.exe --help
       - name: tar micromamba artifact
-        run: tar -cvf umamba.tar build/umamba/micromamba.exe
+        run: tar -cvf umamba.tar build/micromamba/micromamba.exe
       - uses: actions/upload-artifact@v2
         with:
           name: micromamba_binary
@@ -502,7 +502,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./umamba/environment-dev.yml
+          environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           extra-specs: menuinst
       - name: micromamba python based tests
@@ -514,7 +514,7 @@ jobs:
 
           reg delete HKEY_CURRENT_USER\Software\Microsoft\Command Processor /v AutoRun
 
-          pytest umamba/tests
+          pytest micromamba/tests
 
   umamba_tests_win_pwsh:
     needs: [umamba_tests_win]
@@ -547,7 +547,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./umamba/environment-dev.yml
+          environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           extra-specs: menuinst
       - name: micromamba python based tests with pwsh
@@ -557,7 +557,7 @@ jobs:
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
-          pytest umamba/tests
+          pytest micromamba/tests
 
   umamba_tests_win_bash:
     needs: [umamba_tests_win]
@@ -590,7 +590,7 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./umamba/environment-dev.yml
+          environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           extra-specs: menuinst
       - name: micromamba python based tests
@@ -600,4 +600,4 @@ jobs:
           export MAMBA_ROOT_PREFIX=~/mambaroot
           export MAMBA_TEST_SHELL_TYPE=bash
 
-          pytest umamba/tests
+          pytest micromamba/tests

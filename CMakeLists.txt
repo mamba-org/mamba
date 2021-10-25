@@ -59,5 +59,5 @@ endif()
 
 # micromamba
 if (BUILD_MICROMAMBA)
-    add_subdirectory(umamba)
+    add_subdirectory(micromamba)
 endif()

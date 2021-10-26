@@ -126,7 +126,11 @@ namespace mamba
         {
             if (!s2.empty())
             {
-                s1 += '/' + s2;
+                if (s1.back() != '/')
+                {
+                    s1 += '/';
+                }
+                s1 += s2;
             }
             return join_url_impl(s1, args...);
         }
@@ -134,7 +138,10 @@ namespace mamba
         template <class... Args>
         inline std::string join_url_impl(std::string& s1, const char* s2, const Args&... args)
         {
-            s1 += '/';
+            if (s1.back() != '/')
+            {
+                s1 += '/';
+            }
             s1 += s2;
             return join_url_impl(s1, args...);
         }

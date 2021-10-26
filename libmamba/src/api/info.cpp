@@ -10,6 +10,7 @@
 #include "mamba/api/info.hpp"
 #include "mamba/api/install.hpp"
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
@@ -97,6 +98,20 @@ namespace mamba
                 virtual_pkgs.push_back(concat(pkg.name, "=", pkg.version, "=", pkg.build_string));
             }
             items.push_back({ "virtual packages", virtual_pkgs });
+
+            std::vector<std::string> channels = ctx.channels;
+            // Always append context channels
+            auto& ctx_channels = Context::instance().channels;
+            std::copy(ctx_channels.begin(), ctx_channels.end(), std::back_inserter(channels));
+            std::vector<std::string> channel_urls;
+            for (auto channel : get_channels(channels))
+            {
+                for (auto url : channel->urls(true))
+                {
+                    channel_urls.push_back(url);
+                }
+            }
+            items.push_back({ "channels", { channel_urls } });
 
             items.push_back({ "base environment", { ctx.root_prefix.string() } });
 

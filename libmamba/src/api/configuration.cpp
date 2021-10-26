@@ -639,11 +639,11 @@ namespace mamba
 
         insert(
             Configurable("custom_multichannels", &ctx.custom_multichannels)
-                   .group("Channels")
-                   .set_rc_configurable()
-                   .description("Custom multichannels")
-                   .long_description(
-                       "A dictionary with name: list of names/urls to use for custom multichannels."));
+                .group("Channels")
+                .set_rc_configurable()
+                .description("Custom multichannels")
+                .long_description(
+                    "A dictionary with name: list of names/urls to use for custom multichannels."));
 
         insert(Configurable("override_channels_enabled", &ctx.override_channels_enabled)
                    .group("Channels")

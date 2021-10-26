@@ -22,12 +22,9 @@
     (LIBMAMBA_VERSION_MAJOR * 10000 + LIBMAMBA_VERSION_MINOR * 100 + LIBMAMBA_VERSION_PATCH)
 #define LIBMAMBA_VERSION_STRING "0.17.0"
 
-extern const char libmamba_version[];
-extern int libmamba_version_major;
-extern int libmamba_version_minor;
-extern int libmamba_version_patch;
-
-std::string
-version();
+namespace mamba
+{
+    std::string version();
+}
 
 #endif

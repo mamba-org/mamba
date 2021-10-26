@@ -33,11 +33,6 @@ namespace mamba
         config.operation_teardown();
     }
 
-    std::string version()
-    {
-        return libmamba_version;
-    }
-
     std::string banner()
     {
         auto& ctx = Context::instance();

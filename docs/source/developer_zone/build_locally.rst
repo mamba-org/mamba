@@ -28,39 +28,124 @@ Install dev requirements
 
 .. code::
 
-    mamba env update --name <env_name> --file environment-dev.yml
+    mamba env update --name <env_name> --file ./<project>/environment-dev.yml
 
 .. code::
 
-    micromamba install --name <env_name> --file environment-dev.yml
+    micromamba install --name <env_name> --file ./<project>/environment-dev.yml
 
-If you don't have one, refer to the :ref:`installation<installation>` page.
+Pick the correction environment spec file depending on the project you want to build.
 
-``mamba`` relies on ``python setup.py`` installation while others targets rely on ``cmake`` configuration.
+If you don't have an existing env, refer to the :ref:`installation<installation>` page.
+
+The different parts of this repository are sub-projects, all relying (totally or partially) on ``cmake`` configuration.
 
 .. note::
     All ``cmake`` commands listed below use ``bash`` multi-line syntax.
     On Windows, replace ``\`` trailing character with ``^``.
 
+.. note::
+    Feel free to use your favorite generator: ``make``, ``ninja``, etc.
+
+
+Build ``libmamba``
+==================
+
+``libmamba`` build is enabled using ``BUILD_LIBMAMBA`` ``cmake`` option.
+
+Shared library
+**************
+
+Also needs ``BUILD_SHARED`` to be activated:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_SHARED=ON
+    make
+
+Static library
+**************
+
+Also needs ``BUILD_STATIC`` to be activated:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_STATIC=ON
+    make
+
+Tests
+*****
+
+First, compile the ``gtest``-based C++ test suite:
+
+.. code::
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA_TESTS=ON
+    make
+
+You should now be able to run:
+
+.. code::
+
+    ./libmamba/tests/test_libmamba
+
+Alternatively you can use:
+
+.. code::
+
+    make test
+
+.. note::
+    The static version of ``libmamba`` is necessary to build the C++ tests, it will be automatically turned-on
+
+
+Build ``libmambapy``
+====================
+
+The Python bindings of ``libmamba``, ``libmambapy`` can be built by using the ``BUILD_LIBMAMBAPY`` ``cmake`` option.
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBAPY=ON
+    make
+
+You'll need to install the target to have the bindings Python sub-module correctly located, then you can use ``pip`` to install that Python package:
+
+.. code:: bash
+
+    make install
+    pip install -e ../libmambapy/ --no-deps
+
+.. note::
+    The editable mode ``-e`` provided by ``pip`` allows to use the source directory as the Python package instead of copying sources inside the environment
+    You can then change the code without having to reinstall the package
+
+.. note::
+    The ``--no-deps`` tells ``pip`` to skip the dependencies installation, since they are already installed (``libmamba`` installed using ``cmake``)
 
 
 Build ``mamba``
 ===============
 
-If you build ``mamba`` in a different environment than *base*, you must also install ``conda``
-in that environment:
+You need to build and install ``libmambapy``, which is a dependency of ``mamba``, then install ``mamba``:
 
 .. code::
+    pip install -e ./mamba/ --no-deps
 
-    mamba install conda -c conda-forge
-
-For a local (dev) build, run in the environment:
-
-.. code::
-
-    pip install -e .
-
-This will build and install ``mamba`` in the current environment.
 
 Build ``micromamba``
 ====================
@@ -76,19 +161,16 @@ To build ``micromamba``, just activate the ``BUILD_MICROMAMBA`` flag in ``cmake`
     cd build
     cmake .. \
         -BUILD_MICROMAMBA=ON
-    cmake --build . -j
+    make
 
 .. note::
-    Feel free to use your favorite generator: ``make``, ``ninja``, etc.
-
-.. note::
-    If you need to install, use to install in your current development environment:
+    If you need to install the executable, use your current development environment:
 
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX`` [unix]
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
 
 | Doing so, you have built the dynamically linked version of ``micromamba``.
-| It's well fitted for development but is not the artifact shipped when installing ``micromamba``.
+| It's well fitted for development but is not the artifact shipped when installing ``micromamba`` because it still requires the dependencies shared libraries to work.
 
 
 Statically linked
@@ -98,83 +180,26 @@ Statically linked
 
 .. code::
 
-    micromamba install --name <env_name> --file environment-static-dev.yml
+    micromamba install --name <env_name> --file ./micromamba/environment-static-dev.yml
 
 It will install the development version of dependencies, including static libraries.
 
-Now you can run ``cmake`` with the additional flag ``STATIC_DEPENDENCIES`` turned on:
+Now you can run ``cmake`` with the additional flag ``STATICALLY_LINK_DEPS`` turned on:
 
 .. code:: bash
 
     mkdir -p build
     cd build
     cmake .. \
-        -DSTATIC_DEPENDENCIES=ON
-    cmake --build . -j
+        -BUILD_MICROMAMBA=ON \
+        -DSTATICALLY_LINK_DEPS=ON
+    make
 
 Tests
 *****
 
-You should now be able to run the Python-based test suite:
+You should be able to run the Python-based test suite:
 
 .. code::
 
-    pytest ./test/micromamba
-
-
-Build ``libmamba``
-==================
-
-Shared library
-**************
-
-You need to enable the build of ``libmamba`` shared library using ``BUILD_SHARED`` flag in ``cmake`` command:
-
-.. code:: bash
-
-    mkdir -p build
-    cd build
-    cmake .. \
-        -DBUILD_SHARED=ON
-    cmake --build . -j
-
-Static library
-**************
-
-| The static build of ``libmamba`` is enabled by default (``BUILD_STATIC=ON``).
-| You can run :
-
-.. code:: bash
-
-    mkdir -p build
-    cd build
-    cmake ..
-    cmake --build . -j
-
-Tests
-*****
-
-First, compile the ``gtest``-based C++ test suite:
-
-.. code::
-
-    mkdir -p build
-    cd build
-    cmake .. \
-        -DENABLE_TESTS=ON
-    cmake --build . -j
-
-You should now be able to run:
-
-.. code::
-
-    ./test/test_mamba
-
-Alternatively you can use:
-
-.. code::
-
-    make test
-
-.. note::
-    The static version of ``libmamba`` is necessary to build the C++ tests, don't disable it!
+    pytest ./micromamba/tests/

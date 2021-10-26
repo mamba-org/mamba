@@ -14,27 +14,8 @@ namespace mamba
         return LIBMAMBA_VERSION_STRING;
     }
 
-    int* version_arr()
+    std::array<int, 3> version_arr()
     {
-        static int v[3];
-        v[0] = LIBMAMBA_VERSION_MAJOR;
-        v[1] = LIBMAMBA_VERSION_MINOR;
-        v[2] = LIBMAMBA_VERSION_PATCH;
-        return v;
-    }
-
-    int version_major()
-    {
-        return LIBMAMBA_VERSION_MAJOR;
-    }
-
-    int version_minor()
-    {
-        return LIBMAMBA_VERSION_MINOR;
-    }
-
-    int version_patch()
-    {
-        return LIBMAMBA_VERSION_PATCH;
+        return { LIBMAMBA_VERSION_MAJOR, LIBMAMBA_VERSION_MINOR, LIBMAMBA_VERSION_PATCH };
     }
 }

@@ -22,7 +22,7 @@ option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_LIBMAMBA "Build libmamba library" OFF)
 option(BUILD_LIBMAMBAPY "Build libmamba Python bindings" OFF)
 option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
-option(STATICALLY_LINK_DEPS "" OFF)
+option(MICROMAMBA_STATIC_LINK "" OFF)
 
 option(BUILD_SHARED "" OFF)
 option(BUILD_STATIC "" OFF)

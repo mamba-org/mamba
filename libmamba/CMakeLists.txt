@@ -50,12 +50,7 @@ option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
 option(BUILD_STATIC "Build static libmamba library" OFF)
 
-option(STATICALLY_LINK_DEPS "" OFF)
-
-
-if (STATICALLY_LINK_DEPS)
-    add_definitions(-DUMAMBA_STATIC)
-endif()
+option(MICROMAMBA_STATIC_LINK "" OFF)
 
 # Source files
 # ============
@@ -179,7 +174,7 @@ macro(libmamba_create_target target_name linkage output_name)
     # ======
 
     add_library(${target_name} ${linkage_upper} ${LIBMAMBA_SOURCES} ${LIBMAMBA_HEADERS} ${LIBMAMBA_THIRD_PARTIES})
-    if (NOT STATICALLY_LINK_DEPS)
+    if (NOT MICROMAMBA_STATIC_LINK)
         find_library(LIBSOLV_LIBRARIES NAMES solv)
         find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
         find_package(CURL REQUIRED)

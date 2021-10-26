@@ -184,15 +184,15 @@ Statically linked
 
 It will install the development version of dependencies, including static libraries.
 
-Now you can run ``cmake`` with the additional flag ``STATICALLY_LINK_DEPS`` turned on:
+Now you can run ``cmake`` with the additional flag ``MICROMAMBA_STATIC_LINK`` turned on:
 
 .. code:: bash
 
     mkdir -p build
     cd build
     cmake .. \
-        -BUILD_MICROMAMBA=ON \
-        -DSTATICALLY_LINK_DEPS=ON
+        -DBUILD_MICROMAMBA=ON \
+        -DMICROMAMBA_STATIC_LINK=ON
     make
 
 Tests

@@ -31,9 +31,9 @@ target_include_directories(
 
 target_link_libraries(micromamba PRIVATE libmamba-static)
 
-message("Using static dependencies for micromamba: ${STATICALLY_LINK_DEPS}")
+message("Using static dependencies for micromamba: ${MICROMAMBA_STATIC_LINK}")
 
-if (STATICALLY_LINK_DEPS AND UNIX)
+if (MICROMAMBA_STATIC_LINK AND UNIX)
 
     set(UMAMBA_LIB_DEPS
         libcurl.a
@@ -100,7 +100,7 @@ if (STATICALLY_LINK_DEPS AND UNIX)
 
     target_link_libraries(micromamba PRIVATE ${FINAL_LIBS} ${MAMBA_FORCE_DYNAMIC_LIBS})
 
-elseif (STATICALLY_LINK_DEPS AND WIN32)
+elseif (MICROMAMBA_STATIC_LINK AND WIN32)
 
     set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static/")
 

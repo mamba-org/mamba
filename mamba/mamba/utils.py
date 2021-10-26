@@ -8,6 +8,8 @@ import os
 import tempfile
 import urllib.parse
 from collections import OrderedDict
+from contextlib import contextmanager
+from pathlib import Path
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
@@ -19,12 +21,18 @@ from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import diff_for_unlink_link_precs
 from conda.gateways.connection.session import CondaHttpAuth
-from conda.lock import FileLock
 from conda.models.channel import Channel as CondaChannel
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
 
 import libmambapy as api
+
+
+@contextmanager
+def lock_file(path):
+    if Path(path).exists():
+        lock = api.LockFile(path)  # noqa F841
+    yield
 
 
 def load_channel(subdir_data, result_container):
@@ -76,7 +84,7 @@ def get_index(
 
     all_channels = list(map(fixup_channel_spec, all_channels))
     pkgs_dirs = api.MultiPackageCache(context.pkgs_dirs)
-    cache_dir = api.create_cache_dir(str(pkgs_dirs.first_writable_path))
+    api.create_cache_dir(str(pkgs_dirs.first_writable_path))
 
     for channel in api.get_channels(all_channels):
         for channel_platform, url in channel.platform_urls(with_credentials=True):
@@ -91,7 +99,7 @@ def get_index(
             else:
                 name = channel.platform_url(channel_platform, with_credentials=False)
 
-            with FileLock(full_path_cache):
+            with lock_file(full_path_cache):
                 sd = api.SubdirData(
                     name,
                     full_url,
@@ -106,8 +114,7 @@ def get_index(
             )
             dlist.add(sd)
 
-    with FileLock(cache_dir):
-        is_downloaded = dlist.download(True)
+    is_downloaded = dlist.download(True)
 
     if not is_downloaded:
         raise RuntimeError("Error downloading repodata.")
@@ -175,7 +182,7 @@ def load_channels(
             )
             print("Cache path: ", subdir.cache_path())
 
-        with FileLock(subdir.cache_path()):
+        with lock_file(subdir.cache_path()):
             repo = subdir.create_repo(pool)
 
         repo.set_priority(priority, subpriority)

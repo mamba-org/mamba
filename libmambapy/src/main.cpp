@@ -10,6 +10,9 @@
 
 #include "nlohmann/json.hpp"
 
+#include "mamba/api/clean.hpp"
+#include "mamba/api/configuration.hpp"
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_handling.hpp"
@@ -51,6 +54,8 @@ PYBIND11_MODULE(bindings, m)
             return std::string("fs::path[") + std::string(self) + "]";
         });
     py::implicitly_convertible<std::string, fs::path>();
+
+    py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::path>());
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
 
@@ -377,6 +382,19 @@ PYBIND11_MODULE(bindings, m)
             return s;
         });
 
+    m.def("clean", &clean);
+
+    py::class_<Configuration, std::unique_ptr<Configuration, py::nodelete>>(m, "Configuration")
+        .def(py::init([]() {
+            return std::unique_ptr<Configuration, py::nodelete>(&Configuration::instance());
+        }))
+        .def_property(
+            "show_banner",
+            []() -> bool { return Configuration::instance().at("show_banner").value<bool>(); },
+            [](py::object&, bool val) {
+                Configuration::instance().at("show_banner").set_value(val);
+            });
+
     m.def("get_channels", &get_channels);
 
     m.def("transmute", &transmute);
@@ -451,7 +469,15 @@ PYBIND11_MODULE(bindings, m)
     m.attr("SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED") = SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED;
     m.attr("SOLVER_FLAG_STRICT_REPO_PRIORITY") = SOLVER_FLAG_STRICT_REPO_PRIORITY;
 
+    // INSTALL FLAGS
     m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;
     m.attr("MAMBA_ONLY_DEPS") = MAMBA_ONLY_DEPS;
     m.attr("MAMBA_FORCE_REINSTALL") = MAMBA_FORCE_REINSTALL;
+
+    // CLEAN FLAGS
+    m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;
+    m.attr("MAMBA_CLEAN_INDEX") = MAMBA_CLEAN_INDEX;
+    m.attr("MAMBA_CLEAN_PKGS") = MAMBA_CLEAN_PKGS;
+    m.attr("MAMBA_CLEAN_TARBALLS") = MAMBA_CLEAN_TARBALLS;
+    m.attr("MAMBA_CLEAN_LOCKS") = MAMBA_CLEAN_LOCKS;
 }

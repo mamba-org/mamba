@@ -29,6 +29,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import (
+    ArgumentError,
     CondaEnvironmentError,
     CondaExitZero,
     CondaOSError,
@@ -45,7 +46,6 @@ from conda.exceptions import (
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
-from conda.lock import FileLock
 from conda.misc import explicit, touch_nonadmin
 from conda.models.match_spec import MatchSpec
 
@@ -53,7 +53,13 @@ import libmambapy as api
 import mamba
 from mamba import repoquery as repoquery_api
 from mamba.mamba_shell_init import shell_init
-from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
+from mamba.utils import (
+    get_installed_jsonfile,
+    init_api_context,
+    load_channels,
+    lock_file,
+    to_txn,
+)
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
@@ -141,7 +147,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise DryRunExit()
 
     try:
-        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+        with lock_file(PackageCacheData.first_writable().pkgs_dir):
             unlink_link_transaction.download_and_extract()
             if context.download_only:
                 raise CondaExitZero(
@@ -260,7 +266,7 @@ def remove(args, parser):
             exit_code = 1
             return exit_code
 
-        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+        with lock_file(PackageCacheData.first_writable().pkgs_dir):
             package_cache = api.MultiPackageCache(context.pkgs_dirs)
             transaction = api.Transaction(solver, package_cache)
             downloaded = transaction.prompt(repos)
@@ -506,7 +512,7 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    with FileLock(context.target_prefix):
+    with lock_file(context.target_prefix):
         prefix_data = api.PrefixData(context.target_prefix)
         prefix_data.load()
 
@@ -597,7 +603,7 @@ def install(args, parser, command="install"):
             exit_code = 1
             return exit_code
 
-        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+        with lock_file(PackageCacheData.first_writable().pkgs_dir):
             package_cache = api.MultiPackageCache(context.pkgs_dirs)
             transaction = api.Transaction(solver, package_cache)
             mmb_specs, to_link, to_unlink = transaction.to_conda()
@@ -616,7 +622,7 @@ def install(args, parser, command="install"):
     if use_mamba_experimental:
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
-        with FileLock(PackageCacheData.first_writable().pkgs_dir):
+        with lock_file(PackageCacheData.first_writable().pkgs_dir):
             transaction.execute(prefix_data)
     else:
         conda_transaction = to_txn(
@@ -735,6 +741,24 @@ def repoquery(args, parser):
     print(repoquery_api._repoquery(args.subcmd, args.package_query, pool, fmt))
 
 
+def clean(args, parser):
+    if args.locks:
+        api.Configuration().show_banner = False
+        api.clean(api.MAMBA_CLEAN_LOCKS)
+
+    try:
+        from importlib import import_module
+
+        relative_mod, func_name = args.func.rsplit(".", 1)
+
+        module = import_module("conda.cli" + relative_mod, __name__.rsplit(".", 1)[0])
+        exit_code = getattr(module, func_name)(args, parser)
+        return exit_code
+    except ArgumentError as e:
+        if not args.locks:
+            raise e
+
+
 def do_call(args, parser):
     relative_mod, func_name = args.func.rsplit(".", 1)
     # func_name should always be 'execute'
@@ -742,13 +766,14 @@ def do_call(args, parser):
         ".main_list",
         ".main_search",
         ".main_run",
-        ".main_clean",
         ".main_info",
     ]:
         from importlib import import_module
 
         module = import_module("conda.cli" + relative_mod, __name__.rsplit(".", 1)[0])
         exit_code = getattr(module, func_name)(args, parser)
+    elif relative_mod == ".main_clean":
+        exit_code = clean(args, parser)
     elif relative_mod == ".main_install":
         exit_code = install(args, parser, "install")
     elif relative_mod == ".main_remove":
@@ -769,6 +794,15 @@ def do_call(args, parser):
 
         return 0
     return exit_code
+
+
+def configure_clean_locks(sub_parsers):
+    removal_target_options = {
+        g.title: g for g in sub_parsers.choices["clean"]._action_groups
+    }["Removal Targets"]
+    removal_target_options.add_argument(
+        "-l", "--locks", action="store_true", help="Remove lock files.",
+    )
 
 
 def configure_parser_repoquery(sub_parsers):
@@ -865,6 +899,7 @@ def _wrapped_main(*args, **kwargs):
     args = argv
 
     p = generate_parser()
+    configure_clean_locks(p._subparsers._group_actions[0])
     configure_parser_repoquery(p._subparsers._group_actions[0])
     args = p.parse_args(args[1:])
 

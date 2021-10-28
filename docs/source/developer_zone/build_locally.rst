@@ -56,7 +56,7 @@ Build ``libmamba``
 Shared library
 **************
 
-Also needs ``BUILD_SHARED`` to be activated:
+``BUILD_SHARED`` option needs to be activated:
 
 .. code:: bash
 
@@ -67,10 +67,13 @@ Also needs ``BUILD_SHARED`` to be activated:
         -DBUILD_SHARED=ON
     make
 
+.. note::
+    ``libmamba`` ``cmake`` target represents the shared library
+
 Static library
 **************
 
-Also needs ``BUILD_STATIC`` to be activated:
+``BUILD_STATIC`` option needs to be activated:
 
 .. code:: bash
 
@@ -81,16 +84,50 @@ Also needs ``BUILD_STATIC`` to be activated:
         -DBUILD_STATIC=ON
     make
 
+.. note::
+    ``libmamba-static`` ``cmake`` target represents the static library without any dependency linkage
+
+Fully static library
+********************
+
+``BUILD_STATIC_DEPS`` option needs to be activated:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_STATIC_DEPS=ON
+    make
+
+.. note::
+    ``libmamba-full-static`` ``cmake`` target represents the static library with static dependencies linkage
+
+.. note::
+    The ``libmamba`` static library does not embed the dependencies but the ``cmake`` target will expose those dependencies to any executable linking on it
+
+.. note::
+    The fully statically lib still has few symbols required from system shared libraries (``glibc`` for instance)
+
+.. warning::
+    This version of the library has a small difference versus the static and shared ones, on the way the SSL backend of cURL is set
+    See `libmamba/src/core/fetch.cpp` for more information
+
+
 Tests
 *****
 
-First, compile the ``gtest``-based C++ test suite:
+| C++ tests require ``libmamba`` to be built.
+| To compile the ``gtest``-based C++ test suite, run:
 
 .. code::
 
     mkdir -p build
     cd build
     cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_SHARED=ON \
         -DBUILD_LIBMAMBA_TESTS=ON
     make
 
@@ -106,15 +143,12 @@ Alternatively you can use:
 
     make test
 
-.. note::
-    The static version of ``libmamba`` is necessary to build the C++ tests, it will be automatically turned-on
-
-
 Build ``libmambapy``
 ====================
 
 The Python bindings of ``libmamba``, ``libmambapy`` can be built by using the ``BUILD_LIBMAMBAPY`` ``cmake`` option.
 
+You can either rely on ``libmamba`` package already installed in your environment and run:
 .. code:: bash
 
     mkdir -p build
@@ -122,6 +156,26 @@ The Python bindings of ``libmamba``, ``libmambapy`` can be built by using the ``
     cmake .. \
         -DBUILD_LIBMAMBAPY=ON
     make
+
+or rebuild ``libmamba`` in the same time:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_SHARED=ON \
+        -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DBUILD_LIBMAMBAPY=ON
+    make
+
+.. note::
+    When rebuilding ``libmamba``, you also need to install the library in a path it will be found.
+    Use for that the ``CMAKE_INSTALL_PREFIX`` ``cmake`` option to point your current development environment:
+
+    - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX`` [unix]
+    - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
 
 You'll need to install the target to have the bindings Python sub-module correctly located, then you can use ``pip`` to install that Python package:
 
@@ -137,6 +191,9 @@ You'll need to install the target to have the bindings Python sub-module correct
 .. note::
     The ``--no-deps`` tells ``pip`` to skip the dependencies installation, since they are already installed (``libmamba`` installed using ``cmake``)
 
+.. note::
+    ``libmambapy`` is dynamically linking against ``libmamba`` (shared) library
+
 
 Build ``mamba``
 ===============
@@ -146,6 +203,9 @@ You need to build and install ``libmambapy``, which is a dependency of ``mamba``
 .. code::
     pip install -e ./mamba/ --no-deps
 
+.. note::
+    Other dependencies are already installed from the `environment-dev.yml` file
+
 
 Build ``micromamba``
 ====================
@@ -153,38 +213,7 @@ Build ``micromamba``
 Dynamically linked
 ******************
 
-To build ``micromamba``, just activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` command:
-
-.. code:: bash
-
-    mkdir -p build
-    cd build
-    cmake .. \
-        -BUILD_MICROMAMBA=ON
-    make
-
-.. note::
-    If you need to install the executable, use your current development environment:
-
-    - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX`` [unix]
-    - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
-
-| Doing so, you have built the dynamically linked version of ``micromamba``.
-| It's well fitted for development but is not the artifact shipped when installing ``micromamba`` because it still requires the dependencies shared libraries to work.
-
-
-Statically linked
-*****************
-
-``micromamba`` is a fully statically linked executable. To build it, you need to install extra requirements:
-
-.. code::
-
-    micromamba install --name <env_name> --file ./micromamba/environment-static-dev.yml
-
-It will install the development version of dependencies, including static libraries.
-
-Now you can run ``cmake`` with the additional flag ``MICROMAMBA_STATIC_LINK`` turned on:
+To build ``micromamba``, activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` command:
 
 .. code:: bash
 
@@ -192,7 +221,102 @@ Now you can run ``cmake`` with the additional flag ``MICROMAMBA_STATIC_LINK`` tu
     cd build
     cmake .. \
         -DBUILD_MICROMAMBA=ON \
-        -DMICROMAMBA_STATIC_LINK=ON
+        -DMICROMAMBA_LINKAGE=DYNAMIC
+    make
+
+or rebuild ``libmamba`` in the same time:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_SHARED=ON \
+        -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DBUILD_MICROMAMBA=ON \
+        -DMICROMAMBA_LINKAGE=DYNAMIC
+    make
+
+.. note::
+    If you need to install, use the ``CMAKE_INSTALL_PREFIX`` ``cmake`` option to point your current development environment:
+
+    - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX`` [unix]
+    - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
+
+.. note::
+    ``micromamba`` will be dynamically linked against ``libmamba`` and all its dependencies (``libsolv``, ``libarchive``, etc.)
+
+.. note::
+    ``MICROMAMBA_LINKAGE`` default value is ``DYNAMIC``
+
+Statically linked
+*****************
+
+You can also build ``micromamba`` statically linked against ``libmamba``:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_MICROMAMBA=ON \
+        -DMICROMAMBA_LINKAGE=STATIC
+    make
+
+or with ``libmamba``:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_STATIC=ON \
+        -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DBUILD_MICROMAMBA=ON \
+        -DMICROMAMBA_LINKAGE=STATIC
+    make
+
+.. note::
+    ``MICROMAMBA_LINKAGE`` default value is ``DYNAMIC``
+
+.. note::
+    ``micromamba`` will be then statically linked against ``libmamba`` but still dynamically linked against all its dependencies (``libsolv``, ``libarchive``, etc.)
+
+Fully statically linked
+***********************
+
+``micromamba`` can be built as a fully statically linked executable. For that, you need to install extra requirements:
+
+.. code::
+
+    micromamba install --name <env_name> --file ./micromamba/environment-static-dev.yml
+
+It will install the development version of dependencies, including static libraries.
+
+Now you can run ``cmake`` with the additional flag ``MICROMAMBA_STATIC_DEPS`` turned on:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_MICROMAMBA=ON \
+        -DMICROMAMBA_LINKAGE=FULL_STATIC
+    make
+
+or with ``libmamba``:
+
+.. code:: bash
+
+    mkdir -p build
+    cd build
+    cmake .. \
+        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_STATIC_DEPS=ON \
+        -DBUILD_MICROMAMBA=ON \
+        -DMICROMAMBA_LINKAGE=FULL_STATIC
     make
 
 Tests

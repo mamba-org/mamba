@@ -31,7 +31,7 @@ namespace mamba
                 return;
             }
 
-#ifdef MICROMAMBA_STATIC_LINK
+#ifdef LIBMAMBA_STATIC_DEPS
             CURLsslset sslset_res;
             const curl_ssl_backend** available_backends;
 
@@ -191,7 +191,7 @@ namespace mamba
             }
             else if (ssl_verify == "<system>")
             {
-#ifdef MICROMAMBA_STATIC_LINK
+#ifdef LIBMAMBA_STATIC_DEPS
                 curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
 #endif
             }

@@ -10,9 +10,11 @@ dependencies:
   - libarchive=3.3
   - krb5-static
   - libsolv-static
-  - libopenssl-static
   - zstd-static
   - libnghttp2-static
   - lz4-c-static
   - reproc-static
+  - reproc-cpp
   - reproc-cpp-static
+  - openssl 1.1.1*
+  - libopenssl-static 1.1.1*

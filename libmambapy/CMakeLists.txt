@@ -13,7 +13,9 @@ cmake_policy(SET CMP0077 NEW)
 project(libmambapy)
 
 find_package(pybind11 REQUIRED)
-find_package(libmamba REQUIRED)
+if(NOT TARGET libmamba)
+    find_package(libmamba REQUIRED)
+endif ()
 
 pybind11_add_module(bindings
     src/main.cpp

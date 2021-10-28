@@ -46,7 +46,9 @@ set(MICROMAMBA_HEADERS
 
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 
-find_package(libmamba REQUIRED)
+if(NOT (TARGET libmamba OR TARGET libmamba-static OR TARGET libmamba-full-static))
+    find_package(libmamba REQUIRED)
+endif ()
 
 string(TOUPPER "${MICROMAMBA_LINKAGE}" linkage_upper)
 if (NOT ${linkage_upper} MATCHES "^(DYNAMIC|STATIC|FULL_STATIC)$")

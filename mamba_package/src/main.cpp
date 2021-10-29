@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "archive.hpp"
+#include "package.hpp"
 
 #include "mamba/version.hpp"
 
@@ -23,7 +23,7 @@ main(int argc, char** argv)
     using namespace mamba;  // NOLINT(build/namespaces)
 
     CLI::App app{ "Version: " + version() + "\n" };
-    set_archive_command(&app);
+    set_package_command(&app);
 
     try
     {

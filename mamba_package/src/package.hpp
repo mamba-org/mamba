@@ -4,12 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_ARCHIVE_ARCHIVE_HPP
-#define MAMBA_ARCHIVE_ARCHIVE_HPP
+#ifndef MAMBA_PACKAGE_PACKAGE_HPP
+#define MAMBA_PACKAGE_PACKAGE_HPP
 
 #include <CLI/CLI.hpp>
 
 void
-set_archive_command(CLI::App* com);
+set_package_command(CLI::App* com);
 
 #endif

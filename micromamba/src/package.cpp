@@ -12,7 +12,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_archive_command(CLI::App* subcom)
+set_package_command(CLI::App* subcom)
 {
     static std::string infile, dest;
     static int compression_level = -1;

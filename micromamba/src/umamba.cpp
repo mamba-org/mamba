@@ -56,9 +56,9 @@ set_umamba_command(CLI::App* com)
     CLI::App* list_subcom = com->add_subcommand("list", "List packages in active environment");
     set_list_command(list_subcom);
 
-    CLI::App* archive_subcom
-        = com->add_subcommand("archive", "Extract a package or bundle files into an archive");
-    set_archive_command(archive_subcom);
+    CLI::App* package_subcom
+        = com->add_subcommand("package", "Extract a package or bundle files into an archive");
+    set_package_command(package_subcom);
 
     CLI::App* clean_subcom = com->add_subcommand("clean", "Clean package cache");
     set_clean_command(clean_subcom);

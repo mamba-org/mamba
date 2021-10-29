@@ -440,11 +440,11 @@ namespace mamba
         std::vector<std::string> args;
         if (Context::instance().is_micromamba)
         {
-            args = { get_self_exe_path(), "archive", "extract", file, dest };
+            args = { get_self_exe_path(), "package", "extract", file, dest };
         }
         else
         {
-            args = { "mamba-archive", "extract", file, dest };
+            args = { "mamba-package", "extract", file, dest };
         }
 
         std::string out, err;

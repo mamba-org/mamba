@@ -4,7 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "archive.hpp"
+#include "package.hpp"
 
 #include "mamba/core/util.hpp"
 #include "mamba/core/package_handling.hpp"
@@ -12,7 +12,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 void
-set_archive_command(CLI::App* com)
+set_package_command(CLI::App* com)
 {
     static std::string infile, dest;
     static int compression_level = -1;

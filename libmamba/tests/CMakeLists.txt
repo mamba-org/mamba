@@ -42,11 +42,11 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/validation_data
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 
 target_link_libraries(test_libmamba PRIVATE GTest::GTest GTest::Main Threads::Threads)
-target_link_libraries(test_libmamba PUBLIC libmamba-static)
+target_link_libraries(test_libmamba PUBLIC libmamba)
 set_property(TARGET test_libmamba PROPERTY CXX_STANDARD 17)
 
 add_custom_target(test COMMAND test_libmamba DEPENDS test_libmamba)
 
 add_executable(testing_libmamba_lock testing/lock.cpp)
-target_link_libraries(testing_libmamba_lock PUBLIC libmamba-static)
+target_link_libraries(testing_libmamba_lock PUBLIC libmamba)
 set_property(TARGET testing_libmamba_lock PROPERTY CXX_STANDARD 17)

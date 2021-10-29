@@ -18,14 +18,10 @@ project(mamba)
 # Build options
 # =============
 
-option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_LIBMAMBA "Build libmamba library" OFF)
 option(BUILD_LIBMAMBAPY "Build libmamba Python bindings" OFF)
 option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
-option(MICROMAMBA_STATIC_LINK "" OFF)
-
-option(BUILD_SHARED "" OFF)
-option(BUILD_STATIC "" OFF)
+option(BUILD_MICROMAMBA "Build micromamba" OFF)
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
@@ -37,11 +33,6 @@ endif()
 
 # Variants
 # ========
-
-if (BUILD_MICROMAMBA OR BUILD_LIBMAMBA_TESTS OR BUILD_LIBMAMBAPY)
-    set(BUILD_LIBMAMBA ON)
-    set(BUILD_STATIC ON)
-endif()
 
 # libmamba library and tests
 if (BUILD_LIBMAMBA)

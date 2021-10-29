@@ -89,6 +89,8 @@ jobs:
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_SHARED=ON \
               -DBUILD_LIBMAMBA_TESTS=ON \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -138,6 +140,8 @@ jobs:
           cmake .. \
               -GNinja \
               -DBUILD_MICROMAMBA=ON \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_SHARED=ON \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache
           ninja
@@ -207,6 +211,8 @@ jobs:
               -GNinja \
               -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
               -DBUILD_LIBMAMBAPY=ON \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_SHARED=ON \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               ..
@@ -343,7 +349,10 @@ jobs:
           mkdir build
           cd build
           set CCACHE_DIR=%HOME%\ccache
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_LIBMAMBAPY=ON ^
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_LIBMAMBAPY=ON ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_SHARED=ON ^
                    -GNinja ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache
@@ -419,12 +428,15 @@ jobs:
           mkdir build
           cd build
           set CCACHE_DIR=%HOME%\ccache
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_LIBMAMBA_TESTS=ON ^
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_LIBMAMBA_TESTS=ON ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_SHARED=ON ^
                    -GNinja ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          ninja testing_libmamba_lock -j2
-          ninja test -j2
+          ninja install
+          ninja test
 
   umamba_tests_win:
     runs-on: ${{ matrix.os }}
@@ -458,11 +470,15 @@ jobs:
           mkdir build
           cd build
           set CCACHE_DIR=%HOME%\ccache
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_MICROMAMBA=ON ^
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_MICROMAMBA=ON ^
+                   -DMICROMAMBA_LINKAGE=STATIC ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_STATIC=ON ^
                    -GNinja ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          ninja -j2
+          ninja install
           .\micromamba\micromamba.exe --help
       - name: tar micromamba artifact
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe

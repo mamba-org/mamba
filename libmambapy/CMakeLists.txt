@@ -1,11 +1,26 @@
-find_package(pybind11 REQUIRED)
+# Copyright (c) 2019, QuantStack and Mamba Contributors
+#
+# Distributed under the terms of the BSD 3-Clause License.
+#
+# The full license is in the file LICENSE, distributed with this software.
 
-include(GNUInstallDirs)
+cmake_minimum_required (VERSION 3.2)
+if(POLICY CMP0025)
+  cmake_policy(SET CMP0025 NEW)
+endif()
+cmake_policy(SET CMP0077 NEW)
+
+project(libmambapy)
+
+find_package(pybind11 REQUIRED)
+if(NOT TARGET libmamba)
+    find_package(libmamba REQUIRED)
+endif ()
 
 pybind11_add_module(bindings
     src/main.cpp
 )
-target_link_libraries(bindings PUBLIC pybind11::pybind11 libmamba-static)
+target_link_libraries(bindings PUBLIC pybind11::pybind11 libmamba)
 set_property(TARGET bindings PROPERTY CXX_STANDARD 17)
 
 install(TARGETS bindings

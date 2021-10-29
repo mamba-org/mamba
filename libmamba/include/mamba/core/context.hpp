@@ -140,6 +140,8 @@ namespace mamba
         bool always_copy = false;
         bool always_softlink = false;
 
+        int extract_threads = 0;
+
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 

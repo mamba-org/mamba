@@ -10,12 +10,15 @@
 
 #include <sstream>
 
+#include <reproc++/run.hpp>
+
 #include "nlohmann/json.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/validate.hpp"
 
 namespace mamba
@@ -296,7 +299,9 @@ namespace mamba
         archive_write_disk_set_options(ext, flags);
         archive_write_disk_set_standard_lookup(ext);
 
+        auto lock = LockFile::try_lock(file);
         r = archive_read_open_filename(a, file.c_str(), 10240);
+
         if (r != ARCHIVE_OK)
         {
             LOG_ERROR << "Error opening archive: " << archive_error_string(a);
@@ -393,8 +398,25 @@ namespace mamba
         }
     }
 
+    static fs::path extract_dest_dir(const fs::path& file)
+    {
+        if (ends_with(file.string(), ".tar.bz2"))
+        {
+            return file.string().substr(0, file.string().size() - 8);
+        }
+        else if (ends_with(file.string(), ".conda"))
+        {
+            return file.string().substr(0, file.string().size() - 6);
+        }
+        LOG_ERROR << "Unknown package format '" << file.string() << "'";
+        throw std::runtime_error("Unknown package format.");
+    }
+
     void extract(const fs::path& file, const fs::path& dest)
     {
+        static std::mutex extract_mutex;
+        std::lock_guard<std::mutex> lock(extract_mutex);
+
         if (ends_with(file.string(), ".tar.bz2"))
             extract_archive(file, dest);
         else if (ends_with(file.string(), ".conda"))
@@ -408,17 +430,35 @@ namespace mamba
 
     fs::path extract(const fs::path& file)
     {
-        std::string dest_dir = file;
-        if (ends_with(dest_dir, ".tar.bz2"))
-        {
-            dest_dir = dest_dir.substr(0, dest_dir.size() - 8);
-        }
-        else if (ends_with(dest_dir, ".conda"))
-        {
-            dest_dir = dest_dir.substr(0, dest_dir.size() - 6);
-        }
+        fs::path dest_dir = extract_dest_dir(file);
         extract(file, dest_dir);
         return dest_dir;
+    }
+
+    void extract_subproc(const fs::path& file, const fs::path& dest)
+    {
+        std::vector<std::string> args;
+        if (Context::instance().is_micromamba)
+        {
+            args = { get_self_exe_path(), "package", "extract", file, dest };
+        }
+        else
+        {
+            args = { "mamba-package", "extract", file, dest };
+        }
+
+        std::string out, err;
+        LOG_DEBUG << "Running subprocess extraction '" << join(" ", args) << "'";
+        auto [status, ec] = reproc::run(
+            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+
+        if (ec)
+        {
+            LOG_DEBUG << "Subprocess extraction exited with code " << ec << ", stdout: " << out
+                      << ", stderr: " << err;
+            LOG_DEBUG << "Running in-process extraction for '" << file.string() << "'";
+            extract(file, dest);
+        }
     }
 
     bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level)

@@ -22,6 +22,7 @@ option(BUILD_LIBMAMBA "Build libmamba library" OFF)
 option(BUILD_LIBMAMBAPY "Build libmamba Python bindings" OFF)
 option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
+option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
 
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
@@ -51,4 +52,9 @@ endif()
 # micromamba
 if (BUILD_MICROMAMBA)
     add_subdirectory(micromamba)
+endif()
+
+# mamba package tarball utility
+if (BUILD_MAMBA_PACKAGE)
+    add_subdirectory(mamba_package)
 endif()

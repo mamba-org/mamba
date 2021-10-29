@@ -56,6 +56,10 @@ if (BUILD_STATIC_DEPS)
     add_definitions(-DLIBMAMBA_STATIC_DEPS)
 endif ()
 
+if (WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif ()
+
 # Source files
 # ============
 

@@ -435,8 +435,8 @@ jobs:
                    -GNinja ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          ninja testing_libmamba_lock -j2
-          ninja test -j2
+          ninja install
+          ninja test
 
   umamba_tests_win:
     runs-on: ${{ matrix.os }}
@@ -477,7 +477,7 @@ jobs:
                    -GNinja ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          ninja -j2
+          ninja install
           .\micromamba\micromamba.exe --help
       - name: tar micromamba artifact
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe

@@ -472,8 +472,9 @@ jobs:
           set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_MICROMAMBA=ON ^
+                   -DMICROMAMBA_LINKAGE=STATIC ^
                    -DBUILD_LIBMAMBA=ON ^
-                   -DBUILD_SHARED=ON ^
+                   -DBUILD_STATIC=ON ^
                    -GNinja ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=ccache

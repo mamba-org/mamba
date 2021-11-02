@@ -25,7 +25,7 @@ namespace mamba
     class TransactionContext
     {
     public:
-        TransactionContext() = default;
+        TransactionContext();
         TransactionContext(const fs::path& prefix, const std::string& py_version);
 
         bool has_python;
@@ -37,6 +37,7 @@ namespace mamba
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
+        bool compile_pyc = true;
     };
 }  // namespace mamba
 

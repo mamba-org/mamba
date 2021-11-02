@@ -1192,15 +1192,21 @@ namespace mamba
                 }
             }
 
-            std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
-
-            for (const fs::path& pyc_path : pyc_files)
+            if (m_context->compile_pyc)
             {
-                out_json["paths_data"]["paths"].push_back(
-                    { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
+                LOG_INFO << "Compiling '.pyc' files";
+                std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
 
-                out_json["files"].push_back(pyc_path);
+                for (const fs::path& pyc_path : pyc_files)
+                {
+                    out_json["paths_data"]["paths"].push_back(
+                        { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
+
+                    out_json["files"].push_back(pyc_path);
+                }
             }
+            else
+                LOG_INFO << "Skipping '.pyc' files compilation";
 
             if (link_json.find("noarch") != link_json.end()
                 && link_json["noarch"].find("entry_points") != link_json["noarch"].end())

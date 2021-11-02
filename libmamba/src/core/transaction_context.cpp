@@ -69,12 +69,18 @@ namespace mamba
         }
     }
 
+    TransactionContext::TransactionContext()
+    {
+        compile_pyc = Context::instance().compile_pyc;
+    }
+
     TransactionContext::TransactionContext(const fs::path& prefix, const std::string& py_version)
         : has_python(py_version.size() != 0)
         , target_prefix(prefix)
         , python_version(py_version)
     {
         auto& ctx = Context::instance();
+        compile_pyc = ctx.compile_pyc;
         allow_softlinks = ctx.allow_softlinks;
         always_copy = ctx.always_copy;
         always_softlink = ctx.always_softlink;

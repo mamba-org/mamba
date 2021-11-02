@@ -978,11 +978,15 @@ namespace mamba
     std::vector<fs::path> LinkPackage::compile_pyc_files(const std::vector<fs::path>& py_files)
     {
         if (py_files.size() == 0)
+            return {};
+
+        if (!m_context->has_python)
         {
+            LOG_WARNING << "Can't compile pyc: Python not found";
             return {};
         }
-        std::vector<fs::path> pyc_files;
 
+        std::vector<fs::path> pyc_files;
         TemporaryFile all_py_files;
         std::ofstream all_py_files_f(all_py_files.path());
 
@@ -1005,11 +1009,20 @@ namespace mamba
 
         auto py_ver_split = split(m_context->python_version, ".");
 
-        if (std::stoull(std::string(py_ver_split[0])) >= 3
-            && std::stoull(std::string(py_ver_split[1])) > 5)
+        try
         {
-            // activate parallel pyc compilation
-            command.push_back("-j0");
+            if (std::stoull(std::string(py_ver_split[0])) >= 3
+                && std::stoull(std::string(py_ver_split[1])) > 5)
+            {
+                // activate parallel pyc compilation
+                command.push_back("-j0");
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR << "Bad conversion of Python version '" << m_context->python_version
+                      << "': " << e.what();
+            throw std::runtime_error("Bad conversion. Aborting.");
         }
 
         reproc::options options;

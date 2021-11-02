@@ -538,6 +538,10 @@ namespace mamba
         MultiPackageCache pkg_caches({ pkgs_dirs });
         auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
 
+        prefix_data.load();
+        prefix_data.add_virtual_packages(get_virtual_packages());
+        MRepo(pool, prefix_data);
+
         std::vector<MRepo*> repo_ptrs;
 
         if (ctx.json)

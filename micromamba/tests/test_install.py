@@ -497,3 +497,25 @@ class TestInstall:
 
         for pkg in res["actions"]["LINK"]:
             assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
+
+    def test_explicit_noarch(self, existing_cache):
+        install("python", no_dry_run=True)
+
+        channel = "https://conda.anaconda.org/conda-forge/noarch/"
+        explicit_spec = channel + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
+        file_content = ["@EXPLICIT", explicit_spec]
+
+        spec_file = os.path.join(TestInstall.root_prefix, "explicit_specs_no_arch.txt")
+        with open(spec_file, "w") as f:
+            f.write("\n".join(file_content))
+
+        cmd = ("-p", TestInstall.prefix, "-q", "-f", spec_file)
+
+        install(*cmd, default_channel=False)
+
+        list_res = umamba_list("-p", TestInstall.prefix, "--json")
+        pkgs = [p for p in list_res if p["name"] == "appdirs"]
+        assert len(pkgs) == 1
+        pkg = pkgs[0]
+        assert pkg["version"] == "1.4.4"
+        assert pkg["build_string"] == "pyh9f0ad1d_0"

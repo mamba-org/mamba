@@ -978,11 +978,15 @@ namespace mamba
     std::vector<fs::path> LinkPackage::compile_pyc_files(const std::vector<fs::path>& py_files)
     {
         if (py_files.size() == 0)
+            return {};
+
+        if (!m_context->has_python)
         {
+            LOG_WARNING << "Can't compile pyc: Python not found";
             return {};
         }
-        std::vector<fs::path> pyc_files;
 
+        std::vector<fs::path> pyc_files;
         TemporaryFile all_py_files;
         std::ofstream all_py_files_f(all_py_files.path());
 
@@ -1005,11 +1009,20 @@ namespace mamba
 
         auto py_ver_split = split(m_context->python_version, ".");
 
-        if (std::stoull(std::string(py_ver_split[0])) >= 3
-            && std::stoull(std::string(py_ver_split[1])) > 5)
+        try
         {
-            // activate parallel pyc compilation
-            command.push_back("-j0");
+            if (std::stoull(std::string(py_ver_split[0])) >= 3
+                && std::stoull(std::string(py_ver_split[1])) > 5)
+            {
+                // activate parallel pyc compilation
+                command.push_back("-j0");
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR << "Bad conversion of Python version '" << m_context->python_version
+                      << "': " << e.what();
+            throw std::runtime_error("Bad conversion. Aborting.");
         }
 
         reproc::options options;
@@ -1179,15 +1192,21 @@ namespace mamba
                 }
             }
 
-            std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
-
-            for (const fs::path& pyc_path : pyc_files)
+            if (m_context->compile_pyc)
             {
-                out_json["paths_data"]["paths"].push_back(
-                    { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
+                LOG_INFO << "Compiling '.pyc' files";
+                std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
 
-                out_json["files"].push_back(pyc_path);
+                for (const fs::path& pyc_path : pyc_files)
+                {
+                    out_json["paths_data"]["paths"].push_back(
+                        { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
+
+                    out_json["files"].push_back(pyc_path);
+                }
             }
+            else
+                LOG_INFO << "Skipping '.pyc' files compilation";
 
             if (link_json.find("noarch") != link_json.end()
                 && link_json["noarch"].find("entry_points") != link_json["noarch"].end())

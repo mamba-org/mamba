@@ -175,6 +175,8 @@ namespace mamba
 
         std::size_t lock_timeout = 0;
 
+        bool compile_pyc = true;
+
         // Conda compat
         bool add_pip_as_python_dependency = true;
 

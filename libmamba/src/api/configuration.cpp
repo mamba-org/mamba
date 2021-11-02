@@ -862,6 +862,12 @@ namespace mamba
                         LockFile timeout for blocking mode when waiting for another process
                         to release the path. Default is 0 (no timeout))")));
 
+        insert(Configurable("compile_pyc", &ctx.compile_pyc)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Defines if PYC files will be compiled or not"));
+
         // Output, Prompt and Flow
         insert(Configurable("always_yes", &ctx.always_yes)
                    .group("Output, Prompt and Flow Control")

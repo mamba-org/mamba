@@ -502,7 +502,10 @@ class TestInstall:
         install("python", no_dry_run=True)
 
         channel = "https://conda.anaconda.org/conda-forge/noarch/"
-        explicit_spec = channel + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
+        explicit_spec = (
+            channel
+            + "appdirs-1.4.4-pyh9f0ad1d_0.tar.bz2#5f095bc6454094e96f146491fd03633b"
+        )
         file_content = ["@EXPLICIT", explicit_spec]
 
         spec_file = os.path.join(TestInstall.root_prefix, "explicit_specs_no_arch.txt")

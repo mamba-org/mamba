@@ -213,11 +213,9 @@ class TestShell:
         skip_if_shell_incompat(shell_type)
 
         if prefix_selector is None:
-            with pytest.raises(subprocess.CalledProcessError):
-                shell("-y", "init", "-s", shell_type)
-            return
-
-        res = shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
+            res = shell("-y", "init", "-s", shell_type)
+        else:
+            res = shell("-y", "init", "-s", shell_type, "-p", TestShell.root_prefix)
         assert res
 
         if multiple_time:

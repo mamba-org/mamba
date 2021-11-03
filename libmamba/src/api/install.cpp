@@ -63,12 +63,8 @@ namespace mamba
                           << " packages: " << join(", ", deps) << termcolor::reset;
         LOG_INFO << "Calling: " << join(" ", install_args);
 
-        auto [_, ec] = reproc::run(wrapped_command, options);
-
-        if (ec)
-        {
-            throw std::runtime_error(ec.message());
-        }
+        auto [status, ec] = reproc::run(wrapped_command, options);
+        assert_reproc_success(options, status, ec);
     }
 
     auto& truthy_values()

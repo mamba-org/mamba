@@ -283,7 +283,7 @@ namespace mamba
                 if (writable_cache_path.empty())
                 {
                     LOG_ERROR << "Could not find any writable cache directory for repodata file";
-                    std::runtime_error("Non-writable cache error.");
+                    throw std::runtime_error("Non-writable cache error.");
                 }
 
                 LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
@@ -327,6 +327,14 @@ namespace mamba
             m_loaded = true;
             m_temp_file.reset(nullptr);
             return true;
+        }
+        else
+        {
+            if (writable_cache_path.empty())
+            {
+                LOG_ERROR << "Could not find any writable cache directory for repodata file";
+                throw std::runtime_error("Non-writable cache error.");
+            }
         }
 
         LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";

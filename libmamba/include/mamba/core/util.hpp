@@ -12,6 +12,8 @@
 
 #include "nlohmann/json.hpp"
 
+#include <reproc++/reproc.hpp>
+
 #include <array>
 #include <iomanip>
 #include <limits>
@@ -402,6 +404,7 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
+    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec);
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

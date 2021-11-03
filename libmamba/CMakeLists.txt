@@ -298,6 +298,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
                 ${sodium_LIBRARY_RELEASE}
                 reproc++
+                reproc
             )
 
             add_definitions("-DLIBARCHIVE_STATIC -DCURL_STATICLIB -DSOLV_BUILD_STATIC")
@@ -324,6 +325,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             ${OPENSSL_LIBRARIES}
             ${YAML_CPP_LIBRARIES}
             reproc++
+            reproc
         )
 
         target_link_libraries(${target_name} PUBLIC

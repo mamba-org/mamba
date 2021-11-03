@@ -68,7 +68,7 @@ namespace mamba
         {
             if (fs::is_regular_file(magic_file))
             {
-                LOG_TRACE << "'" << magic_file << "' exists, checking if writable";
+                LOG_TRACE << "'" << magic_file.string() << "' exists, checking if writable";
                 if (path::is_writable(magic_file))
                 {
                     m_writable = Writable::WRITABLE;

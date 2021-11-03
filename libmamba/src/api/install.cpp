@@ -126,7 +126,7 @@ namespace mamba
             }
             catch (YAML::Exception& e)
             {
-                LOG_ERROR << "Error in spec file: " << yaml_file;
+                LOG_ERROR << "YAML error in spec file '" << yaml_file.string() << "'";
             }
 
             YAML::Node deps = f["dependencies"];
@@ -189,8 +189,9 @@ namespace mamba
                 }
                 catch (YAML::Exception& e)
                 {
-                    throw std::runtime_error(mamba::concat(
-                        "Could not read 'channels' as list of strings from ", yaml_file.string()));
+                    LOG_ERROR << "Could not read 'channels' as list of strings from '"
+                              << yaml_file.string() << "'";
+                    throw e;
                 }
             }
             else

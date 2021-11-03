@@ -680,7 +680,11 @@ namespace mamba
     {
         std::string subtarget = path_data["_path"].get<std::string>();
         fs::path dst = m_context->target_prefix / subtarget;
-        fs::remove(dst);
+
+        LOG_TRACE << "Unlinking '" << dst.string() << "'";
+        std::error_code err;
+        if (!fs::remove(dst, err))
+            LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
 
         // TODO what do we do with empty directories?
         // remove empty parent path
@@ -697,7 +701,9 @@ namespace mamba
     {
         // find the recorded JSON file
         fs::path json = m_context->target_prefix / "conda-meta" / (m_specifier + ".json");
-        LOG_INFO << "unlink: opening " << json << std::endl;
+        LOG_INFO << "Unlinking package '" << m_specifier << "'";
+        LOG_DEBUG << "Use metadata found at '" << json.string() << "'";
+
         std::ifstream json_file(json);
         nlohmann::json json_record;
         json_file >> json_record;

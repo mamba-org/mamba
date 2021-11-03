@@ -121,3 +121,13 @@ class TestLinking:
         assert cache_file.stat().st_dev == linked_file.stat().st_dev
         assert (cache_file.stat().st_ino == linked_file.stat().st_ino) == is_hardlink
         assert linked_file.is_symlink() == is_softlink
+
+    def test_unlink_missing_file(self):
+        create("xtensor", "-n", TestLinking.env_name, "--json", no_dry_run=True)
+
+        linked_file = get_env(TestLinking.env_name, xtensor_hpp)
+        assert linked_file.exists()
+        assert not linked_file.is_symlink()
+
+        os.remove(linked_file)
+        remove("xtensor", "-n", TestLinking.env_name)

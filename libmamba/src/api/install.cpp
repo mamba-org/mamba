@@ -118,18 +118,34 @@ namespace mamba
 
         yaml_file_contents read_yaml_file(fs::path yaml_file)
         {
+            auto file = fs::weakly_canonical(env::expand_user(yaml_file));
+            if (!fs::exists(file))
+            {
+                LOG_ERROR << "YAML spec file '" << file.string() << "' not found";
+                throw std::runtime_error("File not found. Aborting.");
+            }
+
             yaml_file_contents result;
             YAML::Node f;
             try
             {
-                f = YAML::LoadFile(yaml_file);
+                f = YAML::LoadFile(file);
             }
             catch (YAML::Exception& e)
             {
-                LOG_ERROR << "Error in spec file: " << yaml_file;
+                LOG_ERROR << "YAML error in spec file '" << file.string() << "'";
+                throw e;
             }
 
-            YAML::Node deps = f["dependencies"];
+            YAML::Node deps;
+            if (f["dependencies"] && f["dependencies"].IsSequence() && f["dependencies"].size() > 0)
+                deps = f["dependencies"];
+            else
+            {
+                LOG_ERROR << "No 'dependencies' specified in YAML spec file '" << file.string()
+                          << "'";
+                throw std::runtime_error("Invalid spec file. Aborting.");
+            }
             YAML::Node final_deps;
 
             bool has_pip_deps = false;
@@ -174,7 +190,17 @@ namespace mamba
                 }
             }
 
-            std::vector<std::string> dependencies = final_deps.as<std::vector<std::string>>();
+            std::vector<std::string> dependencies;
+            try
+            {
+                dependencies = final_deps.as<std::vector<std::string>>();
+            }
+            catch (const YAML::Exception& e)
+            {
+                LOG_ERROR << "Bad conversion of 'dependencies' to a vector of string: "
+                          << final_deps;
+                throw e;
+            }
 
             if (has_pip_deps && !std::count(dependencies.begin(), dependencies.end(), "pip"))
                 dependencies.push_back("pip");
@@ -189,13 +215,14 @@ namespace mamba
                 }
                 catch (YAML::Exception& e)
                 {
-                    throw std::runtime_error(mamba::concat(
-                        "Could not read 'channels' as list of strings from ", yaml_file.string()));
+                    LOG_ERROR << "Could not read 'channels' as vector of strings from '"
+                              << file.string() << "'";
+                    throw e;
                 }
             }
             else
             {
-                LOG_DEBUG << "No 'channels' specified in file: " << yaml_file;
+                LOG_DEBUG << "No 'channels' specified in YAML spec file '" << file.string() << "'";
             }
 
             if (f["name"])
@@ -203,7 +230,7 @@ namespace mamba
                 result.name = f["name"].as<std::string>();
             }
             {
-                LOG_DEBUG << "No env 'name' specified in file: " << yaml_file;
+                LOG_DEBUG << "No env 'name' specified in YAML spec file '" << file.string() << "'";
             }
             return result;
         }

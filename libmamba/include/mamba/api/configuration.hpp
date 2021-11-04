@@ -1332,7 +1332,8 @@ namespace mamba
                 }
                 catch (const YAML::Exception& e)
                 {
-                    LOG_ERROR << "Bad conversion of configurable '" << name() << "'";
+                    LOG_ERROR << "Bad conversion of configurable '" << name() << "' with value '"
+                              << value << "'";
                     throw e;
                 }
             };
@@ -1826,8 +1827,18 @@ namespace mamba
                 auto env_var_value = env::get(env_var);
                 if (!env_var_value.empty())
                 {
-                    m_sources.push_back(env_var);
-                    m_values.insert({ env_var, detail::Source<T>::deserialize(env_var_value) });
+                    try
+                    {
+                        m_values.insert({ env_var, detail::Source<T>::deserialize(env_var_value) });
+                        m_sources.push_back(env_var);
+                    }
+                    catch (const YAML::Exception& e)
+                    {
+                        LOG_ERROR << "Bad conversion of configurable '" << name()
+                                  << "' from environment variable '" << env_var << "' with value '"
+                                  << env_var_value << "'";
+                        throw e;
+                    }
                 }
             }
         }

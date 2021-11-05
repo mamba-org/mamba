@@ -236,7 +236,7 @@ namespace mamba
             auto& config = Configuration::instance();
             if (!Context::instance().no_rc)
             {
-                rc_loading_hook(RCConfigLevel::kRootPrefix);
+                rc_loading_hook(RCConfigLevel::kHomeDir);
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
             }
         }
@@ -1103,11 +1103,11 @@ namespace mamba
 
         if (level >= RCConfigLevel::kSystemDir)
             sources.insert(sources.end(), system.begin(), system.end());
-        if (level >= RCConfigLevel::kRootPrefix)
+        if ((level >= RCConfigLevel::kRootPrefix) && !ctx.root_prefix.empty())
             sources.insert(sources.end(), root.begin(), root.end());
         if (level >= RCConfigLevel::kHomeDir)
             sources.insert(sources.end(), home.begin(), home.end());
-        if (level >= RCConfigLevel::kTargetPrefix)
+        if ((level >= RCConfigLevel::kTargetPrefix) && !ctx.target_prefix.empty())
             sources.insert(sources.end(), prefix.begin(), prefix.end());
 
         // Sort by precedence

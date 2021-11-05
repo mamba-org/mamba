@@ -182,14 +182,14 @@ class TestConfigList:
     @pytest.mark.parametrize("rc_flag", ["--no-rc", "--rc-file="])
     def test_list(self, rc_file, rc_flag):
         expected = {
-            "--no-rc": "\n",
+            "--no-rc": "",
             "--rc-file=" + str(rc_file): "channels:\n  - channel1\n  - channel2\n",
         }
         if rc_flag == "--rc-file=":
             rc_flag += str(rc_file)
 
         assert (
-            config("list", "--no-env", rc_flag).splitlines()
+            config("list", "--no-env", rc_flag).splitlines()[:-1]
             == expected[rc_flag].splitlines()
         )
 
@@ -200,7 +200,7 @@ class TestConfigList:
         assert (
             config(
                 "list", "--no-env", "--rc-file=" + str(rc_file), source_flag
-            ).splitlines()
+            ).splitlines()[:-1]
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )
 
@@ -209,7 +209,7 @@ class TestConfigList:
         assert (
             config(
                 "list", "--no-env", "--rc-file=" + str(rc_file), desc_flag
-            ).splitlines()
+            ).splitlines()[:-4]
             == f"# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -219,7 +219,7 @@ class TestConfigList:
         assert (
             config(
                 "list", "--no-env", "--rc-file=" + str(rc_file), desc_flag
-            ).splitlines()
+            ).splitlines()[:-4]
             == f"# channels\n#   The list of channels where the packages will be searched for.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
@@ -235,7 +235,7 @@ class TestConfigList:
         assert (
             config(
                 "list", "--no-env", "--rc-file=" + str(rc_file), "-d", group_flag
-            ).splitlines()
+            ).splitlines()[:-8]
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )

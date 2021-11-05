@@ -954,6 +954,8 @@ namespace mamba
 
         insert(Configurable("show_banner", true)
                    .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
                    .needs({ "quiet", "json" })
                    .set_single_op_lifetime()
                    .description("Show the banner"));

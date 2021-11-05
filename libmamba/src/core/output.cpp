@@ -421,10 +421,6 @@ namespace mamba
                || Context::instance().no_progress_bars;
     }
 
-    /*****************
-     * MessageLogger *
-     *****************/
-
     std::string strip_file_prefix(const std::string& file)
     {
 #ifdef _WIN32
@@ -436,60 +432,45 @@ namespace mamba
         return pos != std::string::npos ? file.substr(pos + 1, std::string::npos) : file;
     }
 
-    MessageLogger::MessageLogger(const char* file, int line, LogSeverity severity)
+    /*****************
+     * MessageLogger *
+     *****************/
+
+    MessageLogger::MessageLogger(const char* file, int line, spdlog::level::level_enum level)
         : m_file(strip_file_prefix(file))
         , m_line(line)
-        , m_severity(severity)
+        , m_level(level)
         , m_stream()
     {
-#ifdef MAMBA_DEVELOPMENT
-        m_stream << m_file << ":" << m_line << " ";
-#endif
     }
 
     MessageLogger::~MessageLogger()
     {
-        if (m_severity < global_log_severity())
-        {
-            return;
-        }
-
         auto str = Console::hide_secrets(m_stream.str());
-        switch (m_severity)
+        switch (m_level)
         {
-            case LogSeverity::kFatal:
-                std::cerr << termcolor::on_red << "FATAL   " << termcolor::reset
-                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
+            case spdlog::level::critical:
+                SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
+                if (Context::instance().log_level != spdlog::level::off)
+                    spdlog::dump_backtrace();
                 break;
-            case LogSeverity::kError:
-                std::cerr << termcolor::red << "ERROR   " << termcolor::reset
-                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
+            case spdlog::level::err:
+                SPDLOG_ERROR(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case LogSeverity::kWarning:
-                std::cerr << termcolor::yellow << "WARNING " << termcolor::reset
-                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
+            case spdlog::level::warn:
+                SPDLOG_WARN(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case LogSeverity::kInfo:
-                std::cerr << "INFO    " << prepend(str, "", std::string(8, ' ').c_str())
-                          << std::endl;
+            case spdlog::level::info:
+                SPDLOG_INFO(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case LogSeverity::kDebug:
-                std::cerr << termcolor::cyan << "DEBUG   " << termcolor::reset
-                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
+            case spdlog::level::debug:
+                SPDLOG_DEBUG(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case LogSeverity::kTrace:
-                std::cerr << termcolor::blue << "TRACE   " << termcolor::reset
-                          << prepend(str, "", std::string(8, ' ').c_str()) << std::endl;
+            case spdlog::level::trace:
+                SPDLOG_TRACE(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             default:
-                std::cerr << "UNKOWN  " << prepend(str, "", std::string(8, ' ').c_str())
-                          << std::endl;
                 break;
-        }
-
-        if (m_severity == LogSeverity::kFatal)
-        {
-            std::abort();
         }
     }
 
@@ -498,29 +479,35 @@ namespace mamba
         return m_stream;
     }
 
-    LogSeverity& MessageLogger::global_log_severity()
+    Logger::Logger(const std::string& pattern)
+        : spdlog::logger(std::string("mamba"),
+                         std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
     {
-        static LogSeverity sev = LogSeverity::kWarning;
-        return sev;
+        // set_pattern("%^[%L %Y-%m-%d %T:%e]%$ %v");
+        set_pattern(pattern);
     }
 
-    /***************
-     * JsonLogger *
-     ***************/
-
-    JsonLogger::JsonLogger()
+    void Logger::dump_backtrace_no_guards()
     {
+        using spdlog::details::log_msg;
+        if (tracer_.enabled())
+        {
+            tracer_.foreach_pop([this](const log_msg& msg) {
+                if (this->should_log(msg.level))
+                    this->sink_it_(msg);
+            });
+        }
     }
 
-    JsonLogger& JsonLogger::instance()
+    void Console::json_print()
     {
-        static JsonLogger j;
-        return j;
+        if (Context::instance().json)
+            print(json_log.unflatten().dump(4), true);
     }
 
     // write all the key/value pairs of a JSON object into the current entry, which
     // is then a JSON object
-    void JsonLogger::json_write(const nlohmann::json& j)
+    void Console::json_write(const nlohmann::json& j)
     {
         if (Context::instance().json)
         {
@@ -531,7 +518,7 @@ namespace mamba
     }
 
     // append a value to the current entry, which is then a list
-    void JsonLogger::json_append(const std::string& value)
+    void Console::json_append(const std::string& value)
     {
         if (Context::instance().json)
         {
@@ -541,7 +528,7 @@ namespace mamba
     }
 
     // append a JSON object to the current entry, which is then a list
-    void JsonLogger::json_append(const nlohmann::json& j)
+    void Console::json_append(const nlohmann::json& j)
     {
         if (Context::instance().json)
         {
@@ -553,7 +540,7 @@ namespace mamba
     }
 
     // go down in the hierarchy in the "key" entry, create it if it doesn't exist
-    void JsonLogger::json_down(const std::string& key)
+    void Console::json_down(const std::string& key)
     {
         if (Context::instance().json)
         {
@@ -563,7 +550,7 @@ namespace mamba
     }
 
     // go up in the hierarchy
-    void JsonLogger::json_up()
+    void Console::json_up()
     {
         if (Context::instance().json)
             json_hier.erase(json_hier.rfind('/'));

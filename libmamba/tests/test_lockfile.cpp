@@ -42,12 +42,12 @@ namespace mamba
                 p_tempdir = std::make_unique<TemporaryDirectory>();
                 tempdir_path = p_tempdir->path();
 
-                mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kTrace;
+                spdlog::set_level(spdlog::level::trace);
             }
 
             ~LockDirTest()
             {
-                mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+                spdlog::set_level(spdlog::level::info);
             }
         };
 
@@ -159,12 +159,12 @@ namespace mamba
                 p_tempfile = std::make_unique<TemporaryFile>();
                 tempfile_path = p_tempfile->path();
 
-                mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kTrace;
+                spdlog::set_level(spdlog::level::trace);
             }
 
             ~LockFileTest()
             {
-                mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+                spdlog::set_level(spdlog::level::info);
             }
         };
 

@@ -18,6 +18,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "spdlog/spdlog.h"
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -231,31 +233,48 @@ namespace mamba
 
         void post_root_prefix_rc_loading()
         {
+            auto& config = Configuration::instance();
             if (!Context::instance().no_rc)
-                rc_loading_hook(RCConfigLevel::kHomeDir);
+            {
+                rc_loading_hook(RCConfigLevel::kRootPrefix);
+                config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
+            }
         }
 
         void post_target_prefix_rc_loading()
         {
             auto& config = Configuration::instance();
-
             if (!Context::instance().no_rc)
             {
                 rc_loading_hook(RCConfigLevel::kTargetPrefix);
-
                 config.at("no_env").compute(MAMBA_CONF_FORCE_COMPUTE);
-                config.at("always_yes").compute(MAMBA_CONF_FORCE_COMPUTE);
-                config.at("quiet").compute(MAMBA_CONF_FORCE_COMPUTE);
-                config.at("json").compute(MAMBA_CONF_FORCE_COMPUTE);
             }
         }
 
-        /*
-                void log_level_hook(LogLevel& lvl)
+        spdlog::level::level_enum log_level_fallback_hook()
+        {
+            auto& ctx = Context::instance();
+
+            if (ctx.json)
+                return spdlog::level::off;
+            else if (Configuration::instance().at("verbose").configured())
+            {
+                switch (ctx.verbosity)
                 {
-                    MessageLogger::global_log_level() = lvl;
+                    case 0:
+                        return spdlog::level::warn;
+                    case 1:
+                        return spdlog::level::info;
+                    case 2:
+                        return spdlog::level::debug;
+                    default:
+                        return spdlog::level::trace;
                 }
-        */
+            }
+            else
+                return spdlog::level::warn;
+        }
+
         void verbose_hook(std::uint8_t& lvl)
         {
             auto& ctx = Context::instance();
@@ -333,12 +352,6 @@ namespace mamba
             }
         }
 
-        void show_banner_hook(bool& show)
-        {
-            if (show)
-                Console::print(banner());
-        }
-
         void rc_files_hook(std::vector<fs::path>& files)
         {
             auto& ctx = Context::instance();
@@ -389,6 +402,7 @@ namespace mamba
                     throw std::runtime_error("Aborting.");
                 }
                 Configuration::instance().at("quiet").set_value(true);
+                Configuration::instance().at("json").set_value(false);
             }
         }
 
@@ -402,6 +416,7 @@ namespace mamba
                     throw std::runtime_error("Aborting.");
                 }
                 Configuration::instance().at("quiet").set_value(true);
+                Configuration::instance().at("json").set_value(false);
             }
         }
 
@@ -499,7 +514,7 @@ namespace mamba
         insert(Configurable("root_prefix", &ctx.root_prefix)
                    .group("Basic")
                    .set_env_var_names()
-                   .needs({ "verbose", "create_base", "rc_files" })
+                   .needs({ "create_base", "rc_files" })
                    .description("Path to the root prefix")
                    .set_post_merge_hook(detail::root_prefix_hook)
                    .set_post_context_hook(detail::post_root_prefix_rc_loading));
@@ -516,9 +531,7 @@ namespace mamba
                             "envs_dirs",
                             "env_name",
                             "spec_file_env_name",
-                            "use_target_prefix_fallback",
-                            "verbose",
-                            "always_yes" })
+                            "use_target_prefix_fallback" })
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
                    .set_post_merge_hook(detail::target_prefix_hook)
@@ -888,19 +901,40 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_env_var_names()
                    .description("Only display what would have been done"));
-        /*
-                insert(Configurable("log_level", &ctx.verbosity)
-                           .group("Output, Prompt and Flow Control")
-                           .set_env_var_names()
-                           .description("Set the log level")
-                           .long_description(unindent(R"(
-                            Set the log level. Log level can be one of {'off', 'fatal',
-                            'error', 'warning', 'info', 'debug', 'trace'}.)"))
-                           .set_post_merge_hook(detail::log_level_hook));
-        */
+
+        insert(Configurable("log_level", &ctx.log_level)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .needs({ "json", "verbose" })
+                   .description("Set the log level")
+                   .set_fallback_value_hook(detail::log_level_fallback_hook)
+                   .long_description(unindent(R"(
+                            Set globally the log level of all loggers. Log level can
+                            be one of {'off', 'fatal', 'error', 'warning', 'info',
+                            'debug', 'trace'}.)")));
+
+        insert(Configurable("log_backtrace", &ctx.log_backtrace)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Set the log backtrace size")
+                   .long_description(unindent(R"(
+                            Set the log backtrace size. It will replay the n last
+                            logs if an error is thrown during the execution.)")));
+
+        insert(Configurable("log_pattern", &ctx.log_pattern)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Set the log pattern")
+                   .long_description(unindent(R"(
+                            Set the log pattern.)")));
+
         insert(Configurable("json", &ctx.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
+                   .needs({ "print_config_only", "print_context_only" })
                    .set_env_var_names()
                    .description("Report all output as json"));
 
@@ -921,7 +955,6 @@ namespace mamba
         insert(Configurable("show_banner", true)
                    .group("Output, Prompt and Flow Control")
                    .needs({ "quiet", "json" })
-                   .set_post_merge_hook(detail::show_banner_hook)
                    .set_single_op_lifetime()
                    .description("Show the banner"));
 
@@ -957,20 +990,19 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .needs({ "json" })
-                   .implies({ "show_banner" })
+                   .needs({ "json", "print_config_only", "print_context_only" })
                    .description("Set quiet mode (print less output)"));
 
         insert(Configurable("verbose", std::uint8_t(0))
                    .group("Output, Prompt and Flow Control")
                    .set_post_merge_hook(detail::verbose_hook)
-                   .description("Set higher verbosity")
+                   .description("Set the verbosity")
                    .long_description(unindent(R"(
-                    Set a higher log verbosity than the default one.
-                    This configurable has a similar effect as 'log_level',
-                    except it can only increase the log level. If you need
-                    fine-grained control, prefer 'log_level'.
-                    'verbose' and 'log_level' are exclusive.)")));
+                    Set the verbosity of .
+                    The verbosity represent the information
+                    given to the user about the operation asked for.
+                    This information is printed to stdout and should
+                    not be considered as logs (see log_level).)")));
 
         // Config
         insert(Configurable("rc_files", std::vector<fs::path>({}))
@@ -1084,6 +1116,15 @@ namespace mamba
 
     void Configuration::load()
     {
+        spdlog::set_level(spdlog::level::n_levels);
+        spdlog::flush_on(spdlog::level::n_levels);
+        // Hard-coded value assuming it's enough to store the logs emitted
+        // before setting the log level, flushing the backtrace and setting
+        // its new capacity
+        spdlog::enable_backtrace(500);
+
+        LOG_DEBUG << "Loading configuration";
+
         clear_rc_sources();
         clear_rc_values();
 
@@ -1096,7 +1137,26 @@ namespace mamba
             at(c).compute();
         }
         m_load_lock = false;
+
+        LOG_DEBUG << m_config.size() << " configurables computed";
+
         CONFIG_DEBUGGING;
+
+        if (at("show_banner").value<bool>())
+            Console::print(banner());
+
+        auto& ctx = Context::instance();
+        spdlog::set_pattern(ctx.log_pattern);
+        spdlog::set_level(ctx.log_level);
+
+        spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
+        spdlog::flush_on(spdlog::level::off);
+
+        Context::instance().logger->dump_backtrace_no_guards();
+        if (ctx.log_backtrace > 0)
+            spdlog::enable_backtrace(ctx.log_backtrace);
+        else
+            spdlog::disable_backtrace();
     }
 
     bool Configuration::is_loading()
@@ -1106,20 +1166,11 @@ namespace mamba
 
     void Configuration::compute_loading_sequence()
     {
-        // break circular dependencies
-        // target_prefix (env configurable) -> no_env (rc configurable) -> rc_files -> target_prefix
-        // target_prefix -> always_yes (rc configurable) -> rc_files -> target_prefix
-        // hack to eventually display the banner before log messages. Needs to recompute those
-        // rc configurable configs in rc_files_hook if any rc file is used
-        m_loading_sequence
-            = { "no_env", "always_yes", "debug",      "print_context_only", "print_config_only",
-                "quiet",  "json",       "show_banner" };
+        m_loading_sequence.clear();
 
         std::vector<std::string> locks;
         for (auto& c : m_config_order)
-        {
             add_to_loading_sequence(m_loading_sequence, c, locks);
-        }
     }
 
     void Configuration::add_to_loading_sequence(std::vector<std::string>& seq,
@@ -1223,7 +1274,7 @@ namespace mamba
         catch (const std::out_of_range& e)
         {
             LOG_ERROR << "Configurable '" << name << "' does not exists";
-            throw e;
+            throw std::runtime_error("ConfigurationError");
         }
     }
 
@@ -1244,6 +1295,8 @@ namespace mamba
     void Configuration::set_rc_values(std::vector<fs::path> possible_rc_paths,
                                       const RCConfigLevel& level)
     {
+        LOG_TRACE << "Get RC files configuration from locations up to "
+                  << YAML::Node(level).as<std::string>();
         if (possible_rc_paths.empty())
             possible_rc_paths = compute_default_rc_sources(level);
 
@@ -1296,7 +1349,7 @@ namespace mamba
             if (detail::is_config_file(l))
             {
                 sources.push_back(l);
-                LOG_DEBUG << "Configuration found at '" << l.string() << "'";
+                LOG_TRACE << "Configuration found at '" << l.string() << "'";
             }
             else if (fs::is_directory(l))
             {
@@ -1305,7 +1358,7 @@ namespace mamba
                     if (detail::is_config_file(p))
                     {
                         sources.push_back(p);
-                        LOG_DEBUG << "Configuration found at '" << p.string() << "'";
+                        LOG_TRACE << "Configuration found at '" << p.string() << "'";
                     }
                     else
                     {
@@ -1316,7 +1369,7 @@ namespace mamba
             else
             {
                 if (!l.empty())
-                    LOG_DEBUG << "Configuration not found at '" << l.string() << "'";
+                    LOG_TRACE << "Configuration not found at '" << l.string() << "'";
             }
         }
 

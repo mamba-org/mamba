@@ -187,7 +187,7 @@ namespace mamba
             else
             {
                 // Todo remove double parsing?
-                LOG_INFO << "Adding job: " << ms.conda_build_form() << std::endl;
+                LOG_INFO << "Adding job: " << ms.conda_build_form();
                 Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
                                                   ms.conda_build_form().c_str());
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
@@ -348,9 +348,9 @@ namespace mamba
 
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver_problem_count(m_solver) << std::endl;
+        LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
         success = solver_problem_count(m_solver) == 0;
-        JsonLogger::instance().json_write({ { "success", success } });
+        Console::instance().json_write({ { "success", success } });
         return success;
     }
 

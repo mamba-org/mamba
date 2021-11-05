@@ -7,7 +7,6 @@
 #include <csignal>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -26,6 +25,10 @@ namespace mamba
         }
 
         set_default_signal_handler();
+
+        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(log_pattern);
+        spdlog::set_default_logger(l);
+        logger = std::dynamic_pointer_cast<Logger>(l);
     }
 
     Context& Context::instance()
@@ -36,19 +39,6 @@ namespace mamba
 
     void Context::set_verbosity(int lvl)
     {
-        MessageLogger::global_log_severity() = mamba::LogSeverity::kWarning;
-        if (lvl == 1)
-        {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
-        }
-        else if (lvl == 2)
-        {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
-        }
-        else if (lvl > 2)
-        {
-            MessageLogger::global_log_severity() = mamba::LogSeverity::kTrace;
-        }
         this->verbosity = lvl;
     }
 

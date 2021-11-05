@@ -51,6 +51,15 @@ option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
 option(BUILD_STATIC "Build static libmamba library" OFF)
 option(BUILD_STATIC_DEPS "Build static libmamba library with static linkage to its dependencies" OFF)
+set(BUILD_LOG_LEVEL "TRACE" CACHE STRING "Logger active level at compile time")
+
+if (NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$")
+    message(FATAL_ERROR "Invalid log level: ${BUILD_LOG_LEVEL}, should be one of { TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF }")
+endif ()
+
+if (BUILD_STATIC_DEPS)
+    add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
+endif ()
 
 if (BUILD_STATIC_DEPS)
     add_definitions(-DLIBMAMBA_STATIC_DEPS)

@@ -21,3 +21,4 @@ dependencies:
   - pytest
   - pytest-lazy-fixture
   - pyyaml
+  - spdlog

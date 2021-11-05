@@ -25,6 +25,8 @@
 
 #include "termcolor/termcolor.hpp"
 
+#include "spdlog/spdlog.h"
+
 namespace mamba
 {
     static std::map<std::string, std::string> other_pkg_mgr_install_instructions
@@ -517,7 +519,9 @@ namespace mamba
             if (ctx.freeze_installed)
                 Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");
 
-            throw std::runtime_error("Could not solve for environment specs");
+            Console::stream() << "The environment can't be solved, aborting the operation";
+            LOG_ERROR << "Could not solve for environment specs";
+            throw std::runtime_error("UnsatisfiableError");
         }
 
         MTransaction trans(solver, package_caches);
@@ -588,11 +592,9 @@ namespace mamba
 
             Console::print(join(
                 "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix })));
-            JsonLogger::instance().json_write({ { "success", true } });
+            Console::instance().json_write({ { "success", true } });
 
-            if (Context::instance().json)
-                Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4),
-                                          true);
+            Console::instance().json_print();
         }
 
         void create_target_directory(const fs::path prefix)

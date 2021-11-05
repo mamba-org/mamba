@@ -49,6 +49,8 @@ namespace mamba
 
         std::string cuda_version()
         {
+            LOG_DEBUG << "Loading CUDA virtual package";
+
             if (!env::get("CONDA_OVERRIDE_CUDA").empty())
             {
                 return env::get("CONDA_OVERRIDE_CUDA");
@@ -89,7 +91,7 @@ namespace mamba
                             && fs::exists(p.path() / "nvidia-smi.exe"))
                         {
                             std::string f = p.path() / "nvidia-smi.exe";
-                            LOG_INFO << "Found nvidia-smi in: " << f;
+                            LOG_DEBUG << "Found nvidia-smi in: " << f;
                             std::vector<std::string> args = { f, "--query", "-u", "-x" };
                             auto [status, ec] = reproc::run(args,
                                                             reproc::options{},
@@ -107,7 +109,7 @@ namespace mamba
 
             if (out.empty())
             {
-                LOG_INFO << "Could not find CUDA version by calling 'nvidia-smi' (skipped)\n";
+                LOG_DEBUG << "Could not find CUDA version by calling 'nvidia-smi' (skipped)\n";
                 return "";
             }
 
@@ -124,6 +126,7 @@ namespace mamba
                 }
             }
 
+            LOG_DEBUG << "CUDA not found";
             return "";
         }
 
@@ -144,6 +147,8 @@ namespace mamba
 
         std::vector<PackageInfo> dist_packages()
         {
+            LOG_DEBUG << "Loading distribution virtual packages";
+
             std::vector<PackageInfo> res;
             auto platform = Context::instance().platform;
             auto split_platform = split(platform, "-", 1);
@@ -215,6 +220,7 @@ namespace mamba
 
     std::vector<PackageInfo> get_virtual_packages()
     {
+        LOG_DEBUG << "Loading virtual packages";
         auto res = detail::dist_packages();
 
         auto cuda_ver = detail::cuda_version();

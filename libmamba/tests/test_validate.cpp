@@ -31,7 +31,7 @@ namespace validate
             auto pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
             EXPECT_EQ(pk_hex, ::mamba::hex_string(pk_bytes));
 
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            spdlog::set_level(spdlog::level::debug);
 
             std::array<unsigned char, 5> not_even_key;
             pk_hex = ::mamba::hex_string(not_even_key);
@@ -43,7 +43,7 @@ namespace validate
             pk_bytes = ed25519_key_hex_to_bytes(pk_hex);
             EXPECT_FALSE(pk_hex == ::mamba::hex_string(pk_bytes));
 
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+            spdlog::set_level(spdlog::level::info);
         }
 
         TEST(Validate, ed25519_sig_hex_to_bytes)
@@ -58,7 +58,7 @@ namespace validate
             auto sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
             EXPECT_EQ(sig_hex, ::mamba::hex_string(sig_bytes));
 
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            spdlog::set_level(spdlog::level::debug);
 
             std::array<unsigned char, 5> not_even_sig;
             sig_hex = ::mamba::hex_string(not_even_sig);
@@ -70,7 +70,7 @@ namespace validate
             sig_bytes = ed25519_sig_hex_to_bytes(sig_hex);
             EXPECT_FALSE(sig_hex == ::mamba::hex_string(sig_bytes));
 
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+            spdlog::set_level(spdlog::level::info);
         }
 
 
@@ -104,20 +104,20 @@ namespace validate
 
         TEST_F(VerifyMsg, wrong_signature)
         {
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            spdlog::set_level(spdlog::level::debug);
             auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
             EXPECT_EQ(verify("Some text.", pk_hex, "signature_hex"), 0);
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+            spdlog::set_level(spdlog::level::info);
         }
 
         TEST_F(VerifyMsg, wrong_public_key)
         {
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+            spdlog::set_level(spdlog::level::debug);
             auto signature_hex = ::mamba::hex_string(signature, MAMBA_ED25519_SIGSIZE_BYTES);
 
             EXPECT_EQ(verify("Some text.", "pk_hex", signature_hex), 0);
-            mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kInfo;
+            spdlog::set_level(spdlog::level::info);
         }
 
         class VerifyGPGMsg : public ::testing::Test
@@ -1230,12 +1230,12 @@ namespace validate
 
                     write_role(key_mgr_json, channel_dir->path() / "key_mgr.json");
 
-                    mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kDebug;
+                    spdlog::set_level(spdlog::level::debug);
                 }
 
                 ~RepoCheckerT()
                 {
-                    mamba::MessageLogger::global_log_severity() = mamba::LogSeverity::kWarning;
+                    spdlog::set_level(spdlog::level::warn);
                 }
 
             protected:

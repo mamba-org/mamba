@@ -7,11 +7,13 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
+#include "mamba/core/mamba_fs.hpp"
+
+#include "spdlog/spdlog.h"
+
 #include <map>
 #include <string>
 #include <vector>
-
-#include "mamba/core/mamba_fs.hpp"
 
 #define ROOT_ENV_NAME "base"
 
@@ -86,6 +88,7 @@ namespace mamba
         kStrict
     };
 
+    class Logger;
 
     std::string env_name(const fs::path& prefix);
     fs::path locate_prefix_by_name(const std::string& name);
@@ -118,7 +121,6 @@ namespace mamba
 #endif
               };
 
-
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
         bool offline = false;
@@ -129,6 +131,12 @@ namespace mamba
 
         long max_parallel_downloads = 5;
         int verbosity = 0;
+        void set_verbosity(int lvl);
+
+        spdlog::level::level_enum log_level = spdlog::level::level_enum::warn;
+        std::string log_pattern = "%^%-8!l%$ %v";
+        std::size_t log_backtrace = 0;
+        std::shared_ptr<Logger> logger;
 
         bool dev = false;
         bool on_ci = false;
@@ -179,8 +187,6 @@ namespace mamba
 
         // Conda compat
         bool add_pip_as_python_dependency = true;
-
-        void set_verbosity(int lvl);
 
         std::string host_platform = MAMBA_PLATFORM;
         std::string platform = MAMBA_PLATFORM;

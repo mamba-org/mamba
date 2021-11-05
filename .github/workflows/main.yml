@@ -28,7 +28,7 @@ jobs:
       - name: generate ccache timestamp
         id: ccache_cache_timestamp
         shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
+        run: echo ::set-output name=timestamp::"$(TZ=UTC date +%F)"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:

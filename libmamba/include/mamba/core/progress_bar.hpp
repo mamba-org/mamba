@@ -8,6 +8,7 @@
 #define MAMBA_CORE_PROGRESS_BAR_HPP
 
 #include <string_view>
+#include <mutex>
 
 namespace mamba
 {

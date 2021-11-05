@@ -552,8 +552,8 @@ namespace mamba
     enum class RCConfigLevel
     {
         kSystemDir = 0,
-        kHomeDir = 1,
-        kRootPrefix = 2,
+        kRootPrefix = 1,
+        kHomeDir = 2,
         kTargetPrefix = 3
     };
 }  // mamba
@@ -675,6 +675,8 @@ namespace mamba
 
         self_type& set_value(const T& value);
 
+        self_type& set_default_value(const T& value);
+
         self_type& clear_rc_values();
 
         self_type& clear_env_values();
@@ -750,7 +752,7 @@ namespace mamba
         std::map<std::string, T> m_rc_values, m_values;
         std::vector<std::string> m_rc_sources, m_sources;
 
-        T m_value, m_init_value, m_default_value;
+        T m_value, m_default_value;
         std::vector<std::string> m_source;
 
         std::shared_ptr<cli_config_type> p_cli_config = 0;
@@ -771,7 +773,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, T* context)
         : m_name(name)
         , m_value(*context)
-        , m_init_value(*context)
+        , m_default_value(*context)
         , m_source(detail::Source<T>::default_value(*context))
         , p_context(context){};
 
@@ -779,7 +781,7 @@ namespace mamba
     Configurable<T>::Configurable(const std::string& name, const T& init)
         : m_name(name)
         , m_value(init)
-        , m_init_value(init)
+        , m_default_value(init)
         , m_source(detail::Source<T>::default_value(init)){};
 
     template <class T>
@@ -954,6 +956,13 @@ namespace mamba
     };
 
     template <class T>
+    auto Configurable<T>::set_default_value(const T& value) -> self_type&
+    {
+        m_value = m_default_value;
+        return *this;
+    };
+
+    template <class T>
     void Configurable<T>::reset_compute_counter()
     {
         m_compute_counter = 0;
@@ -1057,7 +1066,7 @@ namespace mamba
         clear_env_values();
         clear_cli_value();
         clear_api_value();
-        m_value = m_init_value;
+        m_value = m_default_value;
 
         return *this;
     };
@@ -1978,8 +1987,8 @@ namespace mamba
             detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
         else
         {
-            m_value = m_init_value;
-            m_source = detail::Source<T>::default_value(m_init_value);
+            m_value = m_default_value;
+            m_source = detail::Source<T>::default_value(m_default_value);
         }
 
         if (!hook_disabled && (p_post_merge_hook != NULL))

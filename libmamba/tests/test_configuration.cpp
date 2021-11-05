@@ -12,6 +12,15 @@ namespace mamba
     {
         class Configuration : public ::testing::Test
         {
+        public:
+            Configuration()
+            {
+                mamba::Configuration::instance()
+                    .at("show_banner")
+                    .get_wrapped<bool>()
+                    .set_default_value(false);
+            }
+
         protected:
             void load_test_config(std::string rc)
             {
@@ -21,10 +30,6 @@ namespace mamba
                 out_file.close();
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance()
-                    .at("show_banner")
-                    .get_wrapped<bool>()
-                    .set_value(false);
                 mamba::Configuration::instance()
                     .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
@@ -50,10 +55,6 @@ namespace mamba
                 }
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance()
-                    .at("show_banner")
-                    .get_wrapped<bool>()
-                    .set_value(false);
                 mamba::Configuration::instance()
                     .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
@@ -91,17 +92,15 @@ namespace mamba
             std::string rc = unindent(R"(
                 channels:
                     - test1)");
-
             load_test_config(rc);
             std::string src = env::shrink_user(tempfile_ptr->path());
-
             EXPECT_EQ(config.sources().size(), 1);
             EXPECT_EQ(config.valid_sources().size(), 1);
             EXPECT_EQ(config.dump(), "channels:\n  - test1");
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channels:\n  - test1  # '" + src + "'");
 
-            // Hill-formed config file
+            // ill-formed config file
             rc = unindent(R"(
                 channels:
                     - test10

@@ -16,11 +16,6 @@ namespace mamba
             Configuration()
             {
                 mamba::Configuration::instance()
-                    .at("log_level")
-                    .as<spdlog::level::level_enum>()
-                    .set_default_value(spdlog::level::trace);
-
-                mamba::Configuration::instance()
                     .at("show_banner")
                     .get_wrapped<bool>()
                     .set_default_value(false);
@@ -33,15 +28,12 @@ namespace mamba
                 std::ofstream out_file(unique_location, std::ofstream::out | std::ofstream::trunc);
                 out_file << rc;
                 out_file.close();
-                std::cout << "B" << std::endl;
 
                 mamba::Configuration::instance().reset_configurables();
-                std::cout << "C" << std::endl;
                 mamba::Configuration::instance()
                     .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value({ fs::path(unique_location) });
-                std::cout << "D" << std::endl;
                 mamba::Configuration::instance().load();
             }
 
@@ -100,16 +92,14 @@ namespace mamba
             std::string rc = unindent(R"(
                 channels:
                     - test1)");
-            std::cout << "A1" << std::endl;
             load_test_config(rc);
             std::string src = env::shrink_user(tempfile_ptr->path());
-            std::cout << "A2" << std::endl;
             EXPECT_EQ(config.sources().size(), 1);
             EXPECT_EQ(config.valid_sources().size(), 1);
             EXPECT_EQ(config.dump(), "channels:\n  - test1");
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "channels:\n  - test1  # '" + src + "'");
-            std::cout << "A";
+
             // ill-formed config file
             rc = unindent(R"(
                 channels:

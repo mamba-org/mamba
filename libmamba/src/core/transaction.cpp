@@ -416,7 +416,7 @@ namespace mamba
 
         selection_solvables((Pool*) pool, &job, &q);
         bool remove_success = q.count >= specs_to_remove.size();
-        JsonLogger::instance().json_write({ { "success", remove_success } });
+        Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
         Solvable* solvable;
 
@@ -441,8 +441,8 @@ namespace mamba
         // if no action required, don't even start logging them
         if (!empty())
         {
-            JsonLogger::instance().json_down("actions");
-            JsonLogger::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
+            Console::instance().json_down("actions");
+            Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
         }
         queue_free(&q);
         queue_free(&decision);
@@ -530,8 +530,8 @@ namespace mamba
         // if no action required, don't even start logging them
         if (!empty())
         {
-            JsonLogger::instance().json_down("actions");
-            JsonLogger::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
+            Console::instance().json_down("actions");
+            Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
         }
     }
 
@@ -675,23 +675,22 @@ namespace mamba
         // JSON output
         // back to the top level if any action was required
         if (!empty())
-            JsonLogger::instance().json_up();
-        JsonLogger::instance().json_write(
+            Console::instance().json_up();
+        Console::instance().json_write(
             { { "dry_run", ctx.dry_run }, { "prefix", ctx.target_prefix } });
         if (empty())
-            JsonLogger::instance().json_write(
+            Console::instance().json_write(
                 { { "message", "All requested packages already installed" } });
         // finally, print the JSON
-        if (ctx.json)
-            Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4), true);
+        Console::instance().json_print();
 
         if (ctx.dry_run)
         {
-            Console::stream() << "Dry run. Not executing transaction.";
+            Console::stream() << "Dry run. Not executing the transaction.";
             return true;
         }
 
-        Console::stream() << "\n\nTransaction starting";
+        Console::stream() << "\nTransaction starting";
         m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
@@ -854,12 +853,12 @@ namespace mamba
         auto add_json = [](const auto& jlist, const char* s) {
             if (!jlist.empty())
             {
-                JsonLogger::instance().json_down(s);
+                Console::instance().json_down(s);
                 for (nlohmann::json j : jlist)
                 {
-                    JsonLogger::instance().json_append(j);
+                    Console::instance().json_append(j);
                 }
-                JsonLogger::instance().json_up();
+                Console::instance().json_up();
             }
         };
 

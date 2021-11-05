@@ -192,6 +192,7 @@ namespace mamba
 
     std::string windows_version()
     {
+        LOG_DEBUG << "Loading Windows virtual package";
         if (!env::get("CONDA_OVERRIDE_WIN").empty())
         {
             return env::get("CONDA_OVERRIDE_WIN");
@@ -226,9 +227,11 @@ namespace mamba
             full_version = rmatch[3];
             auto version_els = split(full_version, ".");
             norm_version = concat(version_els[0], ".", version_els[1], ".", version_els[2]);
+            LOG_DEBUG << "Windows version found: " << norm_version;
         }
         else
         {
+            LOG_DEBUG << "Windows version not found";
             norm_version = "0.0.0";
         }
         return norm_version;
@@ -236,6 +239,7 @@ namespace mamba
 
     std::string macos_version()
     {
+        LOG_DEBUG << "Loading macos virtual package";
         if (!env::get("CONDA_OVERRIDE_OSX").empty())
         {
             return env::get("CONDA_OVERRIDE_OSX");
@@ -262,11 +266,15 @@ namespace mamba
                 << ec.message();
             return "";
         }
-        return std::string(strip(out));
+
+        auto version = std::string(strip(out));
+        LOG_DEBUG << "macos version found: " << version;
+        return version;
     }
 
     std::string linux_version()
     {
+        LOG_DEBUG << "Loading linux virtual package";
         if (!env::get("CONDA_OVERRIDE_LINUX").empty())
         {
             return env::get("CONDA_OVERRIDE_LINUX");
@@ -283,7 +291,7 @@ namespace mamba
 
         if (ec)
         {
-            LOG_INFO << "Could not find linux version by calling 'uname -r' (skipped)";
+            LOG_DEBUG << "Could not find linux version by calling 'uname -r' (skipped)";
             return "";
         }
 

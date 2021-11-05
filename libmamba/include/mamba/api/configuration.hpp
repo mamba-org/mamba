@@ -16,6 +16,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "spdlog/spdlog.h"
+
 #include <functional>
 
 
@@ -28,7 +30,6 @@
 #define CONFIG_DEBUGGING                                                                           \
     if (Configuration::instance().at("print_config_only").value<bool>())                           \
     {                                                                                              \
-        Configuration::instance().at("quiet").set_value(true);                                     \
         int dump_opts                                                                              \
             = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS;          \
         std::cout << Configuration::instance().dump(dump_opts) << std::endl;                       \
@@ -161,6 +162,35 @@ namespace YAML
 
             rhs = fs::path(node.as<std::string>());
             return true;
+        }
+    };
+
+    template <>
+    struct convert<spdlog::level::level_enum>
+    {
+        static Node encode(const spdlog::level::level_enum& rhs)
+        {
+            using namespace spdlog::level;
+
+            return Node(to_string_view(rhs).data());
+        }
+
+        static bool decode(const Node& node, spdlog::level::level_enum& rhs)
+        {
+            using namespace spdlog::level;
+
+            auto name = node.as<std::string>();
+            auto it = std::find(std::begin(level_string_views), std::end(level_string_views), name);
+            if (it != std::end(level_string_views))
+            {
+                rhs = static_cast<level_enum>(it - std::begin(level_string_views));
+                return true;
+            }
+
+            LOG_ERROR
+                << "Invalid log level, should be in {'critical', 'error', 'warning', 'info', 'debug', 'trace', 'off'} but is '"
+                << name << "'";
+            return false;
         }
     };
 }
@@ -348,6 +378,27 @@ namespace mamba
             std::string m_value = "";
         };
 
+        template <>
+        struct cli_config<spdlog::level::level_enum>
+        {
+            using value_type = spdlog::level::level_enum;
+            using storage_type = std::string;
+
+            cli_config(const storage_type& value)
+                : m_value(value){};
+
+            bool defined()
+            {
+                return !m_value.empty();
+            };
+            value_type value()
+            {
+                return YAML::Node(m_value).as<spdlog::level::level_enum>();
+            };
+
+            storage_type m_value = "";
+        };
+
         bool has_config_name(const std::string& file);
 
         bool is_config_file(const fs::path& path);
@@ -501,11 +552,66 @@ namespace mamba
     enum class RCConfigLevel
     {
         kSystemDir = 0,
-        kRootPrefix = 1,
-        kHomeDir = 2,
+        kHomeDir = 1,
+        kRootPrefix = 2,
         kTargetPrefix = 3
     };
+}  // mamba
 
+namespace YAML
+{
+    template <>
+    struct convert<mamba::RCConfigLevel>
+    {
+        static Node encode(const mamba::RCConfigLevel& rhs)
+        {
+            using namespace spdlog::level;
+
+            switch (rhs)
+            {
+                case mamba::RCConfigLevel::kHomeDir:
+                    return Node("HomeDir");
+                    break;
+                case mamba::RCConfigLevel::kRootPrefix:
+                    return Node("RootPrefix");
+                    break;
+                case mamba::RCConfigLevel::kSystemDir:
+                    return Node("SystemDir");
+                    break;
+                case mamba::RCConfigLevel::kTargetPrefix:
+                    return Node("TargetPrefix");
+                    break;
+                default:
+                    break;
+            }
+            return Node();
+        }
+
+        static bool decode(const Node& node, mamba::RCConfigLevel& rhs)
+        {
+            if (!node.IsScalar())
+                return false;
+
+            auto str = node.as<std::string>();
+
+            if (str == "HomeDir")
+                rhs = mamba::RCConfigLevel::kHomeDir;
+            else if (str == "RootPrefix")
+                rhs = mamba::RCConfigLevel::kRootPrefix;
+            else if (str == "SystemDir")
+                rhs = mamba::RCConfigLevel::kSystemDir;
+            else if (str == "TargetPrefix")
+                rhs = mamba::RCConfigLevel::kTargetPrefix;
+            else
+                return false;
+
+            return true;
+        }
+    };
+}  // YAML
+
+namespace mamba
+{
     template <class T>
     class Configurable
     {
@@ -561,6 +667,8 @@ namespace mamba
         bool api_configured() const;
 
         bool configured() const;
+
+        bool env_var_active() const;
 
         bool has_single_op_lifetime() const;
 
@@ -785,6 +893,12 @@ namespace mamba
     };
 
     template <class T>
+    bool Configurable<T>::env_var_active() const
+    {
+        return !Context::instance().no_env || (name() == "no_env");
+    };
+
+    template <class T>
     bool Configurable<T>::has_single_op_lifetime() const
     {
         return m_single_op_lifetime;
@@ -898,14 +1012,12 @@ namespace mamba
     auto Configurable<T>::set_env_var_names(const std::vector<std::string>& names) -> self_type&
     {
         if (names.empty())
-        {
             m_env_var_names = { "MAMBA_" + to_upper(m_name) };
-        }
         else
-        {
             m_env_var_names = names;
-        }
-        m_needed_configs.insert("no_env");
+
+        if (name() != "no_env")
+            m_needed_configs.insert("no_env");
 
         return *this;
     }
@@ -1421,7 +1533,7 @@ namespace mamba
             }
             catch (const std::bad_cast& e)
             {
-                LOG_FATAL << "Bad cast of Configurable '" << name() << "'";
+                LOG_CRITICAL << "Bad cast of Configurable '" << name() << "'";
                 throw e;
             }
         };
@@ -1800,6 +1912,11 @@ namespace mamba
         bool hook_disabled = options & MAMBA_CONF_DISABLE_HOOK;
         bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;
 
+        if (force_compute)
+            LOG_TRACE << "Update configurable '" << name() << "'";
+        else
+            LOG_TRACE << "Compute configurable '" << name() << "'";
+
         if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
             throw std::runtime_error("Multiple computation of '" + m_name
                                      + "' detected during loading sequence.");
@@ -1820,7 +1937,7 @@ namespace mamba
             m_values.insert({ "CLI", p_cli_config->value() });
         }
 
-        if (env_var_configured() && !ctx.no_env && (level >= ConfigurationLevel::kEnvVar))
+        if (env_var_configured() && env_var_active() && (level >= ConfigurationLevel::kEnvVar))
         {
             for (const auto& env_var : m_env_var_names)
             {
@@ -1834,9 +1951,9 @@ namespace mamba
                     }
                     catch (const YAML::Exception& e)
                     {
-                        LOG_ERROR << "Bad conversion of configurable '" << name()
-                                  << "' from environment variable '" << env_var << "' with value '"
-                                  << env_var_value << "'";
+                        LOG_CRITICAL << "Bad conversion of configurable '" << name()
+                                     << "' from environment variable '" << env_var
+                                     << "' with value '" << env_var_value << "'";
                         throw e;
                     }
                 }

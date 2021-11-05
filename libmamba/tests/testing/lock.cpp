@@ -66,7 +66,7 @@ main(int argc, char** argv)
     }
     catch (const std::exception& e)
     {
-        LOG_ERROR << e.what();
+        LOG_CRITICAL << e.what();
         mamba::set_sig_interrupted();
         return 1;
     }

@@ -7,6 +7,14 @@
 #ifndef MAMBA_CORE_OUTPUT_HPP
 #define MAMBA_CORE_OUTPUT_HPP
 
+#include "context.hpp"
+#include "progress_bar.hpp"
+
+#include "nlohmann/json.hpp"
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -18,9 +26,6 @@
 #include <utility>
 #include <vector>
 
-#include "context.hpp"
-#include "nlohmann/json.hpp"
-#include "progress_bar.hpp"
 
 #define ENUM_FLAG_OPERATOR(T, X)                                                                   \
     inline T operator X(T lhs, T rhs)                                                              \
@@ -213,7 +218,6 @@ namespace mamba
         ~ConsoleStream();
     };
 
-
     class Console
     {
     public:
@@ -236,6 +240,13 @@ namespace mamba
 
         static std::string hide_secrets(const std::string_view& str);
 
+        void json_print();
+        void json_write(const nlohmann::json& j);
+        void json_append(const std::string& value);
+        void json_append(const nlohmann::json& j);
+        void json_down(const std::string& key);
+        void json_up();
+
     private:
         Console();
         ~Console() = default;
@@ -247,6 +258,10 @@ namespace mamba
         std::mutex m_mutex;
         std::unique_ptr<ProgressBarManager> p_progress_manager;
 
+        std::string json_hier;
+        unsigned int json_index;
+        nlohmann::json json_log;
+
         friend class ProgressProxy;
     };
 
@@ -256,77 +271,45 @@ namespace mamba
         Console::instance().print_progress(m_idx);
     }
 
-#undef TRACE
-#undef DEBUG
-#undef INFO
-#undef WARNING
-#undef ERROR
-#undef FATAL
-
-    enum class LogSeverity
-    {
-        kTrace,
-        kDebug,
-        kInfo,
-        kWarning,
-        kError,
-        kFatal
-    };
-
     class MessageLogger
     {
     public:
-        MessageLogger(const char* file, int line, LogSeverity severity);
+        MessageLogger(const char* file, int line, spdlog::level::level_enum level);
         ~MessageLogger();
 
         std::stringstream& stream();
 
-        static LogSeverity& global_log_severity();
-
     private:
         std::string m_file;
         int m_line;
-        LogSeverity m_severity;
+        spdlog::level::level_enum m_level;
         std::stringstream m_stream;
     };
 
-    class JsonLogger
+
+    class Logger : public spdlog::logger
     {
     public:
-        JsonLogger(const JsonLogger&) = delete;
-        JsonLogger& operator=(const JsonLogger&) = delete;
+        Logger(const std::string& pattern);
 
-        JsonLogger(JsonLogger&&) = delete;
-        JsonLogger& operator=(JsonLogger&&) = delete;
-
-        static JsonLogger& instance();
-
-        nlohmann::json json_log;
-        void json_write(const nlohmann::json& j);
-        void json_append(const std::string& value);
-        void json_append(const nlohmann::json& j);
-        void json_down(const std::string& key);
-        void json_up();
-
-    private:
-        JsonLogger();
-        ~JsonLogger() = default;
-
-        std::string json_hier;
-        unsigned int json_index;
+        void dump_backtrace_no_guards();
     };
 }  // namespace mamba
 
-#undef ERROR
-#undef WARNING
-#undef FATAL
+#undef LOG
+#undef LOG_TRACE
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARNING
+#undef LOG_ERROR
+#undef LOG_CRITICAL
 
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
-#define LOG_TRACE LOG(mamba::LogSeverity::kTrace)
-#define LOG_DEBUG LOG(mamba::LogSeverity::kDebug)
-#define LOG_INFO LOG(mamba::LogSeverity::kInfo)
-#define LOG_WARNING LOG(mamba::LogSeverity::kWarning)
-#define LOG_ERROR LOG(mamba::LogSeverity::kError)
-#define LOG_FATAL LOG(mamba::LogSeverity::kFatal)
+#define LOG_TRACE LOG(spdlog::level::trace)
+#define LOG_DEBUG LOG(spdlog::level::debug)
+#define LOG_INFO LOG(spdlog::level::info)
+#define LOG_WARNING LOG(spdlog::level::warn)
+#define LOG_ERROR LOG(spdlog::level::err)
+#define LOG_CRITICAL LOG(spdlog::level::critical)
 
 #endif  // MAMBA_OUTPUT_HPP

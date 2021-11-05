@@ -98,14 +98,12 @@ namespace mamba
             // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?
             if (ctx.json)
             {
-                JsonLogger::instance().json_write(
+                Console::instance().json_write(
                     { { "success", true },
                       { "operation", "shell_hook" },
                       { "context", { { "shell_type", shell_type } } },
                       { "actions", { { "print", { activator->hook() } } } } });
-                if (Context::instance().json)
-                    Console::instance().print(JsonLogger::instance().json_log.unflatten().dump(4),
-                                              true);
+                Console::instance().json_print();
             }
             else
             {

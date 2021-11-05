@@ -18,3 +18,4 @@ dependencies:
   - yaml-cpp
   - termcolor-cpp
   - cli11
+  - spdlog

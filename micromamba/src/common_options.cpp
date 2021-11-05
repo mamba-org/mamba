@@ -44,6 +44,12 @@ init_general_options(CLI::App* subcom)
                    "Set verbosity (higher verbosity with multiple -v, e.g. -vvv)")
         ->group(cli_group);
 
+    auto& log_level = config.at("log_level").get_wrapped<spdlog::level::level_enum>();
+    subcom->add_flag("--log-level", log_level.set_cli_config(""), log_level.description())
+        ->group(cli_group)
+        ->check(CLI::IsMember(std::vector<std::string>(
+            { "critical", "error", "warning", "info", "debug", "trace", "off" })));
+
     auto& quiet = config.at("quiet").get_wrapped<bool>();
     subcom->add_flag("-q,--quiet", quiet.set_cli_config(0), quiet.description())->group(cli_group);
 

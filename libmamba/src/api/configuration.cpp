@@ -253,10 +253,26 @@ namespace mamba
 
         spdlog::level::level_enum log_level_fallback_hook()
         {
-            if (Context::instance().json)
+            auto& ctx = Context::instance();
+
+            if (ctx.json)
                 return spdlog::level::off;
+            else if (Configuration::instance().at("verbose").configured())
+            {
+                switch (ctx.verbosity)
+                {
+                    case 0:
+                        return spdlog::level::warn;
+                    case 1:
+                        return spdlog::level::info;
+                    case 2:
+                        return spdlog::level::debug;
+                    default:
+                        return spdlog::level::trace;
+                }
+            }
             else
-                return spdlog::level::info;
+                return spdlog::level::warn;
         }
 
         void verbose_hook(std::uint8_t& lvl)
@@ -890,7 +906,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .needs({ "json" })
+                   .needs({ "json", "verbose" })
                    .description("Set the log level")
                    .set_fallback_value_hook(detail::log_level_fallback_hook)
                    .long_description(unindent(R"(
@@ -1137,7 +1153,10 @@ namespace mamba
         spdlog::flush_on(spdlog::level::off);
 
         Context::instance().logger->dump_backtrace_no_guards();
-        spdlog::enable_backtrace(ctx.log_backtrace);
+        if (ctx.log_backtrace > 0)
+            spdlog::enable_backtrace(ctx.log_backtrace);
+        else
+            spdlog::disable_backtrace();
     }
 
     bool Configuration::is_loading()

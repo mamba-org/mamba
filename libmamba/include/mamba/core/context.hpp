@@ -133,9 +133,9 @@ namespace mamba
         int verbosity = 0;
         void set_verbosity(int lvl);
 
-        spdlog::level::level_enum log_level = spdlog::level::level_enum::info;
+        spdlog::level::level_enum log_level = spdlog::level::level_enum::warn;
         std::string log_pattern = "%^%-8!l%$ %v";
-        std::size_t log_backtrace = 20;
+        std::size_t log_backtrace = 0;
         std::shared_ptr<Logger> logger;
 
         bool dev = false;

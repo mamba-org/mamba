@@ -571,16 +571,12 @@ namespace YAML
             {
                 case mamba::RCConfigLevel::kHomeDir:
                     return Node("HomeDir");
-                    break;
                 case mamba::RCConfigLevel::kRootPrefix:
                     return Node("RootPrefix");
-                    break;
                 case mamba::RCConfigLevel::kSystemDir:
                     return Node("SystemDir");
-                    break;
                 case mamba::RCConfigLevel::kTargetPrefix:
                     return Node("TargetPrefix");
-                    break;
                 default:
                     break;
             }
@@ -1533,7 +1529,7 @@ namespace mamba
             }
             catch (const std::bad_cast& e)
             {
-                LOG_CRITICAL << "Bad cast of Configurable '" << name() << "'";
+                LOG_ERROR << "Bad cast of Configurable '" << name() << "'";
                 throw e;
             }
         };
@@ -1951,9 +1947,9 @@ namespace mamba
                     }
                     catch (const YAML::Exception& e)
                     {
-                        LOG_CRITICAL << "Bad conversion of configurable '" << name()
-                                     << "' from environment variable '" << env_var
-                                     << "' with value '" << env_var_value << "'";
+                        LOG_ERROR << "Bad conversion of configurable '" << name()
+                                  << "' from environment variable '" << env_var << "' with value '"
+                                  << env_var_value << "'";
                         throw e;
                     }
                 }

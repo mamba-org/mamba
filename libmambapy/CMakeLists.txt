@@ -12,6 +12,7 @@ cmake_policy(SET CMP0077 NEW)
 
 project(libmambapy)
 
+find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 if(NOT TARGET libmamba)
     find_package(libmamba REQUIRED)

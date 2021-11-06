@@ -4,10 +4,8 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required (VERSION 3.2)
-if(POLICY CMP0025)
-  cmake_policy(SET CMP0025 NEW)
-endif()
+cmake_minimum_required(VERSION 3.18.2)
+cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0077 NEW)
 
 project(libmamba)

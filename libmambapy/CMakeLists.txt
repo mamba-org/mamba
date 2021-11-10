@@ -3,15 +3,15 @@
 # Distributed under the terms of the BSD 3-Clause License.
 #
 # The full license is in the file LICENSE, distributed with this software.
+cmake_minimum_required(VERSION 3.18.2)
 
-cmake_minimum_required (VERSION 3.2)
-if(POLICY CMP0025)
-  cmake_policy(SET CMP0025 NEW)
-endif()
+cmake_policy(SET CMP0025 NEW)
 cmake_policy(SET CMP0077 NEW)
+cmake_policy(SET CMP0057 NEW)
 
 project(libmambapy)
 
+find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 if(NOT TARGET libmamba)
     find_package(libmamba REQUIRED)

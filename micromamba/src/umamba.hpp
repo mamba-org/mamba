@@ -66,6 +66,9 @@ namespace
     constexpr const char umamba_bash_completion[] =
 #include "./completer.bash"
         ;
+    constexpr const char umamba_zsh_completion[] =
+#include "./completer.zsh"
+        ;
 }
 
 #endif

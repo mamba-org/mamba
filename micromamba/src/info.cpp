@@ -14,6 +14,7 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 init_info_parser(CLI::App* subcom)
 {
+    init_general_options(subcom);
     init_prefix_options(subcom);
 }
 

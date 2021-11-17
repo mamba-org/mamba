@@ -33,7 +33,6 @@ namespace mamba
     namespace detail
     {
         void print_info();
-        void info_pretty_print(std::vector<std::tuple<std::string, std::vector<std::string>>> map);
     }
 }
 

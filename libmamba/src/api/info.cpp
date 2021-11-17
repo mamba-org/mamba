@@ -42,10 +42,53 @@ namespace mamba
 
     namespace detail
     {
+        void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
+        {
+            if (Context::instance().json)
+                return;
+
+            int key_max_length = 0;
+            for (auto& item : items)
+            {
+                int key_length = std::get<0>(item).size();
+                key_max_length = key_length < key_max_length ? key_max_length : key_length;
+            }
+            ++key_max_length;
+
+            auto stream = Console::stream();
+
+            for (auto& item : items)
+            {
+                auto key = std::get<0>(item);
+                auto val = std::get<1>(item);
+                int blk_size = key_max_length - std::get<0>(item).size();
+
+                stream << "\n" << std::string(blk_size, ' ') << key << " : ";
+                for (auto v = val.begin(); v != val.end(); ++v)
+                {
+                    stream << (*v).get<std::string>();
+                    if (v != (val.end() - 1))
+                    {
+                        stream << "\n" << std::string(key_max_length + 3, ' ');
+                    }
+                }
+            }
+        }
+
+        void info_json_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
+        {
+            std::map<std::string, nlohmann::json> items_map;
+            for (auto& [key, val] : items)
+                items_map.insert({ key, val });
+
+            Console::instance().json_write(items_map);
+            Console::instance().json_print();
+        }
+
         void print_info()
         {
             auto& ctx = Context::instance();
-            std::vector<std::tuple<std::string, std::vector<std::string>>> items;
+            std::vector<std::tuple<std::string, nlohmann::json>> items;
 
             std::string name, location;
             if (!ctx.target_prefix.empty())
@@ -76,8 +119,8 @@ namespace mamba
                 name += " (not found)";
             }
 
-            items.push_back({ "environment", { name } });
-            items.push_back({ "env location", { location } });
+            items.push_back({ "environment", name });
+            items.push_back({ "env location", location });
 
             // items.insert( { "shell level", { 1 } });
             items.push_back({ "user config files", { env::home_directory() / ".mambarc" } });
@@ -90,7 +133,7 @@ namespace mamba
             };
             items.push_back({ "populated config files", sources });
 
-            items.push_back({ "micromamba version", { version() } });
+            items.push_back({ "micromamba version", version() });
 
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())
@@ -111,44 +154,14 @@ namespace mamba
                     channel_urls.push_back(url);
                 }
             }
-            items.push_back({ "channels", { channel_urls } });
+            items.push_back({ "channels", channel_urls });
 
-            items.push_back({ "base environment", { ctx.root_prefix.string() } });
+            items.push_back({ "base environment", ctx.root_prefix.string() });
 
-            items.push_back({ "platform", { ctx.platform } });
+            items.push_back({ "platform", ctx.platform });
 
+            info_json_print(items);
             info_pretty_print(items);
-        }
-
-        void info_pretty_print(std::vector<std::tuple<std::string, std::vector<std::string>>> map)
-        {
-            int key_max_length = 0;
-            for (auto item : map)
-            {
-                int key_length = std::get<0>(item).size();
-                key_max_length = key_length < key_max_length ? key_max_length : key_length;
-            }
-            ++key_max_length;
-
-            std::cout << std::endl;
-            for (auto item : map)
-            {
-                auto key = std::get<0>(item);
-                auto val = std::get<1>(item);
-                int blk_size = key_max_length - std::get<0>(item).size();
-
-                std::cout << std::string(blk_size, ' ') << key << " : ";
-                for (auto v = val.begin(); v != val.end(); ++v)
-                {
-                    std::cout << *v;
-                    if (v != (val.end() - 1))
-                    {
-                        std::cout << std::endl << std::string(key_max_length + 3, ' ');
-                    }
-                }
-                std::cout << std::endl;
-            }
-            std::cout << std::endl;
         }
     }  // detail
 }  // mamba

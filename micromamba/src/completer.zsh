@@ -1,6 +1,6 @@
 R"MAMBARAW(
 # >>> umamba completion >>>
-autoload -U +X compinit && compinit     
+autoload -U +X compinit && compinit
 autoload -U +X bashcompinit && bashcompinit
 
 _umamba_completions()

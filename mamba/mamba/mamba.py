@@ -12,7 +12,6 @@ from os.path import isdir, isfile, join
 # create support
 from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
 from conda.base.context import context
-from conda.cli import common as cli_common
 from conda.cli.common import (
     check_non_admin,
     confirm_yn,
@@ -31,12 +30,9 @@ from conda.core.solve import get_pinned_specs
 from conda.exceptions import (
     ArgumentError,
     CondaEnvironmentError,
-    CondaExitZero,
     CondaOSError,
-    CondaSystemExit,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
-    DryRunExit,
     EnvironmentLocationNotFound,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
@@ -52,6 +48,7 @@ from conda.models.match_spec import MatchSpec
 import libmambapy as api
 import mamba
 from mamba import repoquery as repoquery_api
+from mamba.linking import handle_txn
 from mamba.mamba_shell_init import shell_init
 from mamba.utils import (
     get_installed_jsonfile,
@@ -126,46 +123,6 @@ def specs_from_args(args, json=False):
 
 
 use_mamba_experimental = False
-
-
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
-    if unlink_link_transaction.nothing_to_do:
-        if remove_op:
-            # No packages found to remove from environment
-            raise PackagesNotFoundError(args.package_names)
-        elif not newenv:
-            if context.json:
-                cli_common.stdout_json_success(
-                    message="All requested packages already installed."
-                )
-            return
-
-    if context.dry_run:
-        actions = unlink_link_transaction._make_legacy_action_groups()[0]
-        if context.json:
-            cli_common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
-        raise DryRunExit()
-
-    try:
-        with lock_file(PackageCacheData.first_writable().pkgs_dir):
-            unlink_link_transaction.download_and_extract()
-            if context.download_only:
-                raise CondaExitZero(
-                    "Package caches prepared. UnlinkLinkTransaction cancelled with "
-                    "--download-only option."
-                )
-            unlink_link_transaction.execute()
-
-    except SystemExit as e:
-        raise CondaSystemExit("Exiting", e)
-
-    if newenv:
-        touch_nonadmin(prefix)
-        print_activate(args.name if args.name else prefix)
-
-    if context.json:
-        actions = unlink_link_transaction._make_legacy_action_groups()[0]
-        cli_common.stdout_json_success(prefix=prefix, actions=actions)
 
 
 def remove(args, parser):
@@ -635,6 +592,10 @@ def install(args, parser, command="install"):
             index,
         )
         handle_txn(conda_transaction, prefix, args, newenv)
+
+    if newenv:
+        touch_nonadmin(prefix)
+        print_activate(args.name if args.name else prefix)
 
     try:
         installed_json_f.close()

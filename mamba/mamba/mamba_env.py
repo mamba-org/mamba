@@ -14,6 +14,7 @@ from conda.models.match_spec import MatchSpec
 from conda_env.installers import conda
 
 import libmambapy as api
+from mamba.linking import handle_txn
 from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 
@@ -118,13 +119,15 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
 
+    transaction.log_json()
+    downloaded = transaction.prompt(repos)
+    if not downloaded:
+        exit(0)
+
     conda_transaction = to_txn(
         specs_to_add, [], prefix, to_link, to_unlink, installed_pkg_recs, index
     )
-
-    pfe = conda_transaction._get_pfe()
-    pfe.execute()
-    conda_transaction.execute()
+    handle_txn(conda_transaction, prefix, args, True)
 
 
 conda.install = mamba_install

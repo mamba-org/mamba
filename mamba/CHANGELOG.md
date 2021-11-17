@@ -1,3 +1,16 @@
+0.18.0 (November 17, 2021)
+==========================
+
+New features
+- Make mamba env download and extract using `libmamba` (@adriendelsalle) #1270
+
+Bug fixes
+- Use libmamba LockFile, add `clean --lock` flag (@adriendelsalle) #1238
+
+General improvements
+- Make dependency on `libmambapy` Python bindings, split projects, improve CMake options (@adriendelsalle) #1219 #1243
+- Conditionally import bindings for cross-compiling (@adriendelsalle) #1263
+
 0.17.0 (October 13, 2021)
 =========================
 

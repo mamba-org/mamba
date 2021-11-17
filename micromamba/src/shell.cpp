@@ -10,6 +10,8 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
 
+#include "mamba/core/fsutil.hpp"
+
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -107,6 +109,31 @@ set_shell_command(CLI::App* subcom)
                 else
                 {
                     std::ofstream rc_file(bashrc_path, std::ios::out | std::ios::binary);
+                    rc_file << result;
+                }
+            }
+            else if (shell == "zsh")
+            {
+                fs::path home = env::home_directory();
+                fs::path zshrc_path = home / ".zshrc";
+                std::regex completion_re("# >>> umamba completion >>>(?:\n|\r\n)?"
+                                         "([\\s\\S]*?)"
+                                         "# <<< umamba completion <<<(?:\n|\r\n)?");
+
+                if (!fs::exists(zshrc_path))
+                    path::touch(zshrc_path, true);
+                std::string rc_content = read_contents(zshrc_path, std::ios::in);
+                std::string result = std::regex_replace(
+                    rc_content, completion_re, unindent(umamba_zsh_completion));
+
+                if (result.find("# >>> umamba completion >>>") == result.npos)
+                {
+                    std::ofstream rc_file(zshrc_path, std::ios::app | std::ios::binary);
+                    rc_file << std::endl << unindent(umamba_zsh_completion);
+                }
+                else
+                {
+                    std::ofstream rc_file(zshrc_path, std::ios::out | std::ios::binary);
                     rc_file << result;
                 }
             }

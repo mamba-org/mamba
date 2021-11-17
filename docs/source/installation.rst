@@ -151,7 +151,7 @@ Windows
 Shell completion
 ================
 
-For now, only ``micromamba`` provides shell completion on ``bash``.
+For now, only ``micromamba`` provides shell completion on ``bash`` and ``zsh``.
 
 To activate it, it's as simple as running:
 
@@ -159,10 +159,11 @@ To activate it, it's as simple as running:
 
   micromamba shell completion
 
-.. note::
-  This command will only work on ``bash``
+The completion is now available in any new shell opened or in the current shell after sourcing the configuration file to take modifications into account.
 
-The completion is now available in any new shell opened or in the current shell after running ``source ~/.bashrc`` to take modifications into account.
+.. code::
+
+  source ~/.<shell>rc
 
 | Just hit ``<TAB><TAB>`` to get completion when typing your command.
 | For example the following command will help you to pick a named environment to activate:

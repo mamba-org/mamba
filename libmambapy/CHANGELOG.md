@@ -1,3 +1,9 @@
+0.18.0 (November 17, 2021)
+==========================
+
+New features
+- Create a separate target for Python bindings, split projects, improve CMake options (@adriendelsalle) #1219 #1243
+
 0.17.0 (October 13, 2021)
 =========================
 

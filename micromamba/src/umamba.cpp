@@ -4,11 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/version.hpp"
-
+#include "version.hpp"
 #include "common_options.hpp"
 #include "umamba.hpp"
 
+#include "mamba/version.hpp"
 #include "mamba/core/context.hpp"
 
 #include "termcolor/termcolor.hpp"
@@ -28,8 +28,11 @@ set_umamba_command(CLI::App* com)
 {
     init_umamba_options(com);
 
+    Context::instance().caller_version = umamba::version();
+
     auto print_version = [](int count) {
-        std::cout << version() << std::endl;
+        std::cout << "micromamba: " << umamba::version() << "\nlibmamba: " << mamba::version()
+                  << std::endl;
         exit(0);
     };
 

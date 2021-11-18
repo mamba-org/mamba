@@ -1,3 +1,26 @@
+0.18.0 (November 17, 2021)
+==========================
+
+New features
+- Implement parallel packages extraction using subprocesses (@jonashaag @adriendelsalle) #1195
+- Add channel URLs to info (@jonashaag) #1235
+- Read custom_multichannels from .condarc (@jonashaag) #1240
+- Improve pyc compilation, make it configurable (@adriendelsalle) #1249
+- Use `spdlog` for nicer and configurable logs (@adriendelsalle) #1255
+- Make show_banner rc and env_var configurable (@adriendelsalle) #1257
+- Add info JSON output (@adriendelsalle) #1271
+
+Bug fixes
+- Fix failing package cache checks (@wolfv) #1237
+- Improve catching of reproc errors (such as OOM-killed) (@adriendelsalle) #1250
+- Fix shell init with relative paths (@adriendelsalle) #1252
+- Fix not thrown error in multiple caches logic (@adriendelsalle) #1253
+
+General improvements
+- Split projects, improve CMake options (@adriendelsalle) #1219 #1243
+- Test that a missing file doesn't cause an unlink error (@adriendelsalle) #1251
+- Improve logging on YAML errors (@adriendelsalle) #1254
+
 0.17.0 (October 13, 2021)
 =========================
 

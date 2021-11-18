@@ -1,3 +1,25 @@
+0.18.0 (November 17, 2021)
+==========================
+
+New features
+- Parallel packages extraction using subproc (@jonashaag @adriendelsalle) #1195
+- Improve bash completion (activate sub-command, directories completion) (@adriendelsalle) #1234
+- Add channel URLs to info (@jonashaag) #1235
+- Make pyc compilation configurable using `--pyc,--no-pyc` flags (@adriendelsalle) #1249
+- Add `--log-level` option to control log level independently of verbosity (@adriendelsalle) #1255
+- Add zsh completion (@adriendelsalle) #1269
+- Add info JSON output and `--json` CLI flag (@adriendelsalle) #1271
+
+Bug fixes
+- Init all powershell profiles (@adriendelsalle) #1226
+- Fix multiple activations in Windows bash (@adriendelsalle) #1228
+
+Docs
+- Document fish support (@izahn) #1216
+
+General improvements
+- Split projects, improve CMake options (@adriendelsalle) #1219 #1243
+
 0.17.0 (October 13, 2021)
 =========================
 

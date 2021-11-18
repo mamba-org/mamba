@@ -133,7 +133,10 @@ namespace mamba
             };
             items.push_back({ "populated config files", sources });
 
-            items.push_back({ "micromamba version", version() });
+            items.push_back({ "libmamba version", version() });
+
+            if (ctx.is_micromamba && !ctx.caller_version.empty())
+                items.push_back({ "micromamba version", ctx.caller_version });
 
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())

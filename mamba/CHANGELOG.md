@@ -1,3 +1,11 @@
+0.18.1 (November 19, 2021)
+==========================
+
+Bug fixes
+- fix default hiding of logging output
+- fix json output when verbose mode is active
+- allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var
+
 0.18.0 (November 17, 2021)
 ==========================
 

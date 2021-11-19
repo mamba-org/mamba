@@ -12,7 +12,7 @@
 
 #define LIBMAMBA_VERSION_MAJOR 0
 #define LIBMAMBA_VERSION_MINOR 18
-#define LIBMAMBA_VERSION_PATCH 0
+#define LIBMAMBA_VERSION_PATCH 1
 
 // Binary version
 #define LIBMAMBA_BINARY_CURRENT 1
@@ -21,7 +21,7 @@
 
 #define LIBMAMBA_VERSION                                                                           \
     (LIBMAMBA_VERSION_MAJOR * 10000 + LIBMAMBA_VERSION_MINOR * 100 + LIBMAMBA_VERSION_PATCH)
-#define LIBMAMBA_VERSION_STRING "0.18.0"
+#define LIBMAMBA_VERSION_STRING "0.18.1"
 
 namespace mamba
 {

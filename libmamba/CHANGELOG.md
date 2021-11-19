@@ -1,3 +1,9 @@
+0.18.1 (November 19, 2021)
+==========================
+
+Bug fixes
+- set parallel extract when starting transaction execution
+
 0.18.0 (November 17, 2021)
 ==========================
 

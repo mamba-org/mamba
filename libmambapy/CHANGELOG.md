@@ -1,3 +1,10 @@
+0.18.1 (November 19, 2021)
+==========================
+
+Bug fixes
+- export extract_threads
+- export set_log_level
+
 0.18.0 (November 17, 2021)
 ==========================
 

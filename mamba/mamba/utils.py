@@ -174,7 +174,7 @@ def load_channels(
             # ignore non-loaded subdir if channel is != noarch
             continue
 
-        if context.verbosity != 0:
+        if context.verbosity != 0 and not context.json:
             print(
                 "Channel: {}, platform: {}, prio: {} : {}".format(
                     entry["channel"], entry["platform"], priority, subpriority

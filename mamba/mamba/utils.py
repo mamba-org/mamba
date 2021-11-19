@@ -191,6 +191,17 @@ def load_channels(
     return index
 
 
+def log_level_from_verbosity(verbosity: int):
+    if verbosity == 0:
+        return api.LogLevel.WARNING
+    elif verbosity == 1:
+        return api.LogLevel.INFO
+    elif verbosity == 2:
+        return api.LogLevel.DEBUG
+    else:
+        return api.LogLevel.TRACE
+
+
 def init_api_context(use_mamba_experimental=False):
     api_ctx = api.Context()
 
@@ -202,7 +213,8 @@ def init_api_context(use_mamba_experimental=False):
         if use_mamba_experimental:
             context.json = False
 
-    api_ctx.set_verbosity(context.verbosity)
+    api_ctx.verbosity = context.verbosity
+    api_ctx.set_log_level(log_level_from_verbosity(context.verbosity))
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl

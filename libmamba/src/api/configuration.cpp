@@ -294,14 +294,14 @@ namespace mamba
                 }
                 else
                 {
-                    ctx.set_verbosity(lvl);
+                    ctx.verbosity = lvl;
                     // Make it appears like set with the CLI
                     // TODO: find a better way than passing by YAML to convert to string?
                     log_level.set_cli_config(YAML::Node(ctx.verbosity).as<std::string>());
                 }
             }
             */
-            ctx.set_verbosity(lvl);
+            ctx.verbosity = lvl;
         }
 
         void target_prefix_checks_hook(int& options)

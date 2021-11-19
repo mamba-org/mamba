@@ -17,7 +17,6 @@ namespace mamba
 {
     Context::Context()
     {
-        set_verbosity(0);
         on_ci = (std::getenv("CI") != nullptr);
         if (on_ci || !termcolor::_internal::is_atty(std::cout))
         {
@@ -29,6 +28,7 @@ namespace mamba
         std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(log_pattern);
         spdlog::set_default_logger(l);
         logger = std::dynamic_pointer_cast<Logger>(l);
+        spdlog::set_level(log_level);
     }
 
     Context& Context::instance()
@@ -40,6 +40,12 @@ namespace mamba
     void Context::set_verbosity(int lvl)
     {
         this->verbosity = lvl;
+    }
+
+    void Context::set_log_level(const spdlog::level::level_enum& level)
+    {
+        log_level = level;
+        spdlog::set_level(level);
     }
 
     std::vector<std::string> Context::platforms()

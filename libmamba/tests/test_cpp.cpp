@@ -13,7 +13,7 @@ namespace mamba
 {
     // TEST(cpp_install, install)
     // {
-    //     Context::instance().set_verbosity(3);
+    //     Context::instance().verbosity = 3;
     //     PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
     //     fs::path prefix = "C:\\Users\\wolfv\\miniconda3\\";
     //     TransactionContext tc(prefix, "3.8.x");

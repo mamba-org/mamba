@@ -133,6 +133,7 @@ namespace mamba
         long max_parallel_downloads = 5;
         int verbosity = 0;
         void set_verbosity(int lvl);
+        void set_log_level(const spdlog::level::level_enum& level);
 
         spdlog::level::level_enum log_level = spdlog::level::level_enum::warn;
         std::string log_pattern = "%^%-8!l%$ %v";

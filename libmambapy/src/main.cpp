@@ -217,6 +217,15 @@ PYBIND11_MODULE(bindings, m)
         .value("kStrict", ChannelPriority::kStrict)
         .value("kDisabled", ChannelPriority::kDisabled);
 
+    py::enum_<spdlog::level::level_enum>(m, "LogLevel")
+        .value("TRACE", spdlog::level::trace)
+        .value("DEBUG", spdlog::level::debug)
+        .value("INFO", spdlog::level::info)
+        .value("WARNING", spdlog::level::warn)
+        .value("ERROR", spdlog::level::err)
+        .value("CRITICAL", spdlog::level::critical)
+        .value("OFF", spdlog::level::off);
+
     py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
         .def(
             py::init([]() { return std::unique_ptr<Context, py::nodelete>(&Context::instance()); }))
@@ -243,14 +252,15 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("envs_dirs", &Context::envs_dirs)
         .def_readwrite("pkgs_dirs", &Context::pkgs_dirs)
         .def_readwrite("platform", &Context::platform)
-        .def("set_verbosity", &Context::set_verbosity)
         .def_readwrite("channels", &Context::channels)
         .def_readwrite("custom_channels", &Context::custom_channels)
         .def_readwrite("custom_multichannels", &Context::custom_multichannels)
         .def_readwrite("default_channels", &Context::default_channels)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
-        .def_readwrite("channel_priority", &Context::channel_priority);
+        .def_readwrite("channel_priority", &Context::channel_priority)
+        .def("set_verbosity", &Context::set_verbosity)
+        .def("set_log_level", &Context::set_log_level);
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const std::string&>())

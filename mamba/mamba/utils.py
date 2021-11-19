@@ -214,7 +214,7 @@ def init_api_context(use_mamba_experimental=False):
             context.json = False
 
     api_ctx.verbosity = context.verbosity
-    api_ctx.set_log_level(log_level_from_verbosity(context.verbosity))
+    api_ctx.set_verbosity(context.verbosity)
     api_ctx.quiet = context.quiet
     api_ctx.offline = context.offline
     api_ctx.local_repodata_ttl = context.local_repodata_ttl

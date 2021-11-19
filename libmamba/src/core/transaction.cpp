@@ -875,6 +875,7 @@ namespace mamba
         Console::instance().init_multi_progress(ProgressBarMode::aggregated);
 
         auto& ctx = Context::instance();
+        DownloadExtractSemaphore::set_max(ctx.extract_threads);
 
         if (ctx.experimental && ctx.verify_artifacts)
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";

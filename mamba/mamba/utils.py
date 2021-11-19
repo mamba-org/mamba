@@ -211,6 +211,16 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.channels = context.channels
     api_ctx.platform = context.subdir
 
+    if "MAMBA_EXTRACT_THREADS" in os.environ:
+        try:
+            max_threads = int(os.environ["MAMBA_EXTRACT_THREADS"])
+            api_ctx.extract_threads = max_threads
+        except ValueError:
+            v = os.environ["MAMBA_EXTRACT_THREADS"]
+            raise ValueError(
+                f"Invalid conversion of env variable 'MAMBA_EXTRACT_THREADS' from value '{v}'"
+            )
+
     def get_base_url(url, name=None):
         tmp = url.rsplit("/", 1)[0]
         if name:

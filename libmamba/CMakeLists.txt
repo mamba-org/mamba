@@ -384,6 +384,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
     if (${linkage_upper} STREQUAL "STATIC")
         find_package(nlohmann_json CONFIG REQUIRED)
         find_package(Threads REQUIRED)
+        find_package(cpp-terminal REQUIRED)
 
         target_link_libraries(${target_name} PUBLIC
                               nlohmann_json::nlohmann_json

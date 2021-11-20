@@ -14,6 +14,7 @@ dependencies:
   - gtest
   - gmock
   - cpp-filesystem >=1.5.8
+  - cpp-terminal
   - reproc-cpp
   - yaml-cpp
   - termcolor-cpp

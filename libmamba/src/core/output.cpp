@@ -16,6 +16,7 @@
 #include "mamba/core/util.hpp"
 
 #include "termcolor/termcolor.hpp"
+#include "cpp-terminal/terminal.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -348,44 +349,46 @@ namespace mamba
         {
             return true;
         }
-        while (!is_sig_interrupted())
+
+        std::stringstream prompt_string;
+        prompt_string << message << ": ";
+        if (fallback == 'n')
         {
-            std::cout << message << ": ";
-            if (fallback == 'n')
-            {
-                std::cout << "[y/N] ";
-            }
-            else if (fallback == 'y')
-            {
-                std::cout << "[Y/n] ";
-            }
-            else
-            {
-                std::cout << "[y/n] ";
-            }
-            std::string response;
-            std::getline(input_stream, response);
+            prompt_string << "[y/N] ";
+        }
+        else if (fallback == 'y')
+        {
+            prompt_string << "[Y/n] ";
+        }
+        else
+        {
+            prompt_string << "[y/n] ";
+        }
+
+        Term::Terminal term(true);
+        while (true)
+        {
+            std::string response = Term::prompt(term, prompt_string.str());
 #ifdef _WIN32
             response = strip(response);
 #endif
-            if (response.size() == 0)
-            {
-                // enter pressed
+            if (response.size() == 0) {
                 response = std::string(1, fallback);
             }
-            if (response.compare("yes") == 0 || response.compare("Yes") == 0
-                || response.compare("y") == 0 || response.compare("Y") == 0)
-            {
-                return true && !is_sig_interrupted();
-            }
-            if (response.compare("no") == 0 || response.compare("No") == 0
-                || response.compare("n") == 0 || response.compare("N") == 0)
+            if (
+                (response.size() == 1 && (response[0] == CTRL_KEY('c') || response[0] == CTRL_KEY('u')))
+                || to_lower(response).compare("no") == 0
+                || to_lower(response).compare("n") == 0
+            )
             {
                 Console::print("Aborted.");
                 return false;
             }
+            else if (to_lower(response).compare("yes") == 0 || to_lower(response).compare("y") == 0)
+            {
+                return true;
+            }
         }
-        return false;
     }
 
     ProgressProxy Console::add_progress_bar(const std::string& name, size_t expected_total)

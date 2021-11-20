@@ -17,6 +17,7 @@ dependencies:
   - reproc-cpp
   - yaml-cpp
   - termcolor-cpp
+  - cpp-terminal
   - cli11
   - spdlog
   - pybind11

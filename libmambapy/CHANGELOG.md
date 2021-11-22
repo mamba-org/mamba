@@ -2,8 +2,8 @@
 ==========================
 
 Bug fixes
-- export extract_threads (@adriendelsalle) #1279
-- export `Context::set_log_level` and `spdlog::level::level_enum` (@adriendelsalle) #1279
+- Fix default log level, use warning everywhere (@adriendelsalle) #1279
+- Allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var (@adriendelsalle) #1281
 
 0.18.0 (November 17, 2021)
 ==========================

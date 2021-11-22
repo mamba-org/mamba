@@ -1,13 +1,9 @@
 0.18.1 (November 19, 2021)
 ==========================
 
-Improvements
-- Set default `spdlog` log level in the `Context` constructor (@adriendelsalle) #1279
-- Add `Context::set_log_level` method to define context value and set logger (@adriendelsalle) #1279
-- Set max extraction threads count when starting transaction (@adriendelsalle) #1281
-
-Changes
-- Make `Context::set_verbosity` change both verbosity and log level (@adriendelsalle) #1279
+Bug fixes
+- Fix default log level, use warning everywhere (@adriendelsalle) #1279
+- Allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var (@adriendelsalle) #1281
 
 0.18.0 (November 17, 2021)
 ==========================

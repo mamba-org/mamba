@@ -2,7 +2,7 @@
 ==========================
 
 Bug fixes
-- Fix logging during extraction
+- Fix default log level, use warning everywhere (@adriendelsalle) #1279
 
 0.18.0 (November 17, 2021)
 ==========================

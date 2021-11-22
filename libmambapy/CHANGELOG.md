@@ -2,8 +2,8 @@
 ==========================
 
 Bug fixes
-- export extract_threads
-- export set_log_level
+- export extract_threads (@adriendelsalle) #1279
+- export `Context::set_log_level` and `spdlog::level::level_enum` (@adriendelsalle) #1279
 
 0.18.0 (November 17, 2021)
 ==========================

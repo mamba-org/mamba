@@ -2,9 +2,9 @@
 ==========================
 
 Bug fixes
-- fix default hiding of logging output
-- fix json output when verbose mode is active
-- allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var
+- fix default log level to info (@adriendelsalle) #1279
+- fix json output of `info` subcommand when verbose mode is active (@adriendelsalle) #1280
+- allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var (@adriendelsalle) #1279
 
 0.18.0 (November 17, 2021)
 ==========================

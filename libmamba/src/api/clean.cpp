@@ -67,10 +67,13 @@ namespace mamba
                     for (auto& p : fs::directory_iterator(pkg_cache->path()))
                     {
                         if (p.exists() && ends_with(p.path().string(), ".lock")
-                            && fs::exists(rstrip(p.path().string(), ".lock")))
+                            && (fs::exists(rstrip(p.path().string(), ".lock"))
+                                || (rstrip(p.path().filename().string(), ".lock")
+                                    == p.path().parent_path().filename())))
                         {
                             try
                             {
+                                LOG_INFO << "Removing lock file '" << p.path().string() << "'";
                                 fs::remove(p);
                             }
                             catch (...)
@@ -88,6 +91,7 @@ namespace mamba
                         {
                             try
                             {
+                                LOG_INFO << "Removing lock file '" << p.path().string() << "'";
                                 fs::remove(p);
                             }
                             catch (...)

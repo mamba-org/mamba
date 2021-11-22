@@ -704,8 +704,16 @@ def repoquery(args, parser):
 
 def clean(args, parser):
     if args.locks:
+        init_api_context()
+
+        root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
+        if api.Context().root_prefix != root_prefix:
+            os.environ["MAMBA_ROOT_PREFIX"] = str(api.Context().root_prefix)
+
         api.Configuration().show_banner = False
         api.clean(api.MAMBA_CLEAN_LOCKS)
+        if root_prefix:
+            os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
 
     try:
         from importlib import import_module

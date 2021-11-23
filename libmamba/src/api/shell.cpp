@@ -56,10 +56,6 @@ namespace mamba
 
         std::unique_ptr<Activator> activator;
         std::string shell_prefix;
-        if (prefix.empty())
-            shell_prefix = ctx.root_prefix;
-        else
-            shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
 
         if (shell_type == "bash" || shell_type == "zsh" || shell_type == "posix")
         {
@@ -89,8 +85,10 @@ namespace mamba
 
         if (action == "init")
         {
-            if (shell_prefix == "base")
+            if (prefix.empty() || prefix == "base")
                 shell_prefix = ctx.root_prefix;
+            else
+                shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
             init_shell(shell_type, shell_prefix);
         }
         else if (action == "hook")
@@ -112,11 +110,12 @@ namespace mamba
         }
         else if (action == "activate")
         {
-            if (shell_prefix == "base")
+            if (prefix.empty() || prefix == "base")
                 shell_prefix = ctx.root_prefix;
-
-            if (shell_prefix.find_first_of("/\\") == std::string::npos)
-                shell_prefix = ctx.root_prefix / "envs" / shell_prefix;
+            else if (prefix.find_first_of("/\\") == std::string::npos)
+                shell_prefix = ctx.root_prefix / "envs" / prefix;
+            else
+                shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
 
             if (!fs::exists(shell_prefix))
                 throw std::runtime_error("Cannot activate, prefix does not exist at: "

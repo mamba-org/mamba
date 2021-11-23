@@ -47,7 +47,7 @@ def clean_env(keep_cache):
 
 
 suffixes = {
-    "cmdexe": ".bat",
+    "cmd.exe": ".bat",
     "bash": ".sh",
     "zsh": ".sh",
     "xonsh": ".sh",
@@ -56,7 +56,7 @@ suffixes = {
 }
 
 paths = {
-    "win": {"powershell": None, "cmdexe": None},
+    "win": {"powershell": None, "cmd.exe": None},
     "osx": {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
@@ -91,7 +91,7 @@ def emit_check(cond):
 
 
 possible_interpreters = {
-    "win": {"powershell", "cmdexe"},
+    "win": {"powershell", "cmd.exe"},
     # 'unix': {'bash', 'zsh', 'xonsh'},
     "unix": {"bash", "zsh", "fish"},
 }
@@ -161,7 +161,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interactive and interpreter == "bash" and plat == "linux":
         s = ["source ~/.bashrc"] + s
 
-    if interpreter == "cmdexe":
+    if interpreter == "cmd.exe":
         mods = []
         for x in s:
             if x.startswith("micromamba activate") or x.startswith(
@@ -176,7 +176,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interpreter not in possible_interpreters[running_os]:
         return None, None
 
-    if interpreter == "cmdexe":
+    if interpreter == "cmd.exe":
         args = ["cmd.exe", "/Q", "/C", f]
     elif interpreter == "powershell":
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
@@ -193,7 +193,7 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     stdout = res.stdout.decode("utf-8").strip()
     stderr = res.stderr.decode("utf-8").strip()
 
-    if interpreter == "cmdexe":
+    if interpreter == "cmd.exe":
         if stdout.startswith("'") and stdout.endswith("'"):
             stdout = stdout[1:-1]
 
@@ -227,7 +227,7 @@ def shvar(v, interpreter):
         return f"${v}"
     elif interpreter == "powershell":
         return f"$Env:{v}"
-    elif interpreter == "cmdexe":
+    elif interpreter == "cmd.exe":
         return f"%{v}%"
     elif interpreter == "fish":
         return f"${v}"
@@ -275,6 +275,20 @@ class TestActivation:
                 p = TestActivation.other_root_prefix
             shutil.rmtree(p)
 
+    @staticmethod
+    def to_dict(out, interpreter="bash"):
+        if interpreter == "cmd.exe":
+            with open(out, "r") as f:
+                out = f.read()
+
+        if interpreter == "fish":
+            return {
+                v.split(" ", maxsplit=1)[0]: v.split(" ", maxsplit=1)[1]
+                for _, _, v in [x.partition("set -gx ") for x in out.splitlines()]
+            }
+        else:
+            return {k: v for k, _, v in [x.partition("=") for x in out.splitlines()]}
+
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_shell_init(
         self, tmp_path, interpreter, clean_shell_files, new_root_prefix
@@ -296,7 +310,7 @@ class TestActivation:
         s = [f"{umamba} shell init -p {rpv}"]
         stdout, stderr = call(s)
 
-        if interpreter == "cmdexe":
+        if interpreter == "cmd.exe":
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
             assert find_path_in_str(self.root_prefix, value[0])
@@ -312,7 +326,7 @@ class TestActivation:
         s = [f"{umamba} shell init -p {rpv}"]
         stdout, stderr = call(s)
 
-        if interpreter == "cmdexe":
+        if interpreter == "cmd.exe":
             value = read_windows_registry(regkey)
             assert "mamba_hook.bat" in value[0]
             assert find_path_in_str(self.root_prefix, value[0])
@@ -324,7 +338,7 @@ class TestActivation:
                 assert "mamba" in x
                 assert prev_text == x
 
-        if interpreter == "cmdexe":
+        if interpreter == "cmd.exe":
             write_windows_registry(regkey, "echo 'test'", bkup_winreg_value[1])
             s = [f"{umamba} shell init -p {rpv}"]
             stdout, stderr = call(s)
@@ -335,7 +349,7 @@ class TestActivation:
             assert value[0].startswith("echo 'test' & ")
             assert "&" in value[0]
 
-        if interpreter != "cmdexe":
+        if interpreter != "cmd.exe":
             with open(path) as fi:
                 prevlines = fi.readlines()
 
@@ -357,7 +371,7 @@ class TestActivation:
         s = [f"{umamba} shell init -p {self.other_root_prefix}"]
         stdout, stderr = call(s)
 
-        if interpreter == "cmdexe":
+        if interpreter == "cmd.exe":
             x = read_windows_registry(regkey)[0]
             # CURRENTLY FAILING!
             # assert "mamba" in x
@@ -389,25 +403,22 @@ class TestActivation:
 
         if interpreter in ["bash", "zsh"]:
             extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
-        elif interpreter in ["cmdexe"]:
+        elif interpreter in ["cmd.exe"]:
             extract_vars = lambda vxs: [f"echo {v}=%{v}%" for v in vxs]
         elif interpreter in ["powershell"]:
             extract_vars = lambda vxs: [f"echo {v}=$Env:{v}" for v in vxs]
         elif interpreter in ["fish"]:
             extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
 
-        def to_dict(out):
-            return {k: v for k, v in [x.split("=", 1) for x in out.splitlines()]}
-
         rp = Path(self.root_prefix)
         evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"])
 
-        if interpreter == "cmdexe":
+        if interpreter == "cmd.exe":
             x = read_windows_registry(regkey)
             fp = Path(x[0][1:-1])
             assert fp.exists()
 
-        if interpreter in ["bash", "zsh", "powershell", "cmdexe"]:
+        if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
             stdout, stderr = call(evars)
 
             s = [f"{umamba} --help"]
@@ -415,7 +426,7 @@ class TestActivation:
 
             s = ["micromamba activate"] + evars
             stdout, stderr = call(s)
-            res = to_dict(stdout)
+            res = TestActivation.to_dict(stdout)
 
             assert "condabin" in res["PATH"]
             assert self.root_prefix in res["PATH"]
@@ -439,7 +450,7 @@ class TestActivation:
                 "micromamba activate xyz",
             ] + evars
             stdout, stderr = call(s)
-            res = to_dict(stdout)
+            res = TestActivation.to_dict(stdout)
 
             assert find_path_in_str(str(rp / "condabin"), res["PATH"])
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
@@ -457,7 +468,7 @@ class TestActivation:
                 f"micromamba activate {TestActivation.long_prefix}",
             ] + evars
             stdout, stderr = call(s)
-            res = to_dict(stdout)
+            res = TestActivation.to_dict(stdout)
 
             print(res["PATH"])
 
@@ -471,7 +482,7 @@ class TestActivation:
                 "micromamba activate xyz --stack",
             ] + evars
             stdout, stderr = call(s)
-            res = to_dict(stdout)
+            res = TestActivation.to_dict(stdout)
             assert find_path_in_str(str(rp / "condabin"), res["PATH"])
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
@@ -483,8 +494,35 @@ class TestActivation:
                 "micromamba activate --stack xyz",
             ] + evars
             stdout, stderr = call(s)
-            res = to_dict(stdout)
+            res = TestActivation.to_dict(stdout)
             assert find_path_in_str(str(rp / "condabin"), res["PATH"])
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_activate_path(self, tmp_path, interpreter, new_root_prefix):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        test_dir = tmp_path / self.env_name
+        os.mkdir(test_dir)
+
+        create("-n", self.env_name)
+
+        res = shell("activate", self.env_name, "-s", interpreter)
+        dict_res = self.to_dict(res, interpreter)
+        assert any([str(self.prefix) in p for p in dict_res.values()])
+
+        res = shell("activate", self.prefix, "-s", interpreter)
+        dict_res = self.to_dict(res, interpreter)
+        assert any([str(self.prefix) in p for p in dict_res.values()])
+
+        prefix_short = self.prefix.replace(os.path.expanduser("~"), "~")
+        res = shell("activate", prefix_short, "-s", interpreter)
+        dict_res = self.to_dict(res, interpreter)
+        assert any([str(self.prefix) in p for p in dict_res.values()])
+
+        res = shell("activate", test_dir, "-s", interpreter)
+        dict_res = self.to_dict(res, interpreter)
+        assert any([str(test_dir) in p for p in dict_res.values()])

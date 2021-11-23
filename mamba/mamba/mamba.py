@@ -24,7 +24,6 @@ from conda.common.compat import on_win
 from conda.common.path import paths_equal
 from conda.core.envs_manager import unregister_env
 from conda.core.link import PrefixSetup, UnlinkLinkTransaction
-from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import get_pinned_specs
 from conda.exceptions import (
@@ -50,13 +49,7 @@ import mamba
 from mamba import repoquery as repoquery_api
 from mamba.linking import handle_txn
 from mamba.mamba_shell_init import shell_init
-from mamba.utils import (
-    get_installed_jsonfile,
-    init_api_context,
-    load_channels,
-    lock_file,
-    to_txn,
-)
+from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
@@ -223,10 +216,9 @@ def remove(args, parser):
             exit_code = 1
             return exit_code
 
-        with lock_file(PackageCacheData.first_writable().pkgs_dir):
-            package_cache = api.MultiPackageCache(context.pkgs_dirs)
-            transaction = api.Transaction(solver, package_cache)
-            downloaded = transaction.prompt(repos)
+        package_cache = api.MultiPackageCache(context.pkgs_dirs)
+        transaction = api.Transaction(solver, package_cache)
+        downloaded = transaction.prompt(repos)
         if not downloaded:
             exit(0)
 
@@ -469,9 +461,8 @@ def install(args, parser, command="install"):
 
     repos = []
 
-    with lock_file(context.target_prefix):
-        prefix_data = api.PrefixData(context.target_prefix)
-        prefix_data.load()
+    prefix_data = api.PrefixData(context.target_prefix)
+    prefix_data.load()
 
     # add installed
     if use_mamba_experimental:
@@ -560,27 +551,23 @@ def install(args, parser, command="install"):
             exit_code = 1
             return exit_code
 
-        with lock_file(PackageCacheData.first_writable().pkgs_dir):
-            package_cache = api.MultiPackageCache(context.pkgs_dirs)
-            transaction = api.Transaction(solver, package_cache)
-            mmb_specs, to_link, to_unlink = transaction.to_conda()
+        package_cache = api.MultiPackageCache(context.pkgs_dirs)
+        transaction = api.Transaction(solver, package_cache)
+        mmb_specs, to_link, to_unlink = transaction.to_conda()
 
-            specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
-            specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
+        specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
+        specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
-            transaction.log_json()
-            downloaded = transaction.prompt(repos)
-            if not downloaded:
-                exit(0)
-
-            PackageCacheData.first_writable().reload()
+        transaction.log_json()
+        downloaded = transaction.prompt(repos)
+        if not downloaded:
+            exit(0)
 
     # if use_mamba_experimental and not os.name == "nt":
     if use_mamba_experimental:
         if newenv and not isdir(context.target_prefix) and not context.dry_run:
             mkdir_p(prefix)
-        with lock_file(PackageCacheData.first_writable().pkgs_dir):
-            transaction.execute(prefix_data)
+        transaction.execute(prefix_data)
     else:
         conda_transaction = to_txn(
             specs_to_add,

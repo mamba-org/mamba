@@ -3,15 +3,12 @@
 
 from conda.base.context import context
 from conda.cli import common as cli_common
-from conda.core.package_cache_data import PackageCacheData
 from conda.exceptions import (
     CondaExitZero,
     CondaSystemExit,
     DryRunExit,
     PackagesNotFoundError,
 )
-
-from mamba.utils import lock_file
 
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
@@ -33,14 +30,13 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise DryRunExit()
 
     try:
-        with lock_file(PackageCacheData.first_writable().pkgs_dir):
-            unlink_link_transaction.download_and_extract()
-            if context.download_only:
-                raise CondaExitZero(
-                    "Package caches prepared. UnlinkLinkTransaction cancelled with "
-                    "--download-only option."
-                )
-            unlink_link_transaction.execute()
+        unlink_link_transaction.download_and_extract()
+        if context.download_only:
+            raise CondaExitZero(
+                "Package caches prepared. UnlinkLinkTransaction cancelled with "
+                "--download-only option."
+            )
+        unlink_link_transaction.execute()
 
     except SystemExit as e:
         raise CondaSystemExit("Exiting", e)

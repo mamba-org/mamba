@@ -247,6 +247,7 @@ namespace mamba
 
         if (is_solv)
         {
+            auto lock = LockFile::try_lock(m_solv_file);
             auto fp = fopen(m_solv_file.c_str(), "rb");
             if (!fp)
             {
@@ -316,6 +317,7 @@ namespace mamba
             fclose(fp);
         }
 
+        auto lock = LockFile::try_lock(m_json_file);
         auto fp = fopen(m_json_file.c_str(), "r");
         if (!fp)
         {

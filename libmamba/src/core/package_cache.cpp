@@ -64,7 +64,8 @@ namespace mamba
         fs::path magic_file = m_path / PACKAGE_CACHE_MAGIC_FILE;
         LOG_DEBUG << "Checking if '" << m_path.string() << "' is writable";
 
-        if (fs::exists(m_path))
+        std::error_code ec;
+        if (fs::exists(m_path, ec))
         {
             if (fs::is_regular_file(magic_file))
             {
@@ -84,7 +85,7 @@ namespace mamba
             }
         }
         else
-            LOG_TRACE << "Cache path does not exists";
+            LOG_TRACE << "Cache path does not exists or is not writable";
 
         try
         {

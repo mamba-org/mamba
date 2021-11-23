@@ -660,7 +660,8 @@ namespace mamba
         , m_timeout(timeout)
         , m_locked(false)
     {
-        if (!fs::exists(path))
+        std::error_code ec;
+        if (!fs::exists(path, ec))
         {
             LOG_ERROR << "Could not lock non-existing path '" << path.string() << "'";
             throw std::runtime_error("LockFile error. Aborting.");
@@ -677,7 +678,7 @@ namespace mamba
             m_lock = m_path.string() + ".lock";
         }
 
-        m_lockfile_existed = fs::exists(m_lock);
+        m_lockfile_existed = fs::exists(m_lock, ec);
         m_fd = open(m_lock.c_str(), O_RDWR | O_CREAT, 0666);
 
         if (m_fd <= 0)

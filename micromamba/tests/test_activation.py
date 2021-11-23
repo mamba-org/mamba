@@ -278,7 +278,7 @@ class TestActivation:
     @staticmethod
     def to_dict(out, interpreter="bash"):
         if interpreter == "cmd.exe":
-            with open(out, 'r') as f:
+            with open(out, "r") as f:
                 out = f.read()
 
         if interpreter == "fish":

@@ -121,7 +121,8 @@ namespace mamba
             auto json_file = cache_path / "cache" / m_json_fn;
             auto solv_file = cache_path / "cache" / m_solv_fn;
 
-            if (!fs::exists(json_file))
+            std::error_code ec;
+            if (!fs::exists(json_file, ec))
                 continue;
 
             auto lock = LockFile::try_lock(cache_path / "cache");
@@ -181,7 +182,8 @@ namespace mamba
                     }
                     else
                     {
-                        m_expired_cache_path = cache_path;
+                        if (m_expired_cache_path.empty())
+                            m_expired_cache_path = cache_path;
                         LOG_DEBUG << "Expired cache or invalid mod/etag headers";
                     }
                 }
@@ -201,6 +203,9 @@ namespace mamba
         else
         {
             LOG_INFO << "No valid cache found";
+            if (!m_expired_cache_path.empty())
+                LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
+                         << m_expired_cache_path.string() << "'";
             if (!Context::instance().offline || forbid_cache())
                 create_target(m_mod_etag);
         }
@@ -292,12 +297,16 @@ namespace mamba
                 auto lock = LockFile(writable_cache_dir);
 
                 auto copied_json_file = writable_cache_dir / m_json_fn;
+                if (fs::exists(copied_json_file))
+                    fs::remove(copied_json_file);
                 fs::copy(json_file, copied_json_file);
                 json_file = copied_json_file;
 
                 if (fs::exists(solv_file))
                 {
                     auto copied_solv_file = writable_cache_dir / m_solv_fn;
+                    if (fs::exists(copied_solv_file))
+                        fs::remove(copied_solv_file);
                     fs::copy(solv_file, copied_solv_file);
                     solv_file = copied_solv_file;
                 }

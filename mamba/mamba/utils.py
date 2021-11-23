@@ -8,8 +8,6 @@ import os
 import tempfile
 import urllib.parse
 from collections import OrderedDict
-from contextlib import contextmanager
-from pathlib import Path
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.constants import ChannelPriority
@@ -26,13 +24,6 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
 
 import libmambapy as api
-
-
-@contextmanager
-def lock_file(path):
-    if Path(path).exists():
-        lock = api.LockFile(path)  # noqa F841
-    yield
 
 
 def load_channel(subdir_data, result_container):
@@ -89,25 +80,20 @@ def get_index(
     for channel in api.get_channels(all_channels):
         for channel_platform, url in channel.platform_urls(with_credentials=True):
             full_url = CondaHttpAuth.add_binstar_token(url + "/" + repodata_fn)
-
-            full_path_cache = os.path.join(
-                str(pkgs_dirs.first_writable_path), api.cache_fn_url(full_url)
-            )
             name = None
             if channel.name:
                 name = channel.name + "/" + channel_platform
             else:
                 name = channel.platform_url(channel_platform, with_credentials=False)
 
-            with lock_file(full_path_cache):
-                sd = api.SubdirData(
-                    name,
-                    full_url,
-                    api.cache_fn_url(full_url),
-                    pkgs_dirs,
-                    channel_platform == "noarch",
-                )
-                sd.load()
+            sd = api.SubdirData(
+                name,
+                full_url,
+                api.cache_fn_url(full_url),
+                pkgs_dirs,
+                channel_platform == "noarch",
+            )
+            sd.load()
 
             index.append(
                 (sd, {"platform": channel_platform, "url": url, "channel": channel})
@@ -182,9 +168,7 @@ def load_channels(
             )
             print("Cache path: ", subdir.cache_path())
 
-        with lock_file(subdir.cache_path()):
-            repo = subdir.create_repo(pool)
-
+        repo = subdir.create_repo(pool)
         repo.set_priority(priority, subpriority)
         repos.append(repo)
 

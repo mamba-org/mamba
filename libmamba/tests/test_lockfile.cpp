@@ -62,7 +62,7 @@ namespace mamba
                 // check the first lock is still locked
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
             }
-            EXPECT_FALSE(fs::exists(tempdir_path / "mamba.lock"));
+            EXPECT_FALSE(fs::exists(tempdir_path / (tempdir_path.filename().string() + ".lock")));
         }
 
         TEST_F(LockDirTest, different_pid)
@@ -128,7 +128,7 @@ namespace mamba
                 EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
             }
 
-            fs::path lock_path = tempdir_path / "mamba.lock";
+            fs::path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
             EXPECT_FALSE(fs::exists(lock_path));
 
             args = { lock_cli, "is-locked", lock_path };

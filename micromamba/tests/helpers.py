@@ -6,6 +6,7 @@ import random
 import shutil
 import string
 import subprocess
+import sys
 from enum import Enum
 from pathlib import Path
 
@@ -112,8 +113,11 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--offline"]
     if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
+    cmd += ["--log-level=info"]
 
-    res = subprocess.check_output(cmd)
+    print(f"Running command {' '.join(cmd)}", file=sys.stderr)
+    res = subprocess.check_output(cmd, stderr=sys.stderr)
+
     if "--json" in args:
         try:
             j = json.loads(res)

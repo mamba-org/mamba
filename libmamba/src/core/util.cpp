@@ -669,7 +669,7 @@ namespace mamba
         if (fs::is_directory(path))
         {
             LOG_DEBUG << "Locking directory '" << path.string() << "'";
-            m_lock = m_path / "mamba.lock";
+            m_lock = m_path / (m_path.filename().string() + ".lock");
         }
         else
         {
@@ -995,7 +995,7 @@ namespace mamba
         {
             if (old_pid == m_pid)
             {
-                LOG_ERROR << "Path already locked by the same PID";
+                LOG_ERROR << "Path already locked by the same PID: '" << m_path.string() << "'";
                 unlock();
                 throw std::logic_error("LockFile error.");
             }
@@ -1007,6 +1007,11 @@ namespace mamba
             // sending `0` with kill will check if the process is still alive
             if (kill(old_pid, 0) != -1)
                 return false;
+            else
+            {
+                LOG_TRACE << "Removing dangling lock file '" << m_lock << "'";
+                m_lockfile_existed = false;
+            }
 #endif
         }
 

@@ -22,6 +22,8 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     # TODO: support all various ways this happens
     init_api_context()
     api.Context().target_prefix = prefix
+    # conda doesn't ask for confirmation with env
+    api.Context().always_yes = True
 
     match_specs = [MatchSpec(s) for s in specs]
 

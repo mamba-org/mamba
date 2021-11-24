@@ -287,7 +287,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_library(CHARSET_LIBRARY NAMES libcharset)
             message("Found: ${LIBXML2_LIBRARY} ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
 
-            target_link_libraries(${target_name} PRIVATE
+            target_link_libraries(${target_name} PUBLIC
                 ${CRYPTO_LIBRARIES}
                 ${LibArchive_LIBRARY}
                 ${LIBXML2_LIBRARY}

@@ -5,27 +5,6 @@ import re
 
 template = {"version": None, "changes": []}
 
-
-def append_element(selector, element, releases, islist, result):
-    element = element.strip()
-
-    def def_el(a, x):
-        if not a:
-            return
-        if islist:
-            x = f"- {x}"
-        result[a]["changes"].append(x)
-
-    selector = selector.strip()
-    s = [x.strip() for x in selector.split(",")]
-    if "all" in s:
-        for r in releases:
-            def_el(r, element)
-    else:
-        for el in s:
-            def_el(el, element)
-
-
 templates = {
     "libmamba": "libmamba/include/mamba/version.hpp.tmpl",
     "micromamba": "micromamba/src/version.hpp.tmpl",
@@ -75,6 +54,7 @@ def apply_changelog(name, version, changes):
 
 
 def commands(changes):
+    print("pre-commit run --all")
     print("git diff")
 
     commit_msg = ", ".join([f"{x} {changes[x]['version']}" for x in changes])
@@ -173,14 +153,13 @@ def main():
 
         if m := re.search(brackets_re, c):
             if in_section:
-                sections[-1].applies_to(m.groups(1)[0])
+                sections[-1].applies_to = [x.strip() for x in m.groups(1)[0].split(",")]
             else:
                 sections[-1].items.append(Item())
                 sections[-1].items[-1].text = c[m.end() :].strip()
-                sections[-1].items[-1].applies_to = m.groups(1)[0]
-
-            # if len(change_el):
-            # 	append_element(groups, change_el, release_names, islist, changes)
+                sections[-1].items[-1].applies_to = [
+                    x.strip() for x in m.groups(1)[0].split(",")
+                ]
 
         else:
             if c.startswith(" "):
@@ -192,7 +171,7 @@ def main():
                 if not in_section:
                     sections[-1].items.append(Item())
                     sections[-1].items[-1].text = c.strip()
-                    sections[-1].items[-1].applies_to = "all"
+                    sections[-1].items[-1].applies_to = ["all"]
 
     for c in changes:
         populate_changes(c, sections, changes)

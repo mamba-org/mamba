@@ -1,7 +1,7 @@
 2021.11.19
 ==========
 
-all `0.18.1`
+Releases: libmamba 0.18.1, libmambapy 0.18.1, mamba 0.18.1, micromamba 0.18.1
 
 Bug fixes
 - [all] Fix default log level, use warning everywhere (@adriendelsalle) #1279
@@ -11,7 +11,7 @@ Bug fixes
 2021.11.17
 ==========
 
-all `0.18.0`
+Releases: libmamba 0.18.0, libmambapy 0.18.0, mamba 0.18.0, micromamba 0.18.0
 
 New features
 - [libmamba, mamba, micromamba] Implement parallel packages extraction using subprocesses (@jonashaag @adriendelsalle) #1195

@@ -1,3 +1,51 @@
+2021.11.19
+==========
+
+all `0.18.1`
+
+Bug fixes
+- [all] Fix default log level, use warning everywhere (@adriendelsalle) #1279
+- [mamba] Fix json output of `info` subcommand when verbose mode is active (@adriendelsalle) #1280
+- [libmamba, libmambapy, mamba] Allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var (@adriendelsalle) #1281
+
+2021.11.17
+==========
+
+all `0.18.0`
+
+New features
+- [libmamba, mamba, micromamba] Implement parallel packages extraction using subprocesses (@jonashaag @adriendelsalle) #1195
+- [micromamba] Improve bash completion (activate sub-command, directories completion) (@adriendelsalle) #1234
+- [libmamba, micromamba] Add channel URLs to info (@jonashaag) #1235
+- [libmamba] Read custom_multichannels from .condarc (@jonashaag) #1240
+- [libmamba] Improve pyc compilation, make it configurable (@adriendelsalle) #1249
+- [micromamba] Make pyc compilation configurable using `--pyc,--no-pyc` flags (@adriendelsalle) #1249
+- [libmamba] Use `spdlog` for nicer and configurable logs (@adriendelsalle) #1255
+- [micromamba] Add `--log-level` option to control log level independently of verbosity (@adriendelsalle) #1255
+- [libmamba] Make show_banner rc and env_var configurable (@adriendelsalle) #1257
+- [micromamba] Add zsh completion (@adriendelsalle) #1269
+- [mamba] Make mamba env download and extract using `libmamba` (@adriendelsalle) #1270
+- [libmamba] Add info JSON output (@adriendelsalle) #1271
+- [micromamba] Add `--json` CLI flag to `info` sub-command (@adriendelsalle) #1271
+
+Bug fixes
+- [micromamba] Init all powershell profiles (@adriendelsalle) #1226
+- [micromamba] Fix multiple activations in Windows bash (@adriendelsalle) #1228
+- [libmamba] Fix failing package cache checks (@wolfv) #1237
+- [mamba] Use libmamba LockFile, add `clean --lock` flag (@adriendelsalle) #1238
+- [libmamba] Improve catching of reproc errors (such as OOM-killed) (@adriendelsalle) #1250
+- [libmamba] Fix shell init with relative paths (@adriendelsalle) #1252
+- [libmamba] Fix not thrown error in multiple caches logic (@adriendelsalle) #1253
+
+Docs
+- [micromamba] Document fish support (@izahn) #1216
+
+General improvements
+- [all] Split projects, improve CMake options (@adriendelsalle) #1219 #1243
+- [libmamba] Test that a missing file doesn't cause an unlink error (@adriendelsalle) #1251
+- [libmamba] Improve logging on YAML errors (@adriendelsalle) #1254
+- [mamba] Conditionally import bindings for cross-compiling (@adriendelsalle) #1263
+
 0.17.0 (October 13, 2021)
 =========================
 

@@ -1,3 +1,11 @@
+micromamba 0.18.2 (November 24, 2021)
+=====================================
+
+Bug fixes
+
+- Fix CMake config for micromamba fully statically linked on Windows (@adriendelsalle) #1297
+- Fix shell activation regression (@adriendelsalle) #1289
+
 0.18.1 (November 19, 2021)
 ==========================
 

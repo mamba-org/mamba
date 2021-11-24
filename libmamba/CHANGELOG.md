@@ -1,3 +1,12 @@
+libmamba 0.18.2 (November 24, 2021)
+===================================
+
+Bug fixes
+
+- Fix use of a read-only cache (@adriendelsalle) #1294
+- Fix dangling LockFiles (@adriendelsalle) #1290
+- Fix shell activation regression (@adriendelsalle) #1289
+
 0.18.1 (November 19, 2021)
 ==========================
 

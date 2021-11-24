@@ -1,3 +1,14 @@
+2021.11.24
+==========
+
+Releases: libmamba 0.18.2, libmambapy 0.18.2, mamba 0.18.2, micromamba 0.18.2
+
+Bug fixes
+- [mamba, libmamba] Fix use of a read-only cache (@adriendelsalle) #1294
+- [mamba, libmamba] Fix dangling LockFiles (@adriendelsalle) #1290
+- [micromamba] Fix CMake config for micromamba fully statically linked on Windows (@adriendelsalle) #1297
+- [micromamba, libmamba] Fix shell activation regression (@adriendelsalle) #1289
+
 2021.11.19
 ==========
 

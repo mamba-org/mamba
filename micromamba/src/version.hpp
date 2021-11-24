@@ -12,16 +12,21 @@
 
 #define UMAMBA_VERSION_MAJOR 0
 #define UMAMBA_VERSION_MINOR 18
-#define UMAMBA_VERSION_PATCH 1
+#define UMAMBA_VERSION_PATCH 2
 
 // Binary version
 #define UMAMBA_BINARY_CURRENT 1
 #define UMAMBA_BINARY_REVISION 0
 #define UMAMBA_BINARY_AGE 0
 
+#define __UMAMBA_STRINGIZE_IMPL(s) #s
+#define __UMAMBA_STRINGIZE(s) STRINGIZE_IMPL(s)
+
 #define UMAMBA_VERSION                                                                             \
     (UMAMBA_VERSION_MAJOR * 10000 + UMAMBA_VERSION_MINOR * 100 + UMAMBA_VERSION_PATCH)
-#define UMAMBA_VERSION_STRING "0.18.1"
+#define UMAMBA_VERSION_STRING __UMAMBA_STRINGIZE(UMAMBA_VERSION_MAJOR) "." \
+                              __UMAMBA_STRINGIZE(UMAMBA_VERSION_MINOR) "." \
+                              __UMAMBA_STRINGIZE(UMAMBA_VERSION_PATCH)
 
 namespace umamba
 {

@@ -128,6 +128,7 @@ def populate_changes(name, sections, changes):
                 if applies(i.applies_to):
                     el["changes"].append(f"- {i.text.strip()}")
 
+
 def main():
     changes = {}
     with open("CHANGELOG.md", "r") as fi:

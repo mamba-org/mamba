@@ -49,8 +49,7 @@ init_shell_parser(CLI::App* subcom)
                                                       "deactivate",
                                                       "hook",
                                                       "reactivate",
-                                                      "deactivate",
-                                                      "completion"
+                                                      "deactivate"
 #ifdef _WIN32
                                                       ,
                                                       "enable-long-paths-support"
@@ -63,11 +62,6 @@ init_shell_parser(CLI::App* subcom)
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
     subcom->add_option("prefix,-p,--prefix", prefix.set_cli_config(""), prefix.description());
-
-    auto& auto_activate_base = config.at("auto_activate_base").get_wrapped<bool>();
-    subcom->add_flag("--auto-activate-base,!--no-auto-activate-base",
-                     auto_activate_base.set_cli_config(0),
-                     auto_activate_base.description());
 }
 
 
@@ -83,68 +77,6 @@ set_shell_command(CLI::App* subcom)
         auto& prefix = config.at("shell_prefix").compute().value<std::string>();
         auto& shell = config.at("shell_type").compute().value<std::string>();
         auto& stack = config.at("shell_stack").compute().value<bool>();
-
-        if (action == "completion")
-        {
-            detect_shell(shell);
-
-            if (shell == "bash")
-            {
-                fs::path home = env::home_directory();
-                fs::path bashrc_path
-                    = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
-                std::regex completion_re("# >>> umamba completion >>>(?:\n|\r\n)?"
-                                         "([\\s\\S]*?)"
-                                         "# <<< umamba completion <<<(?:\n|\r\n)?");
-
-                std::string rc_content = read_contents(bashrc_path, std::ios::in);
-                std::string result = std::regex_replace(
-                    rc_content, completion_re, unindent(umamba_bash_completion));
-
-                if (result.find("# >>> umamba completion >>>") == result.npos)
-                {
-                    std::ofstream rc_file(bashrc_path, std::ios::app | std::ios::binary);
-                    rc_file << std::endl << unindent(umamba_bash_completion);
-                }
-                else
-                {
-                    std::ofstream rc_file(bashrc_path, std::ios::out | std::ios::binary);
-                    rc_file << result;
-                }
-            }
-            else if (shell == "zsh")
-            {
-                fs::path home = env::home_directory();
-                fs::path zshrc_path = home / ".zshrc";
-                std::regex completion_re("# >>> umamba completion >>>(?:\n|\r\n)?"
-                                         "([\\s\\S]*?)"
-                                         "# <<< umamba completion <<<(?:\n|\r\n)?");
-
-                if (!fs::exists(zshrc_path))
-                    path::touch(zshrc_path, true);
-                std::string rc_content = read_contents(zshrc_path, std::ios::in);
-                std::string result = std::regex_replace(
-                    rc_content, completion_re, unindent(umamba_zsh_completion));
-
-                if (result.find("# >>> umamba completion >>>") == result.npos)
-                {
-                    std::ofstream rc_file(zshrc_path, std::ios::app | std::ios::binary);
-                    rc_file << std::endl << unindent(umamba_zsh_completion);
-                }
-                else
-                {
-                    std::ofstream rc_file(zshrc_path, std::ios::out | std::ios::binary);
-                    rc_file << result;
-                }
-            }
-            else
-            {
-                LOG_ERROR << "Shell auto-completion is not supported in '" << shell << "'";
-                throw std::runtime_error("Shell auto-completion is not supported in '" + shell
-                                         + "'");
-            }
-        }
-        else
-            mamba::shell(action, shell, prefix, stack);
+        mamba::shell(action, shell, prefix, stack);
     });
 }

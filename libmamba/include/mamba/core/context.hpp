@@ -164,6 +164,9 @@ namespace mamba
         bool keep_temp_directories = std::getenv("MAMBA_KEEP_TEMP_DIRS") ? 1 : 0;
 
         bool change_ps1 = true;
+        std::string env_prompt = "({default_env}) ";
+        // micromamba only
+        bool shell_completion = true;
 
         bool curl_initialized = false;
         int connect_timeout_secs = 10;
@@ -171,8 +174,6 @@ namespace mamba
         int retry_timeout = 2;  // seconds
         int retry_backoff = 3;  // retry_timeout * retry_backoff
         int max_retries = 3;    // max number of retries
-
-        std::string env_prompt = "({default_env}) ";
 
         // ssl verify can be either an empty string (regular SSL verification),
         // the string "<false>" to indicate no SSL verification, or a path to

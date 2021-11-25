@@ -939,6 +939,34 @@ namespace mamba
                    .description("Report all output as json"));
 
         insert(
+            Configurable("changeps1", &ctx.change_ps1)
+                .group("Output, Prompt and Flow Control")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description(
+                    "When using activate, change the command prompt ($PS1) to include the activated environment."));
+
+        insert(
+            Configurable("shell_completion", &ctx.shell_completion)
+                .group("Output, Prompt and Flow Control")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description(
+                    "Enable or disable shell autocompletion (currently works for bash and zsh)."));
+
+        insert(Configurable("env_prompt", &ctx.env_prompt)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Template for prompt modification based on the active environment.")
+                   .long_description(unindent(R"(
+                        Currently supported template variables are '{prefix}', '{name}', and '{default_env}'.
+                        '{prefix}' is the absolute path to the active environment. '{name}' is the basename
+                        of the active environment prefix. '{default_env}' holds the value of '{name}' if the
+                        active environment is a named environment ('-n' flag), or otherwise holds the value
+                        of '{prefix}'.)")));
+
+        insert(
             Configurable("print_config_only", false)
                 .group("Output, Prompt and Flow Control")
                 .needs({ "debug" })

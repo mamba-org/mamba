@@ -14,7 +14,6 @@
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util_os.hpp"
 
-
 namespace mamba
 {
     void detect_shell(std::string& shell_type)
@@ -89,6 +88,7 @@ namespace mamba
                 shell_prefix = ctx.root_prefix;
             else
                 shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
+
             init_shell(shell_type, shell_prefix);
         }
         else if (action == "hook")

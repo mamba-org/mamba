@@ -301,8 +301,7 @@ set_sequence_to_rc(const SequenceAddType& opt)
     for (auto& pair : specs)
         set_sequence_to_yaml(node, pair.first, pair.second, opt);
 
-    std::ofstream rc_file;
-    rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
+    std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
     rc_file << node << std::endl;
 
     config.operation_teardown();
@@ -351,7 +350,6 @@ set_config_remove_key_command(CLI::App* subcom)
         config.load();
 
         fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-        std::ofstream rc_file;
         bool key_removed = false;
 
         if (file_path.configured())
@@ -397,7 +395,7 @@ set_config_remove_key_command(CLI::App* subcom)
         }
 
         // if the rc file is being modified, it's necessary to rewrite it
-        rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
+        std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
         rc_file << rc_YAML << std::endl;
 
         config.operation_teardown();
@@ -434,7 +432,6 @@ set_config_remove_command(CLI::App* subcom)
         config.load();
 
         fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-        std::ofstream rc_file;
         bool key_removed = false;
         std::string remove_vec_key = remove_vec_map.value().front();
         std::string remove_vec_value = remove_vec_map.value().at(1);
@@ -500,7 +497,7 @@ set_config_remove_command(CLI::App* subcom)
         }
 
         // if the rc file is being modified, it's necessary to rewrite it
-        rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
+        std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
         rc_file << rc_YAML << std::endl;
 
         config.operation_teardown();
@@ -533,7 +530,6 @@ set_config_set_command(CLI::App* subcom)
         config.load();
 
         fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-        std::ofstream rc_file;
 
         if (file_path.configured())
         {
@@ -562,7 +558,7 @@ set_config_set_command(CLI::App* subcom)
         }
 
         // if the rc file is being modified, it's necessary to rewrite it
-        rc_file.open(rc_source.string(), std::ofstream::in | std::ofstream::trunc);
+        std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
         rc_file << rc_YAML << std::endl;
 
         config.operation_teardown();
@@ -596,7 +592,6 @@ set_config_get_command(CLI::App* subcom)
         config.load();
 
         fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-        std::ofstream rc_file;
 
         bool value_found = false;
 

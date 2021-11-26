@@ -169,3 +169,20 @@ def test_create_files(tmpdir):
     output = json.loads(output)
     names = {x["name"] for x in output["actions"]["FETCH"]}
     assert names == {"a", "b"}
+
+
+def test_unicode(tmpdir):
+    uc = "320 áγђß家固êôōçñ한"
+    output = subprocess.check_output(
+        ["mamba", "create", "-p", str(tmpdir / uc), "--json", "xtensor"]
+    )
+    output = json.loads(output)
+    assert output["prefix"] == str(tmpdir / uc)
+
+    import libmambapy
+
+    pd = libmambapy.PrefixData(str(tmpdir / uc))
+    pd.load()
+    assert len(pd.package_records) > 1
+    assert "xtl" in pd.package_records
+    assert "xtensor" in pd.package_records

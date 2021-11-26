@@ -12,9 +12,9 @@
 
 namespace mamba
 {
-    History::History(const std::string& prefix)
+    History::History(const fs::path& prefix)
         : m_prefix(prefix)
-        , m_history_file_path(fs::path(m_prefix) / "conda-meta" / "history")
+        , m_history_file_path(m_prefix / "conda-meta" / "history")
     {
     }
 
@@ -30,7 +30,8 @@ namespace mamba
         }
 
         static std::regex head_re("==>\\s*(.+?)\\s*<==");
-        std::ifstream in_file(m_history_file_path);
+        std::ifstream in_file = open_ifstream(m_history_file_path, std::ios::in);
+
         std::string line;
         while (getline(in_file, line))
         {
@@ -46,11 +47,27 @@ namespace mamba
             }
             else if (line[0] == '#')
             {
-                res[res.size() - 1].comments.push_back(line);
+                if (res.size() > 0)
+                {
+                    res[res.size() - 1].comments.push_back(line);
+                }
+                else
+                {
+                    res.push_back(ParseResult());
+                    res[0].comments.push_back(line);
+                }
             }
             else if (line.size() != 0)
             {
-                res[res.size() - 1].diff.insert(line);
+                if (res.size() > 0)
+                {
+                    res[res.size() - 1].diff.insert(line);
+                }
+                else
+                {
+                    res.push_back(ParseResult());
+                    res[0].diff.insert(line);
+                }
             }
         }
         return res;
@@ -213,7 +230,7 @@ namespace mamba
         {
             path::touch(m_history_file_path);
         }
-        std::ofstream out(m_history_file_path, std::ios::app);
+        std::ofstream out = open_ofstream(m_history_file_path, std::ios::app);
 
         if (out.fail())
         {

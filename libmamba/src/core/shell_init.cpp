@@ -356,12 +356,12 @@ namespace mamba
 
         if (result.find("# >>> mamba initialize >>>") == result.npos)
         {
-            std::ofstream rc_file(file_path, std::ios::app | std::ios::binary);
+            std::ofstream rc_file = open_ofstream(file_path, std::ios::app | std::ios::binary);
             rc_file << std::endl << conda_init_content;
         }
         else
         {
-            std::ofstream rc_file(file_path, std::ios::out | std::ios::binary);
+            std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
             rc_file << result;
         }
         return true;
@@ -424,7 +424,7 @@ namespace mamba
             // Maybe the prefix isn't writable. No big deal, just keep going.
         }
 
-        std::ofstream mamba_bat_f(root_prefix / "condabin" / "micromamba.bat");
+        std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "micromamba.bat");
         std::string mamba_bat_contents(mamba_bat);
         replace_all(mamba_bat_contents,
                     std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
@@ -434,7 +434,8 @@ namespace mamba
                     std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
 
         mamba_bat_f << mamba_bat_contents;
-        std::ofstream _mamba_activate_bat_f(root_prefix / "condabin" / "_mamba_activate.bat");
+        std::ofstream _mamba_activate_bat_f
+            = open_ofstream(root_prefix / "condabin" / "_mamba_activate.bat");
         _mamba_activate_bat_f << _mamba_activate_bat;
 
 
@@ -447,10 +448,12 @@ namespace mamba
                     std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
 
 
-        std::ofstream condabin_activate_bat_f(root_prefix / "condabin" / "activate.bat");
+        std::ofstream condabin_activate_bat_f
+            = open_ofstream(root_prefix / "condabin" / "activate.bat");
         condabin_activate_bat_f << activate_bat_contents;
 
-        std::ofstream scripts_activate_bat_f(root_prefix / "Scripts" / "activate.bat");
+        std::ofstream scripts_activate_bat_f
+            = open_ofstream(root_prefix / "Scripts" / "activate.bat");
         scripts_activate_bat_f << activate_bat_contents;
 
         std::string hook_content = mamba_hook_bat;
@@ -458,7 +461,7 @@ namespace mamba
                     std::string("__MAMBA_INSERT_MAMBA_EXE__"),
                     std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
 
-        std::ofstream mamba_hook_bat_f(root_prefix / "condabin" / "mamba_hook.bat");
+        std::ofstream mamba_hook_bat_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.bat");
         mamba_hook_bat_f << hook_content;
     }
 
@@ -478,7 +481,7 @@ namespace mamba
             {
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
-            std::ofstream sh_file(sh_source_path);
+            std::ofstream sh_file = open_ofstream(sh_source_path);
             sh_file << mamba_sh;
         }
         if (shell == "xonsh")
@@ -493,7 +496,7 @@ namespace mamba
             {
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
-            std::ofstream sh_file(sh_source_path);
+            std::ofstream sh_file = open_ofstream(sh_source_path);
             sh_file << mamba_xsh;
         }
         else if (shell == "cmd.exe")
@@ -510,9 +513,9 @@ namespace mamba
             {
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
-            std::ofstream mamba_hook_f(root_prefix / "condabin" / "mamba_hook.ps1");
+            std::ofstream mamba_hook_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.ps1");
             mamba_hook_f << mamba_hook_ps1;
-            std::ofstream mamba_psm1_f(root_prefix / "condabin" / "Mamba.psm1");
+            std::ofstream mamba_psm1_f = open_ofstream(root_prefix / "condabin" / "Mamba.psm1");
             mamba_psm1_f << mamba_psm1;
         }
     }
@@ -578,12 +581,14 @@ namespace mamba
 
                 if (!found_mamba_initialize)
                 {
-                    std::ofstream out(profile_path, std::ios::app | std::ios::binary);
+                    std::ofstream out
+                        = open_ofstream(profile_path, std::ios::app | std::ios::binary);
                     out << std::endl << conda_init_content;
                 }
                 else
                 {
-                    std::ofstream out(profile_path, std::ios::out | std::ios::binary);
+                    std::ofstream out
+                        = open_ofstream(profile_path, std::ios::out | std::ios::binary);
                     out << profile_content;
                 }
 

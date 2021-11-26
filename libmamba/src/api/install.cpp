@@ -41,7 +41,7 @@ namespace mamba
         std::string install_instructions = other_pkg_mgr_install_instructions[pkg_mgr];
 
         TemporaryFile specs;
-        std::ofstream specs_f(specs.path());
+        std::ofstream specs_f = open_ofstream(specs.path());
         for (auto& d : deps)
             specs_f << d.c_str() << '\n';
         specs_f.close();

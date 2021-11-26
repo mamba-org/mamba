@@ -27,6 +27,14 @@ namespace mamba
     std::string windows_version();
     std::string macos_version();
     std::string linux_version();
+
+    void init_console();
+    void reset_console();
+
+#ifdef _WIN32
+    std::string to_utf8(const wchar_t* w, size_t s);
+    std::string to_utf8(const wchar_t* w);
+#endif
 }
 
 #endif

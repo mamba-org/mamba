@@ -53,7 +53,7 @@ namespace mamba
                 return;
         }
 
-        std::ofstream out(env_txt_file, std::ios::app);
+        std::ofstream out = open_ofstream(env_txt_file, std::ios::app);
         out << final_location_string << std::endl;
         if (out.bad())
         {
@@ -168,7 +168,7 @@ namespace mamba
         }
         if (final_lines.size() != lines.size())
         {
-            std::ofstream out(env_txt_file);
+            std::ofstream out = open_ofstream(env_txt_file);
             for (auto& l : final_lines)
             {
                 out << remove_trailing_slash(l) << std::endl;

@@ -22,10 +22,10 @@ namespace validate
 {
     using nlohmann::json;
 
-    std::string sha256sum(const std::string& path);
-    std::string md5sum(const std::string& path);
-    bool sha256(const std::string& path, const std::string& validation);
-    bool md5(const std::string& path, const std::string& validation);
+    std::string sha256sum(const fs::path& path);
+    std::string md5sum(const fs::path& path);
+    bool sha256(const fs::path& path, const std::string& validation);
+    bool md5(const fs::path& path, const std::string& validation);
     bool file_size(const fs::path& path, std::uintmax_t validation);
 
     const std::size_t MAMBA_SHA256_SIZE_HEX = 64;

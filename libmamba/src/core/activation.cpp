@@ -898,7 +898,7 @@ namespace mamba
             out << "@CALL " << p << "\n";
         }
 
-        std::ofstream out_file(tempfile_ptr->path());
+        std::ofstream out_file = open_ofstream(tempfile_ptr->path());
         out_file << out.str();
         // note: we do not delete the tempfile ptr intentionally, so that the temp
         // file stays

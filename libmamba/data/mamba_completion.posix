@@ -1,0 +1,19 @@
+R"MAMBARAW(
+if [[ -n "$ZSH_VERSION" ]]; then
+  autoload -U +X compinit && compinit
+  autoload -U +X bashcompinit && bashcompinit
+
+  _umamba_zsh_completions()
+  {
+    COMPREPLY=($($MAMBA_EXE completer "${(@s: :)${(@s: :)COMP_LINE}:1}"))
+  }
+
+  complete -o default -F _umamba_zsh_completions micromamba
+else
+  _umamba_bash_completions()
+  {
+    COMPREPLY=($($MAMBA_EXE completer "${COMP_WORDS[@]:1}"))
+  }
+  complete -o default -F _umamba_bash_completions micromamba
+fi
+)MAMBARAW"

@@ -611,7 +611,6 @@ namespace mamba
         else if (shell == "xonsh")
         {
             fs::path xonshrc_path = home / ".xonshrc";
-            // std::cout << xonsh_content(conda_prefix, shell, mamba_exe);
             modify_rc_file(xonshrc_path, conda_prefix, shell, mamba_exe);
         }
         else if (shell == "fish")

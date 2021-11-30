@@ -1,3 +1,12 @@
+micromamba 0.19.0 (November 30, 2021)
+=====================================
+
+Bug fixes
+
+- Better Unicode support on Windows (@wolfv) #1306
+- Do not set higher prio to arch vs noarch (@wolfv) #1312
+- Add shell_completion, changeps1 and env_prompt as RC settings, remove auto-activate-base CLI flag (@wolfv) #1304
+
 micromamba 0.18.2 (November 24, 2021)
 =====================================
 

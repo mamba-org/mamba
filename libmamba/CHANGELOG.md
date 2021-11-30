@@ -1,3 +1,13 @@
+libmamba 0.19.0 (November 30, 2021)
+===================================
+
+Bug fixes
+
+- Better Unicode support on Windows (@wolfv) #1306
+- Solver has function to get more solver errors (@wolfv) #1310
+- Close json repodata file after opening (@wolfv) #1309
+- Add bash & zsh shell_completion to activation functions
+
 libmamba 0.18.2 (November 24, 2021)
 ===================================
 

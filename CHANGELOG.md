@@ -1,3 +1,18 @@
+2021.11.30
+==========
+
+Releases: libmamba 0.19.0, libmambapy 0.19.0, mamba 0.19.0, micromamba 0.19.0
+
+Bug fixes
+- [all] Better Unicode support on Windows (@wolfv) #1306
+- [libmamba, libmambapy] Solver has function to get more solver errors (@wolfv) #1310
+- [mamba, micromamba] Do not set higher prio to arch vs noarch (@wolfv) #1312
+- [libmamba] Close json repodata file after opening (@wolfv) #1309
+- [micromamba] Add shell_completion, changeps1 and env_prompt as RC settings, remove auto-activate-base CLI flag (@wolfv) #1304
+- [libmamba] Add bash & zsh shell_completion to activation functions
+- [mamba] Use always_yes for `mamba env` subcommand (@wolfv) #1301
+- [libmambapy] Remove libmamba from install_requires for libmambapy (@duncanmmacleod) #1303
+
 2021.11.24
 ==========
 

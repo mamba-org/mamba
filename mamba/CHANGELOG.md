@@ -1,3 +1,12 @@
+mamba 0.19.0 (November 30, 2021)
+================================
+
+Bug fixes
+
+- Better Unicode support on Windows (@wolfv) #1306
+- Do not set higher prio to arch vs noarch (@wolfv) #1312
+- Use always_yes for `mamba env` subcommand (@wolfv) #1301
+
 mamba 0.18.2 (November 24, 2021)
 ================================
 

@@ -6,6 +6,7 @@
 from __future__ import absolute_import, print_function
 
 import sys
+import tempfile
 
 from conda.base.context import context
 from conda.core.prefix_data import PrefixData
@@ -18,7 +19,7 @@ from mamba.linking import handle_txn
 from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
 
 
-def mamba_install(prefix, specs, args, env, *_, **kwargs):
+def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     # TODO: support all various ways this happens
     init_api_context()
     api.Context().target_prefix = prefix
@@ -115,8 +116,6 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
     transaction = api.Transaction(solver, package_cache)
-    if not (context.quiet or context.json):
-        transaction.print()
     mmb_specs, to_link, to_unlink = transaction.to_conda()
 
     specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
@@ -125,14 +124,20 @@ def mamba_install(prefix, specs, args, env, *_, **kwargs):
     downloaded = transaction.prompt(repos)
     if not downloaded:
         exit(0)
-
     conda_transaction = to_txn(
         specs_to_add, [], prefix, to_link, to_unlink, installed_pkg_recs, index
     )
     handle_txn(conda_transaction, prefix, args, True)
 
 
+def mamba_dry_run(specs, args, env, *_, **kwargs):
+    return mamba_install(
+        tempfile.mkdtemp(), specs, args, env, dry_run=True, *_, **kwargs
+    )
+
+
 conda.install = mamba_install
+conda.dry_run = mamba_dry_run
 
 
 def main():

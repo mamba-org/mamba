@@ -83,7 +83,7 @@ namespace mamba
         fs::path index_path = base_path / "info" / "index.json";
 
         nlohmann::json index, solvable_json;
-        std::ifstream index_file(index_path);
+        std::ifstream index_file = open_ifstream(index_path);
         index_file >> index;
 
         solvable_json = m_package_info.json_record();

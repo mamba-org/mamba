@@ -71,7 +71,7 @@ namespace mamba
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream ostream(path, std::ios::out);
+                std::ofstream ostream = open_ofstream(path, std::ios::out);
                 if (ostream.fail())
                     throw fs::filesystem_error("File creation failed",
                                                std::make_error_code(std::errc::permission_denied));
@@ -85,8 +85,7 @@ namespace mamba
             if (fs::is_directory(path.parent_path()))
             {
                 bool path_existed = lexists(path);
-                std::ofstream test;
-                test.open(path, std::ios_base::out | std::ios_base::app);
+                std::ofstream test = open_ofstream(path, std::ios_base::out | std::ios_base::app);
                 bool is_writable = test.is_open();
                 if (!path_existed)
                 {

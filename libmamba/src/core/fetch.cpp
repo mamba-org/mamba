@@ -281,7 +281,7 @@ namespace mamba
         auto* s = reinterpret_cast<DownloadTarget*>(self);
         if (!s->m_file.is_open())
         {
-            s->m_file = std::ofstream(s->m_filename, std::ios::binary);
+            s->m_file = open_ofstream(s->m_filename, std::ios::binary);
             if (!s->m_file)
             {
                 LOG_ERROR << "Could not open file for download " << s->m_filename << ": "

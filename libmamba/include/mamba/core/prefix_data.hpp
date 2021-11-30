@@ -21,7 +21,7 @@ namespace mamba
     public:
         using package_map = std::unordered_map<std::string, PackageInfo>;
 
-        PrefixData(const std::string& prefix_path);
+        PrefixData(const fs::path& prefix_path);
 
         void load();
         void add_virtual_packages(const std::vector<PackageInfo>& packages);

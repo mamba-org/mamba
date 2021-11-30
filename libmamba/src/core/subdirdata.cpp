@@ -32,7 +32,7 @@ namespace decompress
         }
 
         struct archive_entry* entry;
-        std::ofstream out_file(out);
+        std::ofstream out_file = mamba::open_ofstream(out);
         char buff[BLOCKSIZE];
         std::size_t buffsize = BLOCKSIZE;
         r = archive_read_next_header(a, &entry);
@@ -360,7 +360,7 @@ namespace mamba
 
         LOG_DEBUG << "Opening '" << json_file.string() << "'";
         path::touch(json_file, true);
-        std::ofstream final_file(json_file);
+        std::ofstream final_file = open_ofstream(json_file);
 
         if (!final_file.is_open())
         {
@@ -376,7 +376,7 @@ namespace mamba
 
         m_progress_bar.set_postfix("Finalizing...");
 
-        std::ifstream temp_file(m_temp_file->path());
+        std::ifstream temp_file = open_ifstream(m_temp_file->path());
         std::stringstream temp_json;
         temp_json << m_mod_etag.dump();
 
@@ -493,7 +493,7 @@ namespace mamba
             return std::string();
         };
 
-        std::ifstream in_file(file);
+        std::ifstream in_file = open_ifstream(file);
         auto json = extract_subjson(in_file);
         nlohmann::json result;
         try

@@ -14,9 +14,9 @@
 
 namespace mamba
 {
-    PrefixData::PrefixData(const std::string& prefix_path)
+    PrefixData::PrefixData(const fs::path& prefix_path)
         : m_history(prefix_path)
-        , m_prefix_path(fs::path(prefix_path))
+        , m_prefix_path(prefix_path)
     {
     }
 
@@ -115,7 +115,7 @@ namespace mamba
     void PrefixData::load_single_record(const fs::path& path)
     {
         LOG_INFO << "Loading single package record: " << path;
-        std::ifstream infile(path);
+        auto infile = open_ifstream(path);
         nlohmann::json j;
         infile >> j;
         auto prec = PackageInfo(std::move(j));

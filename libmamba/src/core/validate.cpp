@@ -87,14 +87,14 @@ namespace validate
     {
     }
 
-    std::string sha256sum(const std::string& path)
+    std::string sha256sum(const fs::path& path)
     {
         std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
 
         SHA256_CTX sha256;
         SHA256_Init(&sha256);
 
-        std::ifstream infile(path, std::ios::binary);
+        std::ifstream infile = mamba::open_ifstream(path);
 
         constexpr std::size_t BUFSIZE = 32768;
         std::vector<char> buffer(BUFSIZE);
@@ -113,14 +113,14 @@ namespace validate
         return ::mamba::hex_string(hash);
     }
 
-    std::string md5sum(const std::string& path)
+    std::string md5sum(const fs::path& path)
     {
         std::array<unsigned char, MD5_DIGEST_LENGTH> hash;
 
         MD5_CTX md5;
         MD5_Init(&md5);
 
-        std::ifstream infile(path, std::ios::binary);
+        auto infile = mamba::open_ifstream(path);
 
         constexpr std::size_t BUFSIZE = 32768;
         std::vector<char> buffer(BUFSIZE);
@@ -139,12 +139,12 @@ namespace validate
         return ::mamba::hex_string(hash);
     }
 
-    bool sha256(const std::string& path, const std::string& validation)
+    bool sha256(const fs::path& path, const std::string& validation)
     {
         return sha256sum(path) == validation;
     }
 
-    bool md5(const std::string& path, const std::string& validation)
+    bool md5(const fs::path& path, const std::string& validation)
     {
         return md5sum(path) == validation;
     }

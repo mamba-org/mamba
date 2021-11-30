@@ -192,7 +192,7 @@ namespace mamba
         return m_repo->nsolvables;
     }
 
-    const std::string& MRepo::index_file()
+    const fs::path& MRepo::index_file()
     {
         return m_json_file;
     }
@@ -224,34 +224,38 @@ namespace mamba
         }
     }
 
-    bool MRepo::read_file(const std::string& filename)
+    bool MRepo::read_file(const fs::path& filename)
     {
-        bool is_solv = ends_with(filename, ".solv");
+        bool is_solv = filename.extension() == ".solv";
 
-        std::string filename_wo_extension;
+        fs::path filename_wo_extension;
         if (is_solv)
         {
             m_solv_file = filename;
-            filename_wo_extension = filename.substr(0, filename.size() - strlen(".solv"));
-            m_json_file = filename_wo_extension + ".json";
+            m_json_file = filename;
+            m_json_file.replace_extension("json");
         }
         else
         {
             m_json_file = filename;
-            filename_wo_extension = filename.substr(0, filename.size() - strlen(".json"));
-            m_solv_file = filename_wo_extension + ".solv";
+            m_solv_file = filename;
+            m_solv_file.replace_extension("solv");
         }
 
-        LOG_INFO << "Reading cache files '" << filename_wo_extension << ".*' for repo index '"
-                 << m_repo->name << "'";
+        LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename.stem()).string()
+                 << ".*' for repo index '" << m_repo->name << "'";
 
         if (is_solv)
         {
             auto lock = LockFile::try_lock(m_solv_file);
+#ifdef _WIN32
+            auto fp = _wfopen(m_solv_file.wstring().c_str(), L"rb");
+#else
             auto fp = fopen(m_solv_file.c_str(), "rb");
+#endif
             if (!fp)
             {
-                throw std::runtime_error("Could not open repository file " + filename);
+                throw std::runtime_error("Could not open repository file " + filename.string());
             }
 
             LOG_DEBUG << "Attempt load from solv " << m_solv_file;
@@ -318,20 +322,24 @@ namespace mamba
         }
 
         auto lock = LockFile::try_lock(m_json_file);
+#ifdef _WIN32
+        auto fp = _wfopen(m_json_file.wstring().c_str(), L"r");
+#else
         auto fp = fopen(m_json_file.c_str(), "r");
+#endif
         if (!fp)
         {
-            throw std::runtime_error("Could not open repository file " + m_json_file);
+            throw std::runtime_error("Could not open repository file " + m_json_file.string());
         }
 
-        LOG_DEBUG << "Loading JSON file '" << m_json_file << "'";
+        LOG_DEBUG << "Loading JSON file '" << m_json_file.string() << "'";
         int flags = Context::instance().use_only_tar_bz2 ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
         int ret = repo_add_conda(m_repo, fp, flags);
         if (ret != 0)
         {
             fclose(fp);
-            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") "
-                                     + std::string(pool_errstr(m_repo->pool)));
+            throw std::runtime_error("Could not read JSON repodata file (" + m_json_file.string()
+                                     + ") " + std::string(pool_errstr(m_repo->pool)));
         }
 
         // TODO move this to a more structured approach for repodata patching?
@@ -355,7 +363,7 @@ namespace mamba
     {
         Repodata* info;
 
-        LOG_INFO << "Writing SOLV file '" << fs::path(m_solv_file).filename().string() << "'";
+        LOG_INFO << "Writing SOLV file '" << m_solv_file.filename().string() << "'";
 
         info = repo_add_repodata(m_repo, 0);  // add new repodata for our meta info
         repodata_set_str(info, SOLVID_META, REPOSITORY_TOOLVERSION, mamba_tool_version());
@@ -372,7 +380,11 @@ namespace mamba
 
         repodata_internalize(info);
 
+#ifdef _WIN32
+        auto solv_f = _wfopen(m_solv_file.wstring().c_str(), L"wb");
+#else
         auto solv_f = fopen(m_solv_file.c_str(), "wb");
+#endif
         if (!solv_f)
         {
             LOG_ERROR << "Failed to open .solv file";

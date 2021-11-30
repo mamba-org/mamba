@@ -8,6 +8,7 @@
 
 #ifndef _WIN32
 #include <unistd.h>
+#include <clocale>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <libProc.h>
@@ -19,6 +20,7 @@
 #include <limits.h>
 #endif
 #else
+#include <atomic>
 #include <windows.h>
 #include <intrin.h>
 #include <tlhelp32.h>
@@ -398,4 +400,91 @@ namespace mamba
     }
 #endif
 
+#ifdef _WIN32
+    namespace
+    {
+        static std::atomic<int> init_console_cp(0);
+        static std::atomic<int> init_console_output_cp(0);
+        static std::atomic<bool> init_console_initialized(false);
+    }
+#endif
+
+    // init console to make sure UTF8 is properly activated
+    void init_console()
+    {
+#ifdef _WIN32
+        init_console_cp = GetConsoleCP();
+        init_console_output_cp = GetConsoleOutputCP();
+        init_console_initialized = true;
+
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+        // Enable buffering to prevent VS from chopping up UTF-8 byte sequences
+        setvbuf(stdout, nullptr, _IOFBF, 1000);
+#else
+        static const char* const utf8_locales[] = {
+            "C.UTF-8",
+            "POSIX.UTF-8",
+            "en_US.UTF-8",
+        };
+
+        for (const char* utf8_locale : utf8_locales)
+        {
+            if (::setlocale(LC_ALL, utf8_locale))
+            {
+                ::setenv("LC_ALL", utf8_locale, true);
+                break;
+            }
+        }
+#endif
+    }
+
+    void reset_console()
+    {
+#ifdef _WIN32
+        if (init_console_initialized)
+        {
+            SetConsoleCP(init_console_cp);
+            SetConsoleOutputCP(init_console_output_cp);
+        }
+#endif
+    }
+
+#ifdef _WIN32
+    std::string to_utf8(const wchar_t* w, size_t s)
+    {
+        std::string output;
+        if (s != 0)
+        {
+            assert(s <= INT_MAX);
+            const int size = WideCharToMultiByte(
+                CP_UTF8, 0, w, static_cast<int>(s), nullptr, 0, nullptr, nullptr);
+            if (size <= 0)
+            {
+                unsigned long last_error = ::GetLastError();
+                LOG_ERROR << "Failed to convert string to UTF-8 "
+                          << std::system_category().message(static_cast<int>(last_error));
+                throw std::runtime_error("Failed to convert string to UTF-8");
+            }
+
+            output.resize(size);
+            int res_size = WideCharToMultiByte(CP_UTF8,
+                                               0,
+                                               w,
+                                               static_cast<int>(s),
+                                               output.data(),
+                                               static_cast<int>(size),
+                                               nullptr,
+                                               nullptr);
+            assert(res_size == size);
+        }
+
+        return output;
+    }
+
+    std::string to_utf8(const wchar_t* w)
+    {
+        return to_utf8(w, wcslen(w));
+    }
+#endif
 }

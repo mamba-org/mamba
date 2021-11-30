@@ -97,7 +97,7 @@ namespace mamba
         void add_package_info(Repodata*, const PackageInfo& pkg_info);
         void add_pip_as_python_dependency();
 
-        const std::string& index_file();
+        const fs::path& index_file();
 
         std::string name() const;
         bool write() const;
@@ -109,9 +109,9 @@ namespace mamba
         bool clear(bool reuse_ids);
 
     private:
-        bool read_file(const std::string& filename);
+        bool read_file(const fs::path& filename);
 
-        std::string m_json_file, m_solv_file;
+        fs::path m_json_file, m_solv_file;
         std::string m_url;
 
         RepoMetadata m_metadata;

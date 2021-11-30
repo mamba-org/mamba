@@ -80,8 +80,12 @@ if plat == "win":
 
 def write_script(interpreter, lines, path):
     fname = os.path.join(path, "script" + suffixes[interpreter])
-    with open(fname, "w") as fo:
-        fo.write("\n".join(lines) + "\n")
+    if plat == "win":
+        with open(fname, "w", encoding="utf-8-sig") as fo:
+            fo.write("\n".join(lines) + "\n")
+    else:
+        with open(fname, "w") as fo:
+            fo.write("\n".join(lines) + "\n")
 
     return fname
 
@@ -499,6 +503,134 @@ class TestActivation:
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_unicode_activation(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        cwd = os.getcwd()
+        umamba = get_umamba(cwd=cwd)
+
+        s = [f"{umamba} shell init -p {self.root_prefix}"]
+        stdout, stderr = call_interpreter(s, tmp_path, interpreter)
+
+        call = lambda s: call_interpreter(
+            s, tmp_path, interpreter, interactive=True, env=clean_env
+        )
+
+        if interpreter in ["bash", "zsh"]:
+            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
+        elif interpreter in ["cmd.exe"]:
+            extract_vars = lambda vxs: [f"echo {v}=%{v}%" for v in vxs]
+        elif interpreter in ["powershell"]:
+            extract_vars = lambda vxs: [f"echo {v}=$Env:{v}" for v in vxs]
+        elif interpreter in ["fish"]:
+            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
+
+        rp = Path(self.root_prefix)
+        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"])
+
+        if interpreter == "cmd.exe":
+            x = read_windows_registry(regkey)
+            fp = Path(x[0][1:-1])
+            assert fp.exists()
+
+        if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
+            stdout, stderr = call(evars)
+
+            s = [f"{umamba} --help"]
+            stdout, stderr = call(s)
+
+            s = ["micromamba activate"] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+
+            assert "condabin" in res["PATH"]
+            assert self.root_prefix in res["PATH"]
+            assert f"CONDA_PREFIX={self.root_prefix}" in stdout.splitlines()
+            assert f"CONDA_SHLVL=1" in stdout.splitlines()
+
+            # throw with non-existent
+            s = ["micromamba activate nonexistent"]
+            if not interpreter == "powershell":
+                with pytest.raises(subprocess.CalledProcessError):
+                    stdout, stderr = call(s)
+
+            u1 = "μυρτιὲς"
+            u2 = "终过鬼门关"
+            u3 = "some ™∞¢3 spaces §∞©ƒ√≈ç"
+            s1 = [f"micromamba create -n {u1} xtensor -y -c conda-forge"]
+            s2 = [f"micromamba create -n {u2} xtensor -y -c conda-forge"]
+            s3 = [f"micromamba create -n '{u3}' xtensor -y -c conda-forge"]
+            call(s1)
+            call(s2)
+            call(s3)
+
+            assert (rp / "envs" / u1 / "conda-meta").is_dir()
+            assert (rp / "envs" / u2 / "conda-meta").is_dir()
+            assert (rp / "envs" / u3 / "conda-meta").is_dir()
+            assert (rp / "envs" / u1 / "conda-meta" / "history").exists()
+            assert (rp / "envs" / u2 / "conda-meta" / "history").exists()
+            assert (rp / "envs" / u3 / "conda-meta" / "history").exists()
+            if plat == "win":
+                assert (
+                    rp / "envs" / u1 / "Library" / "include" / "xtensor" / "xtensor.hpp"
+                ).exists()
+                assert (
+                    rp / "envs" / u2 / "Library" / "include" / "xtensor" / "xtensor.hpp"
+                ).exists()
+                assert (
+                    rp / "envs" / u3 / "Library" / "include" / "xtensor" / "xtensor.hpp"
+                ).exists()
+            else:
+                assert (
+                    rp / "envs" / u1 / "include" / "xtensor" / "xtensor.hpp"
+                ).exists()
+                assert (
+                    rp / "envs" / u2 / "include" / "xtensor" / "xtensor.hpp"
+                ).exists()
+                assert (
+                    rp / "envs" / u3 / "include" / "xtensor" / "xtensor.hpp"
+                ).exists()
+
+            # unicode activation on win: todo
+            if plat == "win":
+                return
+
+            s = [
+                f"micromamba activate",
+                f"micromamba activate {u1}",
+                f"micromamba activate {u2}",
+            ] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+
+            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
+            assert find_path_in_str(str(rp / "envs" / u2), res["PATH"])
+            assert not find_path_in_str(str(rp / "envs" / u1), res["PATH"])
+
+            s = [
+                "micromamba activate",
+                f"micromamba activate {u1}",
+                f"micromamba activate {u2} --stack",
+            ] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
+            assert find_path_in_str(str(rp / "envs" / u1), res["PATH"])
+            assert find_path_in_str(str(rp / "envs" / u2), res["PATH"])
+
+            s = ["micromamba activate", f"micromamba activate '{u3}'",] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(str(rp / "condabin"), res["PATH"])
+            assert not find_path_in_str(str(rp / "bin"), res["PATH"])
+            assert find_path_in_str(str(rp / "envs" / u3), res["PATH"])
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_activate_path(self, tmp_path, interpreter, new_root_prefix):

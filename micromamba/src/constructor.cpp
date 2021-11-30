@@ -136,7 +136,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 void
 read_binary_from_stdin_and_write_to_file(fs::path& filename)
 {
-    std::ofstream out_stream(filename.string().c_str(), std::ofstream::binary);
+    std::ofstream out_stream = open_ofstream(filename, std::ofstream::binary);
     // Need to reopen stdin as binary
     std::freopen(nullptr, "rb", stdin);
     if (std::ferror(stdin))

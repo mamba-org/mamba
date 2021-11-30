@@ -171,7 +171,7 @@ namespace mamba
 
         try
         {
-            std::ofstream f(final_path);
+            std::ofstream f = open_ofstream(final_path);
             f.close();
             success = true;
         }
@@ -388,7 +388,11 @@ namespace mamba
 
     std::string read_contents(const fs::path& file_path, std::ios::openmode mode)
     {
+#ifdef _WIN32
+        std::ifstream in(file_path.wstring(), std::ios::in | mode);
+#else
         std::ifstream in(file_path, std::ios::in | mode);
+#endif
         if (in)
         {
             std::string contents;
@@ -814,7 +818,7 @@ namespace mamba
     {
         // Windows locks are isolated between file descriptor
         // We can then test if locked by opening a new one
-        int fd = _open(path.c_str(), O_RDWR | O_CREAT, 0666);
+        int fd = _wopen(path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
         _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
         char buffer[1];
         bool is_locked = _read(fd, buffer, 1) == -1;
@@ -1134,5 +1138,4 @@ namespace mamba
             throw std::runtime_error("Subprocess call failed. Aborting.");
         }
     }
-
 }  // namespace mamba

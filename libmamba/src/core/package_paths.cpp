@@ -113,7 +113,7 @@ namespace mamba
         if (fs::exists(paths_json_path))
         {
             nlohmann::json paths_json;
-            std::ifstream paths_file(paths_json_path);
+            std::ifstream paths_file = open_ifstream(paths_json_path);
             paths_file >> paths_json;
             if (paths_json["paths_version"] != 1)
             {

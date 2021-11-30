@@ -145,7 +145,7 @@ namespace mamba
                       << fs::relative(script_path, m_context->target_prefix).string() << std::endl;
             fs::remove(script_path);
         }
-        std::ofstream out_file(script_path);
+        std::ofstream out_file = open_ofstream(script_path);
 
         fs::path python_path;
         if (m_context->has_python)
@@ -180,7 +180,8 @@ namespace mamba
             fs::remove(m_context->target_prefix / script_exe);
         }
 
-        std::ofstream conda_exe_f(m_context->target_prefix / script_exe, std::ios::binary);
+        std::ofstream conda_exe_f
+            = open_ofstream(m_context->target_prefix / script_exe, std::ios::binary);
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
@@ -245,7 +246,7 @@ namespace mamba
             fs::create_directories(target_full_path.parent_path());
         }
 
-        std::ofstream out_file(target_full_path);
+        std::ofstream out_file = open_ofstream(target_full_path);
         out_file << "!#" << python_full_path.c_str() << "\n";
         application_entry_point_template(out_file, win_path_double_escape(source_full_path));
         out_file.close();
@@ -283,7 +284,7 @@ namespace mamba
         {
             try
             {
-                std::ifstream msgs(messages_file);
+                std::ifstream msgs = open_ifstream(messages_file);
                 std::stringstream res;
                 std::copy(std::istreambuf_iterator<char>(msgs),
                           std::istreambuf_iterator<char>(),
@@ -361,7 +362,7 @@ namespace mamba
 
         auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
 
-        std::ofstream out(tf->path());
+        std::ofstream out = open_ofstream(tf->path());
 
         std::string silencer = debug_wrapper_scripts ? "" : "@";
 
@@ -404,7 +405,7 @@ namespace mamba
         }
 #else
         auto tf = std::make_unique<TemporaryFile>();
-        std::ofstream out(tf->path());
+        std::ofstream out = open_ofstream(tf->path());
         std::stringstream hook_quoted;
 
         std::string shebang, dev_arg;
@@ -704,7 +705,7 @@ namespace mamba
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
         LOG_DEBUG << "Use metadata found at '" << json.string() << "'";
 
-        std::ifstream json_file(json);
+        std::ifstream json_file = open_ifstream(json);
         nlohmann::json json_record;
         json_file >> json_record;
 
@@ -852,7 +853,7 @@ namespace mamba
                     if (!shebang.empty() && !launcher.empty())
                     {
                         replace_all(shebang, path_data.prefix_placeholder, new_prefix);
-                        std::ofstream fo(dst, std::ios::out | std::ios::binary);
+                        std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
@@ -893,7 +894,7 @@ namespace mamba
 #endif
             }
 
-            std::ofstream fo(dst, std::ios::out | std::ios::binary);
+            std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
             fo << buffer;
             fo.close();
 
@@ -994,7 +995,7 @@ namespace mamba
 
         std::vector<fs::path> pyc_files;
         TemporaryFile all_py_files;
-        std::ofstream all_py_files_f(all_py_files.path());
+        std::ofstream all_py_files_f = open_ofstream(all_py_files.path());
 
         for (auto& f : py_files)
         {
@@ -1088,7 +1089,7 @@ namespace mamba
         auto paths_data = read_paths(m_source);
 
         LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
-        std::ifstream repodata_f(m_source / "info" / "repodata_record.json");
+        std::ifstream repodata_f = open_ifstream(m_source / "info" / "repodata_record.json");
         repodata_f >> index_json;
 
         std::string f_name = index_json["name"].get<std::string>() + "-"
@@ -1183,7 +1184,7 @@ namespace mamba
             nlohmann::json link_json;
             if (fs::exists(link_json_path))
             {
-                std::ifstream link_json_file(link_json_path);
+                std::ifstream link_json_file = open_ifstream(link_json_path);
                 link_json_file >> link_json;
             }
 
@@ -1268,7 +1269,7 @@ namespace mamba
         LOG_DEBUG << "Finalizing linking";
         auto meta = prefix_meta / (f_name + ".json");
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
-        std::ofstream out_file(meta);
+        std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
 
         return true;

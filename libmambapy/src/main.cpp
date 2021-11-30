@@ -107,7 +107,7 @@ PYBIND11_MODULE(bindings, m)
         .def("solve", &MSolver::solve);
 
     py::class_<History>(m, "History")
-        .def(py::init<const std::string&>())
+        .def(py::init<const fs::path&>())
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
     py::class_<MatchSpec>(m, "MatchSpec")
@@ -264,7 +264,7 @@ PYBIND11_MODULE(bindings, m)
         .def("set_log_level", &Context::set_log_level);
 
     py::class_<PrefixData>(m, "PrefixData")
-        .def(py::init<const std::string&>())
+        .def(py::init<const fs::path&>())
         .def_readwrite("package_records", &PrefixData::m_package_records)
         .def("load", &PrefixData::load)
         .def("add_virtual_packages", &PrefixData::add_virtual_packages);

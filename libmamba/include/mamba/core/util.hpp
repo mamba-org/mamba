@@ -405,6 +405,42 @@ namespace mamba
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
     void assert_reproc_success(const reproc::options& options, int status, std::error_code ec);
+
+    inline std::ofstream open_ofstream(const fs::path& path,
+                                       std::ios::openmode mode = std::ios::out | std::ios::binary)
+    {
+        std::ofstream outfile;
+#if _WIN32
+        outfile.open(path.wstring(), mode);
+#else
+        outfile.open(path, mode);
+#endif
+        if (!outfile.good())
+        {
+            LOG_ERROR << "Error opening " << path << ": " << strerror(errno);
+        }
+
+        return outfile;
+    }
+
+    inline std::ifstream open_ifstream(const fs::path& path,
+                                       std::ios::openmode mode = std::ios::in | std::ios::binary)
+    {
+        std::ifstream infile;
+#if _WIN32
+        infile.open(path.wstring(), mode);
+#else
+        infile.open(path, mode);
+#endif
+        if (!infile.good())
+        {
+            LOG_ERROR << "Error opening " << path << ": " << strerror(errno);
+        }
+
+        return infile;
+    }
+
+
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

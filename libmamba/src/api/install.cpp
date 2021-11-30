@@ -382,7 +382,7 @@ namespace mamba
                 subdirs.push_back(sdir);
                 if (ctx.channel_priority == ChannelPriority::kDisabled)
                 {
-                    priorities.push_back(std::make_pair(0, max_prio--));
+                    priorities.push_back(std::make_pair(0, 0));
                 }
                 else  // Consider 'flexible' and 'strict' the same way
                 {
@@ -391,7 +391,7 @@ namespace mamba
                         max_prio--;
                         prev_channel_name = channel->name();
                     }
-                    priorities.push_back(std::make_pair(max_prio, platform == "noarch" ? 0 : 1));
+                    priorities.push_back(std::make_pair(max_prio, 0));
                 }
             }
         }

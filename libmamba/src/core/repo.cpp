@@ -329,6 +329,7 @@ namespace mamba
         int ret = repo_add_conda(m_repo, fp, flags);
         if (ret != 0)
         {
+            fclose(fp);
             throw std::runtime_error("Could not read JSON repodata file (" + m_json_file + ") "
                                      + std::string(pool_errstr(m_repo->pool)));
         }
@@ -346,6 +347,7 @@ namespace mamba
             write();
         }
 
+        fclose(fp);
         return true;
     }
 
@@ -368,12 +370,19 @@ namespace mamba
         repodata_set_str(info, SOLVID_META, etag_id, m_metadata.etag.c_str());
         repodata_set_str(info, SOLVID_META, mod_id, m_metadata.mod.c_str());
 
-        auto solv_f = fopen(m_solv_file.c_str(), "wb");
         repodata_internalize(info);
+
+        auto solv_f = fopen(m_solv_file.c_str(), "wb");
+        if (!solv_f)
+        {
+            LOG_ERROR << "Failed to open .solv file";
+            return false;
+        }
 
         if (repo_write(m_repo, solv_f) != 0)
         {
             LOG_ERROR << "Failed to write .solv:" << pool_errstr(m_repo->pool);
+            fclose(solv_f);
             return false;
         }
 

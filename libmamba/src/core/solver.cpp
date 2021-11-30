@@ -354,6 +354,39 @@ namespace mamba
         return success;
     }
 
+    std::string MSolver::all_problems_to_str()
+    {
+        std::stringstream problems;
+
+        Queue problem_rules;
+        queue_init(&problem_rules);
+        Id count = solver_problem_count(m_solver);
+        for (Id i = 1; i <= count; ++i)
+        {
+            Id type, source, target, dep;
+            solver_findallproblemrules(m_solver, i, &problem_rules);
+            for (Id j = 0; j < problem_rules.count; ++j)
+            {
+                Id type, source, target, dep;
+                Id r = problem_rules.elements[j];
+                if (!r)
+                {
+                    problems << "- [SKIP] no problem rule?\n";
+                }
+                else
+                {
+                    type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
+                    problems << "  - "
+                             << solver_problemruleinfo2str(
+                                    m_solver, (SolverRuleinfo) type, source, target, dep)
+                             << "\n";
+                }
+            }
+        }
+        queue_free(&problem_rules);
+        return problems.str();
+    }
+
     std::string MSolver::problems_to_str()
     {
         Queue problem_queue;

@@ -53,6 +53,7 @@ namespace mamba
         bool is_solved();
         bool solve();
         std::string problems_to_str();
+        std::string all_problems_to_str();
 
         const std::vector<MatchSpec>& install_specs() const;
         const std::vector<MatchSpec>& remove_specs() const;

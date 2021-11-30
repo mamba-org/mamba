@@ -151,7 +151,7 @@ def load_channels(
         else:
             priority = 0
         if has_priority:
-            subpriority = 0 if entry["platform"] == "noarch" else 1
+            subpriority = 0
         else:
             subpriority = subprio_index
             subprio_index -= 1

@@ -317,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
@@ -403,7 +403,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
@@ -445,7 +445,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
@@ -495,7 +495,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
@@ -540,7 +540,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
@@ -583,7 +583,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:

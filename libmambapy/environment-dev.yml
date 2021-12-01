@@ -21,3 +21,4 @@ dependencies:
   - spdlog
   - pybind11
   - pytest
+  - sel(win): winreg

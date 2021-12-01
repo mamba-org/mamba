@@ -24,7 +24,7 @@
 #include <windows.h>
 #include <intrin.h>
 #include <tlhelp32.h>
-#include "thirdparty/WinReg.hpp"
+#include "WinReg.hpp"
 #endif
 
 

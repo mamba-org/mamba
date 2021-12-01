@@ -447,6 +447,9 @@ namespace mamba
         queue_free(&q);
         queue_free(&decision);
         queue_free(&job);
+
+        m_transaction_context = TransactionContext(
+            Context::instance().target_prefix, find_python_version(), specs_to_install);
     }
 
 
@@ -533,6 +536,8 @@ namespace mamba
             Console::instance().json_down("actions");
             Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
         }
+        m_transaction_context = TransactionContext(
+            Context::instance().target_prefix, find_python_version(), solver.install_specs());
     }
 
     MTransaction::~MTransaction()
@@ -691,7 +696,6 @@ namespace mamba
         }
 
         Console::stream() << "\nTransaction starting";
-        m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
         TransactionRollback rollback;

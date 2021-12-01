@@ -5,6 +5,7 @@ import random
 import shutil
 import string
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -114,6 +115,29 @@ class TestRemove:
         assert "xtensor" in removed_names
         assert "xframe" in removed_names
         assert res["actions"]["PREFIX"] == TestRemove.prefix
+
+    def test_remove_in_use(self, env_created):
+        install("python=3.9", "-n", self.env_name, "--json", no_dry_run=True)
+        if platform.system() == "Windows":
+            pyexe = Path(self.prefix) / "python.exe"
+        else:
+            pyexe = Path(self.prefix) / "bin" / "python"
+
+        pyproc = subprocess.Popen(pyexe, stdin=None, stdout=None, stderr=None)
+
+        res = remove("python", "-v", "-p", self.prefix, no_dry_run=True)
+
+        if platform.system() == "Windows":
+            print(pyexe.exists())
+            pyexe_trash = Path(str(pyexe) + ".mamba_trash")
+            print(pyexe_trash)
+            print(pyexe_trash.exists())
+            assert pyexe.exists() == False
+            assert pyexe_trash.exists()
+            subprocess.Popen("TASKKILL /F /PID {pid} /T".format(pid=pyproc.pid))
+        else:
+            assert pyexe.exists() == False
+            pyproc.kill()
 
 
 class TestRemoveConfig:

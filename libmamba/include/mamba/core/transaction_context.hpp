@@ -11,6 +11,7 @@
 
 #include "context.hpp"
 #include "mamba_fs.hpp"
+#include "match_spec.hpp"
 
 namespace mamba
 {
@@ -26,7 +27,9 @@ namespace mamba
     {
     public:
         TransactionContext();
-        TransactionContext(const fs::path& prefix, const std::string& py_version);
+        TransactionContext(const fs::path& prefix,
+                           const std::string& py_version,
+                           const std::vector<MatchSpec>& requested_specs);
 
         bool has_python;
         fs::path target_prefix;
@@ -38,6 +41,7 @@ namespace mamba
         bool always_copy = false;
         bool always_softlink = false;
         bool compile_pyc = true;
+        std::vector<MatchSpec> requested_specs;
     };
 }  // namespace mamba
 

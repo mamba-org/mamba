@@ -385,7 +385,7 @@ namespace mamba
     std::string quote_for_shell(const std::vector<std::string>& arguments,
                                 const std::string& shell = "");
 
-    void remove_or_rename(const fs::path& path);
+    std::size_t remove_or_rename(const fs::path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -417,7 +417,7 @@ namespace mamba
 #endif
         if (!outfile.good())
         {
-            LOG_ERROR << "Error opening " << path << ": " << strerror(errno);
+            LOG_ERROR << "Error opening for writing " << path << ": " << strerror(errno);
         }
 
         return outfile;
@@ -434,7 +434,7 @@ namespace mamba
 #endif
         if (!infile.good())
         {
-            LOG_ERROR << "Error opening " << path << ": " << strerror(errno);
+            LOG_ERROR << "Error opening for reading " << path << ": " << strerror(errno);
         }
 
         return infile;

@@ -684,7 +684,8 @@ namespace mamba
 
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
-        if (!fs::remove(dst, err))
+
+        if (remove_or_rename(dst) == 0)
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
 
         // TODO what do we do with empty directories?
@@ -692,7 +693,7 @@ namespace mamba
         auto parent_path = dst.parent_path();
         while (fs::is_empty(parent_path))
         {
-            fs::remove(parent_path);
+            remove_or_rename(parent_path);
             parent_path = parent_path.parent_path();
         }
         return true;
@@ -859,7 +860,6 @@ namespace mamba
                     }
                     return std::make_tuple(validate::sha256sum(dst), rel_dst);
                 }
-
 #else
                 std::size_t padding_size
                     = (path_data.prefix_placeholder.size() > new_prefix.size())
@@ -917,7 +917,6 @@ namespace mamba
                 }
             }
 #endif
-
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 
@@ -968,6 +967,9 @@ namespace mamba
             LOG_TRACE << "soft-linked '" << src.string() << "'" << std::endl
                       << " --> '" << dst.string() << "'";
             fs::copy_symlink(src, dst);
+            // we need to wait until all files are linked to compute the SHA256 sum!
+            // otherwise the file that's pointed to might not be linked yet.
+            return std::make_tuple("", rel_dst);
         }
         else
         {
@@ -1084,13 +1086,12 @@ namespace mamba
         LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
         auto paths_data = read_paths(m_source);
 
-        LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
+        LOG_INFO << "Opening: " << m_source / "info" / "repodata_record.json";
+
         std::ifstream repodata_f = open_ifstream(m_source / "info" / "repodata_record.json");
         repodata_f >> index_json;
 
-        std::string f_name = index_json["name"].get<std::string>() + "-"
-                             + index_json["version"].get<std::string>() + "-"
-                             + index_json["build"].get<std::string>();
+        std::string f_name = m_pkg_info.str();
 
         LOG_DEBUG << "Linking package '" << f_name << "' from '" << m_source.string() << "'";
 
@@ -1162,12 +1163,32 @@ namespace mamba
 
             paths_json["paths"].push_back(json_record);
         }
+
+        for (std::size_t i = 0; i < paths_data.size(); ++i)
+        {
+            auto& path = paths_data[i];
+            if (path.path_type == PathType::SOFTLINK)
+            {
+                paths_json["paths"][i]["sha256_in_prefix"]
+                    = validate::sha256sum(m_context->target_prefix / files_record[i]);
+            }
+        }
+
         LOG_DEBUG << paths_data.size() << " files linked";
 
         out_json = index_json;
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
-        out_json["requested_spec"] = "TODO";
+
+        MatchSpec* requested_spec = nullptr;
+        for (auto& ms : m_context->requested_specs)
+        {
+            if (ms.name == m_pkg_info.name)
+            {
+                requested_spec = &ms;
+            }
+        }
+        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
         out_json["package_tarball_full_path"] = std::string(m_source) + ".tar.bz2";
         out_json["extracted_package_dir"] = m_source;
 

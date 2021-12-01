@@ -586,32 +586,41 @@ namespace mamba
         }
     }
 
-    void remove_or_rename(const fs::path& path)
+    std::size_t remove_or_rename(const fs::path& path)
     {
-        if (fs::is_directory(path))
+        std::error_code ec;
+        std::size_t result = 0;
+        if (!fs::exists(path, ec))
+            return 0;
+
+        if (fs::is_directory(path, ec))
         {
-            try
-            {
-                fs::remove_all(path);
-            }
-            catch (const fs::filesystem_error& e)
-            {
-                LOG_ERROR << "Caught a filesystem error: " << e.what();
-                throw std::runtime_error("Could not remove directory " + path.string());
-            }
+            result = fs::remove_all(path, ec);
         }
         else
         {
-            try
+            result = fs::remove(path, ec);
+        }
+
+        if (ec)
+        {
+            int counter = 0;
+            while (ec)
             {
-                fs::remove(path);
-            }
-            catch (const fs::filesystem_error& e)
-            {
-                LOG_ERROR << "Caught a filesystem error: " << e.what();
-                throw std::runtime_error("Could not remove file " + path.string());
+                LOG_ERROR << "Caught a filesystem error: " << ec.message();
+                fs::path new_path = path;
+                new_path.replace_extension(new_path.extension().string() + ".mamba_trash");
+                fs::rename(path, new_path, ec);
+                if (!ec)
+                    return 1;
+                counter += 1;
+                LOG_ERROR << "ERROR " << ec.message() << " sleeping for " << counter * 2;
+                if (counter > 5)
+                    throw std::runtime_error("Couldnt delete file.");
+                std::this_thread::sleep_for(std::chrono::seconds(counter * 2));
             }
         }
+        return result;
     }
 
     std::string unindent(const char* p)

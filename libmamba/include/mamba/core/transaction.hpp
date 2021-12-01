@@ -19,6 +19,7 @@
 
 #include "fetch.hpp"
 #include "mamba_fs.hpp"
+#include "match_spec.hpp"
 #include "output.hpp"
 #include "package_cache.hpp"
 #include "package_handling.hpp"
@@ -151,6 +152,8 @@ namespace mamba
         std::vector<Solvable*> m_to_install, m_to_remove;
         History::UserRequest m_history_entry;
         Transaction* m_transaction;
+
+        std::vector<MatchSpec> m_requested_specs;
 
         bool m_force_reinstall = false;
     };

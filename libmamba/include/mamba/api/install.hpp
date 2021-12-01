@@ -42,8 +42,6 @@ namespace mamba
 
         void file_specs_hook(std::vector<std::string>& file_specs);
 
-        MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
-
         bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
 
         struct other_pkg_mgr_spec

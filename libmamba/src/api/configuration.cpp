@@ -790,6 +790,19 @@ namespace mamba
                    .set_env_var_names()
                    .description("If solve fails, try to fetch updated repodata"));
 
+        insert(Configurable("allow_uninstall", &ctx.allow_uninstall)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "Allow uninstall when installing or updating packages. Default is true."));
+
+        insert(Configurable("allow_downgrade", &ctx.allow_downgrade)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Allow downgrade when installing packages. Default is false."));
+
         // Extract, Link & Install
         insert(Configurable("download_threads", &ctx.download_threads)
                    .group("Extract, Link & Install")

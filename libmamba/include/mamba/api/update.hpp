@@ -8,6 +8,7 @@
 #define MAMBA_API_UPDATE_HPP
 
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/query.hpp"
 
 #include <string>
 #include <vector>
@@ -15,7 +16,8 @@
 
 namespace mamba
 {
-    void update(bool update_all = false);
+    void update(bool update_all = false, bool prune = false);
+    void repoquery(QueryType type, const std::string& query);
 }
 
 #endif

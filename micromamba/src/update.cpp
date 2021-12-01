@@ -12,29 +12,35 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+
 void
-init_update_parser(CLI::App* subcom)
+set_update_command(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
 
     init_install_options(subcom);
 
-    auto& update_all = config.insert(Configurable("update_all", false)
-                                         .group("cli")
-                                         .description("Update all packages in the environment"));
+    static bool prune = true;
+    static bool update_all = false;
+    subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
 
     subcom->get_option("specs")->description("Specs to update in the environment");
-    subcom->add_flag("-a, --all", update_all.set_cli_config({}), update_all.description());
+    subcom->add_flag("-a, --all", update_all, "Update all packages in the environment");
+
+    subcom->callback([&]() { update(update_all, prune); });
 }
 
-
 void
-set_update_command(CLI::App* subcom)
+set_repoquery_command(CLI::App* subcom)
 {
-    init_update_parser(subcom);
+    auto& config = Configuration::instance();
+    init_general_options(subcom);
+    init_prefix_options(subcom);
+    init_network_options(subcom);
+    init_channel_parser(subcom);
 
-    subcom->callback([&]() {
-        auto& update_all = Configuration::instance().at("update_all").compute().value<bool>();
-        update(update_all);
-    });
+    static std::vector<std::string> specs;
+    subcom->add_option("specs", specs, "Specs to search");
+
+    subcom->callback([&]() { repoquery(QueryType::Search, specs[0]); });
 }

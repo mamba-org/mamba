@@ -19,7 +19,7 @@
 #include <reproc++/run.hpp>
 
 #ifdef _WIN32
-#include "thirdparty/WinReg.hpp"
+#include "WinReg.hpp"
 #endif
 
 namespace mamba

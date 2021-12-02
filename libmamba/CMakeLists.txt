@@ -118,10 +118,6 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
 
-set(LIBMAMBA_THIRD_PARTIES
-    ${LIBMAMBA_SOURCE_DIR}/thirdparty/WinReg.hpp
-)
-
 set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
     # Core API (low-level)
@@ -191,7 +187,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
     # Output
     # ======
-    add_library(${target_name} ${linkage_upper} ${LIBMAMBA_SOURCES} ${LIBMAMBA_HEADERS} ${LIBMAMBA_THIRD_PARTIES})
+    add_library(${target_name} ${linkage_upper} ${LIBMAMBA_SOURCES} ${LIBMAMBA_HEADERS})
 
     if (${deps_linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
@@ -349,10 +345,15 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             $<INSTALL_INTERFACE:include>
     )
 
-    # TODO: package WinReg header
+    if (WIN32)
+        find_path(WINREG_INCLUDE_DIR NAMES WinReg.hpp)
+    endif()
+
     target_include_directories(
         ${target_name}
-        PRIVATE ${LIBMAMBA_SOURCE_DIR}
+        PRIVATE
+            ${LIBMAMBA_SOURCE_DIR}
+            ${WINREG_INCLUDE_DIR}
     )
 
     if (UNIX)

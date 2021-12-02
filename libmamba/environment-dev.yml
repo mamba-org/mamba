@@ -19,3 +19,4 @@ dependencies:
   - termcolor-cpp
   - cli11
   - spdlog
+  - sel(win): winreg

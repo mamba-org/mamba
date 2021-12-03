@@ -61,6 +61,7 @@ namespace mamba
 
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision = 0);
     bool lexists(const fs::path& p);
+    bool lexists(const fs::path& p, std::error_code& ec);
     std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix);
     bool paths_equal(const fs::path& lhs, const fs::path& rhs);
 

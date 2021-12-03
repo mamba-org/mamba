@@ -691,10 +691,30 @@ namespace mamba
         // TODO what do we do with empty directories?
         // remove empty parent path
         auto parent_path = dst.parent_path();
-        while (fs::is_empty(parent_path))
+        while (true)
         {
-            remove_or_rename(parent_path);
+            bool exists = fs::exists(parent_path, err);
+            if (err)
+                break;
+            if (exists)
+            {
+                bool is_empty = fs::is_empty(parent_path, err);
+                if (err)
+                    break;
+                if (is_empty)
+                {
+                    remove_or_rename(parent_path);
+                }
+                else
+                {
+                    break;
+                }
+            }
             parent_path = parent_path.parent_path();
+            if (parent_path == m_context->target_prefix)
+            {
+                break;
+            }
         }
         return true;
     }

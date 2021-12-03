@@ -54,17 +54,21 @@ namespace mamba
         return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
     }
 
-    // TODO make sure this returns true even for broken symlinks
+    // This function returns true even for broken symlinks
     // E.g.
     // ln -s abcdef emptylink
-    // >>> import os.path
-    // >>> os.path.lexists("emptylink")
-    // True
-    // >>> os.path.exists("emptylink")
-    // False
+    // fs::exists(emptylink) == false
+    // lexists(emptylink) == true
+    bool lexists(const fs::path& path, std::error_code& ec)
+    {
+        auto status = fs::symlink_status(path, ec);
+        return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
+    }
+
     bool lexists(const fs::path& path)
     {
-        return fs::exists(path);  // && fs::status_known(fs::symlink_status(path));
+        auto status = fs::symlink_status(path);
+        return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
     }
 
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
@@ -590,8 +594,10 @@ namespace mamba
     {
         std::error_code ec;
         std::size_t result = 0;
-        if (!fs::exists(path, ec))
+        if (!lexists(path, ec))
+        {
             return 0;
+        }
 
         if (fs::is_directory(path, ec))
         {

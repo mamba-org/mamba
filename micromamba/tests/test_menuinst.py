@@ -50,7 +50,7 @@ class TestMenuinst:
         assert Path(icon_location_path) == (
             Path(prefix) / "Menu" / "console_shortcut.ico"
         )
-        assert (icon_location_index, "0")
+        assert icon_location_index == "0"
 
         assert shortcut.Description == "Miniforge Prompt (" + env_name + ")"
         assert shortcut.Arguments == "/K " + str(
@@ -84,7 +84,7 @@ class TestMenuinst:
         assert Path(icon_location_path) == (
             Path(prefix) / "Menu" / "console_shortcut.ico"
         )
-        assert (icon_location_index, "0")
+        assert icon_location_index == "0"
 
         assert shortcut.Description == "Miniforge Prompt (" + env_name + ")"
         assert (

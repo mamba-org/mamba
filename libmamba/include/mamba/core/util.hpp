@@ -386,6 +386,7 @@ namespace mamba
     std::string quote_for_shell(const std::vector<std::string>& arguments,
                                 const std::string& shell = "");
 
+    std::size_t clean_trash_files(const fs::path& prefix, bool deep_clean);
     std::size_t remove_or_rename(const fs::path& path);
 
     // Unindent a string literal

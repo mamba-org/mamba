@@ -677,8 +677,6 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
-        LockFile lf(ctx.target_prefix / "conda-meta");
-
         // JSON output
         // back to the top level if any action was required
         if (!empty())
@@ -696,6 +694,10 @@ namespace mamba
             Console::stream() << "Dry run. Not executing the transaction.";
             return true;
         }
+
+        LockFile lf(ctx.target_prefix / "conda-meta");
+
+        clean_trash_files(ctx.target_prefix, false);
 
         Console::stream() << "\nTransaction starting";
         History::UserRequest ur = History::UserRequest::prefilled();

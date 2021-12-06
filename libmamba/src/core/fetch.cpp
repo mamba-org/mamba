@@ -337,7 +337,7 @@ namespace mamba
         return nitems * size;
     }
 
-    std::size_t DownloadTarget::progress_callback(
+    int DownloadTarget::progress_callback(
         void* f, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
     {
         auto* target = static_cast<DownloadTarget*>(f);

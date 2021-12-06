@@ -677,6 +677,8 @@ namespace mamba
     {
         auto& ctx = Context::instance();
 
+        LockFile lf(ctx.target_prefix / "conda-meta");
+
         // JSON output
         // back to the top level if any action was required
         if (!empty())

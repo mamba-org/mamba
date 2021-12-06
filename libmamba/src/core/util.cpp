@@ -618,7 +618,15 @@ namespace mamba
                 new_path.replace_extension(new_path.extension().string() + ".mamba_trash");
                 fs::rename(path, new_path, ec);
                 if (!ec)
+                {
+                    static std::mutex trash_mutex;
+                    std::lock_guard<std::mutex> guard(trash_mutex);
+
+                    // The conda-meta directory is locked by transaction execute
+                    auto trash_index = open_ofstream(Context::instance().target_prefix / "conda-meta" / "mamba_trash.txt", std::ios::app | std::ios::binary);
+                    trash_index << new_path << std::endl;
                     return 1;
+                }
                 counter += 1;
                 LOG_ERROR << "ERROR " << ec.message() << " sleeping for " << counter * 2;
                 if (counter > 5)

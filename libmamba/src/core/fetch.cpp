@@ -338,27 +338,16 @@ namespace mamba
     }
 
     int DownloadTarget::progress_callback(
-        void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
+        void* f, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
     {
+        auto* target = static_cast<DownloadTarget*>(f);
+
         if (Context::instance().quiet || Context::instance().json)
         {
             return 0;
         }
 
-        auto now = std::chrono::steady_clock::now();
-        if (now - m_progress_throttle_time < std::chrono::milliseconds(150))
-        {
-            return 0;
-        }
-        m_progress_throttle_time = now;
-
-        if (total_to_download != 0 && now_downloaded == 0 && m_expected_size != 0)
-        {
-            now_downloaded = total_to_download;
-            total_to_download = m_expected_size;
-        }
-
-        if ((total_to_download != 0 || m_expected_size != 0) && now_downloaded != 0)
+        if ((total_to_download != 0 || target->m_expected_size != 0))
         {
             std::stringstream postfix;
             postfix << std::setw(6);
@@ -368,20 +357,20 @@ namespace mamba
             to_human_readable_filesize(postfix, total_to_download);
             postfix << " (";
             postfix << std::setw(6);
-            to_human_readable_filesize(postfix, get_speed(), 2);
+            to_human_readable_filesize(postfix, target->get_speed(), 2);
             postfix << "/s)";
-            m_progress_bar.set_progress(now_downloaded, total_to_download);
-            m_progress_bar.set_postfix(postfix.str());
+            target->m_progress_bar.set_progress(now_downloaded, total_to_download);
+            target->m_progress_bar.set_postfix(postfix.str());
         }
-        if (now_downloaded == 0 && total_to_download != 0)
+        else
         {
             std::stringstream postfix;
-            to_human_readable_filesize(postfix, total_to_download);
+            to_human_readable_filesize(postfix, now_downloaded);
             postfix << " / ?? (";
-            to_human_readable_filesize(postfix, get_speed(), 2);
+            to_human_readable_filesize(postfix, target->get_speed(), 2);
             postfix << "/s)";
-            m_progress_bar.set_progress(SIZE_MAX, SIZE_MAX);
-            m_progress_bar.set_postfix(postfix.str());
+            target->m_progress_bar.set_progress(SIZE_MAX, SIZE_MAX);
+            target->m_progress_bar.set_postfix(postfix.str());
         }
         return 0;
     }

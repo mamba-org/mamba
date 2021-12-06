@@ -36,7 +36,7 @@ namespace mamba
         static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
 
-        int progress_callback(
+        static int progress_callback(
             void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
         void set_mod_etag_headers(const nlohmann::json& mod_etag);
         void set_progress_bar(ProgressProxy progress_proxy);
@@ -90,8 +90,6 @@ namespace mamba
 
         // validation
         std::size_t m_expected_size = 0;
-
-        std::chrono::steady_clock::time_point m_progress_throttle_time;
 
         // retry & backoff
         std::chrono::steady_clock::time_point m_next_retry;

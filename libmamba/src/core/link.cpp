@@ -859,10 +859,6 @@ namespace mamba
                     }
                     return std::make_tuple(validate::sha256sum(dst), rel_dst);
                 }
-                else
-                {
-                    std::make_tuple(validate::sha256sum(dst), rel_dst);
-                }
 
 #else
                 std::size_t padding_size
@@ -978,8 +974,8 @@ namespace mamba
             throw std::runtime_error(std::string("Path type not implemented: ")
                                      + std::to_string(static_cast<int>(path_data.path_type)));
         }
-        // TODO we could also use the SHA256 sum of the paths json
-        return std::make_tuple(validate::sha256sum(dst), rel_dst);
+        return std::make_tuple(
+            path_data.sha256.empty() ? validate::sha256sum(dst) : path_data.sha256, rel_dst);
     }
 
     std::vector<fs::path> LinkPackage::compile_pyc_files(const std::vector<fs::path>& py_files)

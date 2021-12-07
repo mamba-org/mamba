@@ -616,19 +616,6 @@ namespace mamba
                     remaining_files.push_back(f);
                 }
             }
-            if (remaining_files.empty())
-            {
-                fs::remove(trash_txt, ec);
-            }
-            else
-            {
-                auto trash_out_file
-                    = open_ofstream(trash_txt, std::ios::out | std::ios::binary | std::ios::trunc);
-                for (auto& rf : remaining_files)
-                {
-                    trash_out_file << rf.string() << "\n";
-                }
-            }
         }
 
         if (deep_clean)
@@ -652,7 +639,23 @@ namespace mamba
                 else
                 {
                     remainig_trash += 1;
+                    // save relative path
+                    remaining_files.push_back(fs::relative(p, prefix));
                 }
+            }
+        }
+
+        if (remaining_files.empty())
+        {
+            fs::remove(trash_txt, ec);
+        }
+        else
+        {
+            auto trash_out_file
+                = open_ofstream(trash_txt, std::ios::out | std::ios::binary | std::ios::trunc);
+            for (auto& rf : remaining_files)
+            {
+                trash_out_file << rf.string() << "\n";
             }
         }
 

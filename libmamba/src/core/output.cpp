@@ -320,8 +320,17 @@ namespace mamba
     std::string Console::hide_secrets(const std::string_view& str)
     {
         std::string copy(str);
-        copy = std::regex_replace(copy, token_re, "/t/*****");
-        copy = std::regex_replace(copy, http_basicauth_re, "://$1:*****@");
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, token_re, "/t/*****");
+        }
+
+        if (contains(str, "://"))
+        {
+            copy = std::regex_replace(copy, http_basicauth_re, "://$1:*****@");
+        }
+
         return copy;
     }
 

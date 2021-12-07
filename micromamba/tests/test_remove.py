@@ -125,7 +125,7 @@ class TestRemove:
             pyexe = Path(self.prefix) / "bin" / "python"
 
         pyproc = subprocess.Popen(pyexe, stdin=None, stdout=None, stderr=None)
-
+        time.sleep(1)
         res = remove("python", "-v", "-p", self.prefix, no_dry_run=True)
 
         if platform.system() == "Windows":

@@ -106,22 +106,21 @@ class TestShell:
             elif shell == "powershell":
                 f_name += ".ps1"
                 cmd = [shell, f_name]
-                with open(f_name, "w") as f:
-                    if "CI" in os.environ:
-                        f.write(
-                            f"conda activate {TestShell.current_prefix} | out-null\n"
-                        )
+                with open(f_name, "w", encoding="utf-8") as f:
                     f.write(f"& {umamba} shell hook --json")
             else:
                 cmd = [shell, f_name]
-                if platform.system() == "Windows":  # bash on Windows
-                    with open(f_name, "w") as f:
-                        f.write("build/micromamba/micromamba.exe shell hook --json")
-                else:
-                    with open(f_name, "w") as f:
-                        f.write(f"{umamba} shell hook --json")
-
-            return decode_json_output(subprocess.check_output(cmd))
+                with open(f_name, "w", encoding="utf-8") as f:
+                    f.write(f"{umamba} shell hook --json")
+            res = subprocess.run(cmd, text=True, encoding="utf-8")
+            try:
+                print(res.stdout)
+                print(res.stderr)
+            except:
+                pass
+            return decode_json_output(
+                subprocess.check_output(cmd, text=True, encoding="utf-8")
+            )
 
         if platform.system() == "Windows":
             if "MAMBA_TEST_SHELL_TYPE" not in os.environ:
@@ -129,6 +128,11 @@ class TestShell:
                     "'MAMBA_TEST_SHELL_TYPE' env variable needs to be defined to run this test"
                 )
             shell_type = os.environ["MAMBA_TEST_SHELL_TYPE"]
+            if shell_type == "bash":
+                pytest.skip(
+                    "Currently not working because Github Actions complains about bash"
+                    " not being available from WSL"
+                )
         elif platform.system() in ("Linux", "Darwin"):
             shell_type = "bash"
         else:

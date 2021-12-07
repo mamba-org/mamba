@@ -160,7 +160,7 @@ jobs:
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           micromamba activate build_env
-          pytest ./micromamba/tests/
+          pytest micromamba/tests/ -v -s
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -273,44 +273,44 @@ jobs:
 
           ./testserver.sh
 
-  # libmamba_static_win:
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: [windows-2016]
+  libmamba_static_win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016]
 
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: generate ccache timestamp
-  #       id: ccache_cache_timestamp
-  #       shell: bash -l {0}
-  #       run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-  #     - name: cache CCACHE paths
-  #       uses: actions/cache@v2
-  #       with:
-  #         path: |
-  #           ~/ccache
-  #         key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-  #     - name: create build environment
-  #       uses: mamba-org/provision-with-micromamba@main
-  #       with:
-  #         environment-file: ./libmamba/environment-dev.yml
-  #         environment-name: build_env
-  #     - name: build libmamba-static
-  #       shell: cmd /C call {0}
-  #       run: |
-  #         call micromamba activate build_env
-  #         mkdir build
-  #         cd build
-  #         set CCACHE_DIR=%HOME%\ccache
-  #         cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
-  #                  -DBUILD_LIBMAMBA=ON ^
-  #                  -DBUILD_STATIC=ON ^
-  #                  -GNinja ^
-  #                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-  #                  -DCMAKE_C_COMPILER_LAUNCHER=ccache
-  #         ninja -j2
+    steps:
+      - uses: actions/checkout@v2
+      - name: generate ccache timestamp
+        id: ccache_cache_timestamp
+        shell: bash -l {0}
+        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
+      - name: cache CCACHE paths
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/ccache
+          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ./libmamba/environment-dev.yml
+          environment-name: build_env
+      - name: build libmamba-static
+        shell: cmd /C call {0}
+        run: |
+          call micromamba activate build_env
+          mkdir build
+          cd build
+          set CCACHE_DIR=%HOME%\ccache
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_STATIC=ON ^
+                   -GNinja ^
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          ninja
 
   mamba_python_tests_win:
     runs-on: ${{ matrix.os }}
@@ -503,119 +503,43 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: micromamba_binary
+
       - name: untar micromamba artifact
         shell: bash -l -eo pipefail {0}
         run: |
           tar -xvf umamba.tar
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           extra-specs: menuinst
-      - name: micromamba python based tests
-        shell: cmd /C call {0}
-        run: |
-          call micromamba activate build_env
-          set MAMBA_ROOT_PREFIX=%cd%\mambaroot
-          set MAMBA_TEST_SHELL_TYPE=cmd.exe
 
-          reg delete HKEY_CURRENT_USER\Software\Microsoft\Command Processor /v AutoRun
-
-          pytest micromamba/tests
-
-  umamba_tests_win_pwsh:
-    needs: [umamba_tests_win]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        python-version: ["3.7"]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: micromamba_binary
-      - name: Untar binary
-        shell: bash -l -eo pipefail {0}
-        run: |
-          tar -xvf umamba.tar
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
-          extra-specs: menuinst
       - name: micromamba python based tests with pwsh
         shell: powershell
         run: |
-          micromamba activate build_env
+          $env:PYTHONIOENCODING='UTF-8'
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
-          pytest micromamba/tests
+          pytest micromamba/tests/ -v -s
 
-  umamba_tests_win_bash:
-    needs: [umamba_tests_win]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        python-version: ["3.7"]
+      # - name: micromamba python based tests
+      #   shell: cmd /C call {0}
+      #   run: |
+      #     set PYTHONIOENCODING=UTF-8
+      #     set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+      #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
+      #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
+      #
+      #     pytest micromamba/tests/test_shell.py -v -s
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: micromamba_binary
-      - name: Untar binary
-        shell: bash -l -eo pipefail {0}
-        run: |
-          tar -xvf umamba.tar
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
-          extra-specs: menuinst
-      - name: micromamba python based tests
-        shell: bash -l -eo pipefail {0}
-        run: |
-          micromamba activate build_env
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_TEST_SHELL_TYPE=bash
-
-          pytest micromamba/tests
+      # - name: micromamba python based tests
+      #   shell: bash -l -eo pipefail {0}
+      #   run: |
+      #     export PYTHONIOENCODING=UTF-8
+      #     export MAMBA_ROOT_PREFIX=~/mambaroot
+      #     export MAMBA_TEST_SHELL_TYPE=bash
+      #
+      #     pytest micromamba/tests/test_shell.py -v -s

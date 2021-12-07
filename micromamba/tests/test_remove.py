@@ -5,6 +5,7 @@ import random
 import shutil
 import string
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -128,13 +129,42 @@ class TestRemove:
         res = remove("python", "-v", "-p", self.prefix, no_dry_run=True)
 
         if platform.system() == "Windows":
-            print(pyexe.exists())
             pyexe_trash = Path(str(pyexe) + ".mamba_trash")
-            print(pyexe_trash)
-            print(pyexe_trash.exists())
             assert pyexe.exists() == False
             assert pyexe_trash.exists()
+            trash_file = Path(self.prefix) / "conda-meta" / "mamba_trash.txt"
+            assert trash_file.exists()
+            all_trash_files = list(Path(self.prefix).rglob("*.mamba_trash"))
+
+            with open(trash_file, "r") as fi:
+                lines = [x.strip() for x in fi.readlines()]
+                assert all([l.endswith(".mamba_trash") for l in lines])
+                assert len(all_trash_files) == len(lines)
+                linesp = [Path(self.prefix) / l for l in lines]
+                for atf in all_trash_files:
+                    assert atf in linesp
+
+            # No change if file still in use
+            install("cpp-filesystem", "-n", self.env_name, "--json", no_dry_run=True)
+
+            assert trash_file.exists()
+            assert pyexe_trash.exists()
+
+            with open(trash_file, "r") as fi:
+                lines = [x.strip() for x in fi.readlines()]
+                assert all([l.endswith(".mamba_trash") for l in lines])
+                assert len(all_trash_files) == len(lines)
+                linesp = [Path(self.prefix) / l for l in lines]
+                for atf in all_trash_files:
+                    assert atf in linesp
+
             subprocess.Popen("TASKKILL /F /PID {pid} /T".format(pid=pyproc.pid))
+            # check that another env mod clears lingering trash files
+            time.sleep(0.5)
+            install("xsimd", "-n", self.env_name, "--json", no_dry_run=True)
+            assert trash_file.exists() == False
+            assert pyexe_trash.exists() == False
+
         else:
             assert pyexe.exists() == False
             pyproc.kill()

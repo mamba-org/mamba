@@ -602,14 +602,17 @@ namespace mamba
             auto all_files = read_lines(trash_txt);
             for (auto& f : all_files)
             {
-                LOG_INFO << "Trash: removing " << f;
-                if (!fs::exists(f) || fs::remove(f, ec))
+                fs::path full_path = prefix / f;
+                LOG_INFO << "Trash: removing " << full_path;
+                if (!fs::exists(full_path) || fs::remove(full_path, ec))
                 {
                     deleted_files += 1;
                 }
                 else
                 {
+                    LOG_INFO << "Trash: could not remove " << full_path;
                     remainig_trash += 1;
+                    // save relative path
                     remaining_files.push_back(f);
                 }
             }
@@ -619,12 +622,12 @@ namespace mamba
             }
             else
             {
-                auto trash_out_file = open_ofstream(trash_txt, std::ios::binary | std::ios::trunc);
+                auto trash_out_file
+                    = open_ofstream(trash_txt, std::ios::out | std::ios::binary | std::ios::trunc);
                 for (auto& rf : remaining_files)
                 {
                     trash_out_file << rf.string() << "\n";
                 }
-                trash_out_file.close();
             }
         }
 
@@ -686,7 +689,8 @@ namespace mamba
 
             while (ec)
             {
-                LOG_ERROR << "Caught a filesystem error: " << ec.message();
+                LOG_INFO << "Caught a filesystem error for '" << path.string()
+                         << "':" << ec.message() << " (File in use?)";
                 fs::path trash_file = path;
                 std::size_t fcounter = 0;
 
@@ -713,7 +717,9 @@ namespace mamba
                                                      std::ios::app | std::ios::binary);
 
                     // TODO add some unicode tests here?
-                    trash_index << trash_file.string() << "\n";
+                    trash_index
+                        << fs::relative(trash_file, Context::instance().target_prefix).string()
+                        << "\n";
                     return 1;
                 }
 

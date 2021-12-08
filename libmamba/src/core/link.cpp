@@ -1108,7 +1108,7 @@ namespace mamba
         LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
         auto paths_data = read_paths(m_source);
 
-        LOG_INFO << "Opening: " << m_source / "info" / "repodata_record.json";
+        LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
 
         std::ifstream repodata_f = open_ifstream(m_source / "info" / "repodata_record.json");
         repodata_f >> index_json;
@@ -1191,8 +1191,34 @@ namespace mamba
             auto& path = paths_data[i];
             if (path.path_type == PathType::SOFTLINK)
             {
-                paths_json["paths"][i]["sha256_in_prefix"]
-                    = validate::sha256sum(m_context->target_prefix / files_record[i]);
+                // here we try to avoid recomputing the costly sha256 sum
+                std::error_code ec;
+                auto points_to = fs::canonical(m_context->target_prefix / files_record[i], ec);
+                bool found = false;
+                if (!ec)
+                {
+                    for (std::size_t pix = 0; pix < files_record.size(); ++pix)
+                    {
+                        if ((m_context->target_prefix / files_record[pix]) == points_to)
+                        {
+                            if (paths_json["paths"][pix].contains("sha256_in_prefix"))
+                            {
+                                LOG_TRACE << "Found symlink and target " << files_record[i]
+                                          << " -> " << files_record[pix];
+                                // use already computed value
+                                paths_json["paths"][i]["sha256_in_prefix"]
+                                    = paths_json["paths"][pix]["sha256_in_prefix"];
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    paths_json["paths"][i]["sha256_in_prefix"]
+                        = validate::sha256sum(m_context->target_prefix / files_record[i]);
+                }
             }
         }
 

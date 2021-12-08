@@ -1,3 +1,14 @@
+micromamba 0.19.1 (December 08, 2021)
+=====================================
+
+Bug fixes
+
+- Fix lockfiles in Unicode prefix (@wolfv) #1319
+
+Improvements
+
+- Add `micromamba clean --trash` command to remove `*.mamba_trash` files (@wolfv) #1319
+
 micromamba 0.19.0 (November 30, 2021)
 =====================================
 

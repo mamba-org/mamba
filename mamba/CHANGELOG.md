@@ -1,3 +1,10 @@
+mamba 0.19.1 (December 08, 2021)
+================================
+
+Bug fixes
+
+- Fix environment double print and add dry run to `mamba env create` (@wolfv) #1315
+
 mamba 0.19.0 (November 30, 2021)
 ================================
 

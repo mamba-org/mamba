@@ -1,3 +1,20 @@
+libmamba 0.19.1 (December 08, 2021)
+===================================
+
+Bug fixes
+
+- Fix curl progress callback
+
+Improvements
+
+- Use WinReg from conda-forge
+- Add fast path for hide_secrets (thanks @baszalmstra) #1337
+- Use the original sha256 hash if a file doesnt change (thanks @baszalmstra) #1338
+- Rename files that are in use (and cannot be removed) on Windows (@wolfv) #1319
+- Avoid recomputing SHA256 for symbolic links (@wolfv) #1319
+- Improve cleanup of directories in use (@wolfv) #1319
+- Fix pyc compilation on Windows (@adriendelsalle) #1340
+
 libmamba 0.19.0 (November 30, 2021)
 ===================================
 

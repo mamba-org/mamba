@@ -401,3 +401,24 @@ def rmtree(path: Path):
         shutil.rmtree(p, onerror=handleError)
     else:
         os.remove(p)
+
+
+def get_fake_activate(prefix):
+    prefix = Path(prefix)
+    env = os.environ.copy()
+    curpath = env["PATH"]
+    curpath = curpath.split(os.pathsep)
+    if platform.system() == "Windows":
+        addpath = [
+            prefix,
+            prefix / "Library" / "mingw-w64" / "bin",
+            prefix / "Library" / "usr" / "bin",
+            prefix / "Library" / "bin",
+            prefix / "Scripts",
+            prefix / "bin",
+        ]
+    else:
+        addpath = [prefix / "bin"]
+    env["PATH"] = os.pathsep.join([str(x) for x in addpath + curpath])
+    env["CONDA_PREFIX"] = str(prefix)
+    return env

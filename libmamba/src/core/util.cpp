@@ -806,8 +806,11 @@ namespace mamba
         }
 
         m_lockfile_existed = fs::exists(m_lock, ec);
+#ifdef _WIN32
+        m_fd = _wopen(m_lock.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+#else
         m_fd = open(m_lock.c_str(), O_RDWR | O_CREAT, 0666);
-
+#endif
         if (m_fd <= 0)
         {
             LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";

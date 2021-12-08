@@ -1019,8 +1019,10 @@ namespace mamba
         {
             all_py_files_f << f.c_str() << '\n';
             pyc_files.push_back(pyc_path(f, m_context->short_python_version));
-            LOG_INFO << "Compiling " << pyc_files[pyc_files.size() - 1];
+            LOG_TRACE << "Compiling " << pyc_files.back();
         }
+        LOG_INFO << "Compiling " << pyc_files.size() << " python files to pyc";
+
         all_py_files_f.close();
 
         std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
@@ -1077,13 +1079,13 @@ namespace mamba
         std::vector<fs::path> final_pyc_files;
         for (auto& f : pyc_files)
         {
-            if (!fs::exists(m_context->target_prefix / f))
-            {
-                LOG_INFO << "Python file couldn't be compiled to pyc: " << f;
-            }
-            else
+            if (fs::exists(m_context->target_prefix / f))
             {
                 final_pyc_files.push_back(f);
+            }
+            else if (!ec)
+            {
+                LOG_WARNING << "Python file couldn't be compiled to pyc: " << f;
             }
         }
 

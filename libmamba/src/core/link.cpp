@@ -497,7 +497,7 @@ namespace mamba
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
 
-            command_args = { comspec, "/d", "/c", script_file->path() };
+            command_args = { comspec, "/D", "/C", script_file->path() };
         }
         else
         {
@@ -1021,7 +1021,8 @@ namespace mamba
             pyc_files.push_back(pyc_path(f, m_context->short_python_version));
             LOG_TRACE << "Compiling " << pyc_files.back();
         }
-        LOG_INFO << "Compiling " << pyc_files.size() << " python files to pyc";
+        LOG_INFO << "Compiling " << pyc_files.size() << " python files for " << m_pkg_info.name
+                 << " to pyc";
 
         all_py_files_f.close();
 
@@ -1053,20 +1054,15 @@ namespace mamba
         }
 
         reproc::options options;
-        reproc::redirect silencer;
-        silencer.type = reproc::redirect::pipe;
-        options.redirect.out = silencer;
-        options.redirect.err = silencer;
         std::string out, err;
 
-        options.redirect.parent = true;
         std::string cwd = m_context->target_prefix;
         options.working_directory = cwd.c_str();
 
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(m_context->target_prefix, command);
 
-        LOG_INFO << "Running wrapped python compilation command " << join(" ", command);
+        LOG_DEBUG << "Running wrapped python compilation command " << join(" ", command);
         auto [_, ec] = reproc::run(
             wrapped_command, options, reproc::sink::string(out), reproc::sink::string(err));
 
@@ -1131,7 +1127,6 @@ namespace mamba
                 if (na_t == "python")
                 {
                     noarch_type = NoarchType::PYTHON;
-                    LOG_INFO << "Installing Python noarch package";
                 }
                 else if (na_t == "generic")
                 {
@@ -1266,7 +1261,6 @@ namespace mamba
 
             if (m_context->compile_pyc)
             {
-                LOG_INFO << "Compiling '.pyc' files";
                 std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
 
                 for (const fs::path& pyc_path : pyc_files)
@@ -1277,8 +1271,6 @@ namespace mamba
                     out_json["files"].push_back(pyc_path);
                 }
             }
-            else
-                LOG_INFO << "Skipping '.pyc' files compilation";
 
             if (link_json.find("noarch") != link_json.end()
                 && link_json["noarch"].find("entry_points") != link_json["noarch"].end())

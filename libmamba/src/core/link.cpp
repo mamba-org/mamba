@@ -497,7 +497,7 @@ namespace mamba
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
 
-            command_args = { comspec, "/d", "/c", script_file->path() };
+            command_args = { comspec, "/D", "/C", script_file->path() };
         }
         else
         {
@@ -1053,20 +1053,15 @@ namespace mamba
         }
 
         reproc::options options;
-        reproc::redirect silencer;
-        silencer.type = reproc::redirect::pipe;
-        options.redirect.out = silencer;
-        options.redirect.err = silencer;
         std::string out, err;
 
-        options.redirect.parent = true;
         std::string cwd = m_context->target_prefix;
         options.working_directory = cwd.c_str();
 
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(m_context->target_prefix, command);
 
-        LOG_INFO << "Running wrapped python compilation command " << join(" ", command);
+        LOG_DEBUG << "Running wrapped python compilation command " << join(" ", command);
         auto [_, ec] = reproc::run(
             wrapped_command, options, reproc::sink::string(out), reproc::sink::string(err));
 

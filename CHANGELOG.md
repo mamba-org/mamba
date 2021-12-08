@@ -1,3 +1,23 @@
+2021.12.08
+==========
+
+Releases: libmamba 0.19.1, libmambapy 0.19.1, mamba 0.19.1, micromamba 0.19.1
+
+Bug fixes
+- [mamba] Fix environment double print and add dry run to `mamba env create` (@wolfv) #1315
+- [micromamba] Fix lockfiles in Unicode prefix (@wolfv) #1319
+- [libmamba] Fix curl progress callback
+
+Improvements
+- [libmamba] Use WinReg from conda-forge
+- [libmamba] Add fast path for hide_secrets (thanks @baszalmstra) #1337
+- [libmamba] Use the original sha256 hash if a file doesnt change (thanks @baszalmstra) #1338
+- [libmamba] Rename files that are in use (and cannot be removed) on Windows (@wolfv) #1319
+- [micromamba] Add `micromamba clean --trash` command to remove `*.mamba_trash` files (@wolfv) #1319
+- [libmamba] Avoid recomputing SHA256 for symbolic links (@wolfv) #1319
+- [libmamba] Improve cleanup of directories in use (@wolfv) #1319
+- [libmamba] Fix pyc compilation on Windows (@adriendelsalle) #1340
+
 2021.11.30
 ==========
 

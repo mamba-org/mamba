@@ -728,7 +728,8 @@ namespace mamba
 
                 // this is some exponential back off
                 counter += 1;
-                LOG_ERROR << ec.message() << " sleeping for " << counter;
+                LOG_ERROR << "Trying to remove " << path << ": " << ec.message()
+                          << " (file in use?). Sleeping for " << counter * 2 << "s";
                 if (counter > 3)
                     throw std::runtime_error(concat("Could not delete file ", path.string()));
                 std::this_thread::sleep_for(std::chrono::seconds(counter * 2));

@@ -27,8 +27,10 @@ namespace mamba
         bool clean_pkgs = options & MAMBA_CLEAN_PKGS;
         bool clean_tarballs = options & MAMBA_CLEAN_TARBALLS;
         bool clean_locks = options & MAMBA_CLEAN_LOCKS;
+        bool clean_trash = options & MAMBA_CLEAN_TRASH;
 
-        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks))
+        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks
+              || clean_trash))
         {
             Console::stream() << "Nothing to do." << std::endl;
             return;
@@ -119,6 +121,12 @@ namespace mamba
                     envs.push_back(p);
                 }
             }
+        }
+
+        if (clean_trash)
+        {
+            Console::stream() << "Cleaning *.mamba_trash files" << std::endl;
+            clean_trash_files(ctx.root_prefix, true);
         }
 
         // globally, collect installed packages

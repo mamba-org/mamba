@@ -490,4 +490,28 @@ namespace mamba
             EXPECT_EQ(z, "testwhitespacestrip \r \t  \n ");
         }
     }
+
+    TEST(utils, lexists)
+    {
+        fs::create_symlink("empty_target", "nonexistinglink");
+        EXPECT_FALSE(fs::exists("nonexistinglink"));
+        EXPECT_TRUE(lexists("nonexistinglink"));
+        fs::remove("nonexistinglink");
+        EXPECT_FALSE(fs::exists("nonexistinglink"));
+        EXPECT_FALSE(lexists("nonexistinglink"));
+
+        path::touch("emptytestfile");
+        EXPECT_TRUE(fs::exists("emptytestfile"));
+        EXPECT_TRUE(lexists("emptytestfile"));
+        fs::create_symlink("emptytestfile", "existinglink");
+        EXPECT_TRUE(fs::exists("existinglink"));
+        EXPECT_TRUE(lexists("existinglink"));
+
+        fs::remove("existinglink");
+        EXPECT_FALSE(fs::exists("existinglink"));
+        EXPECT_FALSE(lexists("existinglink"));
+        fs::remove("emptytestfile");
+        EXPECT_FALSE(fs::exists("emptytestfile"));
+        EXPECT_FALSE(lexists("emptytestfile"));
+    }
 }  // namespace mamba

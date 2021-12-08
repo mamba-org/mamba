@@ -54,17 +54,21 @@ namespace mamba
         return ends_with(fn, ".tar.bz2") || ends_with(fn, ".conda");
     }
 
-    // TODO make sure this returns true even for broken symlinks
+    // This function returns true even for broken symlinks
     // E.g.
     // ln -s abcdef emptylink
-    // >>> import os.path
-    // >>> os.path.lexists("emptylink")
-    // True
-    // >>> os.path.exists("emptylink")
-    // False
+    // fs::exists(emptylink) == false
+    // lexists(emptylink) == true
+    bool lexists(const fs::path& path, std::error_code& ec)
+    {
+        auto status = fs::symlink_status(path, ec);
+        return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
+    }
+
     bool lexists(const fs::path& path)
     {
-        return fs::exists(path);  // && fs::status_known(fs::symlink_status(path));
+        auto status = fs::symlink_status(path);
+        return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
     }
 
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
@@ -586,32 +590,152 @@ namespace mamba
         }
     }
 
-    void remove_or_rename(const fs::path& path)
+    std::size_t clean_trash_files(const fs::path& prefix, bool deep_clean)
     {
-        if (fs::is_directory(path))
+        std::size_t deleted_files = 0;
+        std::size_t remainig_trash = 0;
+        std::error_code ec;
+        std::vector<fs::path> remaining_files;
+        auto trash_txt = prefix / "conda-meta" / "mamba_trash.txt";
+        if (!deep_clean && fs::exists(trash_txt))
         {
-            try
+            auto all_files = read_lines(trash_txt);
+            for (auto& f : all_files)
             {
-                fs::remove_all(path);
+                fs::path full_path = prefix / f;
+                LOG_INFO << "Trash: removing " << full_path;
+                if (!fs::exists(full_path) || fs::remove(full_path, ec))
+                {
+                    deleted_files += 1;
+                }
+                else
+                {
+                    LOG_INFO << "Trash: could not remove " << full_path;
+                    remainig_trash += 1;
+                    // save relative path
+                    remaining_files.push_back(f);
+                }
             }
-            catch (const fs::filesystem_error& e)
+        }
+
+        if (deep_clean)
+        {
+            // recursive iterate over all files and delete `.mamba_trash` files
+            std::vector<fs::path> f_to_rm;
+            for (auto& p : fs::recursive_directory_iterator(prefix))
             {
-                LOG_ERROR << "Caught a filesystem error: " << e.what();
-                throw std::runtime_error("Could not remove directory " + path.string());
+                if (p.path().extension() == ".mamba_trash")
+                {
+                    f_to_rm.push_back(p.path());
+                }
             }
+            for (auto& p : f_to_rm)
+            {
+                LOG_INFO << "Trash: removing " << p;
+                if (fs::remove(p, ec))
+                {
+                    deleted_files += 1;
+                }
+                else
+                {
+                    remainig_trash += 1;
+                    // save relative path
+                    remaining_files.push_back(fs::relative(p, prefix));
+                }
+            }
+        }
+
+        if (remaining_files.empty())
+        {
+            fs::remove(trash_txt, ec);
         }
         else
         {
-            try
+            auto trash_out_file
+                = open_ofstream(trash_txt, std::ios::out | std::ios::binary | std::ios::trunc);
+            for (auto& rf : remaining_files)
             {
-                fs::remove(path);
-            }
-            catch (const fs::filesystem_error& e)
-            {
-                LOG_ERROR << "Caught a filesystem error: " << e.what();
-                throw std::runtime_error("Could not remove file " + path.string());
+                trash_out_file << rf.string() << "\n";
             }
         }
+
+        LOG_INFO << "Cleaned " << deleted_files << " .mamba_trash files. " << remainig_trash
+                 << " remaining.";
+        return deleted_files;
+    }
+
+    std::size_t remove_or_rename(const fs::path& path)
+    {
+        std::error_code ec;
+        std::size_t result = 0;
+        if (!lexists(path, ec))
+        {
+            return 0;
+        }
+
+        if (fs::is_directory(path, ec))
+        {
+            result = fs::remove_all(path, ec);
+        }
+        else
+        {
+            result = fs::remove(path, ec);
+        }
+
+        if (ec)
+        {
+            int counter = 0;
+
+            // we should only attempt writing to the trash index file from one thread at a time
+            static std::mutex trash_mutex;
+            std::lock_guard<std::mutex> guard(trash_mutex);
+
+            while (ec)
+            {
+                LOG_INFO << "Caught a filesystem error for '" << path.string()
+                         << "':" << ec.message() << " (File in use?)";
+                fs::path trash_file = path;
+                std::size_t fcounter = 0;
+
+                trash_file.replace_extension(
+                    concat(trash_file.extension().string(), ".mamba_trash"));
+                while (lexists(trash_file))
+                {
+                    trash_file = path;
+                    trash_file.replace_extension(concat(
+                        trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash"));
+                    fcounter += 1;
+                    if (fcounter > 100)
+                    {
+                        throw std::runtime_error(
+                            "Too many existing trash files. Please force clean");
+                    }
+                }
+                fs::rename(path, trash_file, ec);
+                if (!ec)
+                {
+                    // The conda-meta directory is locked by transaction execute
+                    auto trash_index = open_ofstream(Context::instance().target_prefix
+                                                         / "conda-meta" / "mamba_trash.txt",
+                                                     std::ios::app | std::ios::binary);
+
+                    // TODO add some unicode tests here?
+                    trash_index
+                        << fs::relative(trash_file, Context::instance().target_prefix).string()
+                        << "\n";
+                    return 1;
+                }
+
+                // this is some exponential back off
+                counter += 1;
+                LOG_ERROR << "Trying to remove " << path << ": " << ec.message()
+                          << " (file in use?). Sleeping for " << counter * 2 << "s";
+                if (counter > 3)
+                    throw std::runtime_error(concat("Could not delete file ", path.string()));
+                std::this_thread::sleep_for(std::chrono::seconds(counter * 2));
+            }
+        }
+        return result;
     }
 
     std::string unindent(const char* p)
@@ -683,8 +807,11 @@ namespace mamba
         }
 
         m_lockfile_existed = fs::exists(m_lock, ec);
+#ifdef _WIN32
+        m_fd = _wopen(m_lock.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+#else
         m_fd = open(m_lock.c_str(), O_RDWR | O_CREAT, 0666);
-
+#endif
         if (m_fd <= 0)
         {
             LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";

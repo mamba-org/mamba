@@ -684,16 +684,37 @@ namespace mamba
 
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
-        if (!fs::remove(dst, err))
+
+        if (remove_or_rename(dst) == 0)
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
 
         // TODO what do we do with empty directories?
         // remove empty parent path
         auto parent_path = dst.parent_path();
-        while (fs::is_empty(parent_path))
+        while (true)
         {
-            fs::remove(parent_path);
+            bool exists = fs::exists(parent_path, err);
+            if (err)
+                break;
+            if (exists)
+            {
+                bool is_empty = fs::is_empty(parent_path, err);
+                if (err)
+                    break;
+                if (is_empty)
+                {
+                    remove_or_rename(parent_path);
+                }
+                else
+                {
+                    break;
+                }
+            }
             parent_path = parent_path.parent_path();
+            if (parent_path == m_context->target_prefix)
+            {
+                break;
+            }
         }
         return true;
     }
@@ -859,7 +880,6 @@ namespace mamba
                     }
                     return std::make_tuple(validate::sha256sum(dst), rel_dst);
                 }
-
 #else
                 std::size_t padding_size
                     = (path_data.prefix_placeholder.size() > new_prefix.size())
@@ -917,7 +937,6 @@ namespace mamba
                 }
             }
 #endif
-
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
         }
 
@@ -968,6 +987,9 @@ namespace mamba
             LOG_TRACE << "soft-linked '" << src.string() << "'" << std::endl
                       << " --> '" << dst.string() << "'";
             fs::copy_symlink(src, dst);
+            // we need to wait until all files are linked to compute the SHA256 sum!
+            // otherwise the file that's pointed to might not be linked yet.
+            return std::make_tuple("", rel_dst);
         }
         else
         {
@@ -997,8 +1019,10 @@ namespace mamba
         {
             all_py_files_f << f.c_str() << '\n';
             pyc_files.push_back(pyc_path(f, m_context->short_python_version));
-            LOG_INFO << "Compiling " << pyc_files[pyc_files.size() - 1];
+            LOG_TRACE << "Compiling " << pyc_files.back();
         }
+        LOG_INFO << "Compiling " << pyc_files.size() << " python files to pyc";
+
         all_py_files_f.close();
 
         std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
@@ -1055,13 +1079,13 @@ namespace mamba
         std::vector<fs::path> final_pyc_files;
         for (auto& f : pyc_files)
         {
-            if (!fs::exists(m_context->target_prefix / f))
-            {
-                LOG_INFO << "Python file couldn't be compiled to pyc: " << f;
-            }
-            else
+            if (fs::exists(m_context->target_prefix / f))
             {
                 final_pyc_files.push_back(f);
+            }
+            else if (!ec)
+            {
+                LOG_WARNING << "Python file couldn't be compiled to pyc: " << f;
             }
         }
 
@@ -1085,12 +1109,11 @@ namespace mamba
         auto paths_data = read_paths(m_source);
 
         LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
+
         std::ifstream repodata_f = open_ifstream(m_source / "info" / "repodata_record.json");
         repodata_f >> index_json;
 
-        std::string f_name = index_json["name"].get<std::string>() + "-"
-                             + index_json["version"].get<std::string>() + "-"
-                             + index_json["build"].get<std::string>();
+        std::string f_name = m_pkg_info.str();
 
         LOG_DEBUG << "Linking package '" << f_name << "' from '" << m_source.string() << "'";
 
@@ -1162,12 +1185,58 @@ namespace mamba
 
             paths_json["paths"].push_back(json_record);
         }
+
+        for (std::size_t i = 0; i < paths_data.size(); ++i)
+        {
+            auto& path = paths_data[i];
+            if (path.path_type == PathType::SOFTLINK)
+            {
+                // here we try to avoid recomputing the costly sha256 sum
+                std::error_code ec;
+                auto points_to = fs::canonical(m_context->target_prefix / files_record[i], ec);
+                bool found = false;
+                if (!ec)
+                {
+                    for (std::size_t pix = 0; pix < files_record.size(); ++pix)
+                    {
+                        if ((m_context->target_prefix / files_record[pix]) == points_to)
+                        {
+                            if (paths_json["paths"][pix].contains("sha256_in_prefix"))
+                            {
+                                LOG_TRACE << "Found symlink and target " << files_record[i]
+                                          << " -> " << files_record[pix];
+                                // use already computed value
+                                paths_json["paths"][i]["sha256_in_prefix"]
+                                    = paths_json["paths"][pix]["sha256_in_prefix"];
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    paths_json["paths"][i]["sha256_in_prefix"]
+                        = validate::sha256sum(m_context->target_prefix / files_record[i]);
+                }
+            }
+        }
+
         LOG_DEBUG << paths_data.size() << " files linked";
 
         out_json = index_json;
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
-        out_json["requested_spec"] = "TODO";
+
+        MatchSpec* requested_spec = nullptr;
+        for (auto& ms : m_context->requested_specs)
+        {
+            if (ms.name == m_pkg_info.name)
+            {
+                requested_spec = &ms;
+            }
+        }
+        out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
         out_json["package_tarball_full_path"] = std::string(m_source) + ".tar.bz2";
         out_json["extracted_package_dir"] = m_source;
 

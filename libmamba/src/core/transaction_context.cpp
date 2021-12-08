@@ -74,10 +74,13 @@ namespace mamba
         compile_pyc = Context::instance().compile_pyc;
     }
 
-    TransactionContext::TransactionContext(const fs::path& prefix, const std::string& py_version)
+    TransactionContext::TransactionContext(const fs::path& prefix,
+                                           const std::string& py_version,
+                                           const std::vector<MatchSpec>& requested_specs)
         : has_python(py_version.size() != 0)
         , target_prefix(prefix)
         , python_version(py_version)
+        , requested_specs(requested_specs)
     {
         auto& ctx = Context::instance();
         compile_pyc = ctx.compile_pyc;

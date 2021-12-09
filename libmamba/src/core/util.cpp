@@ -74,18 +74,6 @@ namespace mamba
         return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
     }
 
-    void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
-    {
-        const char* sizes[] = { "  B", " KB", " MB", " GB", " TB" };
-        int order = 0;
-        while (bytes >= 1024 && order < (5 - 1))
-        {
-            order++;
-            bytes = bytes / 1024;
-        }
-        o << std::fixed << std::setprecision(precision) << bytes << sizes[order];
-    }
-
     std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix)
     {
         std::vector<fs::path> result;

@@ -17,7 +17,9 @@ extern "C"
 #include <vector>
 
 #include "nlohmann/json.hpp"
+
 #include "output.hpp"
+#include "progress_bar.hpp"
 #include "validate.hpp"
 
 namespace mamba
@@ -43,6 +45,7 @@ namespace mamba
         void set_expected_size(std::size_t size);
 
         const std::string& name() const;
+        std::size_t expected_size() const;
 
         void init_curl_target(const std::string& url);
 
@@ -73,6 +76,9 @@ namespace mamba
 
         bool can_retry();
         CURL* retry();
+
+        std::chrono::steady_clock::time_point progress_throttle_time() const;
+        void set_progress_throttle_time(const std::chrono::steady_clock::time_point& time);
 
         CURLcode result;
         bool failed = false;
@@ -108,6 +114,9 @@ namespace mamba
         std::ofstream m_file;
 
         static void init_curl_handle(CURL* handle, const std::string& url);
+        std::function<void(ProgressBarRepr&)> download_repr();
+
+        std::chrono::steady_clock::time_point m_progress_throttle_time;
     };
 
     class MultiDownloadTarget

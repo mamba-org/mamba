@@ -348,7 +348,6 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-
         std::vector<MRepo> repos;
         MPool pool;
         if (ctx.offline)
@@ -431,23 +430,20 @@ namespace mamba
             throw std::runtime_error("UnsatisfiableError");
         }
 
-        MTransaction trans(solver, package_caches);
+        std::vector<MRepo*> repo_ptrs;
+        for (auto& r : repos)
+            repo_ptrs.push_back(&r);
+
+        MTransaction trans(solver, package_caches, repo_ptrs);
 
         if (ctx.json)
         {
             trans.log_json();
         }
-        // TODO this is not so great
-        std::vector<MRepo*> repo_ptrs;
-        for (auto& r : repos)
-        {
-            repo_ptrs.push_back(&r);
-        }
 
         Console::stream();
 
-        bool yes = trans.prompt(repo_ptrs);
-        if (yes)
+        if (trans.prompt())
         {
             if (create_env && !Context::instance().dry_run)
                 detail::create_target_directory(ctx.target_prefix);
@@ -470,19 +466,18 @@ namespace mamba
         PrefixData prefix_data(ctx.target_prefix);
         fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
         MultiPackageCache pkg_caches({ pkgs_dirs });
-        auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
+
+        std::vector<MRepo*> repos = {};
+        auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches, repos);
 
         prefix_data.load();
         prefix_data.add_virtual_packages(get_virtual_packages());
         MRepo(pool, prefix_data);
 
-        std::vector<MRepo*> repo_ptrs;
-
         if (ctx.json)
             transaction.log_json();
 
-        bool yes = transaction.prompt(repo_ptrs);
-        if (yes)
+        if (transaction.prompt())
         {
             if (create_env && !Context::instance().dry_run)
                 detail::create_target_directory(ctx.target_prefix);

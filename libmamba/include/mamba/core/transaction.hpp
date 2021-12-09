@@ -24,6 +24,7 @@
 #include "package_cache.hpp"
 #include "package_handling.hpp"
 #include "prefix_data.hpp"
+#include "progress_bar.hpp"
 #include "repo.hpp"
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
@@ -56,6 +57,7 @@ namespace mamba
         bool extract_from_cache();
         bool validate_extract();
         const std::string& name() const;
+        std::size_t expected_size() const;
         auto validation_result() const;
         void clear_cache() const;
 
@@ -80,7 +82,8 @@ namespace mamba
         std::string m_sha256, m_md5;
         std::size_t m_expected_size;
 
-        ProgressProxy m_progress_proxy;
+        bool m_has_progress_bars = false;
+        ProgressProxy m_download_bar, m_extract_bar;
         std::unique_ptr<DownloadTarget> m_target;
 
         std::string m_url, m_name, m_channel, m_filename;
@@ -89,6 +92,9 @@ namespace mamba
         std::future<bool> m_extract_future;
 
         VALIDATION_RESULT m_validation_result = VALIDATION_RESULT::UNDEFINED;
+
+        std::function<void(ProgressBarRepr&)> extract_repr();
+        std::function<void(ProgressProxy&)> extract_progress_callback();
     };
 
     class DownloadExtractSemaphore
@@ -115,8 +121,9 @@ namespace mamba
         MTransaction(MPool& pool,
                      const std::vector<MatchSpec>& specs_to_remove,
                      const std::vector<MatchSpec>& specs_to_install,
-                     MultiPackageCache& caches);
-        MTransaction(MSolver& solver, MultiPackageCache& caches);
+                     MultiPackageCache& caches,
+                     std::vector<MRepo*> repos);
+        MTransaction(MSolver& solver, MultiPackageCache& caches, std::vector<MRepo*> repos);
 
         ~MTransaction();
 
@@ -133,9 +140,9 @@ namespace mamba
         void init();
         to_conda_type to_conda();
         void log_json();
-        bool fetch_extract_packages(std::vector<MRepo*>& repos);
+        bool fetch_extract_packages();
         bool empty();
-        bool prompt(std::vector<MRepo*>& repos);
+        bool prompt();
         void print();
         bool execute(PrefixData& prefix);
         bool filter(Solvable* s);
@@ -150,6 +157,8 @@ namespace mamba
         MultiPackageCache m_multi_cache;
         const fs::path m_cache_path;
         std::vector<Solvable*> m_to_install, m_to_remove;
+        std::vector<MRepo*> m_repos;
+
         History::UserRequest m_history_entry;
         Transaction* m_transaction;
 
@@ -160,7 +169,8 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_urls(MPool& pool,
                                                        const std::vector<std::string>& urls,
-                                                       MultiPackageCache& package_caches);
+                                                       MultiPackageCache& package_caches,
+                                                       std::vector<MRepo*>& repos);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

@@ -6,23 +6,25 @@ find_package(Threads REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 
 set(TEST_SRCS
+    test_activation.cpp
     test_channel.cpp
     test_configuration.cpp
     test_cpp.cpp
-    test_url.cpp
-    history_test/test_history.cpp
-    test_shell_init.cpp
-    test_activation.cpp
-    test_string_methods.cpp
+    test_env_file_reading.cpp
     test_environments_manager.cpp
-    test_transfer.cpp
-    test_thread_utils.cpp
     test_graph.cpp
+    history_test/test_history.cpp
+    test_lockfile.cpp
     test_pinning.cpp
+    test_output.cpp
+    test_progress_bar.cpp
+    test_shell_init.cpp
+    test_string_methods.cpp
+    test_thread_utils.cpp
+    test_transfer.cpp
+    test_url.cpp
     test_validate.cpp
     test_virtual_packages.cpp
-    test_env_file_reading.cpp
-    test_lockfile.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

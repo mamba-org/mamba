@@ -8,6 +8,7 @@ import os
 import sys
 from logging import getLogger
 from os.path import isdir, isfile, join
+from pathlib import Path
 
 # create support
 from conda.base.constants import ChannelPriority, DepsModifier, UpdateModifier
@@ -217,10 +218,12 @@ def remove(args, parser):
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
-        downloaded = transaction.prompt(repos)
-        if not downloaded:
+        transaction = api.Transaction(solver, package_cache, repos)
+
+        if not transaction.prompt():
             exit(0)
+        elif not context.dry_run:
+            transaction.fetch_extract_packages()
 
         mmb_specs, to_link, to_unlink = transaction.to_conda()
         transaction.log_json()
@@ -552,23 +555,30 @@ def install(args, parser, command="install"):
             return exit_code
 
         package_cache = api.MultiPackageCache(context.pkgs_dirs)
-        transaction = api.Transaction(solver, package_cache)
+        transaction = api.Transaction(solver, package_cache, repos)
         mmb_specs, to_link, to_unlink = transaction.to_conda()
 
         specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
         specs_to_remove = [MatchSpec(m) for m in mmb_specs[1]]
 
         transaction.log_json()
-        downloaded = transaction.prompt(repos)
-        if not downloaded:
-            exit(0)
 
-    # if use_mamba_experimental and not os.name == "nt":
     if use_mamba_experimental:
-        if newenv and not isdir(context.target_prefix) and not context.dry_run:
-            mkdir_p(prefix)
-        transaction.execute(prefix_data)
+        if transaction.prompt():
+            if (
+                newenv
+                and not isdir(Path(prefix) / "conda-meta")
+                and not context.dry_run
+            ):
+                mkdir_p(Path(prefix) / "conda-meta")
+
+            transaction.execute(prefix_data)
     else:
+        if not transaction.prompt():
+            exit(0)
+        elif not context.dry_run:
+            transaction.fetch_extract_packages()
+
         conda_transaction = to_txn(
             specs_to_add,
             specs_to_remove,

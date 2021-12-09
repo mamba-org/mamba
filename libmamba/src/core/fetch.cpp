@@ -347,41 +347,62 @@ namespace mamba
         return nitems * size;
     }
 
+    std::function<void(ProgressBarRepr&)> DownloadTarget::download_repr()
+    {
+        return [&](ProgressBarRepr& r) -> void {
+            r.current.set_value(
+                fmt::format("{:>7}", to_human_readable_filesize(m_progress_bar.current(), 1)));
+
+            std::string total_str;
+            if (!m_progress_bar.total()
+                || (m_progress_bar.total() == std::numeric_limits<std::size_t>::max()))
+                total_str = "??.?MB";
+            else
+                total_str = to_human_readable_filesize(m_progress_bar.total(), 1);
+            r.total.set_value(fmt::format("{:>7}", total_str));
+
+            auto speed = m_progress_bar.speed();
+            r.speed.set_value(
+                fmt::format("@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
+
+            r.separator.set_value("/");
+        };
+    }
+
+    std::chrono::steady_clock::time_point DownloadTarget::progress_throttle_time() const
+    {
+        return m_progress_throttle_time;
+    }
+
+    void DownloadTarget::set_progress_throttle_time(
+        const std::chrono::steady_clock::time_point& time)
+    {
+        m_progress_throttle_time = time;
+    }
+
     int DownloadTarget::progress_callback(
         void* f, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t)
     {
         auto* target = static_cast<DownloadTarget*>(f);
 
-        if (Context::instance().quiet || Context::instance().json)
-        {
+        auto now = std::chrono::steady_clock::now();
+        if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
             return 0;
-        }
-
-        if ((total_to_download != 0 || target->m_expected_size != 0))
-        {
-            std::stringstream postfix;
-            postfix << std::setw(6);
-            to_human_readable_filesize(postfix, now_downloaded);
-            postfix << " / ";
-            postfix << std::setw(6);
-            to_human_readable_filesize(postfix, total_to_download);
-            postfix << " (";
-            postfix << std::setw(6);
-            to_human_readable_filesize(postfix, target->get_speed(), 2);
-            postfix << "/s)";
-            target->m_progress_bar.set_progress(now_downloaded, total_to_download);
-            target->m_progress_bar.set_postfix(postfix.str());
-        }
         else
-        {
-            std::stringstream postfix;
-            to_human_readable_filesize(postfix, now_downloaded);
-            postfix << " / ?? (";
-            to_human_readable_filesize(postfix, target->get_speed(), 2);
-            postfix << "/s)";
-            target->m_progress_bar.set_progress(SIZE_MAX, SIZE_MAX);
-            target->m_progress_bar.set_postfix(postfix.str());
-        }
+            target->set_progress_throttle_time(now);
+
+        if (!total_to_download && !target->expected_size())
+            target->m_progress_bar.activate_spinner();
+        else
+            target->m_progress_bar.deactivate_spinner();
+
+        if (!total_to_download && target->expected_size())
+            target->m_progress_bar.update_current(now_downloaded);
+        else
+            target->m_progress_bar.update_progress(now_downloaded, total_to_download);
+
+        target->m_progress_bar.set_speed(target->get_speed());
+
         return 0;
     }
 
@@ -407,6 +428,8 @@ namespace mamba
     {
         m_has_progress_bar = true;
         m_progress_bar = progress_proxy;
+        m_progress_bar.set_repr_hook(download_repr());
+
         curl_easy_setopt(m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
         curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
         curl_easy_setopt(m_handle, CURLOPT_NOPROGRESS, 0L);
@@ -422,11 +445,15 @@ namespace mamba
         return m_name;
     }
 
+    std::size_t DownloadTarget::expected_size() const
+    {
+        return m_expected_size;
+    }
+
     static size_t discard(char* ptr, size_t size, size_t nmemb, void*)
     {
         return size * nmemb;
     }
-
 
     bool DownloadTarget::resource_exists()
     {
@@ -474,7 +501,14 @@ namespace mamba
     {
         curl_off_t speed;
         CURLcode res = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &speed);
-        return res == CURLE_OK ? speed : 0;
+        if (res != CURLE_OK)
+        {
+            if (m_has_progress_bar)
+                speed = m_progress_bar.avg_speed();
+            else
+                speed = 0;
+        }
+        return speed;
     }
 
     void DownloadTarget::set_result(CURLcode r)
@@ -499,7 +533,8 @@ namespace mamba
 
             if (m_has_progress_bar)
             {
-                m_progress_bar.set_progress(0, 1);
+                m_progress_bar.update_progress(0, 1);
+                // m_progress_bar.set_elapsed_time();
                 m_progress_bar.set_postfix(curl_easy_strerror(result));
             }
             if (!m_ignore_failure && !can_retry())
@@ -513,17 +548,12 @@ namespace mamba
     {
         char* effective_url = nullptr;
 
-        auto cres = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
-        if (cres != CURLE_OK)
-        {
-            avg_speed = 0;
-        }
-
+        avg_speed = get_speed();
         curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-        LOG_INFO << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
+        LOG_INFO << "Transfer finalized, status " << http_status << " [" << effective_url << "] "
                  << downloaded_size << " bytes";
 
         if (http_status >= 500 && can_retry())
@@ -533,26 +563,53 @@ namespace mamba
                 = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
             std::stringstream msg;
             msg << "Failed (" << http_status << "), retry in " << m_retry_wait_seconds << "s";
-            m_progress_bar.set_progress(0, downloaded_size);
-            m_progress_bar.set_postfix(msg.str());
+            if (m_has_progress_bar)
+            {
+                m_progress_bar.update_progress(0, downloaded_size);
+                m_progress_bar.set_postfix(msg.str());
+            }
             return false;
         }
 
         m_file.close();
-
         final_url = effective_url;
-        if (m_finalize_callback)
+
+        if (m_has_progress_bar)
         {
-            return m_finalize_callback();
+            m_progress_bar.set_speed(avg_speed);
+            m_progress_bar.set_total(downloaded_size);
+            m_progress_bar.set_full();
+            m_progress_bar.set_postfix("downloaded");
         }
+
+        bool ret = true;
+        if (m_finalize_callback)
+            ret = m_finalize_callback();
         else
         {
             if (m_has_progress_bar)
-            {
-                m_progress_bar.mark_as_completed("Downloaded " + m_name);
-            }
+                m_progress_bar.mark_as_completed();
+            else
+                Console::instance().print(name() + " completed");
         }
-        return true;
+
+        if (m_has_progress_bar)
+        {
+            // make sure total value is up-to-date
+            m_progress_bar.update_repr(false);
+            // select field to display and make sure they are
+            // properly set if not yet printed by the progress bar manager
+            ProgressBarRepr r = m_progress_bar.repr();
+            r.prefix.set_format("{:<35}").reset_width();
+            r.progress.deactivate();
+            r.current.deactivate();
+            r.separator.deactivate();
+
+            auto console_stream = Console::stream();
+            r.print(console_stream, 0, false);
+        }
+
+        return ret;
     }
 
     /**************************************
@@ -622,7 +679,7 @@ namespace mamba
 
             if (msg->msg == CURLMSG_DONE)
             {
-                LOG_INFO << "Transfer done ...";
+                LOG_INFO << "Transfer done for '" << current_target->name() << "'";
                 // We are only interested in messages about finished transfers
                 curl_multi_remove_handle(m_handle, current_target->handle());
 
@@ -632,7 +689,7 @@ namespace mamba
                     // transfer did not work! can we retry?
                     if (current_target->can_retry())
                     {
-                        LOG_INFO << "Adding target to retry!";
+                        LOG_INFO << "Setting retry for '" << current_target->name() << "'";
                         m_retry_targets.push_back(current_target);
                     }
                     else
@@ -650,7 +707,32 @@ namespace mamba
 
     bool MultiDownloadTarget::download(bool failfast)
     {
+        auto& ctx = Context::instance();
+
+        if (m_targets.empty())
+        {
+            LOG_INFO << "All targets to download are cached";
+            return true;
+        }
+
+        std::sort(
+            m_targets.begin(), m_targets.end(), [](DownloadTarget* a, DownloadTarget* b) -> bool {
+                return a->expected_size() > b->expected_size();
+            });
+
         LOG_INFO << "Starting to download targets";
+
+        auto& pbar_manager = Console::instance().progress_bar_manager();
+        interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
+
+        // be sure the progress bar manager was not already started
+        // it would mean this code is part of a larger process using progress bars
+        bool pbar_manager_started = pbar_manager.started();
+        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        {
+            pbar_manager.start();
+            pbar_manager.watch_print();
+        }
 
         int still_running, repeats = 0;
         const long max_wait_msecs = 1000;
@@ -723,6 +805,13 @@ namespace mamba
             curl_multi_cleanup(m_handle);
             return false;
         }
+
+        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        {
+            pbar_manager.terminate();
+            pbar_manager.clear_progress_bars();
+        }
+
         return true;
     }
 }  // namespace mamba

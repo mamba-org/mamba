@@ -68,7 +68,8 @@ namespace mamba
                              const std::string& repodata_fn,
                              MultiPackageCache& caches,
                              bool is_noarch)
-        : m_loaded(false)
+        : m_progress_bar(ProgressProxy())
+        , m_loaded(false)
         , m_download_complete(false)
         , m_repodata_url(repodata_url)
         , m_name(name)
@@ -198,7 +199,7 @@ namespace mamba
         {
             std::string prefix = m_name;
             prefix.resize(PREFIX_LENGTH - 1, ' ');
-            Console::stream() << prefix << " Using cache";
+            Console::stream() << fmt::format("{:<35} Using cache", prefix);
         }
         else
         {
@@ -242,9 +243,13 @@ namespace mamba
         {
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
                      << ") for '" << m_repodata_url << "'";
-            m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " Failed");
-            m_progress_bar.set_full();
-            m_progress_bar.mark_as_completed();
+
+            if (m_progress_bar)
+            {
+                m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
+                m_progress_bar.set_full();
+                m_progress_bar.mark_as_completed();
+            }
             m_loaded = false;
             return false;
         }
@@ -314,7 +319,6 @@ namespace mamba
                 m_valid_cache_path = writable_cache_path;
             }
 
-
             {
                 LOG_TRACE << "Refreshing '" << json_file.string() << "'";
                 auto lock = LockFile(json_file);
@@ -328,9 +332,17 @@ namespace mamba
                 m_solv_cache_valid = true;
             }
 
-            m_progress_bar.set_postfix("No change");
-            m_progress_bar.set_full();
-            m_progress_bar.mark_as_completed();
+            if (m_progress_bar)
+            {
+                m_progress_bar.set_postfix("No change");
+                m_progress_bar.mark_as_completed();
+
+                auto& r = m_progress_bar.repr();
+                r.prefix.set_format("{:<35}");
+                r.total.deactivate();
+                r.speed.deactivate();
+                r.elapsed.deactivate();
+            }
 
             m_json_cache_valid = true;
             m_loaded = true;
@@ -370,11 +382,13 @@ namespace mamba
 
         if (ends_with(m_repodata_url, ".bz2"))
         {
-            m_progress_bar.set_postfix("Decomp...");
+            if (m_progress_bar)
+                m_progress_bar.set_postfix("decompressing");
             decompress();
         }
 
-        m_progress_bar.set_postfix("Finalizing...");
+        if (m_progress_bar)
+            m_progress_bar.set_postfix("finalizing");
 
         std::ifstream temp_file = open_ifstream(m_temp_file->path());
         std::stringstream temp_json;
@@ -397,9 +411,11 @@ namespace mamba
             exit(1);
         }
 
-        m_progress_bar.set_postfix("Done");
-        m_progress_bar.set_full();
-        m_progress_bar.mark_as_completed();
+        if (m_progress_bar)
+        {
+            m_progress_bar.repr().postfix.set_value("downloaded").deactivate();
+            m_progress_bar.mark_as_completed();
+        }
 
         m_valid_cache_path = writable_cache_path;
         m_json_cache_valid = true;
@@ -429,10 +445,14 @@ namespace mamba
 
     void MSubdirData::create_target(nlohmann::json& mod_etag)
     {
+        auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        m_progress_bar = Console::instance().add_progress_bar(m_name);
         m_target = std::make_unique<DownloadTarget>(m_name, m_repodata_url, m_temp_file->path());
-        m_target->set_progress_bar(m_progress_bar);
+        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+        {
+            m_progress_bar = Console::instance().add_progress_bar(m_name);
+            m_target->set_progress_bar(m_progress_bar);
+        }
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved
         if (!m_is_noarch)

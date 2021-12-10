@@ -5,6 +5,7 @@
 
 from __future__ import absolute_import, print_function
 
+import os
 import sys
 import tempfile
 
@@ -16,7 +17,14 @@ from conda_env.installers import conda
 
 import libmambapy as api
 from mamba.linking import handle_txn
-from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
+from mamba.utils import (
+    compute_final_precs,
+    get_installed_jsonfile,
+    init_api_context,
+    load_channels,
+    to_txn,
+    to_txn_precs,
+)
 
 
 def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
@@ -51,10 +59,21 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
 
     installed_pkg_recs = []
 
+    prune = getattr(args, "prune", False)
+
     # We check for installed packages even while creating a new
     # Conda environment as virtual packages such as __glibc are
     # always available regardless of the environment.
     installed_json_f, installed_pkg_recs = get_installed_jsonfile(prefix)
+    if prune:
+        try:
+            installed_json_f.close()
+            os.unlink(installed_json_f.name)
+        except Exception:
+            pass
+        installed_pkg_recs_prefix = installed_pkg_recs
+        with tempfile.TemporaryDirectory() as td:
+            installed_json_f, installed_pkg_recs = get_installed_jsonfile(td)
     repo = api.Repo(pool, "installed", installed_json_f.name, "")
     repo.set_installed()
     repos.append(repo)
@@ -124,10 +143,29 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     downloaded = transaction.prompt(repos)
     if not downloaded:
         exit(0)
-    conda_transaction = to_txn(
-        specs_to_add, [], prefix, to_link, to_unlink, installed_pkg_recs, index
-    )
+    if prune:
+        history = api.History(prefix)
+        history_map = history.get_requested_specs_map()
+        specs_to_add_names = {m.name for m in specs_to_add}
+        specs_to_remove = [
+            MatchSpec(m) for m in history_map if m not in specs_to_add_names
+        ]
+        final_precs = compute_final_precs(
+            None, to_link, to_unlink, installed_pkg_recs_prefix, index
+        )
+        conda_transaction = to_txn_precs(
+            specs_to_add, specs_to_remove, prefix, final_precs
+        )
+    else:
+        conda_transaction = to_txn(
+            specs_to_add, [], prefix, to_link, to_unlink, installed_pkg_recs, index
+        )
     handle_txn(conda_transaction, prefix, args, True)
+    try:
+        installed_json_f.close()
+        os.unlink(installed_json_f.name)
+    except Exception:
+        pass
 
 
 def mamba_dry_run(specs, args, env, *_, **kwargs):

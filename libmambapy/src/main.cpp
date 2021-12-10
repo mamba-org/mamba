@@ -273,7 +273,25 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<Solvable*>())
         .def(py::init<const std::string&>())
         .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
-        .def_readwrite("name", &PackageInfo::name);
+        .def_readwrite("name", &PackageInfo::name)
+        .def_readwrite("version", &PackageInfo::version)
+        .def_readwrite("build_string", &PackageInfo::build_string)
+        .def_readwrite("build_number", &PackageInfo::build_number)
+        .def_readwrite("channel", &PackageInfo::channel)
+        .def_readwrite("url", &PackageInfo::url)
+        .def_readwrite("subdir", &PackageInfo::subdir)
+        .def_readwrite("fn", &PackageInfo::fn)
+        .def_readwrite("license", &PackageInfo::license)
+        .def_readwrite("size", &PackageInfo::size)
+        .def_readwrite("timestamp", &PackageInfo::timestamp)
+        .def_readwrite("md5", &PackageInfo::md5)
+        .def_readwrite("sha256", &PackageInfo::sha256)
+        .def_readwrite("track_features", &PackageInfo::track_features)
+        .def_readwrite("depends", &PackageInfo::depends)
+        .def_readwrite("constrains", &PackageInfo::constrains)
+        .def_readwrite("signatures", &PackageInfo::signatures)
+        .def_readwrite("extra_metadata", &PackageInfo::extra_metadata)
+        .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys);
 
     // Content trust - Package signature and verification
     m.def("generate_ed25519_keypair", &validate::generate_ed25519_keypair_hex);

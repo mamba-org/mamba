@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 #include "match_spec.hpp"
 #include "output.hpp"
@@ -50,10 +51,11 @@ namespace mamba
         void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
-        bool is_solved();
+        bool is_solved() const;
         bool solve();
-        std::string problems_to_str();
-        std::string all_problems_to_str();
+        std::string problems_to_str() const;
+        nlohmann::json problems_to_json() const;
+        std::string all_problems_to_str() const;
 
         const std::vector<MatchSpec>& install_specs() const;
         const std::vector<MatchSpec>& remove_specs() const;

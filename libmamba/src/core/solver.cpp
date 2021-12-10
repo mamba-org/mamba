@@ -315,7 +315,7 @@ namespace mamba
         }
     }
 
-    bool MSolver::is_solved()
+    bool MSolver::is_solved() const
     {
         return m_is_solved;
     }
@@ -354,7 +354,7 @@ namespace mamba
         return success;
     }
 
-    std::string MSolver::all_problems_to_str()
+    std::string MSolver::all_problems_to_str() const
     {
         std::stringstream problems;
 
@@ -387,7 +387,7 @@ namespace mamba
         return problems.str();
     }
 
-    std::string MSolver::problems_to_str()
+    std::string MSolver::problems_to_str() const
     {
         Queue problem_queue;
         queue_init(&problem_queue);
@@ -400,6 +400,22 @@ namespace mamba
         }
         queue_free(&problem_queue);
         return "Encountered problems while solving:\n" + problems.str();
+    }
+
+    nlohmann::json MSolver::problems_to_json() const
+    {
+        std::vector<nlohmann::json> problems;
+        Queue problem_queue;
+        queue_init(&problem_queue);
+        int count = solver_problem_count(m_solver);
+        for (int i = 1; i <= count; i++)
+        {
+            queue_push(&problem_queue, i);
+            problems.push_back(solver_problem2str(m_solver, i));
+        }
+        queue_free(&problem_queue);
+
+        return problems;
     }
 
     MSolver::operator Solver*()

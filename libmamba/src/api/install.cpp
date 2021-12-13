@@ -519,6 +519,13 @@ namespace mamba
             if (ctx.freeze_installed)
                 Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");
 
+            if (ctx.json)
+            {
+                Console::instance().json_write(
+                    { { "success", false }, { "solver_problems", solver.all_problems() } });
+                Console::instance().json_print();
+            }
+
             Console::stream() << "The environment can't be solved, aborting the operation";
             LOG_ERROR << "Could not solve for environment specs";
             throw std::runtime_error("UnsatisfiableError");

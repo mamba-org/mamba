@@ -522,7 +522,7 @@ namespace mamba
             if (ctx.json)
             {
                 Console::instance().json_write(
-                    { { "success", false }, { "solver_problems", solver.problems_to_json() } });
+                    { { "success", false }, { "solver_problems", solver.all_problems() } });
                 Console::instance().json_print();
             }
 

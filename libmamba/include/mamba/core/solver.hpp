@@ -11,7 +11,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <nlohmann/json.hpp>
 
 #include "match_spec.hpp"
 #include "output.hpp"
@@ -54,7 +53,7 @@ namespace mamba
         bool is_solved() const;
         bool solve();
         std::string problems_to_str() const;
-        nlohmann::json problems_to_json() const;
+        std::vector<std::string> all_problems() const;
         std::string all_problems_to_str() const;
 
         const std::vector<MatchSpec>& install_specs() const;

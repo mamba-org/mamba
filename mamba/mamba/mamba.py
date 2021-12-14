@@ -884,9 +884,13 @@ def main(*args, **kwargs):
     init_std_stream_encoding()
 
     if "activate" in sys.argv or "deactivate" in sys.argv:
-        print("Run 'mamba init' to be able to run mamba activate/deactivate")
-        print("and start a new shell session. Or use conda to activate/deactivate.")
-        print("\n    $ conda " + " ".join(sys.argv[1:]) + "\n")
+        print(
+            f"Run 'mamba init' to be able to run mamba activate/deactivate\n"
+            f"and start a new shell session. Or use conda to activate/deactivate.\n"
+            f"\n"
+            f"    $ conda {' '.join(sys.argv[1:])}\n",
+            file=sys.stderr,
+        )
         return sys.exit(-1)
 
     if not args:

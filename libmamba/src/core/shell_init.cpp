@@ -242,7 +242,8 @@ namespace mamba
                 << " ]; then\n";
         content << "        . " << (env_prefix / "etc" / "profile.d" / "mamba.sh") << "\n";
         content << "    else\n";
-        content << "        export PATH=\"" << env_bin.c_str() << ":$PATH\"\n";
+        content << "        export  PATH=\"" << env_bin.c_str() << ":$PATH\""
+                << "  # extra space after export prevents interference from conda init\n";
         content << "    fi\n";
         content << "fi\n";
         content << "unset __mamba_setup\n";

@@ -33,15 +33,16 @@ set_activate_command(CLI::App* subcom)
         std::stringstream message;
 
         message
-            << "\nIn order to use activate and deactivate you need to initialize your shell.\n"
-            << "Either call shell init ... or execute the shell hook directly:\n\n"
-            << "    $ eval \"$(./micromamba shell hook -s bash)\"\n\n"
-            << "and then run activate and deactivate like so:\n\n"
-            << "    $ micromamba activate  " << termcolor::white
-            << "# notice the missing dot in front of the command\n\n"
-            << "To permanently initialize your shell, use shell init like so:\n\n"
-            << "    $ ./micromamba shell init -s bash -p /home/$USER/micromamba \n\n"
-            << "and restart your shell. Supported shells are bash, zsh, xonsh, cmd.exe, powershell, and fish."
+            << "\n"
+            << "In order to use activate and deactivate you need to initialize your shell. "
+            << "(Micromamba is running as a subprocess, so it cannot modify the parent shell.)\n"
+            << "To initialize the current (bash) shell, run:\n\n"
+            << "    $ eval \"$(micromamba shell hook --shell=bash)\"\n\n"
+            << "and then activate or deactivate with:\n\n"
+            << "    $ micromamba activate\n\n"
+            << "To automatically initialize all future (bash) shells, run:\n\n"
+            << "    $ micromamba shell init --shell=bash --prefix=/home/$USER/micromamba \n\n"
+            << "Supported shells are bash, zsh, xonsh, cmd.exe, powershell, and fish."
             << termcolor::reset;
 
         throw std::runtime_error(message.str());

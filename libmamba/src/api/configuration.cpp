@@ -380,8 +380,6 @@ namespace mamba
         {
             if (value)
             {
-                Console::stream() << termcolor::yellow << "Experimental mode enabled!"
-                                  << termcolor::reset;
                 LOG_WARNING << "Experimental mode enabled";
             }
         }

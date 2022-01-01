@@ -48,8 +48,7 @@ init_shell_parser(CLI::App* subcom)
                                                       "activate",
                                                       "deactivate",
                                                       "hook",
-                                                      "reactivate",
-                                                      "deactivate"
+                                                      "reactivate"
 #ifdef _WIN32
                                                       ,
                                                       "enable-long-paths-support"

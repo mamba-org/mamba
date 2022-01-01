@@ -54,7 +54,8 @@ init_shell_parser(CLI::App* subcom)
                                                       ,
                                                       "enable-long-paths-support"
 #endif
-        })));
+        })))
+        ->required();
 
     auto& prefix = config.insert(
         Configurable("shell_prefix", std::string(""))

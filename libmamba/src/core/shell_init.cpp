@@ -27,8 +27,8 @@ namespace mamba
     namespace
     {
         // Here we are embedding the shell scripts
-        constexpr const char mamba_sh[] =
-#include "../data/mamba.sh"
+        constexpr const char micromamba_sh[] =
+#include "../data/micromamba.sh"
             ;
         constexpr const char mamba_bat[] =
 #include "../data/micromamba.bat"
@@ -238,9 +238,9 @@ namespace mamba
         content << "if [ $? -eq 0 ]; then\n";
         content << "    eval \"$__mamba_setup\"\n";
         content << "else\n";
-        content << "    if [ -f " << (env_prefix / "etc" / "profile.d" / "mamba.sh")
+        content << "    if [ -f " << (env_prefix / "etc" / "profile.d" / "micromamba.sh")
                 << " ]; then\n";
-        content << "        . " << (env_prefix / "etc" / "profile.d" / "mamba.sh") << "\n";
+        content << "        . " << (env_prefix / "etc" / "profile.d" / "micromamba.sh") << "\n";
         content << "    else\n";
         content << "        export PATH=\"" << env_bin.c_str() << ":$PATH\"\n";
         content << "    fi\n";
@@ -373,7 +373,7 @@ namespace mamba
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
-            std::string contents = mamba_sh;
+            std::string contents = micromamba_sh;
             replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
@@ -482,7 +482,7 @@ namespace mamba
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
             std::ofstream sh_file = open_ofstream(sh_source_path);
-            sh_file << mamba_sh;
+            sh_file << micromamba_sh;
         }
         if (shell == "xonsh")
         {

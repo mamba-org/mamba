@@ -829,7 +829,7 @@ namespace mamba
 
     fs::path PosixActivator::hook_source_path()
     {
-        return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.sh";
+        return Context::instance().root_prefix / "etc" / "profile.d" / "micromamba.sh";
     }
 
     std::string CmdExeActivator::shell_extension()

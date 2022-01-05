@@ -86,6 +86,9 @@ overwrite_callbacks(std::vector<CLI::App*>& apps,
 void
 add_activate_completion(CLI::App* app, std::vector<std::string>& completer_args, bool& completed)
 {
+    auto* current_subcom = app->get_subcommand("activate");
+    app->remove_subcommand(current_subcom);
+
     CLI::App* activate_subcom
         = app->add_subcommand("activate", "Mock activate shell function for completion");
     activate_subcom->callback([app, &completer_args, &completed]() {

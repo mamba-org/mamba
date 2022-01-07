@@ -130,7 +130,7 @@ Note: currently the `-c` arguments have to come at the end of the command line.
 
 ```sh
 micromamba activate
-micromamba install python=3.6 jupyter -c conda-forge
+micromamba install python=3.10 jupyter -c conda-forge
 # or
 micromamba create -p /some/new/prefix xtensor -c conda-forge
 micromamba activate /some/new/prefix

@@ -44,14 +44,14 @@ init_shell_parser(CLI::App* subcom)
                                      .group("cli")
                                      .description("The action to complete"));
     subcom->add_option("action", action.set_cli_config(""), action.description())
-        ->check(CLI::IsMember(std::set<std::string>({ "init",
-                                                      "activate",
-                                                      "deactivate",
-                                                      "hook",
-                                                      "reactivate"
+        ->check(CLI::IsMember(std::vector<std::string>({ "init",
+                                                         "hook",
+                                                         "activate",
+                                                         "deactivate",
+                                                         "reactivate"
 #ifdef _WIN32
-                                                      ,
-                                                      "enable-long-paths-support"
+                                                         ,
+                                                         "enable-long-paths-support"
 #endif
         })))
         ->required();

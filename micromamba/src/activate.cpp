@@ -6,45 +6,36 @@
 
 #include "common_options.hpp"
 
-#include "mamba/api/configuration.hpp"
-
-#include "termcolor/termcolor.hpp"
-
+#include "mamba/core/util.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-void
-init_activate_parser(CLI::App* subcom)
-{
-    auto& config = Configuration::instance();
-
-    auto& env_name = config.insert(Configurable("activate_env_name", std::string(""))
-                                       .group("cli")
-                                       .description("The name of the environment to activate"));
-    subcom->add_option("env_name", env_name.set_cli_config(""), env_name.description());
-}
 
 void
 set_activate_command(CLI::App* subcom)
 {
-    init_activate_parser(subcom);
+    std::string name = "";
+    bool stack = false;
+
+    subcom->add_option("prefix", name, "The prefix to activate");
+    subcom->add_flag("--stack", stack, "Defines if the activation has to be stacked or not");
 
     subcom->callback([&]() {
-        std::stringstream message;
+        std::string message = unindent(R"(
+            In order to use activate and deactivate you need to initialize your shell.
+            (micromamba is running as a subprocess and can't modify the parent one)
 
-        message
-            << "\n"
-            << "In order to use activate and deactivate you need to initialize your shell. "
-            << "(Micromamba is running as a subprocess, so it cannot modify the parent shell.)\n"
-            << "To initialize the current (bash) shell, run:\n\n"
-            << "    $ eval \"$(micromamba shell hook --shell=bash)\"\n\n"
-            << "and then activate or deactivate with:\n\n"
-            << "    $ micromamba activate\n\n"
-            << "To automatically initialize all future (bash) shells, run:\n\n"
-            << "    $ micromamba shell init --shell=bash --prefix=/home/$USER/micromamba \n\n"
-            << "Supported shells are bash, zsh, xonsh, cmd.exe, powershell, and fish."
-            << termcolor::reset;
+            To initialize the current (bash) shell, run:
+                $ eval \"$(micromamba shell hook --shell=bash)\"
+            and then activate or deactivate with:
+                $ micromamba activate
 
-        throw std::runtime_error(message.str());
+            To automatically initialize all future (bash) shells, run:
+                $ micromamba shell init --shell=bash --prefix=/home/$USER/micromamba
+
+            Supported shells are bash, zsh, xonsh, cmd.exe, powershell, and fish.)");
+
+        std::cout << "\n" << message << "\n" << std::endl;
+        throw std::runtime_error("Shell not initialized");
     });
 }

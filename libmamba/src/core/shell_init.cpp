@@ -84,7 +84,7 @@ namespace mamba
         {
             return "cmd.exe";
         }
-        if (contains(parent_process_name, "powershell"))
+        if (contains(parent_process_name, "powershell") || contains(parent_process_name, "pwsh"))
         {
             return "powershell";
         }

@@ -79,19 +79,8 @@ set_umamba_command(CLI::App* com)
     CLI::App* env_subcom = com->add_subcommand("env", "List environments");
     set_env_command(env_subcom);
 
-    std::stringstream footer;  // just for the help text
+    CLI::App* activate_subcom = com->add_subcommand("activate", "Activate an environment");
+    set_activate_command(activate_subcom);
 
-    footer
-        << "In order to use activate and deactivate you need to initialize your shell.\n"
-        << "Either call shell init ... or execute the shell hook directly:\n\n"
-        << "    $ eval \"$(./micromamba shell hook -s bash)\"\n\n"
-        << "and then run activate and deactivate like so:\n\n"
-        << "    $ micromamba activate  " << termcolor::white
-        << "# notice the missing dot in front of the command\n\n"
-        << "To permanently initialize your shell, use shell init like so:\n\n"
-        << "    $ ./micromamba shell init -s bash -p /home/$USER/micromamba \n\n"
-        << "and restart your shell. Supported shells are bash, zsh, xonsh, cmd.exe, powershell, and fish."
-        << termcolor::reset;
-
-    com->footer(footer.str());
+    com->require_subcommand(/* min */ 0, /* max */ 1);
 }

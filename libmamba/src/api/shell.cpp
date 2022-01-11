@@ -154,7 +154,8 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error("Need an action (activate, deactivate or hook)");
+            throw std::runtime_error(
+                "Need an action {init, hook, activate, deactivate, reactivate}");
         }
 
         config.operation_teardown();

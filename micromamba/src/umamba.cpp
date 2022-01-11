@@ -31,8 +31,7 @@ set_umamba_command(CLI::App* com)
     Context::instance().caller_version = umamba::version();
 
     auto print_version = [](int count) {
-        std::cout << "micromamba: " << umamba::version() << "\nlibmamba: " << mamba::version()
-                  << std::endl;
+        std::cout << umamba::version() << std::endl;
         exit(0);
     };
 

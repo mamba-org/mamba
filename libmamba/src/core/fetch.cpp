@@ -248,6 +248,10 @@ namespace mamba
         auto now = std::chrono::steady_clock::now();
         if (now >= m_next_retry)
         {
+            if (m_file.is_open())
+            {
+                m_file.close();
+            }
             if (fs::exists(m_filename))
             {
                 fs::remove(m_filename);

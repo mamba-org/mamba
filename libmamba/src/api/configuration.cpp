@@ -460,6 +460,13 @@ namespace mamba
             }
         }
 
+        void download_threads_hook(std::uint16_t& value)
+        {
+            if (!value)
+                throw std::runtime_error(fmt::format(
+                    "Number of download threads as to be positive (currently set to {})", value));
+        }
+
         void extract_threads_hook()
         {
             DownloadExtractSemaphore::set_max(Context::instance().extract_threads);
@@ -784,6 +791,16 @@ namespace mamba
                    .description("If solve fails, try to fetch updated repodata"));
 
         // Extract, Link & Install
+        insert(Configurable("download_threads", &ctx.download_threads)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .set_post_merge_hook(detail::download_threads_hook)
+                   .description("Defines the number of threads for package download")
+                   .long_description(unindent(R"(
+                        Defines the number of threads for package download.
+                        It has to be strictly positive.)")));
+
         insert(Configurable("extract_threads", &ctx.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()

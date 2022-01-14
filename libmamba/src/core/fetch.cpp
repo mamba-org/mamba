@@ -169,8 +169,14 @@ namespace mamba
         curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
         // if the request is slower than 30b/s for 60 seconds, cancel.
-        curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, 60L);
-        curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
+        std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             ? std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")
+                                             : "0";
+        if (no_low_speed_limit == "0")
+        {
+            curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, 60L);
+            curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 30L);
+        }
 
         curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, Context::instance().connect_timeout_secs);
 

@@ -130,7 +130,9 @@ namespace mamba
         ChannelPriority channel_priority = ChannelPriority::kFlexible;
         bool auto_activate_base = false;
 
-        long max_parallel_downloads = 5;
+        std::size_t download_threads = 5;
+        int extract_threads = 0;
+
         int verbosity = 0;
         void set_verbosity(int lvl);
         void set_log_level(const spdlog::level::level_enum& level);
@@ -149,8 +151,6 @@ namespace mamba
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
-
-        int extract_threads = 0;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

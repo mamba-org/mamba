@@ -318,28 +318,6 @@ namespace mamba
 
 
         template <>
-        struct cli_config<std::uint16_t>
-        {
-            using value_type = std::uint16_t;
-            using storage_type = std::int16_t;
-
-            cli_config(const storage_type& value)
-                : m_value(value){};
-
-            bool defined()
-            {
-                return m_value > -1;
-            };
-            value_type value()
-            {
-                return m_value;
-            };
-
-            storage_type m_value = -1;
-        };
-
-
-        template <>
         struct cli_config<std::size_t>
         {
             using storage_type = std::ptrdiff_t;

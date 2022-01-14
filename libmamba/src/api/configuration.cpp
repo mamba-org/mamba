@@ -460,7 +460,7 @@ namespace mamba
             }
         }
 
-        void download_threads_hook(std::uint16_t& value)
+        void download_threads_hook(std::size_t& value)
         {
             if (!value)
                 throw std::runtime_error(fmt::format(

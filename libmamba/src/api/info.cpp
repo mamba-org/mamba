@@ -17,6 +17,12 @@
 #include "mamba/core/virtual_packages.hpp"
 
 
+extern "C"
+{
+#include <archive.h>
+#include <curl/curl.h>
+}
+
 namespace mamba
 {
     void info()
@@ -137,6 +143,9 @@ namespace mamba
 
             if (ctx.is_micromamba && !ctx.caller_version.empty())
                 items.push_back({ "micromamba version", ctx.caller_version });
+
+            items.push_back({ "curl version", curl_version() });
+            items.push_back({ "libarchive version", archive_version_details() });
 
             std::vector<std::string> virtual_pkgs;
             for (auto pkg : get_virtual_packages())

@@ -9,6 +9,7 @@
 #include "mamba/api/install.hpp"
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/util.hpp"
 
 
 namespace mamba
@@ -27,49 +28,53 @@ namespace mamba
         auto& create_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        if (!create_specs.empty())
+        if (ctx.target_prefix == ctx.root_prefix && !create_specs.empty())
         {
-            if (ctx.target_prefix == ctx.root_prefix)
+            LOG_ERROR << "Overwriting root prefix is not permitted";
+            throw std::runtime_error("Aborting.");
+        }
+        else if (fs::exists(ctx.target_prefix))
+        {
+            if (fs::exists(ctx.target_prefix / "conda-meta"))
             {
-                LOG_ERROR << "Overwriting root prefix is not permitted";
-                throw std::runtime_error("Aborting.");
-            }
-            else if (fs::exists(ctx.target_prefix))
-            {
-                if (fs::exists(ctx.target_prefix / "conda-meta"))
-                {
-                    if (Console::prompt("Found conda-prefix at '" + ctx.target_prefix.string()
-                                            + "'. Overwrite?",
-                                        'n'))
-                    {
-                        fs::remove_all(ctx.target_prefix);
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Aborting.");
-                    }
-                }
+                if (Console::prompt("Found conda-prefix at '" + ctx.target_prefix.string()
+                                        + "'. Overwrite?",
+                                    'n'))
+                    fs::remove_all(ctx.target_prefix);
                 else
-                {
-                    LOG_ERROR << "Non-conda folder exists at prefix";
                     throw std::runtime_error("Aborting.");
-                }
-            }
-
-            if (use_explicit)
-            {
-                install_explicit_specs(create_specs, true);
             }
             else
             {
-                install_specs(create_specs, true);
+                LOG_ERROR << "Non-conda folder exists at prefix";
+                throw std::runtime_error("Aborting.");
             }
+        }
+
+        if (!create_specs.empty())
+        {
+            if (use_explicit)
+                install_explicit_specs(create_specs, true);
+            else
+                install_specs(create_specs, true);
         }
         else
         {
-            detail::create_empty_target(ctx.target_prefix);
+            if (!ctx.dry_run)
+                detail::create_empty_target(ctx.target_prefix);
         }
+        if (!ctx.dry_run && config.at("platform").configured())
+            detail::store_platform_config(ctx.target_prefix, ctx.platform);
 
         config.operation_teardown();
+    }
+
+    namespace detail
+    {
+        void store_platform_config(const fs::path& prefix, const std::string& platform)
+        {
+            auto out = open_ofstream(prefix / ".mambarc");
+            out << "platform: " << platform;
+        }
     }
 }

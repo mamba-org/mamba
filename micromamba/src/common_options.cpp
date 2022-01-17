@@ -350,4 +350,7 @@ init_install_options(CLI::App* subcom)
 
     auto& av = config.at("verify_artifacts").get_wrapped<bool>();
     subcom->add_flag("--verify-artifacts", av.set_cli_config(0), av.description());
+
+    auto& platform = config.at("platform").get_wrapped<std::string>();
+    subcom->add_option("--platform", platform.set_cli_config(""), platform.description());
 }

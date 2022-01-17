@@ -514,3 +514,27 @@ class TestCreate:
                 assert l["channel"].startswith(f"{ca}/conda-forge/")
                 assert l["url"].startswith(f"{ca}/conda-forge/")
                 assert l["version"].startswith("0.22.")
+
+    def test_set_platform(self, existing_cache):
+        # test a dummy platform/arch
+        create("-n", TestCreate.env_name, "--platform", "ptf-128")
+        rc_file = Path(TestCreate.prefix) / ".mambarc"
+        assert (rc_file).exists()
+
+        rc_dict = None
+        with open(rc_file) as f:
+            rc_dict = yaml.load(f, Loader=yaml.FullLoader)
+        assert rc_dict
+        assert set(rc_dict.keys()) == {"platform"}
+        assert rc_dict["platform"] == "ptf-128"
+
+        res = info("-n", TestCreate.env_name, "--json")
+        assert "__archspec=1=128" in res["virtual packages"]
+        assert res["platform"] == "ptf-128"
+
+        # test virtual packages
+        create("-n", TestCreate.env_name, "--platform", "win-32")
+        res = info("-n", TestCreate.env_name, "--json")
+        assert "__archspec=1=x86" in res["virtual packages"]
+        assert "__win=0=0" in res["virtual packages"]
+        assert res["platform"] == "win-32"

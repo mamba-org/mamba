@@ -319,7 +319,7 @@ class TestCreate:
         if has_specs:
             cmd += ["xtensor"]
 
-        if has_specs:
+        if already_exists:
             with pytest.raises(subprocess.CalledProcessError):
                 create(*cmd)
         else:

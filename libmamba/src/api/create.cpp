@@ -63,7 +63,8 @@ namespace mamba
             if (!ctx.dry_run)
                 detail::create_empty_target(ctx.target_prefix);
         }
-        if (!ctx.dry_run && config.at("platform").configured())
+        if (!ctx.dry_run && config.at("platform").configured()
+            && (!config.at("platform").rc_configured()))
             detail::store_platform_config(ctx.target_prefix, ctx.platform);
 
         config.operation_teardown();

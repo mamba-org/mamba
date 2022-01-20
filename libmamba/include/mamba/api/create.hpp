@@ -11,6 +11,11 @@
 namespace mamba
 {
     void create();
+
+    namespace detail
+    {
+        void store_platform_config(const fs::path& prefix, const std::string& platform);
+    }
 }
 
 #endif

@@ -582,11 +582,11 @@ namespace mamba
         insert(Configurable("platform", &ctx.platform)
                    .group("Basic")
                    .set_rc_configurable()
-                   .set_env_var_names({ "CONDA_SUBDIR" })
+                   .set_env_var_names({ "CONDA_SUBDIR", "MAMBA_PLATFORM" })
                    .description("The platform description")
                    .long_description(unindent(R"(
                         The plaftorm description points what channels
-                        subdir(s) have to fetched for package solving.
+                        subdir/platform have to be fetched for package solving.
                         This can be 'linux-64' or similar.)")));
 
         insert(Configurable("spec_file_env_name", std::string(""))

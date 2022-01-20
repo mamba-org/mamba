@@ -337,21 +337,14 @@ def get_installed_jsonfile(prefix):
     return installed_json_f, installed_pkg_recs
 
 
-def to_txn(
-    specs_to_add,
-    specs_to_remove,
-    prefix,
-    to_link,
-    to_unlink,
-    installed_pkg_recs,
-    index=None,
+def compute_final_precs(
+    prefix_records, to_link, to_unlink, installed_pkg_recs, index=None
 ):
     if index is None:
         index = []
     to_link_records, to_unlink_records = [], []
 
-    prefix_data = PrefixData(prefix)
-    final_precs = IndexedSet(prefix_data.iter_records())
+    final_precs = IndexedSet(prefix_records)
 
     lookup_dict = {}
     for _, entry in index:
@@ -383,9 +376,15 @@ def to_txn(
         final_precs.add(rec)
         to_link_records.append(rec)
 
+    return IndexedSet(PrefixGraph(final_precs).graph)
+
+
+def to_txn_precs(
+    specs_to_add, specs_to_remove, prefix, final_precs,
+):
     unlink_precs, link_precs = diff_for_unlink_link_precs(
         prefix,
-        final_precs=IndexedSet(PrefixGraph(final_precs).graph),
+        final_precs=final_precs,
         specs_to_add=specs_to_add,
         force_reinstall=context.force_reinstall,
     )
@@ -401,3 +400,19 @@ def to_txn(
 
     conda_transaction = UnlinkLinkTransaction(pref_setup)
     return conda_transaction
+
+
+def to_txn(
+    specs_to_add,
+    specs_to_remove,
+    prefix,
+    to_link,
+    to_unlink,
+    installed_pkg_recs,
+    index=None,
+):
+    prefix_data = PrefixData(prefix)
+    final_precs = compute_final_precs(
+        prefix_data.iter_records(), to_link, to_unlink, installed_pkg_recs, index,
+    )
+    return to_txn_precs(specs_to_add, specs_to_remove, prefix, final_precs,)

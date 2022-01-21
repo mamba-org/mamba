@@ -227,7 +227,7 @@ namespace mamba
         queue_free(&job);
         queue_free(&solvables);
 
-        return query_result(QueryType::Search, query, std::move(g));
+        return query_result(QueryType::kSEARCH, query, std::move(g));
     }
 
     query_result Query::whoneeds(const std::string& query, bool tree) const
@@ -268,7 +268,7 @@ namespace mamba
                 g.add_node(PackageInfo(s));
             }
         }
-        return query_result(QueryType::Whoneeds, query, std::move(g));
+        return query_result(QueryType::kWHONEEDS, query, std::move(g));
     }
 
     query_result Query::depends(const std::string& query, bool tree) const
@@ -317,7 +317,7 @@ namespace mamba
         queue_free(&job);
         queue_free(&solvables);
 
-        return query_result(QueryType::Depends, query, std::move(g));
+        return query_result(QueryType::kDEPENDS, query, std::move(g));
     }
 
     /*******************************
@@ -664,9 +664,9 @@ namespace mamba
     nlohmann::json query_result::json() const
     {
         nlohmann::json j;
-        std::string query_type = m_type == QueryType::Search
+        std::string query_type = m_type == QueryType::kSEARCH
                                      ? "search"
-                                     : (m_type == QueryType::Depends ? "depends" : "whoneeds");
+                                     : (m_type == QueryType::kDEPENDS ? "depends" : "whoneeds");
         j["query"] = { { "query", MatchSpec(m_query).conda_build_form() }, { "type", query_type } };
 
         std::string msg
@@ -679,7 +679,7 @@ namespace mamba
             j["result"]["pkgs"].push_back(m_pkg_view_list[i]->json_record());
         }
 
-        if (m_type != QueryType::Search && !m_pkg_view_list.empty())
+        if (m_type != QueryType::kSEARCH && !m_pkg_view_list.empty())
         {
             bool has_root = !m_dep_graph.get_edge_list(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();

@@ -115,6 +115,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/remove.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/repoquery.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
@@ -169,6 +170,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/install.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/list.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/remove.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/repoquery.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/shell.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )

@@ -35,6 +35,7 @@ set(MICROMAMBA_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/package.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/remove.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/repoquery.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/shell.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/update.cpp

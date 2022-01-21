@@ -29,18 +29,3 @@ set_update_command(CLI::App* subcom)
 
     subcom->callback([&]() { update(update_all, prune); });
 }
-
-void
-set_repoquery_command(CLI::App* subcom)
-{
-    auto& config = Configuration::instance();
-    init_general_options(subcom);
-    init_prefix_options(subcom);
-    init_network_options(subcom);
-    init_channel_parser(subcom);
-
-    static std::vector<std::string> specs;
-    subcom->add_option("specs", specs, "Specs to search");
-
-    subcom->callback([&]() { repoquery(QueryType::Search, specs[0]); });
-}

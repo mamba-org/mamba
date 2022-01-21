@@ -128,40 +128,4 @@ namespace mamba
 
         config.operation_teardown();
     }
-
-    void repoquery(QueryType type, const std::string& query)
-    {
-        auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        MPool pool;
-        MultiPackageCache package_caches(ctx.pkgs_dirs);
-        auto repos = load_channels(pool, package_caches, 0);
-
-        Query q(pool);
-
-        if (type == QueryType::Search)
-        {
-            if (ctx.json)
-            {
-                std::cout << q.find(query).groupby("name").json().dump(4);
-            }
-            else
-            {
-                std::cout << "\n" << std::endl;
-                q.find(query).groupby("name").table(std::cout);
-            }
-            // else if (format == Query::RESULT_FORMAT::PRETTY)
-            // {
-            //     q.find(query).groupby("name").pretty(std::cout);
-            // }
-        }
-
-        config.operation_teardown();
-    }
 }

@@ -34,7 +34,6 @@ namespace mamba
     std::vector<MRepo> load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
-        int RETRY_SOLVE_ERROR = 1 << 1;
 
         auto& ctx = Context::instance();
 
@@ -47,10 +46,10 @@ namespace mamba
         int max_prio = static_cast<int>(channel_urls.size());
         std::string prev_channel_name;
 
-        // if (ctx.experimental)
-        // {
-        //     load_tokens();
-        // }
+        if (ctx.experimental)
+        {
+            load_tokens();
+        }
 
         for (auto channel : get_channels(channel_urls))
         {
@@ -132,9 +131,8 @@ namespace mamba
                     throw std::runtime_error(ss.str());
                 }
 
-                // Console::stream() << termcolor::yellow << "Could not load repodata.json for "
-                //                   << subdir->name() << ". Deleting cache, and retrying."
-                //                   << termcolor::reset;
+                LOG_WARNING << "Could not load repodata.json for " << subdir->name()
+                            << ". Deleting cache, and retrying.";
                 subdir->clear_cache();
                 loading_failed = true;
             }

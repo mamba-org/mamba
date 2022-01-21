@@ -69,7 +69,7 @@ Here are some examples:
 `mamba repoquery depends xtensor` will show you a tree view of the dependencies of xtensor.
 
 ```
-$ mamba repoquery depends --tree xtensor
+$ mamba repoquery depends --tree -c conda-forge xtensor
 
 xtensor == 0.21.5
   ├─ libgcc-ng [>=7.3.0]

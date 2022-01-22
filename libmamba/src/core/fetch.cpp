@@ -705,8 +705,11 @@ namespace mamba
         return true;
     }
 
-    bool MultiDownloadTarget::download(bool failfast)
+    bool MultiDownloadTarget::download(int options)
     {
+        bool failfast = options & MAMBA_DOWNLOAD_FAILFAST;
+        bool sort = options & MAMBA_DOWNLOAD_SORT;
+
         auto& ctx = Context::instance();
 
         if (m_targets.empty())
@@ -715,10 +718,12 @@ namespace mamba
             return true;
         }
 
-        std::sort(
-            m_targets.begin(), m_targets.end(), [](DownloadTarget* a, DownloadTarget* b) -> bool {
-                return a->expected_size() > b->expected_size();
-            });
+        if (sort)
+            std::sort(m_targets.begin(),
+                      m_targets.end(),
+                      [](DownloadTarget* a, DownloadTarget* b) -> bool {
+                          return a->expected_size() > b->expected_size();
+                      });
 
         LOG_INFO << "Starting to download targets";
 

@@ -88,7 +88,7 @@ namespace mamba
         // TODO load local channels even when offline
         if (!ctx.offline)
         {
-            multi_dl.download(true);
+            multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
         }
 
         std::vector<MRepo> repos;

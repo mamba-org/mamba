@@ -1080,7 +1080,7 @@ namespace mamba
             pbar_manager.watch_print();
         }
 
-        bool downloaded = multi_dl.download(true);
+        bool downloaded = multi_dl.download(MAMBA_DOWNLOAD_FAILFAST | MAMBA_DOWNLOAD_SORT);
         bool all_valid = true;
 
         if (!downloaded)

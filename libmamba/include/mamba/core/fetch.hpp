@@ -127,7 +127,7 @@ namespace mamba
 
         void add(DownloadTarget* target);
         bool check_msgs(bool failfast);
-        bool download(bool failfast);
+        bool download(int options);
 
     private:
         std::vector<DownloadTarget*> m_targets;
@@ -135,6 +135,8 @@ namespace mamba
         CURLM* m_handle;
     };
 
+    const int MAMBA_DOWNLOAD_FAILFAST = 1 << 0;
+    const int MAMBA_DOWNLOAD_SORT = 1 << 1;
 }  // namespace mamba
 
 #endif  // MAMBA_FETCH_HPP

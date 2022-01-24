@@ -123,10 +123,12 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         print(f"\n  Pinned packages:\n\n{pinned_specs_info}\n")
 
     install_specs = [s for s in specs if MatchSpec(s).name not in installed_names]
-    solver.add_jobs(install_specs, api.SOLVER_INSTALL)
+    if install_specs:
+        solver.add_jobs(install_specs, api.SOLVER_INSTALL)
 
     update_specs = [s for s in specs if MatchSpec(s).name in installed_names]
-    solver.add_jobs(update_specs, api.SOLVER_UPDATE)
+    if update_specs:
+        solver.add_jobs(update_specs, api.SOLVER_UPDATE)
 
     success = solver.solve()
     if not success:

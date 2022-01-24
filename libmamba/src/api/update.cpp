@@ -72,7 +72,7 @@ namespace mamba
                 solver_flag |= SOLVER_CLEANDEPS;
             }
             solver.add_jobs(keep_specs, SOLVER_USERINSTALLED);
-            solver.add_jobs({}, solver_flag);
+            solver.add_global_job(solver_flag);
         }
         else
         {

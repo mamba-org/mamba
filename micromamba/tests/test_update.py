@@ -17,8 +17,8 @@ class TestUpdate:
     env_name = random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
-    old_version = "0.18.3"
-    medium_old_version = "0.20"
+    old_version = "0.21.10"
+    medium_old_version = "0.22"
 
     @staticmethod
     @pytest.fixture(scope="class")
@@ -58,11 +58,6 @@ class TestUpdate:
         return
 
     def test_constrained_update(self, env_created):
-        print(Path(TestUpdate.root_prefix).exists())
-        print(Path(TestUpdate.prefix).exists())
-        print(os.environ["MAMBA_ROOT_PREFIX"])
-        print(os.environ["CONDA_PREFIX"])
-
         update_res = update("xtensor<=" + self.medium_old_version, "--json")
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
@@ -80,10 +75,6 @@ class TestUpdate:
         assert xtensor_link["build_number"] == 0
 
     def test_classic_spec(self, env_created):
-        print(Path(TestUpdate.root_prefix).exists())
-        print(Path(TestUpdate.prefix).exists())
-        print(os.environ["MAMBA_ROOT_PREFIX"])
-        print(os.environ["CONDA_PREFIX"])
         update_res = update("xtensor", "--json")
 
         xtensor_link = [
@@ -105,6 +96,30 @@ class TestUpdate:
         assert update_res["message"] == "All requested packages already installed"
         assert update_res["success"] == True
         assert "action" not in update_res
+
+    def test_update_all(self, env_created):
+        update_res = update("--all", "--json")
+
+        xtensor_link = [
+            l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
+        ][0]
+        assert TestUpdate.old_version != xtensor_link["version"]
+
+        if dry_run_tests == DryRun.OFF:
+            pkg = get_concrete_pkg(update_res, "xtensor")
+            pkg_info = get_concrete_pkg_info(get_env(TestUpdate.env_name), pkg)
+            version = pkg_info["version"]
+
+            assert TestUpdate.old_version != version
+
+            with open(Path(self.prefix) / "conda-meta" / "history") as h:
+                history = h.readlines()
+            print("".join(history))
+            for el in reversed(history):
+                x = el.strip()
+                if x.startswith(">=="):
+                    break
+                assert not x.startswith("update specs:")
 
     @pytest.mark.parametrize(
         "alias",

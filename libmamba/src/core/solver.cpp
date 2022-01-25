@@ -52,6 +52,11 @@ namespace mamba
         return false;
     }
 
+    void MSolver::add_global_job(int job_flag)
+    {
+        queue_push2(&m_jobs, job_flag, 0);
+    }
+
     void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
     {
         Pool* pool = m_pool;

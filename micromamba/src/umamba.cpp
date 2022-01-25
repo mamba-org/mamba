@@ -51,6 +51,10 @@ set_umamba_command(CLI::App* com)
         = com->add_subcommand("update", "Update packages in active environment");
     set_update_command(update_subcom);
 
+    CLI::App* repoquery_subcom = com->add_subcommand(
+        "repoquery", "Find and analyze packages in active environment or channels");
+    set_repoquery_command(repoquery_subcom);
+
     CLI::App* remove_subcom
         = com->add_subcommand("remove", "Remove packages from active environment");
     set_remove_command(remove_subcom);

@@ -314,6 +314,16 @@ init_install_options(CLI::App* subcom)
     auto& compile_pyc = config.at("compile_pyc").get_wrapped<bool>();
     subcom->add_flag("--pyc,!--no-pyc", compile_pyc.set_cli_config(0), compile_pyc.description());
 
+    auto& allow_uninstall = config.at("allow_uninstall").get_wrapped<bool>();
+    subcom->add_flag("--allow-uninstall,!--no-allow-uninstall",
+                     allow_uninstall.set_cli_config(0),
+                     allow_uninstall.description());
+
+    auto& allow_downgrade = config.at("allow_downgrade").get_wrapped<bool>();
+    subcom->add_flag("--allow-downgrade,!--no-allow-downgrade",
+                     allow_downgrade.set_cli_config(0),
+                     allow_downgrade.description());
+
     auto& allow_softlinks = config.at("allow_softlinks").get_wrapped<bool>();
     subcom->add_flag("--allow-softlinks,!--no-allow-softlinks",
                      allow_softlinks.set_cli_config(0),

@@ -106,6 +106,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/clean.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/config.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/configuration.cpp
@@ -114,6 +115,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/api/install.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/list.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/remove.cpp
+    ${LIBMAMBA_SOURCE_DIR}/api/repoquery.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
@@ -158,6 +160,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/config.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
@@ -167,6 +170,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/install.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/list.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/remove.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/repoquery.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/shell.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )

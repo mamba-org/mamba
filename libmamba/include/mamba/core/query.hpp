@@ -57,9 +57,17 @@ namespace mamba
 
     enum class QueryType
     {
-        Search,
-        Depends,
-        Whoneeds
+        kSEARCH,
+        kDEPENDS,
+        kWHONEEDS
+    };
+
+    enum class QueryResultFormat
+    {
+        kJSON,
+        kTREE,
+        kTABLE,
+        kPRETTY
     };
 
     class query_result

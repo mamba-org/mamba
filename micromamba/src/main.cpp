@@ -61,6 +61,15 @@ main(int argc, char** argv)
         return 0;
     }
 
+    std::stringstream full_command;
+    for (int i = 0; i < argc; ++i)
+    {
+        full_command << utf8argv[i];
+        if (i < argc - 1)
+            full_command << " ";
+    }
+    ctx.current_command = full_command.str();
+
     try
     {
         CLI11_PARSE(app, argc, utf8argv);

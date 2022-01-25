@@ -152,6 +152,10 @@ namespace mamba
         bool always_copy = false;
         bool always_softlink = false;
 
+        // solver options
+        bool allow_uninstall = true;
+        bool allow_downgrade = false;
+
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
 

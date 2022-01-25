@@ -442,6 +442,15 @@ namespace mamba
         return infile;
     }
 
+    bool ensure_comspec_set();
+    std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
+                                             const fs::path& prefix,
+                                             bool dev_mode,
+                                             bool debug_wrapper_scripts,
+                                             const std::vector<std::string>& arguments);
+
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+        const fs::path& prefix, const std::vector<std::string>& cmd);
 
 }  // namespace mamba
 

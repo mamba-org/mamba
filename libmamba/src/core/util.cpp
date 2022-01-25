@@ -41,10 +41,13 @@ extern "C"
 
 #include <reproc/reproc.h>
 
+#include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/shell_init.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util_os.hpp"
 
 
 namespace mamba
@@ -1264,5 +1267,221 @@ namespace mamba
                 LOG_ERROR << "Subprocess call failed (terminated)";
             throw std::runtime_error("Subprocess call failed. Aborting.");
         }
+    }
+
+    bool ensure_comspec_set()
+    {
+        std::string cmd_exe = env::get("COMSPEC");
+        if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
+        {
+            cmd_exe = fs::path(env::get("SystemRoot")) / "System32" / "cmd.exe";
+            if (!fs::is_regular_file(cmd_exe))
+            {
+                cmd_exe = fs::path(env::get("windir")) / "System32" / "cmd.exe";
+            }
+            if (!fs::is_regular_file(cmd_exe))
+            {
+                LOG_WARNING << "cmd.exe could not be found. Looked in SystemRoot and "
+                               "windir env vars.";
+            }
+            else
+            {
+                env::set("COMSPEC", cmd_exe);
+            }
+        }
+        return true;
+    }
+
+    std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
+                                             const fs::path& prefix,
+                                             bool dev_mode,
+                                             bool debug_wrapper_scripts,
+                                             const std::vector<std::string>& arguments)
+    {
+        // todo add abspath here
+        fs::path tmp_prefix = prefix / ".tmp";
+
+#ifdef _WIN32
+        ensure_comspec_set();
+        std::string comspec = env::get("COMSPEC");
+        std::string conda_bat;
+
+        // TODO
+        std::string CONDA_PACKAGE_ROOT = "";
+
+        std::string bat_name = Context::instance().is_micromamba ? "micromamba.bat" : "conda.bat";
+
+        if (dev_mode)
+        {
+            conda_bat = fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat";
+        }
+        else
+        {
+            conda_bat = env::get("CONDA_BAT");
+            if (conda_bat.size() == 0)
+            {
+                conda_bat = fs::absolute(root_prefix) / "condabin" / bat_name;
+            }
+        }
+        if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
+        {
+            // this adds in the needed .bat files for activation
+            init_root_prefix_cmdexe(Context::instance().root_prefix);
+        }
+
+        auto tf = std::make_unique<TemporaryFile>("mamba_bat_", ".bat");
+
+        std::ofstream out = open_ofstream(tf->path());
+
+        std::string silencer = debug_wrapper_scripts ? "" : "@";
+
+        out << silencer << "ECHO OFF\n";
+        out << silencer << "SET PYTHONIOENCODING=utf-8\n";
+        out << silencer << "SET PYTHONUTF8=1\n";
+        out << silencer
+            << "FOR /F \"tokens=2 delims=:.\" %%A in (\'chcp\') do for %%B in (%%A) "
+               "do set \"_CONDA_OLD_CHCP=%%B\"\n";
+        out << silencer << "chcp 65001 > NUL\n";
+
+        if (dev_mode)
+        {
+            // from conda.core.initialize import CONDA_PACKAGE_ROOT
+            out << silencer << "SET CONDA_DEV=1\n";
+            // In dev mode, conda is really:
+            // 'python -m conda'
+            // *with* PYTHONPATH set.
+            out << silencer << "SET PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            out << silencer << "SET CONDA_EXE="
+                << "python.exe"
+                << "\n";  // TODO this should be `sys.executable`
+            out << silencer << "SET _CE_M=-m\n";
+            out << silencer << "SET _CE_CONDA=conda\n";
+        }
+
+        if (debug_wrapper_scripts)
+        {
+            out << "echo *** environment before *** 1>&2\n";
+            out << "SET 1>&2\n";
+        }
+
+        out << silencer << "CALL \"" << conda_bat << "\" activate " << prefix << "\n";
+        out << silencer << "IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n";
+
+        if (debug_wrapper_scripts)
+        {
+            out << "echo *** environment after *** 1>&2\n";
+            out << "SET 1>&2\n";
+        }
+#else
+        auto tf = std::make_unique<TemporaryFile>();
+        std::ofstream out = open_ofstream(tf->path());
+        std::stringstream hook_quoted;
+
+        std::string shebang, dev_arg;
+
+        if (!Context::instance().is_micromamba)
+        {
+            // During tests, we sometimes like to have a temp env with e.g. an old python
+            // in it and have it run tests against the very latest development sources.
+            // For that to work we need extra smarts here, we want it to be instead:
+            if (dev_mode)
+            {
+                shebang += std::string(root_prefix / "bin" / "python");
+                shebang += " -m conda";
+
+                dev_arg = "--dev";
+            }
+            else
+            {
+                if (std::getenv("CONDA_EXE"))
+                {
+                    shebang = std::getenv("CONDA_EXE");
+                }
+                else
+                {
+                    shebang = std::string(root_prefix / "bin" / "conda");
+                }
+            }
+
+            if (dev_mode)
+            {
+                // out << ">&2 export PYTHONPATH=" << CONDA_PACKAGE_ROOT << "\n";
+            }
+
+            hook_quoted << std::quoted(shebang, '\'') << " 'shell.posix' 'hook' " << dev_arg;
+        }
+        else
+        {
+            // Micromamba hook
+            hook_quoted << std::quoted(get_self_exe_path().string(), '\'')
+                        << " 'shell' 'hook' '-s' 'bash' '-p' "
+                        << std::quoted(Context::instance().root_prefix.string(), '\'');
+        }
+        if (debug_wrapper_scripts)
+        {
+            out << "set -x\n";
+            out << ">&2 echo \"*** environment before ***\"\n"
+                << ">&2 env\n"
+                << ">&2 echo \"$(" << hook_quoted.str() << ")\"\n";
+        }
+        out << "eval \"$(" << hook_quoted.str() << ")\"\n";
+
+        if (!Context::instance().is_micromamba)
+        {
+            out << "conda activate " << dev_arg << " " << std::quoted(prefix.string()) << "\n";
+        }
+        else
+        {
+            out << "micromamba activate " << std::quoted(prefix.string()) << "\n";
+        }
+
+
+        if (debug_wrapper_scripts)
+        {
+            out << ">&2 echo \"*** environment after ***\"\n"
+                << ">&2 env\n";
+        }
+#endif
+        // write our command
+        out << "\n" << quote_for_shell(arguments);
+        return tf;
+    }
+
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
+        const fs::path& prefix, const std::vector<std::string>& cmd)
+    {
+        std::vector<std::string> command_args;
+        std::unique_ptr<TemporaryFile> script_file;
+
+        if (on_win)
+        {
+            ensure_comspec_set();
+            std::string comspec = env::get("COMSPEC");
+            if (comspec.size() == 0)
+            {
+                throw std::runtime_error(
+                    concat("Failed to run script: COMSPEC not set in env vars."));
+            }
+
+            script_file = wrap_call(
+                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+
+            command_args = { comspec, "/D", "/C", script_file->path() };
+        }
+        else
+        {
+            // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
+            fs::path shell_path = env::which("bash");
+            if (shell_path.empty())
+            {
+                shell_path = env::which("sh");
+            }
+
+            script_file = wrap_call(
+                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+            command_args.push_back(shell_path);
+            command_args.push_back(script_file->path());
+        }
+        return std::make_tuple(command_args, std::move(script_file));
     }
 }  // namespace mamba

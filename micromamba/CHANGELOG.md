@@ -1,3 +1,20 @@
+micromamba 0.20.0 (January 25, 2022)
+====================================
+
+Bug fixes
+
+- Fix micromamba init & conda init clobber (thanks @maresb) #1357
+- Rename mamba.sh to micromamba.sh for better compatibility between mamba & micromamba (thanks @maresb) #1355
+- Print activate error to stderr (thanks @maresb) #1351
+
+Improvements
+
+- Only print micromamba version and add library versions to `info` command #1372
+- Implement activate as a micromamba subcommand for better error messages (thanks @maresb) #1360
+- Experimental wass logged twice (thanks @baszalmstra) #1360
+- Store platform when creating env with `--platform=...` (thanks @adriendelsalle) #1381
+
+
 micromamba 0.19.1 (December 08, 2021)
 =====================================
 

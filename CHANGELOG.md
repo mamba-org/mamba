@@ -1,3 +1,23 @@
+2021.01.25
+==========
+
+Releases: libmamba 0.20.0, libmambapy 0.20.0, mamba 0.20.0, micromamba 0.20.0
+
+Bug fixes
+- [libmamba] Close file before retry & deletion when downloading subdir (thanks @xhochy) #1373
+- [micromamba] Fix micromamba init & conda init clobber (thanks @maresb) #1357
+- [micromamba] Rename mamba.sh to micromamba.sh for better compatibility between mamba & micromamba (thanks @maresb) #1355
+- [micromamba] Print activate error to stderr (thanks @maresb) #1351
+
+Improvements
+- [micromamba, libmamba] Store platform when creating env with `--platform=...` (thanks @adriendelsalle) #1381
+- [libmamba] Add environment variable to disable low speed limit (thanks @xhochy) #1380
+- [libmamba] Make max download threads configurable (thanks @adriendelsalle) #1377
+- [micromamba] Only print micromamba version and add library versions to `info` command #1372
+- [micromamba] Implement activate as a micromamba subcommand for better error messages (thanks @maresb) #1360
+- [micromamba] Experimental wass logged twice (thanks @baszalmstra) #1360
+- [mamba] Update to Python 3.10 in the example snippet (thanks @jtpio) #1371
+
 2021.12.08
 ==========
 

@@ -1,3 +1,11 @@
+mamba 0.20.0 (January 25, 2022)
+===============================
+
+
+Improvements
+
+- Update to Python 3.10 in the example snippet (thanks @jtpio) #1371
+
 mamba 0.19.1 (December 08, 2021)
 ================================
 

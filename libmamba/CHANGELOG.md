@@ -1,3 +1,16 @@
+libmamba 0.20.0 (January 25, 2022)
+==================================
+
+Bug fixes
+
+- Close file before retry & deletion when downloading subdir (thanks @xhochy) #1373
+
+Improvements
+
+- Store platform when creating env with `--platform=...` (thanks @adriendelsalle) #1381
+- Add environment variable to disable low speed limit (thanks @xhochy) #1380
+- Make max download threads configurable (thanks @adriendelsalle) #1377
+
 libmamba 0.19.1 (December 08, 2021)
 ===================================
 

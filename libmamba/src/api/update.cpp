@@ -106,20 +106,19 @@ namespace mamba
 
         solver.solve();
 
-        MTransaction transaction(solver, package_caches);
-
         // TODO this is not so great
         std::vector<MRepo*> repo_ptrs;
         for (auto& r : repos)
         {
             repo_ptrs.push_back(&r);
         }
+        MTransaction transaction(solver, package_caches, repo_ptrs);
 
         auto execute_transaction = [&](MTransaction& transaction) {
             if (ctx.json)
                 transaction.log_json();
 
-            bool yes = transaction.prompt(repo_ptrs);
+            bool yes = transaction.prompt();
             if (yes)
                 transaction.execute(prefix_data);
         };

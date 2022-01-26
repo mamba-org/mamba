@@ -46,7 +46,7 @@ namespace mamba
         int max_prio = static_cast<int>(channel_urls.size());
         std::string prev_channel_name;
 
-        Console::init_progress_bar_manager(ProgressBarMode::multi);
+        Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
         if (ctx.experimental)
         {

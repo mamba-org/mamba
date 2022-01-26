@@ -26,59 +26,6 @@
 
 namespace mamba
 {
-    /*
-    std::ostream& write_duration(std::ostream& os, std::chrono::nanoseconds ns)
-    {
-        using std::chrono::duration;
-        using std::chrono::duration_cast;
-        using std::chrono::hours;
-        using std::chrono::milliseconds;
-        using std::chrono::minutes;
-        using std::chrono::seconds;
-
-        using days = duration<int, std::ratio<86400>>;
-
-        auto d = duration_cast<days>(ns);
-        ns -= d;
-        auto h = duration_cast<hours>(ns);
-        ns -= h;
-        auto m = duration_cast<minutes>(ns);
-        ns -= m;
-        auto s = duration_cast<seconds>(ns);
-        ns -= s;
-        auto ms = duration_cast<milliseconds>(ns);
-
-        std::stringstream oss;
-        if (d.count() > 0)
-            oss << d.count() << "d:";
-        if (h.count() > 0)
-            oss << h.count() << "h:";
-        if (m.count() > 0)
-            oss << m.count() << "m:";
-
-        oss << s.count() << "." << std::round(static_cast<double>(ms.count()) / 100) << "s";
-        os << oss.str();
-        return os;
-    }
-    */
-
-    /*
-        int get_console_width()
-        {
-    #ifndef _WIN32
-            struct winsize w;
-            ioctl(0, TIOCGWINSZ, &w);
-            return w.ws_col;
-    #else
-
-            CONSOLE_SCREEN_BUFFER_INFO coninfo;
-            auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-            return coninfo.dwSize.X;
-    #endif
-
-            return -1;
-        }
-    */
     std::string cut_repo_name(const std::string& full_url)
     {
         std::string remaining_url, scheme, auth, token;

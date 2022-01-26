@@ -26,53 +26,6 @@
 
 namespace mamba
 {
-    std::ostream& write_duration(std::ostream& os, std::chrono::nanoseconds ns)
-    {
-        using std::chrono::duration;
-        using std::chrono::duration_cast;
-        using std::chrono::hours;
-        using std::chrono::minutes;
-        using std::chrono::seconds;
-
-        using days = duration<int, std::ratio<86400>>;
-        char fill = os.fill();
-        os.fill('0');
-        auto d = duration_cast<days>(ns);
-        ns -= d;
-        auto h = duration_cast<hours>(ns);
-        ns -= h;
-        auto m = duration_cast<minutes>(ns);
-        ns -= m;
-        auto s = duration_cast<seconds>(ns);
-        if (d.count() > 0)
-        {
-            os << std::setw(2) << d.count() << "d:";
-        }
-        if (h.count() > 0)
-        {
-            os << std::setw(2) << h.count() << "h:";
-        }
-        os << std::setw(2) << m.count() << "m:" << std::setw(2) << s.count() << 's';
-        os.fill(fill);
-        return os;
-    }
-
-    int get_console_width()
-    {
-#ifndef _WIN32
-        struct winsize w;
-        ioctl(0, TIOCGWINSZ, &w);
-        return w.ws_col;
-#else
-
-        CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-        return coninfo.dwSize.X;
-#endif
-
-        return -1;
-    }
-
     std::string cut_repo_name(const std::string& full_url)
     {
         std::string remaining_url, scheme, auth, token;
@@ -297,8 +250,8 @@ namespace mamba
 
     Console::Console()
         : m_mutex()
-        , p_progress_manager(make_progress_bar_manager(ProgressBarMode::multi))
     {
+        init_progress_bar_manager(ProgressBarMode::multi);
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -339,16 +292,27 @@ namespace mamba
         if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
             const std::lock_guard<std::mutex> lock(instance().m_mutex);
-            if (instance().p_progress_manager)
+
+            if (instance().p_progress_bar_manager && instance().p_progress_bar_manager->started())
             {
-                instance().p_progress_manager->print(instance().hide_secrets(str),
-                                                     instance().skip_progress_bars());
+                instance().m_buffer.push_back(instance().hide_secrets(str));
             }
             else
             {
                 std::cout << instance().hide_secrets(str) << std::endl;
             }
         }
+    }
+
+    std::vector<std::string> Console::m_buffer({});
+
+    void Console::print_buffer(std::ostream& ostream)
+    {
+        for (auto& message : m_buffer)
+            ostream << message << "\n";
+
+        const std::lock_guard<std::mutex> lock(instance().m_mutex);
+        m_buffer.clear();
     }
 
     bool Console::prompt(const std::string_view& message, char fallback, std::istream& input_stream)
@@ -399,35 +363,31 @@ namespace mamba
 
     ProgressProxy Console::add_progress_bar(const std::string& name, size_t expected_total)
     {
-        return p_progress_manager->add_progress_bar(name, expected_total);
+        if (Context::instance().no_progress_bars)
+            return ProgressProxy();
+        else
+            return p_progress_bar_manager->add_progress_bar(name, expected_total);
     }
 
-    void Console::init_multi_progress(ProgressBarMode mode)
+    void Console::clear_progress_bars()
     {
-        p_progress_manager = make_progress_bar_manager(mode);
+        return p_progress_bar_manager->clear_progress_bars();
     }
 
-    void Console::deactivate_progress_bar(std::size_t idx, const std::string_view& msg)
+    ProgressBarManager& Console::init_progress_bar_manager(ProgressBarMode mode)
     {
-        std::lock_guard<std::mutex> lock(instance().m_mutex);
-        p_progress_manager->deactivate_progress_bar(idx, msg);
+        p_progress_bar_manager = make_progress_bar_manager(mode);
+        p_progress_bar_manager->register_print_hook(Console::print_buffer);
+        p_progress_bar_manager->register_print_hook(MessageLogger::print_buffer);
+        p_progress_bar_manager->register_pre_start_hook(MessageLogger::activate_buffer);
+        p_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
+
+        return *p_progress_bar_manager;
     }
 
-    void Console::print_progress(std::size_t idx)
+    ProgressBarManager& Console::progress_bar_manager()
     {
-        if (skip_progress_bars())
-        {
-            return;
-        }
-
-        std::lock_guard<std::mutex> lock(instance().m_mutex);
-        p_progress_manager->print_progress(idx);
-    }
-
-    bool Console::skip_progress_bars() const
-    {
-        return Context::instance().quiet || Context::instance().json
-               || Context::instance().no_progress_bars;
+        return *p_progress_bar_manager;
     }
 
     std::string strip_file_prefix(const std::string& file)
@@ -455,8 +415,25 @@ namespace mamba
 
     MessageLogger::~MessageLogger()
     {
-        auto str = Console::hide_secrets(m_stream.str());
-        switch (m_level)
+        if (!use_buffer)
+            emit(m_stream.str(), m_level);
+        else
+        {
+            const std::lock_guard<std::mutex> lock(m_mutex);
+            m_buffer.push_back({ m_stream.str(), m_level });
+        }
+    }
+
+    std::mutex MessageLogger::m_mutex;
+
+    bool MessageLogger::use_buffer(false);
+
+    std::vector<std::pair<std::string, spdlog::level::level_enum>> MessageLogger::m_buffer({});
+
+    void MessageLogger::emit(const std::string& msg, const spdlog::level::level_enum& level)
+    {
+        auto str = Console::hide_secrets(msg);
+        switch (level)
         {
             case spdlog::level::critical:
                 SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
@@ -488,11 +465,31 @@ namespace mamba
         return m_stream;
     }
 
+    void MessageLogger::activate_buffer()
+    {
+        use_buffer = true;
+    }
+
+    void MessageLogger::deactivate_buffer()
+    {
+        use_buffer = false;
+    }
+
+    void MessageLogger::print_buffer(std::ostream& /*ostream*/)
+    {
+        for (auto& [msg, level] : m_buffer)
+            emit(msg, level);
+
+        spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
+
+        const std::lock_guard<std::mutex> lock(m_mutex);
+        m_buffer.clear();
+    }
+
     Logger::Logger(const std::string& pattern)
         : spdlog::logger(std::string("mamba"),
                          std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
     {
-        // set_pattern("%^[%L %Y-%m-%d %T:%e]%$ %v");
         set_pattern(pattern);
     }
 

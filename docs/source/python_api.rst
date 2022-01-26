@@ -56,7 +56,7 @@ Here is an example usage of the mamba_api:
             index.append((sd, channel))
             dlist.add(sd)
 
-        is_downloaded = dlist.download(True)
+        is_downloaded = dlist.download(mamba_api.MAMBA_DOWNLOAD_FAILFAST)
 
         if not is_downloaded:
             raise RuntimeError("Error downloading repodata.")

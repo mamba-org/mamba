@@ -136,15 +136,17 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         exit(1)
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
-    transaction = api.Transaction(solver, package_cache)
+    transaction = api.Transaction(solver, package_cache, repos)
     mmb_specs, to_link, to_unlink = transaction.to_conda()
 
     specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]
 
     transaction.log_json()
-    downloaded = transaction.prompt(repos)
-    if not downloaded:
+    if not transaction.prompt():
         exit(0)
+    elif not context.dry_run:
+        transaction.fetch_extract_packages()
+
     if prune:
         history = api.History(prefix)
         history_map = history.get_requested_specs_map()
@@ -162,7 +164,9 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         conda_transaction = to_txn(
             specs_to_add, [], prefix, to_link, to_unlink, installed_pkg_recs, index
         )
+
     handle_txn(conda_transaction, prefix, args, True)
+
     try:
         installed_json_f.close()
         os.unlink(installed_json_f.name)

@@ -82,16 +82,14 @@ PYBIND11_MODULE(bindings, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&, MultiPackageCache&>())
+        .def(py::init<MSolver&, MultiPackageCache&, std::vector<MRepo*>&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)
         .def("fetch_extract_packages", &MTransaction::fetch_extract_packages)
         .def("prompt", &MTransaction::prompt)
         .def("find_python_version", &MTransaction::find_python_version)
-        .def("execute", [](MTransaction& self, PrefixData& target_prefix) -> bool {
-            return self.execute(target_prefix);
-        });
+        .def("execute", &MTransaction::execute);
 
     py::class_<MSolver>(m, "Solver")
         .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
@@ -504,6 +502,10 @@ PYBIND11_MODULE(bindings, m)
     m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;
     m.attr("MAMBA_ONLY_DEPS") = MAMBA_ONLY_DEPS;
     m.attr("MAMBA_FORCE_REINSTALL") = MAMBA_FORCE_REINSTALL;
+
+    // DOWNLOAD FLAGS
+    m.attr("MAMBA_DOWNLOAD_FAILFAST") = MAMBA_DOWNLOAD_FAILFAST;
+    m.attr("MAMBA_DOWNLOAD_SORT") = MAMBA_DOWNLOAD_SORT;
 
     // CLEAN FLAGS
     m.attr("MAMBA_CLEAN_ALL") = MAMBA_CLEAN_ALL;

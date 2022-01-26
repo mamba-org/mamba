@@ -115,8 +115,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--dry-run"]
     cmd += ["--log-level=info"]
 
-    print(f"Running command {' '.join(cmd)}", file=sys.stderr)
-    res = subprocess.check_output(cmd, stderr=sys.stderr)
+    res = subprocess.check_output(cmd)
 
     if "--json" in args:
         try:

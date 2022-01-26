@@ -46,97 +46,6 @@
 
 #define PREFIX_LENGTH 25
 
-namespace cursor
-{
-    class CursorMovementTriple
-    {
-    public:
-        CursorMovementTriple(const char* esc, int n, const char* mod)
-            : m_esc(esc)
-            , m_mod(mod)
-            , m_n(n)
-        {
-        }
-
-        const char* m_esc;
-        const char* m_mod;
-        int m_n;
-    };
-
-    inline std::ostream& operator<<(std::ostream& o, const CursorMovementTriple& m)
-    {
-        o << m.m_esc << m.m_n << m.m_mod;
-        return o;
-    }
-
-    class CursorMod
-    {
-    public:
-        CursorMod(const char* mod)
-            : m_mod(mod)
-        {
-        }
-
-        std::ostream& operator<<(std::ostream& o)
-        {
-            o << m_mod;
-            return o;
-        }
-
-        const char* m_mod;
-    };
-
-    inline auto up(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "A");
-    }
-
-    inline auto down(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "B");
-    }
-
-    inline auto forward(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "C");
-    }
-
-    inline auto back(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "D");
-    }
-
-    inline auto next_line(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "E");
-    }
-
-    inline auto prev_line(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "F");
-    }
-
-    inline auto horizontal_abs(int n)
-    {
-        return CursorMovementTriple("\x1b[", n, "G");
-    }
-
-    inline auto erase_line(int n = 0)
-    {
-        return CursorMovementTriple("\x1b[", n, "K");
-    }
-
-    inline auto show(int n)
-    {
-        return CursorMod("\x1b[?25h");
-    }
-
-    inline auto hide(int n)
-    {
-        return CursorMod("\x1b[?25l");
-    }
-}  // namespace cursor
-
 namespace mamba
 {
     std::string cut_repo_name(const std::string& reponame);
@@ -204,11 +113,6 @@ namespace mamba
         std::ostringstream table_like(const std::vector<std::string>& data, std::size_t max_width);
     }  // namespace printers
 
-    // The next two functions / classes were ported from the awesome indicators
-    // library by p-ranav (MIT License) https://github.com/p-ranav/indicators
-    std::ostream& write_duration(std::ostream& os, std::chrono::nanoseconds ns);
-    int get_console_width();
-
     // Todo: replace public inheritance with
     // private one + using directives
     class ConsoleStream : public std::stringstream
@@ -236,7 +140,10 @@ namespace mamba
                            std::istream& input_stream = std::cin);
 
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0);
-        void init_multi_progress(ProgressBarMode mode = ProgressBarMode::multi);
+        void clear_progress_bars();
+        ProgressBarManager& init_progress_bar_manager(ProgressBarMode mode
+                                                      = ProgressBarMode::multi);
+        ProgressBarManager& progress_bar_manager();
 
         static std::string hide_secrets(const std::string_view& str);
 
@@ -247,29 +154,25 @@ namespace mamba
         void json_down(const std::string& key);
         void json_up();
 
+        static void print_buffer(std::ostream& ostream);
+
     private:
         Console();
         ~Console() = default;
 
         void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
-        void print_progress(std::size_t idx);
-        bool skip_progress_bars() const;
 
         std::mutex m_mutex;
-        std::unique_ptr<ProgressBarManager> p_progress_manager;
+        std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
 
         std::string json_hier;
         unsigned int json_index;
         nlohmann::json json_log;
 
+        static std::vector<std::string> m_buffer;
+
         friend class ProgressProxy;
     };
-
-    inline void ProgressProxy::set_postfix(const std::string& s)
-    {
-        p_bar->set_postfix(s);
-        Console::instance().print_progress(m_idx);
-    }
 
     class MessageLogger
     {
@@ -279,11 +182,21 @@ namespace mamba
 
         std::stringstream& stream();
 
+        static void activate_buffer();
+        static void deactivate_buffer();
+        static void print_buffer(std::ostream& ostream);
+
     private:
         std::string m_file;
         int m_line;
         spdlog::level::level_enum m_level;
         std::stringstream m_stream;
+
+        static std::mutex m_mutex;
+        static bool use_buffer;
+        static std::vector<std::pair<std::string, spdlog::level::level_enum>> m_buffer;
+
+        static void emit(const std::string& msg, const spdlog::level::level_enum& level);
     };
 
 

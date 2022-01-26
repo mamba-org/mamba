@@ -23,7 +23,7 @@ namespace mamba
             // file:// url should not retry
             EXPECT_EQ(cf.target()->can_retry(), false);
 
-            multi_dl.download(true);
+            multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
 
             // File does not exist
             EXPECT_EQ(cf.target()->result, 37);
@@ -38,7 +38,7 @@ namespace mamba
                                   true);
             cf.load();
             multi_dl.add(cf.target());
-            EXPECT_THROW(multi_dl.download(true), std::runtime_error);
+            EXPECT_THROW(multi_dl.download(MAMBA_DOWNLOAD_FAILFAST), std::runtime_error);
         }
         Context::instance().quiet = false;
 #endif

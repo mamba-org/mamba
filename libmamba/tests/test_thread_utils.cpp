@@ -17,12 +17,12 @@ namespace mamba
         // Ensures the compiler doe snot optimize away Context::instance()
         std::string current_command = Context::instance().current_command;
         EXPECT_EQ(current_command, "mamba");
-        Console::instance().init_multi_progress();
+        Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
         {
             interruption_guard g([&res]() {
                 // Test for double free (segfault if that happens)
                 std::cout << "Interruption guard is interrupting" << std::endl;
-                Console::instance().init_multi_progress();
+                Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
                 {
                     std::unique_lock<std::mutex> lk(res_mutex);
                     res -= 100;

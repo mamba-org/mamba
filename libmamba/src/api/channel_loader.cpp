@@ -46,6 +46,8 @@ namespace mamba
         int max_prio = static_cast<int>(channel_urls.size());
         std::string prev_channel_name;
 
+        Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
+
         if (ctx.experimental)
         {
             load_tokens();
@@ -86,7 +88,7 @@ namespace mamba
         // TODO load local channels even when offline
         if (!ctx.offline)
         {
-            multi_dl.download(true);
+            multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
         }
 
         std::vector<MRepo> repos;

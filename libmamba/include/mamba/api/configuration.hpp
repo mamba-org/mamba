@@ -958,7 +958,8 @@ namespace mamba
     template <class T>
     auto Configurable<T>::set_default_value(const T& value) -> self_type&
     {
-        m_value = m_default_value;
+        m_default_value = value;
+        m_value = value;
         return *this;
     };
 

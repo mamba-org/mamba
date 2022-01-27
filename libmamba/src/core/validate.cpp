@@ -1380,7 +1380,7 @@ namespace validate
 
                 if ((result == CURLE_OK) && dl_target->finalize())
                 {
-                    KeyMgrRole key_mgr(tmp_metadata_path, all_keys()["key_mgr"], spec_impl());
+                    KeyMgrRole key_mgr = create_key_mgr(tmp_metadata_path);
 
                     // TUF spec 5.6.5 - Check for a freeze attack
                     // 'key_mgr' (equivalent of 'targets') role should not be expired
@@ -1407,7 +1407,7 @@ namespace validate
             // Fallback to local cached-copy if existing
             if (fs::exists(metadata_path))
             {
-                KeyMgrRole key_mgr(metadata_path, all_keys()["key_mgr"], spec_impl());
+                KeyMgrRole key_mgr = create_key_mgr(metadata_path);
                 return key_mgr.build_index_checker(base_url, cache_path);
             }
 
@@ -1504,16 +1504,68 @@ namespace validate
             return m_keys;
         }
 
-        PkgMgrRole KeyMgrRole::create_pkg_mgr() const
+        PkgMgrRole KeyMgrRole::create_pkg_mgr(const fs::path& p) const
         {
-            return PkgMgrRole(all_keys().at("pkg_mgr"), spec_impl());
+            return PkgMgrRole(p, all_keys()["pkg_mgr"], spec_impl());
+        }
+
+        PkgMgrRole KeyMgrRole::create_pkg_mgr(const json& j) const
+        {
+            return PkgMgrRole(j, all_keys()["pkg_mgr"], spec_impl());
         }
 
         std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
-            const std::string& url, const fs::path& cache_path) const
+            const std::string& base_url, const fs::path& cache_path) const
         {
-            auto pkg_mgr = std::make_unique<PkgMgrRole>(create_pkg_mgr());
-            return pkg_mgr;
+            fs::path metadata_path = cache_path / "pkg_mgr.json";
+
+            auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
+            auto tmp_metadata_path = tmp_dir->path() / "pkg_mgr.json";
+
+            mamba::URLHandler url(base_url + "/pkg_mgr.json");
+
+            auto dl_target = std::make_unique<mamba::DownloadTarget>(
+                "pkg_mgr.json", url.url(), tmp_metadata_path);
+
+            if (dl_target->resource_exists())
+            {
+                auto result = curl_easy_perform(dl_target->handle());
+                dl_target->set_result(result);
+
+                if ((result == CURLE_OK) && dl_target->finalize())
+                {
+                    PkgMgrRole pkg_mgr = create_pkg_mgr(tmp_metadata_path);
+
+                    // TUF spec 5.6.5 - Check for a freeze attack
+                    // 'pkg_mgr' (equivalent of delegated 'targets') role should not be expired
+                    // https://theupdateframework.github.io/specification/latest/#update-targets
+                    if (pkg_mgr.expired())
+                    {
+                        LOG_ERROR << "Possible freeze attack of 'pkg_mgr' metadata.\nExpired: "
+                                  << pkg_mgr.expires();
+                        throw freeze_error();
+                    }
+
+                    // TUF spec 5.6.6 - Persist targets metadata
+                    if (!cache_path.empty())
+                    {
+                        if (fs::exists(metadata_path))
+                            fs::remove(metadata_path);
+                        fs::copy(tmp_metadata_path, metadata_path);
+                    }
+
+                    return std::make_unique<PkgMgrRole>(pkg_mgr);
+                }
+            }
+
+            // Fallback to local cached-copy if existing
+            if (fs::exists(metadata_path))
+            {
+                return std::make_unique<PkgMgrRole>(create_pkg_mgr(metadata_path));
+            }
+
+            LOG_ERROR << "Error while fetching 'pkg_mgr' metadata";
+            throw fetching_error();
         }
 
         std::set<std::string> KeyMgrRole::mandatory_defined_roles() const

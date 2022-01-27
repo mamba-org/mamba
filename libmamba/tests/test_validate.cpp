@@ -1101,6 +1101,7 @@ namespace validate
                 PkgMgrT_v06()
                     : KeyMgrT_v06()
                 {
+                    sign_pkg_mgr();
                     generate_index_checkerdata();
                     root = std::make_unique<RootImpl>(root1_json);
                 };
@@ -1125,10 +1126,72 @@ namespace validate
                     return updated_repodata;
                 }
 
+                void sign_pkg_mgr()
+                {
+                    std::vector<std::string> pkg_mgr_pks;
+                    for (auto& secret : secrets.at("pkg_mgr"))
+                    {
+                        pkg_mgr_pks.push_back(secret.first);
+                    }
+                    pkg_mgr_json["signed"]["delegations"] = json::object();
+
+                    pkg_mgr_json["signed"]["version"] = 1;
+                    pkg_mgr_json["signed"]["metadata_spec_version"] = "0.6.0";
+                    pkg_mgr_json["signed"]["type"] = "pkg_mgr";
+
+                    pkg_mgr_json["signed"]["timestamp"] = timestamp(utc_time_now());
+                    pkg_mgr_json["signed"]["expiration"] = timestamp(utc_time_now() + 3600);
+                    pkg_mgr_json["signatures"] = sign_pkg_mgr_meta(pkg_mgr_json["signed"]);
+                }
+
+                json patched_pkg_mgr_json(const json& patch = json())
+                {
+                    json update_pkg_mgr = pkg_mgr_json;
+
+                    if (!patch.empty())
+                        update_pkg_mgr = update_pkg_mgr.patch(patch);
+
+                    json sig_patch = json::parse(
+                        R"([
+                            { "op": "replace", "path": "/signatures", "value": )"
+                        + sign_pkg_mgr_meta(update_pkg_mgr.at("signed")).dump() + R"( }
+                            ])");
+                    return update_pkg_mgr.patch(sig_patch);
+                }
+
+                fs::path write_pkg_mgr_file(const json& j,
+                                            const std::string& filename = "pkg_mgr.json")
+                {
+                    fs::path p = channel_dir->path() / filename;
+
+                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    out_file << j;
+                    out_file.close();
+
+                    return p;
+                }
+
             protected:
-                json repodata_json, signed_repodata_json;
+                json pkg_mgr_json, repodata_json, signed_repodata_json;
 
                 std::unique_ptr<RootImpl> root;
+
+                json sign_pkg_mgr_meta(const json& meta)
+                {
+                    std::map<std::string, std::map<std::string, std::string>> signatures;
+
+                    unsigned char sig_bin[MAMBA_ED25519_SIGSIZE_BYTES];
+
+                    for (auto& secret : secrets.at("pkg_mgr"))
+                    {
+                        sign(meta.dump(2), secret.second.data(), sig_bin);
+
+                        auto sig_hex = ::mamba::hex_string(sig_bin, MAMBA_ED25519_SIGSIZE_BYTES);
+                        signatures[secret.first].insert({ "signature", sig_hex });
+                    }
+
+                    return signatures;
+                }
 
                 void generate_index_checkerdata()
                 {
@@ -1182,7 +1245,7 @@ namespace validate
             TEST_F(PkgMgrT_v06, verify_index)
             {
                 auto key_mgr = root->create_key_mgr(key_mgr_json);
-                auto pkg_mgr = key_mgr.create_pkg_mgr();
+                auto pkg_mgr = key_mgr.create_pkg_mgr(pkg_mgr_json);
 
                 pkg_mgr.verify_index(signed_repodata_json);
             }
@@ -1190,7 +1253,7 @@ namespace validate
             TEST_F(PkgMgrT_v06, corrupted_repodata)
             {
                 auto key_mgr = root->create_key_mgr(key_mgr_json);
-                auto pkg_mgr = key_mgr.create_pkg_mgr();
+                auto pkg_mgr = key_mgr.create_pkg_mgr(pkg_mgr_json);
 
                 json wrong_pkg_patch = R"([
                             { "op": "replace", "path": "/packages/test-package1-0.1-0.tar.bz2/version", "value": "0.1.1" }
@@ -1202,7 +1265,7 @@ namespace validate
             TEST_F(PkgMgrT_v06, illformed_repodata)
             {
                 auto key_mgr = root->create_key_mgr(key_mgr_json);
-                auto pkg_mgr = key_mgr.create_pkg_mgr();
+                auto pkg_mgr = key_mgr.create_pkg_mgr(pkg_mgr_json);
 
                 json illformed_pkg_patch = R"([
                             { "op": "remove", "path": "/signatures"}
@@ -1229,6 +1292,7 @@ namespace validate
                     write_role(create_root_update_json(patch), channel_dir->path() / "2.root.json");
 
                     write_role(key_mgr_json, channel_dir->path() / "key_mgr.json");
+                    write_role(pkg_mgr_json, channel_dir->path() / "pkg_mgr.json");
 
                     spdlog::set_level(spdlog::level::debug);
                 }

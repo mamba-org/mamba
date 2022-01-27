@@ -348,8 +348,9 @@ namespace mamba
             LOG_WARNING << "No 'channels' specified";
         }
 
-        std::vector<MRepo> repos;
         MPool pool;
+        std::vector<MRepo> repos = load_channels(pool, package_caches, is_retry);
+
         if (ctx.offline)
         {
             LOG_INFO << "Creating repo from pkgs_dir for offline";
@@ -367,8 +368,6 @@ namespace mamba
 
         auto repo = MRepo(pool, prefix_data);
         repos.push_back(repo);
-
-        load_channels(pool, package_caches, is_retry);
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },

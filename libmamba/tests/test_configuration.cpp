@@ -34,6 +34,10 @@ namespace mamba
                     .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value({ fs::path(unique_location) });
+                mamba::Configuration::instance()
+                    .at("show_banner")
+                    .get_wrapped<bool>()
+                    .set_default_value(false);
                 mamba::Configuration::instance().load();
             }
 
@@ -59,6 +63,10 @@ namespace mamba
                     .at("rc_files")
                     .get_wrapped<std::vector<fs::path>>()
                     .set_value(sources);
+                mamba::Configuration::instance()
+                    .at("show_banner")
+                    .get_wrapped<bool>()
+                    .set_default_value(false);
                 mamba::Configuration::instance().load();
             }
 

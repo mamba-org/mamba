@@ -703,7 +703,8 @@ namespace validate
             // std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
 
-            PkgMgrRole create_pkg_mgr() const;
+            PkgMgrRole create_pkg_mgr(const fs::path& p) const;
+            PkgMgrRole create_pkg_mgr(const json& j) const;
 
             /**
              * Return a ``RepoIndexChecker`` implementation (derived class)

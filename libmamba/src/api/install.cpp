@@ -351,12 +351,6 @@ namespace mamba
         MPool pool;
         std::vector<MRepo> repos = load_channels(pool, package_caches, is_retry);
 
-        if (ctx.offline)
-        {
-            LOG_INFO << "Creating repo from pkgs_dir for offline";
-            for (const auto& c : ctx.pkgs_dirs)
-                repos.push_back(detail::create_repo_from_pkgs_dir(pool, c));
-        }
         PrefixData prefix_data(ctx.target_prefix);
         prefix_data.load();
 

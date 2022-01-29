@@ -25,6 +25,113 @@
 
 #include "termcolor/termcolor.hpp"
 
+static std::string
+expandvars(std::string s)
+{
+    auto res = std::vector<std::string>();
+
+    while (s.size())
+    {
+        const char c = s[0];
+#ifdef _WIN32
+        bool win_percent = c == '%';
+        if (c == '\'')
+        {
+            // No expansion within single quotes (Windows only)
+            auto j = s.find("'", 1);
+            if (j == std::string::npos)
+            {
+                res.push_back(s);
+                break;
+            }
+            else
+            {
+                res.push_back(s.substr(0, j + 1));
+                s = s.substr(j + 1);
+            }
+        }
+        else
+#else
+        bool win_percent = false;
+#endif
+            if (c == '$' || win_percent)
+        {
+            // Variable or $$/%%
+            auto has_next = s.size() > 1;
+            if (has_next && s[1] == (win_percent ? '%' : '$'))
+            {
+                // $$/%%
+                res.push_back(s.substr(1, 1));
+                s = s.substr(2);
+            }
+            else if (has_next && (win_percent ? isalnum(s[1]) : s[1] == '{'))
+            {
+                // ${var} or %var%
+                auto j = win_percent ? s.find("%", 1) : s.find("}", 2);
+                if (j == std::string::npos)
+                {
+                    res.push_back(s);
+                    break;
+                }
+                else
+                {
+                    auto var = s.substr(win_percent ? 1 : 2, j - (win_percent ? 1 : 2));
+                    auto val = std::getenv(var.c_str());
+                    if (val == NULL)
+                    {
+                        res.push_back(var);
+                        res.push_back(win_percent ? "%" : "}");
+                    }
+                    else
+                    {
+                        res.push_back(val);
+                    }
+                }
+                s = s.substr(j + 1);
+            }
+            else
+            {
+                // s.size() >= 2
+                size_t j;
+                for (j = 1; j < s.size() && isalpha(s[j]); ++j)
+                    ;
+                auto var = s.substr(1, j - 1);
+                auto val = std::getenv(var.c_str());
+                if (val == NULL)
+                {
+                    res.push_back(win_percent ? "%" : "$");
+                    res.push_back(var);
+                }
+                else
+                {
+                    res.push_back(val);
+                }
+                s = s.substr(j);
+            }
+        }
+        else
+        {
+            // Non-special char
+            auto j = s.find_first_of("\"'$%", 1);
+            if (j == std::string::npos)
+            {
+                res.push_back(s);
+                break;
+            }
+            else
+            {
+                res.push_back(s.substr(0, j));
+                s = s.substr(j);
+            }
+        }
+    }
+
+    std::string out = "";
+    for (int i = 0; i < res.size(); ++i)
+        out.append(res[i]);
+    return out;
+}
+
 
 namespace mamba
 {
@@ -1341,7 +1448,12 @@ namespace mamba
         YAML::Node config;
         try
         {
-            config = YAML::LoadFile(file);
+            std::ifstream inFile;
+            inFile.open(file);
+            std::stringstream strStream;
+            strStream << inFile.rdbuf();
+            std::string s = strStream.str();
+            config = YAML::Load(expandvars(s));
         }
         catch (...)
         {

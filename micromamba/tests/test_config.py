@@ -1,10 +1,12 @@
 import json
 import os
+import platform
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from .helpers import create, get_umamba, random_string, remove
 
@@ -14,19 +16,21 @@ def config(*args):
     cmd = [umamba, "config"] + [arg for arg in args if arg]
     res = subprocess.check_output(cmd)
     if "--json" in args:
-        j = json.loads(res)
+        j = yaml.load(res, yaml.FullLoader)
         return j
 
     return res.decode()
 
 
-@pytest.fixture(scope="session")
-def rc_file(tmpdir_factory):
-    fn = tmpdir_factory.mktemp("umamba").join("config.yaml")
-    content = "channels:\n  - channel1\n  - channel2\n"
-    with open(fn, "w") as f:
-        f.write(content)
-    return fn
+@pytest.fixture
+def rc_file_path(tmpdir_factory):
+    return Path(tmpdir_factory.mktemp("umamba").join("config.yaml"))
+
+
+@pytest.fixture
+def rc_file_args(rc_file_path):
+    rc_file_path.write_text("channels:\n  - channel1\n  - channel2\n")
+    return ["--rc-file", rc_file_path]
 
 
 class TestConfig:
@@ -191,53 +195,42 @@ class TestConfigSources:
 
 
 class TestConfigList:
-    @pytest.mark.parametrize("rc_flag", ["--no-rc", "--rc-file="])
-    def test_list(self, rc_file, rc_flag):
-        expected = {
-            "--no-rc": "",
-            "--rc-file=" + str(rc_file): "channels:\n  - channel1\n  - channel2\n",
-        }
-        if rc_flag == "--rc-file=":
-            rc_flag += str(rc_file)
-
+    def test_list_with_rc(self, rc_file_args):
         assert (
-            config("list", "--no-env", rc_flag).splitlines()[:-1]
-            == expected[rc_flag].splitlines()
+            config("list", "--no-env", *rc_file_args).splitlines()[:-1]
+            == "channels:\n  - channel1\n  - channel2\n".splitlines()
         )
 
+    def test_list_without_rc(self):
+        assert config("list", "--no-env", "--no-rc").splitlines()[:-1] == []
+
     @pytest.mark.parametrize("source_flag", ["--sources", "-s"])
-    def test_list_with_sources(self, rc_file, source_flag):
+    def test_list_with_sources(self, rc_file_args, source_flag):
         home_folder = os.path.expanduser("~")
-        src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
+        src = f"  # '{str(rc_file_args[-1]).replace(home_folder, '~')}'"
         assert (
-            config(
-                "list", "--no-env", "--rc-file=" + str(rc_file), source_flag
-            ).splitlines()[:-1]
+            config("list", "--no-env", *rc_file_args, source_flag).splitlines()[:-1]
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )
 
     @pytest.mark.parametrize("desc_flag", ["--descriptions", "-d"])
-    def test_list_with_descriptions(self, rc_file, desc_flag):
+    def test_list_with_descriptions(self, rc_file_args, desc_flag):
         assert (
-            config(
-                "list", "--no-env", "--rc-file=" + str(rc_file), desc_flag
-            ).splitlines()[:-4]
+            config("list", "--no-env", *rc_file_args, desc_flag).splitlines()[:-4]
             == f"# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
 
     @pytest.mark.parametrize("desc_flag", ["--long-descriptions", "-l"])
-    def test_list_with_long_descriptions(self, rc_file, desc_flag):
+    def test_list_with_long_descriptions(self, rc_file_args, desc_flag):
         assert (
-            config(
-                "list", "--no-env", "--rc-file=" + str(rc_file), desc_flag
-            ).splitlines()[:-4]
+            config("list", "--no-env", *rc_file_args, desc_flag).splitlines()[:-4]
             == f"# channels\n#   The list of channels where the packages will be searched for.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
 
     @pytest.mark.parametrize("group_flag", ["--groups", "-g"])
-    def test_list_with_groups(self, rc_file, group_flag):
+    def test_list_with_groups(self, rc_file_args, group_flag):
         group = (
             "# ######################################################\n"
             "# #               Channels Configuration               #\n"
@@ -245,9 +238,9 @@ class TestConfigList:
         )
 
         assert (
-            config(
-                "list", "--no-env", "--rc-file=" + str(rc_file), "-d", group_flag
-            ).splitlines()[:-8]
+            config("list", "--no-env", *rc_file_args, "-d", group_flag).splitlines()[
+                :-8
+            ]
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -748,3 +741,121 @@ class TestConfigModifiers:
             "  - finn",
             "  - jake",
         ]
+
+
+class TestConfigExpandVars:
+    def test_expandvars_conda(self, monkeypatch, tmpdir_factory, rc_file_path):
+        """
+        Environment variables should be expanded in settings that have expandvars=True.
+
+        Test copied from Conda.
+        """
+
+        def _expandvars(attr, config_expr, env_value):
+            rc_file_path.write_text(f"{attr}: {config_expr}")
+            monkeypatch.setenv("TEST_VAR", env_value)
+            conf = config("list", "--json", "--no-env", "--rc-file", rc_file_path)
+            return conf[attr]
+
+        ssl_verify = _expandvars("ssl_verify", "${TEST_VAR}", "yes")
+        assert ssl_verify
+
+        for attr, env_value in [
+            # Unsupported by Micromamba
+            # ("client_ssl_cert", "foo"),
+            # ("client_ssl_cert_key", "foo"),
+            ("channel_alias", "http://foo"),
+        ]:
+            value = _expandvars(attr, "${TEST_VAR}", env_value)
+            assert value == env_value
+
+        for attr in [
+            # Unsupported by Micromamba
+            # "migrated_custom_channels",
+            # "proxy_servers",
+        ]:
+            value = _expandvars(attr, "{'x': '${TEST_VAR}'}", "foo")
+            assert value == {"x": "foo"}
+
+        for attr in [
+            "channels",
+            "default_channels",
+            # Unsupported by Micromamba
+            # "whitelist_channels",
+        ]:
+            value = _expandvars(attr, "['${TEST_VAR}']", "foo")
+            assert value == ["foo"]
+
+        custom_channels = _expandvars(
+            "custom_channels", "{'x': '${TEST_VAR}'}", "http://foo"
+        )
+        assert custom_channels["x"] == "http://foo"
+
+        custom_multichannels = _expandvars(
+            "custom_multichannels", "{'x': ['${TEST_VAR}']}", "http://foo"
+        )
+        assert len(custom_multichannels["x"]) == 1
+        assert custom_multichannels["x"][0] == "http://foo"
+
+        envs_dirs = _expandvars("envs_dirs", "['${TEST_VAR}']", "/foo")
+        assert any("foo" in d for d in envs_dirs)
+
+        pkgs_dirs = _expandvars("pkgs_dirs", "['${TEST_VAR}']", "/foo")
+        assert any("foo" in d for d in pkgs_dirs)
+
+    @pytest.mark.parametrize(
+        "inp,outp",
+        [
+            ("$", "$"),
+            ("$$", "$"),
+            ("foo", "foo"),
+            ("$foo$$foo bar", "bar$foo bar"),
+            ("$foo bar", "bar bar"),
+            ("${foo}bar1", "barbar1"),
+            ("$[foo]bar", "$[foo]bar"),
+            ("$bar bar", "$bar bar"),
+            ("$?bar", "$?bar"),
+            ("$foo}bar", "bar}bar"),
+            ("${foo", "${foo"),
+            ("${{foo}}2", "baz1}2"),
+            ("$foo$foo", "barbar"),
+            ("$bar$bar", "$bar$bar"),
+            *(
+                [
+                    ("%", "%"),
+                    ("foo", "foo"),
+                    ("$foo bar", "bar bar"),
+                    ("${foo}bar", "barbar"),
+                    ("$[foo]bar", "$[foo]bar"),
+                    ("$bar bar", "$bar bar"),
+                    ("$?bar", "$?bar"),
+                    ("$foo}bar", "bar}bar"),
+                    ("${foo", "${foo"),
+                    ("${{foo}}", "baz1}"),
+                    ("$foo$foo", "barbar"),
+                    ("$bar$bar", "$bar$bar"),
+                    ("%foo% bar", "bar bar"),
+                    ("%foo%bar", "barbar"),
+                    ("%foo%%foo%", "barbar"),
+                    ("%%foo%%foo%foo%", "%foo%foobar"),
+                    ("%?bar%", "%?bar%"),
+                    ("%foo%%bar", "bar%bar"),
+                    ("'%foo%'%bar", "'%foo%'%bar"),
+                    ("bar'%foo%", "bar'%foo%"),
+                    ("'$foo'$foo", "'$foo'bar"),
+                    ("'$foo$foo", "'$foo$foo"),
+                ]
+                if platform.system() == "Windows"
+                else []
+            ),
+        ],
+    )
+    def test_expandvars_cpython(self, monkeypatch, rc_file_path, inp, outp):
+        """Tests copied from CPython."""
+        monkeypatch.setenv("foo", "bar", 1)
+        monkeypatch.setenv("{foo", "baz1", 1)
+        monkeypatch.setenv("{foo}", "baz2", 1)
+        some_opt = "channel_alias"
+        rc_file_path.write_text(f'{some_opt}: "{inp}"')
+        conf = config("list", "--json", "--no-env", "--rc-file", rc_file_path)
+        assert conf[some_opt] == outp

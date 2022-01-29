@@ -380,7 +380,10 @@ def compute_final_precs(
 
 
 def to_txn_precs(
-    specs_to_add, specs_to_remove, prefix, final_precs,
+    specs_to_add,
+    specs_to_remove,
+    prefix,
+    final_precs,
 ):
     unlink_precs, link_precs = diff_for_unlink_link_precs(
         prefix,
@@ -413,6 +416,15 @@ def to_txn(
 ):
     prefix_data = PrefixData(prefix)
     final_precs = compute_final_precs(
-        prefix_data.iter_records(), to_link, to_unlink, installed_pkg_recs, index,
+        prefix_data.iter_records(),
+        to_link,
+        to_unlink,
+        installed_pkg_recs,
+        index,
     )
-    return to_txn_precs(specs_to_add, specs_to_remove, prefix, final_precs,)
+    return to_txn_precs(
+        specs_to_add,
+        specs_to_remove,
+        prefix,
+        final_precs,
+    )

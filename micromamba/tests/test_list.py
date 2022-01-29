@@ -58,7 +58,9 @@ class TestList:
     def test_not_environment(self):
         with pytest.raises(subprocess.CalledProcessError):
             umamba_list(
-                "-p", os.path.join(TestList.root_prefix, "envs"), "--json",
+                "-p",
+                os.path.join(TestList.root_prefix, "envs"),
+                "--json",
             )
 
     @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])

@@ -32,7 +32,13 @@ class TestEnv:
         if cls.env_txt.exists():
             cls.env_txt.rename(cls.env_txt_bkup)
 
-        res = create(f"", "-n", cls.env_name_1, "--json", no_dry_run=True,)
+        res = create(
+            f"",
+            "-n",
+            cls.env_name_1,
+            "--json",
+            no_dry_run=True,
+        )
 
     @classmethod
     def setup(cls):
@@ -83,8 +89,20 @@ class TestEnv:
 
     def test_register_new_env(self):
 
-        res = create(f"", "-n", self.env_name_2, "--json", no_dry_run=True,)
-        res = create(f"", "-n", self.env_name_3, "--json", no_dry_run=True,)
+        res = create(
+            f"",
+            "-n",
+            self.env_name_2,
+            "--json",
+            no_dry_run=True,
+        )
+        res = create(
+            f"",
+            "-n",
+            self.env_name_3,
+            "--json",
+            no_dry_run=True,
+        )
 
         env_json = run_env("list", "--json")
         env_2_fp = str(self.root_prefix / "envs" / self.env_name_2)

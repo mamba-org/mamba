@@ -80,7 +80,11 @@ class TestConfigSources:
 
         os.makedirs(TestConfigSources.root_prefix, exist_ok=False)
         create(
-            "-n", TestConfigSources.env_name, "--json", "--offline", no_dry_run=True,
+            "-n",
+            TestConfigSources.env_name,
+            "--json",
+            "--offline",
+            no_dry_run=True,
         )
 
     @classmethod
@@ -148,7 +152,15 @@ class TestConfigSources:
         with open(os.path.expanduser(rc_file), "w") as f:
             f.write("override_channels_enabled: true")
 
-        srcs = config("sources", "-n", TestConfigSources.env_name,).strip().splitlines()
+        srcs = (
+            config(
+                "sources",
+                "-n",
+                TestConfigSources.env_name,
+            )
+            .strip()
+            .splitlines()
+        )
         short_name = rc_file.replace(os.path.expanduser("~"), "~")
         expected_srcs = (
             f"Configuration files (by precedence order):\n{short_name}".splitlines()
@@ -314,7 +326,12 @@ class TestConfigList:
             )
             assert (
                 config(
-                    "list", "offline", "--no-rc", "--no-env", "-s", "--offline",
+                    "list",
+                    "offline",
+                    "--no-rc",
+                    "--no-env",
+                    "-s",
+                    "--offline",
                 ).splitlines()
                 == "offline: true  # 'CLI'".splitlines()
             )

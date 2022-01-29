@@ -767,7 +767,10 @@ def configure_clean_locks(sub_parsers):
         g.title: g for g in sub_parsers.choices["clean"]._action_groups
     }["Removal Targets"]
     removal_target_options.add_argument(
-        "-l", "--locks", action="store_true", help="Remove lock files.",
+        "-l",
+        "--locks",
+        action="store_true",
+        help="Remove lock files.",
     )
 
 

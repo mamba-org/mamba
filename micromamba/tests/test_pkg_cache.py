@@ -304,7 +304,13 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
-        res = create("-n", env_name, "xtensor", "--json", no_dry_run=True,)
+        res = create(
+            "-n",
+            env_name,
+            "xtensor",
+            "--json",
+            no_dry_run=True,
+        )
 
         linked_file = get_env(env_name, xtensor_hpp)
         assert linked_file.exists()

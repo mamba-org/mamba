@@ -672,7 +672,10 @@ class TestActivation:
             assert find_path_in_str(str(rp / "envs" / u1), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / u2), res["PATH"])
 
-            s = ["micromamba activate", f"micromamba activate '{u3}'",] + evars
+            s = [
+                "micromamba activate",
+                f"micromamba activate '{u3}'",
+            ] + evars
             stdout, stderr = call(s)
             res = TestActivation.to_dict(stdout)
             assert find_path_in_str(str(rp / "condabin"), res["PATH"])

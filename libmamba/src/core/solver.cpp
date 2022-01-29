@@ -368,7 +368,6 @@ namespace mamba
         Id count = solver_problem_count(m_solver);
         for (Id i = 1; i <= count; ++i)
         {
-            Id type, source, target, dep;
             solver_findallproblemrules(m_solver, i, &problem_rules);
             for (Id j = 0; j < problem_rules.count; ++j)
             {

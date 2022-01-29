@@ -596,20 +596,6 @@ namespace mamba
         return ChannelInternal::make_cached_channel(value);
     }
 
-    static void append_channel_urls(const std::string name,
-                                    bool with_credential,
-                                    std::vector<std::string>& result,
-                                    std::set<std::string>& control)
-    {
-        // this checks if the channel is already in our channel_urls list
-        bool ret = !control.insert(name).second;
-        if (ret)
-            return;
-
-        std::vector<std::string> urls = make_channel(name).urls(with_credential);
-        std::copy(urls.begin(), urls.end(), std::back_inserter(result));
-    }
-
     std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names)
     {
         std::set<const Channel*> added;
@@ -780,7 +766,7 @@ namespace mamba
 
             auto channel
                 = ChannelInternal::make_simple_channel(m_channel_alias, join_url(url, n), "", n);
-            auto res = m_custom_channels.emplace(n, std::move(channel));
+            m_custom_channels.emplace(n, std::move(channel));
         }
 
         auto& multichannels = Context::instance().custom_multichannels;
@@ -793,7 +779,7 @@ namespace mamba
                 auto channel = ChannelInternal::make_simple_channel(
                     m_channel_alias, url, "", multichannelname);
                 std::string name = channel.name();
-                auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
+                m_custom_channels.emplace(std::move(name), std::move(channel));
                 *name_iter++ = url;
             }
             m_custom_multichannels.emplace(multichannelname, std::move(names));

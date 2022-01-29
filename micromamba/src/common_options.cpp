@@ -45,7 +45,7 @@ init_general_options(CLI::App* subcom)
         ->group(cli_group);
 
     auto& log_level = config.at("log_level").get_wrapped<spdlog::level::level_enum>();
-    subcom->add_flag("--log-level", log_level.set_cli_config(""), log_level.description())
+    subcom->add_option("--log-level", log_level.set_cli_config(""), log_level.description())
         ->group(cli_group)
         ->check(CLI::IsMember(std::vector<std::string>(
             { "critical", "error", "warning", "info", "debug", "trace", "off" })));

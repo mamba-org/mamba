@@ -414,7 +414,11 @@ namespace mamba
 
         reproc::options options;
         options.redirect.parent = true;
-        options.env.behavior = reproc::env::extend;
+        if (activate) {
+            options.env.behavior = reproc::env::empty;
+        } else {
+            options.env.behavior = reproc::env::extend;
+        }
         options.env.extra = envmap;
         std::string cwd = path.parent_path();
         options.working_directory = cwd.c_str();
@@ -703,6 +707,7 @@ namespace mamba
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
                 reproc::options options;
+                options.env.behavior = reproc::env::empty;
                 if (Context::instance().verbosity <= 1)
                 {
                     reproc::redirect silence;
@@ -838,6 +843,7 @@ namespace mamba
         }
 
         reproc::options options;
+        options.env.behavior = reproc::env::empty;
         std::string out, err;
 
         std::string cwd = m_context->target_prefix;

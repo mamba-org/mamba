@@ -90,7 +90,7 @@ main(int argc, char** argv)
     {
         LOG_CRITICAL << e.what();
         set_sig_interrupted();
-        err = false;
+        err = true;
     }
     reset_console();
     return err ? 1 : 0;

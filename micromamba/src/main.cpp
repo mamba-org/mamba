@@ -70,29 +70,28 @@ main(int argc, char** argv)
     }
     ctx.current_command = full_command.str();
 
+    bool err = false;
     try
     {
         CLI11_PARSE(app, argc, utf8argv);
+        if (app.get_subcommands().size() == 0)
+        {
+            Configuration::instance().load();
+            Console::print(app.help());
+        }
+        if (app.got_subcommand("config")
+            && app.get_subcommand("config")->get_subcommands().size() == 0)
+        {
+            Configuration::instance().load();
+            Console::print(app.get_subcommand("config")->help());
+        }
     }
     catch (const std::exception& e)
     {
         LOG_CRITICAL << e.what();
         set_sig_interrupted();
-        reset_console();
-        return 1;
+        err = true;
     }
-
-    if (app.get_subcommands().size() == 0)
-    {
-        Configuration::instance().load();
-        Console::print(app.help());
-    }
-    if (app.got_subcommand("config") && app.get_subcommand("config")->get_subcommands().size() == 0)
-    {
-        Configuration::instance().load();
-        Console::print(app.get_subcommand("config")->help());
-    }
-
     reset_console();
-    return 0;
+    return err ? 1 : 0;
 }

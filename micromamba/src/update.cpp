@@ -16,7 +16,7 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 set_update_command(CLI::App* subcom)
 {
-    auto& config = Configuration::instance();
+    Configuration::instance();
 
     init_install_options(subcom);
 

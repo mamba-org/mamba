@@ -93,16 +93,6 @@ namespace mamba
             else
                 ostream << fmt::format("{}", sstream.str());
         }
-
-        void print_formatted_bar_repr(ProgressBarRepr& r,
-                                      std::size_t width,
-                                      bool with_endl = true,
-                                      bool flush = true)
-        {
-            print_formatted_bar_repr(std::cout, r, width, with_endl);
-            if (flush)
-                std::cout << std::flush;
-        }
     }
 
     /**********

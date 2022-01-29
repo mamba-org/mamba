@@ -744,7 +744,16 @@ class TestConfigModifiers:
 
 
 class TestConfigExpandVars:
-    def test_expandvars_conda(self, monkeypatch, tmpdir_factory, rc_file_path):
+    @staticmethod
+    def _roundtrip(rc_file_path, attr, config_expr):
+        rc_file_path.write_text(f"{attr}: {config_expr}")
+        conf = config("list", "--json", "--no-env", "--rc-file", rc_file_path)
+        return conf[attr]
+
+    @pytest.mark.parametrize("yaml_quote", ["", '"'])
+    def test_expandvars_conda(
+        self, monkeypatch, tmpdir_factory, rc_file_path, yaml_quote
+    ):
         """
         Environment variables should be expanded in settings that have expandvars=True.
 
@@ -752,10 +761,9 @@ class TestConfigExpandVars:
         """
 
         def _expandvars(attr, config_expr, env_value):
-            rc_file_path.write_text(f"{attr}: {config_expr}")
+            config_expr = config_expr.replace("'", yaml_quote)
             monkeypatch.setenv("TEST_VAR", env_value)
-            conf = config("list", "--json", "--no-env", "--rc-file", rc_file_path)
-            return conf[attr]
+            return self._roundtrip(rc_file_path, attr, config_expr)
 
         ssl_verify = _expandvars("ssl_verify", "${TEST_VAR}", "yes")
         assert ssl_verify
@@ -850,12 +858,18 @@ class TestConfigExpandVars:
             ),
         ],
     )
-    def test_expandvars_cpython(self, monkeypatch, rc_file_path, inp, outp):
+    @pytest.mark.parametrize("yaml_quote", ["", '"', "'"])
+    def test_expandvars_cpython(self, monkeypatch, rc_file_path, inp, outp, yaml_quote):
         """Tests copied from CPython."""
-        monkeypatch.setenv("foo", "bar", 1)
-        monkeypatch.setenv("{foo", "baz1", 1)
-        monkeypatch.setenv("{foo}", "baz2", 1)
-        some_opt = "channel_alias"
-        rc_file_path.write_text(f'{some_opt}: "{inp}"')
-        conf = config("list", "--json", "--no-env", "--rc-file", rc_file_path)
-        assert conf[some_opt] == outp
+        monkeypatch.setenv("foo", "bar", True)
+        monkeypatch.setenv("{foo", "baz1", True)
+        monkeypatch.setenv("{foo}", "baz2", True)
+        assert outp == self._roundtrip(
+            rc_file_path, "channel_alias", yaml_quote + inp + yaml_quote
+        )
+
+    def test_envsubst_yaml_mixup(self, monkeypatch, rc_file_path):
+        monkeypatch.setenv('x", "y', "spam", True)
+        assert ["${x", "y}"] == self._roundtrip(
+            rc_file_path, "channels", '["${x", "y}"]'
+        )

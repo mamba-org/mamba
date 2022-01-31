@@ -61,7 +61,8 @@ init_shell_parser(CLI::App* subcom)
             .group("cli")
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
-    subcom->add_option("prefix,-p,--prefix", prefix.set_cli_config(""), prefix.description());
+    subcom->add_option(
+        "prefix,-p,--prefix,-n,--name", prefix.set_cli_config(""), prefix.description());
 }
 
 
@@ -73,8 +74,8 @@ set_shell_command(CLI::App* subcom)
     subcom->callback([&]() {
         auto& config = Configuration::instance();
 
-        auto& action = config.at("shell_action").compute().value<std::string>();
         auto& prefix = config.at("shell_prefix").compute().value<std::string>();
+        auto& action = config.at("shell_action").compute().value<std::string>();
         auto& shell = config.at("shell_type").compute().value<std::string>();
         auto& stack = config.at("shell_stack").compute().value<bool>();
         mamba::shell(action, shell, prefix, stack);

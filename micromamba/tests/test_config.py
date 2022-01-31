@@ -883,3 +883,7 @@ class TestConfigExpandVars:
     )
     def test_envsubst_yaml_mixup(self, monkeypatch, rc_file_path, inp, outp):
         assert self._roundtrip(rc_file_path, "channels", f'["${{{inp}}}"]') == outp
+
+    def test_envsubst_empty_var(self, monkeypatch, rc_file_path):
+        monkeypatch.setenv("foo", "", True)
+        assert self._roundtrip(rc_file_path, "channel_alias", "${foo}") == ""

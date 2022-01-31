@@ -246,7 +246,9 @@ def init_api_context(use_mamba_experimental=False):
                 )
     api_ctx.custom_multichannels = additional_custom_multichannels
 
-    api_ctx.default_channels = [get_base_url(x.url(with_credentials=True)) for x in context.default_channels]
+    api_ctx.default_channels = [
+        get_base_url(x.url(with_credentials=True)) for x in context.default_channels
+    ]
 
     if context.ssl_verify is False:
         api_ctx.ssl_verify = "<false>"

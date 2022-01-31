@@ -995,8 +995,17 @@ namespace mamba
                 }
                 if (!found)
                 {
-                    paths_json["paths"][i]["sha256_in_prefix"]
-                        = validate::sha256sum(m_context->target_prefix / files_record[i]);
+                    if (fs::exists(m_context->target_prefix / files_record[i]))
+                    {
+                        paths_json["paths"][i]["sha256_in_prefix"]
+                            = validate::sha256sum(m_context->target_prefix / files_record[i]);
+                    }
+                    else
+                    {
+                        // for broken symlinks (that don't yet point anywhere valid) we record the
+                        // sha256 for an empty string
+                        paths_json["paths"][i]["sha256_in_prefix"] = MAMBA_EMPTY_SHA;
+                    }
                 }
             }
         }

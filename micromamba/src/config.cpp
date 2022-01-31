@@ -45,51 +45,47 @@ is_valid_rc_sequence(const std::string& key, const std::string& value)
     }
 }
 
-void
-system_path_setup(fs::path& rc_source)
+fs::path
+get_system_path()
 {
-    std::string path = "";
-
-    if (on_mac || on_linux)
-    {
-        path = fs::path("/etc/conda/.condarc");
-    }
-    else
-    {
-        path = fs::path("C:\\ProgramData\\conda\\.condarc");
-    }
-    path::touch(path, true);
-    rc_source = env::expand_user(path).string();
+    return (on_mac || on_linux) ? fs::path("/etc/conda/.condarc")
+                                : fs::path("C:\\ProgramData\\conda\\.condarc");
 }
 
-bool
-system_path_exists()
+fs::path
+compute_config_path(bool touch_if_not_exists)
 {
-    if (fs::exists(fs::path("C:\\ProgramData\\conda\\.condarc"))
-        || fs::exists(fs::path("/etc/conda/.condarc")))
-    {
-        return true;
-    }
-    std::cout << "File doesn't exist or is not valid." << std::endl;
-    return false;
-}
+    auto& config = Configuration::instance();
+    auto& ctx = Context::instance();
 
-void
-env_path_setup(fs::path path, fs::path& rc_source)
-{
-    path::touch(path, true);
-    rc_source = env::expand_user(path).string();
-}
+    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
+    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
+    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
 
-bool
-env_path_exists(fs::path path)
-{
-    if (fs::exists(path))
+    fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+
+    if (file_path.configured())
     {
-        return true;
+        rc_source = env::expand_user(file_path.value()).string();
     }
-    std::cout << "File doesn't exist or it's not valid." << std::endl;
-    return false;
+    else if (env_path.configured())
+    {
+        rc_source = fs::path(ctx.target_prefix / ".condarc");
+    }
+    else if (system_path.configured())
+    {
+        rc_source = get_system_path();
+    }
+
+    if (!fs::exists(rc_source))
+    {
+        if (touch_if_not_exists)
+            path::touch(rc_source, true);
+        else
+            throw std::runtime_error("RC file does not exist at " + rc_source.string());
+    }
+
+    return rc_source;
 }
 
 void
@@ -265,7 +261,6 @@ void
 set_sequence_to_rc(const SequenceAddType& opt)
 {
     auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
 
     config.at("use_target_prefix_fallback").set_value(true);
     config.at("show_banner").set_value(false);
@@ -274,28 +269,10 @@ set_sequence_to_rc(const SequenceAddType& opt)
                    | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
     config.load();
 
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
     auto specs = config.at("config_set_sequence_spec")
                      .value<std::vector<std::pair<std::string, std::string>>>();
 
-    fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
-
-    if (file_path.configured())
-    {
-        path::touch(file_path.value().string(), true);
-        rc_source = env::expand_user(file_path.value()).string();
-    }
-    else if (env_path.configured())
-    {
-        std::string path = fs::path(ctx.target_prefix / ".condarc");
-        env_path_setup(path, rc_source);
-    }
-    else if (system_path.configured())
-    {
-        system_path_setup(rc_source);
-    }
+    fs::path rc_source = compute_config_path(true);
 
     YAML::Node node = YAML::LoadFile(rc_source.string());
     for (auto& pair : specs)
@@ -330,16 +307,11 @@ set_config_remove_key_command(CLI::App* subcom)
     set_config_path_command(subcom);
 
     auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
 
     auto& remove_key = config.insert(Configurable("remove_key", std::string(""))
                                          .group("Output, Prompt and Flow Control")
                                          .description("Remove a configuration key and its values"));
     subcom->add_option("remove_key", remove_key.set_cli_config(""), remove_key.description());
-
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -349,34 +321,11 @@ set_config_remove_key_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+        fs::path rc_source = compute_config_path(false);
+
         bool key_removed = false;
-
-        if (file_path.configured())
-        {
-            path::touch(file_path.value().string(), true);
-            rc_source = env::expand_user(file_path.value()).string();
-        }
-        else if (env_path.configured())
-        {
-            std::string path = fs::path(ctx.target_prefix / ".condarc");
-            if (!env_path_exists(path))
-            {
-                return;
-            }
-            env_path_setup(path, rc_source);
-        }
-        else if (system_path.configured())
-        {
-            if (!system_path_exists())
-            {
-                return;
-            }
-            system_path_setup(rc_source);
-        }
-
         // convert rc file to YAML::Node
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
+        YAML::Node rc_YAML = YAML::LoadFile(rc_source);
 
         // look for key to remove in file
         for (auto v : rc_YAML)
@@ -409,7 +358,6 @@ set_config_remove_command(CLI::App* subcom)
     set_config_path_command(subcom);
 
     auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
 
     auto& remove_vec_map = config.insert(
         Configurable("remove", std::vector<std::string>())
@@ -419,10 +367,6 @@ set_config_remove_command(CLI::App* subcom)
     subcom->add_option(
         "remove", remove_vec_map.set_cli_config({ "" }), remove_vec_map.description());
 
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
-
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
@@ -431,7 +375,7 @@ set_config_remove_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+        fs::path rc_source = compute_config_path(false);
         bool key_removed = false;
         std::string remove_vec_key = remove_vec_map.value().front();
         std::string remove_vec_value = remove_vec_map.value().at(1);
@@ -441,31 +385,9 @@ set_config_remove_command(CLI::App* subcom)
             std::cout << "Only one value can be removed at a time" << std::endl;
             return;
         }
-        else if (file_path.configured())
-        {
-            path::touch(file_path.value().string(), true);
-            rc_source = env::expand_user(file_path.value()).string();
-        }
-        else if (env_path.configured())
-        {
-            std::string path = fs::path(ctx.target_prefix / ".condarc");
-            if (!env_path_exists(path))
-            {
-                return;
-            }
-            env_path_setup(path, rc_source);
-        }
-        else if (system_path.configured())
-        {
-            if (!system_path_exists())
-            {
-                return;
-            }
-            system_path_setup(rc_source);
-        }
 
         // convert rc file to YAML::Node
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
+        YAML::Node rc_YAML = YAML::LoadFile(rc_source);
 
         // look for key to remove in file
         for (auto v : rc_YAML)
@@ -510,16 +432,12 @@ set_config_set_command(CLI::App* subcom)
     set_config_path_command(subcom);
 
     auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
 
     auto& set_value = config.insert(Configurable("set_value", std::vector<std::string>({}))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Set configuration value on rc file"));
     subcom->add_option("set_value", set_value.set_cli_config({}), set_value.description());
 
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -529,24 +447,9 @@ set_config_set_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+        fs::path rc_source = compute_config_path(true);
 
-        if (file_path.configured())
-        {
-            path::touch(file_path.value().string(), true);
-            rc_source = env::expand_user(file_path.value().string());
-        }
-        else if (env_path.configured())
-        {
-            std::string path = fs::path(ctx.target_prefix / ".condarc");
-            env_path_setup(path, rc_source);
-        }
-        else if (system_path.configured())
-        {
-            system_path_setup(rc_source);
-        }
-
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
+        YAML::Node rc_YAML = YAML::LoadFile(rc_source);
 
         if (is_valid_rc_key(set_value.value().at(0)) && set_value.value().size() < 3)
         {
@@ -571,17 +474,12 @@ set_config_get_command(CLI::App* subcom)
     set_config_path_command(subcom);
 
     auto& config = Configuration::instance();
-    auto& ctx = Context::instance();
 
     // TODO: get_value should be a vector of strings
     auto& get_value = config.insert(Configurable("get_value", std::string(""))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Display configuration value from rc file"));
     subcom->add_option("get_value", get_value.set_cli_config(""), get_value.description());
-
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -591,31 +489,9 @@ set_config_get_command(CLI::App* subcom)
                        | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+        fs::path rc_source = compute_config_path(false);
 
         bool value_found = false;
-
-        if (file_path.configured())
-        {
-            rc_source = env::expand_user(file_path.value()).string();
-        }
-        else if (env_path.configured())
-        {
-            std::string path = fs::path(ctx.target_prefix / ".condarc");
-            if (!env_path_exists(path))
-            {
-                return;
-            }
-            env_path_setup(path, rc_source);
-        }
-        else if (system_path.configured())
-        {
-            if (!system_path_exists())
-            {
-                return;
-            }
-            system_path_setup(rc_source);
-        }
 
         YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 

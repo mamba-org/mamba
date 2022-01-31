@@ -21,13 +21,47 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <regex>
 #include <stdexcept>
 
 #include "termcolor/termcolor.hpp"
 
-
 namespace mamba
 {
+    static std::string expandvars(std::string s)
+    {
+        if (s.find("$") == std::string::npos)
+        {
+            // Bail out early
+            return s;
+        }
+        // Match $$ and ${var} where var does not contains YAML special charaters
+        std::regex env_var_re(R"(\$(?:\$|\{([^\}'\"\s]+)\}))");
+        for (auto matches = std::sregex_iterator(s.begin(), s.end(), env_var_re);
+             matches != std::sregex_iterator();
+             ++matches)
+        {
+            std::smatch match = *matches;
+            auto var = match[1].str();
+            std::string val;
+            if (var.empty())
+            {
+                // $$
+                val = "$";
+            }
+            else
+            {
+                // TODO: change this so that empty but existing env vars are replaced with ""
+                val = env::get(var);
+            }
+            if (!val.empty())
+            {
+                s.replace(match[0].first, match[0].second, val);
+            }
+        }
+        return s;
+    }
+
     namespace detail
     {
         void ssl_verify_hook(std::string& value)
@@ -1341,7 +1375,12 @@ namespace mamba
         YAML::Node config;
         try
         {
-            config = YAML::LoadFile(file);
+            std::ifstream inFile;
+            inFile.open(file);
+            std::stringstream strStream;
+            strStream << inFile.rdbuf();
+            std::string s = strStream.str();
+            config = YAML::Load(expandvars(s));
         }
         catch (...)
         {

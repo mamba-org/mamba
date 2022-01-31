@@ -53,9 +53,11 @@ namespace mamba
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
         bool is_solved() const;
         bool solve();
-        std::string problems_to_str() const;
         std::vector<std::string> all_problems() const;
-        std::string all_problems_to_str() const;
+        std::vector<std::vector<std::string>> all_subproblems() const;
+        std::string problems_to_str() const;
+        std::string all_subproblems_to_str() const;
+        std::string unique_subproblems_to_str() const;
 
         const std::vector<MatchSpec>& install_specs() const;
         const std::vector<MatchSpec>& remove_specs() const;
@@ -71,6 +73,7 @@ namespace mamba
     private:
         void add_channel_specific_job(const MatchSpec& ms, int job_flag);
         void add_reinstall_job(MatchSpec& ms, int job_flag);
+        std::string subproblems_to_str(std::vector<std::vector<std::string>>) const;
 
         std::vector<std::pair<int, int>> m_flags;
         std::vector<MatchSpec> m_install_specs;

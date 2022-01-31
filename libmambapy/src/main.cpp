@@ -101,8 +101,11 @@ PYBIND11_MODULE(bindings, m)
         .def("set_flags", &MSolver::set_flags)
         .def("set_postsolve_flags", &MSolver::set_postsolve_flags)
         .def("is_solved", &MSolver::is_solved)
+        .def("all_problems", &MSolver::all_problems)
+        .def("all_subproblems", &MSolver::all_subproblems)
         .def("problems_to_str", &MSolver::problems_to_str)
-        .def("all_problems_to_str", &MSolver::all_problems_to_str)
+        .def("all_subproblems_to_str", &MSolver::all_subproblems_to_str)
+        .def("unique_subproblems_to_str", &MSolver::unique_subproblems_to_str)
         .def("solve", &MSolver::solve);
 
     py::class_<History>(m, "History")

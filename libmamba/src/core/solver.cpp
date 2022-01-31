@@ -359,9 +359,46 @@ namespace mamba
         return success;
     }
 
-    std::string MSolver::all_problems_to_str() const
+    std::string MSolver::all_subproblems_to_str() const
+    {
+        return subproblems_to_str(all_subproblems());
+    }
+
+    std::string MSolver::unique_subproblems_to_str() const
+    {
+        std::vector<std::vector<std::string>> unique_subproblems;
+        for (auto subproblems : all_subproblems())
+        {
+            auto subproblems_set = std::set<std::string>(subproblems.begin(), subproblems.end());
+            unique_subproblems.push_back(
+                std::vector(subproblems_set.begin(), subproblems_set.end()));
+        }
+        return subproblems_to_str(unique_subproblems);
+    }
+
+    std::string MSolver::subproblems_to_str(std::vector<std::vector<std::string>> subproblems) const
     {
         std::stringstream problems;
+        for (auto subproblems : subproblems)
+        {
+            for (auto subproblem : subproblems)
+            {
+                if (subproblem.empty())
+                {
+                    problems << "- [SKIP] no problem rule?\n";
+                }
+                else
+                {
+                    problems << "  - " << subproblem << "\n";
+                }
+            }
+        }
+        return problems.str();
+    }
+
+    std::vector<std::vector<std::string>> MSolver::all_subproblems() const
+    {
+        std::vector<std::vector<std::string>> problems;
 
         Queue problem_rules;
         queue_init(&problem_rules);
@@ -369,26 +406,26 @@ namespace mamba
         for (Id i = 1; i <= count; ++i)
         {
             solver_findallproblemrules(m_solver, i, &problem_rules);
+            std::vector<std::string> subproblems;
             for (Id j = 0; j < problem_rules.count; ++j)
             {
                 Id type, source, target, dep;
                 Id r = problem_rules.elements[j];
                 if (!r)
                 {
-                    problems << "- [SKIP] no problem rule?\n";
+                    subproblems.push_back("");
                 }
                 else
                 {
                     type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
-                    problems << "  - "
-                             << solver_problemruleinfo2str(
-                                    m_solver, (SolverRuleinfo) type, source, target, dep)
-                             << "\n";
+                    subproblems.push_back(solver_problemruleinfo2str(
+                        m_solver, (SolverRuleinfo) type, source, target, dep));
                 }
             }
+            problems.push_back(subproblems);
         }
         queue_free(&problem_rules);
-        return problems.str();
+        return problems;
     }
 
     std::string MSolver::problems_to_str() const

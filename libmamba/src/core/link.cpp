@@ -344,8 +344,8 @@ namespace mamba
         if (on_win)
         {
             ensure_comspec_set();
-            std::string comspec = env::get("COMSPEC");
-            if (comspec.size() == 0)
+            auto comspec = env::get("COMSPEC");
+            if (!comspec)
             {
                 LOG_ERROR << "Failed to run " << action << " for " << pkg_info.name
                           << " due to COMSPEC not set in env vars.";
@@ -360,11 +360,11 @@ namespace mamba
                                         false,
                                         { "@CALL", path });
 
-                command_args = { comspec, "/d", "/c", script_file->path() };
+                command_args = { comspec.value(), "/d", "/c", script_file->path() };
             }
             else
             {
-                command_args = { comspec, "/d", "/c", path };
+                command_args = { comspec.value(), "/d", "/c", path };
             }
         }
 
@@ -404,7 +404,7 @@ namespace mamba
                                      ? std::to_string(pkg_info.build_number)
                                      : pkg_info.build_string;
 
-        std::string PATH = env::get("PATH");
+        std::string PATH = env::get("PATH").value_or("");
         envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
 
         std::string cargs = join(" ", command_args);
@@ -442,7 +442,7 @@ namespace mamba
         if (ec)
         {
             LOG_ERROR << "response code: " << status << " error message: " << ec.message();
-            if (script_file != nullptr && env::get("CONDA_TEST_SAVE_TEMPS").size())
+            if (script_file != nullptr && env::get("CONDA_TEST_SAVE_TEMPS"))
             {
                 LOG_ERROR << "CONDA_TEST_SAVE_TEMPS :: retaining run_script" << script_file->path();
             }

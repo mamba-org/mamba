@@ -490,9 +490,10 @@ namespace mamba
             load_test_config(empty_rc);
 
 #ifdef _WIN32
-            std::string extra_cache = "\n  - "
-                                      + (fs::path(env::get("APPDATA")) / ".mamba" / "pkgs").string()
-                                      + "  # 'fallback'";
+            std::string extra_cache
+                = "\n  - "
+                  + (fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs").string()
+                  + "  # 'fallback'";
 #else
             std::string extra_cache = "";
 #endif

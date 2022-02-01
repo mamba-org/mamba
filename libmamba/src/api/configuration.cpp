@@ -43,20 +43,10 @@ namespace mamba
         {
             std::smatch match = *matches;
             auto var = match[1].str();
-            std::string val;
-            if (var.empty())
+            auto val = var.empty() ? "$" : env::get(var);
+            if (val)
             {
-                // $$
-                val = "$";
-            }
-            else
-            {
-                // TODO: change this so that empty but existing env vars are replaced with ""
-                val = env::get(var);
-            }
-            if (!val.empty())
-            {
-                s.replace(match[0].first, match[0].second, val);
+                s.replace(match[0].first, match[0].second, val.value());
             }
         }
         return s;
@@ -215,16 +205,16 @@ namespace mamba
 
             if (prefix.empty())
             {
-                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
+                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX"))
                 {
-                    prefix = env::home_directory() / "micromamba";
-                }
-                else
-                {
-                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
+                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX").value();
                     LOG_WARNING << unindent(R"(
                                     'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
                                     Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                }
+                else
+                {
+                    prefix = env::home_directory() / "micromamba";
                 }
 
                 if (env_name.configured())
@@ -476,7 +466,9 @@ namespace mamba
                                             env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
             if (!env::get("APPDATA").empty())
+            {
                 paths.push_back(fs::path(env::get("APPDATA")) / ".mamba" / "pkgs");
+            }
 #endif
             return paths;
         }

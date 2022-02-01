@@ -46,21 +46,18 @@ namespace mamba
 #endif
         }
 
-        inline std::string get(const std::string& key)
+        inline std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
             std::size_t size = GetEnvironmentVariableA(key.c_str(), nullptr, 0);
             if (size == 0)
             {
-                if (GetLastError() == ERROR_ENVVAR_NOT_FOUND)
-                {
-                    return "";
-                }
-                if (GetLastError() != NO_ERROR)
+                auto last_err = GetLastError();
+                if (last_err != ERROR_ENVVAR_NOT_FOUND && last_err != NO_ERROR)
                 {
                     LOG_ERROR << "Could not get environment variable: " << GetLastError();
                 }
-                return "";
+                return {};
             }
             std::unique_ptr<char[]> temp = std::make_unique<char[]>(size);
             GetEnvironmentVariableA(key.c_str(), temp.get(), size);
@@ -68,9 +65,10 @@ namespace mamba
             return res;
 #else
             const char* value = std::getenv(key.c_str());
-            if (!value)
-                return "";
-            return value;
+            if (value)
+                return value;
+            else
+                return {};
 #endif
         }
 
@@ -177,7 +175,7 @@ namespace mamba
         inline fs::path home_directory()
         {
 #ifdef _WIN32
-            std::string maybe_home = env::get("USERPROFILE");
+            std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
                 maybe_home = concat(env::get("HOMEDRIVE"), env::get("HOMEPATH"));
@@ -188,7 +186,7 @@ namespace mamba
                     "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)");
             }
 #else
-            std::string maybe_home = env::get("HOME");
+            std::string maybe_home = env::get("HOME").value_or("");
             if (maybe_home.empty())
             {
                 maybe_home = getpwuid(getuid())->pw_dir;

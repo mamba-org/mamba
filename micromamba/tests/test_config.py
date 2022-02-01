@@ -886,4 +886,4 @@ class TestConfigExpandVars:
 
     def test_envsubst_empty_var(self, monkeypatch, rc_file_path):
         monkeypatch.setenv("foo", "", True)
-        assert self._roundtrip(rc_file_path, "channel_alias", "${foo}") == ""
+        assert self._roundtrip(rc_file_path, "channel_alias", "'${foo}'") == ""

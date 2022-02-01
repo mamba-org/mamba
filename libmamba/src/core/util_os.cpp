@@ -195,9 +195,10 @@ namespace mamba
     std::string windows_version()
     {
         LOG_DEBUG << "Loading Windows virtual package";
-        if (!env::get("CONDA_OVERRIDE_WIN").empty())
+        auto override_version = env::get("CONDA_OVERRIDE_WIN");
+        if (override_version)
         {
-            return env::get("CONDA_OVERRIDE_WIN");
+            return override_version.value();
         }
 
         if (!on_win)
@@ -206,7 +207,7 @@ namespace mamba
         }
 
         std::string out, err;
-        std::vector<std::string> args = { env::get("COMSPEC"), "/c", "ver" };
+        std::vector<std::string> args = { env::get("COMSPEC").value_or(""), "/c", "ver" };
         auto [status, ec] = reproc::run(
             args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
@@ -242,9 +243,10 @@ namespace mamba
     std::string macos_version()
     {
         LOG_DEBUG << "Loading macos virtual package";
-        if (!env::get("CONDA_OVERRIDE_OSX").empty())
+        auto override_version = env::get("CONDA_OVERRIDE_OSX");
+        if (override_version)
         {
-            return env::get("CONDA_OVERRIDE_OSX");
+            return override_version.value();
         }
 
         if (!on_mac)
@@ -277,9 +279,10 @@ namespace mamba
     std::string linux_version()
     {
         LOG_DEBUG << "Loading linux virtual package";
-        if (!env::get("CONDA_OVERRIDE_LINUX").empty())
+        auto override_version = env::get("CONDA_OVERRIDE_LINUX");
+        if (override_version)
         {
-            return env::get("CONDA_OVERRIDE_LINUX");
+            return override_version.value();
         }
         if (!on_linux)
         {

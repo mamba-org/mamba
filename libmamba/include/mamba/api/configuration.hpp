@@ -1042,7 +1042,7 @@ namespace mamba
     {
         if (env_var_configured())
             for (const auto& ev : m_env_var_names)
-                env::set(ev, "");
+                env::unset(ev);
         return *this;
     };
 

@@ -345,7 +345,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.channels, config.at("channels").value<std::vector<std::string>>());
 
-            env::set("CONDA_CHANNELS", "");
+            env::unset("CONDA_CHANNELS");
         }
 
         TEST_F(Configuration, default_channels)
@@ -415,7 +415,7 @@ namespace mamba
             EXPECT_EQ(ctx.default_channels,
                       config.at("default_channels").value<std::vector<std::string>>());
 
-            env::set("MAMBA_DEFAULT_CHANNELS", "");
+            env::unset("MAMBA_DEFAULT_CHANNELS");
         }
 
         TEST_F(Configuration, channel_alias)
@@ -447,7 +447,7 @@ namespace mamba
                           + src1 + "'");
             EXPECT_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
 
-            env::set("MAMBA_CHANNEL_ALIAS", "");
+            env::unset("MAMBA_CHANNEL_ALIAS");
         }
 
         TEST_F(Configuration, pkgs_dirs)
@@ -482,7 +482,7 @@ namespace mamba
                                 + cache1 + "  # '" + src1 + "'")
                                    .c_str()));
 
-            env::set("CONDA_PKGS_DIRS", "");
+            env::unset("CONDA_PKGS_DIRS");
 
             std::string empty_rc = "";
             std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
@@ -520,8 +520,8 @@ namespace mamba
                                 + cache4 + "  # 'CONDA_PKGS_DIRS'")
                                    .c_str()));
 
-            env::set("CONDA_PKGS_DIRS", "");
-            env::set("MAMBA_ROOT_PREFIX", "");
+            env::unset("CONDA_PKGS_DIRS");
+            env::unset("MAMBA_ROOT_PREFIX");
             config.clear_values();
         }
 
@@ -589,7 +589,7 @@ namespace mamba
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
-            env::set("MAMBA_SSL_VERIFY", "");
+            env::unset("MAMBA_SSL_VERIFY");
         }
 #undef EXPECT_CA_EQUAL
 
@@ -637,7 +637,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.ssl_verify, "/new/test");
 
-            env::set("MAMBA_CACERT_PATH", "");
+            env::unset("MAMBA_CACERT_PATH");
             load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
         }
 
@@ -726,352 +726,347 @@ namespace mamba
         env::set(env_name, "yeap");                                                                \
         ASSERT_THROW(load_test_config(rc2), YAML::Exception);                                      \
                                                                                                    \
-        env::set(env_name, "");                                                                    \
-        load_test_config(rc2);                                                                     \
+        env::unset(env_name);
+        load_test_config(rc2);
     }
 
-        TEST_BOOL_CONFIGURABLE(ssl_no_revoke, ctx.ssl_no_revoke);
+    TEST_BOOL_CONFIGURABLE(ssl_no_revoke, ctx.ssl_no_revoke);
 
-        TEST_BOOL_CONFIGURABLE(override_channels_enabled, ctx.override_channels_enabled);
+    TEST_BOOL_CONFIGURABLE(override_channels_enabled, ctx.override_channels_enabled);
 
-        TEST_BOOL_CONFIGURABLE(auto_activate_base, ctx.auto_activate_base);
+    TEST_BOOL_CONFIGURABLE(auto_activate_base, ctx.auto_activate_base);
 
-        TEST_F(Configuration, channel_priority)
-        {
-            std::string rc1 = "channel_priority: flexible";
-            std::string rc2 = "channel_priority: strict";
-            std::string rc3 = "channel_priority: disabled";
+    TEST_F(Configuration, channel_priority)
+    {
+        std::string rc1 = "channel_priority: flexible";
+        std::string rc2 = "channel_priority: strict";
+        std::string rc3 = "channel_priority: disabled";
 
-            load_test_config({ rc1, rc2, rc3 });
-            EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
-                      ChannelPriority::kFlexible);
-            EXPECT_TRUE(ctx.channel_priority == ChannelPriority::kFlexible);
+        load_test_config({ rc1, rc2, rc3 });
+        EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
+                  ChannelPriority::kFlexible);
+        EXPECT_TRUE(ctx.channel_priority == ChannelPriority::kFlexible);
 
-            load_test_config({ rc3, rc1, rc2 });
-            EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
-                      ChannelPriority::kDisabled);
-            EXPECT_TRUE(ctx.channel_priority == ChannelPriority::kDisabled);
+        load_test_config({ rc3, rc1, rc2 });
+        EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
+                  ChannelPriority::kDisabled);
+        EXPECT_TRUE(ctx.channel_priority == ChannelPriority::kDisabled);
 
-            load_test_config({ rc2, rc1, rc3 });
-            EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
-                      ChannelPriority::kStrict);
-            EXPECT_TRUE(ctx.channel_priority == ChannelPriority::kStrict);
+        load_test_config({ rc2, rc1, rc3 });
+        EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(), ChannelPriority::kStrict);
+        EXPECT_TRUE(ctx.channel_priority == ChannelPriority::kStrict);
 
-            env::set("MAMBA_CHANNEL_PRIORITY", "strict");
-            load_test_config(rc3);
+        env::set("MAMBA_CHANNEL_PRIORITY", "strict");
+        load_test_config(rc3);
 
-            ASSERT_EQ(config.sources().size(), 1);
-            ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src = shrink_source(0);
+        ASSERT_EQ(config.sources().size(), 1);
+        ASSERT_EQ(config.valid_sources().size(), 1);
+        std::string src = shrink_source(0);
 
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'");
-            EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
-                      ChannelPriority::kStrict);
-            EXPECT_EQ(ctx.channel_priority, ChannelPriority::kStrict);
+        EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                  "channel_priority: strict  # 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'");
+        EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(), ChannelPriority::kStrict);
+        EXPECT_EQ(ctx.channel_priority, ChannelPriority::kStrict);
 
-            config.at("channel_priority").set_yaml_value("flexible").compute();
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src
-                          + "'");
-            EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
-                      ChannelPriority::kFlexible);
-            EXPECT_EQ(ctx.channel_priority, ChannelPriority::kFlexible);
+        config.at("channel_priority").set_yaml_value("flexible").compute();
+        EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                  "channel_priority: flexible  # 'API' > 'MAMBA_CHANNEL_PRIORITY' > '" + src + "'");
+        EXPECT_EQ(config.at("channel_priority").value<ChannelPriority>(),
+                  ChannelPriority::kFlexible);
+        EXPECT_EQ(ctx.channel_priority, ChannelPriority::kFlexible);
 
-            env::set("MAMBA_CHANNEL_PRIORITY", "stric");
-            ASSERT_THROW(load_test_config(rc3), YAML::Exception);
+        env::set("MAMBA_CHANNEL_PRIORITY", "stric");
+        ASSERT_THROW(load_test_config(rc3), YAML::Exception);
 
-            env::set("MAMBA_CHANNEL_PRIORITY", "");
-        }
+        env::unset("MAMBA_CHANNEL_PRIORITY");
+    }
 
-        TEST_F(Configuration, pinned_packages)
-        {
-            std::string rc1 = unindent(R"(
+    TEST_F(Configuration, pinned_packages)
+    {
+        std::string rc1 = unindent(R"(
                 pinned_packages:
                     - jupyterlab=3
                     - numpy=1.19)");
-            std::string rc2 = unindent(R"(
+        std::string rc2 = unindent(R"(
                 pinned_packages:
                     - matplotlib
                     - numpy=1.19)");
-            std::string rc3 = unindent(R"(
+        std::string rc3 = unindent(R"(
                 pinned_packages:
                     - jupyterlab=3
                     - bokeh
                     - matplotlib)");
 
-            load_test_config({ rc1, rc2, rc3 });
-            EXPECT_EQ(config.dump(), unindent(R"(
+        load_test_config({ rc1, rc2, rc3 });
+        EXPECT_EQ(config.dump(), unindent(R"(
                                         pinned_packages:
                                           - jupyterlab=3
                                           - numpy=1.19
                                           - matplotlib
                                           - bokeh)"));
-            EXPECT_EQ(
-                ctx.pinned_packages,
-                std::vector<std::string>({ "jupyterlab=3", "numpy=1.19", "matplotlib", "bokeh" }));
+        EXPECT_EQ(
+            ctx.pinned_packages,
+            std::vector<std::string>({ "jupyterlab=3", "numpy=1.19", "matplotlib", "bokeh" }));
 
-            load_test_config({ rc2, rc1, rc3 });
-            ASSERT_TRUE(config.at("pinned_packages").yaml_value());
-            EXPECT_EQ(config.dump(), unindent(R"(
+        load_test_config({ rc2, rc1, rc3 });
+        ASSERT_TRUE(config.at("pinned_packages").yaml_value());
+        EXPECT_EQ(config.dump(), unindent(R"(
                                         pinned_packages:
                                           - matplotlib
                                           - numpy=1.19
                                           - jupyterlab=3
                                           - bokeh)"));
-            EXPECT_EQ(
-                ctx.pinned_packages,
-                std::vector<std::string>({ "matplotlib", "numpy=1.19", "jupyterlab=3", "bokeh" }));
+        EXPECT_EQ(
+            ctx.pinned_packages,
+            std::vector<std::string>({ "matplotlib", "numpy=1.19", "jupyterlab=3", "bokeh" }));
 
-            env::set("MAMBA_PINNED_PACKAGES", "mpl=10.2,xtensor");
-            load_test_config(rc1);
-            ASSERT_EQ(config.sources().size(), 1);
-            ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src1 = shrink_source(0);
+        env::set("MAMBA_PINNED_PACKAGES", "mpl=10.2,xtensor");
+        load_test_config(rc1);
+        ASSERT_EQ(config.sources().size(), 1);
+        ASSERT_EQ(config.valid_sources().size(), 1);
+        std::string src1 = shrink_source(0);
 
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      unindent((R"(
+        EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                  unindent((R"(
                                 pinned_packages:
                                   - mpl=10.2  # 'MAMBA_PINNED_PACKAGES'
                                   - xtensor  # 'MAMBA_PINNED_PACKAGES'
                                   - jupyterlab=3  # ')"
-                                + src1 + R"('
+                            + src1 + R"('
                                   - numpy=1.19  # ')"
-                                + src1 + "'")
-                                   .c_str()));
-            EXPECT_EQ(
-                ctx.pinned_packages,
-                std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
+                            + src1 + "'")
+                               .c_str()));
+        EXPECT_EQ(
+            ctx.pinned_packages,
+            std::vector<std::string>({ "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
 
-            config.at("pinned_packages").set_yaml_value("pytest").compute();
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      unindent((R"(
+        config.at("pinned_packages").set_yaml_value("pytest").compute();
+        EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                  unindent((R"(
                                 pinned_packages:
                                   - pytest  # 'API'
                                   - mpl=10.2  # 'MAMBA_PINNED_PACKAGES'
                                   - xtensor  # 'MAMBA_PINNED_PACKAGES'
                                   - jupyterlab=3  # ')"
-                                + src1 + R"('
+                            + src1 + R"('
                                   - numpy=1.19  # ')"
-                                + src1 + "'")
-                                   .c_str()));
-            EXPECT_EQ(ctx.pinned_packages,
-                      std::vector<std::string>(
-                          { "pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
+                            + src1 + "'")
+                               .c_str()));
+        EXPECT_EQ(ctx.pinned_packages,
+                  std::vector<std::string>(
+                      { "pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
 
-            env::set("MAMBA_PINNED_PACKAGES", "");
-        }
+        env::unset("MAMBA_PINNED_PACKAGES");
+    }
 
 
-        TEST_BOOL_CONFIGURABLE(no_pin, config.at("no_pin").value<bool>());
+    TEST_BOOL_CONFIGURABLE(no_pin, config.at("no_pin").value<bool>());
 
-        TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
+    TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
 
-        TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.allow_softlinks);
+    TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.allow_softlinks);
 
-        TEST_BOOL_CONFIGURABLE(always_softlink, ctx.always_softlink);
+    TEST_BOOL_CONFIGURABLE(always_softlink, ctx.always_softlink);
 
-        TEST_BOOL_CONFIGURABLE(always_copy, ctx.always_copy);
+    TEST_BOOL_CONFIGURABLE(always_copy, ctx.always_copy);
 
-        TEST_F(Configuration, always_softlink_and_copy)
-        {
-            env::set("MAMBA_ALWAYS_COPY", "true");
-            ASSERT_THROW(load_test_config("always_softlink: true"), std::runtime_error);
-            env::set("MAMBA_ALWAYS_COPY", "");
+    TEST_F(Configuration, always_softlink_and_copy)
+    {
+        env::set("MAMBA_ALWAYS_COPY", "true");
+        ASSERT_THROW(load_test_config("always_softlink: true"), std::runtime_error);
+        env::unset("MAMBA_ALWAYS_COPY");
 
-            env::set("MAMBA_ALWAYS_SOFTLINK", "true");
-            ASSERT_THROW(load_test_config("always_copy: true"), std::runtime_error);
-            env::set("MAMBA_ALWAYS_SOFTLINK", "");
+        env::set("MAMBA_ALWAYS_SOFTLINK", "true");
+        ASSERT_THROW(load_test_config("always_copy: true"), std::runtime_error);
+        env::unset("MAMBA_ALWAYS_SOFTLINK");
 
-            load_test_config("always_softlink: false\nalways_copy: false");
-        }
+        load_test_config("always_softlink: false\nalways_copy: false");
+    }
 
-        TEST_F(Configuration, safety_checks)
-        {
-            std::string rc1 = "safety_checks: enabled";
-            std::string rc2 = "safety_checks: warn";
-            std::string rc3 = "safety_checks: disabled";
+    TEST_F(Configuration, safety_checks)
+    {
+        std::string rc1 = "safety_checks: enabled";
+        std::string rc2 = "safety_checks: warn";
+        std::string rc3 = "safety_checks: disabled";
 
-            load_test_config({ rc1, rc2, rc3 });
-            EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
-                      VerificationLevel::kEnabled);
-            EXPECT_EQ(ctx.safety_checks, VerificationLevel::kEnabled);
+        load_test_config({ rc1, rc2, rc3 });
+        EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
+                  VerificationLevel::kEnabled);
+        EXPECT_EQ(ctx.safety_checks, VerificationLevel::kEnabled);
 
-            load_test_config({ rc2, rc1, rc3 });
-            EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
-                      VerificationLevel::kWarn);
-            EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
+        load_test_config({ rc2, rc1, rc3 });
+        EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::kWarn);
+        EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
-            load_test_config({ rc3, rc1, rc3 });
-            EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
-                      VerificationLevel::kDisabled);
-            EXPECT_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
+        load_test_config({ rc3, rc1, rc3 });
+        EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
+                  VerificationLevel::kDisabled);
+        EXPECT_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
 
-            env::set("MAMBA_SAFETY_CHECKS", "warn");
-            load_test_config(rc1);
+        env::set("MAMBA_SAFETY_CHECKS", "warn");
+        load_test_config(rc1);
 
-            ASSERT_EQ(config.sources().size(), 1);
-            ASSERT_EQ(config.valid_sources().size(), 1);
-            std::string src = shrink_source(0);
+        ASSERT_EQ(config.sources().size(), 1);
+        ASSERT_EQ(config.valid_sources().size(), 1);
+        std::string src = shrink_source(0);
 
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
-            EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
-                      VerificationLevel::kWarn);
-            EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
+        EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                  "safety_checks: warn  # 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
+        EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(), VerificationLevel::kWarn);
+        EXPECT_EQ(ctx.safety_checks, VerificationLevel::kWarn);
 
-            config.at("safety_checks").set_yaml_value("disabled").compute();
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
-            EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
-                      VerificationLevel::kDisabled);
-            EXPECT_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
+        config.at("safety_checks").set_yaml_value("disabled").compute();
+        EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
+                  "safety_checks: disabled  # 'API' > 'MAMBA_SAFETY_CHECKS' > '" + src + "'");
+        EXPECT_EQ(config.at("safety_checks").value<VerificationLevel>(),
+                  VerificationLevel::kDisabled);
+        EXPECT_EQ(ctx.safety_checks, VerificationLevel::kDisabled);
 
-            env::set("MAMBA_SAFETY_CHECKS", "yeap");
-            ASSERT_THROW(load_test_config(rc2), std::runtime_error);
+        env::set("MAMBA_SAFETY_CHECKS", "yeap");
+        ASSERT_THROW(load_test_config(rc2), std::runtime_error);
 
-            env::set("MAMBA_SAFETY_CHECKS", "");
-            load_test_config(rc2);
-        }
+        env::unset("MAMBA_SAFETY_CHECKS");
+        load_test_config(rc2);
+    }
 
-        TEST_BOOL_CONFIGURABLE(extra_safety_checks, ctx.extra_safety_checks);
+    TEST_BOOL_CONFIGURABLE(extra_safety_checks, ctx.extra_safety_checks);
 
 #undef TEST_BOOL_CONFIGURABLE
 
-        TEST_F(Configuration, has_config_name)
+    TEST_F(Configuration, has_config_name)
+    {
+        using namespace detail;
+
+        EXPECT_FALSE(has_config_name(""));
+        EXPECT_FALSE(has_config_name("conf"));
+        EXPECT_FALSE(has_config_name("config"));
+        EXPECT_FALSE(has_config_name("config.conda"));
+        EXPECT_FALSE(has_config_name("conf.condarc"));
+        EXPECT_FALSE(has_config_name("conf.mambarc"));
+
+        EXPECT_TRUE(has_config_name("condarc"));
+        EXPECT_TRUE(has_config_name("mambarc"));
+        EXPECT_TRUE(has_config_name(".condarc"));
+        EXPECT_TRUE(has_config_name(".mambarc"));
+        EXPECT_TRUE(has_config_name(".yaml"));
+        EXPECT_TRUE(has_config_name(".yml"));
+        EXPECT_TRUE(has_config_name("conf.yaml"));
+        EXPECT_TRUE(has_config_name("config.yml"));
+    }
+
+    TEST_F(Configuration, is_config_file)
+    {
+        using namespace detail;
+
+        fs::path p = "config_test/.condarc";
+
+        std::vector<fs::path> wrong_paths = {
+            "config_test", "conf_test", "config_test/condarc", "history_test/conda-meta/history"
+        };
+
+        EXPECT_TRUE(is_config_file(p));
+
+        for (fs::path p : wrong_paths)
         {
-            using namespace detail;
-
-            EXPECT_FALSE(has_config_name(""));
-            EXPECT_FALSE(has_config_name("conf"));
-            EXPECT_FALSE(has_config_name("config"));
-            EXPECT_FALSE(has_config_name("config.conda"));
-            EXPECT_FALSE(has_config_name("conf.condarc"));
-            EXPECT_FALSE(has_config_name("conf.mambarc"));
-
-            EXPECT_TRUE(has_config_name("condarc"));
-            EXPECT_TRUE(has_config_name("mambarc"));
-            EXPECT_TRUE(has_config_name(".condarc"));
-            EXPECT_TRUE(has_config_name(".mambarc"));
-            EXPECT_TRUE(has_config_name(".yaml"));
-            EXPECT_TRUE(has_config_name(".yml"));
-            EXPECT_TRUE(has_config_name("conf.yaml"));
-            EXPECT_TRUE(has_config_name("config.yml"));
+            EXPECT_FALSE(is_config_file(p));
         }
+    }
 
-        TEST_F(Configuration, is_config_file)
-        {
-            using namespace detail;
+    TEST_F(Configuration, print_scalar_node)
+    {
+        using namespace detail;
 
-            fs::path p = "config_test/.condarc";
+        std::string rc = "foo";
+        auto node = YAML::Load(rc);
+        auto node_src = YAML::Load("/some/source1");
+        YAML::Emitter out;
+        print_scalar_node(out, node, node_src, true);
 
-            std::vector<fs::path> wrong_paths = {
-                "config_test", "conf_test", "config_test/condarc", "history_test/conda-meta/history"
-            };
+        std::string res = out.c_str();
+        EXPECT_EQ(res, "foo  # '/some/source1'");
 
-            EXPECT_TRUE(is_config_file(p));
-
-            for (fs::path p : wrong_paths)
-            {
-                EXPECT_FALSE(is_config_file(p));
-            }
-        }
-
-        TEST_F(Configuration, print_scalar_node)
-        {
-            using namespace detail;
-
-            std::string rc = "foo";
-            auto node = YAML::Load(rc);
-            auto node_src = YAML::Load("/some/source1");
-            YAML::Emitter out;
-            print_scalar_node(out, node, node_src, true);
-
-            std::string res = out.c_str();
-            EXPECT_EQ(res, "foo  # '/some/source1'");
-
-            rc = unindent(R"(
+        rc = unindent(R"(
                             foo: bar
                             bar: baz)");
-            node = YAML::Load(rc);
-            EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
+        node = YAML::Load(rc);
+        EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
 
-            rc = unindent(R"(
+        rc = unindent(R"(
                             - foo
                             - bar)");
-            node = YAML::Load(rc);
-            EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
+        node = YAML::Load(rc);
+        EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
 
-            node = YAML::Node();
-            EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
-        }
+        node = YAML::Node();
+        EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
+    }
 
-        TEST_F(Configuration, print_map_node)
-        {
-            using namespace detail;
+    TEST_F(Configuration, print_map_node)
+    {
+        using namespace detail;
 
-            std::string rc = unindent(R"(
+        std::string rc = unindent(R"(
                                 foo: bar
                                 bar: baz)");
-            auto node = YAML::Load(rc);
-            auto node_src = YAML::Load(unindent(R"(
+        auto node = YAML::Load(rc);
+        auto node_src = YAML::Load(unindent(R"(
                                           foo: /some/source1
                                           bar: /some/source2)"));
-            YAML::Emitter out;
-            print_map_node(out, node, node_src, true);
+        YAML::Emitter out;
+        print_map_node(out, node, node_src, true);
 
-            std::string res = out.c_str();
-            EXPECT_EQ(res, unindent(R"(
+        std::string res = out.c_str();
+        EXPECT_EQ(res, unindent(R"(
                                 foo: bar  # '/some/source1'
                                 bar: baz  # '/some/source2')"));
 
-            rc = "foo";
-            node = YAML::Load(rc);
-            EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
+        rc = "foo";
+        node = YAML::Load(rc);
+        EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
 
-            rc = unindent(R"(
+        rc = unindent(R"(
                             - foo
                             - bar)");
-            node = YAML::Load(rc);
-            EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
+        node = YAML::Load(rc);
+        EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
 
-            node = YAML::Node();
-            EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
-        }
+        node = YAML::Node();
+        EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
+    }
 
-        TEST_F(Configuration, print_seq_node)
-        {
-            using namespace detail;
+    TEST_F(Configuration, print_seq_node)
+    {
+        using namespace detail;
 
-            std::string rc = unindent(R"(
+        std::string rc = unindent(R"(
                                         - foo
                                         - bar
                                         )");
-            auto node = YAML::Load(rc);
-            auto node_src = YAML::Load(unindent(R"(
+        auto node = YAML::Load(rc);
+        auto node_src = YAML::Load(unindent(R"(
                                                 - /some/source1
                                                 - /some/source2
                                                 )"));
-            YAML::Emitter out;
-            print_seq_node(out, node, node_src, true);
+        YAML::Emitter out;
+        print_seq_node(out, node, node_src, true);
 
-            std::string res = out.c_str();
-            EXPECT_EQ(res, unindent(R"(
+        std::string res = out.c_str();
+        EXPECT_EQ(res, unindent(R"(
                                   - foo  # '/some/source1'
                                   - bar  # '/some/source2')"));
 
-            rc = "foo";
-            node = YAML::Load(rc);
-            EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
+        rc = "foo";
+        node = YAML::Load(rc);
+        EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
 
-            rc = unindent(R"(
+        rc = unindent(R"(
                             foo: bar
                             bar: baz)");
-            node = YAML::Load(rc);
-            EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
+        node = YAML::Load(rc);
+        EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
 
-            node = YAML::Node();
-            EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
-        }
-    }  // namespace testing
+        node = YAML::Node();
+        EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
+    }
+}  // namespace testing
 }  // namespace mamba

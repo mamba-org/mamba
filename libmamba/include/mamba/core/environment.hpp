@@ -87,6 +87,19 @@ namespace mamba
 #endif
         }
 
+        inline bool unset(const std::string& key)
+        {
+#ifdef _WIN32
+            auto res = SetEnvironmentVariableA(key.c_str(), NULL);
+            if (!res)
+            {
+                LOG_ERROR << "Could not unset environment variable: " << GetLastError();
+            }
+#else
+            return unsetenv(key.c_str());
+#endif
+        }
+
         inline fs::path which(const std::string& exe)
         {
             // TODO maybe add a cache?

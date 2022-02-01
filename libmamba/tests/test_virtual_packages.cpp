@@ -62,7 +62,7 @@ namespace mamba
             EXPECT_EQ(pkgs[2].name, "__archspec");
             EXPECT_EQ(pkgs[2].build_string, "arm");
 
-            env::set("CONDA_OVERRIDE_OSX", "");
+            env::unset("CONDA_OVERRIDE_OSX");
             ctx.platform = "linux-32";
             env::set("CONDA_OVERRIDE_LINUX", "5.7");
             env::set("CONDA_OVERRIDE_GLIBC", "2.15");
@@ -75,15 +75,15 @@ namespace mamba
             EXPECT_EQ(pkgs[2].version, "2.15");
             EXPECT_EQ(pkgs[3].name, "__archspec");
             EXPECT_EQ(pkgs[3].build_string, "x86");
-            env::set("CONDA_OVERRIDE_GLIBC", "");
-            env::set("CONDA_OVERRIDE_LINUX", "");
+            env::unset("CONDA_OVERRIDE_GLIBC");
+            env::unset("CONDA_OVERRIDE_LINUX");
 
             ctx.platform = "lin-850";
             pkgs = detail::dist_packages();
             ASSERT_EQ(pkgs.size(), 1);
             EXPECT_EQ(pkgs[0].name, "__archspec");
             EXPECT_EQ(pkgs[0].build_string, "850");
-            env::set("CONDA_SUBDIR", "");
+            env::unset("CONDA_SUBDIR");
 
             ctx.platform = "linux";
             pkgs = detail::dist_packages();
@@ -117,7 +117,7 @@ namespace mamba
             EXPECT_EQ(pkgs.back().name, "__cuda");
             EXPECT_EQ(pkgs.back().version, "9.0");
 
-            env::set("CONDA_OVERRIDE_CUDA", "");
+            env::unset("CONDA_OVERRIDE_CUDA");
             pkgs = get_virtual_packages();
 
             if (!detail::cuda_version().empty())

@@ -465,9 +465,10 @@ namespace mamba
             std::vector<fs::path> paths = { Context::instance().root_prefix / "pkgs",
                                             env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
-            if (!env::get("APPDATA").empty())
+            auto appdata = env::get("APPDATA");
+            if (appdata)
             {
-                paths.push_back(fs::path(env::get("APPDATA")) / ".mamba" / "pkgs");
+                paths.push_back(fs::path(appdata.value()) / ".mamba" / "pkgs");
             }
 #endif
             return paths;

@@ -538,3 +538,35 @@ class TestCreate:
         assert "__archspec=1=x86" in res["virtual packages"]
         assert "__win=0=0" in res["virtual packages"]
         assert res["platform"] == "win-32"
+
+    @pytest.mark.skipif(
+        dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
+    )
+    @pytest.mark.parametrize(
+        "version,build,cache_tag",
+        [
+            ["2.7", "*", ""],
+            ["3.10", "*_cpython", "cpython-310"],
+            [ "3.7", "*_pypy","pypy37"],
+        ],
+    )
+    def test_pyc_compilation(self, version, build, cache_tag):
+        prefix = Path(TestCreate.prefix)
+        site_packages = prefix / "lib" / f"python{version}" / "site-packages"
+        if cache_tag:
+            pyc_fn = Path("__pycache__") / f"six.{cache_tag}.pyc"
+        else:
+            pyc_fn = Path(f"six.pyc")
+
+        cmd = ["-n", TestCreate.env_name, f"python={version}.*={build}", "six"]
+
+        # Disable pyc compilation to ensure that files are still registered in conda-meta
+        create(*cmd, "--no-pyc")
+        assert not (site_packages / pyc_fn).exists()
+        six_meta = next((prefix / "conda-meta").glob("six-*.json")).read_text()
+        assert pyc_fn.name in six_meta
+
+        # Enable pyc compilation to ensure that the pyc files are created
+        create(*cmd)
+        assert (site_packages / pyc_fn).exists()
+        assert pyc_fn.name in six_meta

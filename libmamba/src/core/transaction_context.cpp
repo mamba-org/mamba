@@ -17,21 +17,10 @@ namespace mamba
 {
     void compile_python_sources(std::ostream& out)
     {
-        out << "from compileall import compile_file\n";
-        out << "from concurrent.futures import ProcessPoolExecutor\n";
-        out << "import sys\n";
-
-        out << "results = []\n";
-        out << "with sys.stdin:\n";
-        out << "    with ProcessPoolExecutor(max_workers=None) as executor:\n";
-        out << "        while True:\n";
-        out << "            name = sys.stdin.readline().strip()\n";
-        out << "            if not name:\n";
-        out << "                break\n";
-        out << "            results.append(executor.submit(compile_file, name, quiet=1))\n";
-        out << "        success = all(r.result() for r in results)\n";
-
-        out << "sys.exit(int(not success))\n";
+        constexpr const char script[] =
+#include "../data/compile_pyc.hpp"
+            ;
+        out << script;
     }
 
     std::string compute_short_python_version(const std::string& long_version)

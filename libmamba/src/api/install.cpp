@@ -25,7 +25,7 @@
 #include "mamba/core/virtual_packages.hpp"
 
 #include "termcolor/termcolor.hpp"
-
+#include "exprtk.hpp"
 #include "spdlog/spdlog.h"
 
 namespace mamba
@@ -70,38 +70,10 @@ namespace mamba
         assert_reproc_success(options, status, ec);
     }
 
-    auto& truthy_values()
-    {
-        static std::map<std::string, int> vals{
-            { "win", 0 },
-            { "unix", 0 },
-            { "osx", 0 },
-            { "linux", 0 },
-        };
-
-        const auto& ctx = Context::instance();
-        if (starts_with(ctx.platform, "win"))
-        {
-            vals["win"] = true;
-        }
-        else
-        {
-            vals["unix"] = true;
-            if (starts_with(ctx.platform, "linux"))
-            {
-                vals["linux"] = true;
-            }
-            else if (starts_with(ctx.platform, "osx"))
-            {
-                vals["osx"] = true;
-            }
-        }
-        return vals;
-    }
-
     namespace detail
     {
-        bool eval_selector(const std::string& selector)
+        template <typename T>
+        bool logic(const std::string& selector)
         {
             if (!(starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
             {
@@ -110,13 +82,72 @@ namespace mamba
             }
             std::string expr = selector.substr(4, selector.size() - 5);
 
-            if (truthy_values().find(expr) == truthy_values().end())
+            static std::map<std::string, int> vals{
+                { "win", 0 },
+                { "unix", 0 },
+                { "osx", 0 },
+                { "linux", 0 },
+            };
+
+            const auto& ctx = Context::instance();
+            if (starts_with(ctx.platform, "win"))
             {
-                throw std::runtime_error("Couldn't parse selector. Value not in [unix, linux, "
-                                         "osx, win] or additional whitespaces found.");
+                vals["win"] = true;
+            }
+            else
+            {
+                vals["unix"] = true;
+                if (starts_with(ctx.platform, "linux"))
+                {
+                    vals["linux"] = true;
+                }
+                else if (starts_with(ctx.platform, "osx"))
+                {
+                    vals["osx"] = true;
+                }
+                else
+                {
+                    throw std::runtime_error("Couldn't parse selector. Value not in [unix, linux, "
+                                             "osx, win] or additional whitespaces found.");
+                }
             }
 
-            return truthy_values()[expr];
+            typedef exprtk::expression<T> expression_t;
+            typedef exprtk::parser<T> parser_t;
+            typedef exprtk::symbol_table<T> symbol_table_t;
+
+            std::string expr_str = "win or osx";
+
+            symbol_table_t symbol_table;
+            expression_t expr;
+            parser_t parser;
+
+            for (auto os : vals)
+            {
+                if (expr_str.find(os.first) != std::string::npos)
+                {
+                    size_t pos = expr_str.find(os.first);
+                    size_t len = os.first.length();
+                    expr_str.replace(pos, len, std::to_string(os.second));
+                }
+                else {
+                    throw std::runtime_error("Variable unknown or command invalid.");
+                }
+
+            }
+
+            expr.register_symbol_table(symbol_table);
+
+            if(parser.compile(expr_str, expr))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        bool eval_selector(const std::string& selector)
+        {
+            return logic<double>(selector);
         }
 
         yaml_file_contents read_yaml_file(fs::path yaml_file)

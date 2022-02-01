@@ -87,7 +87,7 @@ namespace mamba
 #endif
         }
 
-        inline bool unset(const std::string& key)
+        inline void unset(const std::string& key)
         {
 #ifdef _WIN32
             auto res = SetEnvironmentVariableA(key.c_str(), NULL);
@@ -96,7 +96,7 @@ namespace mamba
                 LOG_ERROR << "Could not unset environment variable: " << GetLastError();
             }
 #else
-            return unsetenv(key.c_str());
+            unsetenv(key.c_str());
 #endif
         }
 

@@ -50,20 +50,38 @@ namespace mamba
         inline std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
-            std::size_t size = GetEnvironmentVariableA(key.c_str(), nullptr, 0);
-            if (size == 0)
+            const size_t initial_size = 1024;
+            std::unique_ptr<char[]> temp_small = std::make_unique<char[]>(initial_size);
+            std::size_t size = GetEnvironmentVariableA(key.c_str(), tmp_small.get(), 0);
+            if (size == 0)  // Error
             {
                 auto last_err = GetLastError();
-                if (last_err != ERROR_ENVVAR_NOT_FOUND && last_err != NO_ERROR)
+                if (last_err == ERROR_ENVVAR_NOT_FOUND)
                 {
-                    LOG_ERROR << "Could not get environment variable: " << GetLastError();
+                    return {};
                 }
-                return {};
+                else if (last_err == NO_ERROR)
+                {
+                    return "";
+                }
+                else
+                {
+                    LOG_ERROR << "Could not get environment variable: " << last_err;
+                    return {};
+                }
             }
-            std::unique_ptr<char[]> temp = std::make_unique<char[]>(size);
-            GetEnvironmentVariableA(key.c_str(), temp.get(), size);
-            std::string res(temp.get());
-            return res;
+            else if (size > initial_size)  // Buffer too small
+            {
+                std::unique_ptr<char[]> temp_large = std::make_unique<char[]>(size);
+                GetEnvironmentVariableA(key.c_str(), temp_large.get(), size);
+                std::string res(temp_large.get());
+                return res;
+            }
+            else  // Success
+            {
+                std::string res(temp_small.get());
+                return res;
+            }
 #else
             const char* value = std::getenv(key.c_str());
             if (value)

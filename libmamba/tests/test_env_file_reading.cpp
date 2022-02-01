@@ -13,21 +13,49 @@ namespace mamba
             if (on_mac)
             {
                 EXPECT_TRUE(eval_selector("sel(osx)"));
-                EXPECT_FALSE(eval_selector("sel(linux)"));
-                EXPECT_FALSE(eval_selector("sel(win)"));
             }
             else
             {
                 EXPECT_TRUE(eval_selector("sel(linux)"));
-                EXPECT_FALSE(eval_selector("sel(osx)"));
-                EXPECT_FALSE(eval_selector("sel(win)"));
             }
         }
         else if (on_win)
         {
             EXPECT_TRUE(eval_selector("sel(win)"));
-            EXPECT_FALSE(eval_selector("sel(osx)"));
-            EXPECT_FALSE(eval_selector("sel(linux)"));
+        }
+    }
+
+    TEST(env_file_reading, or_selector)
+    {
+        using namespace detail;
+        if (on_linux || on_mac)
+        {
+            EXPECT_TRUE(eval_selector("sel(unix or osx)"));
+            if (on_linux)
+            {
+                EXPECT_TRUE(eval_selector("sel(linux or not osx)"));
+            }
+        }
+        else if (on_win)
+        {
+            EXPECT_TRUE(eval_selector("sel(win)"));
+        }
+    }
+
+    TEST(env_file_reading, and_selector)
+    {
+        using namespace detail;
+        if (on_linux || on_mac)
+        {
+            EXPECT_FALSE(eval_selector("sel(unix and (win or linux)"));
+            if (on_linux)
+            {
+                EXPECT_TRUE(eval_selector("sel(linux and unix)"));
+            }
+        }
+        else if (on_win)
+        {
+            EXPECT_FALSE(eval_selector("sel(win and not linux)"));
         }
     }
 

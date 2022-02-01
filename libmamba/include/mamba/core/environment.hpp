@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <string_view>
+#include <optional>
 #include "mamba/core/output.hpp"
 
 #include "mamba_fs.hpp"
@@ -178,7 +179,8 @@ namespace mamba
             std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home = concat(env::get("HOMEDRIVE"), env::get("HOMEPATH"));
+                maybe_home
+                    = concat(env::get("HOMEDRIVE").value_or(""), env::get("HOMEPATH").value_or(""));
             }
             if (maybe_home.empty())
             {

@@ -416,9 +416,12 @@ namespace mamba
 
         reproc::options options;
         options.redirect.parent = true;
-        if (activate) {
+        if (activate)
+        {
             options.env.behavior = reproc::env::empty;
-        } else {
+        }
+        else
+        {
             options.env.behavior = reproc::env::extend;
         }
         options.env.extra = envmap;
@@ -801,9 +804,12 @@ namespace mamba
         {
             pyc_files.push_back(pyc_path(f, m_context->short_python_version));
         }
-        if (m_context->try_pyc_compation(py_files)) {
+        if (m_context->try_pyc_compilation(py_files))
+        {
             return pyc_files;
-        } else {
+        }
+        else
+        {
             return {};
         }
     }

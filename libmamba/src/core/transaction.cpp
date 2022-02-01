@@ -867,7 +867,7 @@ namespace mamba
         else
         {
             LOG_INFO << "Waiting for pyc compilation to finish";
-            m_transaction_context.wait_for_pyc_compation();
+            m_transaction_context.wait_for_pyc_compilation();
             Console::stream() << "Transaction finished";
             prefix.history().add_entry(m_history_entry);
         }

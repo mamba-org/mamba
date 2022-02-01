@@ -35,8 +35,8 @@ namespace mamba
                            const std::string& py_version,
                            const std::vector<MatchSpec>& requested_specs);
         ~TransactionContext();
-        bool try_pyc_compation(const std::vector<fs::path>& py_files);
-        void wait_for_pyc_compation();
+        bool try_pyc_compilation(const std::vector<fs::path>& py_files);
+        void wait_for_pyc_compilation();
 
         bool has_python;
         fs::path target_prefix;

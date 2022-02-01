@@ -461,13 +461,6 @@ namespace mamba
         }
     }
 
-    fs::path extract_subproc(const fs::path& file)
-    {
-        fs::path dest_dir = extract_dest_dir(file);
-        extract_subproc(file, dest_dir);
-        return dest_dir;
-    }
-
     bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level)
     {
         TemporaryDirectory extract_dir;

@@ -9,6 +9,7 @@
 #ifndef _WIN32
 #include <unistd.h>
 #include <clocale>
+#include <sys/ioctl.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <libProc.h>
@@ -490,4 +491,60 @@ namespace mamba
         return to_utf8(w, wcslen(w));
     }
 #endif
+
+    ConsoleFeatures get_console_features()
+    {
+        ConsoleFeatures features;
+#ifndef _WIN32
+        features.virtual_terminal_processing = true;
+        features.true_colors = true;
+#else
+        DWORD console_mode;
+        bool res = GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &console_mode);
+        features.virtual_terminal_processing
+            = res && console_mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        features.true_colors = false;
+
+        std::string win_ver = windows_version();
+        auto splitted = split(win_ver, ".");
+        if (splitted.size() >= 3 && std::stoull(splitted[0]) >= 10
+            && std::stoull(splitted[2]) >= 15063)
+        {
+            features.true_colors = true;
+        }
+#endif
+        return features;
+    }
+
+    int get_console_width()
+    {
+#ifndef _WIN32
+        struct winsize w;
+        ioctl(0, TIOCGWINSZ, &w);
+        return w.ws_col;
+#else
+
+        CONSOLE_SCREEN_BUFFER_INFO coninfo;
+        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+        return coninfo.dwSize.X;
+#endif
+
+        return -1;
+    }
+
+    int get_console_height()
+    {
+#ifndef _WIN32
+        struct winsize w;
+        ioctl(0, TIOCGWINSZ, &w);
+        return w.ws_row;
+#else
+
+        CONSOLE_SCREEN_BUFFER_INFO coninfo;
+        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
+        return coninfo.srWindow.Bottom - coninfo.srWindow.Top + 1;
+#endif
+
+        return -1;
+    }
 }

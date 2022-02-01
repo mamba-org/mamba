@@ -35,6 +35,15 @@ namespace mamba
     std::string to_utf8(const wchar_t* w, size_t s);
     std::string to_utf8(const wchar_t* w);
 #endif
+
+    struct ConsoleFeatures
+    {
+        bool virtual_terminal_processing, true_colors;
+    };
+
+    ConsoleFeatures get_console_features();
+    int get_console_width();
+    int get_console_height();
 }
 
 #endif

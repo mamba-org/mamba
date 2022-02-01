@@ -1,17 +1,9 @@
 #include "mamba/core/progress_bar.hpp"
 
-#include "termcolor/termcolor.hpp"
-
 #include "spdlog/fmt/bundled/core.h"
 #include "spdlog/fmt/bundled/format.h"
 #include "spdlog/fmt/bundled/format-inl.h"
 #include "spdlog/fmt/bundled/ostream.h"
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/ioctl.h>
-#endif
 
 #include <algorithm>
 #include <cassert>
@@ -1901,37 +1893,5 @@ namespace mamba
     {
         os << duration_stream(ns).str();
         return os;
-    }
-
-    int get_console_width()
-    {
-#ifndef _WIN32
-        struct winsize w;
-        ioctl(0, TIOCGWINSZ, &w);
-        return w.ws_col;
-#else
-
-        CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-        return coninfo.dwSize.X;
-#endif
-
-        return -1;
-    }
-
-    int get_console_height()
-    {
-#ifndef _WIN32
-        struct winsize w;
-        ioctl(0, TIOCGWINSZ, &w);
-        return w.ws_row;
-#else
-
-        CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-        return coninfo.srWindow.Bottom - coninfo.srWindow.Top + 1;
-#endif
-
-        return -1;
     }
 }  // namespace pbar

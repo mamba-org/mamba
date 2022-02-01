@@ -18,7 +18,7 @@ namespace mamba
     void compile_python_sources(std::ostream& out)
     {
         constexpr const char script[] =
-#include "../data/compile_pyc.hpp"
+#include "../data/compile_pyc.py"
             ;
         out << script;
     }

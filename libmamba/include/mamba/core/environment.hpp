@@ -52,7 +52,7 @@ namespace mamba
 #ifdef _WIN32
             const size_t initial_size = 1024;
             std::unique_ptr<char[]> temp_small = std::make_unique<char[]>(initial_size);
-            std::size_t size = GetEnvironmentVariableA(key.c_str(), tmp_small.get(), 0);
+            std::size_t size = GetEnvironmentVariableA(key.c_str(), temp_small.get(), 0);
             if (size == 0)  // Error
             {
                 auto last_err = GetLastError();

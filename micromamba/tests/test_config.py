@@ -888,5 +888,5 @@ class TestConfigExpandVars:
     def test_envsubst_empty_var(self, monkeypatch, rc_file_path):
         monkeypatch.setenv("foo", "", True)
         # Windows does not support empty environment variables
-        expected = "${foo}" if platform.system == "Windows" else ""
+        expected = "${foo}" if platform.system() == "Windows" else ""
         assert self._roundtrip(rc_file_path, "channel_alias", "'${foo}'") == expected

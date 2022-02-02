@@ -1,0 +1,22 @@
+name: set up ccache
+inputs:
+  environment-file:
+    required: true
+  extra-specs:
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: generate ccache timestamp
+      id: ccache_cache_timestamp
+      shell: bash -l {0}
+      run: echo ::set-output name=timestamp::"$(TZ=UTC date +%F)"
+    - name: set up ccache
+      uses: hendrikmuhs/ccache-action@940a79df1711f4d50b87e19ddf3b0a3c182abe68
+      with:
+        key: ${{ runner.os }}-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+    - name: create build environment
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: ${{ inputs.environment-file }}
+        extra-specs: ${{ inputs.extra-specs }}

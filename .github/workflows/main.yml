@@ -25,28 +25,16 @@ jobs:
           sudo apt clean
           docker rmi $(docker image ls -aq)
           df -h
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(TZ=UTC date +%F)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
       - name: build libmamba-static
         shell: bash -l {0}
         run: |
           micromamba activate build_env
           mkdir build
           cd build
-          export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
               -DBUILD_LIBMAMBA=ON \
@@ -65,28 +53,16 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
       - name: build and run libmamba C++ tests
         shell: bash -l {0}
         run: |
           micromamba activate build_env
           mkdir build
           cd build
-          export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
               -DBUILD_LIBMAMBA=ON \
@@ -115,26 +91,14 @@ jobs:
           sudo apt clean
           docker rmi $(docker image ls -aq)
           df -h
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
       - name: build micromamba
         shell: bash -l {0}
         run: |
           micromamba activate build_env
-          export CCACHE_DIR=$HOME/ccache
           mkdir build
           cd build
           cmake .. \
@@ -181,21 +145,10 @@ jobs:
           sudo apt clean
           docker rmi $(docker image ls -aq)
           df -h
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./mamba/environment-dev.yml
-          environment-name: build_env
           extra-specs: conda-build
       - name: run conda init
         shell: bash -l {0}
@@ -206,7 +159,6 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
-          export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
               -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
@@ -282,28 +234,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
       - name: build libmamba-static
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
@@ -322,21 +262,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./mamba/environment-dev.yml
-          environment-name: build_env
           extra-specs: |
             conda-build
             curl
@@ -349,7 +278,6 @@ jobs:
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBAPY=ON ^
                    -DBUILD_LIBMAMBA=ON ^
@@ -408,28 +336,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
       - name: build and run libmamba C++ tests
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA_TESTS=ON ^
                    -DBUILD_LIBMAMBA=ON ^
@@ -450,28 +366,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: setup build
+        uses: ./github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_MICROMAMBA=ON ^
                    -DMICROMAMBA_LINKAGE=STATIC ^

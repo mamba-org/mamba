@@ -182,6 +182,10 @@ namespace mamba
 #ifndef _WIN32
         options.env.behavior = reproc::env::empty;
 #endif
+        std::map<std::string, std::string> envmap;
+        auto& ctx = Context::instance();
+        envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.extract_threads);
+        options.env.extra = envmap;
 
         options.stop = {
             { reproc::stop::wait, reproc::milliseconds(10000) },

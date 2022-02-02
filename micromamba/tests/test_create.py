@@ -553,9 +553,12 @@ class TestCreate:
     )
     def test_pyc_compilation(self, version, build, cache_tag):
         prefix = Path(TestCreate.prefix)
+        cmd = ["-n", TestCreate.env_name, f"python={version}.*={build}", "six"]
 
         if platform.system() == "Windows":
             site_packages = prefix / "Lib" / "site-packages"
+            if version == "2.7":
+                cmd += ["-c", "defaults"]  # for vc=9.*
         else:
             site_packages = prefix / "lib" / f"python{version}" / "site-packages"
 
@@ -563,8 +566,6 @@ class TestCreate:
             pyc_fn = Path("__pycache__") / f"six.{cache_tag}.pyc"
         else:
             pyc_fn = Path(f"six.pyc")
-
-        cmd = ["-n", TestCreate.env_name, f"python={version}.*={build}", "six"]
 
         # Disable pyc compilation to ensure that files are still registered in conda-meta
         create(*cmd, "--no-pyc")

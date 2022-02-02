@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <queue>
+
 #include "common_options.hpp"
 #include "constructor.hpp"
 
@@ -59,9 +61,116 @@ set_constructor_command(CLI::App* subcom)
     });
 }
 
+void do_pkg_extract(const std::vector<PackageInfo>& package_details, const fs::path& path) {
+    LOG_TRACE << "Extracting " << path.filename() << std::endl;
+    std::cout << "Extracting " << path.filename() << std::endl;
 
-void
-construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
+    // fs::path base_path = extract(path);
+    fs::path base_path = extract_subproc(path);
+
+    fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
+    fs::path index_path = base_path / "info" / "index.json";
+
+    nlohmann::json index;
+    std::ifstream index_file(index_path);
+    index_file >> index;
+
+    std::string pkg_name = index["name"];
+
+    index["fn"] = path.filename();
+    bool found_match = false;
+    for (const auto& pkg_info : package_details)
+    {
+        if (pkg_info.fn == path.filename())
+        {
+            index["url"] = pkg_info.url;
+            index["channel"] = pkg_info.channel;
+            index["size"] = fs::file_size(path);
+            if (!pkg_info.md5.empty())
+            {
+                index["md5"] = pkg_info.md5;
+            }
+            if (!pkg_info.sha256.empty())
+            {
+                index["sha256"] = pkg_info.sha256;
+            }
+            found_match = true;
+            break;
+        }
+    }
+    if (!found_match)
+    {
+        LOG_WARNING << "Failed to add extra info to " << repodata_record_path;
+    }
+
+    LOG_TRACE << "Writing " << repodata_record_path;
+    std::ofstream repodata_record(repodata_record_path);
+    repodata_record << index.dump(4);
+}
+
+class ThreadPool
+{
+    public:
+        ThreadPool(const std::vector<PackageInfo>& package_details)
+                   : m_lock()
+                   , m_data_condition()
+                   , m_path_queue()
+                   , m_accept_functions(true)
+                   , m_package_details(package_details)
+        {
+            std::cout << "stating operation" << std::endl;
+            int num_threads = 1;
+            num_threads = std::thread::hardware_concurrency();
+            std::cout << "number of threads = " << num_threads << std::endl;
+            for (int i = 0; i < num_threads; i++)
+            {
+                m_thread_pool.push_back(std::thread(&ThreadPool::infinite_loop_func, std::ref(*this)));
+            }
+        }
+
+        void infinite_loop_func()
+        {
+            while (true)
+            {
+                std::unique_lock<std::mutex> lock(m_lock);
+                m_data_condition.wait(lock, [this]() {return !m_path_queue.empty() || !m_accept_functions; });
+                if (!m_accept_functions && m_path_queue.empty())
+                {
+                    return;
+                }
+                std::unique_ptr<fs::path> path = std::move(m_path_queue.front());
+                m_path_queue.pop();
+                lock.unlock();
+                do_pkg_extract(m_package_details, *path);
+            }
+        }
+
+        void add_entry(const fs::path& path) {
+            std::unique_lock<std::mutex> lock(m_lock);
+            m_path_queue.push(std::make_unique<fs::path>(path));
+            lock.unlock();
+            m_data_condition.notify_one();
+        }
+
+        void shutdown() {
+            m_accept_functions = false;
+            m_data_condition.notify_all();
+            for (unsigned int i = 0; i < m_thread_pool.size(); i++)
+            {
+                m_thread_pool.at(i).join();
+            }
+        }
+
+    private:
+        std::mutex m_lock;
+        std::condition_variable m_data_condition;
+        std::vector<std::thread> m_thread_pool;
+        std::queue<std::unique_ptr<fs::path>> m_path_queue;
+        bool m_accept_functions;
+        const std::vector<PackageInfo>& m_package_details;
+};
+
+void construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
     auto& config = Configuration::instance();
 
@@ -78,49 +187,16 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 
         auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
 
+        ThreadPool thread_pool(package_details);
+
         for (const auto& entry : fs::directory_iterator(pkgs_dir))
         {
             if (is_package_file(entry.path().filename().string()))
             {
-                LOG_TRACE << "Extracting " << entry.path().filename() << std::endl;
-                std::cout << "Extracting " << entry.path().filename() << std::endl;
-
-                fs::path base_path = extract(entry.path());
-
-                fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
-                fs::path index_path = base_path / "info" / "index.json";
-
-                nlohmann::json index;
-                std::ifstream index_file(index_path);
-                index_file >> index;
-
-                std::string pkg_name = index["name"];
-
-                index["fn"] = entry.path().filename();
-                for (const auto& pkg_info : package_details)
-                {
-                    if (pkg_info.fn == entry.path().filename())
-                    {
-                        index["url"] = pkg_info.url;
-                        index["channel"] = pkg_info.channel;
-                        index["size"] = fs::file_size(entry.path());
-                        if (!pkg_info.md5.empty())
-                        {
-                            index["md5"] = pkg_info.md5;
-                        }
-                        if (!pkg_info.sha256.empty())
-                        {
-                            index["sha256"] = pkg_info.sha256;
-                        }
-                        break;
-                    }
-                }
-
-                LOG_TRACE << "Writing " << repodata_record_path;
-                std::ofstream repodata_record(repodata_record_path);
-                repodata_record << index.dump(4);
+                thread_pool.add_entry(entry.path());
             }
         }
+        thread_pool.shutdown();
     }
 
     if (extract_tarball)

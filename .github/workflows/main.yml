@@ -23,6 +23,8 @@ jobs:
         uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: build libmamba-static
         shell: cmd /C call {0}
         run: |

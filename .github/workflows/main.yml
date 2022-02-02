@@ -26,7 +26,7 @@ jobs:
           docker rmi $(docker image ls -aq)
           df -h
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
       - name: build libmamba-static
@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
       - name: build and run libmamba C++ tests
@@ -92,7 +92,7 @@ jobs:
           docker rmi $(docker image ls -aq)
           df -h
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
       - name: build micromamba
@@ -146,7 +146,7 @@ jobs:
           docker rmi $(docker image ls -aq)
           df -h
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./mamba/environment-dev.yml
           extra-specs: conda-build
@@ -235,7 +235,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
       - name: build libmamba-static
@@ -263,7 +263,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./mamba/environment-dev.yml
           extra-specs: |
@@ -337,7 +337,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
       - name: build and run libmamba C++ tests
@@ -367,7 +367,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup build
-        uses: ././github/actions/setup
+        uses: ./.github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
       - name: build micromamba

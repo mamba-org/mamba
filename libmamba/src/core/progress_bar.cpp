@@ -265,7 +265,6 @@ namespace mamba
     {
         auto w = width();
         std::string val;
-
         if (!allow_overflow && overflow())
             val = resize(m_value, w);
         else
@@ -506,26 +505,26 @@ namespace mamba
         // 1: reduce bar width
         if (max_width < total_width && progress)
         {
-            total_width -= progress.width() - 15;
+            total_width = total_width - progress.width() + 15;
             progress.set_width(15);
         }
         // 2: remove the total value and the separator
         if (max_width < total_width && total)
         {
-            total_width -= total.width() + separator.width() + 2;
+            total_width = total_width - total.width() + separator.width() + 2;
             total.deactivate();
             separator.deactivate();
         }
         // 3: remove the speed
         if (max_width < total_width && speed)
         {
-            total_width -= speed.width() + 1;
+            total_width = total_width - speed.width() - 1;
             speed.deactivate();
         }
         // 4: remove the postfix
         if (max_width < total_width && postfix)
         {
-            total_width -= postfix.width() + 1;
+            total_width = total_width - postfix.width() - 1;
             postfix.deactivate();
         }
         // std::size_t prefix_min_width = std::max(prefix.width(), std::size_t(20));
@@ -534,26 +533,26 @@ namespace mamba
         if (max_width < total_width && prefix.width() > 20 && prefix)
         {
             // keep a minimal size to make it readable
-            total_width -= prefix.width() - 20;
+            total_width = total_width - prefix.width() + 20;
             prefix.set_width(20);
         }
         // 6: display progress without a bar
         if (max_width < total_width && progress)
         {
             // keep capability to display progress up to "100%"
-            total_width -= progress.width() - 4;
+            total_width = total_width - progress.width() + 4;
             progress.set_width(4);
         }
         // 7: remove the current value
         if (max_width < total_width && current)
         {
-            total_width -= current.width() + 1;
+            total_width = total_width - current.width() - 1;
             current.deactivate();
         }
         // 8: remove the elapsed time
         if (max_width < total_width && elapsed)
         {
-            total_width -= elapsed.width() + 1;
+            total_width = total_width - elapsed.width() - 1;
             elapsed.deactivate();
         }
 

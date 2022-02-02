@@ -19,4 +19,5 @@ runs:
       uses: mamba-org/provision-with-micromamba@main
       with:
         environment-file: ${{ inputs.environment-file }}
+        environment-name: build_env
         extra-specs: ${{ inputs.extra-specs }}

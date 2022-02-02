@@ -547,7 +547,8 @@ class TestCreate:
         [
             ["2.7", "*", ""],
             ["3.10", "*_cpython", "cpython-310"],
-            [ "3.7", "*_pypy","pypy37"],
+            # FIXME: https://github.com/mamba-org/mamba/issues/1432
+            # [ "3.7", "*_pypy","pypy37"],
         ],
     )
     def test_pyc_compilation(self, version, build, cache_tag):

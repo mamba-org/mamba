@@ -11,6 +11,8 @@
 
 #include "termcolor/termcolor.hpp"
 #include <reproc++/run.hpp>
+#include <reproc++/drain.hpp>
+#include <reproc++/reproc.hpp>
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/menuinst.hpp"
@@ -414,7 +416,14 @@ namespace mamba
 
         reproc::options options;
         options.redirect.parent = true;
-        options.env.behavior = reproc::env::extend;
+        if (activate)
+        {
+            options.env.behavior = reproc::env::empty;
+        }
+        else
+        {
+            options.env.behavior = reproc::env::extend;
+        }
         options.env.extra = envmap;
         std::string cwd = path.parent_path();
         options.working_directory = cwd.c_str();
@@ -703,6 +712,7 @@ namespace mamba
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
                 reproc::options options;
+                options.env.behavior = reproc::env::empty;
                 if (Context::instance().verbosity <= 1)
                 {
                     reproc::redirect silence;
@@ -789,87 +799,16 @@ namespace mamba
         if (py_files.size() == 0)
             return {};
 
-        if (!m_context->has_python)
-        {
-            LOG_WARNING << "Can't compile pyc: Python not found";
-            return {};
-        }
-
         std::vector<fs::path> pyc_files;
-        TemporaryFile all_py_files;
-        std::ofstream all_py_files_f = open_ofstream(all_py_files.path());
-
         for (auto& f : py_files)
         {
-            all_py_files_f << f.c_str() << '\n';
             pyc_files.push_back(pyc_path(f, m_context->short_python_version));
-            LOG_TRACE << "Compiling " << pyc_files.back();
         }
-        LOG_INFO << "Compiling " << pyc_files.size() << " python files for " << m_pkg_info.name
-                 << " to pyc";
-
-        all_py_files_f.close();
-
-        std::vector<std::string> command = { m_context->target_prefix / m_context->python_path,
-                                             "-Wi",
-                                             "-m",
-                                             "compileall",
-                                             "-q",
-                                             "-l",
-                                             "-i",
-                                             all_py_files.path() };
-
-        auto py_ver_split = split(m_context->python_version, ".");
-
-        try
+        if (m_context->compile_pyc)
         {
-            if (std::stoull(std::string(py_ver_split[0])) >= 3
-                && std::stoull(std::string(py_ver_split[1])) > 5)
-            {
-                // activate parallel pyc compilation
-                command.push_back("-j0");
-            }
+            m_context->try_pyc_compilation(py_files);
         }
-        catch (const std::exception& e)
-        {
-            LOG_ERROR << "Bad conversion of Python version '" << m_context->python_version
-                      << "': " << e.what();
-            throw std::runtime_error("Bad conversion. Aborting.");
-        }
-
-        reproc::options options;
-        std::string out, err;
-
-        std::string cwd = m_context->target_prefix;
-        options.working_directory = cwd.c_str();
-
-        auto [wrapped_command, script_file]
-            = prepare_wrapped_call(m_context->target_prefix, command);
-
-        LOG_DEBUG << "Running wrapped python compilation command " << join(" ", command);
-        auto [_, ec] = reproc::run(
-            wrapped_command, options, reproc::sink::string(out), reproc::sink::string(err));
-
-        if (ec || !err.empty())
-        {
-            LOG_INFO << "noarch pyc compilation failed (cross-compiling?). " << ec.message();
-            LOG_INFO << err;
-        }
-
-        std::vector<fs::path> final_pyc_files;
-        for (auto& f : pyc_files)
-        {
-            if (fs::exists(m_context->target_prefix / f))
-            {
-                final_pyc_files.push_back(f);
-            }
-            else if (!ec)
-            {
-                LOG_WARNING << "Python file couldn't be compiled to pyc: " << f;
-            }
-        }
-
-        return final_pyc_files;
+        return pyc_files;
     }
 
     enum class NoarchType
@@ -1052,17 +991,13 @@ namespace mamba
                 }
             }
 
-            if (m_context->compile_pyc)
+            std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
+            for (const fs::path& pyc_path : pyc_files)
             {
-                std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
+                out_json["paths_data"]["paths"].push_back(
+                    { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
 
-                for (const fs::path& pyc_path : pyc_files)
-                {
-                    out_json["paths_data"]["paths"].push_back(
-                        { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
-
-                    out_json["files"].push_back(pyc_path);
-                }
+                out_json["files"].push_back(pyc_path);
             }
 
             if (link_json.find("noarch") != link_json.end()

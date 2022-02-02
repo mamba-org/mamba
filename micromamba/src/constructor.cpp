@@ -97,6 +97,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                 std::string pkg_name = index["name"];
 
                 index["fn"] = entry.path().filename();
+                bool found_match = false;
                 for (const auto& pkg_info : package_details)
                 {
                     if (pkg_info.fn == entry.path().filename())
@@ -112,8 +113,14 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                         {
                             index["sha256"] = pkg_info.sha256;
                         }
+                        found_match = true;
                         break;
                     }
+                }
+                if (!found_match)
+                {
+                    LOG_WARNING << "Failed to add extra info to " << repodata_record_path
+                                << std::endl;
                 }
 
                 LOG_TRACE << "Writing " << repodata_record_path;

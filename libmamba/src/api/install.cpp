@@ -58,6 +58,7 @@ namespace mamba
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_args);
 
         reproc::options options;
+        options.env.behavior = reproc::env::empty;
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 

@@ -9,9 +9,12 @@
 
 #include <string>
 
+#include <reproc++/reproc.hpp>
+
 #include "context.hpp"
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
+#include "util.hpp"
 
 namespace mamba
 {
@@ -27,9 +30,13 @@ namespace mamba
     {
     public:
         TransactionContext();
+        TransactionContext& operator=(const TransactionContext&);
         TransactionContext(const fs::path& prefix,
                            const std::string& py_version,
                            const std::vector<MatchSpec>& requested_specs);
+        ~TransactionContext();
+        bool try_pyc_compilation(const std::vector<fs::path>& py_files);
+        void wait_for_pyc_compilation();
 
         bool has_python;
         fs::path target_prefix;
@@ -42,6 +49,13 @@ namespace mamba
         bool always_softlink = false;
         bool compile_pyc = true;
         std::vector<MatchSpec> requested_specs;
+
+    private:
+        bool start_pyc_compilation_process();
+
+        std::unique_ptr<reproc::process> m_pyc_process = nullptr;
+        std::unique_ptr<TemporaryFile> m_pyc_script_file = nullptr;
+        std::unique_ptr<TemporaryFile> m_pyc_compileall = nullptr;
     };
 }  // namespace mamba
 

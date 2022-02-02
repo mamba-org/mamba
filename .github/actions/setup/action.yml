@@ -4,6 +4,9 @@ inputs:
     required: true
   extra-specs:
     required: false
+outputs:
+  ccache_path:
+    value: ${{ steps.ccache_path.outputs.path }}
 runs:
   using: composite
   steps:
@@ -27,5 +30,5 @@ runs:
       #uses: hendrikmuhs/ccache-action@940a79df1711f4d50b87e19ddf3b0a3c182abe68
       uses: jonashaag/ccache-action@main
       with:
-        key: ${{ runner.os }}-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+        key: ${{ runner.os }}--${{ inputs.environment-file }}--${{ steps.ccache_cache_timestamp.outputs.timestamp }}
         ccache_path: ${{ steps.ccache_path.outputs.path }}

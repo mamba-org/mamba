@@ -105,22 +105,13 @@ namespace mamba
         bool experimental = false;
         bool debug = false;
 
-        fs::path target_prefix = "";
-        // Need to prevent circular imports here (otherwise using env::get())
-        fs::path root_prefix
-            = std::getenv("MAMBA_ROOT_PREFIX") ? std::getenv("MAMBA_ROOT_PREFIX") : "";
-        fs::path conda_prefix = root_prefix;
+        fs::path target_prefix;
+        fs::path root_prefix;
+        fs::path conda_prefix;
 
         // TODO check writable and add other potential dirs
-        std::vector<fs::path> envs_dirs = { root_prefix / "envs" };
-        std::vector<fs::path> pkgs_dirs
-            = { root_prefix / "pkgs",
-                fs::path("~") / ".mamba" / "pkgs"
-#ifdef _WIN32
-                ,
-                fs::path(std::getenv("APPDATA") ? std::getenv("APPDATA") : "") / ".mamba" / "pkgs"
-#endif
-              };
+        std::vector<fs::path> envs_dirs;
+        std::vector<fs::path> pkgs_dirs;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header

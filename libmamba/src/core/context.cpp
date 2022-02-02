@@ -21,14 +21,17 @@ namespace mamba
         root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
         conda_prefix = root_prefix;
 
-        std::vector<fs::path> envs_dirs = { root_prefix / "envs" };
-        std::vector<fs::path> pkgs_dirs = { root_prefix / "pkgs",
+        envs_dirs = { root_prefix / "envs" };
+        pkgs_dirs = { root_prefix / "pkgs",
                 fs::path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
                 ,
                 fs::path(env::get("APPDATA").value_or("") / ".mamba" / "pkgs"
 #endif
               };
+
+        keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
+        keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
         if (on_ci || !termcolor::_internal::is_atty(std::cout))
         {

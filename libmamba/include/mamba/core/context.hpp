@@ -155,8 +155,8 @@ namespace mamba
         bool verify_artifacts = false;
 
         // debug helpers
-        bool keep_temp_files = std::getenv("MAMBA_KEEP_TEMP") ? 1 : 0;
-        bool keep_temp_directories = std::getenv("MAMBA_KEEP_TEMP_DIRS") ? 1 : 0;
+        bool keep_temp_files = false;
+        bool keep_temp_directories = false;
 
         bool change_ps1 = true;
         std::string env_prompt = "({default_env}) ";

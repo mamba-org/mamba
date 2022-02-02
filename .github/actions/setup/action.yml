@@ -21,7 +21,11 @@ runs:
       shell: bash -l {0}
       run: |
         micromamba activate build_env
-        echo ::set-output name=path::"$(which ccache)"
+        ccache_path="$(which ccache)"
+        if which cygpath; then
+          ccache_path=$(cygpath -w "$ccache_path")
+        fi
+        echo ::set-output name=path::"$ccache_path"
     - name: generate ccache timestamp
       id: ccache_cache_timestamp
       shell: bash -l {0}

@@ -33,6 +33,6 @@ jobs:
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
                    -GNinja ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER='${{ steps.setup.outputs.ccache_path }}' ^
-                   -DCMAKE_C_COMPILER_LAUNCHER='${{ steps.setup.outputs.ccache_path }}'
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=${{ steps.setup.outputs.ccache_path }} ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=${{ steps.setup.outputs.ccache_path }}
           ninja

@@ -1,4 +1,4 @@
-2021.01.25
+2022.01.25
 ==========
 
 Releases: libmamba 0.20.0, libmambapy 0.20.0, mamba 0.20.0, micromamba 0.20.0

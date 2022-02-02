@@ -780,10 +780,10 @@ namespace mamba
             // use.
             return { "", "" };
         }
-        std::string current_prompt_modifier = env::get("CONDA_PROMPT_MODIFIER");
-        if (!current_prompt_modifier.empty())
+        auto current_prompt_modifier = env::get("CONDA_PROMPT_MODIFIER");
+        if (current_prompt_modifier)
         {
-            replace_all(ps1, current_prompt_modifier, "");
+            replace_all(ps1, current_prompt_modifier.value(), "");
         }
         // Because we're using single-quotes to set shell variables, we need to handle
         // the proper escaping of single quotes that are already part of the string.

@@ -21,13 +21,37 @@
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
+#include <regex>
 #include <stdexcept>
 
 #include "termcolor/termcolor.hpp"
 
-
 namespace mamba
 {
+    static std::string expandvars(std::string s)
+    {
+        if (s.find("$") == std::string::npos)
+        {
+            // Bail out early
+            return s;
+        }
+        // Match $$ and ${var} where var does not contains YAML special charaters
+        std::regex env_var_re(R"(\$(?:\$|\{([^\}'\"\s]+)\}))");
+        for (auto matches = std::sregex_iterator(s.begin(), s.end(), env_var_re);
+             matches != std::sregex_iterator();
+             ++matches)
+        {
+            std::smatch match = *matches;
+            auto var = match[1].str();
+            auto val = var.empty() ? "$" : env::get(var);
+            if (val)
+            {
+                s.replace(match[0].first, match[0].second, val.value());
+            }
+        }
+        return s;
+    }
+
     namespace detail
     {
         void ssl_verify_hook(std::string& value)
@@ -181,16 +205,16 @@ namespace mamba
 
             if (prefix.empty())
             {
-                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX").empty())
+                if (env::get("MAMBA_DEFAULT_ROOT_PREFIX"))
                 {
-                    prefix = env::home_directory() / "micromamba";
-                }
-                else
-                {
-                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX");
+                    prefix = env::get("MAMBA_DEFAULT_ROOT_PREFIX").value();
                     LOG_WARNING << unindent(R"(
                                     'MAMBA_DEFAULT_ROOT_PREFIX' is meant for testing purpose.
                                     Consider using 'MAMBA_ROOT_PREFIX' instead)");
+                }
+                else
+                {
+                    prefix = env::home_directory() / "micromamba";
                 }
 
                 if (env_name.configured())
@@ -441,8 +465,11 @@ namespace mamba
             std::vector<fs::path> paths = { Context::instance().root_prefix / "pkgs",
                                             env::home_directory() / ".mamba" / "pkgs" };
 #ifdef _WIN32
-            if (!env::get("APPDATA").empty())
-                paths.push_back(fs::path(env::get("APPDATA")) / ".mamba" / "pkgs");
+            auto appdata = env::get("APPDATA");
+            if (appdata)
+            {
+                paths.push_back(fs::path(appdata.value()) / ".mamba" / "pkgs");
+            }
 #endif
             return paths;
         }
@@ -1341,7 +1368,12 @@ namespace mamba
         YAML::Node config;
         try
         {
-            config = YAML::LoadFile(file);
+            std::ifstream inFile;
+            inFile.open(file);
+            std::stringstream strStream;
+            strStream << inFile.rdbuf();
+            std::string s = strStream.str();
+            config = YAML::Load(expandvars(s));
         }
         catch (...)
         {

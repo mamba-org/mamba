@@ -21,9 +21,10 @@ namespace mamba
     {
         std::string glibc_version()
         {
-            if (!env::get("CONDA_OVERRIDE_GLIBC").empty())
+            auto override_version = env::get("CONDA_OVERRIDE_GLIBC");
+            if (override_version)
             {
-                return env::get("CONDA_OVERRIDE_GLIBC");
+                return override_version.value();
             }
 
             if (!on_linux)
@@ -51,9 +52,10 @@ namespace mamba
         {
             LOG_DEBUG << "Loading CUDA virtual package";
 
-            if (!env::get("CONDA_OVERRIDE_CUDA").empty())
+            auto override_version = env::get("CONDA_OVERRIDE_CUDA");
+            if (override_version)
             {
-                return env::get("CONDA_OVERRIDE_CUDA");
+                return override_version.value();
             }
 
             std::string out, err;
@@ -70,7 +72,7 @@ namespace mamba
             {
                 // Windows fallback
                 bool may_exist = false;
-                std::string path = env::get("PATH");
+                std::string path = env::get("PATH").value_or("");
                 std::vector<std::string> paths = split(path, env::pathsep());
 
                 for (auto& p : paths)

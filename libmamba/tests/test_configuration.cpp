@@ -345,7 +345,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.channels, config.at("channels").value<std::vector<std::string>>());
 
-            env::set("CONDA_CHANNELS", "");
+            env::unset("CONDA_CHANNELS");
         }
 
         TEST_F(Configuration, default_channels)
@@ -415,7 +415,7 @@ namespace mamba
             EXPECT_EQ(ctx.default_channels,
                       config.at("default_channels").value<std::vector<std::string>>());
 
-            env::set("MAMBA_DEFAULT_CHANNELS", "");
+            env::unset("MAMBA_DEFAULT_CHANNELS");
         }
 
         TEST_F(Configuration, channel_alias)
@@ -447,7 +447,7 @@ namespace mamba
                           + src1 + "'");
             EXPECT_EQ(ctx.channel_alias, config.at("channel_alias").value<std::string>());
 
-            env::set("MAMBA_CHANNEL_ALIAS", "");
+            env::unset("MAMBA_CHANNEL_ALIAS");
         }
 
         TEST_F(Configuration, pkgs_dirs)
@@ -482,7 +482,7 @@ namespace mamba
                                 + cache1 + "  # '" + src1 + "'")
                                    .c_str()));
 
-            env::set("CONDA_PKGS_DIRS", "");
+            env::unset("CONDA_PKGS_DIRS");
 
             std::string empty_rc = "";
             std::string root_prefix_str = (env::home_directory() / "any_prefix").string();
@@ -490,9 +490,10 @@ namespace mamba
             load_test_config(empty_rc);
 
 #ifdef _WIN32
-            std::string extra_cache = "\n  - "
-                                      + (fs::path(env::get("APPDATA")) / ".mamba" / "pkgs").string()
-                                      + "  # 'fallback'";
+            std::string extra_cache
+                = "\n  - "
+                  + (fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs").string()
+                  + "  # 'fallback'";
 #else
             std::string extra_cache = "";
 #endif
@@ -519,8 +520,8 @@ namespace mamba
                                 + cache4 + "  # 'CONDA_PKGS_DIRS'")
                                    .c_str()));
 
-            env::set("CONDA_PKGS_DIRS", "");
-            env::set("MAMBA_ROOT_PREFIX", "");
+            env::unset("CONDA_PKGS_DIRS");
+            env::unset("MAMBA_ROOT_PREFIX");
             config.clear_values();
         }
 
@@ -588,7 +589,7 @@ namespace mamba
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
                       "ssl_verify: /new/test  # 'API' > 'MAMBA_SSL_VERIFY' > '" + src1 + "'");
 
-            env::set("MAMBA_SSL_VERIFY", "");
+            env::unset("MAMBA_SSL_VERIFY");
         }
 #undef EXPECT_CA_EQUAL
 
@@ -636,7 +637,7 @@ namespace mamba
                                    .c_str()));
             EXPECT_EQ(ctx.ssl_verify, "/new/test");
 
-            env::set("MAMBA_CACERT_PATH", "");
+            env::unset("MAMBA_CACERT_PATH");
             load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
         }
 
@@ -725,7 +726,7 @@ namespace mamba
         env::set(env_name, "yeap");                                                                \
         ASSERT_THROW(load_test_config(rc2), YAML::Exception);                                      \
                                                                                                    \
-        env::set(env_name, "");                                                                    \
+        env::unset(env_name);                                                                      \
         load_test_config(rc2);                                                                     \
     }
 
@@ -780,7 +781,7 @@ namespace mamba
             env::set("MAMBA_CHANNEL_PRIORITY", "stric");
             ASSERT_THROW(load_test_config(rc3), YAML::Exception);
 
-            env::set("MAMBA_CHANNEL_PRIORITY", "");
+            env::unset("MAMBA_CHANNEL_PRIORITY");
         }
 
         TEST_F(Configuration, pinned_packages)
@@ -858,7 +859,7 @@ namespace mamba
                       std::vector<std::string>(
                           { "pytest", "mpl=10.2", "xtensor", "jupyterlab=3", "numpy=1.19" }));
 
-            env::set("MAMBA_PINNED_PACKAGES", "");
+            env::unset("MAMBA_PINNED_PACKAGES");
         }
 
 
@@ -876,11 +877,11 @@ namespace mamba
         {
             env::set("MAMBA_ALWAYS_COPY", "true");
             ASSERT_THROW(load_test_config("always_softlink: true"), std::runtime_error);
-            env::set("MAMBA_ALWAYS_COPY", "");
+            env::unset("MAMBA_ALWAYS_COPY");
 
             env::set("MAMBA_ALWAYS_SOFTLINK", "true");
             ASSERT_THROW(load_test_config("always_copy: true"), std::runtime_error);
-            env::set("MAMBA_ALWAYS_SOFTLINK", "");
+            env::unset("MAMBA_ALWAYS_SOFTLINK");
 
             load_test_config("always_softlink: false\nalways_copy: false");
         }
@@ -929,7 +930,7 @@ namespace mamba
             env::set("MAMBA_SAFETY_CHECKS", "yeap");
             ASSERT_THROW(load_test_config(rc2), std::runtime_error);
 
-            env::set("MAMBA_SAFETY_CHECKS", "");
+            env::unset("MAMBA_SAFETY_CHECKS");
             load_test_config(rc2);
         }
 

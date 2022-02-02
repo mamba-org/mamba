@@ -1259,13 +1259,13 @@ namespace mamba
 
     bool ensure_comspec_set()
     {
-        std::string cmd_exe = env::get("COMSPEC");
+        std::string cmd_exe = env::get("COMSPEC").value_or("");
         if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = fs::path(env::get("SystemRoot")) / "System32" / "cmd.exe";
+            cmd_exe = fs::path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe";
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = fs::path(env::get("windir")) / "System32" / "cmd.exe";
+                cmd_exe = fs::path(env::get("windir").value_or("")) / "System32" / "cmd.exe";
             }
             if (!fs::is_regular_file(cmd_exe))
             {
@@ -1291,7 +1291,6 @@ namespace mamba
 
 #ifdef _WIN32
         ensure_comspec_set();
-        std::string comspec = env::get("COMSPEC");
         std::string conda_bat;
 
         // TODO
@@ -1305,11 +1304,8 @@ namespace mamba
         }
         else
         {
-            conda_bat = env::get("CONDA_BAT");
-            if (conda_bat.size() == 0)
-            {
-                conda_bat = fs::absolute(root_prefix) / "condabin" / bat_name;
-            }
+            conda_bat
+                = env::get("CONDA_BAT").value_or(fs::absolute(root_prefix) / "condabin" / bat_name);
         }
         if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
         {
@@ -1444,8 +1440,8 @@ namespace mamba
         if (on_win)
         {
             ensure_comspec_set();
-            std::string comspec = env::get("COMSPEC");
-            if (comspec.size() == 0)
+            auto comspec = env::get("COMSPEC");
+            if (!comspec)
             {
                 throw std::runtime_error(
                     concat("Failed to run script: COMSPEC not set in env vars."));
@@ -1454,7 +1450,7 @@ namespace mamba
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
 
-            command_args = { comspec, "/D", "/C", script_file->path() };
+            command_args = { comspec.value(), "/D", "/C", script_file->path() };
         }
         else
         {

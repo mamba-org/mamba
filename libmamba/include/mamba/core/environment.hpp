@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <string_view>
+#include <optional>
 #include "mamba/core/output.hpp"
 
 #include "mamba_fs.hpp"
@@ -46,31 +47,41 @@ namespace mamba
 #endif
         }
 
-        inline std::string get(const std::string& key)
+        inline std::optional<std::string> get(const std::string& key)
         {
 #ifdef _WIN32
-            std::size_t size = GetEnvironmentVariableA(key.c_str(), nullptr, 0);
-            if (size == 0)
+            const size_t initial_size = 1024;
+            std::unique_ptr<char[]> temp_small = std::make_unique<char[]>(initial_size);
+            std::size_t size = GetEnvironmentVariableA(key.c_str(), temp_small.get(), initial_size);
+            if (size == 0)  // Error or empty/missing
             {
-                if (GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+                // Note that on Windows environment variables can never be empty,
+                // only missing. See https://stackoverflow.com/a/39095782
+                auto last_err = GetLastError();
+                if (last_err != ERROR_ENVVAR_NOT_FOUND)
                 {
-                    return "";
+                    LOG_ERROR << "Could not get environment variable: " << last_err;
                 }
-                if (GetLastError() != NO_ERROR)
-                {
-                    LOG_ERROR << "Could not get environment variable: " << GetLastError();
-                }
-                return "";
+                return {};
             }
-            std::unique_ptr<char[]> temp = std::make_unique<char[]>(size);
-            GetEnvironmentVariableA(key.c_str(), temp.get(), size);
-            std::string res(temp.get());
-            return res;
+            else if (size > initial_size)  // Buffer too small
+            {
+                std::unique_ptr<char[]> temp_large = std::make_unique<char[]>(size);
+                GetEnvironmentVariableA(key.c_str(), temp_large.get(), size);
+                std::string res(temp_large.get());
+                return res;
+            }
+            else  // Success
+            {
+                std::string res(temp_small.get());
+                return res;
+            }
 #else
             const char* value = std::getenv(key.c_str());
-            if (!value)
-                return "";
-            return value;
+            if (value)
+                return value;
+            else
+                return {};
 #endif
         }
 
@@ -85,6 +96,19 @@ namespace mamba
             return res;
 #else
             return setenv(key.c_str(), value.c_str(), 1) == 0;
+#endif
+        }
+
+        inline void unset(const std::string& key)
+        {
+#ifdef _WIN32
+            auto res = SetEnvironmentVariableA(key.c_str(), NULL);
+            if (!res)
+            {
+                LOG_ERROR << "Could not unset environment variable: " << GetLastError();
+            }
+#else
+            unsetenv(key.c_str());
 #endif
         }
 
@@ -177,10 +201,11 @@ namespace mamba
         inline fs::path home_directory()
         {
 #ifdef _WIN32
-            std::string maybe_home = env::get("USERPROFILE");
+            std::string maybe_home = env::get("USERPROFILE").value_or("");
             if (maybe_home.empty())
             {
-                maybe_home = concat(env::get("HOMEDRIVE"), env::get("HOMEPATH"));
+                maybe_home
+                    = concat(env::get("HOMEDRIVE").value_or(""), env::get("HOMEPATH").value_or(""));
             }
             if (maybe_home.empty())
             {
@@ -188,7 +213,7 @@ namespace mamba
                     "Cannot determine HOME (checked USERPROFILE, HOMEDRIVE and HOMEPATH env vars)");
             }
 #else
-            std::string maybe_home = env::get("HOME");
+            std::string maybe_home = env::get("HOME").value_or("");
             if (maybe_home.empty())
             {
                 maybe_home = getpwuid(getuid())->pw_dir;

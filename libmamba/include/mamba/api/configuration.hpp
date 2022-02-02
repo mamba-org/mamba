@@ -866,7 +866,7 @@ namespace mamba
             return false;
 
         for (const auto& env_var : m_env_var_names)
-            if (!env::get(env_var).empty())
+            if (env::get(env_var))
                 return true;
 
         return false;
@@ -1042,7 +1042,7 @@ namespace mamba
     {
         if (env_var_configured())
             for (const auto& ev : m_env_var_names)
-                env::set(ev, "");
+                env::unset(ev);
         return *this;
     };
 
@@ -1948,18 +1948,19 @@ namespace mamba
             for (const auto& env_var : m_env_var_names)
             {
                 auto env_var_value = env::get(env_var);
-                if (!env_var_value.empty())
+                if (env_var_value)
                 {
                     try
                     {
-                        m_values.insert({ env_var, detail::Source<T>::deserialize(env_var_value) });
+                        m_values.insert(
+                            { env_var, detail::Source<T>::deserialize(env_var_value.value()) });
                         m_sources.push_back(env_var);
                     }
                     catch (const YAML::Exception& e)
                     {
                         LOG_ERROR << "Bad conversion of configurable '" << name()
                                   << "' from environment variable '" << env_var << "' with value '"
-                                  << env_var_value << "'";
+                                  << env_var_value.value() << "'";
                         throw e;
                     }
                 }

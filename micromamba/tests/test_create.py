@@ -553,7 +553,12 @@ class TestCreate:
     )
     def test_pyc_compilation(self, version, build, cache_tag):
         prefix = Path(TestCreate.prefix)
-        site_packages = prefix / "lib" / f"python{version}" / "site-packages"
+
+        if platform.system() == "Windows":
+            site_packages = prefix / "Lib" / "site-packages"
+        else:
+            site_packages = prefix / "lib" / f"python{version}" / "site-packages"
+
         if cache_tag:
             pyc_fn = Path("__pycache__") / f"six.{cache_tag}.pyc"
         else:

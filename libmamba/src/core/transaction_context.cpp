@@ -9,7 +9,6 @@
 
 #include <reproc++/drain.hpp>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
@@ -180,13 +179,8 @@ namespace mamba
         m_pyc_process = std::make_unique<reproc::process>();
 
         reproc::options options;
+#ifndef _WIN32
         options.env.behavior = reproc::env::empty;
-
-#ifdef _WIN32
-        std::map<std::string, std::string> envmap;
-        std::string PATH = env::get("PATH").value_or("");
-        envmap["PATH"] = PATH;
-        options.env.extra = envmap;
 #endif
 
         options.stop = {

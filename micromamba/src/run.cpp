@@ -4,8 +4,59 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 
+extern "C" {
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+}
 
 using namespace mamba;  // NOLINT(build/namespaces)
+
+#ifndef _WIN32
+void daemonize()
+{
+    pid_t pid, sid;
+    int fd;
+
+    // already a daemon
+    if (getppid() == 1)
+        return;
+
+    // fork parent process
+    pid = fork();
+    if (pid < 0)
+        exit(1);
+
+    // exit parent process
+    if (pid > 0)
+        exit(0);
+
+    // at this point we are executing as the child process
+    // create a new SID for the child process
+    sid = setsid();
+    if (sid < 0)
+        exit(1);
+
+    fd = open("/dev/null", O_RDWR, 0);
+
+    std::cout << fmt::format("Kill process with: kill -s TERM {}", getpid()) << std::endl;
+
+    if (fd != -1)
+    {
+        dup2 (fd, STDIN_FILENO);
+        dup2 (fd, STDOUT_FILENO);
+        dup2 (fd, STDERR_FILENO);
+
+        if (fd > 2)
+        {
+            close (fd);
+        }
+    }
+}
+#endif
 
 void
 set_run_command(CLI::App* subcom)
@@ -17,6 +68,9 @@ set_run_command(CLI::App* subcom)
 
     static std::string cwd;
     subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
+
+    static bool detach = false;
+    subcom->add_flag("--daemon", detach, "Detach process from terminal");
 
     static std::vector<std::string> command;
     subcom->prefix_command();
@@ -45,6 +99,12 @@ set_run_command(CLI::App* subcom)
         opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
         opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
         auto [_, ec] = reproc::run(wrapped_command, opt);
+
+        if (detach)
+        {
+            std::cout << fmt::format(fmt::fg(fmt::terminal_color::green), "Running wrapped script {} in the background", join(" ", command)) << std::endl;
+            daemonize();
+        }
 
         if (ec)
         {

@@ -804,14 +804,11 @@ namespace mamba
         {
             pyc_files.push_back(pyc_path(f, m_context->short_python_version));
         }
-        if (m_context->try_pyc_compilation(py_files))
+        if (m_context->compile_pyc)
         {
-            return pyc_files;
+            m_context->try_pyc_compilation(py_files);
         }
-        else
-        {
-            return {};
-        }
+        return pyc_files;
     }
 
     enum class NoarchType
@@ -994,17 +991,13 @@ namespace mamba
                 }
             }
 
-            if (m_context->compile_pyc)
+            std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
+            for (const fs::path& pyc_path : pyc_files)
             {
-                std::vector<fs::path> pyc_files = compile_pyc_files(for_compilation);
+                out_json["paths_data"]["paths"].push_back(
+                    { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
 
-                for (const fs::path& pyc_path : pyc_files)
-                {
-                    out_json["paths_data"]["paths"].push_back(
-                        { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
-
-                    out_json["files"].push_back(pyc_path);
-                }
+                out_json["files"].push_back(pyc_path);
             }
 
             if (link_json.find("noarch") != link_json.end()

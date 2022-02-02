@@ -13,11 +13,19 @@ runs:
         environment-file: ${{ inputs.environment-file }}
         environment-name: build_env
         extra-specs: ${{ inputs.extra-specs }}
+    - name: get ccache path
+      id: ccache_path
+      shell: bash -l {0}
+      run: |
+        micromamba activate build_env
+        echo ::set-output name=path::`which ccache"
     - name: generate ccache timestamp
       id: ccache_cache_timestamp
       shell: bash -l {0}
       run: echo ::set-output name=timestamp::"$(TZ=UTC date +%F)"
     - name: set up ccache
-      uses: hendrikmuhs/ccache-action@940a79df1711f4d50b87e19ddf3b0a3c182abe68
+      #uses: hendrikmuhs/ccache-action@940a79df1711f4d50b87e19ddf3b0a3c182abe68
+      uses: jonashaag/ccache-action@main
       with:
         key: ${{ runner.os }}-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+        ccache_path: ${{ steps.ccache_path.outputs.path }}

@@ -7,6 +7,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: create build environment
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: ${{ inputs.environment-file }}
+        environment-name: build_env
+        extra-specs: ${{ inputs.extra-specs }}
     - name: generate ccache timestamp
       id: ccache_cache_timestamp
       shell: bash -l {0}
@@ -15,9 +21,3 @@ runs:
       uses: hendrikmuhs/ccache-action@940a79df1711f4d50b87e19ddf3b0a3c182abe68
       with:
         key: ${{ runner.os }}-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-    - name: create build environment
-      uses: mamba-org/provision-with-micromamba@main
-      with:
-        environment-file: ${{ inputs.environment-file }}
-        environment-name: build_env
-        extra-specs: ${{ inputs.extra-specs }}

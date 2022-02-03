@@ -48,5 +48,4 @@ runs:
       with:
         environment-file: .github/workflows/environment-dummy.yml
         environment-name: dummy
-        extra-specs: ${{ inputs.extra-sepcs }}
       if: steps.cache_env.outputs.cache-hit == 'true'

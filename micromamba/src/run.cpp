@@ -12,13 +12,16 @@ set_run_command(CLI::App* subcom)
 {
     init_prefix_options(subcom);
 
-    static bool live_stream = true;
-    subcom->add_flag("--live-stream", live_stream, "Display output live");
+    static std::string streams;
+    CLI::Option* stream_option = subcom->add_option("-a,--attach", streams, "Attach to stdin, stdout and/or stderr. -a \"\" for disabling stream redirection")->join(',');
+
+    static std::string cwd;
+    subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
 
     static std::vector<std::string> command;
     subcom->prefix_command();
 
-    subcom->callback([subcom]() {
+    subcom->callback([subcom, stream_option]() {
         auto& config = Configuration::instance();
         config.load();
 
@@ -29,26 +32,23 @@ set_run_command(CLI::App* subcom)
 
         LOG_DEBUG << "Running wrapped script " << join(" ", command);
 
-        std::string out, err;
-        if (!live_stream)
-        {
-            auto [_, ec] = reproc::run(wrapped_command,
-                                       reproc::options(),
-                                       reproc::sink::string(out),
-                                       reproc::sink::string(err));
-            if (ec)
-            {
-                std::cerr << ec.message() << std::endl;
-            }
-        }
-        else
-        {
-            auto [_, ec] = reproc::run(wrapped_command, reproc::options());
+        bool all_streams = stream_option->count() == 0u;
+        bool sinkout = !all_streams && streams.find("stdout") == std::string::npos;
+        bool sinkerr = !all_streams && streams.find("stderr") == std::string::npos;
 
-            if (ec)
-            {
-                std::cerr << ec.message() << std::endl;
-            }
+        reproc::options opt;
+        if (cwd != "")
+        {
+            opt.working_directory = cwd.c_str();
+        }
+
+        opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
+        opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
+        auto [_, ec] = reproc::run(wrapped_command, opt);
+
+        if (ec)
+        {
+            std::cerr << ec.message() << std::endl;
         }
     });
 }

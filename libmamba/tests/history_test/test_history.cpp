@@ -57,16 +57,16 @@ namespace mamba
 #ifndef _WIN32
     TEST(history, parse_segfault)
     {
-	pid_t child = fork();
-	if (child) {
-	    int wstatus;
-	    waitpid(child, &wstatus, 0);
-	    ASSERT_TRUE(WIFEXITED(wstatus));
-	} else {
+        pid_t child = fork();
+        if (child) {
+            int wstatus;
+            waitpid(child, &wstatus, 0);
+            ASSERT_TRUE(WIFEXITED(wstatus));
+        } else {
             History history_instance("history_test/parse_segfault");
             std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
-	    exit(42);
-	}
+            exit(0);
+        }
     }
 #endif
 }  // namespace mamba

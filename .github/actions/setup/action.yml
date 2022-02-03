@@ -29,6 +29,11 @@ runs:
           ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
           ${{ steps.ccache_key.outputs.key_prefix }}-${{ inputs.ccache-parent-job }}
       if: runner.os != 'Windows'
+
+    - name: install micromamba without env
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: .github/workflows/environment-dummy.yml
     - name: cache build_env
       id: cache_env
       uses: actions/cache@v2
@@ -43,9 +48,3 @@ runs:
         environment-name: build_env
         extra-specs: ${{ inputs.extra-sepcs }}
       if: steps.cache_env.outputs.cache-hit != 'true'
-    - name: install micromamba (hack)
-      uses: mamba-org/provision-with-micromamba@main
-      with:
-        environment-file: .github/workflows/environment-dummy.yml
-        environment-name: dummy
-      if: steps.cache_env.outputs.cache-hit == 'true'

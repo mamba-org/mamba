@@ -17,25 +17,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
       - name: build libmamba-static
         shell: bash -l {0}
         run: |
@@ -64,26 +48,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
+          ccache-parent-job: libmamba_static
       - name: build and run libmamba C++ tests
         shell: bash -l {0}
         run: |
@@ -114,26 +82,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
+          ccache-parent-job: libmamba_static
       - name: build micromamba
         shell: bash -l {0}
         run: |
@@ -180,26 +132,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./mamba/environment-dev.yml
-          environment-name: build_env
+          ccache-parent-job: libmamba_static
           extra-specs: conda-build
       - name: run conda init
         shell: bash -l {0}
@@ -289,11 +225,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
       - name: build libmamba-static
         shell: cmd /C call {0}
         run: |
@@ -316,11 +250,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./mamba/environment-dev.yml
-          environment-name: build_env
           extra-specs: |
             conda-build
             curl
@@ -389,11 +321,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
+          extra-specs: |
+            conda-build
+            curl
       - name: build and run libmamba C++ tests
         shell: cmd /C call {0}
         run: |
@@ -418,11 +351,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
@@ -464,11 +395,9 @@ jobs:
         run: |
           tar -xvf umamba.tar
 
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - uses: ./.github/actions/setup
         with:
           environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
           extra-specs: menuinst
 
       - name: micromamba python based tests with pwsh

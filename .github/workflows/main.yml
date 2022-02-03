@@ -17,14 +17,6 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
       - name: generate ccache key
         id: ccache_key
         shell: bash -l {0}
@@ -38,7 +30,7 @@ jobs:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -50,6 +42,8 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
@@ -59,6 +53,7 @@ jobs:
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               ..
           ninja
+          ccache --show-stats
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -73,7 +68,7 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
           echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
@@ -82,7 +77,8 @@ jobs:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -94,6 +90,8 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
@@ -105,6 +103,7 @@ jobs:
               ..
           ninja testing_libmamba_lock
           ninja test
+          ccache --show-stats
 
   umamba_tests:
     needs: [libmamba_static]
@@ -115,19 +114,11 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
       - name: generate ccache key
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
           echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
@@ -136,7 +127,8 @@ jobs:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -146,6 +138,8 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba activate build_env
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           mkdir build
           cd build
@@ -157,6 +151,7 @@ jobs:
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache
           ninja
+          ccache --show-stats
       - name: install zsh, xonsh and fish in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
@@ -185,19 +180,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
       - name: generate ccache key
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
           echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
@@ -206,7 +193,8 @@ jobs:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -222,6 +210,8 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
@@ -236,6 +226,7 @@ jobs:
           ninja
           ninja install
           pip install -e ../libmambapy/ --no-deps
+          ccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |

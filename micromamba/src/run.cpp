@@ -17,7 +17,7 @@ set_run_command(CLI::App* subcom)
 
     static std::string cwd;
     subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
-    
+
     static std::vector<std::string> command;
     subcom->prefix_command();
 

@@ -1,0 +1,51 @@
+inputs:
+  ccache-parent-job:
+    default: n/a
+  environment-file:
+    required: true
+  extra-specs:
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: get date
+      id: date
+      shell: bash
+      run: echo ::set-output name=today::"$(TZ=UTC date +%F)"
+    - name: generate ccache key
+      id: ccache_key
+      shell: bash -l {0}
+      run: |
+        key_prefix="ccache-${{ runner.os }}-${{ steps.date.outputs.today }}"
+        echo ::set-output name=key_prefix::"$key_prefix"
+        echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
+      if: runner.os != 'Windows'
+    - name: cache ccache paths
+      uses: actions/cache@v2
+      with:
+        path: ~/ccache
+        key: ${{ steps.ccache_key.outputs.key }}
+        restore-keys: |
+          ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+          ${{ steps.ccache_key.outputs.key_prefix }}-${{ inputs.ccache-parent-job }}
+      if: runner.os != 'Windows'
+    - name: cache build_env
+      id: cache_env
+      uses: actions/cache@v2
+      with:
+        path: ~/micromamba/envs
+        key: ${{ runner.os }}-${{ inputs.environment-file }}-${{ steps.date.output.today }}-${{ hashFiles('**/environment*y*ml') }}
+    - name: create build environment
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: ${{ inputs.environment-file }}
+        environment-name: build_env
+        extra-specs: ${{ inputs.extra-sepcs }}
+      if: steps.cache_env.outputs.cache-hit != 'true'
+    - name: install micromamba (hack)
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: .github/workflows/environment-dummy.yml
+        environment-name: build_env
+        extra-specs: ${{ inputs.extra-sepcs }}
+      if: steps.cache_env.outputs.cache-hit == 'true'

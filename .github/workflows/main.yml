@@ -73,7 +73,7 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-${{ jobs.libmamba_static.job_id }}"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
           echo ::set-output name=key_prefix::"$key_prefix"
           echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
@@ -127,7 +127,7 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-${{ jobs.libmamba_static.job_id }}"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
           echo ::set-output name=key_prefix::"$key_prefix"
           echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
@@ -197,7 +197,7 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-${{ jobs.libmamba_static.job_id }}"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
           echo ::set-output name=key_prefix::"$key_prefix"
           echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths

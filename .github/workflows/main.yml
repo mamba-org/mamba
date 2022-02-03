@@ -31,7 +31,7 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
@@ -75,7 +75,7 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
@@ -129,7 +129,7 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
@@ -199,7 +199,7 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-libmamba_static"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:

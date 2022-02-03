@@ -35,7 +35,6 @@ namespace mamba
         std::string line;
         while (getline(in_file, line))
         {
-            // line.strip()
             if (line.size() == 0)
                 continue;
             std::smatch base_match;
@@ -43,7 +42,7 @@ namespace mamba
             {
                 ParseResult p;
                 p.head_line = base_match[1].str();
-                res.push_back(std::move(p));
+                res.push_back(p);
             }
             else if (line[0] == '#')
             {
@@ -75,70 +74,65 @@ namespace mamba
 
     bool History::parse_comment_line(const std::string& line, UserRequest& req)
     {
-        static std::regex com_pat("#\\s*cmd:\\s*(.+)");
-        static std::regex conda_v_pat("#\\s*conda version:\\s*(.+)");
-        static std::regex spec_pat("#\\s*(\\w+)\\s*specs:\\s*(.+)?");
+        std::size_t colon_idx = line.find_first_of(':');
+        if (colon_idx == std::string::npos) return false;
 
-        std::smatch rmatch;
+        std::string key(strip(line.substr(1, colon_idx - 1)));
+        std::string value(strip(line.substr(colon_idx + 1)));
 
-        if (std::regex_match(line, rmatch, com_pat))
+        if (key == "conda version")
         {
-            req.cmd = rmatch[1].str();
+            req.conda_version = value;
         }
-        else if (std::regex_match(line, rmatch, conda_v_pat))
+        else if (key == "cmd")
         {
-            req.conda_version = rmatch[1].str();
+            req.cmd = value;
         }
-        else if (std::regex_match(line, rmatch, spec_pat))
+        else if (ends_with(key, " specs"))
         {
-            std::string action = rmatch[1].str();
-            std::string elems = rmatch[2].str();
-
-            std::cmatch ematch;
-            std::vector<std::string> pkg_specs;
-
+            std::string action = key.substr(0, key.find_first_of(" "));
             // small parser for pythonic lists
-            std::size_t idx_start = elems.find_first_of("\'\"");
+            std::vector<std::string> pkg_specs;
+            std::size_t idx_start = value.find_first_of("\'\"");
             std::size_t idx_end, idx_search;
             idx_search = idx_start + 1;
             std::string needle = "X";
 
             while (true)
             {
-                needle[0] = elems[idx_start];
-                idx_end = elems.find_first_of(needle.c_str(), idx_search);
-                if (idx_end != std::string::npos && elems[idx_end - 1] != '\\')
+                needle[0] = value[idx_start];
+                idx_end = value.find_first_of(needle.c_str(), idx_search);
+                if (idx_end != std::string::npos && value[idx_end - 1] != '\\')
                 {
-                    pkg_specs.push_back(elems.substr(idx_start + 1, idx_end - 1 - idx_start));
-                    idx_start = elems.find_first_of("\'\"", idx_end + 1);
+                    pkg_specs.push_back(value.substr(idx_start + 1, idx_end - 1 - idx_start));
+                    idx_start = value.find_first_of("\'\"", idx_end + 1);
                     idx_search = idx_start + 1;
                 }
                 else
                 {
                     idx_search = idx_end;
                 }
-                if (idx_start >= elems.size() || idx_start == std::string::npos)
+                if (idx_start >= value.size() || idx_start == std::string::npos)
                 {
                     break;
                 }
-                if (idx_search >= elems.size() || idx_search == std::string::npos)
+                if (idx_search >= value.size() || idx_search == std::string::npos)
                 {
                     throw std::runtime_error("Parsing of history file failed");
                 }
-                // pkg_specs.push_back(ematch[1].str());
-                // text_iter += ematch.position() + ematch.length();
             }
+
             if (action == "update" || action == "install" || action == "create")
             {
-                req.update = std::move(pkg_specs);
+                req.update = pkg_specs;
             }
             else if (action == "remove" || action == "uninstall")
             {
-                req.remove = std::move(pkg_specs);
+                req.remove = pkg_specs;
             }
             else if (action == "neutered")
             {
-                req.neutered = std::move(pkg_specs);
+                req.neutered = pkg_specs;
             }
         }
         return true;

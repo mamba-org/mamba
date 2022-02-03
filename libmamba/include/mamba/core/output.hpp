@@ -57,7 +57,8 @@ namespace mamba
             none = 0,
             red = 1 << 1,
             green = 1 << 2,
-            yellow = 1 << 3
+            yellow = 1 << 3,
+            bold_blue = 1 << 4
         };
 
         struct FormattedString

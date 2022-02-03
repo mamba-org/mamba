@@ -30,10 +30,12 @@ set(TEST_SRCS
 message(STATUS "Building libmamba C++ tests")
 add_executable(test_libmamba ${TEST_SRCS})
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/history
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/conda-meta/aux_file
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/conda-meta/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/parse/conda-meta/history
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/parse/conda-meta/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/parse/conda-meta/aux_file
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/parse/conda-meta/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/parse_segfault/conda-meta/history
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/parse_segfault/conda-meta/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/config_test/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc

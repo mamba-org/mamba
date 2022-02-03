@@ -1,1 +1,3 @@
 name: dummy
+dependencies:
+  - ncurses

@@ -64,7 +64,7 @@ namespace mamba
             ASSERT_TRUE(WIFEXITED(wstatus));
         } else {
             History history_instance("history_test/parse_segfault");
-            std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
+            history_instance.get_user_requests();
             exit(0);
         }
     }

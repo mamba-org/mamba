@@ -35,6 +35,7 @@ runs:
       with:
         path: ~/micromamba/envs
         key: ${{ runner.os }}-${{ inputs.environment-file }}-${{ steps.date.output.today }}-${{ hashFiles('**/environment*y*ml') }}
+        #key: ${{ runner.os }}-${{ inputs.environment-file }}-${{ steps.date.outputs.today }}-${{ hashFiles('**/environment*y*ml') }}
     - name: create build environment
       uses: mamba-org/provision-with-micromamba@main
       with:

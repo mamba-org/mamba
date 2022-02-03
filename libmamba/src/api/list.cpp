@@ -85,11 +85,12 @@ namespace mamba
                 return;
             }
 
-            std::cout << "List of packages in environment: " << ctx.target_prefix << std::endl;
+            std::cout << "List of packages in environment: " << ctx.target_prefix << "\n\n";
 
             formatted_pkg formatted_pkgs;
 
             std::vector<formatted_pkg> packages;
+            auto requested_specs = prefix_data.history().get_requested_specs_map();
 
             // order list of packages from prefix_data by alphabetical order
             for (const auto& package : prefix_data.m_package_records)
@@ -124,7 +125,13 @@ namespace mamba
 
             for (auto p : packages)
             {
-                t.add_row({ p.name, p.version, p.build, p.channel });
+                printers::FormattedString formatted_name(p.name);
+                if (requested_specs.find(p.name) != requested_specs.end())
+                {
+                    formatted_name = printers::FormattedString(p.name);
+                    formatted_name.flag = printers::format::bold_blue;
+                }
+                t.add_row({ formatted_name, p.version, p.build, p.channel });
             }
 
             t.print(std::cout);

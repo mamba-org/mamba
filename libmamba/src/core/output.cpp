@@ -126,6 +126,9 @@ namespace mamba
                         if (static_cast<std::size_t>(row[j].flag)
                             & static_cast<std::size_t>(format::yellow))
                             out << termcolor::yellow;
+                        if (static_cast<std::size_t>(row[j].flag)
+                            & static_cast<std::size_t>(format::bold_blue))
+                            out << termcolor::blue << termcolor::bold;
                     }
                     if (this->m_align[j] == alignment::left)
                     {

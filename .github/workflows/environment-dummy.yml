@@ -1,3 +1,5 @@
 name: dummy
+channels:
+  - conda-forge
 dependencies:
   - ncurses

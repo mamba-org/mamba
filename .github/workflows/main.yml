@@ -23,14 +23,14 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -70,14 +70,14 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
             ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
@@ -120,14 +120,14 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
             ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
@@ -186,14 +186,14 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$GITHUB_JOB-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
           path: ~/ccache
           key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-$GITHUB_JOB
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
             ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main

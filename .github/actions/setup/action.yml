@@ -41,10 +41,13 @@ runs:
         path: ~/micromamba/envs
         key: ${{ runner.os }}-${{ inputs.environment-file }}-${{ steps.date.output.today }}-${{ hashFiles('**/environment*y*ml') }}
         #key: ${{ runner.os }}-${{ inputs.environment-file }}-${{ steps.date.outputs.today }}-${{ hashFiles('**/environment*y*ml') }}
-    - name: create build environment
-      uses: mamba-org/provision-with-micromamba@main
-      with:
-        environment-file: ${{ inputs.environment-file }}
-        environment-name: build_env
-        extra-specs: ${{ inputs.extra-sepcs }}
-      if: steps.cache_env.outputs.cache-hit != 'true'
+    # - name: create build environment
+    #   uses: mamba-org/provision-with-micromamba@main
+    #   with:
+    #     environment-file: ${{ inputs.environment-file }}
+    #     environment-name: build_env
+    #     extra-specs: ${{ inputs.extra-specs }}
+    #   if: steps.cache_env.outputs.cache-hit != 'true'
+    - name: install build_env
+      run: micromamba create -n build_env "${{ inputs.extra-specs }}" --strict-channel-priority -y -f ${{ inputs.environment-file }}
+      shell: bash -l {0}

@@ -31,7 +31,7 @@ jobs:
         run: |
           key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
@@ -73,9 +73,9 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-${{ jobs.libmamba_static.job_id }}"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
@@ -127,9 +127,9 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-${{ jobs.libmamba_static.job_id }}"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
@@ -197,9 +197,9 @@ jobs:
         id: ccache_key
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)-${{ jobs.libmamba_static.job_id }}"
           echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-$(TZ=UTC date '+%H:%M:%S')"
+          echo ::set-output name=key::"$key_prefix-${{ env.GITHUB_JOB }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:

@@ -36,9 +36,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/ccache
-          key: ${{ steps.ccache_key.key }}
+          key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -80,9 +80,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/ccache
-          key: ${{ steps.ccache_key.key }}
+          key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -134,9 +134,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/ccache
-          key: ${{ steps.ccache_key.key }}
+          key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -204,9 +204,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/ccache
-          key: ${{ steps.ccache_key.key }}
+          key: ${{ steps.ccache_key.outputs.key }}
           restore-keys: |
-            ${{ steps.ccache_key.key_prefix }}
+            ${{ steps.ccache_key.outputs.key_prefix }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:

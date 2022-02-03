@@ -69,6 +69,10 @@ namespace mamba
 
         auto [status, ec] = reproc::run(wrapped_command, options);
         assert_reproc_success(options, status, ec);
+        if (status != 0)
+        {
+            throw std::runtime_error("pip failed to install packages");
+        }
     }
 
     auto& truthy_values()

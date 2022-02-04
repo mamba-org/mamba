@@ -54,3 +54,7 @@ add_custom_target(test COMMAND test_libmamba DEPENDS test_libmamba)
 add_executable(testing_libmamba_lock testing/lock.cpp)
 target_link_libraries(testing_libmamba_lock PUBLIC libmamba)
 set_property(TARGET testing_libmamba_lock PROPERTY CXX_STANDARD 17)
+
+add_library(fcntl_nolock_shim SHARED fcntl_nolock_shim.c)
+set_property(TARGET fcntl_nolock_shim PROPERTY POSITION_INDEPENDENT_CODE)
+target_link_libraries(fcntl_nolock_shim dl)

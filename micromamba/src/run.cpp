@@ -1,3 +1,5 @@
+#include <csignal>
+
 #include <reproc++/run.hpp>
 #include "common_options.hpp"
 
@@ -72,7 +74,9 @@ set_run_command(CLI::App* subcom)
     subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
 
     static bool detach = false;
+#ifndef _WIN32
     subcom->add_flag("-d,--detach", detach, "Detach process from terminal");
+#endif
 
     static std::vector<std::string> command;
     subcom->prefix_command();
@@ -123,7 +127,12 @@ set_run_command(CLI::App* subcom)
         ec = proc.start(wrapped_command, opt);
 
         std::tie(pid, ec) = proc.pid();
-        std::cout << "Stop process with kill " << pid << std::endl;
+
+        if (ec)
+        {
+            std::cerr << ec.message() << std::endl;
+            exit(1);
+        }
 
         std::thread t([](){
             signal(SIGTERM, [](int signum) {
@@ -134,14 +143,7 @@ set_run_command(CLI::App* subcom)
                 proc.stop(sa);
             });
         });
-
         t.detach();
-
-        if (ec)
-        {
-            std::cerr << ec.message() << std::endl;
-            exit(1);
-        }
 
         // check if we need this
         if (!opt.redirect.discard && opt.redirect.file == nullptr &&

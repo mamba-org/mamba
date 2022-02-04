@@ -797,12 +797,24 @@ namespace mamba
             m_lock = m_path.string() + ".lock";
         }
 
-        m_lockfile_existed = fs::exists(m_lock, ec);
+        // Check lockfile existence using atomic open check to avoid TOCTOU race condition
 #ifdef _WIN32
-        m_fd = _wopen(m_lock.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = _wopen(m_lock.wstring().c_str(), _O_RDWR | _O_CREAT | _O_EXCL, 0666);
 #else
-        m_fd = open(m_lock.c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = open(m_lock.c_str(), O_RDWR | O_CREAT | O_EXCL, 0666);
 #endif
+        if (m_fd <= 0)
+        {
+            m_lockfile_existed = true;
+#ifdef _WIN32
+            m_fd = _wopen(m_lock.wstring().c_str(), _O_RDWR);
+#else
+            m_fd = open(m_lock.c_str(), O_RDWR);
+#endif
+        }
+        else
+            m_lockfile_existed = false;
+
         if (m_fd <= 0)
         {
             LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";

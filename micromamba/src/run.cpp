@@ -72,7 +72,7 @@ set_run_command(CLI::App* subcom)
     subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
 
     static bool detach = false;
-    subcom->add_flag("--daemon", detach, "Detach process from terminal");
+    subcom->add_flag("-d,--detach", detach, "Detach process from terminal");
 
     static std::vector<std::string> command;
     subcom->prefix_command();
@@ -85,9 +85,12 @@ set_run_command(CLI::App* subcom)
 
         std::vector<std::string> command = subcom->remaining();
 
+
         // replace the wrapping bash with new process entirely
+        #ifndef _WIN32
         if (command.front() != "exec")
             command.insert(command.begin(), "exec");
+        #endif
 
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(Context::instance().target_prefix, command);

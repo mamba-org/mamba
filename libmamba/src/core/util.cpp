@@ -1080,6 +1080,14 @@ namespace mamba
         }
         else
             ret = fcntl(m_fd, F_SETLK, &lock);
+        // Test for ENOSYS result. If that is the case, use alternate locking
+        // where the file is assumed to be successfully locked if the lock
+        // file did *not* exist.
+        if (ret != 0 && errno == ENOSYS)
+        {
+            LOG_WARNING << "File locking unimplemented on this filesystem. Using alternate locking strategy";
+            return !m_lockfile_existed;
+        }
 #endif
         return ret == 0;
     }

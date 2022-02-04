@@ -983,12 +983,14 @@ namespace mamba
         lock.l_whence = SEEK_SET;
         lock.l_start = MAMBA_LOCK_POS;
         lock.l_len = 1;
-        fcntl(fd, F_GETLK, &lock);
+        int ret = fcntl(fd, F_GETLK, &lock);
 
         if ((lock.l_type == F_UNLCK) && (pid != lock.l_pid))
             LOG_ERROR << "LockFile file has wrong owner PID " << pid << ", actual is "
                       << lock.l_pid;
 
+        if (ret != 0 && errno == ENOSYS)
+            return !m_lockfile_existed;
         return lock.l_type != F_UNLCK;
     }
 #endif

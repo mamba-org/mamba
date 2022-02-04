@@ -49,6 +49,6 @@ runs:
     #     extra-specs: ${{ inputs.extra-specs }}
     #   if: steps.cache_env.outputs.cache-hit != 'true'
     - name: install build_env
-      run: micromamba create -n build_env -f ${{ join(inputs.environment-file, ' ') }} ${{ inputs.extra-specs }} --strict-channel-priority -y
+      run: micromamba create -n build_env -f ${{ inputs.environment-file }} ${{ join(inputs.extra-specs, ' ') }} --strict-channel-priority -y
       shell: bash -l {0}
       if: steps.cache_env.outputs.cache-hit != 'true'

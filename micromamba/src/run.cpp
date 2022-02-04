@@ -4,6 +4,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 
+#ifndef _WIN32
 extern "C" {
     #include <stdio.h>
     #include <stdlib.h>
@@ -12,6 +13,7 @@ extern "C" {
     #include <sys/stat.h>
     #include <fcntl.h>
 }
+#endif
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -75,11 +77,17 @@ set_run_command(CLI::App* subcom)
     static std::vector<std::string> command;
     subcom->prefix_command();
 
+    static reproc::process proc;
+
     subcom->callback([subcom, stream_option]() {
         auto& config = Configuration::instance();
         config.load();
 
         std::vector<std::string> command = subcom->remaining();
+
+        // replace the wrapping bash with new process entirely
+        if (command.front() != "exec")
+            command.insert(command.begin(), "exec");
 
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(Context::instance().target_prefix, command);
@@ -98,7 +106,6 @@ set_run_command(CLI::App* subcom)
 
         opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
         opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
-        auto [_, ec] = reproc::run(wrapped_command, opt);
 
         if (detach)
         {
@@ -106,9 +113,49 @@ set_run_command(CLI::App* subcom)
             daemonize();
         }
 
+        int status;
+        pid_t pid;
+        std::error_code ec;
+
+        ec = proc.start(wrapped_command, opt);
+
+        std::tie(pid, ec) = proc.pid();
+        std::cout << "Stop process with kill " << pid << std::endl;
+
+        std::thread t([](){
+            signal(SIGTERM, [](int signum) {
+                std::cout << "Received SIGTERM on micromamba run - terminating process" << std::endl;
+                reproc::stop_actions sa;
+                sa.first = reproc::stop_action{reproc::stop::terminate, std::chrono::milliseconds(3000)};
+                sa.second = reproc::stop_action{reproc::stop::kill, std::chrono::milliseconds(3000)};
+                proc.stop(sa);
+            });
+        });
+
+        t.detach();
+
+        if (ec)
+        {
+            std::cerr << ec.message() << std::endl;
+            exit(1);
+        }
+
+        // check if we need this
+        if (!opt.redirect.discard && opt.redirect.file == nullptr &&
+            opt.redirect.path == nullptr) {
+          opt.redirect.parent = true;
+        }
+
+        ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
+
+        std::tie(status, ec) = proc.stop(opt.stop);
+
         if (ec)
         {
             std::cerr << ec.message() << std::endl;
         }
+
+        // exit with status code from reproc
+        exit(status);
     });
 }

@@ -11,7 +11,7 @@
 #include <string>
 
 #define LIBMAMBA_VERSION_MAJOR 0
-#define LIBMAMBA_VERSION_MINOR 20
+#define LIBMAMBA_VERSION_MINOR 21
 #define LIBMAMBA_VERSION_PATCH 0
 
 // Binary version

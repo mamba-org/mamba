@@ -1,3 +1,29 @@
+micromamba 0.21.0 (February 07, 2022)
+=====================================
+
+Bug fixes
+
+- fix crash with missing CONDARC file (thanks @jonashaag) #1417
+- fix `micromamba --log-level` (thanks @jonashaag) #1417
+- Fix erroneous error print when computing SHA256 of missing symlink #1412
+- Add `-n` flag handling to `micromamba activate` #1411
+- Refactor configuration loading and create file if it doesn't exist when setting values #1420
+- Improve shell scripts when ZSH_VERSION is unbound #1440
+- Return error code when pip install fails from environment.yml #1442
+
+Improvements
+
+- Update pre-commit versions (thanks @jonashaag) #1417
+- Use clang-format from pypi (thanks @chrisburr) #1430
+- Incremental ccache updates (thanks @jonashaag) #1445
+- Substitute environment vars in .condarc files (thanks @jonashaag) #1423
+- Speed up noarch compilation (thanks @chrisburr) #1422
+- New fancy progress bars! (thanks @adriendelsalle) #1426, #1350
+- Add `micromamba run` command (thanks @JohanMabille) #1380, #1395, #1406, #1438, #1434
+- Add `-f` for `micromamba clean` command (thanks @JohanMabille) #1449
+- Add improved `micromamba update --all` #1318
+- Add `micromamba repoquery` command #1318
+
 micromamba 0.20.0 (January 25, 2022)
 ====================================
 

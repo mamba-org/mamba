@@ -1,3 +1,21 @@
+libmamba 0.21.0 (February 07, 2022)
+===================================
+
+Bug fixes
+
+- generate PkgMgr role file from its file definition #1408
+- Fix a regex segfault in history parsing #1441
+- Add test for segfault history parsing #1444 (thanks @jonashaag)
+
+Improvements
+
+- Update pre-commit versions (thanks @jonashaag) #1417
+- Use clang-format from pypi (thanks @chrisburr) #1430
+- Incremental ccache updates (thanks @jonashaag) #1445
+- Speed up noarch compilation (thanks @chrisburr) #1422
+- New fancy progress bars! (thanks @adriendelsalle) #1426, #1350
+- Refactor how we set env vars in the Context #1426
+
 libmamba 0.20.0 (January 25, 2022)
 ==================================
 

@@ -1,3 +1,14 @@
+mamba 0.21.0 (February 07, 2022)
+================================
+
+
+Improvements
+
+- Update pre-commit versions (thanks @jonashaag) #1417
+- Use clang-format from pypi (thanks @chrisburr) #1430
+- Incremental ccache updates (thanks @jonashaag) #1445
+- Include credentials for defaults channel URLs (thanks @wulmer) #1421
+
 mamba 0.20.0 (January 25, 2022)
 ===============================
 

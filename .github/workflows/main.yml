@@ -17,24 +17,20 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
+      - name: generate ccache key
+        id: ccache_key
         shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(TZ=UTC date +%F)"
+        run: |
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -46,6 +42,8 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
@@ -55,6 +53,7 @@ jobs:
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               ..
           ninja
+          ccache --show-stats
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -65,16 +64,21 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
+      - name: generate ccache key
+        id: ccache_key
         shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
+        run: |
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -86,6 +90,8 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
@@ -97,6 +103,7 @@ jobs:
               ..
           ninja testing_libmamba_lock
           ninja test
+          ccache --show-stats
 
   umamba_tests:
     needs: [libmamba_static]
@@ -107,24 +114,21 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
+      - name: generate ccache key
+        id: ccache_key
         shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
+        run: |
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -134,6 +138,8 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba activate build_env
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           mkdir build
           cd build
@@ -145,6 +151,7 @@ jobs:
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache
           ninja
+          ccache --show-stats
       - name: install zsh, xonsh and fish in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
@@ -173,24 +180,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
+      - name: generate ccache key
+        id: ccache_key
         shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%F)"
+        run: |
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
       - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -206,6 +210,8 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
           cmake \
               -GNinja \
@@ -220,6 +226,7 @@ jobs:
           ninja
           ninja install
           pip install -e ../libmambapy/ --no-deps
+          ccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -282,16 +289,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -303,13 +300,10 @@ jobs:
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
-                   -GNinja ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
+                   -GNinja
           ninja
 
   mamba_python_tests_win:
@@ -322,16 +316,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -349,15 +333,12 @@ jobs:
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBAPY=ON ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_SHARED=ON ^
                    -DBUILD_MAMBA_PACKAGE=ON ^
-                   -GNinja ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
+                   -GNinja
           ninja
           ninja install
           pip install -e ..\libmambapy\ --no-deps
@@ -408,16 +389,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -429,14 +400,11 @@ jobs:
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA_TESTS=ON ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_SHARED=ON ^
-                   -GNinja ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
+                   -GNinja
           ninja install
           ninja test
 
@@ -450,16 +418,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: generate ccache timestamp
-        id: ccache_cache_timestamp
-        shell: bash -l {0}
-        run: echo ::set-output name=timestamp::"$(date --utc +%FT%H)"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
@@ -471,15 +429,12 @@ jobs:
           call micromamba activate build_env
           mkdir build
           cd build
-          set CCACHE_DIR=%HOME%\ccache
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_MICROMAMBA=ON ^
                    -DMICROMAMBA_LINKAGE=STATIC ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
-                   -GNinja ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
+                   -GNinja
           ninja install
           .\micromamba\micromamba.exe --help
       - name: tar micromamba artifact

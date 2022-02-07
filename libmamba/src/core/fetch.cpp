@@ -386,10 +386,10 @@ namespace mamba
         auto* target = static_cast<DownloadTarget*>(f);
 
         auto now = std::chrono::steady_clock::now();
-        if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
+        if (now - target->progress_throttle_time() < std::chrono::milliseconds(100))
             return 0;
-        else
-            target->set_progress_throttle_time(now);
+
+        target->set_progress_throttle_time(now);
 
         if (!total_to_download && !target->expected_size())
             target->m_progress_bar.activate_spinner();

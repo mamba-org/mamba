@@ -7,7 +7,6 @@
 #include "spdlog/fmt/bundled/ostream.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -450,22 +449,21 @@ namespace mamba
 
                 std::ostringstream oss;
 
-                if (current_pos)
+                ProgressScaleWriter::format_progress(
+                    oss, fmt::terminal_color::white, current_pos, current_pos == m_bar_width);
+                if (in_progress_pos && in_progress_pos > current_pos)
                 {
-                    ProgressScaleWriter::format_progress(
-                        oss, fmt::terminal_color::white, current_pos, current_pos == m_bar_width);
-                    if (in_progress_pos && in_progress_pos > current_pos)
-                        ProgressScaleWriter::format_progress(oss,
-                                                             fmt::terminal_color::yellow,
-                                                             in_progress_pos - current_pos,
-                                                             in_progress_pos == m_bar_width);
-                    assert(m_bar_width >= in_progress_pos && m_bar_width >= current_pos);
-                    ProgressScaleWriter::format_progress(
-                        oss,
-                        fmt::terminal_color::bright_black,
-                        m_bar_width - (in_progress_pos ? in_progress_pos : current_pos),
-                        true);
+                    ProgressScaleWriter::format_progress(oss,
+                                                         fmt::terminal_color::yellow,
+                                                         in_progress_pos - current_pos,
+                                                         in_progress_pos == m_bar_width);
                 }
+                ProgressScaleWriter::format_progress(
+                    oss,
+                    fmt::terminal_color::bright_black,
+                    m_bar_width - (in_progress_pos ? in_progress_pos : current_pos),
+                    true);
+
                 return oss.str();
             }
 
@@ -519,7 +517,7 @@ namespace mamba
         // 2: remove the total value and the separator
         if (max_width < total_width && total)
         {
-            total_width = total_width - total.width() + separator.width() + 2;
+            total_width = total_width - total.width() - separator.width() - 2;
             total.deactivate();
             separator.deactivate();
         }
@@ -535,7 +533,6 @@ namespace mamba
             total_width = total_width - postfix.width() - 1;
             postfix.deactivate();
         }
-        // std::size_t prefix_min_width = std::max(prefix.width(), std::size_t(20));
         std::size_t prefix_min_width = prefix.width();
         // 5: truncate the prefix if too long
         if (max_width < total_width && prefix.width() > 20 && prefix)
@@ -609,11 +606,13 @@ namespace mamba
         if (!p_progress_bar->is_spinner())
         {
             if (width < 12)
+            {
                 sstream << std::ceil(p_progress_bar->progress()) << "%";
+            }
             else
             {
                 ProgressScaleWriter w{ width };
-                double in_progress = static_cast<double>(p_progress_bar->in_progress())
+                double in_progress = static_cast<double>(p_progress_bar->current() + p_progress_bar->in_progress())
                                      / static_cast<double>(p_progress_bar->total()) * 100.;
                 sstream << w.repr(p_progress_bar->progress(), in_progress);
             }
@@ -651,8 +650,6 @@ namespace mamba
 
                     current_pos = std::clamp(current_pos, std::size_t(0), width);
                     in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), width);
-                    assert(current_pos >= 0);
-                    assert(in_progress_pos >= 0);
                 }
 
                 auto spinner_width = 8;
@@ -666,7 +663,6 @@ namespace mamba
                                                              fmt::terminal_color::yellow,
                                                              in_progress_pos - current_pos,
                                                              in_progress_pos == width);
-                    assert(width >= in_progress_pos && width >= current_pos);
                     ProgressScaleWriter::format_progress(
                         sstream,
                         fmt::terminal_color::bright_black,
@@ -1157,7 +1153,6 @@ namespace mamba
         , m_is_spinner(false)
     {
         m_repr.prefix.set_value(prefix);
-        m_repr.prefix.set_width(20);
     }
 
     ProgressBar::~ProgressBar()
@@ -1350,7 +1345,7 @@ namespace mamba
     std::string ProgressBar::last_active_task()
     {
         auto now = Chrono::now();
-        if ((now - m_task_time < std::chrono::seconds(1)) && !m_last_active_task.empty()
+        if (((now - m_task_time) < std::chrono::milliseconds(330)) && !m_last_active_task.empty()
             && m_active_tasks.count(m_last_active_task))
             return m_last_active_task;
 
@@ -1363,9 +1358,14 @@ namespace mamba
         {
             auto it = m_active_tasks.find(m_last_active_task);
             if (std::distance(it, m_active_tasks.end()) <= 1)
+            {
                 m_last_active_task = *m_active_tasks.begin();
+            }
             else
+            {
+                it++;
                 m_last_active_task = *it;
+            }
         }
         return m_last_active_task;
     }

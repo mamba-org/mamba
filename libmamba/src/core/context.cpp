@@ -26,7 +26,7 @@ namespace mamba
                 fs::path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
                 ,
-                fs::path(env::get("APPDATA").value_or("") / ".mamba" / "pkgs"
+                fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
 #endif
               };
 

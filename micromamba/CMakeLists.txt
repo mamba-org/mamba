@@ -62,6 +62,9 @@ endif ()
 
 message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 
+find_package(Threads REQUIRED)
+target_link_libraries(micromamba PRIVATE Threads::Threads)
+
 if (${MICROMAMBA_LINKAGE} STREQUAL "FULL_STATIC")
     target_link_libraries(micromamba PRIVATE libmamba-full-static)
     if (WIN32)

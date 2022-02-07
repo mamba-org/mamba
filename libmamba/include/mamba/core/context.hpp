@@ -140,6 +140,7 @@ namespace mamba
         spdlog::level::level_enum log_level = spdlog::level::level_enum::warn;
         std::string log_pattern = "%^%-8!l%$ %v";
         std::size_t log_backtrace = 0;
+        double progress_bar_frequency = 0.05; // 1/Hz
         std::shared_ptr<Logger> logger;
 
         bool dev = false;

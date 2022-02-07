@@ -986,6 +986,15 @@ namespace mamba
                    .long_description(unindent(R"(
                             Set the log pattern.)")));
 
+        insert(Configurable("progress_bar_frequency", &ctx.progress_bar_frequency)
+                   .group("Output, Prompt and Flow Control")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Progress bar refresh frequency in 1/Hz, default 0.05 (50 ms)")
+                   .long_description(unindent(R"(
+                        Frequency of progress bar updates in 1/Hz, default 0.05 (50 ms).
+                        Actual frequency may be higher due to forced progress bar updates.)")));
+
         insert(Configurable("json", &ctx.json)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()

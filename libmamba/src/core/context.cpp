@@ -17,11 +17,32 @@ namespace mamba
 {
     Context::Context()
     {
-        on_ci = (std::getenv("CI") != nullptr);
+        on_ci = bool(env::get("CI"));
+        root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
+        conda_prefix = root_prefix;
+
+        envs_dirs = { root_prefix / "envs" };
+        pkgs_dirs = { root_prefix / "pkgs",
+                fs::path("~") / ".mamba" / "pkgs"
+#ifdef _WIN32
+                ,
+                fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
+#endif
+              };
+
+        keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
+        keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
+
         if (on_ci || !termcolor::_internal::is_atty(std::cout))
         {
             no_progress_bars = true;
         }
+
+#ifdef _WIN32
+        ascii_only = true;
+#else
+        ascii_only = false;
+#endif
 
         set_default_signal_handler();
 

@@ -197,9 +197,10 @@ namespace mamba
 
         if (m_loaded)
         {
-            std::string prefix = m_name;
-            prefix.resize(PREFIX_LENGTH - 1, ' ');
-            Console::stream() << fmt::format("{:<35} Using cache", prefix);
+            Console::stream() << fmt::format(fmt::fg(fmt::terminal_color::white),
+                                             "{:<50}  {:>20}",
+                                             m_name,
+                                             std::string("Using cache"));
         }
         else
         {
@@ -334,11 +335,15 @@ namespace mamba
 
             if (m_progress_bar)
             {
+                auto& r = m_progress_bar.repr();
+                r.postfix.set_format("{:>20}");
+                r.postfix.set_width(20);
+                r.prefix.set_format("{:<50}");
+                r.prefix.set_width(50);
+
                 m_progress_bar.set_postfix("No change");
                 m_progress_bar.mark_as_completed();
 
-                auto& r = m_progress_bar.repr();
-                r.prefix.set_format("{:<35}");
                 r.total.deactivate();
                 r.speed.deactivate();
                 r.elapsed.deactivate();
@@ -383,12 +388,12 @@ namespace mamba
         if (ends_with(m_repodata_url, ".bz2"))
         {
             if (m_progress_bar)
-                m_progress_bar.set_postfix("decompressing");
+                m_progress_bar.set_postfix("Decompressing");
             decompress();
         }
 
         if (m_progress_bar)
-            m_progress_bar.set_postfix("finalizing");
+            m_progress_bar.set_postfix("Finalizing");
 
         std::ifstream temp_file = open_ifstream(m_temp_file->path());
         std::stringstream temp_json;
@@ -413,7 +418,7 @@ namespace mamba
 
         if (m_progress_bar)
         {
-            m_progress_bar.repr().postfix.set_value("downloaded").deactivate();
+            m_progress_bar.repr().postfix.set_value("Downloaded").deactivate();
             m_progress_bar.mark_as_completed();
         }
 

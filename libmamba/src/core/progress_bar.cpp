@@ -1,17 +1,10 @@
+#include "mamba/core/context.hpp"
 #include "mamba/core/progress_bar.hpp"
-
-#include "termcolor/termcolor.hpp"
 
 #include "spdlog/fmt/bundled/core.h"
 #include "spdlog/fmt/bundled/format.h"
 #include "spdlog/fmt/bundled/format-inl.h"
 #include "spdlog/fmt/bundled/ostream.h"
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/ioctl.h>
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -272,7 +265,6 @@ namespace mamba
     {
         auto w = width();
         std::string val;
-
         if (!allow_overflow && overflow())
             val = resize(m_value, w);
         else
@@ -420,49 +412,63 @@ namespace mamba
         class ProgressScaleWriter
         {
         public:
-            ProgressScaleWriter(std::size_t bar_width,
-                                const std::string& fill,
-                                const std::string& lead,
-                                const std::string& remainder)
+            ProgressScaleWriter(std::size_t bar_width)
                 : m_bar_width(bar_width)
-                , m_fill(fill)
-                , m_lead(lead)
-                , m_remainder(remainder)
             {
+            }
+
+            template <class T>
+            static void format_progress(T& sstream,
+                                        fmt::terminal_color color,
+                                        std::size_t width,
+                                        bool end)
+            {
+                if (width == 0)
+                    return;
+                if (!Context::instance().ascii_only)
+                {
+                    if (end)
+                        sstream << fmt::format(fmt::fg(color), "{:━>{}}", "", width);
+                    else
+                        sstream << fmt::format(fmt::fg(color), "{:━>{}}╸", "", width - 1);
+                }
+                else
+                {
+                    sstream << fmt::format(fmt::fg(color), "{:->{}}", "", width);
+                }
             }
 
             std::string repr(std::size_t progress, std::size_t in_progress = 0) const
             {
-                auto current = static_cast<std::size_t>(progress * m_bar_width / 100.0);
+                auto current_pos = static_cast<std::size_t>(progress * m_bar_width / 100.0);
                 auto in_progress_pos
                     = static_cast<std::size_t>((progress + in_progress) * m_bar_width / 100.0);
 
+                current_pos = std::clamp(current_pos, std::size_t(0), m_bar_width);
+                in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), m_bar_width);
+
                 std::ostringstream oss;
-                for (std::size_t i = 0; i < m_bar_width; ++i)
+
+                ProgressScaleWriter::format_progress(
+                    oss, fmt::terminal_color::white, current_pos, current_pos == m_bar_width);
+                if (in_progress_pos && in_progress_pos > current_pos)
                 {
-                    if ((i < current - 1 && current > 0) || (current == m_bar_width))
-                        oss << fmt::format(
-                            fmt::fg(fmt::terminal_color::bright_magenta), "{}", m_fill);
-                    else if (i == current - 1)
-                        oss << fmt::format(
-                            fmt::fg(fmt::terminal_color::bright_magenta), "{}", m_lead);
-                    else if ((i < in_progress_pos - 1 && in_progress_pos > 0)
-                             || in_progress_pos == m_bar_width)
-                        oss << fmt::format(fmt::fg(fmt::terminal_color::bright_cyan), "{}", m_fill);
-                    else if (i == in_progress_pos - 1 && i < m_bar_width - 1)
-                        oss << fmt::format(fmt::fg(fmt::terminal_color::bright_cyan), "{}", m_lead);
-                    else
-                        oss << fmt::format(
-                            fmt::fg(fmt::terminal_color::bright_black), "{}", m_remainder);
+                    ProgressScaleWriter::format_progress(oss,
+                                                         fmt::terminal_color::yellow,
+                                                         in_progress_pos - current_pos,
+                                                         in_progress_pos == m_bar_width);
                 }
+                ProgressScaleWriter::format_progress(
+                    oss,
+                    fmt::terminal_color::bright_black,
+                    m_bar_width - (in_progress_pos ? in_progress_pos : current_pos),
+                    true);
+
                 return oss.str();
             }
 
         private:
             std::size_t m_bar_width;
-            std::string m_fill;
-            std::string m_lead;
-            std::string m_remainder;
         };
     }  // namespace
 
@@ -505,26 +511,26 @@ namespace mamba
         // 1: reduce bar width
         if (max_width < total_width && progress)
         {
-            total_width -= progress.width() - 15;
+            total_width = total_width - progress.width() + 15;
             progress.set_width(15);
         }
         // 2: remove the total value and the separator
         if (max_width < total_width && total)
         {
-            total_width -= total.width() + separator.width() + 2;
+            total_width = total_width - total.width() - separator.width() - 2;
             total.deactivate();
             separator.deactivate();
         }
         // 3: remove the speed
         if (max_width < total_width && speed)
         {
-            total_width -= speed.width() + 1;
+            total_width = total_width - speed.width() - 1;
             speed.deactivate();
         }
         // 4: remove the postfix
         if (max_width < total_width && postfix)
         {
-            total_width -= postfix.width() + 1;
+            total_width = total_width - postfix.width() - 1;
             postfix.deactivate();
         }
         std::size_t prefix_min_width = prefix.width();
@@ -532,26 +538,26 @@ namespace mamba
         if (max_width < total_width && prefix.width() > 20 && prefix)
         {
             // keep a minimal size to make it readable
-            total_width -= prefix.width() - 20;
+            total_width = total_width - prefix.width() + 20;
             prefix.set_width(20);
         }
         // 6: display progress without a bar
         if (max_width < total_width && progress)
         {
             // keep capability to display progress up to "100%"
-            total_width -= progress.width() - 4;
+            total_width = total_width - progress.width() + 4;
             progress.set_width(4);
         }
         // 7: remove the current value
         if (max_width < total_width && current)
         {
-            total_width -= current.width() + 1;
+            total_width = total_width - current.width() - 1;
             current.deactivate();
         }
         // 8: remove the elapsed time
         if (max_width < total_width && elapsed)
         {
-            total_width -= elapsed.width() + 1;
+            total_width = total_width - elapsed.width() - 1;
             elapsed.deactivate();
         }
 
@@ -600,11 +606,13 @@ namespace mamba
         if (!p_progress_bar->is_spinner())
         {
             if (width < 12)
+            {
                 sstream << std::ceil(p_progress_bar->progress()) << "%";
+            }
             else
             {
-                ProgressScaleWriter w{ width, "━", "╸", "━" };
-                double in_progress = static_cast<double>(p_progress_bar->in_progress())
+                ProgressScaleWriter w{ width };
+                double in_progress = static_cast<double>(p_progress_bar->current() + p_progress_bar->in_progress())
                                      / static_cast<double>(p_progress_bar->total()) * 100.;
                 sstream << w.repr(p_progress_bar->progress(), in_progress);
             }
@@ -613,99 +621,73 @@ namespace mamba
         {
             if (width < 12)
             {
-                std::vector<std::string> spinner
-                    = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
-                auto pos
-                    = (static_cast<std::size_t>(std::round(p_progress_bar->progress())) % 50) / 5;
+                std::vector<std::string> spinner;
+                if (Context::instance().ascii_only)
+                    spinner = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
+                else
+                    spinner = { "|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\" };
+
+                constexpr int spinner_rounds = 2;
+                auto pos = static_cast<std::size_t>(std::round(progress * ((spinner_rounds * spinner.size()) / 100.0))) % spinner.size();
                 sstream << fmt::format("{:^4}", spinner[pos]);
             }
             else
             {
-                auto pos = static_cast<std::size_t>(
+                int pos = static_cast<int>(
                     std::round(p_progress_bar->progress() * (width - 1) / 100.0));
 
                 std::size_t current_pos = 0, in_progress_pos = 0;
 
                 if (p_progress_bar->total())
                 {
-                    current_pos = static_cast<std::size_t>(
+                    current_pos = static_cast<int>(
                         std::floor(static_cast<double>(p_progress_bar->current())
                                    / static_cast<double>(p_progress_bar->total()) * width));
-                    in_progress_pos = static_cast<std::size_t>(
+                    in_progress_pos = static_cast<int>(
                         std::ceil(static_cast<double>(p_progress_bar->current()
                                                       + p_progress_bar->in_progress())
                                   / static_cast<double>(p_progress_bar->total()) * width));
+
+                    current_pos = std::clamp(current_pos, std::size_t(0), width);
+                    in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), width);
                 }
 
-                auto spinner_half_width = width / 8;
-                for (std::size_t i = 0; i < width; ++i)
+                auto spinner_width = 8;
+
+                if (current_pos)
                 {
-                    if ((i < current_pos - 1 && current_pos > 0) || (current_pos == width))
+                    ProgressScaleWriter::format_progress(
+                        sstream, fmt::terminal_color::white, current_pos, current_pos == width);
+                    if (in_progress_pos && in_progress_pos > current_pos)
+                        ProgressScaleWriter::format_progress(sstream,
+                                                             fmt::terminal_color::yellow,
+                                                             in_progress_pos - current_pos,
+                                                             in_progress_pos == width);
+                    ProgressScaleWriter::format_progress(
+                        sstream,
+                        fmt::terminal_color::bright_black,
+                        width - (in_progress_pos ? in_progress_pos : current_pos),
+                        true);
+                }
+                else
+                {
+                    std::size_t spinner_start, spinner_length, rest;
+
+                    spinner_start = pos > spinner_width ? pos - spinner_width : 0;
+                    spinner_length = ((pos + spinner_width) < width ? pos + spinner_width : width)
+                                     - spinner_start;
+
+                    ProgressScaleWriter::format_progress(
+                        sstream, fmt::terminal_color::bright_black, spinner_start, false);
+                    ProgressScaleWriter::format_progress(sstream,
+                                                         fmt::terminal_color::yellow,
+                                                         spinner_length,
+                                                         spinner_start + spinner_length == width);
+                    if (spinner_length + spinner_start < width)
                     {
-                        sstream << fmt::format(
-                            fmt::fg(fmt::terminal_color::bright_magenta), "{}", "━");
-                    }
-                    else if (i == current_pos - 1)
-                    {
-                        sstream << fmt::format(
-                            fmt::fg(fmt::terminal_color::bright_magenta), "{}", "╸");
-                    }
-                    else if (in_progress_pos)
-                    {
-                        if ((i < in_progress_pos - 1) || (in_progress_pos == width))
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_cyan), "{}", "━");
-                        }
-                        else if ((i == in_progress_pos - 1) && (i < width - 1))
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_cyan), "{}", "╸");
-                        }
-                        else
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_black), "{}", "━");
-                        }
-                    }
-                    else
-                    {
-                        if (i + spinner_half_width >= pos && i <= pos + spinner_half_width)
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_magenta), "{}", "━");
-                        }
-                        else if ((pos < spinner_half_width)
-                                 && (i >= width + pos - spinner_half_width))
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_magenta), "{}", "━");
-                        }
-                        else if ((pos + spinner_half_width >= width)
-                                 && (i <= pos + spinner_half_width - width))
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_magenta), "{}", "━");
-                        }
-                        else if ((i + spinner_half_width + 1 == pos)
-                                 || ((pos < spinner_half_width)
-                                     && (i == width + pos - spinner_half_width - 1)))
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_magenta), "{}", "╺");
-                        }
-                        else if ((i == pos + spinner_half_width + 1)
-                                 || ((pos + spinner_half_width + 1 > width)
-                                     && (i == pos + spinner_half_width + 1 - width)))
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_magenta), "{}", "╸");
-                        }
-                        else
-                        {
-                            sstream << fmt::format(
-                                fmt::fg(fmt::terminal_color::bright_black), "{}", "━");
-                        }
+                        rest = width - spinner_start - spinner_length;
+                        ProgressScaleWriter::format_progress(
+                            sstream, fmt::terminal_color::bright_black, rest, true);
                     }
                 }
             }
@@ -1363,7 +1345,7 @@ namespace mamba
     std::string ProgressBar::last_active_task()
     {
         auto now = Chrono::now();
-        if ((now - m_task_time < std::chrono::seconds(1)) && !m_last_active_task.empty()
+        if (((now - m_task_time) < std::chrono::milliseconds(330)) && !m_last_active_task.empty()
             && m_active_tasks.count(m_last_active_task))
             return m_last_active_task;
 
@@ -1376,9 +1358,14 @@ namespace mamba
         {
             auto it = m_active_tasks.find(m_last_active_task);
             if (std::distance(it, m_active_tasks.end()) <= 1)
+            {
                 m_last_active_task = *m_active_tasks.begin();
+            }
             else
+            {
+                it++;
                 m_last_active_task = *it;
+            }
         }
         return m_last_active_task;
     }
@@ -1486,10 +1473,6 @@ namespace mamba
             m_repr.compute_progress();
 
         return m_repr;
-    }
-
-    void reset_fields_widths()
-    {
     }
 
     const ProgressBarRepr& ProgressBar::repr() const
@@ -1718,7 +1701,7 @@ namespace mamba
                 if (bar->started())
                 {
                     speed += bar->speed();
-                    in_progress += bar->total();
+                    in_progress += (bar->total() - bar->current());
                     ++active_count;
                     aggregate_bar_ptr->add_active_task(bar->prefix());
                     any_started = true;
@@ -1917,37 +1900,5 @@ namespace mamba
     {
         os << duration_stream(ns).str();
         return os;
-    }
-
-    int get_console_width()
-    {
-#ifndef _WIN32
-        struct winsize w;
-        ioctl(0, TIOCGWINSZ, &w);
-        return w.ws_col;
-#else
-
-        CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-        return coninfo.dwSize.X;
-#endif
-
-        return -1;
-    }
-
-    int get_console_height()
-    {
-#ifndef _WIN32
-        struct winsize w;
-        ioctl(0, TIOCGWINSZ, &w);
-        return w.ws_row;
-#else
-
-        CONSOLE_SCREEN_BUFFER_INFO coninfo;
-        auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
-        return coninfo.srWindow.Bottom - coninfo.srWindow.Top + 1;
-#endif
-
-        return -1;
     }
 }  // namespace pbar

@@ -168,9 +168,9 @@ namespace mamba
     {
         return [&](ProgressBarRepr& r) -> void {
             if (r.progress_bar().started())
-                r.postfix.set_value("extracting");
+                r.postfix.set_value("Extracting");
             else
-                r.postfix.set_value("extracted");
+                r.postfix.set_value("Extracted");
         };
     }
 
@@ -291,7 +291,7 @@ namespace mamba
     {
         if (m_has_progress_bars)
         {
-            m_download_bar.repr().postfix.set_value("downloaded").deactivate();
+            m_download_bar.repr().postfix.set_value("Downloaded").deactivate();
             m_download_bar.mark_as_completed();
         }
 

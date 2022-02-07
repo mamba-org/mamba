@@ -40,6 +40,11 @@ init_clean_parser(CLI::App* subcom)
                             .group("cli")
                             .description("Remove *.mamba_trash files from all environments"));
 
+    auto& clean_force_pkgs_dirs
+        = config.insert(Configurable("clean_force_pkgs_dirs", false)
+                            .group("cli")
+                            .description("Remove *all* writable package caches. This option is not included with the --all flags."));
+
     subcom->add_flag("-a,--all", clean_all.set_cli_config(0), clean_all.description());
     subcom->add_flag("-i,--index-cache", clean_index.set_cli_config(0), clean_index.description());
     subcom->add_flag("-p,--packages", clean_pkgs.set_cli_config(0), clean_pkgs.description());
@@ -47,6 +52,7 @@ init_clean_parser(CLI::App* subcom)
         "-t,--tarballs", clean_tarballs.set_cli_config(0), clean_tarballs.description());
     subcom->add_flag("-l,--locks", clean_locks.set_cli_config(0), clean_locks.description());
     subcom->add_flag("--trash", clean_trash.set_cli_config(0), clean_trash.description());
+    subcom->add_flag("-f,--force-pkgs-dirs", clean_force_pkgs_dirs.set_cli_config(0), clean_force_pkgs_dirs.description());
 }
 
 void
@@ -70,6 +76,13 @@ set_clean_command(CLI::App* subcom)
             options = options | MAMBA_CLEAN_LOCKS;
         if (config.at("clean_trash").compute().value<bool>())
             options = options | MAMBA_CLEAN_TRASH;
+        if (config.at("clean_force_pkgs_dirs").compute().value<bool>())
+        {
+            if (Console::prompt("Remove all contents from the package caches?"))
+            {
+                options = options | MAMBA_CLEAN_FORCE_PKGS_DIRS;
+            }
+        }
 
         clean(options);
     });

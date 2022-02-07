@@ -28,9 +28,10 @@ namespace mamba
         bool clean_tarballs = options & MAMBA_CLEAN_TARBALLS;
         bool clean_locks = options & MAMBA_CLEAN_LOCKS;
         bool clean_trash = options & MAMBA_CLEAN_TRASH;
+        bool clean_force_pkgs_dirs = options & MAMBA_CLEAN_FORCE_PKGS_DIRS;
 
         if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks
-              || clean_trash))
+              || clean_trash || clean_force_pkgs_dirs))
         {
             Console::stream() << "Nothing to do." << std::endl;
             return;
@@ -289,6 +290,14 @@ namespace mamba
                         }
                     }
                 }
+            }
+        }
+
+        if (clean_force_pkgs_dirs)
+        {
+            for (auto* cache: caches.writable_caches())
+            {
+                fs::remove_all(cache->path());
             }
         }
 

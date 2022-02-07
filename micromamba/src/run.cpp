@@ -46,7 +46,7 @@ void daemonize()
 
     fd = open("/dev/null", O_RDWR, 0);
 
-    std::cout << fmt::format("Kill process with: kill -s TERM {}", getpid()) << std::endl;
+    std::cout << fmt::format("Kill process with: kill {}", getpid()) << std::endl;
 
     if (fd != -1)
     {
@@ -114,14 +114,15 @@ set_run_command(CLI::App* subcom)
         opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
         opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
 
+#ifndef _WIN32
         if (detach)
         {
             std::cout << fmt::format(fmt::fg(fmt::terminal_color::green), "Running wrapped script {} in the background", join(" ", command)) << std::endl;
             daemonize();
         }
+#endif
 
-        int status;
-        pid_t pid;
+        int status, pid;
         std::error_code ec;
 
         ec = proc.start(wrapped_command, opt);
@@ -134,6 +135,7 @@ set_run_command(CLI::App* subcom)
             exit(1);
         }
 
+#ifndef _WIN32
         std::thread t([](){
             signal(SIGTERM, [](int signum) {
                 std::cout << "Received SIGTERM on micromamba run - terminating process" << std::endl;
@@ -144,6 +146,7 @@ set_run_command(CLI::App* subcom)
             });
         });
         t.detach();
+#endif
 
         // check if we need this
         if (!opt.redirect.discard && opt.redirect.file == nullptr &&

@@ -115,9 +115,10 @@ namespace mamba
         inline fs::path which(const std::string& exe)
         {
             // TODO maybe add a cache?
-            if (std::getenv("PATH"))
+            auto env_path = env::get("PATH");
+            if (env_path)
             {
-                std::string path = std::getenv("PATH");
+                std::string path = env_path.value();
                 auto parts = mamba::split(path, pathsep());
                 for (auto& p : parts)
                 {
@@ -179,7 +180,6 @@ namespace mamba
 #endif
             return m;
         }
-
 
         inline std::string platform()
         {

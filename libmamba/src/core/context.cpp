@@ -38,6 +38,12 @@ namespace mamba
             no_progress_bars = true;
         }
 
+#ifdef _WIN32
+        ascii_only = true;
+#else
+        ascii_only = false;
+#endif
+
         set_default_signal_handler();
 
         std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>(log_pattern);

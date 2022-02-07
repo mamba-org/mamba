@@ -1,3 +1,4 @@
+#include "mamba/core/context.hpp"
 #include "mamba/core/progress_bar.hpp"
 
 #include "spdlog/fmt/bundled/core.h"
@@ -425,10 +426,17 @@ namespace mamba
             {
                 if (width == 0)
                     return;
-                if (end)
-                    sstream << fmt::format(fmt::fg(color), "{:━>{}}", "", width);
+                if (!Context::instance().ascii_only)
+                {
+                    if (end)
+                        sstream << fmt::format(fmt::fg(color), "{:━>{}}", "", width);
+                    else
+                        sstream << fmt::format(fmt::fg(color), "{:━>{}}╸", "", width - 1);
+                }
                 else
-                    sstream << fmt::format(fmt::fg(color), "{:━>{}}╸", "", width - 1);
+                {
+                    sstream << fmt::format(fmt::fg(color), "{:->{}}", "", width);
+                }
             }
 
             std::string repr(std::size_t progress, std::size_t in_progress = 0) const
@@ -614,10 +622,14 @@ namespace mamba
         {
             if (width < 12)
             {
-                std::vector<std::string> spinner
-                    = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
-                auto pos
-                    = (static_cast<std::size_t>(std::round(p_progress_bar->progress())) % 50) / 5;
+                std::vector<std::string> spinner;
+                if (Context::instance().ascii_only)
+                    spinner = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
+                else
+                    spinner = { "|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\" };
+
+                constexpr int spinner_rounds = 2;
+                auto pos = static_cast<std::size_t>(std::round(progress * ((spinner_rounds * spinner.size()) / 100.0))) % spinner.size();
                 sstream << fmt::format("{:^4}", spinner[pos]);
             }
             else
@@ -1463,10 +1475,6 @@ namespace mamba
         return m_repr;
     }
 
-    void reset_fields_widths()
-    {
-    }
-
     const ProgressBarRepr& ProgressBar::repr() const
     {
         return m_repr;
@@ -1693,7 +1701,7 @@ namespace mamba
                 if (bar->started())
                 {
                     speed += bar->speed();
-                    in_progress += bar->total();
+                    in_progress += (bar->total() - bar->current());
                     ++active_count;
                     aggregate_bar_ptr->add_active_task(bar->prefix());
                     any_started = true;

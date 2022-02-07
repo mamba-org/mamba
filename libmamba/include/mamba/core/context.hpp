@@ -160,6 +160,7 @@ namespace mamba
 
         bool change_ps1 = true;
         std::string env_prompt = "({default_env}) ";
+        bool ascii_only = false;
         // micromamba only
         bool shell_completion = true;
 

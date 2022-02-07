@@ -1,3 +1,34 @@
+2022.02.07
+==========
+
+Releases: libmamba 0.21.0, libmambapy 0.21.0, mamba 0.21.0, micromamba 0.21.0
+
+Bug fixes
+- [libmamba] generate PkgMgr role file from its file definition #1408
+- [micromamba] fix crash with missing CONDARC file (thanks @jonashaag) #1417
+- [micromamba] fix `micromamba --log-level` (thanks @jonashaag) #1417
+- [micromamba] Fix erroneous error print when computing SHA256 of missing symlink #1412
+- [micromamba] Add `-n` flag handling to `micromamba activate` #1411
+- [micromamba] Refactor configuration loading and create file if it doesn't exist when setting values #1420
+- [libmamba] Fix a regex segfault in history parsing #1441
+- [libmamba] Add test for segfault history parsing #1444 (thanks @jonashaag)
+- [micromamba] Improve shell scripts when ZSH_VERSION is unbound #1440
+- [micromamba] Return error code when pip install fails from environment.yml #1442
+
+Improvements
+- [all] Update pre-commit versions (thanks @jonashaag) #1417
+- [all] Use clang-format from pypi (thanks @chrisburr) #1430
+- [all] Incremental ccache updates (thanks @jonashaag) #1445
+- [micromamba] Substitute environment vars in .condarc files (thanks @jonashaag) #1423
+- [micromamba, libmamba] Speed up noarch compilation (thanks @chrisburr) #1422
+- [mamba] Include credentials for defaults channel URLs (thanks @wulmer) #1421
+- [micromamba, libmamba] New fancy progress bars! (thanks @adriendelsalle) #1426, #1350
+- [libmamba] Refactor how we set env vars in the Context #1426
+- [micromamba] Add `micromamba run` command (thanks @JohanMabille) #1380, #1395, #1406, #1438, #1434
+- [micromamba] Add `-f` for `micromamba clean` command (thanks @JohanMabille) #1449
+- [micromamba] Add improved `micromamba update --all` #1318
+- [micromamba] Add `micromamba repoquery` command #1318
+
 2022.01.25
 ==========
 

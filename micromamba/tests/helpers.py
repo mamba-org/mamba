@@ -65,6 +65,25 @@ def random_string(N=10):
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 
+def run_cmd(cmd):
+    try:
+        res = subprocess.check_output(cmd)
+    except subprocess.CalledProcessError as e:
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise e
+
+    if "--json" in cmd:
+        try:
+            return json.loads(res)
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error when loading {cmd} JSON output: {res!r}")
+            raise e
+    elif "--print-config-only" in cmd:
+        return yaml.load(res, Loader=yaml.FullLoader)
+    else:
+        return res.decode()
+
+
 def shell(*args, cwd=os.getcwd()):
     umamba = get_umamba(cwd=cwd)
     cmd = [umamba, "shell"] + [arg for arg in args if arg]
@@ -72,31 +91,13 @@ def shell(*args, cwd=os.getcwd()):
     if "--print-config-only" in args:
         cmd += ["--debug"]
 
-    res = subprocess.check_output(cmd)
-    if "--json" in args:
-        try:
-            j = json.loads(res)
-            return j
-        except json.decoder.JSONDecodeError as e:
-            print(f"Error when loading JSON output from {res}")
-            raise (e)
-    if "--print-config-only" in args:
-        return yaml.load(res, Loader=yaml.FullLoader)
-    return res.decode()
+    return run_cmd(cmd)
 
 
 def info(*args):
     umamba = get_umamba()
     cmd = [umamba, "info"] + [arg for arg in args if arg]
-    res = subprocess.check_output(cmd)
-    if "--json" in args:
-        try:
-            j = json.loads(res)
-            return j
-        except json.decoder.JSONDecodeError as e:
-            print(f"Error when loading JSON output from {res}")
-            raise (e)
-    return res.decode()
+    return run_cmd(cmd)
 
 
 def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
@@ -115,18 +116,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
         cmd += ["--dry-run"]
     cmd += ["--log-level=info"]
 
-    res = subprocess.check_output(cmd)
-
-    if "--json" in args:
-        try:
-            j = json.loads(res)
-            return j
-        except:
-            print(res.decode())
-            return
-    if "--print-config-only" in args:
-        return yaml.load(res, Loader=yaml.FullLoader)
-    return res.decode()
+    return run_cmd(cmd)
 
 
 def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes=True):
@@ -146,17 +136,7 @@ def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes
     if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
-    try:
-        res = subprocess.check_output(cmd)
-        if "--json" in args:
-            j = json.loads(res)
-            return j
-        if "--print-config-only" in args:
-            return yaml.load(res, Loader=yaml.FullLoader)
-        return res.decode()
-    except subprocess.CalledProcessError as e:
-        print(f"Error when executing '{' '.join(cmd)}'")
-        raise (e)
+    return run_cmd(cmd)
 
 
 def remove(*args, no_dry_run=False):
@@ -168,17 +148,7 @@ def remove(*args, no_dry_run=False):
     if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
-    try:
-        res = subprocess.check_output(cmd)
-        if "--json" in args:
-            j = json.loads(res)
-            return j
-        if "--print-config-only" in args:
-            return yaml.load(res, Loader=yaml.FullLoader)
-        return res.decode()
-    except subprocess.CalledProcessError as e:
-        print(f"Error when executing '{' '.join(cmd)}'")
-        raise (e)
+    return run_cmd(cmd)
 
 
 def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
@@ -193,48 +163,20 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
     if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
-    try:
-        res = subprocess.check_output(cmd)
-        if "--json" in args:
-            try:
-                j = json.loads(res)
-                return j
-            except json.decoder.JSONDecodeError as e:
-                print(f"Error when loading JSON output from {res}")
-                raise (e)
-        print(f"Error when executing '{' '.join(cmd)}'")
-        raise
-
-        return res.decode()
-    except subprocess.CalledProcessError as e:
-        print(f"Error when executing '{' '.join(cmd)}'")
-        raise (e)
+    return run_cmd(cmd)
 
 
-def run_env(*args, f=None):
+def umamba_env(*args, f=None):
     umamba = get_umamba()
     cmd = [umamba, "env"] + [arg for arg in args if arg]
-
-    res = subprocess.check_output(cmd)
-
-    if "--json" in args:
-        j = json.loads(res)
-        return j
-
-    return res.decode()
+    return run_cmd(cmd)
 
 
 def umamba_list(*args):
     umamba = get_umamba()
 
     cmd = [umamba, "list"] + [arg for arg in args if arg]
-    res = subprocess.check_output(cmd)
-
-    if "--json" in args:
-        j = json.loads(res)
-        return j
-
-    return res.decode()
+    return run_cmd(cmd)
 
 
 def get_concrete_pkg(t, needle):

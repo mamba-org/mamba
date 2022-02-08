@@ -55,7 +55,7 @@ class TestEnv:
             cls.env_txt_bkup.rename(cls.env_txt)
 
     def test_env_list(self):
-        env_json = run_env("list", "--json")
+        env_json = umamba_env("list", "--json")
 
         assert "envs" in env_json
         assert len(env_json["envs"]) == 2
@@ -63,7 +63,7 @@ class TestEnv:
         assert self.env_name_1 in env_json["envs"][1]
 
     def test_env_list_table(self):
-        res = run_env("list")
+        res = umamba_env("list")
 
         assert "Name" in res
         assert "base" in res
@@ -77,7 +77,7 @@ class TestEnv:
         full_env = self.root_prefix / "envs" / self.env_name_1
         os.environ["CONDA_PREFIX"] = str(full_env)
 
-        res = run_env("list")
+        res = umamba_env("list")
 
         lines = res.splitlines()
         for l in lines:
@@ -104,13 +104,13 @@ class TestEnv:
             no_dry_run=True,
         )
 
-        env_json = run_env("list", "--json")
+        env_json = umamba_env("list", "--json")
         env_2_fp = str(self.root_prefix / "envs" / self.env_name_2)
         env_3_fp = str(self.root_prefix / "envs" / self.env_name_3)
         assert str(env_2_fp) in env_json["envs"]
         assert str(env_3_fp) in env_json["envs"]
 
         shutil.rmtree(env_2_fp)
-        env_json = run_env("list", "--json")
+        env_json = umamba_env("list", "--json")
         assert env_2_fp not in env_json["envs"]
         assert env_3_fp in env_json["envs"]

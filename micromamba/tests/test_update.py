@@ -426,3 +426,13 @@ class TestUpdateConfig:
         install("quantstack::sphinx", no_dry_run=True)
         res = update("quantstack::sphinx", "-c", "conda-forge", "--json")
         assert "actions" not in res
+
+    def test_update_file(self, env_created):
+        create("-n", TestUpdateConfig.env_name)
+        f_name = random_string() + ".yaml"
+        spec_file = os.path.join(TestUpdateConfig.prefix, f_name)
+        with open(spec_file, "w") as f:
+            f.write("dependencies: [xsimd]")
+        res = update("-n", TestUpdateConfig.env_name, "-f", spec_file)
+        res = umamba_list("xsimd", "-n", TestUpdateConfig.env_name, "--json")
+        assert len(res) == 1

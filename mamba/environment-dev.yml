@@ -2,24 +2,25 @@ name: mamba-dev
 channels:
   - conda-forge
 dependencies:
-  - cxx-compiler
-  - cmake
   - ccache
+  - cli11
+  - cmake
+  - conda
+  - cpp-filesystem >=1.5.8
+  - cxx-compiler
+  - exprtk
+  - gmock
+  - gtest
+  - libarchive
+  - libcurl 7.76.1 *_0
+  - libsodium
+  - libsolv >=0.7.18
   - ninja
   - nlohmann_json
-  - libsolv >=0.7.18
-  - libarchive
-  - libsodium
-  - libcurl 7.76.1 *_0
-  - gtest
-  - gmock
-  - cpp-filesystem >=1.5.8
-  - reproc-cpp
-  - yaml-cpp
-  - termcolor-cpp
-  - cli11
-  - spdlog
   - pybind11
   - pytest
-  - conda
+  - reproc-cpp
+  - spdlog
+  - termcolor-cpp
+  - yaml-cpp
   - sel(win): winreg

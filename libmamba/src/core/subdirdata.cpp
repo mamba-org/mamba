@@ -197,8 +197,7 @@ namespace mamba
 
         if (m_loaded)
         {
-            Console::stream() << fmt::format(fmt::fg(fmt::terminal_color::white),
-                                             "{:<50}  {:>20}",
+            Console::stream() << fmt::format("{:<50} {:>20}",
                                              m_name,
                                              std::string("Using cache"));
         }
@@ -336,10 +335,8 @@ namespace mamba
             if (m_progress_bar)
             {
                 auto& r = m_progress_bar.repr();
-                r.postfix.set_format("{:>20}");
-                r.postfix.set_width(20);
-                r.prefix.set_format("{:<50}");
-                r.prefix.set_width(50);
+                r.postfix.set_format("{:>20}", 20);
+                r.prefix.set_format("{:<50}", 50);
 
                 m_progress_bar.set_postfix("No change");
                 m_progress_bar.mark_as_completed();

@@ -485,6 +485,7 @@ def install(args, parser, command="install"):
         to_link = []
         to_unlink = []
         installed_pkg_recs = []
+        transaction = None
     else:
         index = load_channels(pool, channels, repos)
 
@@ -563,7 +564,7 @@ def install(args, parser, command="install"):
 
         transaction.log_json()
 
-    if use_mamba_experimental:
+    if use_mamba_experimental and transaction is not None:
         if transaction.prompt():
             if (
                 newenv
@@ -574,10 +575,11 @@ def install(args, parser, command="install"):
 
             transaction.execute(prefix_data)
     else:
-        if not transaction.prompt():
-            exit(0)
-        elif not context.dry_run:
-            transaction.fetch_extract_packages()
+        if transaction is not None:
+            if transaction.prompt() is False:
+                exit(0)
+            if not context.dry_run:
+                transaction.fetch_extract_packages()
 
         conda_transaction = to_txn(
             specs_to_add,

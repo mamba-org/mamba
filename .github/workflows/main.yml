@@ -244,6 +244,12 @@ jobs:
           mamba create -n test_env xtensor -c conda-forge -y
           mamba env create -f mamba/tests/test_env.yml
           mamba env update -f mamba/tests/update_env.yml
+      - name: Run empty create command
+        shell: bash -l {0}
+        run: mamba create -n test_env_ii -y
+      - name: Run empty create command dry-run
+        shell: bash -l {0}
+        run: mamba create -n test_env_iii --dry-run
       - name: run mamba local channel test
         shell: bash -l {0}
         run: |
@@ -353,6 +359,12 @@ jobs:
       - name: Run create command
         shell: bash -l {0}
         run: mamba create -n test_env xtensor -c conda-forge -y
+      - name: Run empty create command
+        shell: bash -l {0}
+        run: mamba create -n test_env_ii -y
+      - name: Run empty create command dry-run
+        shell: bash -l {0}
+        run: mamba create -n test_env_iii --dry-run
       - name: Run env create command
         shell: bash -l {0}
         run: mamba env create -f mamba/tests/test_env.yml

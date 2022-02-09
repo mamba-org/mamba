@@ -171,6 +171,13 @@ def test_create_files(tmpdir):
     assert names == {"a", "b"}
 
 
+def test_empty_create():
+    output = subprocess.check_output(["mamba", "create", "-n", "test_env_xyz_i"])
+    output2 = subprocess.check_output(
+        ["mamba", "create", "-n", "test_env_xyz_ii", "--dry-run"]
+    )
+
+
 def test_unicode(tmpdir):
     uc = "320 áγђß家固êôōçñ한"
     output = subprocess.check_output(

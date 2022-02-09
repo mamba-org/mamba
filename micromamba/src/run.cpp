@@ -78,6 +78,12 @@ set_run_command(CLI::App* subcom)
     subcom->add_flag("-d,--detach", detach, "Detach process from terminal");
 #endif
 
+    static bool clean_env = false;
+    subcom->add_flag("--clean-env", clean_env, "Start with a clean environment");
+
+    static std::vector<std::string> env_vars;
+    subcom->add_option("-e,--env", env_vars, "Add env vars with -e ENVVAR or -e ENVVAR=VALUE")->allow_extra_args(false);
+
     static std::vector<std::string> command;
     subcom->prefix_command();
 
@@ -88,7 +94,11 @@ set_run_command(CLI::App* subcom)
         config.load();
 
         std::vector<std::string> command = subcom->remaining();
-
+        if (command.empty())
+        {
+            LOG_ERROR << "Did not receive any command to run inside environment";
+            exit(1);
+        }
 
         // replace the wrapping bash with new process entirely
         #ifndef _WIN32
@@ -109,6 +119,37 @@ set_run_command(CLI::App* subcom)
         if (cwd != "")
         {
             opt.working_directory = cwd.c_str();
+        }
+
+        if (clean_env)
+        {
+            opt.env.behavior = reproc::env::empty;
+        }
+
+        std::map<std::string, std::string> env_map;
+        if (env_vars.size())
+        {
+            for (auto& e : env_vars)
+            {
+                if (e.find_first_of("=") != std::string::npos)
+                {
+                    auto split_e = split(e, "=", 1);
+                    env_map[split_e[0]] = split_e[1];
+                }
+                else
+                {
+                    auto val = env::get(e);
+                    if (val)
+                    {
+                        env_map[e] = val.value();
+                    }
+                    else
+                    {
+                        LOG_WARNING << "Requested env var " << e  << " does not exist in environment";
+                    }
+                }
+            }
+            opt.env.extra = env_map;
         }
 
         opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
@@ -138,7 +179,7 @@ set_run_command(CLI::App* subcom)
 #ifndef _WIN32
         std::thread t([](){
             signal(SIGTERM, [](int signum) {
-                std::cout << "Received SIGTERM on micromamba run - terminating process" << std::endl;
+                LOG_INFO << "Received SIGTERM on micromamba run - terminating process";
                 reproc::stop_actions sa;
                 sa.first = reproc::stop_action{reproc::stop::terminate, std::chrono::milliseconds(3000)};
                 sa.second = reproc::stop_action{reproc::stop::kill, std::chrono::milliseconds(3000)};

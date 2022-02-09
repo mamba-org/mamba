@@ -88,7 +88,11 @@ set_run_command(CLI::App* subcom)
         config.load();
 
         std::vector<std::string> command = subcom->remaining();
-
+        if (command.empty())
+        {
+            LOG_ERROR << "Did not receive any command to run inside environment";
+            exit(1);
+        }
 
         // replace the wrapping bash with new process entirely
         #ifndef _WIN32
@@ -111,6 +115,7 @@ set_run_command(CLI::App* subcom)
             opt.working_directory = cwd.c_str();
         }
 
+        opt.env.behavior = reproc::env::empty;
         opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
         opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
 
@@ -138,7 +143,7 @@ set_run_command(CLI::App* subcom)
 #ifndef _WIN32
         std::thread t([](){
             signal(SIGTERM, [](int signum) {
-                std::cout << "Received SIGTERM on micromamba run - terminating process" << std::endl;
+                LOG_INFO << "Received SIGTERM on micromamba run - terminating process";
                 reproc::stop_actions sa;
                 sa.first = reproc::stop_action{reproc::stop::terminate, std::chrono::milliseconds(3000)};
                 sa.second = reproc::stop_action{reproc::stop::kill, std::chrono::milliseconds(3000)};

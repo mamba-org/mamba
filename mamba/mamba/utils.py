@@ -430,3 +430,14 @@ def to_txn(
         prefix,
         final_precs,
     )
+
+
+def print_activate(env_name_or_prefix):  # pragma: no cover
+    if not context.quiet and not context.json:
+        message = (
+            "\nTo activate this environment, use\n\n"
+            f"     $ mamba activate {env_name_or_prefix}\n\n"
+            "To deactivate an active environment, use\n\n"
+            "     $ mamba deactivate\n"
+        )
+        print(message)  # TODO: use logger

@@ -19,7 +19,7 @@ from conda.cli.common import (
     ensure_name_or_prefix,
     specs_from_url,
 )
-from conda.cli.install import check_prefix, clone, get_revision, print_activate
+from conda.cli.install import check_prefix, clone, get_revision
 from conda.cli.main import generate_parser, init_loggers
 from conda.common.compat import on_win
 from conda.common.path import paths_equal
@@ -50,7 +50,13 @@ import mamba
 from mamba import repoquery as repoquery_api
 from mamba.linking import handle_txn
 from mamba.mamba_shell_init import shell_init
-from mamba.utils import get_installed_jsonfile, init_api_context, load_channels, to_txn
+from mamba.utils import (
+    get_installed_jsonfile,
+    init_api_context,
+    load_channels,
+    print_activate,
+    to_txn,
+)
 
 if sys.version_info < (3, 2):
     sys.stdout = codecs.lookup("utf-8")[-1](sys.stdout)
@@ -900,10 +906,8 @@ def main(*args, **kwargs):
 
     if "activate" in sys.argv or "deactivate" in sys.argv:
         print(
-            f"Run 'mamba init' to be able to run mamba activate/deactivate\n"
-            f"and start a new shell session. Or use conda to activate/deactivate.\n"
-            f"\n"
-            f"    $ conda {' '.join(sys.argv[1:])}\n",
+            "Run 'mamba init' to be able to run mamba activate/deactivate\n"
+            "and start a new shell session. Or use conda to activate/deactivate.\n",
             file=sys.stderr,
         )
         return sys.exit(-1)

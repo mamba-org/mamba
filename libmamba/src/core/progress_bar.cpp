@@ -622,7 +622,7 @@ namespace mamba
             if (width < 12)
             {
                 std::vector<std::string> spinner;
-                if (Context::instance().ascii_only)
+                if (!Context::instance().ascii_only)
                     spinner = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
                 else
                     spinner = { "|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\" };

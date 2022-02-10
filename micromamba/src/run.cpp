@@ -84,7 +84,6 @@ set_run_command(CLI::App* subcom)
     static std::vector<std::string> env_vars;
     subcom->add_option("-e,--env", env_vars, "Add env vars with -e ENVVAR or -e ENVVAR=VALUE")->allow_extra_args(false);
 
-    static std::vector<std::string> command;
     subcom->prefix_command();
 
     static reproc::process proc;

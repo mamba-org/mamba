@@ -763,7 +763,7 @@ def do_call(args, parser):
     else:
         print(
             "Currently, only install, create, list, search, run,"
-            " info and clean are supported through mamba."
+            " info, clean, activate and deactivate are supported through mamba."
         )
 
         return 0

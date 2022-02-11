@@ -79,6 +79,8 @@ namespace mamba
     template <typename T = std::mt19937>
     inline auto random_generator() -> T
     {
+        using std::begin;
+        using std::end;
         auto constexpr seed_bits = sizeof(typename T::result_type) * T::state_size;
         auto constexpr seed_len
             = seed_bits / std::numeric_limits<std::seed_seq::result_type>::digits;
@@ -89,12 +91,19 @@ namespace mamba
         return T{ seed_seq };
     }
 
+    template<typename T = std::mt19937>
+    inline auto local_random_generator() -> T&
+    {
+        thread_local auto rng = random_generator<T>();
+        return rng;
+    }
+
     inline std::string generate_random_alphanumeric_string(std::size_t len)
     {
         static constexpr auto chars = "0123456789"
                                       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                       "abcdefghijklmnopqrstuvwxyz";
-        thread_local auto rng = random_generator<std::mt19937>();
+        auto& rng = local_random_generator<std::mt19937>();
 
         auto dist = std::uniform_int_distribution{ {}, std::strlen(chars) - 1 };
         auto result = std::string(len, '\0');

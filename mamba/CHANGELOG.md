@@ -1,3 +1,16 @@
+mamba 0.21.1 (February 11, 2022)
+================================
+
+Bug fixes
+
+- Fix undefined transaction when creating env with no specs #1460
+
+Improvements
+
+- Adjustments for the progress bars, make better visible on light backgrounds #1458
+- Refer to mamba activate for activation hint #1462
+- Mention in help message that `mamba activate` and `deactivate` are supported (thanks @traversaro) #1476
+
 mamba 0.21.0 (February 07, 2022)
 ================================
 

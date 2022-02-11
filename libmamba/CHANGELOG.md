@@ -1,3 +1,15 @@
+libmamba 0.21.1 (February 11, 2022)
+===================================
+
+Bug fixes
+
+- Adjust cache url hashing and header data parsing #1482
+- Properly strip header of \r\n before adding to repodata.json cache #1482
+
+Improvements
+
+- Adjustments for the progress bars, make better visible on light backgrounds #1458
+
 libmamba 0.21.0 (February 07, 2022)
 ===================================
 

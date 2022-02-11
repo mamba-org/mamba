@@ -1,3 +1,17 @@
+micromamba 0.21.1 (February 11, 2022)
+=====================================
+
+Bug fixes
+
+- Revert removal of environment variables when running pip (thanks @austin1howard) #1477
+
+Improvements
+
+- Add `micromamba config --json` (thanks @JohanMabille) #1484
+- Adjustments for the progress bars, make better visible on light backgrounds #1458
+- Micromamba run add `--clean-env` and `-e,--env` handling to pass in environment variables #1464
+- Disable banner with `micromamba run` #1474
+
 micromamba 0.21.0 (February 07, 2022)
 =====================================
 

@@ -641,6 +641,7 @@ namespace mamba
         const std::vector<T>& values();
 
         YAML::Node yaml_value() const;
+        void dump_json(nlohmann::json& node, const std::string& name) const;
 
         const std::vector<std::string>& source();
 
@@ -828,6 +829,12 @@ namespace mamba
     {
         return YAML::Node(m_value);
     };
+
+    template <class T>
+    void Configurable<T>::dump_json(nlohmann::json& node, const std::string& name) const
+    {
+        node[name] = m_value;
+    }
 
     template <class T>
     const std::vector<std::string>& Configurable<T>::source()
@@ -1195,11 +1202,13 @@ namespace mamba
 
             virtual const std::string& long_description() const = 0;
 
+            virtual void dump_json(nlohmann::json& node, const std::string& name) const = 0;
+
             virtual YAML::Node yaml_value() const = 0;
 
             virtual YAML::Node cli_yaml_value() const = 0;
 
-            virtual YAML::Node source() const = 0;
+            virtual const std::vector<std::string>& source() const = 0;
 
             virtual bool configured() const = 0;
 
@@ -1297,6 +1306,11 @@ namespace mamba
                 return p_wrapped->group();
             };
 
+            void dump_json(nlohmann::json& node, const std::string& name) const
+            {
+                p_wrapped->dump_json(node, name);
+            }
+
             YAML::Node yaml_value() const
             {
                 return p_wrapped->yaml_value();
@@ -1307,9 +1321,9 @@ namespace mamba
                 return YAML::Node(p_wrapped->cli_value());
             };
 
-            YAML::Node source() const
+            const std::vector<std::string>& source() const
             {
-                return YAML::Node(p_wrapped->source());
+                return p_wrapped->source();
             };
 
             const std::string& description() const
@@ -1582,6 +1596,11 @@ namespace mamba
             return get_wrapped<T>().value();
         };
 
+        void dump_json(nlohmann::json& node, const std::string& name) const
+        {
+            p_impl->dump_json(node, name);
+        }
+
         YAML::Node yaml_value() const
         {
             return p_impl->yaml_value();
@@ -1598,7 +1617,7 @@ namespace mamba
             return p_impl->cli_yaml_value();
         };
 
-        YAML::Node source() const
+        const std::vector<std::string>& source() const
         {
             return p_impl->source();
         };
@@ -1821,7 +1840,9 @@ namespace mamba
 
         std::map<std::string, ConfigurableInterface>& config();
         ConfigurableInterface& at(const std::string& name);
-        std::vector<std::pair<std::string, std::vector<ConfigurableInterface*>>>
+
+        using grouped_config_type = std::pair<std::string, std::vector<ConfigurableInterface*>>;
+        std::vector<grouped_config_type>
         get_grouped_config();
 
         std::vector<fs::path> sources();

@@ -1466,8 +1466,96 @@ namespace mamba
         return sources;
     }
 
+    namespace nl = nlohmann;
+
+    namespace detail
+    {
+        void dump_configurable(nl::json& node,
+                               const ConfigurableInterface& c,
+                               const std::string& name);
+    }
+
+    std::string dump_json(int opts, const std::vector<std::string>& names,
+                          const std::vector<Configuration::grouped_config_type>& grouped_config)
+    {
+        bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
+        bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
+        bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
+        bool show_long_descs = opts & MAMBA_SHOW_CONFIG_LONG_DESCS;
+        bool show_groups = opts & MAMBA_SHOW_CONFIG_GROUPS;
+        bool show_all_rcs = opts & MAMBA_SHOW_ALL_RC_CONFIGS;
+        bool show_all = opts & MAMBA_SHOW_ALL_CONFIGS;
+
+        bool dump_group = (show_descs || show_long_descs) && show_groups;
+        nl::json root;
+        for (auto& group_it : grouped_config)
+        {
+            std::string group_name = group_it.first;
+            const auto& configs = group_it.second;
+
+            nl::json group;
+            nl::json& json_node = dump_group ? group : root;
+
+            for (const auto& c : configs)
+            {
+                auto is_required = std::find(names.begin(), names.end(), c->name()) != names.end();
+                if (!names.empty() && !is_required)
+                {
+                    continue;
+                }
+
+                if ((c->rc_configurable() && (c->configured() || show_all_rcs)) || is_required
+                    || show_all)
+                {
+                    if (show_descs || show_long_descs)
+                    {
+                        nl::json json_conf;
+                        if (show_long_descs)
+                        {
+                            json_conf["long_description"] = c->long_description();
+                        }
+                        else
+                        {
+                            json_conf["description"] = c->description();
+                        }
+                        if (show_sources)
+                        {
+                            json_conf["source"] = c->source();
+                        }
+                        detail::dump_configurable(json_conf, *c, "value");
+                        json_node[c->name()] = std::move(json_conf);
+                    }
+                    else
+                    {
+                        if (show_sources)
+                        {
+                            nl::json json_conf;
+                            detail::dump_configurable(json_conf, *c, "value");
+                            json_conf["source"] = c->source();
+                            json_node[c->name()] = std::move(json_conf);
+                        }
+                        else
+                        {
+                            detail::dump_configurable(json_node, *c, c->name());
+                        }
+                    }
+                }
+            }
+
+            if (dump_group)
+            {
+                root[group_name + "Configuration"] = std::move(json_node);
+            }
+        }
+        return root.dump(4);
+    }
     std::string Configuration::dump(int opts, std::vector<std::string> names)
     {
+        if (m_config.at("json").get_wrapped<bool>().value())
+        {
+            return dump_json(opts, names, get_grouped_config());
+        }
+
         bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
         bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
         bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
@@ -1560,10 +1648,6 @@ namespace mamba
                                YAML::Node source,
                                bool show_source)
         {
-            if (!value.IsScalar())
-            {
-                throw std::runtime_error("Invalid scalar value");
-            }
             out << value;
 
             if (show_source)
@@ -1590,11 +1674,6 @@ namespace mamba
                             YAML::Node source,
                             bool show_source)
         {
-            if (!value.IsSequence())
-            {
-                throw std::runtime_error("Invalid sequence value");
-            }
-
             if (value.size() > 0)
             {
                 out << YAML::BeginSeq;
@@ -1628,11 +1707,6 @@ namespace mamba
                             YAML::Node source,
                             bool show_source)
         {
-            if (!value.IsMap())
-            {
-                throw std::runtime_error("Invalid map value");
-            }
-
             out << YAML::BeginMap;
             for (auto n : value)
             {
@@ -1661,7 +1735,7 @@ namespace mamba
                                 bool show_source)
         {
             auto value = config.yaml_value();
-            auto source = config.source();
+            auto source = YAML::Node(config.source());
 
             if (value.IsScalar())
             {
@@ -1689,6 +1763,14 @@ namespace mamba
                                  + std::string(append_blk, ' ') + "#")
                 << YAML::Newline;
             out << YAML::Comment(std::string(54, '#'));
+        }
+
+
+        void dump_configurable(nl::json& node,
+                               const ConfigurableInterface& c,
+                               const std::string& name)
+        {
+            c.dump_json(node, name);
         }
     }
 }

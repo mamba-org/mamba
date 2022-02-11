@@ -990,6 +990,10 @@ namespace mamba
             std::string res = out.c_str();
             EXPECT_EQ(res, "foo  # '/some/source1'");
 
+            // These tests do not really make sense since
+            // print_scalar should be called by print_configurable only
+            // and the check is already done in it.
+            /*
             rc = unindent(R"(
                             foo: bar
                             bar: baz)");
@@ -1004,6 +1008,7 @@ namespace mamba
 
             node = YAML::Node();
             EXPECT_THROW(print_scalar_node(out, node, node_src, true), std::runtime_error);
+            */
         }
 
         TEST_F(Configuration, print_map_node)
@@ -1025,7 +1030,10 @@ namespace mamba
                                 foo: bar  # '/some/source1'
                                 bar: baz  # '/some/source2')"));
 
-            rc = "foo";
+            // These tests do not really make sense since
+            // print_scalar should be called by print_configurable only
+            // and the check is already done in it.
+            /*rc = "foo";
             node = YAML::Load(rc);
             EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
 
@@ -1036,7 +1044,7 @@ namespace mamba
             EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
 
             node = YAML::Node();
-            EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);
+            EXPECT_THROW(print_map_node(out, node, node_src, true), std::runtime_error);*/
         }
 
         TEST_F(Configuration, print_seq_node)
@@ -1060,7 +1068,10 @@ namespace mamba
                                   - foo  # '/some/source1'
                                   - bar  # '/some/source2')"));
 
-            rc = "foo";
+            // These tests do not really make sense since
+            // print_scalar should be called by print_configurable only
+            // and the check is already done in it.
+            /*rc = "foo";
             node = YAML::Load(rc);
             EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
 
@@ -1071,7 +1082,7 @@ namespace mamba
             EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
 
             node = YAML::Node();
-            EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);
+            EXPECT_THROW(print_seq_node(out, node, node_src, true), std::runtime_error);*/
         }
     }  // namespace testing
 }  // namespace mamba

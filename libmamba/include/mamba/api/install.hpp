@@ -17,6 +17,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <nlohmann/json.hpp>
+
 #include <string>
 #include <vector>
 
@@ -64,7 +66,12 @@ namespace mamba
 
         std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
             const std::vector<std::string>& urls);
+
+        inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
+        {
+        }
     }
+
 }
 
 namespace YAML

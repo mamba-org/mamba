@@ -151,9 +151,16 @@ namespace mamba
     std::string cache_name_from_url(const std::string& url)
     {
         std::vector<unsigned char> hash(MD5_DIGEST_LENGTH);
+        std::string u = url;
+        // mimicking conda's behavior by special handling repodata.json
+        if (ends_with(u, "/repodata.json"))
+        {
+            u = u.substr(0, u.size() - 13);
+        }
+
         MD5_CTX md5;
         MD5_Init(&md5);
-        MD5_Update(&md5, url.c_str(), url.size());
+        MD5_Update(&md5, u.c_str(), u.size());
         MD5_Final(hash.data(), &md5);
 
         std::string hex_digest = hex_string(hash);

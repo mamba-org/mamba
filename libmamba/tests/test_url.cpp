@@ -242,4 +242,11 @@ namespace mamba
         EXPECT_TRUE(is_path("/"));
         EXPECT_FALSE(is_path("file://makefile"));
     }
+
+    TEST(url, cache_name_from_url)
+    {
+        EXPECT_EQ(cache_name_from_url("http://test.com/1234/"), "302f0a61");
+        EXPECT_EQ(cache_name_from_url("http://test.com/1234/repodata.json"), "302f0a61");
+        EXPECT_EQ(cache_name_from_url("http://test.com/1234/current_repodata.json"), "78a8cce9");
+    }
 }  // namespace mamba

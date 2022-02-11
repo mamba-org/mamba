@@ -328,7 +328,10 @@ namespace mamba
             }
 
             // remove \r\n header ending
-            value = header.substr(colon_idx, header.size() - colon_idx - 2);
+            auto header_end = header.find_first_of("\r\n");
+            value = header.substr(colon_idx,
+                                  (header_end > colon_idx) ? header_end - colon_idx : 0);
+
             // http headers are case insensitive!
             std::string lkey = to_lower(key);
             if (lkey == "etag")

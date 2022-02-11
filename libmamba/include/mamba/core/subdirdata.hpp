@@ -29,6 +29,12 @@ namespace decompress
 
 namespace mamba
 {
+    namespace detail
+    {
+        // read the header that contains json like {"_mod": "...", ...}
+        nlohmann::json read_mod_and_etag(const fs::path& file);
+    }
+
     /**
      * Represents a channel subdirectory (i.e. a platform)
      * packages index. Handles downloading of the index
@@ -72,7 +78,6 @@ namespace mamba
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
-        nlohmann::json read_mod_and_etag(const fs::path&);
 
         std::unique_ptr<DownloadTarget> m_target;
 

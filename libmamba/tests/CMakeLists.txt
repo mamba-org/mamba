@@ -44,6 +44,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_file_test
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/validation_data
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/repodata_json_cache
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 
 target_link_libraries(test_libmamba PRIVATE GTest::GTest GTest::Main Threads::Threads)
 target_link_libraries(test_libmamba PUBLIC libmamba)

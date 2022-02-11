@@ -63,6 +63,102 @@ namespace decompress
 
 namespace mamba
 {
+    namespace detail
+    {
+    nlohmann::json read_mod_and_etag(const fs::path& file)
+    {
+        // parse json at the beginning of the stream such as
+        // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
+        // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
+        // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
+        // "_cache_control": "public, max-age=1200"
+
+        auto extract_subjson = [](std::ifstream& s) -> std::string {
+            char next;
+            std::string result;
+            bool escaped = false;
+            int i = 0, N = 4;
+            std::size_t idx = 0;
+            std::size_t prev_keystart;
+            bool in_key = false;
+            std::string key = "";
+
+            while (s.get(next))
+            {
+                idx++;
+                if (next == '"')
+                {
+                    if (!escaped)
+                    {
+                        if ((i / 2) % 2 == 0)
+                        {
+                            in_key = !in_key;
+                            if (in_key)
+                            {
+                                prev_keystart = idx + 1;
+                            }
+                            else
+                            {
+                                if (key != "_mod" && key != "_etag" && key != "_cache_control" && key != "_url")
+                                {
+                                    // bail out
+                                    auto last_comma = result.find_last_of(",", prev_keystart - 2);
+                                    if (last_comma != std::string::npos && last_comma > 0)
+                                    {
+                                        result = result.substr(0, last_comma);
+                                        result.push_back('}');
+                                        return result;
+                                    }
+                                    else
+                                    {
+                                        return std::string();
+                                    }
+                                }
+                                key.clear();
+                            }
+                        }
+                        i++;
+                    }
+
+                    // 4 keys == 4 ticks
+                    if (i == 4 * N)
+                    {
+                        result += "\"}";
+                        return result;
+                    }
+                }
+
+                if (in_key && next != '"')
+                {
+                    key.push_back(next);
+                }
+
+                escaped = (!escaped && next == '\\');
+                result.push_back(next);
+            }
+            return std::string();
+        };
+
+        std::ifstream in_file = open_ifstream(file);
+        auto json = extract_subjson(in_file);
+
+        nlohmann::json result;
+        try
+        {
+            result = nlohmann::json::parse(json);
+            return result;
+        }
+        catch (...)
+        {
+            LOG_WARNING << "Could not parse mod/etag header";
+            return nlohmann::json();
+        }
+    }
+
+    }
+
+
+
     MSubdirData::MSubdirData(const std::string& name,
                              const std::string& repodata_url,
                              const std::string& repodata_fn,
@@ -132,7 +228,7 @@ namespace mamba
             if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
             {
                 LOG_INFO << "Found cache at '" << json_file.string() << "'";
-                m_mod_etag = read_mod_and_etag(json_file);
+                m_mod_etag = detail::read_mod_and_etag(json_file);
 
                 if (m_mod_etag.size() != 0)
                 {
@@ -473,61 +569,6 @@ namespace mamba
         if (!matches)
             return 0;
         return std::stoi(max_age_match[1]);
-    }
-
-    nlohmann::json MSubdirData::read_mod_and_etag(const fs::path& file)
-    {
-        // parse json at the beginning of the stream such as
-        // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
-        // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
-        // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
-        // "_cache_control": "public, max-age=1200"
-
-        auto extract_subjson = [](std::ifstream& s) {
-            char next;
-            std::string result;
-            bool escaped = false;
-            int i = 0, N = 4;
-            while (s.get(next))
-            {
-                if (next == '"')
-                {
-                    if (!escaped)
-                    {
-                        i++;
-                    }
-                    else
-                    {
-                        escaped = false;
-                    }
-                    // 4 keys == 4 ticks
-                    if (i == 4 * N)
-                    {
-                        return result + "\"}";
-                    }
-                }
-                else if (next == '\\')
-                {
-                    escaped = true;
-                }
-                result.push_back(next);
-            }
-            return std::string();
-        };
-
-        std::ifstream in_file = open_ifstream(file);
-        auto json = extract_subjson(in_file);
-        nlohmann::json result;
-        try
-        {
-            result = nlohmann::json::parse(json);
-            return result;
-        }
-        catch (...)
-        {
-            LOG_WARNING << "Could not parse mod/etag header";
-            return nlohmann::json();
-        }
     }
 
     std::string cache_fn_url(const std::string& url)

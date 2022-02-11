@@ -1,3 +1,4 @@
+exclude: libmamba/tests/repodata_json_cache*
 repos:
 -   repo: https://github.com/psf/black
     rev: 21.12b0

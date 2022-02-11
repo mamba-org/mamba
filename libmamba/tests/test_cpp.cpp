@@ -8,6 +8,7 @@
 #include "mamba/core/history.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/core/subdirdata.hpp"
 
 namespace mamba
 {
@@ -500,5 +501,32 @@ namespace mamba
         fs::remove("emptytestfile");
         EXPECT_FALSE(fs::exists("emptytestfile"));
         EXPECT_FALSE(lexists("emptytestfile"));
+    }
+
+    TEST(subdirdata, parse_mod_etag)
+    {
+        fs::path cache_folder = fs::path("repodata_json_cache");
+        auto j = detail::read_mod_and_etag(cache_folder / "test_1.json");
+        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+
+        j = detail::read_mod_and_etag(cache_folder / "test_2.json");
+        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+
+        j = detail::read_mod_and_etag(cache_folder / "test_5.json");
+        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+
+        j = detail::read_mod_and_etag(cache_folder / "test_4.json");
+        EXPECT_EQ(j["_cache_control"], "{{}}\",,,\"");
+        EXPECT_EQ(j["_etag"], "\n\n\"\"randome ecx,,ssd\n,,\"");
+        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+
+        j = detail::read_mod_and_etag(cache_folder / "test_3.json");
+        EXPECT_TRUE(j.empty());
+        // EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        // EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
     }
 }  // namespace mamba

@@ -600,6 +600,7 @@ namespace mamba
             // select field to display and make sure they are
             // properly set if not yet printed by the progress bar manager
             ProgressBarRepr r = m_progress_bar.repr();
+            r.prefix.set_format("{:<50}", 50);
             r.progress.deactivate();
             r.current.deactivate();
             r.separator.deactivate();

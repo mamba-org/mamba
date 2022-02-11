@@ -991,12 +991,12 @@ namespace mamba
             }
 
             auto& r0 = bars[0]->repr();
-            // r0.prefix.set_width(prefix_w);
+            r0.prefix.set_width(prefix_w);
             r0.current.set_width(current_w);
             r0.separator.set_width(separator_w);
             r0.total.set_width(total_w);
             r0.speed.set_width(speed_w);
-            // r0.postfix.set_width(postfix_w);
+            r0.postfix.set_width(postfix_w);
             r0.elapsed.set_width(elapsed_w);
             r0.compute_progress();
 

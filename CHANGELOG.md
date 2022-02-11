@@ -1,3 +1,22 @@
+2022.02.11
+==========
+
+Releases: libmamba 0.21.1, libmambapy 0.21.1, mamba 0.21.1, micromamba 0.21.1
+
+Bug fixes
+- [libmamba] Adjust cache url hashing and header data parsing #1482
+- [libmamba] Properly strip header of \r\n before adding to repodata.json cache #1482
+- [micromamba] Revert removal of environment variables when running pip (thanks @austin1howard) #1477
+- [mamba] Fix undefined transaction when creating env with no specs #1460
+
+Improvements
+- [micromamba] Add `micromamba config --json` (thanks @JohanMabille) #1484
+- [mamba,micromamba,libmamba] Adjustments for the progress bars, make better visible on light backgrounds #1458
+- [mamba] Refer to mamba activate for activation hint #1462
+- [micromamba] Micromamba run add `--clean-env` and `-e,--env` handling to pass in environment variables #1464
+- [mamba] Mention in help message that `mamba activate` and `deactivate` are supported (thanks @traversaro) #1476
+- [micromamba] Disable banner with `micromamba run` #1474
+
 2022.02.07
 ==========
 

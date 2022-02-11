@@ -579,7 +579,7 @@ namespace mamba
             m_progress_bar.set_speed(avg_speed);
             m_progress_bar.set_total(downloaded_size);
             m_progress_bar.set_full();
-            m_progress_bar.set_postfix("downloaded");
+            m_progress_bar.set_postfix("Downloaded");
         }
 
         bool ret = true;
@@ -600,7 +600,7 @@ namespace mamba
             // select field to display and make sure they are
             // properly set if not yet printed by the progress bar manager
             ProgressBarRepr r = m_progress_bar.repr();
-            r.prefix.set_format("{:<35}").reset_width();
+            r.prefix.set_format("{:<50}", 50);
             r.progress.deactivate();
             r.current.deactivate();
             r.separator.deactivate();

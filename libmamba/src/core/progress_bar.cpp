@@ -419,7 +419,7 @@ namespace mamba
 
             template <class T>
             static void format_progress(T& sstream,
-                                        fmt::terminal_color color,
+                                        fmt::text_style color,
                                         std::size_t width,
                                         bool end)
             {
@@ -428,13 +428,13 @@ namespace mamba
                 if (!Context::instance().ascii_only)
                 {
                     if (end)
-                        sstream << fmt::format(fmt::fg(color), "{:━>{}}", "", width);
+                        sstream << fmt::format(color, "{:━>{}}", "", width);
                     else
-                        sstream << fmt::format(fmt::fg(color), "{:━>{}}╸", "", width - 1);
+                        sstream << fmt::format(color, "{:━>{}}╸", "", width - 1);
                 }
                 else
                 {
-                    sstream << fmt::format(fmt::fg(color), "{:->{}}", "", width);
+                    sstream << fmt::format(color, "{:->{}}", "", width);
                 }
             }
 
@@ -450,17 +450,17 @@ namespace mamba
                 std::ostringstream oss;
 
                 ProgressScaleWriter::format_progress(
-                    oss, fmt::terminal_color::white, current_pos, current_pos == m_bar_width);
+                    oss, fmt::text_style(), current_pos, current_pos == m_bar_width);
                 if (in_progress_pos && in_progress_pos > current_pos)
                 {
                     ProgressScaleWriter::format_progress(oss,
-                                                         fmt::terminal_color::yellow,
+                                                         fmt::fg(fmt::terminal_color::yellow),
                                                          in_progress_pos - current_pos,
                                                          in_progress_pos == m_bar_width);
                 }
                 ProgressScaleWriter::format_progress(
                     oss,
-                    fmt::terminal_color::bright_black,
+                    fmt::fg(fmt::terminal_color::bright_black),
                     m_bar_width - (in_progress_pos ? in_progress_pos : current_pos),
                     true);
 
@@ -657,15 +657,15 @@ namespace mamba
                 if (current_pos)
                 {
                     ProgressScaleWriter::format_progress(
-                        sstream, fmt::terminal_color::white, current_pos, current_pos == width);
+                        sstream, fmt::text_style(), current_pos, current_pos == width);
                     if (in_progress_pos && in_progress_pos > current_pos)
                         ProgressScaleWriter::format_progress(sstream,
-                                                             fmt::terminal_color::yellow,
+                                                             fmt::fg(fmt::terminal_color::yellow),
                                                              in_progress_pos - current_pos,
                                                              in_progress_pos == width);
                     ProgressScaleWriter::format_progress(
                         sstream,
-                        fmt::terminal_color::bright_black,
+                        fmt::fg(fmt::terminal_color::bright_black),
                         width - (in_progress_pos ? in_progress_pos : current_pos),
                         true);
                 }
@@ -678,16 +678,16 @@ namespace mamba
                                      - spinner_start;
 
                     ProgressScaleWriter::format_progress(
-                        sstream, fmt::terminal_color::bright_black, spinner_start, false);
+                        sstream, fmt::fg(fmt::terminal_color::bright_black), spinner_start, false);
                     ProgressScaleWriter::format_progress(sstream,
-                                                         fmt::terminal_color::yellow,
+                                                         fmt::fg(fmt::terminal_color::yellow),
                                                          spinner_length,
                                                          spinner_start + spinner_length == width);
                     if (spinner_length + spinner_start < width)
                     {
                         rest = width - spinner_start - spinner_length;
                         ProgressScaleWriter::format_progress(
-                            sstream, fmt::terminal_color::bright_black, rest, true);
+                            sstream, fmt::fg(fmt::terminal_color::bright_black), rest, true);
                     }
                 }
             }
@@ -1583,7 +1583,7 @@ namespace mamba
                         if (!b->started())
                             b->repr().style = fmt::fg(fmt::terminal_color::bright_black);
                         else
-                            b->repr().style = fmt::fg(fmt::terminal_color::white);
+                            b->repr().style = fmt::text_style();
 
                         displayed_bars.push_back(b.get());
                         ++active_count;
@@ -1798,7 +1798,7 @@ namespace mamba
                             if (!b->started())
                                 b->repr().style = fmt::fg(fmt::terminal_color::bright_black);
                             else
-                                b->repr().style = fmt::fg(fmt::terminal_color::white);
+                                b->repr().style = fmt::text_style();
 
                             displayed_bars.push_back(b.get());
                             ++active_count;

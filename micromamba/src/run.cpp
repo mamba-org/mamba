@@ -114,6 +114,7 @@ set_run_command(CLI::App* subcom)
         bool all_streams = stream_option->count() == 0u;
         bool sinkout = !all_streams && streams.find("stdout") == std::string::npos;
         bool sinkerr = !all_streams && streams.find("stderr") == std::string::npos;
+        bool sinkin = !all_streams && streams.find("stdin") == std::string::npos;
 
         reproc::options opt;
         if (cwd != "")
@@ -154,6 +155,7 @@ set_run_command(CLI::App* subcom)
 
         opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
         opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
+        opt.redirect.in.type = sinkin ? reproc::redirect::discard : reproc::redirect::parent;
 
 #ifndef _WIN32
         if (detach)

@@ -9,108 +9,7 @@ on:
       - master
 
 jobs:
-  mamba_python_tests:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.8"]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: Cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache
-      - name: Conda info
-        shell: bash -l {0}
-        run: conda info
-      - name: Create the conda environment
-        shell: bash -l {0}
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda install -n base python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json "cpp-filesystem>=1.5.8" conda cxx-compiler ccache cmake gtest gmock reproc-cpp yaml-cpp
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Install dependencies
-        shell: bash -l {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate base
-          python --version
-          export CCACHE_DIR=$HOME/ccache
-          ccache --show-config
-          export CC="ccache $CC"
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            export LDSHARED=$(python -c "import os;from distutils import sysconfig;print(sysconfig.get_config_var('LDSHARED'))")
-          fi
-          python -m pip install ".[test]" -vvv
-          ccache --print-stats
-      - name: Run tests OS X and Linux
-        shell: bash -l {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate base
-          pytest test --ignore=test/micromamba
-          mamba create -n test_env xtensor -c conda-forge -y
-          mamba env create -f test/test_env.yml
-          mamba env update -f test/update_env.yml
-      - name: Run tests OS X and Linux
-        shell: bash -l {0}
-        run: |
-          conda activate base
-          conda install conda-build -c conda-forge -y
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            mkdir -p $CONDA_PREFIX/conda-bld/linux-64
-            wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
-            wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
-          else
-            mkdir -p $CONDA_PREFIX/conda-bld/osx-64
-            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
-            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
-          fi
-          conda index $CONDA_PREFIX/conda-bld
-
-          mamba create -n l_o_cal_test xtensor -c local -c conda-forge -y
-          conda activate l_o_cal_test
-          conda list
-          conda list | tail -n +3 > list.txt
-          if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
-            exit 1
-          fi
-      - name: Run server auth tests
-        shell: bash -l {0} -euo pipefail -x
-        run: |
-          cd test
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate base
-
-          if [[ "$(uname -s)" == "Linux" ]]; then
-            ./generate_gpg_keys.sh
-            pip install securesystemslib
-          fi
-          pip install rich
-          pip install git+https://github.com/conda/conda-content-trust.git@master
-
-          ./testserver.sh
-
-  libmamba_cpp_tests:
+  libmamba_static:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -118,61 +17,46 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
+      - name: generate ccache key
+        id: ccache_key
+        shell: bash -l {0}
         run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: Cache CCACHE paths
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
+      - name: cache CCACHE paths
         uses: actions/cache@v2
         with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-libmamba
-      - name: install micromamba
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
-          else
-            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
-            mv bin/micromamba ./micromamba
-          fi
-          ./micromamba shell init -s bash -p ~/mambaroot
-      - name: install deps
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ./libmamba/environment-dev.yml
+          environment-name: build_env
+      - name: build libmamba-static
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cxx-compiler ccache cmake gtest gmock "cpp-filesystem>=1.5.8" reproc-cpp yaml-cpp cli11 -c conda-forge
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: build tests
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba activate ~/build_env
-          mkdir -p ~/.conda
-          touch ~/.conda/environments.txt
+          micromamba activate build_env
           mkdir build
           cd build
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-                   -DENABLE_TESTS=ON \
-                   -DBUILD_EXE=ON \
-                   -DBUILD_CRYPTO_PACKAGE_VALIDATION=ON \
-                   -DBUILD_BINDINGS=OFF \
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          make test_mamba_lock -j2
-          make test -j2
+          cmake \
+              -GNinja \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_STATIC=ON \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              ..
+          ninja
+          ccache --show-stats
 
-  umamba_tests:
+  libmamba_cpp_tests:
+    needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -180,101 +64,94 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: free disk space
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: Cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-umamba
-      - name: install micromamba
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            wget -qO- https://api.anaconda.org/download/conda-forge/micromamba/0.4.0/linux-64/micromamba-0.4.0-hc2cb875_0.tar.bz2 | tar -xvj bin/micromamba --strip-components=1
-          else
-            wget -qO- https://anaconda.org/conda-forge/micromamba/0.4.0/download/osx-64/micromamba-0.4.0-h8680c10_1.tar.bz2 | tar -xvj bin/micromamba
-            mv bin/micromamba ./micromamba
-          fi
-          ./micromamba shell init -s bash -p ~/mambaroot
-      - name: install deps
+      - name: generate ccache key
+        id: ccache_key
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba create -y -p ~/build_env pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json cxx-compiler ccache cmake gtest gmock "cpp-filesystem>=1.5.8" reproc-cpp yaml-cpp pyyaml cli11 -c conda-forge
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
+      - name: cache CCACHE paths
+        uses: actions/cache@v2
+        with:
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ./libmamba/environment-dev.yml
+          environment-name: build_env
+      - name: build and run libmamba C++ tests
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          mkdir build
+          cd build
+          ccache --show-stats
+          ccache -z
+          export CCACHE_DIR=$HOME/ccache
+          cmake \
+              -GNinja \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_SHARED=ON \
+              -DBUILD_LIBMAMBA_TESTS=ON \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              ..
+          ninja testing_libmamba_lock
+          ninja test
+          ccache --show-stats
+
+  umamba_tests:
+    needs: [libmamba_static]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: generate ccache key
+        id: ccache_key
+        shell: bash -l {0}
+        run: |
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
+      - name: cache CCACHE paths
+        uses: actions/cache@v2
+        with:
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ./micromamba/environment-dev.yml
+          environment-name: build_env
       - name: build micromamba
         shell: bash -l {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          . $MAMBA_ROOT_PREFIX/etc/profile.d/mamba.sh
-          micromamba activate ~/build_env
+          micromamba activate build_env
+          ccache --show-stats
+          ccache -z
           export CCACHE_DIR=$HOME/ccache
-          mkdir -p ~/.conda
-          touch ~/.conda/environments.txt
           mkdir build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-                  -DENABLE_TESTS=OFF \
-                  -DBUILD_EXE=ON \
-                  -DBUILD_BINDINGS=OFF \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                  -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          make -j2
-      - name: run new micromamba
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          cd build
-          ./micromamba --version
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            ./micromamba create -p ~/explicit_env -f ../test/explicit_env_linux.txt
-          else
-            ./micromamba create -p ~/explicit_env -f ../test/explicit_env_osx.txt
-          fi;
-      - name: run new micromamba yaml env
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          cd build
-          ./micromamba create -f ../test/yaml_env.yml
-      - name: run new micromamba spec files
-        shell: bash -l {0}
-        run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          cd build
-          ./micromamba create -f ../test/spec_file_1.txt -n testenv_one_file -c conda-forge
-          ./micromamba create -f ../test/spec_file_1.txt -f ../test/spec_file_2.txt -n testenv_two_files -c conda-forge
-          # test noarch packages
-          $MAMBA_ROOT_PREFIX/envs/testenv_two_files/bin/wheel --help
-      - name: micromamba prefix replacement / pkgconfig check
-        shell: bash -l -eo pipefail {0}
-        run: |
-          cd build
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/micromamba
-          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
-
-          micromamba create -n pkgconf pkg-config=0.29.2 eigen -c conda-forge
-          micromamba activate pkgconf
-          IDIR=$(pkg-config eigen3 --cflags-only-I)
-          if [[ "${IDIR}" != "-I$CONDA_PREFIX/include/eigen3" ]];
-          then
-            exit 1;
-          fi
+          cmake .. \
+              -GNinja \
+              -DBUILD_MICROMAMBA=ON \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_SHARED=ON \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          ninja
+          ccache --show-stats
       - name: install zsh, xonsh and fish in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
@@ -288,87 +165,216 @@ jobs:
       - name: micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_EXE=$(pwd)/build/micromamba
-          eval "$($MAMBA_EXE shell hook -s posix -p ~/mambaroot)"
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
+          micromamba activate build_env
+          pytest micromamba/tests/ -v -s
 
-          micromamba activate
-          micromamba install python=3.8 pytest pyyaml pytest-lazy-fixture -c conda-forge
+  mamba_python_tests:
+    needs: [libmamba_static]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.8"]
 
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba
-          pytest test/micromamba
+    steps:
+      - uses: actions/checkout@v2
+      - name: generate ccache key
+        id: ccache_key
+        shell: bash -l {0}
+        run: |
+          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
+          echo ::set-output name=key_prefix::"$key_prefix"
+          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
+      - name: cache CCACHE paths
+        uses: actions/cache@v2
+        with:
+          path: ~/ccache
+          key: ${{ steps.ccache_key.outputs.key }}
+          restore-keys: |
+            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ./mamba/environment-dev.yml
+          environment-name: build_env
+          extra-specs: conda-build
+      - name: run conda init
+        shell: bash -l {0}
+        run: conda init
+      - name: build libmamba Python bindings
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          mkdir build
+          cd build
+          ccache --show-stats
+          ccache -z
+          export CCACHE_DIR=$HOME/ccache
+          cmake \
+              -GNinja \
+              -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+              -DBUILD_LIBMAMBAPY=ON \
+              -DBUILD_LIBMAMBA=ON \
+              -DBUILD_SHARED=ON \
+              -DBUILD_MAMBA_PACKAGE=ON \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              ..
+          ninja
+          ninja install
+          pip install -e ../libmambapy/ --no-deps
+          ccache --show-stats
+      - name: install mamba
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          pip install ./mamba[test] --no-deps
+      - name: run mamba tests suite
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          pytest mamba/tests
+      - name: run mamba create/update tests
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          mamba create -n test_env xtensor -c conda-forge -y
+          mamba env create -f mamba/tests/test_env.yml
+          mamba env update -f mamba/tests/update_env.yml
+      - name: run mamba local channel test
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            mkdir -p $CONDA_PREFIX/conda-bld/linux-64
+            wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/linux-64/xtensor-0.21.8-hc9558a2_0.tar.bz2
+            wget -P $CONDA_PREFIX/conda-bld/linux-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/linux-64/xtl-0.6.21-h0efe328_0.tar.bz2
+          else
+            mkdir -p $CONDA_PREFIX/conda-bld/osx-64
+            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtensor/0.21.8/download/osx-64/xtensor-0.21.8-h879752b_0.tar.bz2
+            wget -P $CONDA_PREFIX/conda-bld/osx-64 https://anaconda.org/conda-forge/xtl/0.6.21/download/osx-64/xtl-0.6.21-h6516342_0.tar.bz2
+          fi
+          conda index $CONDA_PREFIX/conda-bld
+          mamba create -n l_o_cal_test xtensor -c local -c conda-forge -y
+
+          conda list -n l_o_cal_test
+          conda list -n l_o_cal_test | tail -n +3 > list.txt
+          if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
+            exit 1
+          fi
+      - name: Run server auth tests
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          micromamba activate build_env
+          cd mamba/tests
+
+          if [[ "$(uname -s)" == "Linux" ]]; then
+            ./generate_gpg_keys.sh
+            pip install securesystemslib
+          fi
+          pip install rich
+          pip install git+https://github.com/conda/conda-content-trust.git@master
+
+          ./testserver.sh
+
+  libmamba_static_win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ./libmamba/environment-dev.yml
+          environment-name: build_env
+      - name: build libmamba-static
+        shell: cmd /C call {0}
+        run: |
+          call micromamba activate build_env
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_STATIC=ON ^
+                   -GNinja
+          ninja
 
   mamba_python_tests_win:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Cache CCACHE paths
-        uses: actions/cache@v2
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-mamba
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - name: Conda info
-        run: conda info
-      - name: Create the conda environment
+          environment-file: ./mamba/environment-dev.yml
+          environment-name: build_env
+          extra-specs: |
+            conda-build
+            curl
+      - name: run conda init
+        shell: bash -l {0}
+        run: conda init
+      - name: build libmamba Python bindings
+        shell: cmd /C call {0}
         run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda install -n base -q -y vs2017_win-64 ccache python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json "cpp-filesystem>=1.5.8" conda cmake gtest gmock ninja reproc-cpp yaml-cpp cli11
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Install dependencies
+          call micromamba activate build_env
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_LIBMAMBAPY=ON ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_SHARED=ON ^
+                   -DBUILD_MAMBA_PACKAGE=ON ^
+                   -GNinja
+          ninja
+          ninja install
+          pip install -e ..\libmambapy\ --no-deps
+      - name: install mamba
+        shell: bash -l {0}
         run: |
-          conda activate base
           python --version
-
-          $Env:CCACHE_DIR="$HOME/ccache"
-          ccache --show-config
-          $Env:CC="ccache $Env:CC"
-          $Env:CXX="ccache $Env:CXX"
-          python -m pip install ".[test]" -vvv
-          ccache --print-stats
-      - name: Run pytests on Windows
-        run: |
-          conda activate base
-          pytest test --ignore=test/micromamba
+          pip install ./mamba[test] --no-deps
+      - name: run mamba tests suite
+        shell: bash -l {0}
+        run: pytest mamba/tests
       - name: Run create command
-        run: |
-          conda activate base
-          mamba create -n test_env xtensor -c conda-forge -y
+        shell: bash -l {0}
+        run: mamba create -n test_env xtensor -c conda-forge -y
       - name: Run env create command
-        run: |
-          conda activate base
-          mamba env create -f test/test_env.yml
+        shell: bash -l {0}
+        run: mamba env create -f mamba/tests/test_env.yml
       - name: Run env update command
-        run: |
-          conda activate base
-          mamba env update -f test/update_env.yml
+        shell: bash -l {0}
+        run: mamba env update -f mamba/tests/update_env.yml
       - name: Run local channel checks
         shell: bash -l {0}
         run: |
-          conda activate base
-          conda install conda-build -c conda-forge -y
           mkdir -p $CONDA_PREFIX/conda-bld/win-64
+          echo $PATH
+          micromamba list
+          micromamba info
+          curl --version
           curl https://anaconda.org/conda-forge/xtensor/0.21.7/download/win-64/xtensor-0.21.7-h7ef1ec2_0.tar.bz2 -L -o $CONDA_PREFIX/conda-bld/win-64/xtensor-0.21.7-h7ef1ec2_0.tar.bz2
           curl https://anaconda.org/conda-forge/xtl/0.6.21/download/win-64/xtl-0.6.21-h5362a0b_0.tar.bz2 -L -o $CONDA_PREFIX/conda-bld/win-64/xtl-0.6.21-h5362a0b_0.tar.bz2
           conda index $CONDA_PREFIX/conda-bld
-
           mamba create -n l_o_cal_test xtensor -c local -c conda-forge -y
-          conda activate l_o_cal_test
-          conda list
+
+          conda list -n l_o_cal_test
           # cut first couple of lines to remove prefix path
-          conda list | tail -n +3 > list.txt
+          conda list -n l_o_cal_test | tail -n +3 > list.txt
           if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
             exit 1
           fi
@@ -378,106 +384,61 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - name: Cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-libmamba
-      - name: Conda info
-        run: conda info
-      - name: Create the conda environment
+          environment-file: ./libmamba/environment-dev.yml
+          environment-name: build_env
+      - name: build and run libmamba C++ tests
+        shell: cmd /C call {0}
         run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 ccache python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json "cpp-filesystem>=1.5.8" conda cmake gtest gmock ninja reproc-cpp yaml-cpp cli11 pytest
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: Run C++ tests Windows
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
+          call micromamba activate build_env
           mkdir build
           cd build
-          set "CCACHE_DIR=%HOME%\ccache"
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DENABLE_TESTS=ON ^
-                   -G "Ninja" ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          ninja test_mamba_lock -j2
-          ninja test -j2
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_LIBMAMBA_TESTS=ON ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_SHARED=ON ^
+                   -GNinja
+          ninja install
+          ninja test
 
   umamba_tests_win:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/ccache
-          key: ${{ runner.os }}-ccache-umamba
-      - name: create empty mamba-test env
-        shell: bash -l -eo pipefail {0}
-        run: |
-          cat > environment-test.yml <<EOL
-          name: mamba-test
-          dependencies:
-            - python
-          channels:
-            - conda-forge
-          EOL
-      - name: bootstrap test env with micromamba
+      - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: environment-test.yml
-      - name: finalize test env
-        shell: powershell
+          environment-file: ./micromamba/environment-dev.yml
+          environment-name: build_env
+      - name: build micromamba
+        shell: cmd /C call {0}
         run: |
-          micromamba -n mamba-test install vs2017_win-64 python=$PYTHON_VERSION -f environment-dev.yml
-          micromamba shell init -s cmd.exe -y -p $HOME\micromamba
-      - name: mamba info
-        shell: powershell
-        run: micromamba info
-      - name: Build micromamba on Windows
-        shell: cmd
-        run: |
-          call C:\Users\runneradmin\micromamba\condabin\micromamba.bat activate mamba-test
+          call micromamba activate build_env
           mkdir build
           cd build
-          set "CCACHE_DIR=%HOME%\ccache"
-          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library -DBUILD_EXE=ON -G "Ninja" ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-                   -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          ninja
-          .\micromamba.exe --help
-      - name: Install "wheel" in micromamba default env
-        shell: powershell
-        run: |
-          micromamba activate mamba-test
-          cd build
-          .\micromamba.exe shell hook --no-auto-activate-base -s powershell | Out-String | Invoke-Expression
-          cd \
-          micromamba create -n testenv python=3.8 wheel -c conda-forge
-          micromamba activate testenv
-          wheel --help
-      - name: "Tar files"
-        run: tar -cvf umamba.tar build/micromamba.exe
+          cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
+                   -DBUILD_MICROMAMBA=ON ^
+                   -DMICROMAMBA_LINKAGE=STATIC ^
+                   -DBUILD_LIBMAMBA=ON ^
+                   -DBUILD_STATIC=ON ^
+                   -GNinja
+          ninja install
+          .\micromamba\micromamba.exe --help
+      - name: tar micromamba artifact
+        run: tar -cvf umamba.tar build/micromamba/micromamba.exe
       - uses: actions/upload-artifact@v2
         with:
           name: micromamba_binary
@@ -489,115 +450,51 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016]
+        os: [windows-latest]
         python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
       - uses: actions/download-artifact@v2
         with:
           name: micromamba_binary
-      - name: Untar binary
+
+      - name: untar micromamba artifact
         shell: bash -l -eo pipefail {0}
         run: |
           tar -xvf umamba.tar
-      - name: Create the conda environment
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json "cpp-filesystem>=1.5.8" conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest pytest-lazy-fixture menuinst
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: micromamba python based tests
-        shell: cmd
-        run: |
-          call conda activate mamba-tests
 
-          set MAMBA_ROOT_PREFIX=%cd%\mambaroot
-          set MAMBA_TEST_SHELL_TYPE=cmd.exe
-
-          reg delete HKEY_CURRENT_USER\Software\Microsoft\Command Processor /v AutoRun
-
-          pytest test/micromamba
-
-  umamba_tests_win_pwsh:
-    needs: [umamba_tests_win]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2016]
-        python-version: ["3.7"]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: create build environment
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/download-artifact@v2
-        with:
-          name: micromamba_binary
-      - name: Untar binary
-        shell: bash -l -eo pipefail {0}
-        run: |
-          tar -xvf umamba.tar
-      - name: Create the conda environment
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json "cpp-filesystem>=1.5.8" conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest pytest-lazy-fixture menuinst
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
+          environment-file: ./micromamba/environment-dev.yml
+          environment-name: build_env
+          extra-specs: menuinst
+
       - name: micromamba python based tests with pwsh
         shell: powershell
         run: |
-          conda activate mamba-tests
-
+          $env:PYTHONIOENCODING='UTF-8'
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
-          pytest test/micromamba
+          pytest micromamba/tests/ -v -s
 
-  umamba_tests_win_bash:
-    needs: [umamba_tests_win]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2016]
-        python-version: ["3.7"]
+      # - name: micromamba python based tests
+      #   shell: cmd /C call {0}
+      #   run: |
+      #     set PYTHONIOENCODING=UTF-8
+      #     set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+      #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
+      #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
+      #
+      #     pytest micromamba/tests/test_shell.py -v -s
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-      - uses: actions/download-artifact@v2
-        with:
-          name: micromamba_binary
-      - name: Untar binary
-        shell: bash -l -eo pipefail {0}
-        run: |
-          tar -xvf umamba.tar
-      - name: Create the conda environment
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda create -q -y -n mamba-tests vs2017_win-64 python=$PYTHON_VERSION pip pybind11 libsolv libsodium libarchive "libcurl=7.76.1=*_0" nlohmann_json "cpp-filesystem>=1.5.8" conda cmake gtest gmock ninja reproc-cpp yaml-cpp pyyaml cli11 pytest pytest-lazy-fixture menuinst
-        env:
-          PYTHON_VERSION: ${{ matrix.python-version }}
-      - name: micromamba python based tests
-        shell: bash -l -eo pipefail {0}
-        run: |
-          conda activate mamba-tests
-
-          export MAMBA_ROOT_PREFIX=~/mambaroot
-          export MAMBA_TEST_SHELL_TYPE=bash
-
-          pytest test/micromamba
+      # - name: micromamba python based tests
+      #   shell: bash -l -eo pipefail {0}
+      #   run: |
+      #     export PYTHONIOENCODING=UTF-8
+      #     export MAMBA_ROOT_PREFIX=~/mambaroot
+      #     export MAMBA_TEST_SHELL_TYPE=bash
+      #
+      #     pytest micromamba/tests/test_shell.py -v -s

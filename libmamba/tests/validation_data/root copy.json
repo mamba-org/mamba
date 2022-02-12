@@ -1,0 +1,19 @@
+{
+  "signatures": [
+    {
+      "keyid": "foo",
+      "sig": "..."
+    }
+  ],
+  "signed": {
+    "_type": "root",
+    "roles": {
+      "root": {
+        "keyids": [
+          "foo"
+        ],
+        "threshold": 1
+      }
+    }
+  }
+}

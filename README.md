@@ -20,7 +20,7 @@
 # mamba
 
 [![Build Status](https://github.com/mamba-org/mamba/workflows/CI/badge.svg)](https://github.com/mamba-org/mamba/actions)
-[![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/QuantStack/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mamba-org/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![docs](https://readthedocs.org/projects/mamba/badge/?version=latest&style=flat)](https://mamba.readthedocs.io/en/latest)
 
 Mamba is a reimplementation of the conda package manager in C++.
@@ -54,6 +54,7 @@ Now you are ready to install packages with
 ```bash
 mamba install xtensor-r -c conda-forge
 ```
+
 for example.
 
 ### Additional features
@@ -68,7 +69,7 @@ Here are some examples:
 `mamba repoquery depends xtensor` will show you a tree view of the dependencies of xtensor.
 
 ```
-$ mamba repoquery depends xtensor
+$ mamba repoquery depends --tree xtensor
 
 xtensor == 0.21.5
   ├─ libgcc-ng [>=7.3.0]
@@ -98,7 +99,6 @@ $ mamba repoquery whoneeds ipython
 
 With the `--tree` (or `-t`) flag, you can get the same information in a tree.
 
-
 ## micromamba
 
 `micromamba` is a tiny version of the `mamba` package manager.
@@ -106,7 +106,7 @@ It is a pure C++ package with a separate command line interface.
 It can be used to bootstrap environments (as an alternative to miniconda), but it's currently experimental.
 The benefit is that it's very tiny and does not come with a default version of Python.
 
-`micromamba` works in the bash & zsh shell on Linux & OS X.
+`micromamba` works in the bash, zsh, and fish shells on Linux & OS X.
 It's completely statically linked, which allows you to drop it in some place and just execute it.
 
 Note: it's advised to use micromamba in containers & CI only.
@@ -130,7 +130,7 @@ Note: currently the `-c` arguments have to come at the end of the command line.
 
 ```sh
 micromamba activate
-micromamba install python=3.6 jupyter -c conda-forge
+micromamba install python=3.10 jupyter -c conda-forge
 # or
 micromamba create -p /some/new/prefix xtensor -c conda-forge
 micromamba activate /some/new/prefix
@@ -140,43 +140,7 @@ For more instructions (including OS X) check out https://gist.github.com/wolfv/f
 
 ### Development installation
 
-Make sure you install mamba's requirements in your conda environment:
-
-`mamba env update --name <conda_env> --file environment-dev.yml`
-
-If you build mamba in a different environment than base, you must also install conda in
-that environment:
-
-`mamba install conda -c conda-forge`
-
-For a local (dev) build, run `pip install -e .`. This will build and install mamba
-in the conda environment.
-
-#### cmake based build
-
-You will additionally need to install cmake and cli11 for micromamba:
-
-```bash
-mamba install -c conda-forge cli11 cmake
-```
-
-For the C++ tests, you need Google Test and Google Mock installed (e.g. `mamba install gtest gmock`).
-To build the program using CMake, the following lines need to be used:
-
-```bash
-mkdir -p build
-cd build
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-    -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python3 \
-    -DPYTHON_LIBRARIES=$CONDA_PREFIX/lib/libpython3.7m.so \
-    -DENABLE_TESTS=ON
-cmake --build . -j
-```
-
-This would generate the test program `./test/test_mamba` under the `build`
-directory which you can execute with `make test`. To generate the executable
-`micromamba` also include the CMake option `-DBUILD_EXE=ON` in the above step.
+Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/build_locally.html#).
 
 ### Support us
 

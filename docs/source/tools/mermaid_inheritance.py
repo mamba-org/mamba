@@ -262,7 +262,10 @@ def latex_visit_mermaid_inheritance(
     graph_hash = get_graph_hash(node)
     name = "inheritance%s" % graph_hash
 
-    dotcode = graph.generate_dot(name, env=self.builder.env,)
+    dotcode = graph.generate_dot(
+        name,
+        env=self.builder.env,
+    )
     #  graph_attrs={'size': '"6.0,6.0"'})
     render_mm_latex(self, node, dotcode, {}, "inheritance")
     raise nodes.SkipNode
@@ -279,7 +282,10 @@ def texinfo_visit_mermaid_inheritance(
     graph_hash = get_graph_hash(node)
     name = "inheritance%s" % graph_hash
 
-    dotcode = graph.generate_dot(name, env=self.builder.env,)
+    dotcode = graph.generate_dot(
+        name,
+        env=self.builder.env,
+    )
     #  graph_attrs={'size': '"6.0,6.0"'})
     render_mm_texinfo(self, node, dotcode, {}, "inheritance")
     raise nodes.SkipNode

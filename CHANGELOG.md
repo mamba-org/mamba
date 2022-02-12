@@ -1,3 +1,187 @@
+2022.02.11
+==========
+
+Releases: libmamba 0.21.1, libmambapy 0.21.1, mamba 0.21.1, micromamba 0.21.1
+
+Bug fixes
+- [libmamba] Adjust cache url hashing and header data parsing #1482
+- [libmamba] Properly strip header of \r\n before adding to repodata.json cache #1482
+- [micromamba] Revert removal of environment variables when running pip (thanks @austin1howard) #1477
+- [mamba] Fix undefined transaction when creating env with no specs #1460
+
+Improvements
+- [micromamba] Add `micromamba config --json` (thanks @JohanMabille) #1484
+- [mamba,micromamba,libmamba] Adjustments for the progress bars, make better visible on light backgrounds #1458
+- [mamba] Refer to mamba activate for activation hint #1462
+- [micromamba] Micromamba run add `--clean-env` and `-e,--env` handling to pass in environment variables #1464
+- [mamba] Mention in help message that `mamba activate` and `deactivate` are supported (thanks @traversaro) #1476
+- [micromamba] Disable banner with `micromamba run` #1474
+
+2022.02.07
+==========
+
+Releases: libmamba 0.21.0, libmambapy 0.21.0, mamba 0.21.0, micromamba 0.21.0
+
+Bug fixes
+- [libmamba] generate PkgMgr role file from its file definition #1408
+- [micromamba] fix crash with missing CONDARC file (thanks @jonashaag) #1417
+- [micromamba] fix `micromamba --log-level` (thanks @jonashaag) #1417
+- [micromamba] Fix erroneous error print when computing SHA256 of missing symlink #1412
+- [micromamba] Add `-n` flag handling to `micromamba activate` #1411
+- [micromamba] Refactor configuration loading and create file if it doesn't exist when setting values #1420
+- [libmamba] Fix a regex segfault in history parsing #1441
+- [libmamba] Add test for segfault history parsing #1444 (thanks @jonashaag)
+- [micromamba] Improve shell scripts when ZSH_VERSION is unbound #1440
+- [micromamba] Return error code when pip install fails from environment.yml #1442
+
+Improvements
+- [all] Update pre-commit versions (thanks @jonashaag) #1417
+- [all] Use clang-format from pypi (thanks @chrisburr) #1430
+- [all] Incremental ccache updates (thanks @jonashaag) #1445
+- [micromamba] Substitute environment vars in .condarc files (thanks @jonashaag) #1423
+- [micromamba, libmamba] Speed up noarch compilation (thanks @chrisburr) #1422
+- [mamba] Include credentials for defaults channel URLs (thanks @wulmer) #1421
+- [micromamba, libmamba] New fancy progress bars! (thanks @adriendelsalle) #1426, #1350
+- [libmamba] Refactor how we set env vars in the Context #1426
+- [micromamba] Add `micromamba run` command (thanks @JohanMabille) #1380, #1395, #1406, #1438, #1434
+- [micromamba] Add `-f` for `micromamba clean` command (thanks @JohanMabille) #1449
+- [micromamba] Add improved `micromamba update --all` #1318
+- [micromamba] Add `micromamba repoquery` command #1318
+
+2022.01.25
+==========
+
+Releases: libmamba 0.20.0, libmambapy 0.20.0, mamba 0.20.0, micromamba 0.20.0
+
+Bug fixes
+- [libmamba] Close file before retry & deletion when downloading subdir (thanks @xhochy) #1373
+- [micromamba] Fix micromamba init & conda init clobber (thanks @maresb) #1357
+- [micromamba] Rename mamba.sh to micromamba.sh for better compatibility between mamba & micromamba (thanks @maresb) #1355
+- [micromamba] Print activate error to stderr (thanks @maresb) #1351
+
+Improvements
+- [micromamba, libmamba] Store platform when creating env with `--platform=...` (thanks @adriendelsalle) #1381
+- [libmamba] Add environment variable to disable low speed limit (thanks @xhochy) #1380
+- [libmamba] Make max download threads configurable (thanks @adriendelsalle) #1377
+- [micromamba] Only print micromamba version and add library versions to `info` command #1372
+- [micromamba] Implement activate as a micromamba subcommand for better error messages (thanks @maresb) #1360
+- [micromamba] Experimental wass logged twice (thanks @baszalmstra) #1360
+- [mamba] Update to Python 3.10 in the example snippet (thanks @jtpio) #1371
+
+2021.12.08
+==========
+
+Releases: libmamba 0.19.1, libmambapy 0.19.1, mamba 0.19.1, micromamba 0.19.1
+
+Bug fixes
+- [mamba] Fix environment double print and add dry run to `mamba env create` (@wolfv) #1315
+- [micromamba] Fix lockfiles in Unicode prefix (@wolfv) #1319
+- [libmamba] Fix curl progress callback
+
+Improvements
+- [libmamba] Use WinReg from conda-forge
+- [libmamba] Add fast path for hide_secrets (thanks @baszalmstra) #1337
+- [libmamba] Use the original sha256 hash if a file doesnt change (thanks @baszalmstra) #1338
+- [libmamba] Rename files that are in use (and cannot be removed) on Windows (@wolfv) #1319
+- [micromamba] Add `micromamba clean --trash` command to remove `*.mamba_trash` files (@wolfv) #1319
+- [libmamba] Avoid recomputing SHA256 for symbolic links (@wolfv) #1319
+- [libmamba] Improve cleanup of directories in use (@wolfv) #1319
+- [libmamba] Fix pyc compilation on Windows (@adriendelsalle) #1340
+
+2021.11.30
+==========
+
+Releases: libmamba 0.19.0, libmambapy 0.19.0, mamba 0.19.0, micromamba 0.19.0
+
+Bug fixes
+- [all] Better Unicode support on Windows (@wolfv) #1306
+- [libmamba, libmambapy] Solver has function to get more solver errors (@wolfv) #1310
+- [mamba, micromamba] Do not set higher prio to arch vs noarch (@wolfv) #1312
+- [libmamba] Close json repodata file after opening (@wolfv) #1309
+- [micromamba] Add shell_completion, changeps1 and env_prompt as RC settings, remove auto-activate-base CLI flag (@wolfv) #1304
+- [libmamba] Add bash & zsh shell_completion to activation functions
+- [mamba] Use always_yes for `mamba env` subcommand (@wolfv) #1301
+- [libmambapy] Remove libmamba from install_requires for libmambapy (@duncanmmacleod) #1303
+
+2021.11.24
+==========
+
+Releases: libmamba 0.18.2, libmambapy 0.18.2, mamba 0.18.2, micromamba 0.18.2
+
+Bug fixes
+- [mamba, libmamba] Fix use of a read-only cache (@adriendelsalle) #1294
+- [mamba, libmamba] Fix dangling LockFiles (@adriendelsalle) #1290
+- [micromamba] Fix CMake config for micromamba fully statically linked on Windows (@adriendelsalle) #1297
+- [micromamba, libmamba] Fix shell activation regression (@adriendelsalle) #1289
+
+2021.11.19
+==========
+
+Releases: libmamba 0.18.1, libmambapy 0.18.1, mamba 0.18.1, micromamba 0.18.1
+
+Bug fixes
+- [all] Fix default log level, use warning everywhere (@adriendelsalle) #1279
+- [mamba] Fix json output of `info` subcommand when verbose mode is active (@adriendelsalle) #1280
+- [libmamba, libmambapy, mamba] Allow mamba to set max extraction threads using `MAMBA_EXTRACT_THREADS` env var (@adriendelsalle) #1281
+
+2021.11.17
+==========
+
+Releases: libmamba 0.18.0, libmambapy 0.18.0, mamba 0.18.0, micromamba 0.18.0
+
+New features
+- [libmamba, mamba, micromamba] Implement parallel packages extraction using subprocesses (@jonashaag @adriendelsalle) #1195
+- [micromamba] Improve bash completion (activate sub-command, directories completion) (@adriendelsalle) #1234
+- [libmamba, micromamba] Add channel URLs to info (@jonashaag) #1235
+- [libmamba] Read custom_multichannels from .condarc (@jonashaag) #1240
+- [libmamba] Improve pyc compilation, make it configurable (@adriendelsalle) #1249
+- [micromamba] Make pyc compilation configurable using `--pyc,--no-pyc` flags (@adriendelsalle) #1249
+- [libmamba] Use `spdlog` for nicer and configurable logs (@adriendelsalle) #1255
+- [micromamba] Add `--log-level` option to control log level independently of verbosity (@adriendelsalle) #1255
+- [libmamba] Make show_banner rc and env_var configurable (@adriendelsalle) #1257
+- [micromamba] Add zsh completion (@adriendelsalle) #1269
+- [mamba] Make mamba env download and extract using `libmamba` (@adriendelsalle) #1270
+- [libmamba] Add info JSON output (@adriendelsalle) #1271
+- [micromamba] Add `--json` CLI flag to `info` sub-command (@adriendelsalle) #1271
+
+Bug fixes
+- [micromamba] Init all powershell profiles (@adriendelsalle) #1226
+- [micromamba] Fix multiple activations in Windows bash (@adriendelsalle) #1228
+- [libmamba] Fix failing package cache checks (@wolfv) #1237
+- [mamba] Use libmamba LockFile, add `clean --lock` flag (@adriendelsalle) #1238
+- [libmamba] Improve catching of reproc errors (such as OOM-killed) (@adriendelsalle) #1250
+- [libmamba] Fix shell init with relative paths (@adriendelsalle) #1252
+- [libmamba] Fix not thrown error in multiple caches logic (@adriendelsalle) #1253
+
+Docs
+- [micromamba] Document fish support (@izahn) #1216
+
+General improvements
+- [all] Split projects, improve CMake options (@adriendelsalle) #1219 #1243
+- [libmamba] Test that a missing file doesn't cause an unlink error (@adriendelsalle) #1251
+- [libmamba] Improve logging on YAML errors (@adriendelsalle) #1254
+- [mamba] Conditionally import bindings for cross-compiling (@adriendelsalle) #1263
+
+0.17.0 (October 13, 2021)
+=========================
+
+API Breaking changes:
+
+The Transaction and the Subdir interface have slightly changed (no more explicit setting of the writable
+packages dir is necessary, this value is taken directly from the MultiPackagesCache now)
+
+- improve listing of (RC-) configurable values in `micromamba` #1210 (thanks @adriendelsalle)
+- Improve micromamba lockfiles and add many tests #1193 (thanks @adriendelsalle)
+- Support multiple package caches in micromamba (thanks @adriendelsalle) #1109
+- Order explicit envs in micromamba (also added some text to the docs about libsolv transactions) #1198
+- Add `micromamba package` subcommand to extract, create and transmute packages #1187
+- Improve micromamba configuration to support multi-stage loading of RC files (thanks @adriendelsalle) #1189 #1190 #1191 #1188
+- Add handling of `CONDA_SAFETY_CHECKS` to micromamba #1143 (thanks @isuruf)
+- Improve mamba messaging by adding a space #1186 (thanks @wkusnierczyk)
+- Add support for `custom_multichannels` #1142
+- micromamba: expose setting for `add_pip_as_python_dependency` #1203
+- stop displaying banner when running `mamba list` #1184 (thanks @madhur-thandon)
+
 0.16.0 (September 27, 2021)
 ===========================
 

@@ -37,6 +37,7 @@ namespace mamba
 
         static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
+        static int debug_callback(CURL* handle, curl_infotype type, char* data, size_t size, void* userp);
 
         static int progress_callback(
             void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);

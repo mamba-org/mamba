@@ -152,11 +152,47 @@ namespace mamba
         init_curl_target(m_url);
     }
 
+    int DownloadTarget::debug_callback(CURL* handle, curl_infotype type, char* data, size_t size, void* userp)
+    {
+        switch (type)
+        {
+            case CURLINFO_TEXT:
+                LOG_ERROR << "Text== " << data;
+                break;
+            case CURLINFO_HEADER_OUT:
+                LOG_ERROR << "header_out" << data;
+                break;
+            case CURLINFO_DATA_OUT:
+                LOG_ERROR << "=> Send data" << data;
+                break;
+            case CURLINFO_SSL_DATA_OUT:
+                LOG_ERROR << "=> Send SSL data" << data;
+                break;
+            case CURLINFO_HEADER_IN:
+                LOG_ERROR << "<= Recv header" << data;
+                break;
+            case CURLINFO_DATA_IN:
+                LOG_ERROR << "<= Recv data" << data;
+                break;
+            case CURLINFO_SSL_DATA_IN:
+                LOG_ERROR << "<= Recv SSL data" << data;
+                break;
+
+            default: /* we ignore unknown types by default */
+                return 0;
+        }
+        return 0;
+    }
+
+
     void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
     {
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+        curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &DownloadTarget::debug_callback);
+        curl_easy_setopt(handle, CURLOPT_DEBUGDATA, NULL);
 
         // DO NOT SET TIMEOUT as it will also take into account multi-start time and
         // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,

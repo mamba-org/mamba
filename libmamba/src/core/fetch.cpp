@@ -190,10 +190,29 @@ namespace mamba
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(handle, CURLOPT_UNRESTRICTED_AUTH, true);
+        // curl_easy_setopt(handle, CURLOPT_UNRESTRICTED_AUTH, true);
 
         // curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &DownloadTarget::debug_callback);
         // curl_easy_setopt(handle, CURLOPT_DEBUGDATA, NULL);
+
+        long auth;
+        res = curl_easy_getinfo(curl, CURLINFO_HTTPAUTH_AVAIL, &auth);
+        if (!res)
+        {
+            if (!auth)
+                LOG_INFO << "No auth available, perhaps no 401?\n";
+            else
+            {
+                LOG_INFO << ("%s%s%s%s\n",
+                         auth & CURLAUTH_BASIC ? "Basic " : "",
+                         auth & CURLAUTH_DIGEST ? "Digest " : "",
+                         auth & CURLAUTH_NEGOTIATE ? "Negotiate " : "",
+                         auth % CURLAUTH_NTLM ? "NTLM " : "");
+            }
+        } else
+        {
+            LOG_INFO << "Got nothing back. Skipping debug step";
+        }
 
         // DO NOT SET TIMEOUT as it will also take into account multi-start time and
         // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
@@ -263,6 +282,8 @@ namespace mamba
 
         curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
         curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, this);
+
+        m_handle->
 
         m_headers = nullptr;
         if (ends_with(url, ".json"))

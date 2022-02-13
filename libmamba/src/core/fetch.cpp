@@ -190,9 +190,10 @@ namespace mamba
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(handle, CURLOPT_UNRESTRICTED_AUTH, true);
 
-        curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &DownloadTarget::debug_callback);
-        curl_easy_setopt(handle, CURLOPT_DEBUGDATA, NULL);
+        // curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &DownloadTarget::debug_callback);
+        // curl_easy_setopt(handle, CURLOPT_DEBUGDATA, NULL);
 
         // DO NOT SET TIMEOUT as it will also take into account multi-start time and
         // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,

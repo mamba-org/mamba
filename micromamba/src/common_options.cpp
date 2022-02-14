@@ -51,25 +51,25 @@ init_general_options(CLI::App* subcom)
             { "critical", "error", "warning", "info", "debug", "trace", "off" })));
 
     auto& quiet = config.at("quiet").get_wrapped<bool>();
-    subcom->add_flag("-q,--quiet", quiet.set_cli_config(0), quiet.description())->group(cli_group);
+    subcom->add_flag("-q,--quiet", quiet.set_cli_config(false), quiet.description())->group(cli_group);
 
     auto& always_yes = config.at("always_yes").get_wrapped<bool>();
-    subcom->add_flag("-y,--yes", always_yes.set_cli_config(0), always_yes.description())
+    subcom->add_flag("-y,--yes", always_yes.set_cli_config(false), always_yes.description())
         ->group(cli_group);
 
     auto& json = config.at("json").get_wrapped<bool>();
-    subcom->add_flag("--json", json.set_cli_config(0), json.description())->group(cli_group);
+    subcom->add_flag("--json", json.set_cli_config(false), json.description())->group(cli_group);
 
     auto& offline = config.at("offline").get_wrapped<bool>();
-    subcom->add_flag("--offline", offline.set_cli_config(0), offline.description())
+    subcom->add_flag("--offline", offline.set_cli_config(false), offline.description())
         ->group(cli_group);
 
     auto& dry_run = config.at("dry_run").get_wrapped<bool>();
-    subcom->add_flag("--dry-run", dry_run.set_cli_config(0), dry_run.description())
+    subcom->add_flag("--dry-run", dry_run.set_cli_config(false), dry_run.description())
         ->group(cli_group);
 
     auto& experimental = config.at("experimental").get_wrapped<bool>();
-    subcom->add_flag("--experimental", experimental.set_cli_config(0), experimental.description())
+    subcom->add_flag("--experimental", experimental.set_cli_config(false), experimental.description())
         ->group(cli_group);
 
     auto& debug = config.at("debug").get_wrapped<bool>();
@@ -117,7 +117,7 @@ init_network_options(CLI::App* subcom)
 
     auto& ssl_no_revoke = config.at("ssl_no_revoke").get_wrapped<bool>();
     subcom
-        ->add_flag("--ssl-no-revoke", ssl_no_revoke.set_cli_config(0), ssl_no_revoke.description())
+        ->add_flag("--ssl-no-revoke", ssl_no_revoke.set_cli_config(false), ssl_no_revoke.description())
         ->group(cli_group);
 
     auto& cacert_path = config.at("cacert_path").get_wrapped<std::string>();
@@ -180,7 +180,7 @@ init_channel_parser(CLI::App* subcom)
                             .set_post_merge_hook(strict_channel_priority_hook),
                         true);
     subcom->add_flag("--strict-channel-priority",
-                     strict_channel_priority.set_cli_config(0),
+                     strict_channel_priority.set_cli_config(false),
                      strict_channel_priority.description());
 
     auto& no_channel_priority = config.insert(Configurable("no_channel_priority", false)
@@ -189,7 +189,7 @@ init_channel_parser(CLI::App* subcom)
                                                   .set_post_merge_hook(no_channel_priority_hook),
                                               true);
     subcom->add_flag("--no-channel-priority",
-                     no_channel_priority.set_cli_config(0),
+                     no_channel_priority.set_cli_config(false),
                      no_channel_priority.description());
 
     channel_priority.needs({ "strict_channel_priority", "no_channel_priority" });
@@ -306,42 +306,42 @@ init_install_options(CLI::App* subcom)
         ->allow_extra_args(false);
 
     auto& no_pin = config.at("no_pin").get_wrapped<bool>();
-    subcom->add_flag("--no-pin,!--pin", no_pin.set_cli_config(0), no_pin.description());
+    subcom->add_flag("--no-pin,!--pin", no_pin.set_cli_config(false), no_pin.description());
 
     auto& no_py_pin = config.at("no_py_pin").get_wrapped<bool>();
-    subcom->add_flag("--no-py-pin,!--py-pin", no_py_pin.set_cli_config(0), no_py_pin.description());
+    subcom->add_flag("--no-py-pin,!--py-pin", no_py_pin.set_cli_config(false), no_py_pin.description());
 
     auto& compile_pyc = config.at("compile_pyc").get_wrapped<bool>();
-    subcom->add_flag("--pyc,!--no-pyc", compile_pyc.set_cli_config(0), compile_pyc.description());
+    subcom->add_flag("--pyc,!--no-pyc", compile_pyc.set_cli_config(false), compile_pyc.description());
 
     auto& allow_uninstall = config.at("allow_uninstall").get_wrapped<bool>();
     subcom->add_flag("--allow-uninstall,!--no-allow-uninstall",
-                     allow_uninstall.set_cli_config(0),
+                     allow_uninstall.set_cli_config(false),
                      allow_uninstall.description());
 
     auto& allow_downgrade = config.at("allow_downgrade").get_wrapped<bool>();
     subcom->add_flag("--allow-downgrade,!--no-allow-downgrade",
-                     allow_downgrade.set_cli_config(0),
+                     allow_downgrade.set_cli_config(false),
                      allow_downgrade.description());
 
     auto& allow_softlinks = config.at("allow_softlinks").get_wrapped<bool>();
     subcom->add_flag("--allow-softlinks,!--no-allow-softlinks",
-                     allow_softlinks.set_cli_config(0),
+                     allow_softlinks.set_cli_config(false),
                      allow_softlinks.description());
 
     auto& always_softlink = config.at("always_softlink").get_wrapped<bool>();
     subcom->add_flag("--always-softlink,!--no-always-softlink",
-                     always_softlink.set_cli_config(0),
+                     always_softlink.set_cli_config(false),
                      always_softlink.description());
 
     auto& always_copy = config.at("always_copy").get_wrapped<bool>();
     subcom->add_flag("--always-copy,!--no-always-copy",
-                     always_copy.set_cli_config(0),
+                     always_copy.set_cli_config(false),
                      always_copy.description());
 
     auto& extra_safety_checks = config.at("extra_safety_checks").get_wrapped<bool>();
     subcom->add_flag("--extra-safety-checks,!--no-extra-safety-checks",
-                     extra_safety_checks.set_cli_config(0),
+                     extra_safety_checks.set_cli_config(false),
                      extra_safety_checks.description());
 
     auto& lock_timeout = config.at("lock_timeout").get_wrapped<std::size_t>();
@@ -350,7 +350,7 @@ init_install_options(CLI::App* subcom)
 
     auto& shortcuts = config.at("shortcuts").get_wrapped<bool>();
     subcom->add_flag(
-        "--shortcuts,!--no-shortcuts", shortcuts.set_cli_config(0), shortcuts.description());
+        "--shortcuts,!--no-shortcuts", shortcuts.set_cli_config(false), shortcuts.description());
 
     auto& safety_checks = config.at("safety_checks").get_wrapped<VerificationLevel>();
     subcom
@@ -359,7 +359,7 @@ init_install_options(CLI::App* subcom)
         ->check(CLI::IsMember(std::set<std::string>({ "enabled", "warn", "disabled" })));
 
     auto& av = config.at("verify_artifacts").get_wrapped<bool>();
-    subcom->add_flag("--verify-artifacts", av.set_cli_config(0), av.description());
+    subcom->add_flag("--verify-artifacts", av.set_cli_config(false), av.description());
 
     auto& platform = config.at("platform").get_wrapped<std::string>();
     subcom->add_option("--platform", platform.set_cli_config(""), platform.description());

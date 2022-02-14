@@ -365,7 +365,7 @@ set_config_remove_command(CLI::App* subcom)
             .description(
                 "Remove a configuration value from a list key. This removes all instances of the value."));
     subcom->add_option(
-        "remove", remove_vec_map.set_cli_config({ "" }), remove_vec_map.description());
+        "remove", remove_vec_map.set_cli_config(std::vector<std::string>{ "" }), remove_vec_map.description());
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);

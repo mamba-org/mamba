@@ -590,8 +590,8 @@ namespace mamba
     {
         RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
-                           m_mod_etag["_etag"],
-                           m_mod_etag["_mod"] };
+                           m_mod_etag.value("_etag", ""),
+                           m_mod_etag.value("_mod", "") };
 
         return MRepo(pool, m_name, cache_path(), meta);
     }

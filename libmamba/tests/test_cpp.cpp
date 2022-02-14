@@ -526,6 +526,11 @@ namespace mamba
 
         j = detail::read_mod_and_etag(cache_folder / "test_3.json");
         EXPECT_TRUE(j.empty());
+
+        j = detail::read_mod_and_etag(cache_folder / "test_6.json");
+        EXPECT_EQ(j["_mod"], "Thu, 02 Apr 2020 20:21:27 GMT");
+        EXPECT_EQ(j["_url"], "https://conda.anaconda.org/intake/osx-arm64");
+
         // EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
         // EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
     }

@@ -207,7 +207,7 @@ namespace mamba
 
         if (std::getenv("MAMBA_SET_USEDPWD"))
         {
-            curl_easy_setopt(handle, CURLOPT_USERPWD, ":test")
+            curl_easy_setopt(handle, CURLOPT_USERPWD, ":test");
         }
 
         // if the request is slower than 30b/s for 60 seconds, cancel.

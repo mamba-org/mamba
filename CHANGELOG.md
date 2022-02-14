@@ -1,3 +1,12 @@
+2022.02.14
+==========
+
+Releases: libmamba 0.21.2, libmambapy 0.21.2, mamba 0.21.2, micromamba 0.21.2
+
+Bug fixes
+- [libmamba] Fix json read of `_mod` and `_etag` when they are not available #1490
+- [micromamba] Properly attach stdin for `micromamba run` #1488
+
 2022.02.11
 ==========
 

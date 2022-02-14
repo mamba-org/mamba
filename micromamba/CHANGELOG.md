@@ -1,3 +1,10 @@
+micromamba 0.21.2 (February 14, 2022)
+=====================================
+
+Bug fixes
+
+- Properly attach stdin for `micromamba run` #1488
+
 micromamba 0.21.1 (February 11, 2022)
 =====================================
 

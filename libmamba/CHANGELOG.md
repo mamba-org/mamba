@@ -1,3 +1,10 @@
+libmamba 0.21.2 (February 14, 2022)
+===================================
+
+Bug fixes
+
+- Fix json read of `_mod` and `_etag` when they are not available #1490
+
 libmamba 0.21.1 (February 11, 2022)
 ===================================
 

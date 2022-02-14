@@ -6,6 +6,7 @@ rm -rf $CONDA_PREFIX/pkgs/test-package*
 ENV_NAME=testauth
 
 export TESTPWD=":test"
+export MAMBA_SET_USEDPWD="true"
 python reposerver.py -d repo/ --auth basic --port 8005 & PID=$!
 python reposerver.py -d repo/ --auth basic --port 8006 & PID=$!
 python reposerver.py -d repo/ --auth basic --port 8007 & PID=$!

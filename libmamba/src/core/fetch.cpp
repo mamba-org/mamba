@@ -269,8 +269,6 @@ namespace mamba
         curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
         curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, this);
 
-        m_handle->
-
         m_headers = nullptr;
         if (ends_with(url, ".json"))
         {

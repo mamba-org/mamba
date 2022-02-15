@@ -71,19 +71,6 @@ init_general_options(CLI::App* subcom)
     auto& experimental = config.at("experimental").get_wrapped<bool>();
     subcom->add_flag("--experimental", experimental.set_cli_config(0), experimental.description())
         ->group(cli_group);
-
-    auto& debug = config.at("debug").get_wrapped<bool>();
-    subcom->add_flag("--debug", debug.set_cli_config(false), "Debug mode")->group("");
-
-    auto& print_context_only = config.at("print_context_only").get_wrapped<bool>();
-    subcom
-        ->add_flag(
-            "--print-context-only", print_context_only.set_cli_config(false), "Debug context")
-        ->group("");
-
-    auto& print_config_only = config.at("print_config_only").get_wrapped<bool>();
-    subcom->add_flag("--print-config-only", print_config_only.set_cli_config(false), "Debug config")
-        ->group("");
 }
 
 void

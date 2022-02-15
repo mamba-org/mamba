@@ -15,8 +15,8 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 set_activate_command(CLI::App* subcom)
 {
-    std::string name = "";
-    bool stack = false;
+    static std::string name = "";
+    static bool stack = false;
 
     subcom->add_option("prefix", name, "The prefix to activate");
     subcom->add_flag(

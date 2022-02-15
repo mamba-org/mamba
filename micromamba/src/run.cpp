@@ -25,11 +25,14 @@ extern "C" {
 
 namespace mamba {
 
+
+    bool is_process_name_running(std::string_view name);
+
     std::string generate_unique_process_name(std::string_view process_name)
     {
         assert(!process_name.empty());
 
-        static constexpr std::array prefixes = {
+        static std::vector prefixes_bag = {
             "curious",
             "gentle",
             "happy",
@@ -37,10 +40,28 @@ namespace mamba {
             // TODO: add more here
         };
 
-        std::string selected_prefix;
-        std::sample(prefixes.begin(), prefixes.end(), &selected_prefix, 1, local_random_generator());
-        const auto new_process_name = fmt::format("{}_{}", selected_prefix, process_name);
-        return new_process_name;
+        while(true)
+        {
+            std::string selected_prefix;
+            if(!prefixes_bag.empty())
+            {
+                // Pick a random prefix from our bag of prefixes.
+                const auto selected_prefix_idx = random_int<std::size_t>(0, prefixes_bag.size() - 1);
+                const auto selected_prefix_it = std::next(prefixes_bag.begin(), selected_prefix_idx);
+                selected_prefix = *selected_prefix_it;
+                prefixes_bag.erase(selected_prefix_it);
+            }
+            else
+            {
+                // No prefixes left in the bag, just generate a random one as a fail-safe.
+                constexpr std::size_t arbitrary_prefix_length = 8;
+                selected_prefix = generate_random_alphanumeric_string(arbitrary_prefix_length);
+            }
+
+            const auto new_process_name = fmt::format("{}_{}", selected_prefix, process_name);
+            if(!is_process_name_running(new_process_name))
+                return new_process_name;
+        }
     }
 
     const fs::path& proc_dir()
@@ -60,16 +81,63 @@ namespace mamba {
         return lockfile;
     }
 
+    struct PredicateTrue
+    {
+        template<typename T>
+        constexpr bool operator()(T&&) noexcept { return true; }
+    };
+
+    template<typename Predicate = PredicateTrue>
+    nlohmann::json get_all_running_processes_info(Predicate filter = {})
+    {
+        nlohmann::json all_processes_info;
+
+        const auto open_mode = std::ios::binary | std::ios::in;
+
+        for(auto&& entry : fs::directory_iterator{proc_dir()})
+        {
+            const auto file_location = entry.path();
+            if(file_location.extension() != ".json")
+                continue;
+
+            fs::ifstream pid_file{ file_location, open_mode };
+            if(!pid_file.is_open())
+            {
+                LOG_WARNING << fmt::format("could not open {}", file_location);
+                continue;
+            }
+
+            const auto running_processes_info = nlohmann::json::parse(pid_file);
+            for(auto&& process_info : running_processes_info["running"].items())
+            {
+                if(filter(process_info))
+                    all_processes_info[process_info.key()] = process_info.value();
+            }
+        }
+
+        return all_processes_info;
+    }
+
+    bool is_process_name_running(std::string_view name)
+    {
+        const auto other_processes_with_same_name = get_all_running_processes_info([&](auto&& process_info){
+            return process_info.key() == name;
+        });
+        return !other_processes_with_same_name.empty();
+    }
+
+
     class ScopedProcFile
     {
         const fs::path location;
 
     public:
 
-        ScopedProcFile(const std::string& child_name, PID child_pid)
+        ScopedProcFile(const std::string& child_name, PID child_pid, std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
-            const auto lock = lock_proc_dir();
+            assert(proc_dir_lock); // Lock must be hold for the duraction of this constructor.
+
             const auto open_mode = std::ios::binary | std::ios::trunc | std::ios::in | std::ios::out;
             fs::fstream pid_file{ location, open_mode };
             if(!pid_file.is_open())
@@ -165,6 +233,9 @@ set_run_command(CLI::App* subcom)
     static std::vector<std::string> env_vars;
     subcom->add_option("-e,--env", env_vars, "Add env vars with -e ENVVAR or -e ENVVAR=VALUE")->allow_extra_args(false);
 
+    static std::string specific_process_name;
+    subcom->add_option("--pname", specific_process_name, "Specifies the name of the process. If not set, a unique name enerated by deriving from the executable name will be generated.");
+
     subcom->prefix_command();
 
     static reproc::process proc;
@@ -182,7 +253,12 @@ set_run_command(CLI::App* subcom)
             exit(1);
         }
 
+        LOG_WARNING << "currently running processes: " << get_all_running_processes_info();
+
         LOG_WARNING << "Remaining args to run as command: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
+
+        // Lock the process directory to read and write in it until we manage to run the file or exit.
+        static auto proc_dir_lock = lock_proc_dir();  // Note: this object is static only so that calls to `std::exit()` will call the destructor.
 
         // replace the wrapping bash with new process entirely
         #ifndef _WIN32
@@ -190,13 +266,26 @@ set_run_command(CLI::App* subcom)
             command.insert(command.begin(), "exec");
 
         const std::string process_name = [&]{
-            // Insert a unique process name associated to the command.
+            // Insert a unique process name associated to the command, either specified by the user or generated.
             command.reserve(4); // We need at least 4 objects to not move around.
-            const auto original_name_it = std::next(command.begin());
-            const auto& original_name = *original_name_it;
-            auto unique_name = generate_unique_process_name(original_name);
-            command.insert(original_name_it, { {"-a"}, std::move(unique_name) });
-            return unique_name;
+
+            const auto exe_name_it = std::next(command.begin());
+            if(specific_process_name.empty())
+            {
+                const auto unique_name = generate_unique_process_name(*exe_name_it);
+                command.insert(exe_name_it, { {"-a"}, unique_name });
+                return unique_name;
+            }
+            else
+            {
+                if(is_process_name_running(specific_process_name))
+                {
+                    LOG_ERROR << fmt::format("Another process with name '{}' is running.", specific_process_name);
+                    exit(1);
+                }
+                command.insert(exe_name_it, { {"-a"}, specific_process_name });
+                return specific_process_name;
+            }
         }();
         #endif
 
@@ -267,7 +356,7 @@ set_run_command(CLI::App* subcom)
 
         std::tie(pid, ec) = proc.pid();
 
-        static ScopedProcFile scoped_proc_file{ process_name, pid }; // Note: this is static only so that calls to `std::exit()` will call the destructor.
+        static ScopedProcFile scoped_proc_file{ process_name, pid, std::move(proc_dir_lock) }; // Note: this object is static only so that calls to `std::exit()` will call the destructor.
 
         if (ec)
         {

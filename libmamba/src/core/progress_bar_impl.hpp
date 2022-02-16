@@ -147,7 +147,7 @@ namespace mamba
 
         ProgressBarRepr& reset_fields();
 
-        const ProgressBar& progress_bar() const;
+        ProgressBar& progress_bar();
 
     private:
 

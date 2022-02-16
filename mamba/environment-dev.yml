@@ -24,3 +24,4 @@ dependencies:
   - pyyaml
   - conda
   - sel(win): winreg
+  - powerloader

@@ -19,3 +19,4 @@ dependencies:
   - spdlog
   - fmt
   - sel(win): winreg
+  - powerloader

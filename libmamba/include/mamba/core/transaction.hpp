@@ -30,6 +30,8 @@
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
 
+#include <powerloader/download_target.hpp>
+
 extern "C"
 {
 #include "solv/transaction.h"
@@ -63,7 +65,7 @@ namespace mamba
         auto validation_result() const;
         void clear_cache() const;
 
-        DownloadTarget* target(MultiPackageCache& cache);
+        std::shared_ptr<powerloader::DownloadTarget> target(MultiPackageCache& cache);
 
         enum VALIDATION_RESULT
         {
@@ -87,7 +89,7 @@ namespace mamba
 
         bool m_has_progress_bars = false;
         ProgressProxy m_download_bar, m_extract_bar;
-        std::unique_ptr<DownloadTarget> m_target;
+        std::shared_ptr<powerloader::DownloadTarget> m_target;
 
         std::string m_url, m_name, m_filename;
         fs::u8path m_tarball_path, m_cache_path;

@@ -27,6 +27,8 @@
 
 #include "progress_bar_impl.hpp"
 
+#include <powerloader/downloader.hpp>
+
 namespace
 {
     bool need_pkg_download(const mamba::PackageInfo& pkg_info, mamba::MultiPackageCache& caches)
@@ -122,12 +124,14 @@ namespace mamba
 
     void PackageDownloadExtractTarget::validate()
     {
+        // TODO expose downloaded size from powerloader callback
         m_validation_result = VALIDATION_RESULT::VALID;
-        if (m_expected_size && size_t(m_target->downloaded_size) != m_expected_size)
+        std::size_t downloaded_size = fs::file_size(m_tarball_path);
+        if (m_expected_size && downloaded_size != m_expected_size)
         {
             LOG_ERROR << "File not valid: file size doesn't match expectation " << m_tarball_path
                       << "\nExpected: " << m_expected_size
-                      << "\nActual: " << size_t(m_target->downloaded_size) << "\n";
+                      << "\nActual: " << size_t(downloaded_size) << "\n";
             if (m_has_progress_bars)
             {
                 m_download_bar.set_postfix("validation failed");
@@ -176,7 +180,7 @@ namespace mamba
 
     std::function<void(ProgressBarRepr&)> PackageDownloadExtractTarget::extract_repr()
     {
-        return [&](ProgressBarRepr& r) -> void
+        return [](ProgressBarRepr& r) -> void
         {
             if (r.progress_bar().started())
             {
@@ -191,7 +195,7 @@ namespace mamba
 
     std::function<void(ProgressProxy&)> PackageDownloadExtractTarget::extract_progress_callback()
     {
-        return [&](ProgressProxy& bar) -> void
+        return [](ProgressProxy& bar) -> void
         {
             if (bar.started())
             {
@@ -205,16 +209,12 @@ namespace mamba
         // Extracting is __not__ yet thread safe it seems...
         interruption_point();
 
-        if (m_has_progress_bars)
-        {
-            m_extract_bar.start();
-        }
+        // if (m_has_progress_bars)
+        //     m_extract_bar.start();
 
         LOG_DEBUG << "Waiting for decompression " << m_tarball_path;
-        if (m_has_progress_bars)
-        {
-            m_extract_bar.update_progress(0, 1);
-        }
+        // if (m_has_progress_bars)
+        //     m_extract_bar.update_progress(0, 1);
         {
             std::lock_guard<counting_semaphore> lock(DownloadExtractSemaphore::semaphore);
             interruption_point();
@@ -245,6 +245,7 @@ namespace mamba
                     fs::remove_all(extract_path);
                 }
 
+                assert(fs::exists(m_tarball_path));
                 // Use non-subproc version if concurrency is disabled to avoid
                 // any potential subprocess issues
                 if (DownloadExtractSemaphore::get_max() == 1)
@@ -255,7 +256,7 @@ namespace mamba
                 {
                     mamba::extract_subproc(m_tarball_path, extract_path);
                 }
-                // mamba::extract(m_tarball_path, extract_path);
+
                 interruption_point();
                 LOG_DEBUG << "Extracted to '" << extract_path.string() << "'";
                 write_repodata_record(extract_path);
@@ -334,15 +335,16 @@ namespace mamba
             m_download_bar.mark_as_completed();
         }
 
-        if (m_target->http_status >= 400)
-        {
-            LOG_ERROR << "Failed to download package from " << m_url << " (status "
-                      << m_target->http_status << ")";
-            m_validation_result = VALIDATION_RESULT::UNDEFINED;
-            return false;
-        }
+        // if (m_target->http_status >= 400)
+        // {
+        //     LOG_ERROR << "Failed to download package from " << m_url << " (status "
+        //               << m_target->http_status << ")";
+        //     m_validation_result = VALIDATION_RESULT::UNDEFINED;
+        //     return false;
+        // }
 
         LOG_INFO << "Download finished, validating '" << m_tarball_path.string() << "'";
+        assert(fs::exists(m_tarball_path));
         MainExecutor::instance().schedule(&PackageDownloadExtractTarget::validate_extract, this);
 
         return true;
@@ -379,7 +381,8 @@ namespace mamba
     }
 
     // todo remove cache from this interface
-    DownloadTarget* PackageDownloadExtractTarget::target(MultiPackageCache& caches)
+    std::shared_ptr<powerloader::DownloadTarget> PackageDownloadExtractTarget::target(
+        MultiPackageCache& caches)
     {
         // tarball can be removed, it's fine if only the correct dest dir exists
         // 1. If there is extracted cache, use it, otherwise next.
@@ -424,16 +427,52 @@ namespace mamba
                 LOG_DEBUG << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
 
                 m_tarball_path = m_cache_path / m_filename;
-                m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path.string());
-                m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
+
+                if (starts_with(m_url, "https://conda.anaconda.org"))
+                {
+                    std::string target_url = m_url.substr(27);
+                    m_target = std::make_shared<powerloader::DownloadTarget>(
+                        target_url, "conda-forge", m_tarball_path);
+                }
+                else
+                {
+                    m_target
+                        = std::make_shared<powerloader::DownloadTarget>(m_url, "", m_tarball_path);
+                }
+
+                auto end_callback
+                    = [this](powerloader::TransferStatus status,
+                             const powerloader::Response& response) -> powerloader::CbReturnCode
+                {
+                    if (status == powerloader::TransferStatus::kSUCCESSFUL)
+                    {
+                        this->finalize_callback();
+                    }
+                    return powerloader::CbReturnCode::kOK;
+                };
+
                 m_target->set_expected_size(m_expected_size);
+                m_target->add_checksum({ powerloader::ChecksumType::kSHA256, m_sha256 });
+
+                m_target->set_end_callback(end_callback);
+                // m_target->set_expected_size(m_expected_size);
+
                 if (m_has_progress_bars)
                 {
                     m_download_bar = Console::instance().add_progress_bar(m_name, m_expected_size);
-                    m_target->set_progress_bar(m_download_bar);
-                    Console::instance().progress_bar_manager().add_label("Download", m_download_bar);
+
+                    m_target->set_progress_callback(
+                        [this](curl_off_t total, curl_off_t done) -> int
+                        {
+                            this->m_download_bar.set_progress(done, total);
+                            return 0;
+                        });
+
+                    // m_target->set_progress_bar(m_download_bar);
+                    Console::instance().progress_bar_manager().add_label("Download",
+                                                                         m_download_bar);
                 }
-                return m_target.get();
+                return m_target;
             }
         }
         LOG_DEBUG << "Using cached '" << m_name << "'";
@@ -1172,14 +1211,15 @@ namespace mamba
 
     bool MTransaction::fetch_extract_packages()
     {
+        auto& ctx = Context::instance();
+
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
-        MultiDownloadTarget multi_dl;
+        powerloader::Downloader multi_dl(ctx.plcontext);
 
         auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
         );
         auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
-        auto& ctx = Context::instance();
         DownloadExtractSemaphore::set_max(ctx.extract_threads);
 
         if (ctx.experimental && ctx.verify_artifacts)
@@ -1206,7 +1246,8 @@ namespace mamba
             }
 
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
-            DownloadTarget* download_target = targets.back()->target(m_multi_cache);
+            std::shared_ptr<powerloader::DownloadTarget> download_target
+                = targets.back()->target(m_multi_cache);
             if (download_target != nullptr)
             {
                 multi_dl.add(download_target);
@@ -1232,9 +1273,9 @@ namespace mamba
             if (dl_bar)
             {
                 dl_bar->set_repr_hook(
-                    [=](ProgressBarRepr& repr) -> void
+                    [](ProgressBarRepr& repr) -> void
                     {
-                        auto active_tasks = dl_bar->active_tasks().size();
+                        auto active_tasks = repr.progress_bar().active_tasks().size();
                         if (active_tasks == 0)
                         {
                             repr.prefix.set_value(fmt::format("{:<16}", "Downloading"));
@@ -1243,29 +1284,26 @@ namespace mamba
                         else
                         {
                             repr.prefix.set_value(fmt::format(
-                                "{:<11} {:>4}",
-                                "Downloading",
-                                fmt::format("({})", active_tasks)
-                            ));
-                            repr.postfix.set_value(fmt::format("{:<25}", dl_bar->last_active_task()));
+                                "{:<11} {:>4}", "Downloading", fmt::format("({})", active_tasks)));
+                            repr.postfix.set_value(
+                                fmt::format("{:<25}", repr.progress_bar().last_active_task()));
                         }
-                        repr.current.set_value(
-                            fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1))
-                        );
+                        repr.current.set_value(fmt::format(
+                            "{:>7}", to_human_readable_filesize(repr.progress_bar().current(), 1)));
                         repr.separator.set_value("/");
 
                         std::string total_str;
-                        if (dl_bar->total() == std::numeric_limits<std::size_t>::max())
+                        if (repr.progress_bar().total() == std::numeric_limits<std::size_t>::max())
                         {
                             total_str = "??.?MB";
                         }
                         else
                         {
-                            total_str = to_human_readable_filesize(dl_bar->total(), 1);
+                            total_str = to_human_readable_filesize(repr.progress_bar().total(), 1);
                         }
                         repr.total.set_value(fmt::format("{:>7}", total_str));
 
-                        auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
+                        auto speed = repr.progress_bar().avg_speed(std::chrono::milliseconds(500));
                         repr.speed.set_value(
                             speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1)) : ""
                         );
@@ -1317,7 +1355,8 @@ namespace mamba
             pbar_manager.watch_print();
         }
 
-        bool downloaded = multi_dl.download(MAMBA_DOWNLOAD_FAILFAST | MAMBA_DOWNLOAD_SORT);
+        // bool downloaded = multi_dl.download(MAMBA_DOWNLOAD_FAILFAST | MAMBA_DOWNLOAD_SORT);
+        bool downloaded = multi_dl.download();
         bool all_valid = true;
 
         if (!downloaded)

@@ -385,6 +385,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
             find_package(reproc++ CONFIG REQUIRED)
             find_package(tl-expected REQUIRED)
+            find_package(powerloader REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv iconv)
@@ -416,6 +417,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 reproc++
                 reproc
                 tl::expected
+                libpowerloader
             )
 
             add_compile_definitions(
@@ -441,6 +443,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
         find_package(tl-expected REQUIRED)
+        find_package(powerloader REQUIRED)
         find_package(fmt REQUIRED)
         find_package(spdlog CONFIG REQUIRED)
 
@@ -457,6 +460,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             reproc++
             reproc
             tl::expected
+            libpowerloader
             fmt::fmt
             # Since conda-forge spdlog is built with a bundled version of fmt we use the
             # header only version to avoid chasing after the correct fmt version mathching

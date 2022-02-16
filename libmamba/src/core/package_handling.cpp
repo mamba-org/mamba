@@ -504,7 +504,6 @@ namespace mamba
 
     void stream_extract_archive(scoped_archive_read& a, const fs::u8path& destination)
     {
-        auto prev_path = fs::current_path();
         if (!fs::exists(destination))
         {
             fs::create_directories(destination);
@@ -579,8 +578,6 @@ namespace mamba
                 throw std::runtime_error(archive_error_string(ext));
             }
         }
-
-        fs::current_path(prev_path);
     }
 
 

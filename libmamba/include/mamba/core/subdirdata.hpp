@@ -23,6 +23,9 @@
 
 #include "package_handling.hpp"
 
+#include <powerloader/download_target.hpp>
+#include <powerloader/downloader.hpp>
+
 namespace decompress
 {
     bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out);
@@ -106,8 +109,8 @@ namespace mamba
         expected_t<std::string> cache_path() const;
         const std::string& name() const;
 
-        std::vector<std::unique_ptr<DownloadTarget>>& check_targets();
-        DownloadTarget* target();
+        std::shared_ptr<powerloader::DownloadTarget> target();
+        bool finalize_transfer(const powerloader::Response& response);
 
         bool finalize_check(const DownloadTarget& target);
         bool finalize_transfer(const DownloadTarget& target);
@@ -130,8 +133,7 @@ namespace mamba
         std::size_t get_cache_control_max_age(const std::string& val);
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
-        std::unique_ptr<DownloadTarget> m_target = nullptr;
-        std::vector<std::unique_ptr<DownloadTarget>> m_check_targets;
+        std::shared_ptr<powerloader::DownloadTarget> m_target;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
@@ -140,6 +142,9 @@ namespace mamba
         fs::u8path m_expired_cache_path;
         fs::u8path m_writable_pkgs_dir;
 
+        powerloader::CbReturnCode end_callback(powerloader::TransferStatus status,
+                                               const powerloader::Response& msg);
+        int progress_callback(curl_off_t total, curl_off_t done);
         ProgressProxy m_progress_bar;
         ProgressProxy m_progress_bar_check;
 
@@ -154,6 +159,8 @@ namespace mamba
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
     };
+
+    void download_with_progressbars(powerloader::Downloader& multi_downloader);
 
     // Contrary to conda original function, this one expects a full url
     // (that is channel url + / + repodata_fn). It is not the

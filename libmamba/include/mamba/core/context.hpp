@@ -6,6 +6,7 @@
 
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
+#include "powerloader/context.hpp"
 
 #include <map>
 #include <optional>
@@ -263,6 +264,9 @@ namespace mamba
 
         const void debug_print();
         void dump_backtrace_no_guards();
+
+        powerloader::Context plcontext;
+        std::map<std::string, std::vector<std::string>> mirrors;
 
     protected:
 

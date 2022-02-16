@@ -11,6 +11,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 
@@ -365,7 +366,15 @@ namespace mamba
     {
         if (m_target != nullptr)
         {
-            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+            // m_target->cbdata = this;
+            m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
+            // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        }
+        if (m_progress_bar && m_target)
+        {
+            // m_target->progress_callback = this->progress_callback;
+            m_target->set_progress_callback(
+                std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
         for (auto& t : m_check_targets)
         {
@@ -398,11 +407,28 @@ namespace mamba
 
         if (m_target != nullptr)
         {
-            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+            // m_target->cbdata = this;
+            m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
+            if (m_target->progress_callback())
+            {
+                m_target->set_progress_callback(
+                    std::bind(&MSubdirData::progress_callback, this, _1, _2));
+            }
+
+            // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         }
         if (rhs.m_target != nullptr)
         {
-            rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
+            m_target->set_end_callback(std::bind(&MSubdirData::end_callback, &rhs, _1, _2));
+
+            if (rhs.m_target->progress_callback())
+            {
+                rhs.m_target->set_progress_callback(
+                    std::bind(&MSubdirData::progress_callback, &rhs, _1, _2));
+            }
+
+            // m_target->cbdata = &rhs;
+            // rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
         }
 
         for (auto& t : m_check_targets)
@@ -634,9 +660,9 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    DownloadTarget* MSubdirData::target()
+    std::shared_ptr<powerloader::DownloadTarget> MSubdirData::target()
     {
-        return m_target.get();
+        return m_target;
     }
 
     const std::string& MSubdirData::name() const
@@ -677,14 +703,15 @@ namespace mamba
 
     bool MSubdirData::finalize_transfer(const DownloadTarget& target)
     {
-        if (m_target->result != 0 || m_target->http_status >= 400)
+        // m_target->result != 0 ||
+        if (response.http_status >= 400)
         {
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for '" << m_target->url() << "'";
+            LOG_WARNING << "Unable to retrieve repodata (response: " << response.http_status
+                        << ") for '" << m_repodata_url << "'";
 
             if (m_progress_bar)
             {
-                m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
+                m_progress_bar.set_postfix(std::to_string(response.http_status) + " failed");
                 m_progress_bar.set_full();
                 m_progress_bar.mark_as_completed();
             }
@@ -692,24 +719,23 @@ namespace mamba
             return false;
         }
 
-        LOG_DEBUG << "HTTP response code: " << m_target->http_status;
+        LOG_INFO << "HTTP response code: " << response.http_status;
+
         // Note HTTP status == 0 for files
-        if (m_target->http_status == 0 || m_target->http_status == 200 || m_target->http_status == 304)
+        if (response.http_status == 0 || response.http_status == 200 || response.http_status == 304)
         {
             m_download_complete = true;
         }
         else
         {
             LOG_WARNING << "HTTP response code indicates error, retrying.";
-            throw mamba_error(
-                "Unhandled HTTP code: " + std::to_string(m_target->http_status),
-                mamba_error_code::subdirdata_not_loaded
-            );
+            throw mamba_error("Unhandled HTTP code: " + std::to_string(response.http_status),
+                              mamba_error_code::subdirdata_not_loaded);
         }
 
         fs::u8path json_file, solv_file;
 
-        if (m_target->http_status == 304)
+        if (response.http_status == 304)
         {
             // cache still valid
             LOG_INFO << "Cache is still valid";
@@ -896,25 +922,82 @@ namespace mamba
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
 
-        bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
-        m_target = std::make_unique<DownloadTarget>(
-            m_name,
-            m_repodata_url + (use_zst ? ".zst" : ""),
-            m_temp_file->path().string()
-        );
+        // bool use_zst = m_metadata.has_zst.has_value() && m_metadata.has_zst.value().value;
+        // m_target = std::make_unique<DownloadTarget>(
+        //     m_name, m_repodata_url + (use_zst ? ".zst" : ""), m_temp_file->path().string());
+
+        if (starts_with(m_repodata_url, "https://conda.anaconda.org/"))
+        {
+            std::string target_url = m_repodata_url.substr(27);
+            // TODO find a robust way to do this!!
+            ctx.plcontext.mirror_map[p_channel->canonical_name()]
+                = { std::make_shared<powerloader::Mirror>(ctx.plcontext,
+                                                          "https://conda.anaconda.org/") };
+            m_target = std::make_shared<powerloader::DownloadTarget>(
+                target_url, p_channel->canonical_name(), m_temp_file->path());
+        }
+        else
+        {
+            m_target = std::make_shared<powerloader::DownloadTarget>(
+                m_repodata_url, "", m_temp_file->path());
+        }
+
+        powerloader::CacheControl cache_control_values;
+        cache_control_values.last_modified = mod_etag.value("_mod", "");
+        cache_control_values.etag = mod_etag.value("_etag", "");
+        cache_control_values.cache_control = mod_etag.value("_cache_control", "");
+
+        m_target->set_cache_options(cache_control_values);
+
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
+            // m_target->set_progress_bar(m_progress_bar);
             m_progress_bar = Console::instance().add_progress_bar(m_name);
-            m_target->set_progress_bar(m_progress_bar);
+            auto download_repr = [](ProgressBarRepr& r) -> void
+            {
+                r.current.set_value(fmt::format(
+                    "{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1)));
+
+                std::string total_str;
+                if (!r.progress_bar().total()
+                    || (r.progress_bar().total() == std::numeric_limits<std::size_t>::max()))
+                    total_str = "??.?MB";
+                else
+                    total_str = to_human_readable_filesize(r.progress_bar().total(), 1);
+                r.total.set_value(fmt::format("{:>7}", total_str));
+
+                auto speed = r.progress_bar().speed();
+                r.speed.set_value(fmt::format(
+                    "@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
+
+                r.separator.set_value("/");
+            };
+
+            m_progress_bar.set_repr_hook(download_repr);
+
+            m_target->set_progress_callback(
+                std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
+        // OLD CODE
         // if we get something _other_ than the noarch, we DO NOT throw if the file can't be
         // retrieved
-        if (!m_is_noarch)
-        {
-            m_target->set_ignore_failure(true);
-        }
-        m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
-        m_target->set_mod_etag_headers(m_metadata.mod, m_metadata.etag);
+        // if (!m_is_noarch)
+        // {
+        //     m_target->set_ignore_failure(true);
+        // }
+        // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        // m_target->set_mod_etag_headers(m_metadata.mod, m_metadata.etag);
+
+        // if we get something _other_ than the noarch, we DO NOT throw if the file
+        // can't be retrieved
+        // if (!m_is_noarch)
+        // {
+        //     m_target->set_ignore_failure(true);
+        // }
+
+        m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
+
+        // m_target->set_mod_etag_headers(mod_etag);
     }
 
     std::size_t MSubdirData::get_cache_control_max_age(const std::string& val)

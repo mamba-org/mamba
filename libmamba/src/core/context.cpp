@@ -19,6 +19,9 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/url.hpp"
+#include "mamba/core/execution.hpp"
+#include "spdlog/pattern_formatter.h"
 
 namespace mamba
 {

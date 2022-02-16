@@ -7,10 +7,7 @@
 #ifndef MAMBA_CORE_URL_HPP
 #define MAMBA_CORE_URL_HPP
 
-extern "C"
-{
-#include <curl/urlapi.h>
-}
+#include <powerloader/url.hpp>
 
 #include <limits>
 #include <stdexcept>
@@ -41,7 +38,12 @@ extern "C"
 
 namespace mamba
 {
-    bool has_scheme(const std::string& url);
+    using powerloader::decode_url;
+    using powerloader::encode_url;
+    using powerloader::has_scheme;
+    using powerloader::is_path;
+    using powerloader::path_to_url;
+    using powerloader::unc_url;
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
@@ -55,70 +57,14 @@ namespace mamba
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
-    bool is_path(const std::string& input);
-    std::string path_to_url(const std::string& path);
-
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
-    std::string unc_url(const std::string& url);
-    std::string encode_url(const std::string& url);
-    std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
     std::string hide_secrets(const std::string_view& str);
 
-    class URLHandler
-    {
-    public:
-
-        URLHandler(const std::string& url = "");
-        ~URLHandler();
-
-        URLHandler(const URLHandler&);
-        URLHandler& operator=(const URLHandler&);
-
-        URLHandler(URLHandler&&);
-        URLHandler& operator=(URLHandler&&);
-
-        std::string url(bool strip_scheme = false);
-
-        std::string scheme();
-        std::string host();
-        std::string path();
-        std::string port();
-
-        std::string query();
-        std::string fragment();
-        std::string options();
-
-        std::string auth();
-        std::string user();
-        std::string password();
-        std::string zoneid();
-
-        URLHandler& set_scheme(const std::string& scheme);
-        URLHandler& set_host(const std::string& host);
-        URLHandler& set_path(const std::string& path);
-        URLHandler& set_port(const std::string& port);
-
-        URLHandler& set_query(const std::string& query);
-        URLHandler& set_fragment(const std::string& fragment);
-        URLHandler& set_options(const std::string& options);
-
-        URLHandler& set_user(const std::string& user);
-        URLHandler& set_password(const std::string& password);
-        URLHandler& set_zoneid(const std::string& zoneid);
-
-    private:
-
-        std::string get_part(CURLUPart part);
-        void set_part(CURLUPart part, const std::string& s);
-
-        std::string m_url;
-        CURLU* m_handle;
-        bool m_has_scheme;
-    };
+    using powerloader::URLHandler;
 
     namespace detail
     {

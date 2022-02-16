@@ -22,3 +22,4 @@ dependencies:
   - pybind11-stubgen
   - pytest
   - sel(win): winreg
+  - powerloader

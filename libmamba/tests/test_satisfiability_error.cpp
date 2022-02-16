@@ -318,7 +318,7 @@ namespace mamba
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        auto dlist = MultiDownloadTarget();
+        auto downloader = powerloader::Downloader{ mamba::Context::instance().plcontext };
         auto sub_dirs = std::vector<MSubdirData>();
         for (const auto* chan : get_channels(channels))
         {
@@ -326,11 +326,16 @@ namespace mamba
             {
                 auto sub_dir = expected_value_or_throw(MSubdirData::create(*chan, platform, url, cache)
                 );
-                dlist.add(sub_dir.target());
+                downloader.add(sub_dir.target());
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }
-        dlist.download(MAMBA_DOWNLOAD_FAILFAST);
+        const auto success = downloader.download();
+        if (!success)
+        {
+            throw std::runtime_error("channel loading failed");
+        }
+
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);
@@ -382,7 +387,7 @@ namespace mamba
     {
         auto solver = create_conda_forge({ "xtensor>=0.7" });
         const auto solved = solver->try_solve();
-        ASSERT_TRUE(solved);
+        ASSERT_TRUE(solved) << solver->problems_to_str();
     }
 
     auto create_pytorch_cpu() -> MSolver&

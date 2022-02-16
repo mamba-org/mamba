@@ -44,7 +44,7 @@ namespace mamba
                     return true;
             return false;
         }
-        
+
         bool ConfigurableImplBase::env_var_active() const
         {
             return !Context::instance().no_env || (m_name == "no_env");
@@ -162,7 +162,7 @@ namespace mamba
     {
         return p_impl->env_var_configured();
     }
- 
+
     bool Configurable::cli_configured() const
     {
         return p_impl->cli_configured();
@@ -327,7 +327,7 @@ namespace mamba
     {
         return p_impl->yaml_value();
     }
-    
+
     void Configurable::dump_json(nlohmann::json& node, const std::string& name) const
     {
         p_impl->dump_json(node, name);

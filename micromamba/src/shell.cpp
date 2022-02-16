@@ -62,7 +62,7 @@ init_shell_parser(CLI::App* subcom)
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
     subcom->add_option(
-        "prefix,-p,--prefix,-n,--name", prefix.get_cli_config<bool>(), prefix.description());
+        "prefix,-p,--prefix,-n,--name", prefix.get_cli_config<std::string>(), prefix.description());
 }
 
 

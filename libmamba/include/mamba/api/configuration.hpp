@@ -141,7 +141,7 @@ namespace mamba
 
             virtual YAML::Node yaml_value() const = 0;
             virtual void dump_json(nlohmann::json& node, const std::string& name) const = 0;
-            
+
             std::string m_name;
             std::string m_group = "Default";
             std::string m_description = "No description provided";
@@ -199,22 +199,23 @@ namespace mamba
             void set_rc_value(const T& value, const std::string& source);
             void set_rc_values(const std::map<std::string, T>& mapped_values,
                                const std::vector<std::string>& sources);
-            void set_cli_value(const T& value);
             void set_value(const T& value);
 
-            using cli_config_type = std::optional<T>;
-            
+            using cli_config_type = detail::cli_config<T>;
+            using cli_storage_type = typename cli_config_type::storage_type;
+
             std::map<std::string, T> m_rc_values;
             std::map<std::string, T> m_values;
             T m_value;
             T m_default_value;
-            std::shared_ptr<cli_config_type> p_cli_config = 0;
+            cli_config_type m_cli_config;
             T* p_context = 0;
 
             using value_hook_type = std::function<T()>;
             using post_merge_hook_type = std::function<void(T&)>;
-            
-            value_hook_type p_default_value_hook, p_fallback_value_hook;
+
+            value_hook_type p_default_value_hook;
+            value_hook_type p_fallback_value_hook;
             post_merge_hook_type p_post_merge_hook;
         };
     }
@@ -320,11 +321,11 @@ namespace mamba
         Configurable&& set_post_context_hook(post_context_hook_type hook);
 
         template <class T>
+        using cli_storage_type = typename detail::ConfigurableImpl<T>::cli_storage_type;
+        template <class T>
         Configurable&& set_cli_value(const T& value);
         template <class T>
-        std::optional<T>& get_cli_config();
-        template <class T>
-        std::optional<T>& init_cli_config(const T& value);
+        cli_storage_type<T>& get_cli_config();
 
         Configurable&& set_rc_yaml_value(const YAML::Node& value, const std::string& source);
         Configurable&& set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
@@ -454,7 +455,7 @@ namespace mamba
         template <class T>
         bool ConfigurableImpl<T>::cli_configured() const
         {
-            return (p_cli_config != nullptr) && p_cli_config->has_value();
+            return m_cli_config.has_value();
         };
 
         template <class T>
@@ -468,7 +469,7 @@ namespace mamba
         template <class T>
         void ConfigurableImpl<T>::clear_cli_value()
         {
-            p_cli_config = nullptr;
+            m_cli_config.reset();
         }
 
         template <class T>
@@ -476,7 +477,7 @@ namespace mamba
         {
             m_value = m_default_value;
         }
-        
+
         template <class T>
         void ConfigurableImpl<T>::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
         {
@@ -506,13 +507,13 @@ namespace mamba
         template <class T>
         void ConfigurableImpl<T>::set_cli_yaml_value(const YAML::Node& value)
         {
-            set_cli_value(value.as<T>());
+            m_cli_config.storage() = value.as<T>();
         }
 
         template <class T>
         void ConfigurableImpl<T>::set_cli_yaml_value(const std::string& value)
         {
-            set_cli_value(detail::Source<T>::deserialize(value));
+            m_cli_config.storage() = detail::Source<T>::deserialize(value);
         }
 
         template <class T>
@@ -535,7 +536,7 @@ namespace mamba
                 throw e;
             }
         }
-       
+
         template <class T>
         bool ConfigurableImpl<T>::is_valid_serialization(const std::string& value) const
         {
@@ -587,19 +588,6 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::set_cli_value(const T& value)
-        {
-            if (p_cli_config == nullptr)
-            {
-                p_cli_config = std::make_shared<cli_config_type>(value);
-            }
-            else
-            {
-                *p_cli_config = value;
-            }
-        }
-
-        template <class T>
         void ConfigurableImpl<T>::set_value(const T& value)
         {
             m_value = value;
@@ -635,7 +623,7 @@ namespace mamba
             if (cli_configured() && (level >= ConfigurationLevel::kCli))
             {
                 m_sources.push_back("CLI");
-                m_values.insert({ "CLI", p_cli_config->value() });
+                m_values.insert({ "CLI", m_cli_config.value() });
             }
 
             if (env_var_configured() && env_var_active() && (level >= ConfigurationLevel::kEnvVar))
@@ -728,7 +716,7 @@ namespace mamba
         wrapped.m_default_value = init;
         wrapped.m_source = detail::Source<T>::default_value(init);
     }
-    
+
     template <class T>
     const T& Configurable::value() const
     {
@@ -742,14 +730,14 @@ namespace mamba
             throw std::runtime_error("Using '" + name() + "' value without previous computation.");
         return get_wrapped<T>().m_value;
     }
-    
+
     template <class T>
     const T& Configurable::cli_value() const
     {
         if (!cli_configured())
             throw std::runtime_error("Trying to get unset CLI value of '" + name() + "'");
 
-        return get_wrapped<T>().p_cli_config->value();
+        return get_wrapped<T>().m_cli_config.value();
     }
 
     template <class T>
@@ -813,21 +801,14 @@ namespace mamba
     template <class T>
     Configurable&& Configurable::set_cli_value(const T& value)
     {
-        auto& wrapped = get_wrapped<T>();
-        wrapped.set_cli_value(value);
+        get_wrapped<T>().m_cli_config = value;
         return std::move(*this);
     }
 
     template <class T>
-    std::optional<T>& Configurable::get_cli_config()
+    auto Configurable::get_cli_config() -> cli_storage_type<T>&
     {
-        return *(get_wrapped<T>().p_cli_config);
-    }
-
-    template <class T>
-    std::optional<T>& Configurable::init_cli_config(const T& t)
-    {
-        return (get_cli_config<T>() = t);
+        return get_wrapped<T>().m_cli_config.m_storage;
     }
 
     template <class T>

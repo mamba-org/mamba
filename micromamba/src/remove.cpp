@@ -15,13 +15,14 @@ using namespace mamba;  // NOLINT(build/namespaces)
 void
 set_remove_command(CLI::App* subcom)
 {
+    using string_list = std::vector<std::string>;
     init_general_options(subcom);
     init_prefix_options(subcom);
 
     auto& config = Configuration::instance();
 
-    auto& specs = config.at("specs").get_wrapped<std::vector<std::string>>();
-    subcom->add_option("specs", specs.set_cli_config({}), "Specs to remove from the environment");
+    auto& specs = config.at("specs");
+    subcom->add_option("specs", specs.get_cli_config<string_list>(), "Specs to remove from the environment");
 
     static bool remove_all = false, force = false, prune = true;
     subcom->add_flag("-a,--all", remove_all, "Remove all packages in the environment");

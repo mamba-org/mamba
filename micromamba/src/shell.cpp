@@ -24,7 +24,7 @@ init_shell_parser(CLI::App* subcom)
 
     auto& shell_type = config.insert(
         Configurable("shell_type", std::string("")).group("cli").description("A shell type"));
-    subcom->add_option("-s,--shell", shell_type.set_cli_config(""), shell_type.description())
+    subcom->add_option("-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
         ->check(CLI::IsMember(std::set<std::string>(
             { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish" })));
 
@@ -38,12 +38,12 @@ init_shell_parser(CLI::App* subcom)
                        Currently, only the PATH environment variable is stacked.
                        This may be enabled implicitly by the 'auto_stack'
                        configuration variable.)")));
-    subcom->add_flag("--stack", stack.set_cli_config(false), stack.description());
+    subcom->add_flag("--stack", stack.get_cli_config<bool>(), stack.description());
 
     auto& action = config.insert(Configurable("shell_action", std::string(""))
                                      .group("cli")
                                      .description("The action to complete"));
-    subcom->add_option("action", action.set_cli_config(""), action.description())
+    subcom->add_option("action", action.get_cli_config<std::string>(), action.description())
         ->check(CLI::IsMember(std::vector<std::string>({ "init",
                                                          "hook",
                                                          "activate",
@@ -62,7 +62,7 @@ init_shell_parser(CLI::App* subcom)
             .description("The root prefix to configure (for init and hook), and the prefix "
                          "to activate for activate, either by name or by path"));
     subcom->add_option(
-        "prefix,-p,--prefix,-n,--name", prefix.set_cli_config(""), prefix.description());
+        "prefix,-p,--prefix,-n,--name", prefix.get_cli_config<bool>(), prefix.description());
 }
 
 

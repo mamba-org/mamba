@@ -15,59 +15,6 @@ namespace mamba
 {
     namespace detail
     {
-        /***************************
-         * cli_config declarations *
-         ***************************/
-
-        template <class T>
-        struct cli_config
-        {
-            using storage_type = std::optional<T>;
-            
-            cli_config(const storage_type& value);
-            bool defined() const;
-            T value() const;
-
-            storage_type m_value;
-        };
-
-        template <class T>
-        struct cli_config_enum
-        {
-            using storage_type = std::string;
-            
-            cli_config_enum(const std::string&);
-            bool defined() const;
-            T value() const;
-
-            storage_type m_value;
-
-        protected:
-
-            ~cli_config_enum() = default;
-        };
-        
-        template <>
-        struct cli_config<VerificationLevel> : cli_config_enum<VerificationLevel>
-        {
-            using base_type = cli_config_enum<VerificationLevel>;
-            using base_type::base_type;
-        };
-
-        template <>
-        struct cli_config<ChannelPriority> : cli_config_enum<ChannelPriority>
-        {
-            using base_type = cli_config_enum<ChannelPriority>;
-            using base_type::base_type;
-        };
-
-        template <>
-        struct cli_config<spdlog::level::level_enum> : cli_config_enum<spdlog::level::level_enum>
-        {
-            using base_type = cli_config_enum<spdlog::level::level_enum>;
-            using base_type::base_type;
-        };
-        
         /**********************
          * Source declaration *
          **********************/
@@ -107,46 +54,6 @@ namespace mamba
 
             static bool is_sequence();
         };
-
-        /*****************************
-         * cli_config implementation *
-         *****************************/
-
-        template <class T>
-        inline cli_config<T>::cli_config(const storage_type& value)
-            : m_value(value)
-        {
-        }
-
-        template <class T>
-        inline bool cli_config<T>::defined() const
-        {
-            return m_value.has_value();
-        }
-
-        template <class T>
-        inline T cli_config<T>::value() const
-        {
-            return m_value.value();
-        }
-
-        template <class T>
-        inline cli_config_enum<T>::cli_config_enum(const std::string& value)
-            : m_value(value)
-        {
-        }
-
-        template <class T>
-        inline bool cli_config_enum<T>::defined() const
-        {
-            return !m_value.empty();
-        }
-
-        template <class T>
-        inline T cli_config_enum<T>::value() const
-        {
-            return YAML::Node(m_value).as<T>();
-        }
 
         /*************************
          * Source implementation *

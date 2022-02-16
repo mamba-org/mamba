@@ -39,32 +39,6 @@
 
 namespace mamba
 {
-    class ConfigurableInterface;
-
-    namespace detail
-    {
-        bool has_config_name(const std::string& file);
-
-        bool is_config_file(const fs::path& path);
-
-        void override_config_scalar(const std::vector<YAML::Node>& configs,
-                                    const std::string& key,
-                                    const std::map<YAML::Node*, std::string>& sources_map,
-                                    std::vector<YAML::Node>& values,
-                                    std::vector<std::string>& sources);
-
-        void print_configurable(YAML::Emitter& out,
-                                const ConfigurableInterface& config,
-                                bool show_source);
-        void print_group_title(YAML::Emitter& out, const std::string& name);
-        void print_scalar_node(YAML::Emitter&,
-                               YAML::Node value,
-                               YAML::Node source,
-                               bool show_source);
-        void print_seq_node(YAML::Emitter&, YAML::Node value, YAML::Node source, bool show_source);
-        void print_map_node(YAML::Emitter&, YAML::Node value, YAML::Node source, bool show_source);
-    }
-
     enum class ConfigurationLevel
     {
         kApi = 0,
@@ -134,1217 +108,251 @@ namespace YAML
 
 namespace mamba
 {
-    template <class T>
+    namespace detail
+    {
+        struct ConfigurableImplBase
+        {
+            virtual ~ConfigurableImplBase() = default;
+
+            bool rc_configured() const;
+            bool env_var_configured() const;
+            bool env_var_active() const;
+
+            virtual bool cli_configured() const = 0;
+
+            virtual void clear_rc_values() = 0;
+            virtual void clear_cli_value() = 0;
+            virtual void set_default_value() = 0;
+
+            virtual void set_rc_yaml_value(const YAML::Node& value, const std::string& source) = 0;
+            virtual void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                            const std::vector<std::string>& sources) = 0;
+            virtual void set_cli_yaml_value(const YAML::Node& value) = 0;
+            virtual void set_cli_yaml_value(const std::string& value) = 0;
+            virtual void set_yaml_value(const YAML::Node& value) = 0;
+            virtual void set_yaml_value(const std::string& value) = 0;
+
+            virtual void compute(int options,
+                                 const ConfigurationLevel& level) = 0;
+
+
+            virtual bool is_valid_serialization(const std::string& value) const = 0;
+            virtual bool is_sequence() const = 0;
+
+            virtual YAML::Node yaml_value() const = 0;
+            virtual void dump_json(nlohmann::json& node, const std::string& name) const = 0;
+            
+            std::string m_name;
+            std::string m_group = "Default";
+            std::string m_description = "No description provided";
+            std::string m_long_description = "";
+
+            std::vector<std::string> m_rc_sources;
+            std::vector<std::string> m_sources;
+            std::vector<std::string> m_source;
+
+            std::set<std::string> m_needed_configs;
+            std::set<std::string> m_implied_configs;
+
+            bool m_rc_configurable = false;
+            RCConfigLevel m_rc_configurable_policy = RCConfigLevel::kTargetPrefix;
+
+            bool m_rc_configured = false;
+            bool m_api_configured = false;
+
+            std::vector<std::string> m_env_var_names = {};
+
+            bool m_single_op_lifetime = false;
+            int m_compute_counter = 0;
+            bool m_lock = false;
+
+            using post_context_hook_type = std::function<void()>;
+            post_context_hook_type p_post_ctx_hook;
+        };
+
+        template <class T>
+        struct ConfigurableImpl : ConfigurableImplBase
+        {
+            bool cli_configured() const override;
+
+            void clear_rc_values() override;
+            void clear_cli_value() override;
+            void set_default_value() override;
+
+            void set_rc_yaml_value(const YAML::Node& value, const std::string& source) override;
+            void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                    const std::vector<std::string>& sources) override;
+            void set_cli_yaml_value(const YAML::Node& value) override;
+            void set_cli_yaml_value(const std::string& value) override;
+            void set_yaml_value(const YAML::Node& value) override;
+            void set_yaml_value(const std::string& value) override;
+
+            void compute(int options,
+                         const ConfigurationLevel& level) override;
+
+            bool is_valid_serialization(const std::string& value) const override;
+            bool is_sequence() const override;
+
+            YAML::Node yaml_value() const override;
+            void dump_json(nlohmann::json& node, const std::string& name) const override;
+
+            void set_rc_value(const T& value, const std::string& source);
+            void set_rc_values(const std::map<std::string, T>& mapped_values,
+                               const std::vector<std::string>& sources);
+            void set_cli_value(const T& value);
+            void set_value(const T& value);
+
+            using cli_config_type = std::optional<T>;
+            
+            std::map<std::string, T> m_rc_values;
+            std::map<std::string, T> m_values;
+            T m_value;
+            T m_default_value;
+            std::shared_ptr<cli_config_type> p_cli_config = 0;
+            T* p_context = 0;
+
+            using value_hook_type = std::function<T()>;
+            using post_merge_hook_type = std::function<void(T&)>;
+            
+            value_hook_type p_default_value_hook, p_fallback_value_hook;
+            post_merge_hook_type p_post_merge_hook;
+        };
+    }
+
+    /****************
+     * Configurable *
+     ****************/
+
     class Configurable
     {
-        using value_hook_type = std::function<T()>;
-        using post_merge_hook_type = std::function<void(T&)>;
-        using post_context_hook_type = std::function<void()>;
-
     public:
-        using self_type = Configurable<T>;
-        using cli_config_type = detail::cli_config<T>;
-        using cli_config_storage_type = typename detail::cli_config<T>::storage_type;
 
+        template <class T>
         Configurable(const std::string& name, T* context);
 
+        template <class T>
         Configurable(const std::string& name, const T& init);
 
         const std::string& name() const;
 
         const std::string& group() const;
+        Configurable&& group(const std::string& group);
 
         const std::string& description() const;
+        Configurable&& description(const std::string& desc);
 
         const std::string& long_description() const;
+        Configurable&& long_description(const std::string& desc);
 
+        const std::vector<std::string>& sources() const;
+        const std::vector<std::string>& source() const;
+
+        const std::set<std::string>& needed() const;
+        Configurable&& needs(const std::set<std::string>& names);
+
+        const std::set<std::string>& implied() const;
+        Configurable&& implies(const std::set<std::string>& names);
+
+        bool rc_configurable() const;
+        RCConfigLevel rc_configurable_level() const;
+        Configurable&& set_rc_configurable(RCConfigLevel level = RCConfigLevel::kTargetPrefix);
+
+        bool rc_configured() const;
+        bool env_var_configured() const;
+        bool cli_configured() const;
+        bool api_configured() const;
+        bool configured() const;
+
+        bool env_var_active() const;
+        Configurable&& set_env_var_names(const std::vector<std::string>& names = {});
+
+        bool has_single_op_lifetime() const;
+        Configurable&& set_single_op_lifetime();
+
+        void reset_compute_counter();
+        void lock();
+        void free();
+        bool locked();
+
+        template <class T>
         const T& value() const;
 
+        template <class T>
         T& value();
 
-        T cli_value();
+        template <class T>
+        const T& cli_value() const;
 
-        const std::vector<T>& values();
+        template <class T>
+        const std::vector<T>& values() const;
+
+        template <class T>
+        Configurable&& set_rc_value(const T& value, const std::string& source);
+
+        template <class T>
+        Configurable&& set_rc_values(const std::map<std::string, T>& mapped_values,
+                                    const std::vector<std::string>& sources);
+
+        template <class T>
+        Configurable&& set_value(const T& value);
+
+        template <class T>
+        Configurable&& set_default_value(const T& value);
+
+        Configurable&& clear_rc_values();
+        Configurable&& clear_env_values();
+        Configurable&& clear_cli_value();
+        Configurable&& clear_api_value();
+        Configurable&& clear_values();
+
+        template <class T>
+        using value_hook_type = typename detail::ConfigurableImpl<T>::value_hook_type;
+        template <class T>
+        using post_merge_hook_type =typename detail::ConfigurableImpl<T>::post_merge_hook_type;
+        using post_context_hook_type = detail::ConfigurableImplBase::post_context_hook_type;
+
+        template <class T>
+        Configurable&& set_default_value_hook(value_hook_type<T> hook);
+        template <class T>
+        Configurable&& set_fallback_value_hook(value_hook_type<T> hook);
+        template <class T>
+        Configurable&& set_post_merge_hook(post_merge_hook_type<T> hook);
+        Configurable&& set_post_context_hook(post_context_hook_type hook);
+
+        template <class T>
+        Configurable&& set_cli_value(const T& value);
+        template <class T>
+        std::optional<T>& get_cli_config();
+        template <class T>
+        std::optional<T>& init_cli_config(const T& value);
+
+        Configurable&& set_rc_yaml_value(const YAML::Node& value, const std::string& source);
+        Configurable&& set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                        const std::vector<std::string>& sources);
+        Configurable&& set_cli_yaml_value(const YAML::Node& value);
+        Configurable&& set_cli_yaml_value(const std::string& value);
+        Configurable&& set_yaml_value(const YAML::Node& value);
+        Configurable&& set_yaml_value(const std::string& value);
+
+        Configurable&& compute(int options = 0,
+                              const ConfigurationLevel& level = ConfigurationLevel::kDefault);
+
+        bool is_valid_serialization(const std::string& value) const;
+        bool is_sequence() const;
 
         YAML::Node yaml_value() const;
         void dump_json(nlohmann::json& node, const std::string& name) const;
 
-        const std::vector<std::string>& source();
-
-        const std::vector<std::string>& sources();
-
-        const std::set<std::string>& needed() const;
-
-        const std::set<std::string>& implied() const;
-
-        bool rc_configurable() const;
-
-        RCConfigLevel rc_configurable_level() const;
-
-        bool rc_configured() const;
-
-        bool env_var_configured() const;
-
-        bool cli_configured() const;
-
-        bool api_configured() const;
-
-        bool configured() const;
-
-        bool env_var_active() const;
-
-        bool has_single_op_lifetime() const;
-
-        self_type& set_rc_value(const T& value, const std::string& source);
-
-        self_type& set_rc_values(const std::map<std::string, T>& mapped_values,
-                                 const std::vector<std::string>& sources);
-
-        self_type& set_value(const T& value);
-
-        self_type& set_default_value(const T& value);
-
-        self_type& clear_rc_values();
-
-        self_type& clear_env_values();
-
-        self_type& clear_cli_value();
-
-        self_type& clear_api_value();
-
-        self_type& clear_values();
-
-        self_type& set_single_op_lifetime();
-
-        self_type& set_env_var_names(const std::vector<std::string>& names = {});
-
-        self_type& group(const std::string& group);
-
-        self_type& needs(const std::set<std::string>& names);
-
-        self_type& implies(const std::set<std::string>& names);
-
-        self_type& set_rc_configurable(RCConfigLevel level = RCConfigLevel::kTargetPrefix);
-
-        self_type& description(const std::string& desc);
-
-        self_type& long_description(const std::string& desc);
-
-        self_type& set_default_value_hook(value_hook_type hook);
-
-        self_type& set_fallback_value_hook(value_hook_type hook);
-
-        self_type& set_post_merge_hook(post_merge_hook_type hook);
-
-        self_type& set_post_context_hook(post_context_hook_type hook);
-
-        self_type& set_cli_value(const cli_config_storage_type& value);
-
-        cli_config_storage_type& set_cli_config(const cli_config_storage_type& init);
-
-        self_type& compute(const int options = 0,
-                           const ConfigurationLevel& level = ConfigurationLevel::kDefault);
-
-        bool is_valid_serialization(const std::string& value) const;
-
-        bool is_sequence() const;
-
-        void reset_compute_counter();
-
-        void lock();
-
-        void free();
-
-        bool locked();
-
     private:
-        std::string m_name;
-        std::string m_group = "Default";
-        std::string m_description = "No description provided";
-        std::string m_long_description = "";
-        std::vector<std::string> m_env_var_names = {};
-
-        bool m_rc_configurable = false;
-        RCConfigLevel m_rc_configurable_policy = RCConfigLevel::kTargetPrefix;
-        bool m_rc_configured = false;
-        bool m_api_configured = false;
-
-        bool m_lock = false;
-        int m_compute_counter = 0;
-
-        bool m_single_op_lifetime = false;
-
-        std::set<std::string> m_needed_configs, m_implied_configs;
-
-        std::map<std::string, T> m_rc_values, m_values;
-        std::vector<std::string> m_rc_sources, m_sources;
-
-        T m_value, m_default_value;
-        std::vector<std::string> m_source;
-
-        std::shared_ptr<cli_config_type> p_cli_config = 0;
-        T* p_context = 0;
-
-        value_hook_type p_default_value_hook, p_fallback_value_hook;
-        post_merge_hook_type p_post_merge_hook;
-        post_context_hook_type p_post_ctx_hook;
-
-        self_type& set_context();
-    };
-
-    /*********************
-     * Configurable impl *
-     *********************/
-
-    template <class T>
-    Configurable<T>::Configurable(const std::string& name, T* context)
-        : m_name(name)
-        , m_value(*context)
-        , m_default_value(*context)
-        , m_source(detail::Source<T>::default_value(*context))
-        , p_context(context){};
-
-    template <class T>
-    Configurable<T>::Configurable(const std::string& name, const T& init)
-        : m_name(name)
-        , m_value(init)
-        , m_default_value(init)
-        , m_source(detail::Source<T>::default_value(init)){};
-
-    template <class T>
-    const std::string& Configurable<T>::name() const
-    {
-        return m_name;
-    };
-
-    template <class T>
-    const std::string& Configurable<T>::group() const
-    {
-        return m_group;
-    };
-
-    template <class T>
-    const std::string& Configurable<T>::description() const
-    {
-        return m_description;
-    };
-
-    template <class T>
-    const std::string& Configurable<T>::long_description() const
-    {
-        return m_long_description.empty() ? m_description : m_long_description;
-    };
-
-    template <class T>
-    T Configurable<T>::cli_value()
-    {
-        if (!cli_configured())
-            throw std::runtime_error("Trying to get unset CLI value of '" + m_name + "'");
-
-        return p_cli_config->value();
-    };
-
-    template <class T>
-    const std::vector<T>& Configurable<T>::values()
-    {
-        return m_values;
-    };
-
-    template <class T>
-    YAML::Node Configurable<T>::yaml_value() const
-    {
-        return YAML::Node(m_value);
-    };
-
-    template <class T>
-    void Configurable<T>::dump_json(nlohmann::json& node, const std::string& name) const
-    {
-        node[name] = m_value;
-    }
-
-    template <class T>
-    const std::vector<std::string>& Configurable<T>::source()
-    {
-        return m_source;
-    };
-
-    template <class T>
-    const std::vector<std::string>& Configurable<T>::sources()
-    {
-        return m_sources;
-    };
-
-    template <class T>
-    bool Configurable<T>::rc_configurable() const
-    {
-        return m_rc_configurable;
-    };
-
-    template <class T>
-    RCConfigLevel Configurable<T>::rc_configurable_level() const
-    {
-        return m_rc_configurable_policy;
-    };
-
-    template <class T>
-    bool Configurable<T>::rc_configured() const
-    {
-        return m_rc_configured && !Context::instance().no_rc;
-    };
-
-    template <class T>
-    bool Configurable<T>::env_var_configured() const
-    {
-        if (Context::instance().no_env)
-            return false;
-
-        for (const auto& env_var : m_env_var_names)
-            if (env::get(env_var))
-                return true;
-
-        return false;
-    };
-
-    template <class T>
-    bool Configurable<T>::cli_configured() const
-    {
-        return (p_cli_config != NULL) && p_cli_config->defined();
-    };
-
-    template <class T>
-    bool Configurable<T>::api_configured() const
-    {
-        return m_api_configured;
-    };
-
-    template <class T>
-    bool Configurable<T>::configured() const
-    {
-        return rc_configured() || env_var_configured() || cli_configured() || api_configured();
-    };
-
-    template <class T>
-    bool Configurable<T>::env_var_active() const
-    {
-        return !Context::instance().no_env || (name() == "no_env");
-    };
-
-    template <class T>
-    bool Configurable<T>::has_single_op_lifetime() const
-    {
-        return m_single_op_lifetime;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_context() -> self_type&
-    {
-        if (p_context != NULL)
-        {
-            *p_context = m_value;
-        }
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_rc_value(const T& value, const std::string& source) -> self_type&
-    {
-        m_rc_sources.push_back(source);
-        m_rc_values[source] = value;
-        m_rc_configured = true;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_rc_values(const std::map<std::string, T>& mapped_values,
-                                        const std::vector<std::string>& sources) -> self_type&
-    {
-        assert(mapped_values.size() == sources.size());
-        m_rc_sources.insert(m_rc_sources.end(), sources.begin(), sources.end());
-        m_rc_values.insert(mapped_values.begin(), mapped_values.end());
-        m_rc_configured = true;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_cli_value(const cli_config_storage_type& value) -> self_type&
-    {
-        if (p_cli_config == NULL)
-        {
-            p_cli_config = std::make_shared<cli_config_type>(value);
-        }
-        else
-        {
-            p_cli_config->m_value = value;
-        }
-
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_value(const T& value) -> self_type&
-    {
-        m_value = value;
-        m_api_configured = true;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_default_value(const T& value) -> self_type&
-    {
-        m_default_value = value;
-        m_value = value;
-        return *this;
-    };
-
-    template <class T>
-    void Configurable<T>::reset_compute_counter()
-    {
-        m_compute_counter = 0;
-    }
-
-    template <class T>
-    auto Configurable<T>::set_single_op_lifetime() -> self_type&
-    {
-        m_single_op_lifetime = true;
-        return *this;
-    }
-
-    template <class T>
-    bool Configurable<T>::is_valid_serialization(const std::string& value) const
-    {
-        try
-        {
-            detail::Source<T>::deserialize(value);
-            return true;
-        }
-        catch (...)
-        {
-            return false;
-        }
-    }
-
-    template <class T>
-    bool Configurable<T>::is_sequence() const
-    {
-        return detail::Source<T>::is_sequence();
-    }
-
-    template <class T>
-    void Configurable<T>::lock()
-    {
-        m_lock = true;
-    }
-
-    template <class T>
-    void Configurable<T>::free()
-    {
-        m_lock = false;
-    }
-
-    template <class T>
-    bool Configurable<T>::locked()
-    {
-        return m_lock;
-    }
-
-    template <class T>
-    auto Configurable<T>::set_env_var_names(const std::vector<std::string>& names) -> self_type&
-    {
-        if (names.empty())
-            m_env_var_names = { "MAMBA_" + to_upper(m_name) };
-        else
-            m_env_var_names = names;
-
-        if (name() != "no_env")
-            m_needed_configs.insert("no_env");
-
-        return *this;
-    }
-
-    template <class T>
-    auto Configurable<T>::clear_rc_values() -> self_type&
-    {
-        m_rc_sources.clear();
-        m_rc_values.clear();
-        m_rc_configured = false;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::clear_env_values() -> self_type&
-    {
-        if (env_var_configured())
-            for (const auto& ev : m_env_var_names)
-                env::unset(ev);
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::clear_cli_value() -> self_type&
-    {
-        p_cli_config = nullptr;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::clear_api_value() -> self_type&
-    {
-        m_api_configured = false;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::clear_values() -> self_type&
-    {
-        clear_rc_values();
-        clear_env_values();
-        clear_cli_value();
-        clear_api_value();
-        m_value = m_default_value;
-
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::group(const std::string& group) -> self_type&
-    {
-        m_group = group;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_rc_configurable(RCConfigLevel level) -> self_type&
-    {
-        m_rc_configurable = true;
-        m_rc_configurable_policy = level;
-
-        if (level == RCConfigLevel::kTargetPrefix)
-            m_needed_configs.insert("target_prefix");
-        else
-            m_needed_configs.insert("root_prefix");
-
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::description(const std::string& desc) -> self_type&
-    {
-        m_description = desc;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::needs(const std::set<std::string>& names) -> self_type&
-    {
-        m_needed_configs.insert(names.cbegin(), names.cend());
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::implies(const std::set<std::string>& names) -> self_type&
-    {
-        m_implied_configs.insert(names.cbegin(), names.cend());
-        return *this;
-    };
-
-    template <class T>
-    const std::set<std::string>& Configurable<T>::needed() const
-    {
-        return m_needed_configs;
-    };
-
-    template <class T>
-    const std::set<std::string>& Configurable<T>::implied() const
-    {
-        return m_implied_configs;
-    };
-
-    template <class T>
-    auto Configurable<T>::long_description(const std::string& desc) -> self_type&
-    {
-        m_long_description = desc;
-        return *this;
-    };
-
-    template <class T>
-    auto Configurable<T>::set_default_value_hook(value_hook_type hook) -> self_type&
-    {
-        p_default_value_hook = hook;
-        return *this;
-    }
-
-    template <class T>
-    auto Configurable<T>::set_fallback_value_hook(value_hook_type hook) -> self_type&
-    {
-        p_fallback_value_hook = hook;
-        return *this;
-    }
-
-    template <class T>
-    auto Configurable<T>::set_post_merge_hook(post_merge_hook_type hook) -> self_type&
-    {
-        p_post_merge_hook = hook;
-        return *this;
-    }
-
-    template <class T>
-    auto Configurable<T>::set_post_context_hook(post_context_hook_type hook) -> self_type&
-    {
-        p_post_ctx_hook = hook;
-        return *this;
-    }
-
-    template <class T>
-    auto Configurable<T>::set_cli_config(const cli_config_storage_type& init)
-        -> cli_config_storage_type&
-    {
-        if (p_cli_config == NULL)
-        {
-            p_cli_config = std::make_shared<cli_config_type>(init);
-        }
-        else
-        {
-            p_cli_config->m_value = init;
-        }
-        return p_cli_config->m_value;
-    }
-
-    /********************************
-     * Configuration interface impl *
-     * ******************************/
-
-    class ConfigurableInterface
-    {
-        class WrapperBase
-        {
-        public:
-            virtual ~WrapperBase(){};
-
-            virtual const std::string& name() const = 0;
-
-            virtual const std::string& group() const = 0;
-
-            virtual const std::string& description() const = 0;
-
-            virtual const std::string& long_description() const = 0;
-
-            virtual void dump_json(nlohmann::json& node, const std::string& name) const = 0;
-
-            virtual YAML::Node yaml_value() const = 0;
-
-            virtual YAML::Node cli_yaml_value() const = 0;
-
-            virtual const std::vector<std::string>& source() const = 0;
-
-            virtual bool configured() const = 0;
-
-            virtual bool rc_configured() const = 0;
-
-            virtual bool env_var_configured() const = 0;
-
-            virtual bool cli_configured() const = 0;
-
-            virtual bool api_configured() const = 0;
-
-            virtual bool rc_configurable() const = 0;
-
-            virtual RCConfigLevel rc_configurable_level() const = 0;
-
-            virtual const std::set<std::string>& needed() const = 0;
-
-            virtual const std::set<std::string>& implied() const = 0;
-
-            virtual bool has_single_op_lifetime() const = 0;
-
-            virtual bool is_valid_serialization(const std::string& value) const = 0;
-
-            virtual bool is_sequence() const = 0;
-
-            virtual bool locked() = 0;
-
-            virtual void reset_compute_counter() = 0;
-
-            virtual void lock() = 0;
-
-            virtual void free() = 0;
-
-            virtual void set_rc_yaml_value(const YAML::Node& value, const std::string& source) = 0;
-
-            virtual void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                            const std::vector<std::string>& sources)
-                = 0;
-
-            virtual void set_cli_yaml_value(const YAML::Node& value) = 0;
-
-            virtual void set_cli_yaml_value(const std::string& value) = 0;
-
-            virtual void set_yaml_value(const YAML::Node& value) = 0;
-
-            virtual void set_yaml_value(const std::string& value) = 0;
-
-            virtual void clear_rc_values() = 0;
-
-            virtual void clear_env_values() = 0;
-
-            virtual void clear_cli_value() = 0;
-
-            virtual void clear_api_value() = 0;
-
-            virtual void clear_values() = 0;
-
-            virtual void set_env_var_names(const std::vector<std::string>& names) = 0;
-
-            virtual void group(const std::string& name) = 0;
-
-            virtual void description(const std::string& desc) = 0;
-
-            virtual void long_description(const std::string& desc) = 0;
-
-            virtual void compute(const int options, const ConfigurationLevel& level) = 0;
-        };
 
         template <class T>
-        class Wrapper : public WrapperBase
-        {
-        public:
-            using wrapped_type = Configurable<T>;
-            using cli_config_storage_type = typename detail::cli_config<T>::storage_type;
-
-            Wrapper(std::unique_ptr<wrapped_type> config)
-            {
-                p_wrapped = std::move(config);
-            };
-
-            virtual ~Wrapper(){};
-
-            wrapped_type& get_wrapped()
-            {
-                return *p_wrapped;
-            };
-
-            const std::string& name() const
-            {
-                return p_wrapped->name();
-            };
-
-            const std::string& group() const
-            {
-                return p_wrapped->group();
-            };
-
-            void dump_json(nlohmann::json& node, const std::string& name) const
-            {
-                p_wrapped->dump_json(node, name);
-            }
-
-            YAML::Node yaml_value() const
-            {
-                return p_wrapped->yaml_value();
-            };
-
-            YAML::Node cli_yaml_value() const
-            {
-                return YAML::Node(p_wrapped->cli_value());
-            };
-
-            const std::vector<std::string>& source() const
-            {
-                return p_wrapped->source();
-            };
-
-            const std::string& description() const
-            {
-                return p_wrapped->description();
-            };
-
-            const std::string& long_description() const
-            {
-                return p_wrapped->long_description();
-            };
-
-            bool configured() const
-            {
-                return p_wrapped->configured();
-            };
-
-            bool rc_configured() const
-            {
-                return p_wrapped->rc_configured();
-            };
-
-            bool env_var_configured() const
-            {
-                return p_wrapped->env_var_configured();
-            };
-
-            bool cli_configured() const
-            {
-                return p_wrapped->cli_configured();
-            };
-
-            bool api_configured() const
-            {
-                return p_wrapped->api_configured();
-            };
-
-            bool rc_configurable() const
-            {
-                return p_wrapped->rc_configurable();
-            };
-
-            RCConfigLevel rc_configurable_level() const
-            {
-                return p_wrapped->rc_configurable_level();
-            };
-
-            const std::set<std::string>& needed() const
-            {
-                return p_wrapped->needed();
-            }
-
-            const std::set<std::string>& implied() const
-            {
-                return p_wrapped->implied();
-            }
-
-            bool has_single_op_lifetime() const
-            {
-                return p_wrapped->has_single_op_lifetime();
-            }
-
-            bool locked()
-            {
-                return p_wrapped->locked();
-            }
-
-            bool is_valid_serialization(const std::string& value) const
-            {
-                return p_wrapped->is_valid_serialization(value);
-            }
-
-            bool is_sequence() const
-            {
-                return p_wrapped->is_sequence();
-            }
-
-            void reset_compute_counter()
-            {
-                p_wrapped->reset_compute_counter();
-            }
-
-            void lock()
-            {
-                p_wrapped->lock();
-            }
-
-            void free()
-            {
-                p_wrapped->free();
-            }
-
-            void set_rc_yaml_value(const YAML::Node& value, const std::string& source)
-            {
-                try
-                {
-                    p_wrapped->set_rc_value(value.as<T>(), source);
-                }
-                catch (const YAML::Exception& e)
-                {
-                    LOG_ERROR << "Bad conversion of configurable '" << name() << "' from source '"
-                              << source << "'";
-                }
-            };
-
-            void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                    const std::vector<std::string>& sources)
-            {
-                std::map<std::string, T> converted_values;
-                for (auto& y : values)
-                {
-                    converted_values.insert({ y.first, y.second.as<T>() });
-                }
-                p_wrapped->set_rc_values(converted_values, sources);
-            };
-
-            void set_cli_yaml_value(const YAML::Node& value)
-            {
-                p_wrapped->set_cli_value(value.as<cli_config_storage_type>());
-            };
-
-            void set_cli_yaml_value(const std::string& value)
-            {
-                p_wrapped->set_cli_value(
-                    detail::Source<cli_config_storage_type>::deserialize(value));
-            };
-
-            void set_yaml_value(const YAML::Node& value)
-            {
-                p_wrapped->set_value(value.as<T>());
-            };
-
-            void set_yaml_value(const std::string& value)
-            {
-                try
-                {
-                    p_wrapped->set_value(detail::Source<T>::deserialize(value));
-                }
-                catch (const YAML::Exception& e)
-                {
-                    LOG_ERROR << "Bad conversion of configurable '" << name() << "' with value '"
-                              << value << "'";
-                    throw e;
-                }
-            };
-
-            void clear_rc_values()
-            {
-                p_wrapped->clear_rc_values();
-            };
-
-            void clear_env_values()
-            {
-                p_wrapped->clear_env_values();
-            };
-
-            void clear_cli_value()
-            {
-                p_wrapped->clear_cli_value();
-            };
-
-            void clear_api_value()
-            {
-                p_wrapped->clear_api_value();
-            };
-
-            void clear_values()
-            {
-                p_wrapped->clear_values();
-            };
-
-            void set_env_var_names(const std::vector<std::string>& names)
-            {
-                p_wrapped->set_env_var_names(names);
-            };
-
-            void group(const std::string& name)
-            {
-                p_wrapped->group(name);
-            };
-
-            void description(const std::string& desc)
-            {
-                p_wrapped->description(desc);
-            };
-
-            void long_description(const std::string& desc)
-            {
-                p_wrapped->long_description(desc);
-            };
-
-            void compute(const int options, const ConfigurationLevel& level)
-            {
-                p_wrapped->compute(options, level);
-            };
-
-        private:
-            std::unique_ptr<wrapped_type> p_wrapped;
-        };
-
-        std::unique_ptr<WrapperBase> p_impl;
-
-    public:
-        using self_type = ConfigurableInterface;
+        detail::ConfigurableImpl<T>& get_wrapped();
 
         template <class T>
-        ConfigurableInterface(Configurable<T> configurable)
-            : p_impl(
-                std::make_unique<Wrapper<T>>(std::make_unique<Configurable<T>>(configurable))){};
+        const detail::ConfigurableImpl<T>& get_wrapped() const;
 
-        template <class T>
-        ConfigurableInterface(const std::string& name, T* context)
-            : p_impl(
-                std::make_unique<Wrapper<T>>(std::make_unique<Configurable<T>>(name, context))){};
-
-        template <class T>
-        ConfigurableInterface(const std::string& name, const T& init)
-            : p_impl(std::make_unique<Wrapper<T>>(std::make_unique<Configurable<T>>(name, init))){};
-
-        template <class T>
-        Configurable<T>& get_wrapped()
-        {
-            try
-            {
-                auto& derived = dynamic_cast<Wrapper<T>&>(*p_impl);
-                return derived.get_wrapped();
-            }
-            catch (const std::bad_cast& e)
-            {
-                LOG_ERROR << "Bad cast of Configurable '" << name() << "'";
-                throw e;
-            }
-        };
-
-        template <class T>
-        Configurable<T>& as()
-        {
-            return get_wrapped<T>();
-        };
-
-        const std::string& name() const
-        {
-            return p_impl->name();
-        };
-
-        const std::string& group() const
-        {
-            return p_impl->group();
-        };
-
-        const std::string& description() const
-        {
-            return p_impl->description();
-        };
-
-        const std::string& long_description() const
-        {
-            return p_impl->long_description();
-        };
-
-        template <class T>
-        const T& value() const
-        {
-            return get_wrapped<T>().value();
-        };
-
-        template <class T>
-        T& value()
-        {
-            return get_wrapped<T>().value();
-        };
-
-        void dump_json(nlohmann::json& node, const std::string& name) const
-        {
-            p_impl->dump_json(node, name);
-        }
-
-        YAML::Node yaml_value() const
-        {
-            return p_impl->yaml_value();
-        };
-
-        template <class T>
-        T cli_value()
-        {
-            return get_wrapped<T>().cli_value();
-        };
-
-        YAML::Node cli_yaml_value() const
-        {
-            return p_impl->cli_yaml_value();
-        };
-
-        const std::vector<std::string>& source() const
-        {
-            return p_impl->source();
-        };
-
-        bool configured() const
-        {
-            return p_impl->configured();
-        };
-
-        bool rc_configured() const
-        {
-            return p_impl->rc_configured();
-        };
-
-        bool env_var_configured() const
-        {
-            return p_impl->env_var_configured();
-        };
-
-        bool cli_configured() const
-        {
-            return p_impl->cli_configured();
-        };
-
-        bool api_configured() const
-        {
-            return p_impl->api_configured();
-        };
-
-        bool rc_configurable() const
-        {
-            return p_impl->rc_configurable();
-        };
-
-        RCConfigLevel rc_configurable_level() const
-        {
-            return p_impl->rc_configurable_level();
-        };
-
-        const std::set<std::string>& needed() const
-        {
-            return p_impl->needed();
-        }
-
-        const std::set<std::string>& implied() const
-        {
-            return p_impl->implied();
-        }
-        void reset_compute_counter()
-        {
-            p_impl->reset_compute_counter();
-        }
-
-        void lock()
-        {
-            p_impl->lock();
-        }
-
-        void free()
-        {
-            p_impl->free();
-        }
-
-        bool has_single_op_lifetime() const
-        {
-            return p_impl->has_single_op_lifetime();
-        }
-
-        bool locked()
-        {
-            return p_impl->locked();
-        }
-
-        bool is_valid_serialization(const std::string& value) const
-        {
-            return p_impl->is_valid_serialization(value);
-        }
-
-        bool is_sequence() const
-        {
-            return p_impl->is_sequence();
-        }
-
-        self_type& set_rc_yaml_value(const YAML::Node& value, const std::string& source)
-        {
-            p_impl->set_rc_yaml_value(value, source);
-            return *this;
-        };
-
-        self_type& set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                      const std::vector<std::string>& sources)
-        {
-            p_impl->set_rc_yaml_values(values, sources);
-            return *this;
-        };
-
-        self_type& set_cli_yaml_value(const YAML::Node& value)
-        {
-            p_impl->set_cli_yaml_value(value);
-            return *this;
-        };
-
-        self_type& set_cli_yaml_value(const std::string& value)
-        {
-            p_impl->set_cli_yaml_value(value);
-            return *this;
-        };
-
-        template <class T>
-        self_type& set_cli_value(const typename detail::cli_config<T>::storage_type& value)
-        {
-            get_wrapped<T>().set_cli_value(value);
-            return *this;
-        };
-
-        self_type& set_yaml_value(const YAML::Node& value)
-        {
-            p_impl->set_yaml_value(value);
-            return *this;
-        };
-
-        self_type& set_yaml_value(const std::string& value)
-        {
-            p_impl->set_yaml_value(value);
-            return *this;
-        };
-
-        template <class T>
-        self_type& set_value(const T& value)
-        {
-            get_wrapped<T>().set_value(value);
-            return *this;
-        };
-
-        self_type& clear_rc_values()
-        {
-            p_impl->clear_rc_values();
-            return *this;
-        };
-
-        self_type& clear_env_values()
-        {
-            p_impl->clear_env_values();
-            return *this;
-        };
-
-        self_type& clear_cli_value()
-        {
-            p_impl->clear_cli_value();
-            return *this;
-        };
-
-        self_type& clear_api_value()
-        {
-            p_impl->clear_api_value();
-            return *this;
-        };
-
-        self_type& clear_values()
-        {
-            p_impl->clear_values();
-            return *this;
-        };
-
-        self_type& set_env_var_names(const std::vector<std::string>& names = {})
-        {
-            p_impl->set_env_var_names(names);
-            return *this;
-        };
-
-        self_type& group(const std::string& name)
-        {
-            p_impl->group(name);
-            return *this;
-        };
-
-        self_type& description(const std::string& desc)
-        {
-            p_impl->description(desc);
-            return *this;
-        };
-
-        self_type& long_description(const std::string& desc)
-        {
-            p_impl->long_description(desc);
-            return *this;
-        };
-
-        self_type& compute(const int options = 0,
-                           const ConfigurationLevel& level = ConfigurationLevel::kDefault)
-        {
-            p_impl->compute(options, level);
-            return *this;
-        };
+        std::unique_ptr<detail::ConfigurableImplBase> p_impl;
     };
-
-    namespace detail
-    {
-        void check_target_prefix(int options);
-    }
-
 
     int const MAMBA_SHOW_CONFIG_VALUES = 1 << 0;
     int const MAMBA_SHOW_CONFIG_SRCS = 1 << 1;
@@ -1353,7 +361,6 @@ namespace mamba
     int const MAMBA_SHOW_CONFIG_GROUPS = 1 << 4;
     int const MAMBA_SHOW_ALL_CONFIGS = 1 << 5;
     int const MAMBA_SHOW_ALL_RC_CONFIGS = 1 << 6;
-
 
     /*****************
      * Configuration *
@@ -1364,10 +371,10 @@ namespace mamba
     public:
         static Configuration& instance();
 
-        std::map<std::string, ConfigurableInterface>& config();
-        ConfigurableInterface& at(const std::string& name);
+        std::map<std::string, Configurable>& config();
+        Configurable& at(const std::string& name);
 
-        using grouped_config_type = std::pair<std::string, std::vector<ConfigurableInterface*>>;
+        using grouped_config_type = std::pair<std::string, std::vector<Configurable*>>;
         std::vector<grouped_config_type>
         get_grouped_config();
 
@@ -1396,18 +403,18 @@ namespace mamba
 
         std::string dump(int opts = MAMBA_SHOW_CONFIG_VALUES, std::vector<std::string> names = {});
 
-        template <class T>
-        typename detail::cli_config<T>::storage_type& link_cli_option(
-            const std::string& name, const typename detail::cli_config<T>::storage_type& init);
-
-        template <class T>
-        Configurable<T>& insert(Configurable<T> configurable, bool allow_redefinition = false);
+        Configurable& insert(Configurable configurable, bool allow_redefinition = false);
 
         void reset_configurables();
 
     protected:
         Configuration();
         ~Configuration() = default;
+
+        Configuration(const Configuration&) = delete;
+        Configuration& operator=(const Configuration&) = delete;
+        Configuration(Configuration&&) = delete;
+        Configuration& operator=(Configuration&&) = delete;
 
         void set_configurables();
 
@@ -1434,17 +441,426 @@ namespace mamba
 
         bool m_load_lock = false;
 
-        std::map<std::string, ConfigurableInterface> m_config;
+        std::map<std::string, Configurable> m_config;
         std::vector<std::string> m_config_order, m_loading_sequence;
     };
 
+    /***********************************
+     * ConfigurableImpl implementation *
+     ***********************************/
+
+    namespace detail
+    {
+        template <class T>
+        bool ConfigurableImpl<T>::cli_configured() const
+        {
+            return (p_cli_config != nullptr) && p_cli_config->has_value();
+        };
+
+        template <class T>
+        void ConfigurableImpl<T>::clear_rc_values()
+        {
+            this->m_rc_sources.clear();
+            m_rc_values.clear();
+            this->m_rc_configured = false;
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::clear_cli_value()
+        {
+            p_cli_config = nullptr;
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_default_value()
+        {
+            m_value = m_default_value;
+        }
+        
+        template <class T>
+        void ConfigurableImpl<T>::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
+        {
+            try
+            {
+                set_rc_value(value.as<T>(), source);
+            }
+            catch (const YAML::Exception& e)
+            {
+                LOG_ERROR << "Bad conversion of configurable '" << this->m_name << "' from source '"
+                          << source << "'";
+            }
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                                     const std::vector<std::string>& sources)
+        {
+            std::map<std::string, T> converted_values;
+            for (auto& y : values)
+            {
+                converted_values.insert({ y.first, y.second.as<T>() });
+            }
+            set_rc_values(converted_values, sources);
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_cli_yaml_value(const YAML::Node& value)
+        {
+            set_cli_value(value.as<T>());
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_cli_yaml_value(const std::string& value)
+        {
+            set_cli_value(detail::Source<T>::deserialize(value));
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_yaml_value(const YAML::Node& value)
+        {
+            set_value(value.as<T>());
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_yaml_value(const std::string& value)
+        {
+            try
+            {
+                set_value(detail::Source<T>::deserialize(value));
+            }
+            catch (const YAML::Exception& e)
+            {
+                LOG_ERROR << "Bad conversion of configurable '" << this->m_name << "' with value '"
+                          << value << "'";
+                throw e;
+            }
+        }
+       
+        template <class T>
+        bool ConfigurableImpl<T>::is_valid_serialization(const std::string& value) const
+        {
+            try
+            {
+                detail::Source<T>::deserialize(value);
+                return true;
+            }
+            catch (...)
+            {
+                return false;
+            }
+        }
+
+        template <class T>
+        bool ConfigurableImpl<T>::is_sequence() const
+        {
+            return detail::Source<T>::is_sequence();
+        }
+
+        template <class T>
+        YAML::Node ConfigurableImpl<T>::yaml_value() const
+        {
+            return YAML::Node(m_value);
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::dump_json(nlohmann::json& node, const std::string& name) const
+        {
+            node[name] = m_value;
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_rc_value(const T& value, const std::string& source)
+        {
+            this->m_rc_sources.push_back(source);
+            m_rc_values[source] = value;
+            this->m_rc_configured = true;
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_rc_values(const std::map<std::string, T>& mapped_values,
+                                                const std::vector<std::string>& sources)
+        {
+            assert(mapped_values.size() == sources.size());
+            this->m_rc_sources.insert(this->m_rc_sources.end(), sources.begin(), sources.end());
+            m_rc_values.insert(mapped_values.begin(), mapped_values.end());
+            this->m_rc_configured = true;
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_cli_value(const T& value)
+        {
+            if (p_cli_config == nullptr)
+            {
+                p_cli_config = std::make_shared<cli_config_type>(value);
+            }
+            else
+            {
+                *p_cli_config = value;
+            }
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::set_value(const T& value)
+        {
+            m_value = value;
+            this->m_api_configured = true;
+        }
+
+        template <class T>
+        void ConfigurableImpl<T>::compute(int options,
+                                          const ConfigurationLevel& level)
+        {
+            bool hook_disabled = options & MAMBA_CONF_DISABLE_HOOK;
+            bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;
+
+            if (force_compute)
+                LOG_TRACE << "Update configurable '" << this->m_name << "'";
+            else
+                LOG_TRACE << "Compute configurable '" << this->m_name << "'";
+
+            if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
+                throw std::runtime_error("Multiple computation of '" + m_name
+                                         + "' detected during loading sequence.");
+
+            auto& ctx = Context::instance();
+            m_sources.clear();
+            m_values.clear();
+
+            if (this->m_api_configured && (level >= ConfigurationLevel::kApi))
+            {
+                m_sources.push_back("API");
+                m_values.insert({ "API", m_value });
+            }
+
+            if (cli_configured() && (level >= ConfigurationLevel::kCli))
+            {
+                m_sources.push_back("CLI");
+                m_values.insert({ "CLI", p_cli_config->value() });
+            }
+
+            if (env_var_configured() && env_var_active() && (level >= ConfigurationLevel::kEnvVar))
+            {
+                for (const auto& env_var : m_env_var_names)
+                {
+                    auto env_var_value = env::get(env_var);
+                    if (env_var_value)
+                    {
+                        try
+                        {
+                            m_values.insert(
+                                { env_var, detail::Source<T>::deserialize(env_var_value.value()) });
+                            m_sources.push_back(env_var);
+                        }
+                        catch (const YAML::Exception& e)
+                        {
+                            LOG_ERROR << "Bad conversion of configurable '" << this->m_name
+                                      << "' from environment variable '" << env_var << "' with value '"
+                                      << env_var_value.value() << "'";
+                            throw e;
+                        }
+                    }
+                }
+            }
+
+            if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
+            {
+                m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
+                m_values.insert(m_rc_values.begin(), m_rc_values.end());
+            }
+
+            if ((p_default_value_hook != NULL) && (level >= ConfigurationLevel::kDefault))
+            {
+                m_sources.push_back("default");
+                m_values.insert({ "default", p_default_value_hook() });
+            }
+
+            if (m_sources.empty() && (p_fallback_value_hook != NULL))
+            {
+                m_sources.push_back("fallback");
+                m_values.insert({ "fallback", p_fallback_value_hook() });
+            }
+
+            if (!m_sources.empty())
+                detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
+            else
+            {
+                m_value = m_default_value;
+                m_source = detail::Source<T>::default_value(m_default_value);
+            }
+
+            if (!hook_disabled && (p_post_merge_hook != NULL))
+                p_post_merge_hook(m_value);
+
+            ++m_compute_counter;
+            if (p_context != nullptr)
+            {
+                *p_context = m_value;
+            }
+
+            if (p_post_ctx_hook != nullptr)
+                p_post_ctx_hook();
+        }
+    }
+
+    /*******************************
+     * Configurable implementation *
+     *******************************/
+
     template <class T>
-    Configurable<T>& Configuration::insert(Configurable<T> configurable, bool allow_redefinition)
+    Configurable::Configurable(const std::string& name, T* context)
+        : p_impl(std::make_unique<detail::ConfigurableImpl<T>>())
+    {
+        auto& wrapped = get_wrapped<T>();
+        wrapped.m_name = name;
+        wrapped.m_value = *context;
+        wrapped.m_default_value = *context;
+        wrapped.m_source = detail::Source<T>::default_value(*context);
+        wrapped.p_context = context;
+    }
+
+    template <class T>
+    Configurable::Configurable(const std::string& name, const T& init)
+        : p_impl(std::make_unique<detail::ConfigurableImpl<T>>())
+    {
+        auto& wrapped = get_wrapped<T>();
+        wrapped.m_name = name;
+        wrapped.m_value = init;
+        wrapped.m_default_value = init;
+        wrapped.m_source = detail::Source<T>::default_value(init);
+    }
+    
+    template <class T>
+    const T& Configurable::value() const
+    {
+        return const_cast<Configurable*>(this)->value<T>();
+    }
+
+    template <class T>
+    T& Configurable::value()
+    {
+        if (Configuration::instance().is_loading() && p_impl->m_compute_counter == 0)
+            throw std::runtime_error("Using '" + name() + "' value without previous computation.");
+        return get_wrapped<T>().m_value;
+    }
+    
+    template <class T>
+    const T& Configurable::cli_value() const
+    {
+        if (!cli_configured())
+            throw std::runtime_error("Trying to get unset CLI value of '" + name() + "'");
+
+        return get_wrapped<T>().p_cli_config->value();
+    }
+
+    template <class T>
+    const std::vector<T>& Configurable::values() const
+    {
+        return get_wrapped<T>().m_values;
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_rc_value(const T& value, const std::string& source)
+    {
+        get_wrapped<T>().set_rc_value(value, source);
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_rc_values(const std::map<std::string, T>& mapped_values,
+                                              const std::vector<std::string>& sources)
+    {
+        get_wrapped<T>().set_rc_values(mapped_values, sources);
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_value(const T& value)
+    {
+        get_wrapped<T>().set_value(value);
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_default_value(const T& value)
+    {
+        auto& wrapped = get_wrapped<T>();
+        wrapped.m_default_value = value;
+        wrapped.m_value = value;
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_default_value_hook(value_hook_type<T> hook)
+    {
+        get_wrapped<T>().p_default_value_hook = hook;
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_fallback_value_hook(value_hook_type<T> hook)
+    {
+        get_wrapped<T>().p_fallback_value_hook = hook;
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_post_merge_hook(post_merge_hook_type<T> hook)
+    {
+        get_wrapped<T>().p_post_merge_hook = hook;
+        return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_cli_value(const T& value)
+    {
+        auto& wrapped = get_wrapped<T>();
+        wrapped.set_cli_value(value);
+        return std::move(*this);
+    }
+
+    template <class T>
+    std::optional<T>& Configurable::get_cli_config()
+    {
+        return *(get_wrapped<T>().p_cli_config);
+    }
+
+    template <class T>
+    std::optional<T>& Configurable::init_cli_config(const T& t)
+    {
+        return (get_cli_config<T>() = t);
+    }
+
+    template <class T>
+    detail::ConfigurableImpl<T>& Configurable::get_wrapped()
+    {
+        try
+        {
+            auto& derived = dynamic_cast<detail::ConfigurableImpl<T>&>(*p_impl);
+            return derived;
+        }
+        catch (const std::bad_cast& e)
+        {
+            LOG_ERROR << "Bad cast of Configurable '" << name() << "'";
+            throw e;
+        }
+    }
+
+    template <class T>
+    const detail::ConfigurableImpl<T>& Configurable::get_wrapped() const
+    {
+        return const_cast<Configurable&>(*this).get_wrapped<T>();
+    }
+
+    /********************************
+     * Configuration implementation *
+     ********************************/
+
+    inline Configurable& Configuration::insert(Configurable configurable, bool allow_redefinition)
     {
         std::string name = configurable.name();
         if (m_config.count(name) == 0)
         {
-            m_config.insert({ name, ConfigurableInterface(std::move(configurable)) });
+            m_config.insert({ name, std::move(configurable) });
             m_config_order.push_back(name);
         }
         else
@@ -1456,125 +872,7 @@ namespace mamba
             }
         }
 
-        return m_config.at(name).get_wrapped<T>();
-    }
-
-    template <class T>
-    auto Configurable<T>::compute(const int options, const ConfigurationLevel& level) -> self_type&
-    {
-        bool hook_disabled = options & MAMBA_CONF_DISABLE_HOOK;
-        bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;
-
-        if (force_compute)
-            LOG_TRACE << "Update configurable '" << name() << "'";
-        else
-            LOG_TRACE << "Compute configurable '" << name() << "'";
-
-        if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
-            throw std::runtime_error("Multiple computation of '" + m_name
-                                     + "' detected during loading sequence.");
-
-        auto& ctx = Context::instance();
-        m_sources.clear();
-        m_values.clear();
-
-        if (api_configured() && (level >= ConfigurationLevel::kApi))
-        {
-            m_sources.push_back("API");
-            m_values.insert({ "API", m_value });
-        }
-
-        if (cli_configured() && (level >= ConfigurationLevel::kCli))
-        {
-            m_sources.push_back("CLI");
-            m_values.insert({ "CLI", p_cli_config->value() });
-        }
-
-        if (env_var_configured() && env_var_active() && (level >= ConfigurationLevel::kEnvVar))
-        {
-            for (const auto& env_var : m_env_var_names)
-            {
-                auto env_var_value = env::get(env_var);
-                if (env_var_value)
-                {
-                    try
-                    {
-                        m_values.insert(
-                            { env_var, detail::Source<T>::deserialize(env_var_value.value()) });
-                        m_sources.push_back(env_var);
-                    }
-                    catch (const YAML::Exception& e)
-                    {
-                        LOG_ERROR << "Bad conversion of configurable '" << name()
-                                  << "' from environment variable '" << env_var << "' with value '"
-                                  << env_var_value.value() << "'";
-                        throw e;
-                    }
-                }
-            }
-        }
-
-        if (rc_configured() && !ctx.no_rc && (level >= ConfigurationLevel::kFile))
-        {
-            m_sources.insert(m_sources.end(), m_rc_sources.begin(), m_rc_sources.end());
-            m_values.insert(m_rc_values.begin(), m_rc_values.end());
-        }
-
-        if ((p_default_value_hook != NULL) && (level >= ConfigurationLevel::kDefault))
-        {
-            m_sources.push_back("default");
-            m_values.insert({ "default", p_default_value_hook() });
-        }
-
-        if (m_sources.empty() && (p_fallback_value_hook != NULL))
-        {
-            m_sources.push_back("fallback");
-            m_values.insert({ "fallback", p_fallback_value_hook() });
-        }
-
-        if (!m_sources.empty())
-            detail::Source<T>::merge(m_values, m_sources, m_value, m_source);
-        else
-        {
-            m_value = m_default_value;
-            m_source = detail::Source<T>::default_value(m_default_value);
-        }
-
-        if (!hook_disabled && (p_post_merge_hook != NULL))
-            p_post_merge_hook(m_value);
-
-        ++m_compute_counter;
-        set_context();
-
-        if (p_post_ctx_hook != NULL)
-            p_post_ctx_hook();
-
-        return *this;
-    }
-
-    template <class T>
-    const T& Configurable<T>::value() const
-    {
-        if (Configuration::instance().is_loading() && m_compute_counter == 0)
-            throw std::runtime_error("Using '" + m_name + "' value without previous computation.");
-        return m_value;
-    };
-
-    template <class T>
-    T& Configurable<T>::value()
-    {
-        if (Configuration::instance().is_loading() && m_compute_counter == 0)
-            throw std::runtime_error("Using '" + m_name + "' value without previous computation.");
-        return m_value;
-    };
-
-    template <class T>
-    auto Configuration::link_cli_option(const std::string& name,
-                                        const typename detail::cli_config<T>::storage_type& init) ->
-        typename detail::cli_config<T>::storage_type&
-    {
-        auto& config = at(name).get_wrapped<T>();
-        return config.set_cli_config(init);
+        return m_config.at(name);
     }
 
     void use_conda_root_prefix(bool force = false);

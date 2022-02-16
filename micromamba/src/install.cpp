@@ -14,9 +14,9 @@ set_install_command(CLI::App* subcom)
 
     auto& config = Configuration::instance();
 
-    auto& freeze_installed = config.at("freeze_installed").get_wrapped<bool>();
+    auto& freeze_installed = config.at("freeze_installed");
     subcom->add_flag(
-        "--freeze-installed", freeze_installed.set_cli_config(0), freeze_installed.description());
+        "--freeze-installed", freeze_installed.get_cli_config<bool>(), freeze_installed.description());
 
     subcom->callback([&]() { install(); });
 }

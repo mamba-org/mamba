@@ -45,14 +45,14 @@ init_clean_parser(CLI::App* subcom)
                             .group("cli")
                             .description("Remove *all* writable package caches. This option is not included with the --all flags."));
 
-    subcom->add_flag("-a,--all", clean_all.set_cli_config(0), clean_all.description());
-    subcom->add_flag("-i,--index-cache", clean_index.set_cli_config(0), clean_index.description());
-    subcom->add_flag("-p,--packages", clean_pkgs.set_cli_config(0), clean_pkgs.description());
+    subcom->add_flag("-a,--all", clean_all.get_cli_config<bool>(), clean_all.description());
+    subcom->add_flag("-i,--index-cache", clean_index.get_cli_config<bool>(), clean_index.description());
+    subcom->add_flag("-p,--packages", clean_pkgs.get_cli_config<bool>(), clean_pkgs.description());
     subcom->add_flag(
-        "-t,--tarballs", clean_tarballs.set_cli_config(0), clean_tarballs.description());
-    subcom->add_flag("-l,--locks", clean_locks.set_cli_config(0), clean_locks.description());
-    subcom->add_flag("--trash", clean_trash.set_cli_config(0), clean_trash.description());
-    subcom->add_flag("-f,--force-pkgs-dirs", clean_force_pkgs_dirs.set_cli_config(0), clean_force_pkgs_dirs.description());
+        "-t,--tarballs", clean_tarballs.get_cli_config<bool>(), clean_tarballs.description());
+    subcom->add_flag("-l,--locks", clean_locks.get_cli_config<bool>(), clean_locks.description());
+    subcom->add_flag("--trash", clean_trash.get_cli_config<bool>(), clean_trash.description());
+    subcom->add_flag("-f,--force-pkgs-dirs", clean_force_pkgs_dirs.get_cli_config<bool>(), clean_force_pkgs_dirs.description());
 }
 
 void

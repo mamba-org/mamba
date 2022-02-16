@@ -24,7 +24,7 @@ init_list_parser(CLI::App* subcom)
         = config.insert(Configurable("list_regex", std::string(""))
                             .group("cli")
                             .description("List only packages matching a regular expression"));
-    subcom->add_option("regex", regex.set_cli_config(""), regex.description());
+    subcom->add_option("regex", regex.get_cli_config<std::string>(), regex.description());
 }
 
 void

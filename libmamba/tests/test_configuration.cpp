@@ -8,6 +8,20 @@
 
 namespace mamba
 {
+    namespace detail
+    {
+        bool has_config_name(const std::string& file);
+
+        bool is_config_file(const fs::path& path);
+
+        void print_scalar_node(YAML::Emitter&,
+                               YAML::Node value,
+                               YAML::Node source,
+                               bool show_source);
+        void print_seq_node(YAML::Emitter&, YAML::Node value, YAML::Node source, bool show_source);
+        void print_map_node(YAML::Emitter&, YAML::Node value, YAML::Node source, bool show_source);
+    }
+
     namespace testing
     {
         class Configuration : public ::testing::Test
@@ -17,7 +31,6 @@ namespace mamba
             {
                 mamba::Configuration::instance()
                     .at("show_banner")
-                    .get_wrapped<bool>()
                     .set_default_value(false);
             }
 
@@ -32,11 +45,9 @@ namespace mamba
                 mamba::Configuration::instance().reset_configurables();
                 mamba::Configuration::instance()
                     .at("rc_files")
-                    .get_wrapped<std::vector<fs::path>>()
-                    .set_value({ fs::path(unique_location) });
+                    .set_value<std::vector<fs::path>>({ fs::path(unique_location) });
                 mamba::Configuration::instance()
                     .at("show_banner")
-                    .get_wrapped<bool>()
                     .set_default_value(false);
                 mamba::Configuration::instance().load();
             }
@@ -61,11 +72,9 @@ namespace mamba
                 mamba::Configuration::instance().reset_configurables();
                 mamba::Configuration::instance()
                     .at("rc_files")
-                    .get_wrapped<std::vector<fs::path>>()
                     .set_value(sources);
                 mamba::Configuration::instance()
                     .at("show_banner")
-                    .get_wrapped<bool>()
                     .set_default_value(false);
                 mamba::Configuration::instance().load();
             }

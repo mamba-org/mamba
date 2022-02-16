@@ -28,6 +28,315 @@
 
 namespace mamba
 {
+    /************************
+     * ConfigurableImplBase *
+     ************************/
+
+    namespace detail
+    {
+        bool ConfigurableImplBase::env_var_configured() const
+        {
+            if (Context::instance().no_env)
+                return false;
+
+            for (const auto& env_var : m_env_var_names)
+                if (env::get(env_var))
+                    return true;
+            return false;
+        }
+        
+        bool ConfigurableImplBase::env_var_active() const
+        {
+            return !Context::instance().no_env || (m_name == "no_env");
+        }
+
+        bool ConfigurableImplBase::rc_configured() const
+        {
+            return m_rc_configured && !Context::instance().no_rc;
+        }
+    }
+
+    /*******************************
+     * Configurable implementation *
+     *******************************/
+
+    const std::string& Configurable::name() const
+    {
+        return p_impl->m_name;
+    }
+
+    const std::string& Configurable::group() const
+    {
+        return p_impl->m_group;
+    }
+
+    Configurable&& Configurable::group(const std::string& group)
+    {
+        p_impl->m_group = group;
+        return std::move(*this);
+    }
+
+    const std::string& Configurable::description() const
+    {
+        return p_impl->m_description;
+    }
+
+    Configurable&& Configurable::description(const std::string& desc)
+    {
+        p_impl->m_description = desc;
+        return std::move(*this);
+    }
+
+    const std::string& Configurable::long_description() const
+    {
+        return p_impl->m_long_description.empty() ? p_impl->m_description : p_impl->m_long_description;
+    }
+
+    Configurable&& Configurable::long_description(const std::string& desc)
+    {
+        p_impl->m_long_description = desc;
+        return std::move(*this);
+    }
+
+    const std::vector<std::string>& Configurable::sources() const
+    {
+        return p_impl->m_sources;
+    }
+
+    const std::vector<std::string>& Configurable::source() const
+    {
+        return p_impl->m_source;
+    }
+
+    const std::set<std::string>& Configurable::needed() const
+    {
+        return p_impl->m_needed_configs;
+    }
+
+    Configurable&& Configurable::needs(const std::set<std::string>& names)
+    {
+        p_impl->m_needed_configs.insert(names.cbegin(), names.cend());
+        return std::move(*this);
+    }
+
+    const std::set<std::string>& Configurable::implied() const
+    {
+        return p_impl->m_implied_configs;
+    }
+
+    Configurable&& Configurable::implies(const std::set<std::string>& names)
+    {
+        p_impl->m_implied_configs.insert(names.cbegin(), names.cend());
+        return std::move(*this);
+    }
+
+    bool Configurable::rc_configurable() const
+    {
+        return p_impl->m_rc_configurable;
+    }
+
+    RCConfigLevel Configurable::rc_configurable_level() const
+    {
+        return p_impl->m_rc_configurable_policy;
+    }
+
+    Configurable&& Configurable::set_rc_configurable(RCConfigLevel level)
+    {
+        p_impl->m_rc_configurable = true;
+        p_impl->m_rc_configurable_policy = level;
+
+        if (level == RCConfigLevel::kTargetPrefix)
+            p_impl->m_needed_configs.insert("target_prefix");
+        else
+            p_impl->m_needed_configs.insert("root_prefix");
+
+        return std::move(*this);
+    }
+
+    bool Configurable::rc_configured() const
+    {
+        return p_impl->rc_configured();
+    }
+
+    bool Configurable::env_var_configured() const
+    {
+        return p_impl->env_var_configured();
+    }
+ 
+    bool Configurable::cli_configured() const
+    {
+        return p_impl->cli_configured();
+    }
+
+    bool Configurable::api_configured() const
+    {
+        return p_impl->m_api_configured;
+    }
+
+    bool Configurable::configured() const
+    {
+        return rc_configured() || env_var_configured() || cli_configured() || api_configured();
+    }
+
+    bool Configurable::env_var_active() const
+    {
+        return p_impl->env_var_active();
+    }
+
+    Configurable&& Configurable::set_env_var_names(const std::vector<std::string>& names)
+    {
+        if (names.empty())
+            p_impl->m_env_var_names = { "MAMBA_" + to_upper(p_impl->m_name) };
+        else
+            p_impl->m_env_var_names = names;
+
+        if (name() != "no_env")
+            p_impl->m_needed_configs.insert("no_env");
+
+        return std::move(*this);
+    }
+
+    bool Configurable::has_single_op_lifetime() const
+    {
+        return p_impl->m_single_op_lifetime;
+    }
+
+    Configurable&& Configurable::set_single_op_lifetime()
+    {
+        p_impl->m_single_op_lifetime = true;
+        return std::move(*this);
+    }
+
+    void Configurable::reset_compute_counter()
+    {
+        p_impl->m_compute_counter = 0;
+    }
+
+    void Configurable::lock()
+    {
+        p_impl->m_lock = true;
+    }
+
+    void Configurable::free()
+    {
+        p_impl->m_lock = false;
+    }
+
+    bool Configurable::locked()
+    {
+        return p_impl->m_lock;
+    }
+
+    Configurable&& Configurable::clear_rc_values()
+    {
+        p_impl->clear_rc_values();
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::clear_env_values()
+    {
+        if (env_var_configured())
+            for (const auto& ev : p_impl->m_env_var_names)
+                env::unset(ev);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::clear_cli_value()
+    {
+        p_impl->clear_cli_value();
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::clear_api_value()
+    {
+        p_impl->m_api_configured = false;
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::clear_values()
+    {
+        clear_rc_values();
+        clear_env_values();
+        clear_cli_value();
+        clear_api_value();
+        p_impl->set_default_value();
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_post_context_hook(post_context_hook_type hook)
+    {
+        p_impl->p_post_ctx_hook = hook;
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
+    {
+        p_impl->set_rc_yaml_value(value, source);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
+                                          const std::vector<std::string>& sources)
+    {
+        p_impl->set_rc_yaml_values(values, sources);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_cli_yaml_value(const YAML::Node& value)
+    {
+        p_impl->set_cli_yaml_value(value);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_cli_yaml_value(const std::string& value)
+    {
+        p_impl->set_cli_yaml_value(value);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_yaml_value(const YAML::Node& value)
+    {
+        p_impl->set_yaml_value(value);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::set_yaml_value(const std::string& value)
+    {
+        p_impl->set_yaml_value(value);
+        return std::move(*this);
+    }
+
+    Configurable&& Configurable::compute(int options,
+                                        const ConfigurationLevel& level)
+    {
+        p_impl->compute(options, level);
+        return std::move(*this);
+    }
+
+    bool Configurable::is_valid_serialization(const std::string& value) const
+    {
+        return p_impl->is_valid_serialization(value);
+    }
+
+    bool Configurable::is_sequence() const
+    {
+        return p_impl->is_sequence();
+    }
+
+    YAML::Node Configurable::yaml_value() const
+    {
+        return p_impl->yaml_value();
+    }
+    
+    void Configurable::dump_json(nlohmann::json& node, const std::string& name) const
+    {
+        p_impl->dump_json(node, name);
+    }
+
+    /*********
+     * hooks *
+     *********/
+
     static std::string expandvars(std::string s)
     {
         if (s.find("$") == std::string::npos)
@@ -70,10 +379,10 @@ namespace mamba
             }
 
             auto& cacert
-                = Configuration::instance().at("cacert_path").template get_wrapped<std::string>();
-            if (!cacert.value().empty())
+                = Configuration::instance().at("cacert_path").value<std::string>();
+            if (!cacert.empty())
             {
-                value = cacert.value();
+                value = cacert;
                 return;
             }
             else
@@ -302,29 +611,6 @@ namespace mamba
         void verbose_hook(std::uint8_t& lvl)
         {
             auto& ctx = Context::instance();
-            /*
-            auto& config = Configuration::instance();
-            auto& log_level = config.at("log_level").get_wrapped<LogLevel>();
-
-            if (config.at("verbose").configured()
-                && (config.at("verbose").value<std::uint8_t>() > 0))
-            {
-                if (log_level.cli_configured() || log_level.api_configured()
-                    || log_level.env_var_configured())
-                {
-                    LOG_ERROR << "'verbose' can't override 'log_level' (skipped)";
-                    config.at("verbose")
-                        .clear_values();  // Avoid the error message appears multiple times
-                }
-                else
-                {
-                    ctx.verbosity = lvl;
-                    // Make it appears like set with the CLI
-                    // TODO: find a better way than passing by YAML to convert to string?
-                    log_level.set_cli_config(YAML::Node(ctx.verbosity).as<std::string>());
-                }
-            }
-            */
             ctx.verbosity = lvl;
         }
 
@@ -527,6 +813,151 @@ namespace mamba
         }
     }
 
+    /************
+     * printers *
+     ************/
+
+    namespace nl = nlohmann;
+
+    namespace detail
+    {
+        bool has_config_name(const std::string& file)
+        {
+            return fs::path(file).filename() == ".condarc" || fs::path(file).filename() == "condarc"
+                   || fs::path(file).filename() == ".mambarc"
+                   || fs::path(file).filename() == "mambarc" || ends_with(file, ".yml")
+                   || ends_with(file, ".yaml");
+        }
+
+        bool is_config_file(const fs::path& path)
+        {
+            return fs::exists(path) && (!fs::is_directory(path)) && has_config_name(path.string());
+        }
+
+        void print_node(YAML::Emitter& out,
+                        YAML::Node value,
+                        YAML::Node source,
+                        bool show_source);
+
+        void print_scalar_node(YAML::Emitter& out,
+                               YAML::Node value,
+                               YAML::Node source,
+                               bool show_source)
+        {
+            out << value;
+
+            if (show_source)
+            {
+                if (source.IsScalar())
+                {
+                    out << YAML::Comment("'" + source.as<std::string>() + "'");
+                }
+                else
+                {
+                    auto srcs = source.as<std::vector<std::string>>();
+                    std::string comment = "'" + srcs.at(0) + "'";
+                    for (std::size_t i = 1; i < srcs.size(); ++i)
+                    {
+                        comment += " > '" + srcs.at(i) + "'";
+                    }
+                    out << YAML::Comment(comment);
+                }
+            }
+        }
+
+        void print_seq_node(YAML::Emitter& out,
+                            YAML::Node value,
+                            YAML::Node source,
+                            bool show_source)
+        {
+            if (value.size() > 0)
+            {
+                out << YAML::BeginSeq;
+                for (std::size_t n = 0; n < value.size(); ++n)
+                {
+                    print_node(out, value[n], source[n], show_source);
+                }
+                out << YAML::EndSeq;
+            }
+            else
+            {
+                out << YAML::_Null();
+                if (show_source)
+                    out << YAML::Comment("'default'");
+            }
+        }
+
+        void print_map_node(YAML::Emitter& out,
+                            YAML::Node value,
+                            YAML::Node source,
+                            bool show_source)
+        {
+            out << YAML::BeginMap;
+            for (auto n : value)
+            {
+                auto key = n.first.as<std::string>();
+                out << YAML::Key << n.first;
+                out << YAML::Value;
+
+                print_node(out, n.second, source[key], show_source);
+            }
+            out << YAML::EndMap;
+        }
+
+        void print_node(YAML::Emitter& out,
+                        YAML::Node value,
+                        YAML::Node source,
+                        bool show_source)
+        {
+            if (value.IsScalar())
+            {
+                print_scalar_node(out, value, source, show_source);
+            }
+            if (value.IsSequence())
+            {
+                print_seq_node(out, value, source, show_source);
+            }
+            if (value.IsMap())
+            {
+                print_map_node(out, value, source, show_source);
+            }
+        }
+
+        void print_configurable(YAML::Emitter& out,
+                                const Configurable& config,
+                                bool show_source)
+        {
+            auto value = config.yaml_value();
+            auto source = YAML::Node(config.source());
+            print_node(out, value, source, show_source);
+        }
+
+        void print_group_title(YAML::Emitter& out, const std::string& name)
+        {
+            auto group_title = name + " Configuration";
+            auto blk_size = 52 - group_title.size();
+            int prepend_blk = blk_size / 2;
+            int append_blk = blk_size - prepend_blk;
+
+            out << YAML::Comment(std::string(54, '#')) << YAML::Newline;
+            out << YAML::Comment("#" + std::string(prepend_blk, ' ') + group_title
+                                 + std::string(append_blk, ' ') + "#")
+                << YAML::Newline;
+            out << YAML::Comment(std::string(54, '#'));
+        }
+
+        void dump_configurable(nl::json& node,
+                               const Configurable& c,
+                               const std::string& name)
+        {
+            c.dump_json(node, name);
+        }
+    }
+
+    /********************************
+     * Configuration implementation *
+     ********************************/
+
     Configuration::Configuration()
     {
         set_configurables();
@@ -548,7 +979,7 @@ namespace mamba
                    .set_env_var_names()
                    .needs({ "create_base", "rc_files" })
                    .description("Path to the root prefix")
-                   .set_post_merge_hook(detail::root_prefix_hook)
+                   .set_post_merge_hook<fs::path>(detail::root_prefix_hook)
                    .set_post_context_hook(detail::post_root_prefix_rc_loading));
 
         insert(Configurable("create_base", false)
@@ -566,7 +997,7 @@ namespace mamba
                             "use_target_prefix_fallback" })
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
-                   .set_post_merge_hook(detail::target_prefix_hook)
+                   .set_post_merge_hook<fs::path>(detail::target_prefix_hook)
                    .set_post_context_hook(detail::post_target_prefix_rc_loading));
 
         insert(Configurable("use_target_prefix_fallback", true)
@@ -579,13 +1010,13 @@ namespace mamba
                    .needs({ "target_prefix", "rc_files" })
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
-                   .set_post_merge_hook(detail::target_prefix_checks_hook));
+                   .set_post_merge_hook<int>(detail::target_prefix_checks_hook));
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
                    .needs({ "root_prefix", "spec_file_env_name" })
                    .set_single_op_lifetime()
-                   .set_post_merge_hook(detail::env_name_hook)
+                   .set_post_merge_hook<std::string>(detail::env_name_hook)
                    .description("Name of the target prefix"));
 
         insert(Configurable("envs_dirs", &ctx.envs_dirs)
@@ -593,8 +1024,8 @@ namespace mamba
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
                    .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook(detail::fallback_envs_dirs_hook)
-                   .set_post_merge_hook(detail::envs_dirs_hook)
+                   .set_fallback_value_hook<std::vector<fs::path>>(detail::fallback_envs_dirs_hook)
+                   .set_post_merge_hook<std::vector<fs::path>>(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
         insert(Configurable("pkgs_dirs", &ctx.pkgs_dirs)
@@ -602,8 +1033,8 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_PKGS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook(detail::fallback_pkgs_dirs_hook)
-                   .set_post_merge_hook(detail::pkgs_dirs_hook)
+                   .set_fallback_value_hook<std::vector<fs::path>>(detail::fallback_pkgs_dirs_hook)
+                   .set_post_merge_hook<std::vector<fs::path>>(detail::pkgs_dirs_hook)
                    .description("Possible locations of packages caches"));
 
         insert(Configurable("platform", &ctx.platform)
@@ -620,7 +1051,7 @@ namespace mamba
                    .group("Basic")
                    .needs({ "file_specs", "root_prefix" })
                    .set_single_op_lifetime()
-                   .set_post_merge_hook(detail::file_spec_env_name_hook)
+                   .set_post_merge_hook<std::string>(detail::file_spec_env_name_hook)
                    .description("Name of the target prefix, specified in a YAML spec file"));
 
         insert(Configurable("specs", std::vector<std::string>({}))
@@ -642,7 +1073,7 @@ namespace mamba
                    .long_description(unindent(R"(
                         Enable experimental features that may be still.
                         under active development and not stable yet.)"))
-                   .set_post_merge_hook(detail::experimental_hook));
+                   .set_post_merge_hook<bool>(detail::experimental_hook));
 
         insert(Configurable("debug", &ctx.debug)
                    .group("Basic")
@@ -653,7 +1084,7 @@ namespace mamba
                         in intermediate steps of the operation called.
                         Debug features may/will interrupt the operation,
                         if you only need further logs refer to 'verbose'.)"))
-                   .set_post_merge_hook(detail::debug_hook));
+                   .set_post_merge_hook<bool>(detail::debug_hook));
 
         // Channels
         insert(Configurable("channels", &ctx.channels)
@@ -752,7 +1183,7 @@ namespace mamba
                         the string "<false>" to indicate no SSL verification, or a path to
                         a directory with cert files, or a cert file..)"))
                    .needs({ "cacert_path", "offline" })
-                   .set_post_merge_hook(detail::ssl_verify_hook));
+                   .set_post_merge_hook<std::string>(detail::ssl_verify_hook));
 
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)
@@ -776,8 +1207,7 @@ namespace mamba
 
         insert(Configurable("file_specs", std::vector<std::string>({}))
                    .group("Solver")
-                   .set_post_merge_hook(detail::file_specs_hook)
-                   .set_post_merge_hook(detail::file_specs_hook)
+                   .set_post_merge_hook<std::vector<std::string>>(detail::file_specs_hook)
                    .description("File (yaml, explicit or plain)"));
 
         insert(Configurable("no_pin", false)
@@ -835,7 +1265,7 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_merge_hook(detail::download_threads_hook)
+                   .set_post_merge_hook<size_t>(detail::download_threads_hook)
                    .description("Defines the number of threads for package download")
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
@@ -877,7 +1307,7 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
-                   .set_post_merge_hook(detail::always_softlink_hook)
+                   .set_post_merge_hook<bool>(detail::always_softlink_hook)
                    .description("Use soft-link instead of hard-link")
                    .long_description(unindent(R"(
                         Register a preference that files be soft-linked (symlinked) into a
@@ -963,7 +1393,7 @@ namespace mamba
                    .set_env_var_names()
                    .needs({ "json", "verbose" })
                    .description("Set the log level")
-                   .set_fallback_value_hook(detail::log_level_fallback_hook)
+                   .set_fallback_value_hook<spdlog::level::level_enum>(detail::log_level_fallback_hook)
                    .long_description(unindent(R"(
                             Set globally the log level of all loggers. Log level can
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
@@ -1025,14 +1455,14 @@ namespace mamba
             Configurable("print_config_only", false)
                 .group("Output, Prompt and Flow Control")
                 .needs({ "debug" })
-                .set_post_merge_hook(detail::print_config_only_hook)
+                .set_post_merge_hook<bool>(detail::print_config_only_hook)
                 .description("Print the context after loading the config. Allow ultra-dry runs"));
 
         insert(
             Configurable("print_context_only", false)
                 .group("Output, Prompt and Flow Control")
                 .needs({ "debug" })
-                .set_post_merge_hook(detail::print_context_only_hook)
+                .set_post_merge_hook<bool>(detail::print_context_only_hook)
                 .description("Print the context after loading the config. Allow ultra-dry runs"));
 
         insert(Configurable("show_banner", true)
@@ -1080,7 +1510,7 @@ namespace mamba
 
         insert(Configurable("verbose", std::uint8_t(0))
                    .group("Output, Prompt and Flow Control")
-                   .set_post_merge_hook(detail::verbose_hook)
+                   .set_post_merge_hook<std::uint8_t>(detail::verbose_hook)
                    .description("Set the verbosity")
                    .long_description(unindent(R"(
                     Set the verbosity of .
@@ -1094,7 +1524,7 @@ namespace mamba
                    .group("Config sources")
                    .set_env_var_names({ "MAMBARC", "CONDARC" })
                    .needs({ "no_rc" })
-                   .set_post_merge_hook(detail::rc_files_hook)
+                   .set_post_merge_hook<std::vector<fs::path>>(detail::rc_files_hook)
                    .description("Paths to the configuration files to use"));
 
         insert(Configurable("override_rc_files", true)
@@ -1120,11 +1550,10 @@ namespace mamba
         set_configurables();
     }
 
-    std::vector<std::pair<std::string, std::vector<ConfigurableInterface*>>>
-    Configuration::get_grouped_config()
+    auto Configuration::get_grouped_config() -> std::vector<grouped_config_type>
     {
-        std::map<std::string, std::vector<ConfigurableInterface*>> map;
-        std::vector<std::pair<std::string, std::vector<ConfigurableInterface*>>> res;
+        std::map<std::string, std::vector<Configurable*>> map;
+        std::vector<std::pair<std::string, std::vector<Configurable*>>> res;
         std::vector<std::string> group_order;
 
         for (auto& name : m_config_order)
@@ -1345,12 +1774,12 @@ namespace mamba
         return m_valid_sources;
     }
 
-    std::map<std::string, ConfigurableInterface>& Configuration::config()
+    std::map<std::string, Configurable>& Configuration::config()
     {
         return m_config;
     }
 
-    ConfigurableInterface& Configuration::at(const std::string& name)
+    Configurable& Configuration::at(const std::string& name)
     {
         try
         {
@@ -1466,19 +1895,23 @@ namespace mamba
         return sources;
     }
 
+    /*
+     *
+     */
+
     namespace nl = nlohmann;
 
     namespace detail
     {
         void dump_configurable(nl::json& node,
-                               const ConfigurableInterface& c,
+                               const Configurable& c,
                                const std::string& name);
     }
 
     std::string dump_json(int opts, const std::vector<std::string>& names,
                           const std::vector<Configuration::grouped_config_type>& grouped_config)
     {
-        bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
+        //bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
         bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
         bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
         bool show_long_descs = opts & MAMBA_SHOW_CONFIG_LONG_DESCS;
@@ -1549,13 +1982,10 @@ namespace mamba
         }
         return root.dump(4);
     }
-    std::string Configuration::dump(int opts, std::vector<std::string> names)
-    {
-        if (m_config.at("json").get_wrapped<bool>().value())
-        {
-            return dump_json(opts, names, get_grouped_config());
-        }
 
+    std::string dump_yaml(int opts, const std::vector<std::string>& names,
+                          const std::vector<Configuration::grouped_config_type>& grouped_config)
+    {
         bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
         bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
         bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
@@ -1568,7 +1998,7 @@ namespace mamba
         YAML::Emitter out;
         // out.SetNullFormat(YAML::EMITTER_MANIP::LowerNull); // TODO: switch from ~ to null
 
-        for (auto& group_it : get_grouped_config())
+        for (auto& group_it : grouped_config)
         {
             auto& group_name = group_it.first;
             auto& configs = group_it.second;
@@ -1628,149 +2058,15 @@ namespace mamba
         return out.c_str();
     }
 
-    namespace detail
+    std::string Configuration::dump(int opts, std::vector<std::string> names)
     {
-        bool has_config_name(const std::string& file)
+        if (m_config.at("json").value<bool>())
         {
-            return fs::path(file).filename() == ".condarc" || fs::path(file).filename() == "condarc"
-                   || fs::path(file).filename() == ".mambarc"
-                   || fs::path(file).filename() == "mambarc" || ends_with(file, ".yml")
-                   || ends_with(file, ".yaml");
+            return dump_json(opts, names, get_grouped_config());
         }
-
-        bool is_config_file(const fs::path& path)
+        else
         {
-            return fs::exists(path) && (!fs::is_directory(path)) && has_config_name(path.string());
-        }
-
-        void print_scalar_node(YAML::Emitter& out,
-                               YAML::Node value,
-                               YAML::Node source,
-                               bool show_source)
-        {
-            out << value;
-
-            if (show_source)
-            {
-                if (source.IsScalar())
-                {
-                    out << YAML::Comment("'" + source.as<std::string>() + "'");
-                }
-                else
-                {
-                    auto srcs = source.as<std::vector<std::string>>();
-                    std::string comment = "'" + srcs.at(0) + "'";
-                    for (std::size_t i = 1; i < srcs.size(); ++i)
-                    {
-                        comment += " > '" + srcs.at(i) + "'";
-                    }
-                    out << YAML::Comment(comment);
-                }
-            }
-        }
-
-        void print_seq_node(YAML::Emitter& out,
-                            YAML::Node value,
-                            YAML::Node source,
-                            bool show_source)
-        {
-            if (value.size() > 0)
-            {
-                out << YAML::BeginSeq;
-                for (std::size_t n = 0; n < value.size(); ++n)
-                {
-                    if (value[n].IsScalar())
-                    {
-                        print_scalar_node(out, value[n], source[n], show_source);
-                    }
-                    if (value[n].IsSequence())
-                    {
-                        print_seq_node(out, value[n], source[n], show_source);
-                    }
-                    if (value[n].IsMap())
-                    {
-                        print_map_node(out, value[n], source[n], show_source);
-                    }
-                }
-                out << YAML::EndSeq;
-            }
-            else
-            {
-                out << YAML::_Null();
-                if (show_source)
-                    out << YAML::Comment("'default'");
-            }
-        }
-
-        void print_map_node(YAML::Emitter& out,
-                            YAML::Node value,
-                            YAML::Node source,
-                            bool show_source)
-        {
-            out << YAML::BeginMap;
-            for (auto n : value)
-            {
-                auto key = n.first.as<std::string>();
-                out << YAML::Key << n.first;
-                out << YAML::Value;
-
-                if (n.second.IsScalar())
-                {
-                    print_scalar_node(out, n.second, source[key], show_source);
-                }
-                if (n.second.IsSequence())
-                {
-                    print_seq_node(out, n.second, source[key], show_source);
-                }
-                if (n.second.IsMap())
-                {
-                    print_map_node(out, n.second, source[key], show_source);
-                }
-            }
-            out << YAML::EndMap;
-        }
-
-        void print_configurable(YAML::Emitter& out,
-                                const ConfigurableInterface& config,
-                                bool show_source)
-        {
-            auto value = config.yaml_value();
-            auto source = YAML::Node(config.source());
-
-            if (value.IsScalar())
-            {
-                print_scalar_node(out, value, source, show_source);
-            }
-            if (value.IsSequence())
-            {
-                print_seq_node(out, value, source, show_source);
-            }
-            if (value.IsMap())
-            {
-                print_map_node(out, value, source, show_source);
-            }
-        }
-
-        void print_group_title(YAML::Emitter& out, const std::string& name)
-        {
-            auto group_title = name + " Configuration";
-            auto blk_size = 52 - group_title.size();
-            int prepend_blk = blk_size / 2;
-            int append_blk = blk_size - prepend_blk;
-
-            out << YAML::Comment(std::string(54, '#')) << YAML::Newline;
-            out << YAML::Comment("#" + std::string(prepend_blk, ' ') + group_title
-                                 + std::string(append_blk, ' ') + "#")
-                << YAML::Newline;
-            out << YAML::Comment(std::string(54, '#'));
-        }
-
-
-        void dump_configurable(nl::json& node,
-                               const ConfigurableInterface& c,
-                               const std::string& name)
-        {
-            c.dump_json(node, name);
+            return dump_yaml(opts, names, get_grouped_config());
         }
     }
 }

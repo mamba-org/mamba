@@ -26,21 +26,21 @@ init_constructor_parser(CLI::App* subcom)
                                      .group("cli")
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
 
-    subcom->add_option("-p,--prefix", prefix.set_cli_config(""), prefix.description());
+    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::path>(), prefix.description());
 
     auto& extract_conda_pkgs
         = config.insert(Configurable("constructor_extract_conda_pkgs", false)
                             .group("cli")
                             .description("Extract the conda pkgs in <prefix>/pkgs"));
     subcom->add_flag("--extract-conda-pkgs",
-                     extract_conda_pkgs.set_cli_config(0),
+                     extract_conda_pkgs.get_cli_config<bool>(),
                      extract_conda_pkgs.description());
 
     auto& extract_tarball = config.insert(Configurable("constructor_extract_tarball", false)
                                               .group("cli")
                                               .description("Extract given tarball into prefix"));
     subcom->add_flag(
-        "--extract-tarball", extract_tarball.set_cli_config(0), extract_tarball.description());
+        "--extract-tarball", extract_tarball.get_cli_config<bool>(), extract_tarball.description());
 }
 
 void

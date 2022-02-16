@@ -50,8 +50,8 @@ set_repoquery_command(CLI::App* subcom)
     static int local = 0;
     subcom->add_flag("--local,!--remote", local, "Use installed data or remote repositories");
 
-    auto& platform = config.at("platform").get_wrapped<std::string>();
-    subcom->add_option("--platform", platform.set_cli_config(""), platform.description());
+    auto& platform = config.at("platform");
+    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
 
     subcom->callback([&]() {
         auto qtype = str_to_qtype(query_type);

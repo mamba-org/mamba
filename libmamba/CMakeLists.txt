@@ -405,6 +405,9 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             reproc++
             reproc
             tl::expected
+            powerloader
+            zck
+            spdlog
         )
 
         target_link_libraries(${target_name} PUBLIC

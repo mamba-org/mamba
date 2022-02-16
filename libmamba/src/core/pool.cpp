@@ -6,6 +6,7 @@
 
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {
@@ -26,9 +27,33 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         m_pool->debugmask |= SOLV_DEBUG_TO_STDERR;
-        if (Context::instance().verbosity > 2)
+        // if (Context::instance().verbosity > 2)
+        // {
+        pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
+        pool_setdebugcallback(m_pool, &MPool::debug_callback, this);
+        // }
+    }
+
+    void MPool::debug_callback(Pool* pool, void* self, int type, const char* str)
+    {
+        // TODO figure out if we can use a custom formatter for SOLV
+        // auto f = std::make_unique<spdlog::pattern_formatter>("%l %v", spdlog::pattern_time_type::local, std::string(""));  // disable eol
+        // p_nmea_logger->set_formatter( std::move(f) );
+
+        auto stripped = strip(str);
+        if (stripped.size() == 0) return;
+
+        if (type & SOLV_FATAL || type & SOLV_ERROR)
         {
-            pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
+            spdlog::error(strip(str));
+        }
+        else if (type & SOLV_WARN)
+        {
+            spdlog::warn(strip(str));
+        }
+        else if (Context::instance().verbosity > 2)
+        {
+            spdlog::info(strip(str));
         }
     }
 

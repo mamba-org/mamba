@@ -215,6 +215,31 @@ namespace mamba
         }
     }
 
+    int curl_debug_callback(CURL *handle,
+                   curl_infotype type,
+                   char *data,
+                   size_t size,
+                   void *userptr)
+    {
+        auto str = strip(std::string_view(data, size));
+        switch (type)
+        {
+            case CURLINFO_TEXT:
+                spdlog::info(fmt::format("* {}", str));
+                break;
+            case CURLINFO_HEADER_OUT:
+                spdlog::info(fmt::format("> {}", str));
+                break;
+            case CURLINFO_HEADER_IN:
+                spdlog::info(fmt::format("< {}", str));
+                break;
+            default:
+                break;
+        }
+        return 0;
+    }
+
+
     void DownloadTarget::init_curl_target(const std::string& url)
     {
         init_curl_handle(m_handle, url);
@@ -241,6 +266,7 @@ namespace mamba
         m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+        curl_easy_setopt(m_handle, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
     }
 
     bool DownloadTarget::can_retry()

@@ -47,11 +47,12 @@ namespace mamba
     {
         // ensure that debug logging goes to stderr as to not interfere with stdout json output
         m_pool->debugmask |= SOLV_DEBUG_TO_STDERR;
-        // if (Context::instance().verbosity > 2)
-        // {
-        pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
-        auto logger = spdlog::get("libsolv");
-        pool_setdebugcallback(m_pool, &libsolv_debug_callback, logger.get());
+        if (Context::instance().verbosity > 2)
+        {
+            pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
+            auto logger = spdlog::get("libsolv");
+            pool_setdebugcallback(m_pool, &libsolv_debug_callback, logger.get());
+        }
     }
 
     void MPool::create_whatprovides()

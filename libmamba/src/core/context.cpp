@@ -46,9 +46,9 @@ namespace mamba
 
         set_default_signal_handler();
 
-        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>("", log_pattern, "\n");
-        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>("libcurl", "%^%-8!l%-10n%$ %v", "");
-        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>("libsolv", "%^%-8!l%-10n%$ %v", "");
+        std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>("libmamba", log_pattern, "\n");
+        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>("libcurl", log_pattern, "");
+        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>("libsolv", log_pattern, "");
         spdlog::register_logger(libcurl_logger);
         spdlog::register_logger(libsolv_logger);
 

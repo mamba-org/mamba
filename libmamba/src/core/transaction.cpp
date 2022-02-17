@@ -425,9 +425,17 @@ namespace mamba
                 m_target->endcb = x;
                 m_target->cbdata = this;
                 // m_target->set_expected_size(m_expected_size);
+
                 if (m_has_progress_bars)
                 {
                     m_download_bar = Console::instance().add_progress_bar(m_name, m_expected_size);
+
+                    m_target->progress_callback = [this](curl_off_t done, curl_off_t total) -> int
+                    {
+                        this->m_download_bar.set_progress(done, total);
+                        return 0;
+                    };
+
                     // m_target->set_progress_bar(m_download_bar);
                     Console::instance().progress_bar_manager().add_label("Download",
                                                                          m_download_bar);

@@ -37,6 +37,36 @@ namespace mamba {
             "gentle",
             "happy",
             "stubborn",
+            "boring",
+            "interesting",
+            "funny",
+            "weird",
+            "surprising",
+            "serious",
+            "tender",
+            "obvious",
+            "great",
+            "proud",
+            "silent",
+            "loud",
+            "vacuous",
+            "focused",
+            "pretty",
+            "slick",
+            "tedious",
+            "stubborn",
+            "daring",
+            "tenacious",
+            "resilient",
+            "rigorous",
+            "friendly",
+            "creative",
+            "polite",
+            "frank",
+            "honest",
+            "warm",
+            "smart",
+            "intriguing",
             // TODO: add more here
         };
 
@@ -81,13 +111,13 @@ namespace mamba {
         return lockfile;
     }
 
-    struct PredicateTrue
+    struct Predicate_AlwaysTrue
     {
         template<typename T>
         constexpr bool operator()(T&&) noexcept { return true; }
     };
 
-    template<typename Predicate = PredicateTrue>
+    template<typename Predicate = Predicate_AlwaysTrue>
     nlohmann::json get_all_running_processes_info(Predicate filter = {})
     {
         nlohmann::json all_processes_info;

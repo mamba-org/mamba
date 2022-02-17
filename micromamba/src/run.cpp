@@ -263,8 +263,10 @@ set_run_command(CLI::App* subcom)
     static std::vector<std::string> env_vars;
     subcom->add_option("-e,--env", env_vars, "Add env vars with -e ENVVAR or -e ENVVAR=VALUE")->allow_extra_args(false);
 
+#ifndef _WIN32
     static std::string specific_process_name;
     subcom->add_option("--pname", specific_process_name, "Specifies the name of the process. If not set, a unique name enerated by deriving from the executable name will be generated.");
+#endif
 
     subcom->prefix_command();
 
@@ -286,13 +288,13 @@ set_run_command(CLI::App* subcom)
         LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
         LOG_DEBUG << "Remaining args to run as command: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
 
-        // Lock the process directory to read and write in it until we manage to run the file or exit.
-        static auto proc_dir_lock = lock_proc_dir();  // Note: this object is static only so that calls to `std::exit()` will call the destructor.
-
         // replace the wrapping bash with new process entirely
-        #ifndef _WIN32
+#ifndef _WIN32
         if (command.front() != "exec")
             command.insert(command.begin(), "exec");
+
+        // Lock the process directory to read and write in it until we manage to run the file or exit.
+        static auto proc_dir_lock = lock_proc_dir();  // Note: this object is static only so that calls to `std::exit()` will call the destructor.
 
         const std::string process_name = [&]{
             // Insert a unique process name associated to the command, either specified by the user or generated.
@@ -316,7 +318,7 @@ set_run_command(CLI::App* subcom)
                 return specific_process_name;
             }
         }();
-        #endif
+#endif
 
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(Context::instance().target_prefix, command);
@@ -385,7 +387,9 @@ set_run_command(CLI::App* subcom)
 
         std::tie(pid, ec) = proc.pid();
 
+#ifndef _WIN32
         static ScopedProcFile scoped_proc_file{ process_name, pid, std::move(proc_dir_lock) }; // Note: this object is static only so that calls to `std::exit()` will call the destructor.
+#endif
 
         if (ec)
         {

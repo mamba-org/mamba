@@ -292,11 +292,11 @@ PYBIND11_MODULE(bindings, m)
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
 
-    py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
-        .def(py::init<>())
-        .def("add",
-             [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); })
-        .def("download", &MultiDownloadTarget::download);
+    // py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
+    //     .def(py::init<>())
+    //     .def("add",
+    //          [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); })
+    //     .def("download", &MultiDownloadTarget::download);
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
         .value("kFlexible", ChannelPriority::kFlexible)

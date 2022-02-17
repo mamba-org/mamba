@@ -5,6 +5,7 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
 
+#include "powerloader/downloader.hpp"
 
 namespace mamba
 {
@@ -47,7 +48,7 @@ namespace mamba
         std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
-        MultiDownloadTarget multi_dl;
+        powerloader::Downloader multi_dl;
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());
@@ -92,7 +93,8 @@ namespace mamba
         {
             try
             {
-                multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
+                // multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
+                multi_dl.download();
             }
             catch (const std::runtime_error& e)
             {

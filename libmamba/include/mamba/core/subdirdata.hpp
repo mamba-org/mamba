@@ -23,6 +23,8 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 
+#include "powerloader/download_target.hpp"
+
 
 namespace decompress
 {
@@ -65,7 +67,7 @@ namespace mamba
         expected_t<std::string> cache_path() const;
         const std::string& name() const;
 
-        DownloadTarget* target();
+        std::shared_ptr<powerloader::DownloadTarget> target();
         bool finalize_transfer();
 
         expected_t<MRepo&> create_repo(MPool& pool);
@@ -82,7 +84,7 @@ namespace mamba
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
 
-        std::unique_ptr<DownloadTarget> m_target = nullptr;
+        std::shared_ptr<powerloader::DownloadTarget> m_target;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;

@@ -409,9 +409,9 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
-    DownloadTarget* MSubdirData::target()
+    std::shared_ptr<powerloader::DownloadTarget> MSubdirData::target()
     {
-        return m_target.get();
+        return m_target;
     }
 
     const std::string& MSubdirData::name() const
@@ -421,111 +421,110 @@ namespace mamba
 
     bool MSubdirData::finalize_transfer()
     {
-        if (m_target->result != 0 || m_target->http_status >= 400)
-        {
-            LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for '" << m_repodata_url << "'";
+        // if (m_target->result != 0 || m_target->http_status >= 400)
+        // {
+        //     LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
+        //              << ") for '" << m_repodata_url << "'";
 
-            if (m_progress_bar)
-            {
-                m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
-                m_progress_bar.set_full();
-                m_progress_bar.mark_as_completed();
-            }
-            m_loaded = false;
-            return false;
-        }
+        //     if (m_progress_bar)
+        //     {
+        //         m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
+        //         m_progress_bar.set_full();
+        //         m_progress_bar.mark_as_completed();
+        //     }
+        //     m_loaded = false;
+        //     return false;
+        // }
 
-        LOG_DEBUG << "HTTP response code: " << m_target->http_status;
-        // Note HTTP status == 0 for files
-        if (m_target->http_status == 0 || m_target->http_status == 200
-            || m_target->http_status == 304)
-        {
+        // LOG_DEBUG << "HTTP response code: " << m_target->http_status;
+        // // Note HTTP status == 0 for files
+        // if (m_target->http_status == 0 || m_target->http_status == 200
+        //     || m_target->http_status == 304)
+        // {
             m_download_complete = true;
-        }
-        else
-        {
-            LOG_WARNING << "HTTP response code indicates error, retrying.";
-            throw std::runtime_error("Unhandled HTTP code: "
-                                     + std::to_string(m_target->http_status));
-        }
+        // }
+        // else
+        // {
+        //     LOG_WARNING << "HTTP response code indicates error, retrying.";
+        //     throw std::runtime_error("Unhandled HTTP code: "
+        //                              + std::to_string(m_target->http_status));
+        // }
 
         fs::u8path json_file, solv_file;
 
         if (m_target->http_status == 304)
         {
-            // cache still valid
-            LOG_INFO << "Cache is still valid";
-            json_file = m_expired_cache_path / "cache" / m_json_fn;
-            solv_file = m_expired_cache_path / "cache" / m_solv_fn;
+        //     // cache still valid
+        //     LOG_INFO << "Cache is still valid";
+        //     json_file = m_expired_cache_path / "cache" / m_json_fn;
+        //     solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-            auto now = fs::file_time_type::clock::now();
-            auto json_age = check_cache(json_file, now);
-            auto solv_age = check_cache(solv_file, now);
+        //     auto now = fs::file_time_type::clock::now();
+        //     auto json_age = check_cache(json_file, now);
+        //     auto solv_age = check_cache(solv_file, now);
 
-            if (path::is_writable(json_file)
-                && (!fs::exists(solv_file) || path::is_writable(solv_file)))
-            {
-                LOG_DEBUG << "Refreshing cache files ages";
-                m_valid_cache_path = m_expired_cache_path;
-            }
-            else
-            {
-                if (m_writable_pkgs_dir.empty())
-                {
-                    LOG_ERROR << "Could not find any writable cache directory for repodata file";
-                    throw std::runtime_error("Non-writable cache error.");
-                }
+            // if (path::is_writable(json_file)
+            //     && (!fs::exists(solv_file) || path::is_writable(solv_file)))
+            // {
+            //     LOG_DEBUG << "Refreshing cache files ages";
+            //     m_valid_cache_path = m_expired_cache_path;
+            // }
+            // else
+            // {
+            //     if (m_writable_pkgs_dir.empty())
+            //     {
+            //         LOG_ERROR << "Could not find any writable cache directory for repodata file";
+            //         throw std::runtime_error("Non-writable cache error.");
+            //     }
 
-                LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
-                          << "' to '" << m_writable_pkgs_dir.string() << "'";
-                fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
-                auto lock = LockFile::create_lock(writable_cache_dir);
+            //     LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
+            //               << "' to '" << m_writable_pkgs_dir.string() << "'";
+            //     fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+            //     auto lock = LockFile(writable_cache_dir);
 
-                auto copied_json_file = writable_cache_dir / m_json_fn;
-                if (fs::exists(copied_json_file))
-                    fs::remove(copied_json_file);
-                fs::copy(json_file, copied_json_file);
-                json_file = copied_json_file;
+        //         auto copied_json_file = writable_cache_dir / m_json_fn;
+        //         if (fs::exists(copied_json_file))
+        //             fs::remove(copied_json_file);
+        //         fs::copy(json_file, copied_json_file);
+        //         json_file = copied_json_file;
 
-                if (fs::exists(solv_file))
-                {
-                    auto copied_solv_file = writable_cache_dir / m_solv_fn;
-                    if (fs::exists(copied_solv_file))
-                        fs::remove(copied_solv_file);
-                    fs::copy(solv_file, copied_solv_file);
-                    solv_file = copied_solv_file;
-                }
+        //         if (fs::exists(solv_file))
+        //         {
+        //             auto copied_solv_file = writable_cache_dir / m_solv_fn;
+        //             if (fs::exists(copied_solv_file))
+        //                 fs::remove(copied_solv_file);
+        //             fs::copy(solv_file, copied_solv_file);
+        //             solv_file = copied_solv_file;
+        //         }
 
-                m_valid_cache_path = m_writable_pkgs_dir;
-            }
+            //     m_valid_cache_path = m_writable_pkgs_dir;
+            // }
+        //     {
+        //         LOG_TRACE << "Refreshing '" << json_file.string() << "'";
+        //         auto lock = LockFile(json_file);
+        //         fs::last_write_time(json_file, now);
+        //     }
+        //     if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
+        //     {
+        //         LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
+        //         auto lock = LockFile(solv_file);
+        //         fs::last_write_time(solv_file, now);
+        //         m_solv_cache_valid = true;
+        //     }
 
-            {
-                LOG_TRACE << "Refreshing '" << json_file.string() << "'";
-                auto lock = LockFile::create_lock(json_file);
-                fs::last_write_time(json_file, now);
-            }
-            if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
-            {
-                LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
-                auto lock = LockFile::create_lock(solv_file);
-                fs::last_write_time(solv_file, now);
-                m_solv_cache_valid = true;
-            }
+        //     if (m_progress_bar)
+        //     {
+        //         auto& r = m_progress_bar.repr();
+        //         r.postfix.set_format("{:>20}", 20);
+        //         r.prefix.set_format("{:<50}", 50);
 
-            if (m_progress_bar)
-            {
-                auto& r = m_progress_bar.repr();
-                r.postfix.set_format("{:>20}", 20);
-                r.prefix.set_format("{:<50}", 50);
+        //         m_progress_bar.set_postfix("No change");
+        //         m_progress_bar.mark_as_completed();
 
-                m_progress_bar.set_postfix("No change");
-                m_progress_bar.mark_as_completed();
-
-                r.total.deactivate();
-                r.speed.deactivate();
-                r.elapsed.deactivate();
-            }
+        //         r.total.deactivate();
+        //         r.speed.deactivate();
+        //         r.elapsed.deactivate();
+        //     }
 
             m_json_cache_valid = true;
             m_loaded = true;
@@ -534,12 +533,20 @@ namespace mamba
         }
         else
         {
-            if (m_writable_pkgs_dir.empty())
+        // if (m_writable_pkgs_dir.empty())
+        //     m_json_cache_valid = true;
+        //     m_loaded = true;
+        //     m_temp_file.reset(nullptr);
+        //     return true;
+        // }
+        // else
+        // {
+            if (writable_cache_path.empty())
             {
                 LOG_ERROR << "Could not find any writable cache directory for repodata file";
                 throw std::runtime_error("Non-writable cache error.");
             }
-        }
+        // }
 
         LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
 
@@ -549,9 +556,9 @@ namespace mamba
 
         m_mod_etag.clear();
         m_mod_etag["_url"] = m_repodata_url;
-        m_mod_etag["_etag"] = m_target->etag;
-        m_mod_etag["_mod"] = m_target->mod;
-        m_mod_etag["_cache_control"] = m_target->cache_control;
+        // m_mod_etag["_etag"] = m_target->etag;
+        // m_mod_etag["_mod"] = m_target->mod;
+        // m_mod_etag["_cache_control"] = m_target->cache_control;
 
         LOG_DEBUG << "Opening '" << json_file.string() << "'";
         path::touch(json_file, true);
@@ -629,21 +636,40 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        m_target = std::make_unique<DownloadTarget>(
-            m_name, m_repodata_url, m_temp_file->path().string());
+        m_target = std::make_shared<powerloader::DownloadTarget>(m_repodata_url, "", m_temp_file->path());
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
-            m_target->set_progress_bar(m_progress_bar);
+            // m_target->set_progress_bar(m_progress_bar);
+            m_target->progress_callback = [this](curl_off_t done, curl_off_t total) -> int
+            {
+                this->m_progress_bar.set_progress(done, total);
+                return 0;
+            };
         }
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved
-        if (!m_is_noarch)
+        // if (!m_is_noarch)
+        // {
+        //     m_target->set_ignore_failure(true);
+        // }
+
+        auto x = [](powerloader::TransferStatus status, const std::string& msg, void* clientp) -> powerloader::CbReturnCode
         {
-            m_target->set_ignore_failure(true);
-        }
-        m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
-        m_target->set_mod_etag_headers(mod_etag);
+            auto* self = (MSubdirData*)clientp;
+            spdlog::warn("Status {} -- msg: {}", (int) status, msg);
+            if (status == powerloader::TransferStatus::kSUCCESSFUL)
+            {
+                self->finalize_transfer();
+            }
+            return powerloader::CbReturnCode::kOK;
+        };
+
+        m_target->endcb = x;
+        m_target->cbdata = this;
+
+        // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        // m_target->set_mod_etag_headers(mod_etag);
     }
 
     std::size_t MSubdirData::get_cache_control_max_age(const std::string& val)

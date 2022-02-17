@@ -31,6 +31,19 @@ namespace mamba
 
         EXPECT_NE(pointer_to_this_thread_rng, pointer_to_another_thread_rng);
     }
+
+    TEST(random_int, value_in_range)
+    {
+        constexpr int arbitrary_min = -20;
+        constexpr int arbitrary_max = 20;
+        constexpr int attempts = 2000;
+        for(int i = 0; i < attempts; ++i)
+        {
+            const int value = random_int(arbitrary_min, arbitrary_max);
+            EXPECT_GE(value, arbitrary_min);
+            EXPECT_LE(value, arbitrary_max);
+        }
+    }
 }
 
 

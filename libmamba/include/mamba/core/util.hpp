@@ -98,6 +98,12 @@ namespace mamba
         return rng;
     }
 
+    template<typename T = int, typename G = std::mt19937>
+    inline T random_int(T min, T max, G& generator = local_random_generator())
+    {
+        return std::uniform_int_distribution<T>{ min, max }(generator);
+    }
+
     inline std::string generate_random_alphanumeric_string(std::size_t len)
     {
         static constexpr auto chars = "0123456789"

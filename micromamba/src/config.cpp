@@ -58,15 +58,15 @@ compute_config_path(bool touch_if_not_exists)
     auto& config = Configuration::instance();
     auto& ctx = Context::instance();
 
-    auto& file_path = config.at("config_set_file_path").get_wrapped<fs::path>();
-    auto& env_path = config.at("config_set_env_path").get_wrapped<bool>();
-    auto& system_path = config.at("config_set_system_path").get_wrapped<bool>();
+    auto& file_path = config.at("config_set_file_path");
+    auto& env_path = config.at("config_set_env_path");
+    auto& system_path = config.at("config_set_system_path");
 
     fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
 
     if (file_path.configured())
     {
-        rc_source = env::expand_user(file_path.value()).string();
+        rc_source = env::expand_user(file_path.value<fs::path>()).string();
     }
     else if (env_path.configured())
     {
@@ -100,16 +100,16 @@ init_config_describe_options(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
 
-    auto& specs = config.at("specs").get_wrapped<std::vector<std::string>>();
-    subcom->add_option("configs", specs.set_cli_config({}), "Configuration keys");
+    auto& specs = config.at("specs");
+    subcom->add_option("configs", specs.get_cli_config<std::vector<std::string>>(), "Configuration keys");
 
-    auto& show_long_descriptions = config.at("show_config_long_descriptions").get_wrapped<bool>();
+    auto& show_long_descriptions = config.at("show_config_long_descriptions");
     subcom->add_flag("-l,--long-descriptions",
-                     show_long_descriptions.set_cli_config(0),
+                     show_long_descriptions.get_cli_config<bool>(),
                      show_long_descriptions.description());
 
-    auto& show_groups = config.at("show_config_groups").get_wrapped<bool>();
-    subcom->add_flag("-g,--groups", show_groups.set_cli_config(0), show_groups.description());
+    auto& show_groups = config.at("show_config_groups");
+    subcom->add_flag("-g,--groups", show_groups.get_cli_config<bool>(), show_groups.description());
 }
 
 void
@@ -120,15 +120,15 @@ init_config_list_options(CLI::App* subcom)
 
     auto& config = Configuration::instance();
 
-    auto& show_sources = config.at("show_config_sources").get_wrapped<bool>();
-    subcom->add_flag("-s,--sources", show_sources.set_cli_config(0), show_sources.description());
+    auto& show_sources = config.at("show_config_sources");
+    subcom->add_flag("-s,--sources", show_sources.get_cli_config<bool>(), show_sources.description());
 
-    auto& show_all = config.at("show_all_rc_configs").get_wrapped<bool>();
-    subcom->add_flag("-a,--all", show_all.set_cli_config(0), show_all.description());
+    auto& show_all = config.at("show_all_rc_configs");
+    subcom->add_flag("-a,--all", show_all.get_cli_config<bool>(), show_all.description());
 
-    auto& show_descriptions = config.at("show_config_descriptions").get_wrapped<bool>();
+    auto& show_descriptions = config.at("show_config_descriptions");
     subcom->add_flag(
-        "-d,--descriptions", show_descriptions.set_cli_config(0), show_descriptions.description());
+        "-d,--descriptions", show_descriptions.get_cli_config<bool>(), show_descriptions.description());
 }
 
 void
@@ -174,20 +174,20 @@ set_config_path_command(CLI::App* subcom)
                                           .description("Set configuration on system's rc file"),
                                       true);
     auto* system_flag
-        = subcom->add_flag("--system", system_path.set_cli_config(0), system_path.description());
+        = subcom->add_flag("--system", system_path.get_cli_config<bool>(), system_path.description());
 
     auto& env_path = config.insert(Configurable("config_set_env_path", false)
                                        .group("cli")
                                        .description("Set configuration on env's rc file"),
                                    true);
-    auto* env_flag = subcom->add_flag("--env", env_path.set_cli_config(0), env_path.description())
+    auto* env_flag = subcom->add_flag("--env", env_path.get_cli_config<bool>(), env_path.description())
                          ->excludes(system_flag);
 
     auto& file_path = config.insert(Configurable("config_set_file_path", fs::path())
                                         .group("cli")
                                         .description("Set configuration on system's rc file"),
                                     true);
-    subcom->add_option("--file", file_path.set_cli_config(fs::path()), file_path.description())
+    subcom->add_option("--file", file_path.get_cli_config<fs::path>(), file_path.description())
         ->excludes(system_flag)
         ->excludes(env_flag);
 }
@@ -204,13 +204,14 @@ set_config_sequence_command(CLI::App* subcom)
 {
     set_config_path_command(subcom);
 
+    using config_set_sequence_type = std::vector<std::pair<std::string, std::string>>;
     auto& config = Configuration::instance();
     auto& specs = config.insert(Configurable("config_set_sequence_spec",
-                                             std::vector<std::pair<std::string, std::string>>({}))
+                                             config_set_sequence_type({}))
                                     .group("Output, Prompt and Flow Control")
                                     .description("Add value to a configurable sequence"),
                                 true);
-    subcom->add_option("specs", specs.set_cli_config({}), specs.description())->required();
+    subcom->add_option("specs", specs.get_cli_config<config_set_sequence_type>(), specs.description())->required();
 }
 
 void
@@ -311,7 +312,7 @@ set_config_remove_key_command(CLI::App* subcom)
     auto& remove_key = config.insert(Configurable("remove_key", std::string(""))
                                          .group("Output, Prompt and Flow Control")
                                          .description("Remove a configuration key and its values"));
-    subcom->add_option("remove_key", remove_key.set_cli_config(""), remove_key.description());
+    subcom->add_option("remove_key", remove_key.get_cli_config<std::string>(), remove_key.description());
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -330,9 +331,10 @@ set_config_remove_key_command(CLI::App* subcom)
         // look for key to remove in file
         for (auto v : rc_YAML)
         {
-            if (v.first.as<std::string>() == remove_key.value())
+            const std::string& rk = remove_key.value<std::string>();
+            if (v.first.as<std::string>() == rk)
             {
-                rc_YAML.remove(remove_key.value());
+                rc_YAML.remove(rk);
                 key_removed = true;
                 break;
             }
@@ -354,6 +356,7 @@ set_config_remove_key_command(CLI::App* subcom)
 void
 set_config_remove_command(CLI::App* subcom)
 {
+    using string_list = std::vector<std::string>;
     // have to check if a string is a vector
     set_config_path_command(subcom);
 
@@ -365,7 +368,7 @@ set_config_remove_command(CLI::App* subcom)
             .description(
                 "Remove a configuration value from a list key. This removes all instances of the value."));
     subcom->add_option(
-        "remove", remove_vec_map.set_cli_config({ "" }), remove_vec_map.description());
+        "remove", remove_vec_map.get_cli_config<string_list>(), remove_vec_map.description());
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -377,10 +380,12 @@ set_config_remove_command(CLI::App* subcom)
 
         fs::path rc_source = compute_config_path(false);
         bool key_removed = false;
-        std::string remove_vec_key = remove_vec_map.value().front();
-        std::string remove_vec_value = remove_vec_map.value().at(1);
 
-        if (remove_vec_map.value().size() > 2)
+        const string_list& rvm = remove_vec_map.value<string_list>();
+        std::string remove_vec_key = rvm.front();
+        std::string remove_vec_value = rvm.at(1);
+
+        if (rvm.size() > 2)
         {
             std::cout << "Only one value can be removed at a time" << std::endl;
             return;
@@ -429,6 +434,7 @@ set_config_remove_command(CLI::App* subcom)
 void
 set_config_set_command(CLI::App* subcom)
 {
+    using string_list = std::vector<std::string>;
     set_config_path_command(subcom);
 
     auto& config = Configuration::instance();
@@ -436,7 +442,7 @@ set_config_set_command(CLI::App* subcom)
     auto& set_value = config.insert(Configurable("set_value", std::vector<std::string>({}))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Set configuration value on rc file"));
-    subcom->add_option("set_value", set_value.set_cli_config({}), set_value.description());
+    subcom->add_option("set_value", set_value.get_cli_config<string_list>(), set_value.description());
 
 
     subcom->callback([&]() {
@@ -451,9 +457,10 @@ set_config_set_command(CLI::App* subcom)
 
         YAML::Node rc_YAML = YAML::LoadFile(rc_source);
 
-        if (is_valid_rc_key(set_value.value().at(0)) && set_value.value().size() < 3)
+        const string_list& sv = set_value.value<string_list>();
+        if (is_valid_rc_key(sv.at(0)) && sv.size() < 3)
         {
-            rc_YAML[set_value.value().at(0)] = set_value.value().at(1);
+            rc_YAML[sv.at(0)] = sv.at(1);
         }
         else
         {
@@ -479,7 +486,7 @@ set_config_get_command(CLI::App* subcom)
     auto& get_value = config.insert(Configurable("get_value", std::string(""))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Display configuration value from rc file"));
-    subcom->add_option("get_value", get_value.set_cli_config(""), get_value.description());
+    subcom->add_option("get_value", get_value.get_cli_config<std::string>(), get_value.description());
 
     subcom->callback([&]() {
         config.at("use_target_prefix_fallback").set_value(true);
@@ -497,7 +504,7 @@ set_config_get_command(CLI::App* subcom)
 
         for (auto v : rc_YAML)
         {
-            if (v.first.as<std::string>() == get_value.value())
+            if (v.first.as<std::string>() == get_value.value<std::string>())
             {
                 YAML::Node aux_rc_YAML;
                 aux_rc_YAML[v.first] = v.second;

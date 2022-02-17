@@ -164,6 +164,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/clean.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/config.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/api/configuration_impl.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/constants.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/create.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/info.hpp

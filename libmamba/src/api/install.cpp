@@ -529,16 +529,16 @@ namespace mamba
 
                     if (parse_result.channels.size() != 0)
                     {
-                        YAML::Node updated_channels;
+                        std::vector<std::string> updated_channels;
                         if (channels.cli_configured())
                         {
-                            updated_channels = channels.cli_yaml_value();
+                            updated_channels = channels.cli_value<std::vector<std::string>>();
                         }
                         for (auto& c : parse_result.channels)
                         {
                             updated_channels.push_back(c);
                         }
-                        channels.set_cli_yaml_value(updated_channels);
+                        channels.set_cli_value(updated_channels);
                     }
 
                     if (parse_result.name.size() != 0)
@@ -548,16 +548,16 @@ namespace mamba
 
                     if (parse_result.dependencies.size() != 0)
                     {
-                        YAML::Node updated_specs;
+                        std::vector<std::string> updated_specs;
                         if (specs.cli_configured())
                         {
-                            updated_specs = specs.cli_yaml_value();
+                            updated_specs = specs.cli_value<std::vector<std::string>>();
                         }
                         for (auto& s : parse_result.dependencies)
                         {
                             updated_specs.push_back(s);
                         }
-                        specs.set_cli_yaml_value(updated_specs);
+                        specs.set_cli_value(updated_specs);
                     }
 
                     others_pkg_mgrs_specs.set_value(parse_result.others_pkg_mgrs_specs);
@@ -617,16 +617,18 @@ namespace mamba
                         }
                     }
 
-                    auto& s = specs.as<std::vector<std::string>>();
                     if (specs.cli_configured())
                     {
-                        auto current_specs = s.cli_value();
+                        auto current_specs = specs.cli_value<std::vector<std::string>>();
                         current_specs.insert(current_specs.end(), f_specs.cbegin(), f_specs.cend());
-                        s.set_cli_value(current_specs);
+                        specs.set_cli_value(current_specs);
                     }
                     else
                     {
-                        s.set_cli_config(f_specs);
+                        if (!f_specs.empty())
+                        {
+                            specs.set_cli_value(f_specs);
+                        }
                     }
                 }
             }

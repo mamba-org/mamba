@@ -133,7 +133,7 @@ namespace mamba {
             fs::ifstream pid_file{ file_location, open_mode };
             if(!pid_file.is_open())
             {
-                LOG_WARNING << fmt::format("could not open {}", file_location);
+                LOG_WARNING << fmt::format("failed to open {}", file_location);
                 continue;
             }
 
@@ -283,9 +283,8 @@ set_run_command(CLI::App* subcom)
             exit(1);
         }
 
-        LOG_WARNING << "currently running processes: " << get_all_running_processes_info();
-
-        LOG_WARNING << "Remaining args to run as command: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
+        LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
+        LOG_DEBUG << "Remaining args to run as command: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
 
         // Lock the process directory to read and write in it until we manage to run the file or exit.
         static auto proc_dir_lock = lock_proc_dir();  // Note: this object is static only so that calls to `std::exit()` will call the destructor.
@@ -310,7 +309,7 @@ set_run_command(CLI::App* subcom)
             {
                 if(is_process_name_running(specific_process_name))
                 {
-                    LOG_ERROR << fmt::format("Another process with name '{}' is running.", specific_process_name);
+                    LOG_ERROR << fmt::format("Another process with name '{}' is currently running.", specific_process_name);
                     exit(1);
                 }
                 command.insert(exe_name_it, { {"-a"}, specific_process_name });
@@ -322,7 +321,7 @@ set_run_command(CLI::App* subcom)
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(Context::instance().target_prefix, command);
 
-        LOG_WARNING << "Running wrapped script: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
+        LOG_DEBUG << "Running wrapped script: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
 
         bool all_streams = stream_option->count() == 0u;
         bool sinkout = !all_streams && streams.find("stdout") == std::string::npos;

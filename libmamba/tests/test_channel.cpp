@@ -339,6 +339,15 @@ namespace mamba
         ChannelContext::instance().reset();
     }
 
+    TEST(Channel, channel_name)
+    {
+        std::string value = "https://repo.mamba.pm/conda-forge";
+        const Channel& c = make_channel(value);
+        EXPECT_EQ(c.scheme(), "https");
+        EXPECT_EQ(c.location(), "repo.mamba.pm");
+        EXPECT_EQ(c.name(), "conda-forge");
+        EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
+    }
 
     TEST(Channel, make_channel)
     {

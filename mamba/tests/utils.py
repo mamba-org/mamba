@@ -4,7 +4,10 @@ import shutil
 import subprocess
 import time
 import uuid
+import yaml
+from pathlib import Path
 
+import pytest
 
 def get_lines(std_pipe):
     """Generator that yields lines from a standard pipe as they are printed."""
@@ -131,6 +134,23 @@ def run(exe, channels, package):
 def run_mamba_conda(channels, package):
     run("conda", channels, package)
     run("mamba", channels, package)
+
+
+@pytest.fixture
+def config_file(request):
+    print(request.param)
+    file_loc = Path.home() / ".condarc"
+    old_config_file = None
+    if file_loc.exists():
+        old_config_file = file_loc.rename(".condarc.bkup")
+
+    with open(file_loc, 'w') as fo:
+        yaml.dump(request.param, fo)
+
+    yield file_loc
+
+    if old_config_file:
+        old_config_file.rename(".condarc")
 
 
 def add_glibc_virtual_package():

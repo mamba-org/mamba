@@ -215,6 +215,31 @@ namespace mamba
         }
     }
 
+    int curl_debug_callback(CURL *handle,
+                   curl_infotype type,
+                   char *data,
+                   size_t size,
+                   void *userptr)
+    {
+        auto* logger = (spdlog::logger*)(userptr);
+        switch (type)
+        {
+            case CURLINFO_TEXT:
+                logger->info(fmt::format("* {}", std::string_view(data, size)));
+                break;
+            case CURLINFO_HEADER_OUT:
+                logger->info(fmt::format("> {}", std::string_view(data, size)));
+                break;
+            case CURLINFO_HEADER_IN:
+                logger->info(fmt::format("< {}", std::string_view(data, size)));
+                break;
+            default:
+                break;
+        }
+        return 0;
+    }
+
+
     void DownloadTarget::init_curl_target(const std::string& url)
     {
         init_curl_handle(m_handle, url);
@@ -241,6 +266,10 @@ namespace mamba
         m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+
+        auto logger = spdlog::get("libcurl");
+        curl_easy_setopt(m_handle, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
+        curl_easy_setopt(m_handle, CURLOPT_DEBUGDATA, logger.get());
     }
 
     bool DownloadTarget::can_retry()

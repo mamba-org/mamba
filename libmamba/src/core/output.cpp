@@ -489,11 +489,12 @@ namespace mamba
         m_buffer.clear();
     }
 
-    Logger::Logger(const std::string& pattern)
-        : spdlog::logger(std::string("mamba"),
+    Logger::Logger(const std::string& name, const std::string& pattern, const std::string& eol)
+        : spdlog::logger(name,
                          std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
     {
-        set_pattern(pattern);
+        auto f = std::make_unique<spdlog::pattern_formatter>(pattern, spdlog::pattern_time_type::local, eol);
+        set_formatter(std::move(f));
     }
 
     void Logger::dump_backtrace_no_guards()

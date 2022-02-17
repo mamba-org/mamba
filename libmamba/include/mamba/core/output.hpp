@@ -204,7 +204,7 @@ namespace mamba
     class Logger : public spdlog::logger
     {
     public:
-        Logger(const std::string& pattern);
+        Logger(const std::string& name, const std::string& pattern, const std::string& eol);
 
         void dump_backtrace_no_guards();
     };

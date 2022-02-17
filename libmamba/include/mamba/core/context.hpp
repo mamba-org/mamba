@@ -129,7 +129,7 @@ namespace mamba
         void set_log_level(const spdlog::level::level_enum& level);
 
         spdlog::level::level_enum log_level = spdlog::level::level_enum::warn;
-        std::string log_pattern = "%^%-8!l%$ %v";
+        std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
         std::shared_ptr<Logger> logger;
 

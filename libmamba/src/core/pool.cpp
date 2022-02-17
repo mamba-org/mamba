@@ -6,9 +6,30 @@
 
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {
+    void libsolv_debug_callback(Pool* pool, void* userptr, int type, const char* str)
+    {
+        auto* logger = (spdlog::logger*)(userptr);
+        std::string s(str);
+        if (strip(s).size() == 0) return;
+        if (s.back() != '\n') s.push_back('\n');
+        if (type & SOLV_FATAL || type & SOLV_ERROR)
+        {
+            logger->error(s);
+        }
+        else if (type & SOLV_WARN)
+        {
+            logger->warn(s);
+        }
+        else if (Context::instance().verbosity > 2)
+        {
+            logger->info(s);
+        }
+    }
+
     MPool::MPool()
     {
         m_pool = pool_create();
@@ -29,6 +50,8 @@ namespace mamba
         if (Context::instance().verbosity > 2)
         {
             pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
+            auto logger = spdlog::get("libsolv");
+            pool_setdebugcallback(m_pool, &libsolv_debug_callback, logger.get());
         }
     }
 

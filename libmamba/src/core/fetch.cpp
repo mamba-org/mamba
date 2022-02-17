@@ -221,17 +221,17 @@ namespace mamba
                    size_t size,
                    void *userptr)
     {
-        auto str = strip(std::string_view(data, size));
+        auto* logger = (spdlog::logger*)(userptr);
         switch (type)
         {
             case CURLINFO_TEXT:
-                spdlog::info(fmt::format("* {}", str));
+                logger->info(fmt::format("* {}", std::string_view(data, size)));
                 break;
             case CURLINFO_HEADER_OUT:
-                spdlog::info(fmt::format("> {}", str));
+                logger->info(fmt::format("> {}", std::string_view(data, size)));
                 break;
             case CURLINFO_HEADER_IN:
-                spdlog::info(fmt::format("< {}", str));
+                logger->info(fmt::format("< {}", std::string_view(data, size)));
                 break;
             default:
                 break;
@@ -266,7 +266,10 @@ namespace mamba
         m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);
         curl_easy_setopt(m_handle, CURLOPT_VERBOSE, Context::instance().verbosity >= 2);
+
+        auto logger = spdlog::get("libcurl");
         curl_easy_setopt(m_handle, CURLOPT_DEBUGFUNCTION, curl_debug_callback);
+        curl_easy_setopt(m_handle, CURLOPT_DEBUGDATA, logger.get());
     }
 
     bool DownloadTarget::can_retry()

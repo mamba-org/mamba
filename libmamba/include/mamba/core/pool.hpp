@@ -27,8 +27,6 @@ namespace mamba
         MPool(MPool&&) = delete;
         MPool& operator=(MPool&&) = delete;
 
-        static void debug_callback(Pool* pool, void* self, int type, const char* str);
-
         void set_debuglevel();
         void create_whatprovides();
 

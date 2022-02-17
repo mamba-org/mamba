@@ -1231,7 +1231,6 @@ namespace mamba
             Console::print(banner());
 
         auto& ctx = Context::instance();
-        spdlog::set_pattern(ctx.log_pattern);
         spdlog::set_level(ctx.log_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });

@@ -26,7 +26,7 @@ extern "C" {
 namespace mamba {
 
 
-    bool is_process_name_running(std::string_view name);
+    bool is_process_name_running(const std::string& name);
 
     std::string generate_unique_process_name(std::string_view program_name)
     {
@@ -169,7 +169,7 @@ namespace mamba {
         return all_processes_info;
     }
 
-    bool is_process_name_running(std::string_view name)
+    bool is_process_name_running(const std::string& name)
     {
         const auto other_processes_with_same_name = get_all_running_processes_info([&](auto&& process_info){
             return process_info["child_name"] == name;

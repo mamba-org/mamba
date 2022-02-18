@@ -147,7 +147,7 @@ namespace mamba
         bool execute(PrefixData& prefix);
         bool filter(Solvable* s);
 
-        std::string find_python_version();
+        std::pair<std::string, std::string> find_python_version();
 
     private:
         FilterType m_filter_type = FilterType::none;

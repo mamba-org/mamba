@@ -31,8 +31,8 @@ namespace mamba
     public:
         TransactionContext();
         TransactionContext& operator=(const TransactionContext&);
-        TransactionContext(const fs::path& prefix,
-                           const std::string& py_version,
+        TransactionContext(const fs::path& target_prefix,
+                           const std::pair<std::string, std::string>& py_versions,
                            const std::vector<MatchSpec>& requested_specs);
         ~TransactionContext();
         bool try_pyc_compilation(const std::vector<fs::path>& py_files);
@@ -43,11 +43,14 @@ namespace mamba
         fs::path site_packages_path;
         fs::path python_path;
         std::string python_version;
+        std::string old_python_version;
         std::string short_python_version;
         bool allow_softlinks = false;
         bool always_copy = false;
         bool always_softlink = false;
         bool compile_pyc = true;
+        // this needs to be done when python version changes
+        bool relink_noarch = false;
         std::vector<MatchSpec> requested_specs;
 
     private:

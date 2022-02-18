@@ -65,6 +65,61 @@ class TestUpdate:
 
         assert xtensor_link["version"].startswith(self.medium_old_version)
 
+    # test that we relink noarch packages
+    def test_update_python_noarch(self, root):
+        if dry_run_tests == DryRun.OFF:
+            res_create = create(
+                "python=3.9",
+                "six",
+                "requests",
+                "-n",
+                TestUpdate.env_name,
+                "--json",
+                no_dry_run=True,
+            )
+        else:
+            return
+
+        res = umamba_list("python", "-n", TestUpdate.env_name, "--json")
+        assert len(res) == 2
+        pyelem = [r for r in res if r["name"] == "python"][0]
+        assert pyelem["version"].startswith("3.9")
+
+        res = umamba_list("requests", "-n", TestUpdate.env_name, "--json")
+        prev_requests = [r for r in res if r["name"] == "requests"][0]
+        assert prev_requests["version"]
+
+        def site_packages_path(p, pyver):
+            if platform.system() == "Windows":
+                return os.path.join(self.prefix, "Lib\\site-packages\\", p)
+            else:
+                return os.path.join(self.prefix, f"lib/python{pyver}/site-packages", p)
+
+        assert os.path.exists(site_packages_path("requests/__pycache__", "3.9"))
+
+        prev_six = umamba_list("six", "-n", TestUpdate.env_name, "--json")[0]
+
+        update_res = update("-n", TestUpdate.env_name, "python=3.10", "--json")
+
+        six_link = [l for l in update_res["actions"]["LINK"] if l["name"] == "six"][0]
+
+        assert six_link["version"] == prev_six["version"]
+        assert six_link["build_string"] == prev_six["build_string"]
+
+        requests_link = [
+            l for l in update_res["actions"]["LINK"] if l["name"] == "requests"
+        ][0]
+        requests_unlink = [
+            l for l in update_res["actions"]["UNLINK"] if l["name"] == "requests"
+        ][0]
+
+        assert requests_link["version"] == requests_unlink["version"]
+        assert not os.path.exists(site_packages_path("", "3.9"))
+        assert os.path.exists(site_packages_path("requests/__pycache__", "3.10"))
+
+        assert requests_link["version"] == prev_requests["version"]
+        assert requests_link["build_string"] == prev_requests["build_string"]
+
     def test_further_constrained_update(self, env_created):
         update_res = update("xtensor==0.21.1=*_0", "--json")
         xtensor_link = [

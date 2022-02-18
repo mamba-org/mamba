@@ -43,6 +43,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
 from conda.misc import explicit, touch_nonadmin
+from conda.models.enums import NoarchType
 from conda.models.match_spec import MatchSpec
 
 import libmambapy as api
@@ -204,6 +205,12 @@ def remove(args, parser):
             repos.append(repo)
         else:
             repo = api.Repo(pool, "installed", installed_json_f.name, "")
+            py_noarchs = [
+                rec.name
+                for rec in installed_pkg_recs
+                if rec.noarch == NoarchType.python
+            ]
+            repo.add_python_noarch_info(py_noarchs)
             repo.set_installed()
             repos.append(repo)
 
@@ -479,6 +486,10 @@ def install(args, parser, command="install"):
         repos.append(repo)
     else:
         repo = api.Repo(pool, "installed", installed_json_f.name, "")
+        py_noarchs = [
+            rec.name for rec in installed_pkg_recs if rec.noarch == NoarchType.python
+        ]
+        repo.add_python_noarch_info(py_noarchs)
         repo.set_installed()
         repos.append(repo)
 

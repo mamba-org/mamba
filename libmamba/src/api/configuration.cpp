@@ -979,7 +979,7 @@ namespace mamba
                    .set_env_var_names()
                    .needs({ "create_base", "rc_files" })
                    .description("Path to the root prefix")
-                   .set_post_merge_hook<fs::path>(detail::root_prefix_hook)
+                   .set_post_merge_hook(detail::root_prefix_hook)
                    .set_post_context_hook(detail::post_root_prefix_rc_loading));
 
         insert(Configurable("create_base", false)
@@ -997,7 +997,7 @@ namespace mamba
                             "use_target_prefix_fallback" })
                    .set_single_op_lifetime()
                    .description("Path to the target prefix")
-                   .set_post_merge_hook<fs::path>(detail::target_prefix_hook)
+                   .set_post_merge_hook(detail::target_prefix_hook)
                    .set_post_context_hook(detail::post_target_prefix_rc_loading));
 
         insert(Configurable("use_target_prefix_fallback", true)
@@ -1010,13 +1010,13 @@ namespace mamba
                    .needs({ "target_prefix", "rc_files" })
                    .description("The type of checks performed on the target prefix")
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<int>(detail::target_prefix_checks_hook));
+                   .set_post_merge_hook(detail::target_prefix_checks_hook));
 
         insert(Configurable("env_name", std::string(""))
                    .group("Basic")
                    .needs({ "root_prefix", "spec_file_env_name" })
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<std::string>(detail::env_name_hook)
+                   .set_post_merge_hook(detail::env_name_hook)
                    .description("Name of the target prefix"));
 
         insert(Configurable("envs_dirs", &ctx.envs_dirs)
@@ -1024,8 +1024,8 @@ namespace mamba
                    .set_rc_configurable(RCConfigLevel::kHomeDir)
                    .set_env_var_names({ "CONDA_ENVS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook<std::vector<fs::path>>(detail::fallback_envs_dirs_hook)
-                   .set_post_merge_hook<std::vector<fs::path>>(detail::envs_dirs_hook)
+                   .set_fallback_value_hook(detail::fallback_envs_dirs_hook)
+                   .set_post_merge_hook(detail::envs_dirs_hook)
                    .description("Possible locations of named environments"));
 
         insert(Configurable("pkgs_dirs", &ctx.pkgs_dirs)
@@ -1033,8 +1033,8 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_PKGS_DIRS" })
                    .needs({ "root_prefix" })
-                   .set_fallback_value_hook<std::vector<fs::path>>(detail::fallback_pkgs_dirs_hook)
-                   .set_post_merge_hook<std::vector<fs::path>>(detail::pkgs_dirs_hook)
+                   .set_fallback_value_hook(detail::fallback_pkgs_dirs_hook)
+                   .set_post_merge_hook(detail::pkgs_dirs_hook)
                    .description("Possible locations of packages caches"));
 
         insert(Configurable("platform", &ctx.platform)
@@ -1051,7 +1051,7 @@ namespace mamba
                    .group("Basic")
                    .needs({ "file_specs", "root_prefix" })
                    .set_single_op_lifetime()
-                   .set_post_merge_hook<std::string>(detail::file_spec_env_name_hook)
+                   .set_post_merge_hook(detail::file_spec_env_name_hook)
                    .description("Name of the target prefix, specified in a YAML spec file"));
 
         insert(Configurable("specs", std::vector<std::string>({}))
@@ -1073,7 +1073,7 @@ namespace mamba
                    .long_description(unindent(R"(
                         Enable experimental features that may be still.
                         under active development and not stable yet.)"))
-                   .set_post_merge_hook<bool>(detail::experimental_hook));
+                   .set_post_merge_hook(detail::experimental_hook));
 
         insert(Configurable("debug", &ctx.debug)
                    .group("Basic")
@@ -1084,7 +1084,7 @@ namespace mamba
                         in intermediate steps of the operation called.
                         Debug features may/will interrupt the operation,
                         if you only need further logs refer to 'verbose'.)"))
-                   .set_post_merge_hook<bool>(detail::debug_hook));
+                   .set_post_merge_hook(detail::debug_hook));
 
         // Channels
         insert(Configurable("channels", &ctx.channels)
@@ -1183,7 +1183,7 @@ namespace mamba
                         the string "<false>" to indicate no SSL verification, or a path to
                         a directory with cert files, or a cert file..)"))
                    .needs({ "cacert_path", "offline" })
-                   .set_post_merge_hook<std::string>(detail::ssl_verify_hook));
+                   .set_post_merge_hook(detail::ssl_verify_hook));
 
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)
@@ -1207,7 +1207,7 @@ namespace mamba
 
         insert(Configurable("file_specs", std::vector<std::string>({}))
                    .group("Solver")
-                   .set_post_merge_hook<std::vector<std::string>>(detail::file_specs_hook)
+                   .set_post_merge_hook(detail::file_specs_hook)
                    .description("File (yaml, explicit or plain)"));
 
         insert(Configurable("no_pin", false)
@@ -1265,7 +1265,7 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_merge_hook<size_t>(detail::download_threads_hook)
+                   .set_post_merge_hook(detail::download_threads_hook)
                    .description("Defines the number of threads for package download")
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
@@ -1307,7 +1307,7 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "always_copy" })
-                   .set_post_merge_hook<bool>(detail::always_softlink_hook)
+                   .set_post_merge_hook(detail::always_softlink_hook)
                    .description("Use soft-link instead of hard-link")
                    .long_description(unindent(R"(
                         Register a preference that files be soft-linked (symlinked) into a
@@ -1393,7 +1393,7 @@ namespace mamba
                    .set_env_var_names()
                    .needs({ "json", "verbose" })
                    .description("Set the log level")
-                   .set_fallback_value_hook<spdlog::level::level_enum>(detail::log_level_fallback_hook)
+                   .set_fallback_value_hook(detail::log_level_fallback_hook)
                    .long_description(unindent(R"(
                             Set globally the log level of all loggers. Log level can
                             be one of {'off', 'fatal', 'error', 'warning', 'info',
@@ -1455,14 +1455,14 @@ namespace mamba
             Configurable("print_config_only", false)
                 .group("Output, Prompt and Flow Control")
                 .needs({ "debug" })
-                .set_post_merge_hook<bool>(detail::print_config_only_hook)
+                .set_post_merge_hook(detail::print_config_only_hook)
                 .description("Print the context after loading the config. Allow ultra-dry runs"));
 
         insert(
             Configurable("print_context_only", false)
                 .group("Output, Prompt and Flow Control")
                 .needs({ "debug" })
-                .set_post_merge_hook<bool>(detail::print_context_only_hook)
+                .set_post_merge_hook(detail::print_context_only_hook)
                 .description("Print the context after loading the config. Allow ultra-dry runs"));
 
         insert(Configurable("show_banner", true)
@@ -1510,7 +1510,7 @@ namespace mamba
 
         insert(Configurable("verbose", std::uint8_t(0))
                    .group("Output, Prompt and Flow Control")
-                   .set_post_merge_hook<std::uint8_t>(detail::verbose_hook)
+                   .set_post_merge_hook(detail::verbose_hook)
                    .description("Set the verbosity")
                    .long_description(unindent(R"(
                     Set the verbosity of .
@@ -1524,7 +1524,7 @@ namespace mamba
                    .group("Config sources")
                    .set_env_var_names({ "MAMBARC", "CONDARC" })
                    .needs({ "no_rc" })
-                   .set_post_merge_hook<std::vector<fs::path>>(detail::rc_files_hook)
+                   .set_post_merge_hook(detail::rc_files_hook)
                    .description("Paths to the configuration files to use"));
 
         insert(Configurable("override_rc_files", true)

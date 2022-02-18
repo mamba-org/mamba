@@ -173,8 +173,6 @@ namespace mamba
 
         EXPECT_EQ(x.size(), 3);
         auto* c1 = x[0];
-        auto* c2 = x[1];
-        auto* c3 = x[2];
 
         std::vector<std::string> exp_urls(
             { std::string("https://mydomain.com/conda-forge/") + platform,
@@ -187,8 +185,6 @@ namespace mamba
               std::string("https://otherdomain.com/snakepit/noarch") });
 
         auto y = get_channels({ "ytest" });
-        auto* y1 = y[0];
-        auto* y2 = y[1];
         auto* y3 = y[2];
 
         EXPECT_EQ(y3->urls(), exp_urlsy3);

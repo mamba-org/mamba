@@ -12,8 +12,6 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 
-#include "openssl/md5.h"
-#include "openssl/sha.h"
 #include "openssl/evp.h"
 
 #include <vector>
@@ -89,10 +87,9 @@ namespace validate
 
     std::string sha256sum(const fs::path& path)
     {
-        std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
-
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
+        unsigned char hash[MAMBA_SHA256_SIZE_BYTES];
+        EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
 
         std::ifstream infile = mamba::open_ifstream(path);
 
@@ -105,22 +102,23 @@ namespace validate
             size_t count = infile.gcount();
             if (!count)
                 break;
-            SHA256_Update(&sha256, buffer.data(), count);
+            EVP_DigestUpdate(mdctx, buffer.data(), count);
         }
 
-        SHA256_Final(hash.data(), &sha256);
+        EVP_DigestFinal_ex(mdctx, hash, nullptr);
+        EVP_MD_CTX_destroy(mdctx);
 
-        return ::mamba::hex_string(hash);
+        return ::mamba::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
     }
 
     std::string md5sum(const fs::path& path)
     {
-        std::array<unsigned char, MD5_DIGEST_LENGTH> hash;
+        unsigned char hash[MAMBA_MD5_SIZE_BYTES];
 
-        MD5_CTX md5;
-        MD5_Init(&md5);
+        EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr);
 
-        auto infile = mamba::open_ifstream(path);
+        std::ifstream infile = mamba::open_ifstream(path);
 
         constexpr std::size_t BUFSIZE = 32768;
         std::vector<char> buffer(BUFSIZE);
@@ -131,12 +129,13 @@ namespace validate
             size_t count = infile.gcount();
             if (!count)
                 break;
-            MD5_Update(&md5, buffer.data(), count);
+            EVP_DigestUpdate(mdctx, buffer.data(), count);
         }
 
-        MD5_Final(hash.data(), &md5);
+        EVP_DigestFinal_ex(mdctx, hash, nullptr);
+        EVP_MD_CTX_destroy(mdctx);
 
-        return ::mamba::hex_string(hash);
+        return ::mamba::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }
 
     bool sha256(const fs::path& path, const std::string& validation)
@@ -410,15 +409,19 @@ namespace validate
         trailer_bin_len_big_endian = __builtin_bswap32(trailer_bin_len_big_endian);
 #endif
 
-        std::array<unsigned char, SHA256_DIGEST_LENGTH> hash;
+        std::array<unsigned char, MAMBA_SHA256_SIZE_BYTES> hash;
 
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, data_bin, data_len);
-        SHA256_Update(&sha256, pgp_trailer_bin.data(), pgp_trailer_bin.size());
-        SHA256_Update(&sha256, final_trailer_bin.data(), final_trailer_bin.size());
-        SHA256_Update(&sha256, (unsigned char*) &trailer_bin_len_big_endian, 4);
-        SHA256_Final(hash.data(), &sha256);
+        EVP_MD_CTX* mdctx;
+        mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+
+        EVP_DigestUpdate(mdctx, data_bin, data_len);
+        EVP_DigestUpdate(mdctx, pgp_trailer_bin.data(), pgp_trailer_bin.size());
+        EVP_DigestUpdate(mdctx, final_trailer_bin.data(), final_trailer_bin.size());
+        EVP_DigestUpdate(mdctx, (unsigned char*) &trailer_bin_len_big_endian, 4);
+
+        EVP_DigestFinal_ex(mdctx, hash.data(), nullptr);
+        EVP_MD_CTX_destroy(mdctx);
 
         return verify_gpg_hashed_msg(hash.data(), pk_bin.data(), signature_bin.data());
     }

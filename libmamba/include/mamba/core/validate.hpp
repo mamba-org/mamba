@@ -30,6 +30,8 @@ namespace validate
 
     const std::size_t MAMBA_SHA256_SIZE_HEX = 64;
     const std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
+    const std::size_t MAMBA_MD5_SIZE_HEX = 32;
+    const std::size_t MAMBA_MD5_SIZE_BYTES = 16;
     const std::size_t MAMBA_ED25519_KEYSIZE_HEX = 64;
     const std::size_t MAMBA_ED25519_KEYSIZE_BYTES = 32;
     const std::size_t MAMBA_ED25519_SIGSIZE_HEX = 128;

@@ -8,7 +8,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 
-#include "openssl/md5.h"
+#include "openssl/evp.h"
 
 #include <iostream>
 #include <regex>
@@ -150,7 +150,6 @@ namespace mamba
 
     std::string cache_name_from_url(const std::string& url)
     {
-        std::vector<unsigned char> hash(MD5_DIGEST_LENGTH);
         std::string u = url;
         // mimicking conda's behavior by special handling repodata.json
         if (ends_with(u, "/repodata.json"))
@@ -158,12 +157,16 @@ namespace mamba
             u = u.substr(0, u.size() - 13);
         }
 
-        MD5_CTX md5;
-        MD5_Init(&md5);
-        MD5_Update(&md5, u.c_str(), u.size());
-        MD5_Final(hash.data(), &md5);
+        unsigned char hash[16];
 
-        std::string hex_digest = hex_string(hash);
+        EVP_MD_CTX* mdctx;
+        mdctx = EVP_MD_CTX_create();
+        EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr);
+        EVP_DigestUpdate(mdctx, u.c_str(), u.size());
+        EVP_DigestFinal_ex(mdctx, hash, nullptr);
+        EVP_MD_CTX_destroy(mdctx);
+
+        std::string hex_digest = hex_string(hash, 16);
         return hex_digest.substr(0u, 8u);
     }
 

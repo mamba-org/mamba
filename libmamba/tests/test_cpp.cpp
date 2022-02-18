@@ -271,7 +271,7 @@ namespace mamba
                   std::get<2>(params));
     }
 
-    INSTANTIATE_TEST_CASE_P(output,
+    INSTANTIATE_TEST_SUITE_P(output,
                             OutputPromptTests,
                             testing::Values(std::make_tuple("y", 'y', true),
                                             std::make_tuple("yes", 'y', true),

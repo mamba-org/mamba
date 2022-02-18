@@ -9,8 +9,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include <openssl/sha.h>
-
 #include <algorithm>
 #include <cstdio>
 #include <map>
@@ -21,6 +19,19 @@ namespace validate
     namespace testing
     {
         using nlohmann::json;
+
+        TEST(Validate, sha256sum)
+        {
+            auto f = mamba::open_ofstream("sometestfile.txt");
+            f << "test";
+            f.close();
+            auto sha256 = sha256sum("sometestfile.txt");
+            EXPECT_EQ(sha256, "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+
+            auto md5 = md5sum("sometestfile.txt");
+            EXPECT_EQ(md5, "098f6bcd4621d373cade4e832627b4f6");
+        }
+
 
         TEST(Validate, ed25519_key_hex_to_bytes)
         {

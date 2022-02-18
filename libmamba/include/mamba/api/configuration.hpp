@@ -315,9 +315,15 @@ namespace mamba
         template <class T>
         Configurable&& set_default_value_hook(value_hook_type<T> hook);
         template <class T>
+        Configurable&& set_default_value_hook(T (*hook)());
+        template <class T>
         Configurable&& set_fallback_value_hook(value_hook_type<T> hook);
         template <class T>
+        Configurable&& set_fallback_value_hook(T (*hook)());
+        template <class T>
         Configurable&& set_post_merge_hook(post_merge_hook_type<T> hook);
+        template <class T>
+        Configurable&& set_post_merge_hook(void (*hook)(T&));
         Configurable&& set_post_context_hook(post_context_hook_type hook);
 
         template <class T>
@@ -785,6 +791,12 @@ namespace mamba
     }
 
     template <class T>
+    Configurable&& Configurable::set_default_value_hook(T (*hook)())
+    {
+        return set_default_value_hook<T>(value_hook_type<T>(hook));
+    }
+
+    template <class T>
     Configurable&& Configurable::set_fallback_value_hook(value_hook_type<T> hook)
     {
         get_wrapped<T>().p_fallback_value_hook = hook;
@@ -792,10 +804,22 @@ namespace mamba
     }
 
     template <class T>
+    Configurable&& Configurable::set_fallback_value_hook(T (*hook)())
+    {
+        return set_fallback_value_hook<T>(value_hook_type<T>(hook));
+    }
+
+    template <class T>
     Configurable&& Configurable::set_post_merge_hook(post_merge_hook_type<T> hook)
     {
         get_wrapped<T>().p_post_merge_hook = hook;
         return std::move(*this);
+    }
+
+    template <class T>
+    Configurable&& Configurable::set_post_merge_hook(void (*hook)(T&))
+    {
+        return set_post_merge_hook<T>(post_merge_hook_type<T>(hook));
     }
 
     template <class T>

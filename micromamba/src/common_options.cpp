@@ -155,7 +155,7 @@ init_channel_parser(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& channels = config.at("channels");
-    channels.set_post_merge_hook<string_list>(channels_hook).needs({ "override_channels" });
+    channels.set_post_merge_hook(channels_hook).needs({ "override_channels" });
     subcom->add_option("-c,--channel", channels.get_cli_config<string_list>(), channels.description())
         ->type_size(1)
         ->allow_extra_args(false);
@@ -165,7 +165,7 @@ init_channel_parser(CLI::App* subcom)
                                                 .set_env_var_names()
                                                 .description("Override channels")
                                                 .needs({ "override_channels_enabled" })
-                                                .set_post_merge_hook<bool>(override_channels_hook),
+                                                .set_post_merge_hook(override_channels_hook),
                                             true);
     subcom->add_flag("--override-channels",
                      override_channels.get_cli_config<bool>(),
@@ -191,7 +191,7 @@ init_channel_parser(CLI::App* subcom)
         = config.insert(Configurable("strict_channel_priority", false)
                             .group("cli")
                             .description("Enable strict channel priority")
-                            .set_post_merge_hook<bool>(strict_channel_priority_hook),
+                            .set_post_merge_hook(strict_channel_priority_hook),
                         true);
     subcom->add_flag("--strict-channel-priority",
                      strict_channel_priority.get_cli_config<bool>(),
@@ -200,7 +200,7 @@ init_channel_parser(CLI::App* subcom)
     auto& no_channel_priority = config.insert(Configurable("no_channel_priority", false)
                                                   .group("cli")
                                                   .description("Disable channel priority")
-                                                  .set_post_merge_hook<bool>(no_channel_priority_hook),
+                                                  .set_post_merge_hook(no_channel_priority_hook),
                                               true);
     subcom->add_flag("--no-channel-priority",
                      no_channel_priority.get_cli_config<bool>(),

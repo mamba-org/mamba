@@ -70,4 +70,6 @@ set_run_command(CLI::App* subcom);
 void
 get_completions(CLI::App* app, int argc, char** argv);
 
+void set_search_command(CLI::App* subcom);
+
 #endif

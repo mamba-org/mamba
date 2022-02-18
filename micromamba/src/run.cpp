@@ -138,11 +138,9 @@ namespace mamba {
             }
 
             const auto running_processes_info = nlohmann::json::parse(pid_file);
-            for(auto&& process_info : running_processes_info["running"].items())
-            {
-                if(filter(process_info))
-                    all_processes_info[process_info.key()] = process_info.value();
-            }
+            if(filter(running_processes_info))
+                all_processes_info.push_back(running_processes_info);
+
         }
 
         return all_processes_info;
@@ -151,7 +149,7 @@ namespace mamba {
     bool is_process_name_running(std::string_view name)
     {
         const auto other_processes_with_same_name = get_all_running_processes_info([&](auto&& process_info){
-            return process_info.key() == name;
+            return process_info["child_name"] == name;
         });
         return !other_processes_with_same_name.empty();
     }
@@ -163,7 +161,7 @@ namespace mamba {
 
     public:
 
-        ScopedProcFile(const std::string& child_name, PID child_pid, std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
+        ScopedProcFile(const std::string& child_name, const std::vector<std::string>& command, std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
             assert(proc_dir_lock); // Lock must be hold for the duraction of this constructor.
@@ -176,8 +174,8 @@ namespace mamba {
             }
 
             nlohmann::json file_json;
-            auto& process_info = file_json["running"][child_name];
-            process_info["pid"] = child_pid;
+            file_json["child_name"] = child_name;
+            file_json["command"] = command;
             // TODO: add other info here if necessary
             pid_file << file_json;
         }
@@ -273,7 +271,6 @@ set_run_command(CLI::App* subcom)
     static reproc::process proc;
 
     subcom->callback([subcom, stream_option]() {
-    try {
         auto& config = Configuration::instance();
         config.at("show_banner").set_value(false);
         config.load();
@@ -286,15 +283,15 @@ set_run_command(CLI::App* subcom)
         }
 
         LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
-        LOG_DEBUG << "Remaining args to run as command: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
+        LOG_DEBUG << "Remaining args to run as command: " << join(" ", command);
 
         // replace the wrapping bash with new process entirely
 #ifndef _WIN32
         if (command.front() != "exec")
             command.insert(command.begin(), "exec");
 
-        // Lock the process directory to read and write in it until we manage to run the file or exit.
-        static auto proc_dir_lock = lock_proc_dir();  // Note: this object is static only so that calls to `std::exit()` will call the destructor.
+        // Lock the process directory to read and write in it until we are ready to launch the child process.
+        auto proc_dir_lock = lock_proc_dir();
 
         const std::string process_name = [&]{
             // Insert a unique process name associated to the command, either specified by the user or generated.
@@ -311,19 +308,22 @@ set_run_command(CLI::App* subcom)
             {
                 if(is_process_name_running(specific_process_name))
                 {
-                    LOG_ERROR << fmt::format("Another process with name '{}' is currently running.", specific_process_name);
-                    exit(1);
+                    throw std::runtime_error(fmt::format("Another process with name '{}' is currently running.", specific_process_name));
                 }
                 command.insert(exe_name_it, { {"-a"}, specific_process_name });
                 return specific_process_name;
             }
         }();
+
+        // Writes the process file then unlock the directory. Deletes the process file once exit is called (in the destructor).
+        static ScopedProcFile scoped_proc_file{ process_name, command, std::move(proc_dir_lock) }; // Note: this object is static only so that calls to `std::exit()` will call the destructor.
+
 #endif
 
         auto [wrapped_command, script_file]
             = prepare_wrapped_call(Context::instance().target_prefix, command);
 
-        LOG_DEBUG << "Running wrapped script: " << join(" ", command); // TODO: lower log level and then check why they never print in info and debug
+        LOG_DEBUG << "Running wrapped script: " << join(" ", command);
 
         bool all_streams = stream_option->count() == 0u;
         bool sinkout = !all_streams && streams.find("stdout") == std::string::npos;
@@ -387,10 +387,6 @@ set_run_command(CLI::App* subcom)
 
         std::tie(pid, ec) = proc.pid();
 
-#ifndef _WIN32
-        static ScopedProcFile scoped_proc_file{ process_name, pid, std::move(proc_dir_lock) }; // Note: this object is static only so that calls to `std::exit()` will call the destructor.
-#endif
-
         if (ec)
         {
             std::cerr << ec.message() << std::endl;
@@ -427,11 +423,5 @@ set_run_command(CLI::App* subcom)
 
         // exit with status code from reproc
         exit(status);
-    }
-    catch(const std::runtime_error& ex)
-    {
-        LOG_ERROR << "run command failed:" << ex.what();
-        exit(1);
-    }
     });
 }

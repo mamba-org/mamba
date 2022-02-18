@@ -28,11 +28,11 @@ namespace mamba {
 
     bool is_process_name_running(std::string_view name);
 
-    std::string generate_unique_process_name(std::string_view process_name)
+    std::string generate_unique_process_name(std::string_view program_name)
     {
-        assert(!process_name.empty());
+        assert(!program_name.empty());
 
-        static std::vector prefixes_bag = {
+        static const std::vector prefixes = {
             "curious",
             "gentle",
             "happy",
@@ -70,6 +70,18 @@ namespace mamba {
             // TODO: add more here
         };
 
+        static std::vector alt_names{
+            "program",
+            "application",
+            "app",
+            "code",
+            "blob",
+            "binary",
+            "script",
+        };
+
+        static std::vector prefixes_bag = prefixes;
+        std::string selected_name{ program_name };
         while(true)
         {
             std::string selected_prefix;
@@ -81,14 +93,25 @@ namespace mamba {
                 selected_prefix = *selected_prefix_it;
                 prefixes_bag.erase(selected_prefix_it);
             }
+            else if(!alt_names.empty())
+            {
+                // No more prefixes: we retry the same prefixes but with a different program name.
+                const auto selected_name_idx = random_int<std::size_t>(0, alt_names.size() - 1);
+                const auto selected_name_it = std::next(alt_names.begin(), selected_name_idx);
+                selected_name = *selected_name_it;
+                alt_names.erase(selected_name_it);
+                prefixes_bag = prefixes; // Re-fill the prefix bag.
+                continue; // Re-try with new prefix + new name.
+            }
             else
             {
-                // No prefixes left in the bag, just generate a random one as a fail-safe.
+                // No prefixes left in the bag nor alternative names, just generate a random prefix as a fail-safe.
                 constexpr std::size_t arbitrary_prefix_length = 8;
                 selected_prefix = generate_random_alphanumeric_string(arbitrary_prefix_length);
+                selected_name = program_name;
             }
 
-            const auto new_process_name = fmt::format("{}_{}", selected_prefix, process_name);
+            const auto new_process_name = fmt::format("{}_{}", selected_prefix, selected_name);
             if(!is_process_name_running(new_process_name))
                 return new_process_name;
         }

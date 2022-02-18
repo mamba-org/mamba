@@ -38,7 +38,12 @@
 
 namespace mamba
 {
-    bool has_scheme(const std::string& url);
+    using powerloader::has_scheme;
+    using powerloader::is_path;
+    using powerloader::path_to_url;
+    using powerloader::unc_url;
+    using powerloader::encode_url;
+    using powerloader::decode_url;
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
@@ -50,15 +55,9 @@ namespace mamba
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
-    bool is_path(const std::string& input);
-    std::string path_to_url(const std::string& path);
-
     template <class S, class... Args>
     std::string join_url(const S& s, const Args&... args);
 
-    std::string unc_url(const std::string& url);
-    std::string encode_url(const std::string& url);
-    std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
     std::string hide_secrets(const std::string_view& str);

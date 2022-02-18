@@ -12,22 +12,26 @@ namespace mamba
 {
     void libsolv_debug_callback(Pool* pool, void* userptr, int type, const char* str)
     {
-        auto* logger = (spdlog::logger*)(userptr);
-        std::string s(str);
-        if (strip(s).size() == 0) return;
-        if (s.back() != '\n') s.push_back('\n');
+        auto* dbg = (std::pair<spdlog::logger*, std::string>*)(userptr);
+        dbg->second += str;
+        if (dbg->second.back() != '\n')
+        {
+            return;
+        }
+
         if (type & SOLV_FATAL || type & SOLV_ERROR)
         {
-            logger->error(s);
+            dbg->first->error(dbg->second);
         }
         else if (type & SOLV_WARN)
         {
-            logger->warn(s);
+            dbg->first->warn(dbg->second);
         }
         else if (Context::instance().verbosity > 2)
         {
-            logger->info(s);
+            dbg->first->info(dbg->second);
         }
+        dbg->second.clear();
     }
 
     MPool::MPool()
@@ -51,7 +55,8 @@ namespace mamba
         {
             pool_setdebuglevel(m_pool, Context::instance().verbosity - 1);
             auto logger = spdlog::get("libsolv");
-            pool_setdebugcallback(m_pool, &libsolv_debug_callback, logger.get());
+            m_debug_logger.first = logger.get();
+            pool_setdebugcallback(m_pool, &libsolv_debug_callback, &m_debug_logger);
         }
     }
 

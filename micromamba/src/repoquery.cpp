@@ -45,7 +45,7 @@ set_repoquery_command(CLI::App* subcom)
     subcom->add_flag("--pretty", pretty_print, "Pretty print result (only for search)");
 
     static std::vector<std::string> specs;
-    subcom->add_option("specs", specs, "Specs to search");
+    subcom->add_option("specs", specs, "Specs to search")->required();
 
     static int local = 0;
     subcom->add_flag("--local,!--remote", local, "Use installed data or remote repositories");

@@ -471,7 +471,7 @@ namespace mamba
             {
                 not_found.push_back("\n - " + s.str());
             }
-            for (std::size_t i = 0; i < q.count; i++)
+            for (std::size_t i = 0; i < size_t(q.count); i++)
             {
                 // To remove, these have to be negative
                 queue_push(&decision, -q.elements[i]);
@@ -485,7 +485,7 @@ namespace mamba
         }
 
         selection_solvables((Pool*) pool, &job, &q);
-        bool remove_success = q.count >= specs_to_remove.size();
+        bool remove_success = size_t(q.count) >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
         Solvable* solvable;

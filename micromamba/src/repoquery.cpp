@@ -25,7 +25,7 @@ str_to_qtype(const std::string& s)
 }
 
 void
-set_repoquery_command(CLI::App* subcom)
+set_common_search(CLI::App* subcom, bool is_repoquery)
 {
     auto& config = Configuration::instance();
     init_general_options(subcom);
@@ -34,9 +34,16 @@ set_repoquery_command(CLI::App* subcom)
     init_channel_parser(subcom);
 
     static std::string query_type;
-    subcom->add_option("query_type", query_type, "The type of query (search, depends or whoneeds)")
-        ->check(CLI::IsMember(std::vector<std::string>({ "search", "depends", "whoneeds" })))
-        ->required();
+    if (is_repoquery)
+    {
+        subcom->add_option("query_type", query_type, "The type of query (search, depends or whoneeds)")
+            ->check(CLI::IsMember(std::vector<std::string>({ "search", "depends", "whoneeds" })))
+            ->required();
+    }
+    else
+    {
+        query_type = "search";
+    }
 
     static bool show_as_tree = false;
     subcom->add_flag("-t,--tree", show_as_tree, "Show result as a tree");
@@ -45,7 +52,7 @@ set_repoquery_command(CLI::App* subcom)
     subcom->add_flag("--pretty", pretty_print, "Pretty print result (only for search)");
 
     static std::vector<std::string> specs;
-    subcom->add_option("specs", specs, "Specs to search");
+    subcom->add_option("specs", specs, "Specs to search")->required();
 
     static int local = 0;
     subcom->add_flag("--local,!--remote", local, "Use installed data or remote repositories");
@@ -82,4 +89,17 @@ set_repoquery_command(CLI::App* subcom)
 
         repoquery(qtype, format, local, specs[0]);
     });
+
+}
+
+void
+set_search_command(CLI::App* subcom)
+{
+    set_common_search(subcom, false);
+}
+
+void
+set_repoquery_command(CLI::App* subcom)
+{
+    set_common_search(subcom, true);
 }

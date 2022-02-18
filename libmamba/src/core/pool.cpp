@@ -14,7 +14,7 @@ namespace mamba
     {
         auto* dbg = (std::pair<spdlog::logger*, std::string>*)(userptr);
         dbg->second += str;
-        if (dbg->second.back() != '\n')
+        if (dbg->second.size() == 0 || dbg->second.back() != '\n')
         {
             return;
         }

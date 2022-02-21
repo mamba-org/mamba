@@ -9,13 +9,28 @@ namespace mamba
 {
     TEST(history, parse)
     {
-        static constexpr auto history_file_path = "history_test/parse/conda-meta/history";
-        static constexpr auto aux_file_path = "history_test/parse/conda-meta/aux_file";
+        static const auto history_file_path = fs::absolute("history_test/parse/conda-meta/history");
+        static const auto aux_file_path = fs::absolute("history_test/parse/conda-meta/aux_file");
 
+        // Backup history file and restore it at the end of the test, whatever the output.
+        struct ScopedHistoryFileBackup {
+            ScopedHistoryFileBackup()
+            {
+                fs::remove(aux_file_path);
+                fs::copy(history_file_path, aux_file_path);
+            }
+            ~ScopedHistoryFileBackup()
+            {
+                fs::remove(history_file_path);
+                fs::copy(aux_file_path, history_file_path);
+            }
+        } scoped_history_file_backup;
+
+        // Gather history from current history file.
         History history_instance("history_test/parse");
-
         std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
 
+        // Extract raw history file content into buffer.
         std::ifstream history_file(history_file_path);
         std::stringstream original_history_buffer;
         std::string line;
@@ -25,13 +40,13 @@ namespace mamba
         }
         history_file.close();
 
-        fs::remove(aux_file_path);
-        fs::copy(history_file_path, aux_file_path);
-
+        // Generate a history buffer with duplicate history.
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
         std::cout << check_buffer.str() << std::endl;
+
+        // Re-inject history into history file: history file should then have the same duplicate content as the buffer.
         for (const auto& req : user_reqs)
         {
             history_instance.add_entry(req);
@@ -47,8 +62,6 @@ namespace mamba
 
         ASSERT_EQ(updated_history_buffer.str(), check_buffer.str());
 
-        fs::remove(history_file_path);
-        fs::copy(aux_file_path, history_file_path);
     }
 
 #ifndef _WIN32

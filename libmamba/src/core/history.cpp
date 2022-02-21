@@ -14,7 +14,7 @@ namespace mamba
 {
     History::History(const fs::path& prefix)
         : m_prefix(prefix)
-        , m_history_file_path(m_prefix / "conda-meta" / "history")
+        , m_history_file_path(fs::absolute(m_prefix / "conda-meta" / "history"))
     {
     }
 
@@ -29,7 +29,7 @@ namespace mamba
             return res;
         }
 
-        static std::regex head_re("==>\\s*(.+?)\\s*<==");
+        static const std::regex head_re("==>\\s*(.+?)\\s*<==");
         std::ifstream in_file = open_ifstream(m_history_file_path, std::ios::in);
 
         std::string line;

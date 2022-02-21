@@ -9,11 +9,14 @@ namespace mamba
 {
     TEST(history, parse)
     {
+        static constexpr auto history_file_path = "history_test/parse/conda-meta/history";
+        static constexpr auto aux_file_path = "history_test/parse/conda-meta/aux_file";
+
         History history_instance("history_test/parse");
 
         std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
 
-        std::ifstream history_file("history_test/parse/conda-meta/history");
+        std::ifstream history_file(history_file_path);
         std::stringstream original_history_buffer;
         std::string line;
         while (getline(history_file, line))
@@ -22,11 +25,8 @@ namespace mamba
         }
         history_file.close();
 
-        std::ifstream src_beg("history_test/parse/conda-meta/history", std::ios::binary);
-        std::ofstream dst_beg("history_test/parse/conda-meta/aux_file", std::ios::binary);
-        dst_beg << src_beg.rdbuf();
-        src_beg.close();
-        dst_beg.close();
+        fs::remove(aux_file_path);
+        fs::copy(history_file_path, aux_file_path);
 
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
@@ -37,7 +37,7 @@ namespace mamba
             history_instance.add_entry(req);
         }
 
-        history_file.open("history_test/parse/conda-meta/history");
+        history_file.open(history_file_path);
         std::stringstream updated_history_buffer;
         while (getline(history_file, line))
         {
@@ -47,11 +47,8 @@ namespace mamba
 
         ASSERT_EQ(updated_history_buffer.str(), check_buffer.str());
 
-        std::ofstream src_end("history_test/conda-meta/history", std::ios::binary);
-        std::ifstream dst_end("history_test/conda-meta/aux_file", std::ios::binary);
-        src_end << dst_end.rdbuf();
-        src_end.close();
-        dst_end.close();
+        fs::remove(history_file_path);
+        fs::copy(aux_file_path, history_file_path);
     }
 
 #ifndef _WIN32

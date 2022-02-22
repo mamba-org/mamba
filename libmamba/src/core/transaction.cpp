@@ -166,7 +166,8 @@ namespace mamba
 
     std::function<void(ProgressBarRepr&)> PackageDownloadExtractTarget::extract_repr()
     {
-        return [&](ProgressBarRepr& r) -> void {
+        return [&](ProgressBarRepr& r) -> void
+        {
             if (r.progress_bar().started())
                 r.postfix.set_value("Extracting");
             else
@@ -176,7 +177,8 @@ namespace mamba
 
     std::function<void(ProgressProxy&)> PackageDownloadExtractTarget::extract_progress_callback()
     {
-        return [&](ProgressProxy& bar) -> void {
+        return [&](ProgressProxy& bar) -> void
+        {
             if (bar.started())
                 bar.set_progress(0, 1);
         };
@@ -590,7 +592,8 @@ namespace mamba
 
         if (solver.only_deps == false)
         {
-            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string> {
+            auto to_string_vec = [](const std::vector<MatchSpec>& vec) -> std::vector<std::string>
+            {
                 std::vector<std::string> res;
                 for (const auto& el : vec)
                     res.push_back(el.str());
@@ -935,7 +938,8 @@ namespace mamba
             to_unlink.push_back(solvable_to_json(s));
         }
 
-        auto add_json = [](const auto& jlist, const char* s) {
+        auto add_json = [](const auto& jlist, const char* s)
+        {
             if (!jlist.empty())
             {
                 Console::instance().json_down(s);
@@ -1021,62 +1025,67 @@ namespace mamba
 
             auto* dl_bar = aggregated_pbar_manager.aggregated_bar("Download");
             if (dl_bar)
-                dl_bar->set_repr_hook([&](ProgressBarRepr& repr) -> void {
-                    auto active_tasks = dl_bar->active_tasks().size();
-                    if (active_tasks == 0)
+                dl_bar->set_repr_hook(
+                    [&](ProgressBarRepr& repr) -> void
                     {
-                        repr.prefix.set_value(fmt::format("{:<16}", "Downloading"));
-                        repr.postfix.set_value(fmt::format("{:<25}", ""));
-                    }
-                    else
-                    {
-                        repr.prefix.set_value(fmt::format(
-                            "{:<11} {:>4}", "Downloading", fmt::format("({})", active_tasks)));
-                        repr.postfix.set_value(fmt::format("{:<25}", dl_bar->last_active_task()));
-                    }
-                    repr.current.set_value(
-                        fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1)));
-                    repr.separator.set_value("/");
+                        auto active_tasks = dl_bar->active_tasks().size();
+                        if (active_tasks == 0)
+                        {
+                            repr.prefix.set_value(fmt::format("{:<16}", "Downloading"));
+                            repr.postfix.set_value(fmt::format("{:<25}", ""));
+                        }
+                        else
+                        {
+                            repr.prefix.set_value(fmt::format(
+                                "{:<11} {:>4}", "Downloading", fmt::format("({})", active_tasks)));
+                            repr.postfix.set_value(
+                                fmt::format("{:<25}", dl_bar->last_active_task()));
+                        }
+                        repr.current.set_value(
+                            fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1)));
+                        repr.separator.set_value("/");
 
-                    std::string total_str;
-                    if (dl_bar->total() == std::numeric_limits<std::size_t>::max())
-                        total_str = "??.?MB";
-                    else
-                        total_str = to_human_readable_filesize(dl_bar->total(), 1);
-                    repr.total.set_value(fmt::format("{:>7}", total_str));
+                        std::string total_str;
+                        if (dl_bar->total() == std::numeric_limits<std::size_t>::max())
+                            total_str = "??.?MB";
+                        else
+                            total_str = to_human_readable_filesize(dl_bar->total(), 1);
+                        repr.total.set_value(fmt::format("{:>7}", total_str));
 
-                    auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
-                    repr.speed.set_value(
-                        speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1))
-                              : "");
-                });
+                        auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
+                        repr.speed.set_value(
+                            speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1))
+                                  : "");
+                    });
 
             auto* extract_bar = aggregated_pbar_manager.aggregated_bar("Extract");
             if (extract_bar)
-                extract_bar->set_repr_hook([&](ProgressBarRepr& repr) -> void {
-                    auto active_tasks = extract_bar->active_tasks().size();
-                    if (active_tasks == 0)
+                extract_bar->set_repr_hook(
+                    [&](ProgressBarRepr& repr) -> void
                     {
-                        repr.prefix.set_value(fmt::format("{:<16}", "Extracting"));
-                        repr.postfix.set_value(fmt::format("{:<25}", ""));
-                    }
-                    else
-                    {
-                        repr.prefix.set_value(fmt::format(
-                            "{:<11} {:>4}", "Extracting", fmt::format("({})", active_tasks)));
-                        repr.postfix.set_value(
-                            fmt::format("{:<25}", extract_bar->last_active_task()));
-                    }
-                    repr.current.set_value(fmt::format("{:>3}", extract_bar->current()));
-                    repr.separator.set_value("/");
+                        auto active_tasks = extract_bar->active_tasks().size();
+                        if (active_tasks == 0)
+                        {
+                            repr.prefix.set_value(fmt::format("{:<16}", "Extracting"));
+                            repr.postfix.set_value(fmt::format("{:<25}", ""));
+                        }
+                        else
+                        {
+                            repr.prefix.set_value(fmt::format(
+                                "{:<11} {:>4}", "Extracting", fmt::format("({})", active_tasks)));
+                            repr.postfix.set_value(
+                                fmt::format("{:<25}", extract_bar->last_active_task()));
+                        }
+                        repr.current.set_value(fmt::format("{:>3}", extract_bar->current()));
+                        repr.separator.set_value("/");
 
-                    std::string total_str;
-                    if (extract_bar->total() == std::numeric_limits<std::size_t>::max())
-                        total_str = "?";
-                    else
-                        total_str = std::to_string(extract_bar->total());
-                    repr.total.set_value(fmt::format("{:>3}", total_str));
-                });
+                        std::string total_str;
+                        if (extract_bar->total() == std::numeric_limits<std::size_t>::max())
+                            total_str = "?";
+                        else
+                            total_str = std::to_string(extract_bar->total());
+                        repr.total.set_value(fmt::format("{:>3}", total_str));
+                    });
 
             pbar_manager.start();
             pbar_manager.watch_print();
@@ -1208,8 +1217,9 @@ namespace mamba
         std::size_t total_size = 0;
         auto* pool = m_transaction->pool;
 
-        auto format_row = [this, pool, &total_size](
-                              rows& r, Solvable* s, printers::format flag, std::string diff) {
+        auto format_row =
+            [this, pool, &total_size](rows& r, Solvable* s, printers::format flag, std::string diff)
+        {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)

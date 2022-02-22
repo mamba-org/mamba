@@ -58,11 +58,14 @@ namespace mamba
     TEST(history, parse_segfault)
     {
         pid_t child = fork();
-        if (child) {
+        if (child)
+        {
             int wstatus;
             waitpid(child, &wstatus, 0);
             ASSERT_TRUE(WIFEXITED(wstatus));
-        } else {
+        }
+        else
+        {
             History history_instance("history_test/parse_segfault");
             history_instance.get_user_requests();
             exit(0);

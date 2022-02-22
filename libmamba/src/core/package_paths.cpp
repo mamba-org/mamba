@@ -76,7 +76,8 @@ namespace mamba
         auto info_dir = directory / "info";
         auto paths_json_path = info_dir / "paths.json";
 
-        auto parse_file_mode = [](nlohmann::json& j) -> FileMode {
+        auto parse_file_mode = [](nlohmann::json& j) -> FileMode
+        {
             if (j.find("file_mode") != j.end())
             {
                 // check if "text" or "binary"
@@ -92,7 +93,8 @@ namespace mamba
             return FileMode::UNDEFINED;
         };
 
-        auto parse_path_type = [](nlohmann::json& j) -> PathType {
+        auto parse_path_type = [](nlohmann::json& j) -> PathType
+        {
             if (j.find("path_type") != j.end())
             {
                 // TODO find a DIRECTORY path type

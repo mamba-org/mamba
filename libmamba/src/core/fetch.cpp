@@ -215,13 +215,10 @@ namespace mamba
         }
     }
 
-    int curl_debug_callback(CURL *handle,
-                   curl_infotype type,
-                   char *data,
-                   size_t size,
-                   void *userptr)
+    int curl_debug_callback(
+        CURL* handle, curl_infotype type, char* data, size_t size, void* userptr)
     {
-        auto* logger = (spdlog::logger*)(userptr);
+        auto* logger = (spdlog::logger*) (userptr);
         switch (type)
         {
             case CURLINFO_TEXT:
@@ -358,8 +355,7 @@ namespace mamba
 
             // remove \r\n header ending
             auto header_end = header.find_first_of("\r\n");
-            value = header.substr(colon_idx,
-                                  (header_end > colon_idx) ? header_end - colon_idx : 0);
+            value = header.substr(colon_idx, (header_end > colon_idx) ? header_end - colon_idx : 0);
 
             // http headers are case insensitive!
             std::string lkey = to_lower(key);
@@ -381,7 +377,8 @@ namespace mamba
 
     std::function<void(ProgressBarRepr&)> DownloadTarget::download_repr()
     {
-        return [&](ProgressBarRepr& r) -> void {
+        return [&](ProgressBarRepr& r) -> void
+        {
             r.current.set_value(
                 fmt::format("{:>7}", to_human_readable_filesize(m_progress_bar.current(), 1)));
 
@@ -440,9 +437,8 @@ namespace mamba
 
     void DownloadTarget::set_mod_etag_headers(const nlohmann::json& mod_etag)
     {
-        auto to_header = [](const std::string& key, const std::string& value) {
-            return std::string(key + ": " + value);
-        };
+        auto to_header = [](const std::string& key, const std::string& value)
+        { return std::string(key + ": " + value); };
 
         if (mod_etag.find("_etag") != mod_etag.end())
         {
@@ -753,9 +749,8 @@ namespace mamba
         if (sort)
             std::sort(m_targets.begin(),
                       m_targets.end(),
-                      [](DownloadTarget* a, DownloadTarget* b) -> bool {
-                          return a->expected_size() > b->expected_size();
-                      });
+                      [](DownloadTarget* a, DownloadTarget* b) -> bool
+                      { return a->expected_size() > b->expected_size(); });
 
         LOG_INFO << "Starting to download targets";
 

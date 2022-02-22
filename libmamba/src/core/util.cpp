@@ -546,7 +546,8 @@ namespace mamba
         }
         else
         {
-            auto quote_arg = [](const std::string& s) {
+            auto quote_arg = [](const std::string& s)
+            {
                 char quote_char;
                 if (s.find('"') != s.npos)
                 {
@@ -1002,23 +1003,27 @@ namespace mamba
         std::mutex m;
         std::condition_variable cv;
 
-        thread t([&cv, &ret, &fd, &lock]() {
-            ret = fcntl(fd, F_SETLKW, &lock);
-            cv.notify_one();
-        });
+        thread t(
+            [&cv, &ret, &fd, &lock]()
+            {
+                ret = fcntl(fd, F_SETLKW, &lock);
+                cv.notify_one();
+            });
 
         auto th = t.native_handle();
 
         int err = 0;
-        set_signal_handler([&th, &cv, &ret, &err](sigset_t sigset) -> int {
-            int signum = 0;
-            sigwait(&sigset, &signum);
-            pthread_cancel(th);
-            err = EINTR;
-            ret = -1;
-            cv.notify_one();
-            return signum;
-        });
+        set_signal_handler(
+            [&th, &cv, &ret, &err](sigset_t sigset) -> int
+            {
+                int signum = 0;
+                sigwait(&sigset, &signum);
+                pthread_cancel(th);
+                err = EINTR;
+                ret = -1;
+                cv.notify_one();
+                return signum;
+            });
 
         t.detach();
 

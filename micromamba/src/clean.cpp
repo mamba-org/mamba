@@ -40,19 +40,23 @@ init_clean_parser(CLI::App* subcom)
                             .group("cli")
                             .description("Remove *.mamba_trash files from all environments"));
 
-    auto& clean_force_pkgs_dirs
-        = config.insert(Configurable("clean_force_pkgs_dirs", false)
-                            .group("cli")
-                            .description("Remove *all* writable package caches. This option is not included with the --all flags."));
+    auto& clean_force_pkgs_dirs = config.insert(
+        Configurable("clean_force_pkgs_dirs", false)
+            .group("cli")
+            .description(
+                "Remove *all* writable package caches. This option is not included with the --all flags."));
 
     subcom->add_flag("-a,--all", clean_all.get_cli_config<bool>(), clean_all.description());
-    subcom->add_flag("-i,--index-cache", clean_index.get_cli_config<bool>(), clean_index.description());
+    subcom->add_flag(
+        "-i,--index-cache", clean_index.get_cli_config<bool>(), clean_index.description());
     subcom->add_flag("-p,--packages", clean_pkgs.get_cli_config<bool>(), clean_pkgs.description());
     subcom->add_flag(
         "-t,--tarballs", clean_tarballs.get_cli_config<bool>(), clean_tarballs.description());
     subcom->add_flag("-l,--locks", clean_locks.get_cli_config<bool>(), clean_locks.description());
     subcom->add_flag("--trash", clean_trash.get_cli_config<bool>(), clean_trash.description());
-    subcom->add_flag("-f,--force-pkgs-dirs", clean_force_pkgs_dirs.get_cli_config<bool>(), clean_force_pkgs_dirs.description());
+    subcom->add_flag("-f,--force-pkgs-dirs",
+                     clean_force_pkgs_dirs.get_cli_config<bool>(),
+                     clean_force_pkgs_dirs.description());
 }
 
 void
@@ -60,30 +64,32 @@ set_clean_command(CLI::App* subcom)
 {
     init_clean_parser(subcom);
 
-    subcom->callback([&]() {
-        auto& config = Configuration::instance();
-        int options = 0;
-
-        if (config.at("clean_all").compute().value<bool>())
-            options = options | MAMBA_CLEAN_ALL;
-        if (config.at("clean_index_cache").compute().value<bool>())
-            options = options | MAMBA_CLEAN_INDEX;
-        if (config.at("clean_packages").compute().value<bool>())
-            options = options | MAMBA_CLEAN_PKGS;
-        if (config.at("clean_tarballs").compute().value<bool>())
-            options = options | MAMBA_CLEAN_TARBALLS;
-        if (config.at("clean_locks").compute().value<bool>())
-            options = options | MAMBA_CLEAN_LOCKS;
-        if (config.at("clean_trash").compute().value<bool>())
-            options = options | MAMBA_CLEAN_TRASH;
-        if (config.at("clean_force_pkgs_dirs").compute().value<bool>())
+    subcom->callback(
+        [&]()
         {
-            if (Console::prompt("Remove all contents from the package caches?"))
-            {
-                options = options | MAMBA_CLEAN_FORCE_PKGS_DIRS;
-            }
-        }
+            auto& config = Configuration::instance();
+            int options = 0;
 
-        clean(options);
-    });
+            if (config.at("clean_all").compute().value<bool>())
+                options = options | MAMBA_CLEAN_ALL;
+            if (config.at("clean_index_cache").compute().value<bool>())
+                options = options | MAMBA_CLEAN_INDEX;
+            if (config.at("clean_packages").compute().value<bool>())
+                options = options | MAMBA_CLEAN_PKGS;
+            if (config.at("clean_tarballs").compute().value<bool>())
+                options = options | MAMBA_CLEAN_TARBALLS;
+            if (config.at("clean_locks").compute().value<bool>())
+                options = options | MAMBA_CLEAN_LOCKS;
+            if (config.at("clean_trash").compute().value<bool>())
+                options = options | MAMBA_CLEAN_TRASH;
+            if (config.at("clean_force_pkgs_dirs").compute().value<bool>())
+            {
+                if (Console::prompt("Remove all contents from the package caches?"))
+                {
+                    options = options | MAMBA_CLEAN_FORCE_PKGS_DIRS;
+                }
+            }
+
+            clean(options);
+        });
 }

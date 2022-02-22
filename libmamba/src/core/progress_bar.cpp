@@ -612,8 +612,9 @@ namespace mamba
             else
             {
                 ProgressScaleWriter w{ width };
-                double in_progress = static_cast<double>(p_progress_bar->current() + p_progress_bar->in_progress())
-                                     / static_cast<double>(p_progress_bar->total()) * 100.;
+                double in_progress
+                    = static_cast<double>(p_progress_bar->current() + p_progress_bar->in_progress())
+                      / static_cast<double>(p_progress_bar->total()) * 100.;
                 sstream << w.repr(p_progress_bar->progress(), in_progress);
             }
         }
@@ -628,7 +629,9 @@ namespace mamba
                     spinner = { "|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\" };
 
                 constexpr int spinner_rounds = 2;
-                auto pos = static_cast<std::size_t>(std::round(progress * ((spinner_rounds * spinner.size()) / 100.0))) % spinner.size();
+                auto pos = static_cast<std::size_t>(
+                               std::round(progress * ((spinner_rounds * spinner.size()) / 100.0)))
+                           % spinner.size();
                 sstream << fmt::format("{:^4}", spinner[pos]);
             }
             else
@@ -1124,21 +1127,25 @@ namespace mamba
     void ProgressBarManager::sort_bars(bool max_height_exceeded)
     {
         if (!max_height_exceeded)
-            std::sort(m_progress_bars.begin(), m_progress_bars.end(), [](auto& a, auto& b) {
-                return a->prefix() > b->prefix();
-            });
+            std::sort(m_progress_bars.begin(),
+                      m_progress_bars.end(),
+                      [](auto& a, auto& b) { return a->prefix() > b->prefix(); });
         else
-            std::sort(m_progress_bars.begin(), m_progress_bars.end(), [](auto& a, auto& b) {
-                if (!a->started() && b->started())
-                    return false;
-                if (!b->started() && a->started())
-                    return true;
-                if (a->status() == ChronoState::unset && b->status() != ChronoState::unset)
-                    return true;
-                if (b->status() == ChronoState::unset && a->status() != ChronoState::unset)
-                    return false;
-                return a->last_active_time() > b->last_active_time();
-            });
+            std::sort(
+                m_progress_bars.begin(),
+                m_progress_bars.end(),
+                [](auto& a, auto& b)
+                {
+                    if (!a->started() && b->started())
+                        return false;
+                    if (!b->started() && a->started())
+                        return true;
+                    if (a->status() == ChronoState::unset && b->status() != ChronoState::unset)
+                        return true;
+                    if (b->status() == ChronoState::unset && a->status() != ChronoState::unset)
+                        return false;
+                    return a->last_active_time() > b->last_active_time();
+                });
     }
 
     /***************
@@ -1393,7 +1400,8 @@ namespace mamba
         if (delay.count())
         {
             std::thread t(
-                [&](const time_point_t& stop_time_point) {
+                [&](const time_point_t& stop_time_point)
+                {
                     std::lock_guard<std::mutex> lock(m_mutex);
                     while (now() < stop_time_point && status() < ChronoState::stopped)
                         std::this_thread::sleep_for(std::chrono::milliseconds(100));

@@ -103,17 +103,19 @@ namespace mamba
     {
         increase_thread_count();
         auto f = std::bind(std::forward<Function>(func), std::forward<Args>(args)...);
-        m_thread = std::thread([f]() {
-            try
+        m_thread = std::thread(
+            [f]()
             {
-                f();
-            }
-            catch (thread_interrupted&)
-            {
-                errno = EINTR;
-            }
-            decrease_thread_count();
-        });
+                try
+                {
+                    f();
+                }
+                catch (thread_interrupted&)
+                {
+                    errno = EINTR;
+                }
+                decrease_thread_count();
+            });
     }
 
     /**********************

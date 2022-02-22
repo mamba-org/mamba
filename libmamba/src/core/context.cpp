@@ -23,12 +23,12 @@ namespace mamba
 
         envs_dirs = { root_prefix / "envs" };
         pkgs_dirs = { root_prefix / "pkgs",
-                fs::path("~") / ".mamba" / "pkgs"
+                      fs::path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
-                ,
-                fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
+                      ,
+                      fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
 #endif
-              };
+        };
 
         keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
         keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
@@ -47,8 +47,10 @@ namespace mamba
         set_default_signal_handler();
 
         std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>("libmamba", log_pattern, "\n");
-        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>("libcurl", log_pattern, "");
-        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>("libsolv", log_pattern, "");
+        std::shared_ptr<spdlog::logger> libcurl_logger
+            = std::make_shared<Logger>("libcurl", log_pattern, "");
+        std::shared_ptr<spdlog::logger> libsolv_logger
+            = std::make_shared<Logger>("libsolv", log_pattern, "");
         spdlog::register_logger(libcurl_logger);
         spdlog::register_logger(libsolv_logger);
 

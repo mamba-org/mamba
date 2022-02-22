@@ -220,7 +220,8 @@ namespace mamba
             distribution_name[0] = std::toupper(distribution_name[0]);
         }
 
-        auto to_forward_slash = [](const fs::path& p) {
+        auto to_forward_slash = [](const fs::path& p)
+        {
             std::string ps = p.string();
             replace_all(ps, "\\", "/");
             return ps;
@@ -313,7 +314,8 @@ namespace mamba
                 fs::create_directories(target_dir);
             }
 
-            auto extend_script_args = [](const auto& item, auto& arguments) {
+            auto extend_script_args = [](const auto& item, auto& arguments)
+            {
                 // this is pretty bad ...
                 if (item.contains("scriptargument"))
                 {

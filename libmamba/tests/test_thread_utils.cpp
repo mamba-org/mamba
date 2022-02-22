@@ -19,26 +19,30 @@ namespace mamba
         EXPECT_EQ(current_command, "mamba");
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
         {
-            interruption_guard g([&res]() {
-                // Test for double free (segfault if that happens)
-                std::cout << "Interruption guard is interrupting" << std::endl;
-                Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
+            interruption_guard g(
+                [&res]()
                 {
-                    std::unique_lock<std::mutex> lk(res_mutex);
-                    res -= 100;
-                }
-                reset_sig_interrupted();
-            });
+                    // Test for double free (segfault if that happens)
+                    std::cout << "Interruption guard is interrupting" << std::endl;
+                    Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
+                    {
+                        std::unique_lock<std::mutex> lk(res_mutex);
+                        res -= 100;
+                    }
+                    reset_sig_interrupted();
+                });
 
             for (size_t i = 0; i < 5; ++i)
             {
-                mamba::thread t([&res]() {
+                mamba::thread t(
+                    [&res]()
                     {
-                        std::unique_lock<std::mutex> lk(res_mutex);
-                        ++res;
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                });
+                        {
+                            std::unique_lock<std::mutex> lk(res_mutex);
+                            ++res;
+                        }
+                        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+                    });
                 t.detach();
             }
             if (interrupt)

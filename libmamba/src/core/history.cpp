@@ -75,7 +75,8 @@ namespace mamba
     bool History::parse_comment_line(const std::string& line, UserRequest& req)
     {
         std::size_t colon_idx = line.find_first_of(':');
-        if (colon_idx == std::string::npos) return false;
+        if (colon_idx == std::string::npos)
+            return false;
 
         std::string key(strip(line.substr(1, colon_idx - 1)));
         std::string value(strip(line.substr(colon_idx + 1)));
@@ -171,7 +172,8 @@ namespace mamba
     {
         std::unordered_map<std::string, MatchSpec> map;
 
-        auto to_specs = [](const std::vector<std::string>& sv) {
+        auto to_specs = [](const std::vector<std::string>& sv)
+        {
             std::vector<MatchSpec> v;
             v.reserve(sv.size());
             for (const auto& el : sv)
@@ -246,7 +248,8 @@ namespace mamba
             }
 
             auto specs_output = [](const std::string& action,
-                                   const std::vector<std::string>& specs) -> std::string {
+                                   const std::vector<std::string>& specs) -> std::string
+            {
                 if (specs.empty())
                     return "";
                 std::stringstream spec_ss;

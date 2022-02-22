@@ -36,7 +36,9 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     static std::string query_type;
     if (is_repoquery)
     {
-        subcom->add_option("query_type", query_type, "The type of query (search, depends or whoneeds)")
+        subcom
+            ->add_option(
+                "query_type", query_type, "The type of query (search, depends or whoneeds)")
             ->check(CLI::IsMember(std::vector<std::string>({ "search", "depends", "whoneeds" })))
             ->required();
     }
@@ -58,38 +60,40 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->add_flag("--local,!--remote", local, "Use installed data or remote repositories");
 
     auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
+    subcom->add_option(
+        "--platform", platform.get_cli_config<std::string>(), platform.description());
 
-    subcom->callback([&]() {
-        auto qtype = str_to_qtype(query_type);
-        QueryResultFormat format = QueryResultFormat::kTABLE;
-        switch (qtype)
+    subcom->callback(
+        [&]()
         {
-            case QueryType::kSEARCH:
-                format = QueryResultFormat::kTABLE;
-                local = (local == 0) ? false : local > 0;
-                break;
-            case QueryType::kDEPENDS:
-                format = QueryResultFormat::kTABLE;
-                local = (local == 0) ? true : local > 0;
-                break;
-            case QueryType::kWHONEEDS:
-                format = QueryResultFormat::kTABLE;
-                local = (local == 0) ? true : local > 0;
-                break;
-        }
-        if (qtype == QueryType::kDEPENDS && show_as_tree)
-            format = QueryResultFormat::kTREE;
+            auto qtype = str_to_qtype(query_type);
+            QueryResultFormat format = QueryResultFormat::kTABLE;
+            switch (qtype)
+            {
+                case QueryType::kSEARCH:
+                    format = QueryResultFormat::kTABLE;
+                    local = (local == 0) ? false : local > 0;
+                    break;
+                case QueryType::kDEPENDS:
+                    format = QueryResultFormat::kTABLE;
+                    local = (local == 0) ? true : local > 0;
+                    break;
+                case QueryType::kWHONEEDS:
+                    format = QueryResultFormat::kTABLE;
+                    local = (local == 0) ? true : local > 0;
+                    break;
+            }
+            if (qtype == QueryType::kDEPENDS && show_as_tree)
+                format = QueryResultFormat::kTREE;
 
-        if (qtype == QueryType::kSEARCH && pretty_print)
-            format = QueryResultFormat::kPRETTY;
+            if (qtype == QueryType::kSEARCH && pretty_print)
+                format = QueryResultFormat::kPRETTY;
 
-        // if (ctx.json)
-        //     format = QueryResultFormat::kJSON;
+            // if (ctx.json)
+            //     format = QueryResultFormat::kJSON;
 
-        repoquery(qtype, format, local, specs[0]);
-    });
-
+            repoquery(qtype, format, local, specs[0]);
+        });
 }
 
 void

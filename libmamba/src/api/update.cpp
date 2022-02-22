@@ -114,7 +114,8 @@ namespace mamba
         }
         MTransaction transaction(solver, package_caches, repo_ptrs);
 
-        auto execute_transaction = [&](MTransaction& transaction) {
+        auto execute_transaction = [&](MTransaction& transaction)
+        {
             if (ctx.json)
                 transaction.log_json();
 

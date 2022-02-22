@@ -18,14 +18,18 @@ init_rc_options(CLI::App* subcom)
     std::string cli_group = "Configuration options";
 
     auto& rc_files = config.at("rc_files");
-    subcom->add_option("--rc-file", rc_files.get_cli_config<std::vector<fs::path>>(), rc_files.description())
+    subcom
+        ->add_option(
+            "--rc-file", rc_files.get_cli_config<std::vector<fs::path>>(), rc_files.description())
         ->group(cli_group);
 
     auto& no_rc = config.at("no_rc");
-    subcom->add_flag("--no-rc", no_rc.get_cli_config<bool>(), no_rc.description())->group(cli_group);
+    subcom->add_flag("--no-rc", no_rc.get_cli_config<bool>(), no_rc.description())
+        ->group(cli_group);
 
     auto& no_env = config.at("no_env");
-    subcom->add_flag("--no-env", no_env.get_cli_config<bool>(), no_env.description())->group(cli_group);
+    subcom->add_flag("--no-env", no_env.get_cli_config<bool>(), no_env.description())
+        ->group(cli_group);
 }
 
 
@@ -44,22 +48,25 @@ init_general_options(CLI::App* subcom)
                    "Set verbosity (higher verbosity with multiple -v, e.g. -vvv)")
         ->group(cli_group);
 
-    std::map<std::string, spdlog::level::level_enum> le_map = {
-        {"critical", spdlog::level::critical},
-        {"error", spdlog::level::err},
-        {"warning", spdlog::level::warn},
-        {"info", spdlog::level::info},
-        {"debug", spdlog::level::debug},
-        {"trace", spdlog::level::trace},
-        {"off", spdlog::level::off}
-    };
+    std::map<std::string, spdlog::level::level_enum> le_map
+        = { { "critical", spdlog::level::critical },
+            { "error", spdlog::level::err },
+            { "warning", spdlog::level::warn },
+            { "info", spdlog::level::info },
+            { "debug", spdlog::level::debug },
+            { "trace", spdlog::level::trace },
+            { "off", spdlog::level::off } };
     auto& log_level = config.at("log_level");
-    subcom->add_option("--log-level", log_level.get_cli_config<spdlog::level::level_enum>(), log_level.description())
+    subcom
+        ->add_option("--log-level",
+                     log_level.get_cli_config<spdlog::level::level_enum>(),
+                     log_level.description())
         ->group(cli_group)
         ->transform(CLI::CheckedTransformer(le_map, CLI::ignore_case));
 
     auto& quiet = config.at("quiet");
-    subcom->add_flag("-q,--quiet", quiet.get_cli_config<bool>(), quiet.description())->group(cli_group);
+    subcom->add_flag("-q,--quiet", quiet.get_cli_config<bool>(), quiet.description())
+        ->group(cli_group);
 
     auto& always_yes = config.at("always_yes");
     subcom->add_flag("-y,--yes", always_yes.get_cli_config<bool>(), always_yes.description())
@@ -77,7 +84,9 @@ init_general_options(CLI::App* subcom)
         ->group(cli_group);
 
     auto& experimental = config.at("experimental");
-    subcom->add_flag("--experimental", experimental.get_cli_config<bool>(), experimental.description())
+    subcom
+        ->add_flag(
+            "--experimental", experimental.get_cli_config<bool>(), experimental.description())
         ->group(cli_group);
 
     auto& debug = config.at("debug");
@@ -90,7 +99,8 @@ init_general_options(CLI::App* subcom)
         ->group("");
 
     auto& print_config_only = config.at("print_config_only");
-    subcom->add_flag("--print-config-only", print_config_only.get_cli_config<bool>(), "Debug config")
+    subcom
+        ->add_flag("--print-config-only", print_config_only.get_cli_config<bool>(), "Debug config")
         ->group("");
 }
 
@@ -109,7 +119,8 @@ init_prefix_options(CLI::App* subcom)
         ->group(cli_group);
 
     auto& name = config.at("env_name");
-    subcom->add_option("-n,--name", name.get_cli_config<std::string>(), name.description())->group(cli_group);
+    subcom->add_option("-n,--name", name.get_cli_config<std::string>(), name.description())
+        ->group(cli_group);
 }
 
 
@@ -120,16 +131,21 @@ init_network_options(CLI::App* subcom)
     std::string cli_group = "Network options";
 
     auto& ssl_verify = config.at("ssl_verify");
-    subcom->add_option("--ssl-verify", ssl_verify.get_cli_config<std::string>(), ssl_verify.description())
+    subcom
+        ->add_option(
+            "--ssl-verify", ssl_verify.get_cli_config<std::string>(), ssl_verify.description())
         ->group(cli_group);
 
     auto& ssl_no_revoke = config.at("ssl_no_revoke");
     subcom
-        ->add_flag("--ssl-no-revoke", ssl_no_revoke.get_cli_config<bool>(), ssl_no_revoke.description())
+        ->add_flag(
+            "--ssl-no-revoke", ssl_no_revoke.get_cli_config<bool>(), ssl_no_revoke.description())
         ->group(cli_group);
 
     auto& cacert_path = config.at("cacert_path");
-    subcom->add_option("--cacert-path", cacert_path.get_cli_config<std::string>(), cacert_path.description())
+    subcom
+        ->add_option(
+            "--cacert-path", cacert_path.get_cli_config<std::string>(), cacert_path.description())
         ->group(cli_group);
 
     auto& local_repodata_ttl = config.at("local_repodata_ttl");
@@ -156,7 +172,8 @@ init_channel_parser(CLI::App* subcom)
 
     auto& channels = config.at("channels");
     channels.set_post_merge_hook(channels_hook).needs({ "override_channels" });
-    subcom->add_option("-c,--channel", channels.get_cli_config<string_list>(), channels.description())
+    subcom
+        ->add_option("-c,--channel", channels.get_cli_config<string_list>(), channels.description())
         ->type_size(1)
         ->allow_extra_args(false);
 
@@ -171,11 +188,9 @@ init_channel_parser(CLI::App* subcom)
                      override_channels.get_cli_config<bool>(),
                      override_channels.description());
 
-    std::map<std::string, ChannelPriority> cp_map = {
-        {"disabled", ChannelPriority::kDisabled},
-        {"flexible", ChannelPriority::kFlexible},
-        {"strict", ChannelPriority::kStrict}
-    };
+    std::map<std::string, ChannelPriority> cp_map = { { "disabled", ChannelPriority::kDisabled },
+                                                      { "flexible", ChannelPriority::kFlexible },
+                                                      { "strict", ChannelPriority::kStrict } };
     auto& channel_priority = config.at("channel_priority");
     subcom
         ->add_option("--channel-priority",
@@ -184,8 +199,9 @@ init_channel_parser(CLI::App* subcom)
         ->transform(CLI::CheckedTransformer(cp_map, CLI::ignore_case));
 
     auto& channel_alias = config.at("channel_alias");
-    subcom->add_option(
-        "--channel-alias", channel_alias.get_cli_config<std::string>(), channel_alias.description());
+    subcom->add_option("--channel-alias",
+                       channel_alias.get_cli_config<std::string>(),
+                       channel_alias.description());
 
     auto& strict_channel_priority
         = config.insert(Configurable("strict_channel_priority", false)
@@ -313,10 +329,13 @@ init_install_options(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& specs = config.at("specs");
-    subcom->add_option("specs", specs.get_cli_config<string_list>(), "Specs to install into the environment");
+    subcom->add_option(
+        "specs", specs.get_cli_config<string_list>(), "Specs to install into the environment");
 
     auto& file_specs = config.at("file_specs");
-    subcom->add_option("-f,--file", file_specs.get_cli_config<string_list>(), file_specs.description())
+    subcom
+        ->add_option(
+            "-f,--file", file_specs.get_cli_config<string_list>(), file_specs.description())
         ->type_size(1)
         ->allow_extra_args(false);
 
@@ -324,10 +343,12 @@ init_install_options(CLI::App* subcom)
     subcom->add_flag("--no-pin,!--pin", no_pin.get_cli_config<bool>(), no_pin.description());
 
     auto& no_py_pin = config.at("no_py_pin");
-    subcom->add_flag("--no-py-pin,!--py-pin", no_py_pin.get_cli_config<bool>(), no_py_pin.description());
+    subcom->add_flag(
+        "--no-py-pin,!--py-pin", no_py_pin.get_cli_config<bool>(), no_py_pin.description());
 
     auto& compile_pyc = config.at("compile_pyc");
-    subcom->add_flag("--pyc,!--no-pyc", compile_pyc.get_cli_config<bool>(), compile_pyc.description());
+    subcom->add_flag(
+        "--pyc,!--no-pyc", compile_pyc.get_cli_config<bool>(), compile_pyc.description());
 
     auto& allow_uninstall = config.at("allow_uninstall");
     subcom->add_flag("--allow-uninstall,!--no-allow-uninstall",
@@ -367,20 +388,21 @@ init_install_options(CLI::App* subcom)
     subcom->add_flag(
         "--shortcuts,!--no-shortcuts", shortcuts.get_cli_config<bool>(), shortcuts.description());
 
-    std::map<std::string, VerificationLevel> vl_map = {
-        {"enabled", VerificationLevel::kEnabled},
-        {"warn", VerificationLevel::kWarn},
-        {"disabled", VerificationLevel::kDisabled}
-    };
+    std::map<std::string, VerificationLevel> vl_map
+        = { { "enabled", VerificationLevel::kEnabled },
+            { "warn", VerificationLevel::kWarn },
+            { "disabled", VerificationLevel::kDisabled } };
     auto& safety_checks = config.at("safety_checks");
     subcom
-        ->add_option(
-            "--safety-checks", safety_checks.get_cli_config<VerificationLevel>(), safety_checks.description())
+        ->add_option("--safety-checks",
+                     safety_checks.get_cli_config<VerificationLevel>(),
+                     safety_checks.description())
         ->transform(CLI::CheckedTransformer(vl_map, CLI::ignore_case));
 
     auto& av = config.at("verify_artifacts");
     subcom->add_flag("--verify-artifacts", av.get_cli_config<bool>(), av.description());
 
     auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
+    subcom->add_option(
+        "--platform", platform.get_cli_config<std::string>(), platform.description());
 }

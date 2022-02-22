@@ -15,11 +15,17 @@ namespace mamba
     bool is_admin();
     fs::path get_self_exe_path();
 
-#ifndef _WIN32
-    std::string get_process_name_by_pid(const int pid);
+using PID =
+#ifdef _WIN32
+    DWORD
 #else
-    DWORD getppid();
-    std::string get_process_name_by_pid(DWORD processId);
+    int
+#endif
+;
+
+    std::string get_process_name_by_pid(const PID pid);
+#ifdef _WIN32
+    PID getppid();
 #endif
 
     void run_as_admin(const std::string& args);

@@ -25,6 +25,7 @@ set(TEST_SRCS
     test_url.cpp
     test_validate.cpp
     test_virtual_packages.cpp
+    test_util.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

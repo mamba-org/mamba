@@ -42,7 +42,8 @@ repos:
             - flake8-bugbear==22.1.11
             - flake8-isort==4.1.1
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v11.1.0
+    rev: v13.0.1
     hooks:
     -   id: clang-format
-        args: [--style=file]
+        args: [--style=file, -i]
+        exclude: ".json"

@@ -644,7 +644,8 @@ namespace mamba
             // just ask different possible installations of PowerShell where their
             // profiles are.
 
-            auto find_powershell_paths = [&profile_var](const std::string& exe) -> std::string {
+            auto find_powershell_paths = [&profile_var](const std::string& exe) -> std::string
+            {
                 try
                 {
                     std::string out, err;

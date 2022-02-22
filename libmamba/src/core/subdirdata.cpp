@@ -65,98 +65,100 @@ namespace mamba
 {
     namespace detail
     {
-    nlohmann::json read_mod_and_etag(const fs::path& file)
-    {
-        // parse json at the beginning of the stream such as
-        // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
-        // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
-        // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
-        // "_cache_control": "public, max-age=1200"
+        nlohmann::json read_mod_and_etag(const fs::path& file)
+        {
+            // parse json at the beginning of the stream such as
+            // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
+            // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
+            // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
+            // "_cache_control": "public, max-age=1200"
 
-        auto extract_subjson = [](std::ifstream& s) -> std::string {
-            char next;
-            std::string result;
-            bool escaped = false;
-            int i = 0, N = 4;
-            std::size_t idx = 0;
-            std::size_t prev_keystart;
-            bool in_key = false;
-            std::string key = "";
-
-            while (s.get(next))
+            auto extract_subjson = [](std::ifstream& s) -> std::string
             {
-                idx++;
-                if (next == '"')
+                char next;
+                std::string result;
+                bool escaped = false;
+                int i = 0, N = 4;
+                std::size_t idx = 0;
+                std::size_t prev_keystart;
+                bool in_key = false;
+                std::string key = "";
+
+                while (s.get(next))
                 {
-                    if (!escaped)
+                    idx++;
+                    if (next == '"')
                     {
-                        if ((i / 2) % 2 == 0)
+                        if (!escaped)
                         {
-                            in_key = !in_key;
-                            if (in_key)
+                            if ((i / 2) % 2 == 0)
                             {
-                                prev_keystart = idx + 1;
-                            }
-                            else
-                            {
-                                if (key != "_mod" && key != "_etag" && key != "_cache_control" && key != "_url")
+                                in_key = !in_key;
+                                if (in_key)
                                 {
-                                    // bail out
-                                    auto last_comma = result.find_last_of(",", prev_keystart - 2);
-                                    if (last_comma != std::string::npos && last_comma > 0)
-                                    {
-                                        result = result.substr(0, last_comma);
-                                        result.push_back('}');
-                                        return result;
-                                    }
-                                    else
-                                    {
-                                        return std::string();
-                                    }
+                                    prev_keystart = idx + 1;
                                 }
-                                key.clear();
+                                else
+                                {
+                                    if (key != "_mod" && key != "_etag" && key != "_cache_control"
+                                        && key != "_url")
+                                    {
+                                        // bail out
+                                        auto last_comma
+                                            = result.find_last_of(",", prev_keystart - 2);
+                                        if (last_comma != std::string::npos && last_comma > 0)
+                                        {
+                                            result = result.substr(0, last_comma);
+                                            result.push_back('}');
+                                            return result;
+                                        }
+                                        else
+                                        {
+                                            return std::string();
+                                        }
+                                    }
+                                    key.clear();
+                                }
                             }
+                            i++;
                         }
-                        i++;
+
+                        // 4 keys == 4 ticks
+                        if (i == 4 * N)
+                        {
+                            result += "\"}";
+                            return result;
+                        }
                     }
 
-                    // 4 keys == 4 ticks
-                    if (i == 4 * N)
+                    if (in_key && next != '"')
                     {
-                        result += "\"}";
-                        return result;
+                        key.push_back(next);
                     }
-                }
 
-                if (in_key && next != '"')
-                {
-                    key.push_back(next);
+                    escaped = (!escaped && next == '\\');
+                    result.push_back(next);
                 }
+                return std::string();
+            };
 
-                escaped = (!escaped && next == '\\');
-                result.push_back(next);
+            std::ifstream in_file = open_ifstream(file);
+            auto json = extract_subjson(in_file);
+
+            nlohmann::json result;
+            try
+            {
+                result = nlohmann::json::parse(json);
+                return result;
             }
-            return std::string();
-        };
-
-        std::ifstream in_file = open_ifstream(file);
-        auto json = extract_subjson(in_file);
-
-        nlohmann::json result;
-        try
-        {
-            result = nlohmann::json::parse(json);
-            return result;
+            catch (...)
+            {
+                LOG_WARNING << "Could not parse mod/etag header";
+                return nlohmann::json();
+            }
         }
-        catch (...)
-        {
-            LOG_WARNING << "Could not parse mod/etag header";
-            return nlohmann::json();
-        }
-    }
 
     }
-
 
 
     MSubdirData::MSubdirData(const std::string& name,
@@ -293,9 +295,7 @@ namespace mamba
 
         if (m_loaded)
         {
-            Console::stream() << fmt::format("{:<50} {:>20}",
-                                             m_name,
-                                             std::string("Using cache"));
+            Console::stream() << fmt::format("{:<50} {:>20}", m_name, std::string("Using cache"));
         }
         else
         {

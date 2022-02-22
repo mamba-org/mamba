@@ -272,26 +272,26 @@ namespace mamba
     }
 
     INSTANTIATE_TEST_SUITE_P(output,
-                            OutputPromptTests,
-                            testing::Values(std::make_tuple("y", 'y', true),
-                                            std::make_tuple("yes", 'y', true),
-                                            std::make_tuple("Y", 'y', true),
-                                            std::make_tuple("Yes", 'y', true),
-                                            std::make_tuple("", 'y', true),
-                                            std::make_tuple("n", 'y', false),
-                                            std::make_tuple("no", 'y', false),
-                                            std::make_tuple("N", 'y', false),
-                                            std::make_tuple("No", 'y', false),
+                             OutputPromptTests,
+                             testing::Values(std::make_tuple("y", 'y', true),
+                                             std::make_tuple("yes", 'y', true),
+                                             std::make_tuple("Y", 'y', true),
+                                             std::make_tuple("Yes", 'y', true),
+                                             std::make_tuple("", 'y', true),
+                                             std::make_tuple("n", 'y', false),
+                                             std::make_tuple("no", 'y', false),
+                                             std::make_tuple("N", 'y', false),
+                                             std::make_tuple("No", 'y', false),
 
-                                            std::make_tuple("y", 'n', true),
-                                            std::make_tuple("yes", 'n', true),
-                                            std::make_tuple("Y", 'n', true),
-                                            std::make_tuple("Yes", 'n', true),
-                                            std::make_tuple("", 'n', false),
-                                            std::make_tuple("n", 'n', false),
-                                            std::make_tuple("no", 'n', false),
-                                            std::make_tuple("N", 'n', false),
-                                            std::make_tuple("No", 'n', false)));
+                                             std::make_tuple("y", 'n', true),
+                                             std::make_tuple("yes", 'n', true),
+                                             std::make_tuple("Y", 'n', true),
+                                             std::make_tuple("Yes", 'n', true),
+                                             std::make_tuple("", 'n', false),
+                                             std::make_tuple("n", 'n', false),
+                                             std::make_tuple("no", 'n', false),
+                                             std::make_tuple("N", 'n', false),
+                                             std::make_tuple("No", 'n', false)));
 
     TEST(context, env_name)
     {
@@ -508,21 +508,29 @@ namespace mamba
         fs::path cache_folder = fs::path("repodata_json_cache");
         auto j = detail::read_mod_and_etag(cache_folder / "test_1.json");
         EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        EXPECT_EQ(
+            j["_url"],
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
         j = detail::read_mod_and_etag(cache_folder / "test_2.json");
         EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        EXPECT_EQ(
+            j["_url"],
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
         j = detail::read_mod_and_etag(cache_folder / "test_5.json");
         EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        EXPECT_EQ(
+            j["_url"],
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
         j = detail::read_mod_and_etag(cache_folder / "test_4.json");
         EXPECT_EQ(j["_cache_control"], "{{}}\",,,\"");
         EXPECT_EQ(j["_etag"], "\n\n\"\"randome ecx,,ssd\n,,\"");
         EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        EXPECT_EQ(
+            j["_url"],
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
         j = detail::read_mod_and_etag(cache_folder / "test_3.json");
         EXPECT_TRUE(j.empty());
@@ -532,6 +540,7 @@ namespace mamba
         EXPECT_EQ(j["_url"], "https://conda.anaconda.org/intake/osx-arm64");
 
         // EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        // EXPECT_EQ(j["_url"], "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        // EXPECT_EQ(j["_url"],
+        // "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
     }
 }  // namespace mamba

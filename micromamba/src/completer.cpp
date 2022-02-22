@@ -74,8 +74,8 @@ overwrite_callbacks(std::vector<CLI::App*>& apps,
                     bool& completed)
 {
     auto* app = apps.back();
-    app->callback(
-        [app, &completer_args, &completed]() { complete_options(app, completer_args, completed); });
+    app->callback([app, &completer_args, &completed]()
+                  { complete_options(app, completer_args, completed); });
     for (auto* subc : app->get_subcommands(nullptr))
     {
         apps.push_back(subc);
@@ -91,13 +91,15 @@ add_activate_completion(CLI::App* app, std::vector<std::string>& completer_args,
 
     CLI::App* activate_subcom
         = app->add_subcommand("activate", "Mock activate shell function for completion");
-    activate_subcom->callback([app, &completer_args, &completed]() {
-        if (completer_args.size() == 1)
+    activate_subcom->callback(
+        [app, &completer_args, &completed]()
         {
-            completer_args = { "-n", completer_args.back() };
-            complete_options(app, completer_args, completed);
-        }
-    });
+            if (completer_args.size() == 1)
+            {
+                completer_args = { "-n", completer_args.back() };
+                complete_options(app, completer_args, completed);
+            }
+        });
 }
 
 void

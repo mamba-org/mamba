@@ -56,107 +56,112 @@ set_env_command(CLI::App* com)
     export_subcom->add_flag(
         "--from-history", from_history, "Build environment spec from explicit specs in history");
 
-    export_subcom->callback([]() {
-        auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
-        config.at("show_banner").set_value(false);
-        config.load();
-
-        if (explicit_format)
+    export_subcom->callback(
+        []()
         {
-            PrefixData pd(ctx.target_prefix);
-            pd.load();
-            auto records = pd.sorted_records();
-            std::cout << "# This file may be used to create an environment using:\n"
-                      << "# $ conda create --name <env> --file <this file>\n"
-                      << "# platform: " << Context::instance().platform << "\n"
-                      << "@EXPLICIT\n";
+            auto& ctx = Context::instance();
+            auto& config = Configuration::instance();
+            config.at("show_banner").set_value(false);
+            config.load();
 
-            for (auto& record : records)
+            if (explicit_format)
             {
-                std::string clean_url, token;
-                split_anaconda_token(record.url, clean_url, token);
-                std::cout << clean_url;
-                if (!no_md5)
+                PrefixData pd(ctx.target_prefix);
+                pd.load();
+                auto records = pd.sorted_records();
+                std::cout << "# This file may be used to create an environment using:\n"
+                          << "# $ conda create --name <env> --file <this file>\n"
+                          << "# platform: " << Context::instance().platform << "\n"
+                          << "@EXPLICIT\n";
+
+                for (auto& record : records)
                 {
-                    std::cout << "#" << record.md5;
+                    std::string clean_url, token;
+                    split_anaconda_token(record.url, clean_url, token);
+                    std::cout << clean_url;
+                    if (!no_md5)
+                    {
+                        std::cout << "#" << record.md5;
+                    }
+                    std::cout << "\n";
                 }
-                std::cout << "\n";
             }
-        }
-        else
-        {
-            PrefixData pd(ctx.target_prefix);
-            pd.load();
-            History& hist = pd.history();
-
-            auto versions_map = pd.records();
-
-            std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
-            std::cout << "channels:\n";
-
-            auto requested_specs_map = hist.get_requested_specs_map();
-            std::stringstream dependencies;
-            std::set<std::string> channels;
-            for (auto& [k, v] : versions_map)
+            else
             {
-                if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
-                    continue;
+                PrefixData pd(ctx.target_prefix);
+                pd.load();
+                History& hist = pd.history();
 
-                if (from_history)
+                auto versions_map = pd.records();
+
+                std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
+                std::cout << "channels:\n";
+
+                auto requested_specs_map = hist.get_requested_specs_map();
+                std::stringstream dependencies;
+                std::set<std::string> channels;
+                for (auto& [k, v] : versions_map)
                 {
-                    dependencies << "- " << requested_specs_map[k].str() << "\n";
-                }
-                else
-                {
-                    dependencies << "- " << v.name << "=" << v.version;
-                    if (!no_build)
-                        dependencies << "=" << v.build_string;
-                    dependencies << "\n";
+                    if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                        continue;
+
+                    if (from_history)
+                    {
+                        dependencies << "- " << requested_specs_map[k].str() << "\n";
+                    }
+                    else
+                    {
+                        dependencies << "- " << v.name << "=" << v.version;
+                        if (!no_build)
+                            dependencies << "=" << v.build_string;
+                        dependencies << "\n";
+                    }
+
+                    auto& c = make_channel(v.url);
+
+                    // remove platform
+                    auto u = c.base_url();
+                    channels.insert(rsplit(u, "/", 1)[0]);
                 }
 
-                auto& c = make_channel(v.url);
+                for (auto& c : channels)
+                    std::cout << "- " << c << "\n";
+                std::cout << "dependencies:\n" << dependencies.str() << std::endl;
+                std::cout.flush();
+            }
+        });
 
-                // remove platform
-                auto u = c.base_url();
-                channels.insert(rsplit(u, "/", 1)[0]);
+    list_subcom->callback(
+        []()
+        {
+            auto& ctx = Context::instance();
+            auto& config = Configuration::instance();
+            config.load();
+
+            EnvironmentsManager env_manager;
+
+            if (ctx.json)
+            {
+                nlohmann::json res;
+                auto pfxs = env_manager.list_all_known_prefixes();
+                std::vector<std::string> envs(pfxs.begin(), pfxs.end());
+                res["envs"] = envs;
+                std::cout << res.dump(4) << std::endl;
+                return;
             }
 
-            for (auto& c : channels)
-                std::cout << "- " << c << "\n";
-            std::cout << "dependencies:\n" << dependencies.str() << std::endl;
-            std::cout.flush();
-        }
-    });
+            // format and print table
+            printers::Table t({ "Name", "Active", "Path" });
+            t.set_alignment({ printers::alignment::left,
+                              printers::alignment::left,
+                              printers::alignment::left });
+            t.set_padding({ 2, 2, 2 });
 
-    list_subcom->callback([]() {
-        auto& ctx = Context::instance();
-        auto& config = Configuration::instance();
-        config.load();
-
-        EnvironmentsManager env_manager;
-
-        if (ctx.json)
-        {
-            nlohmann::json res;
-            auto pfxs = env_manager.list_all_known_prefixes();
-            std::vector<std::string> envs(pfxs.begin(), pfxs.end());
-            res["envs"] = envs;
-            std::cout << res.dump(4) << std::endl;
-            return;
-        }
-
-        // format and print table
-        printers::Table t({ "Name", "Active", "Path" });
-        t.set_alignment(
-            { printers::alignment::left, printers::alignment::left, printers::alignment::left });
-        t.set_padding({ 2, 2, 2 });
-
-        for (auto& env : env_manager.list_all_known_prefixes())
-        {
-            bool is_active = (env == ctx.target_prefix);
-            t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
-        }
-        t.print(std::cout);
-    });
+            for (auto& env : env_manager.list_all_known_prefixes())
+            {
+                bool is_active = (env == ctx.target_prefix);
+                t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
+            }
+            t.print(std::cout);
+        });
 }

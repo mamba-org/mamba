@@ -233,10 +233,11 @@ namespace mamba
         fs::path out_file_abs = fs::absolute(out_file);
         if (ends_with(out_file.string(), ".tar.bz2"))
         {
-            create_archive(
-                directory, out_file_abs, bzip2, compression_level, [](const std::string&) {
-                    return false;
-                });
+            create_archive(directory,
+                           out_file_abs,
+                           bzip2,
+                           compression_level,
+                           [](const std::string&) { return false; });
         }
         else if (ends_with(out_file.string(), ".conda"))
         {

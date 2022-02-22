@@ -104,7 +104,8 @@ namespace mamba
             return;
         }
 
-        auto extract_kv = [&spec_str](const std::string& kv_string, auto& map) {
+        auto extract_kv = [&spec_str](const std::string& kv_string, auto& map)
+        {
             static std::regex kv_re("([a-zA-Z0-9_-]+?)=([\"\']?)([^\'\"]*?)(\\2)(?:[\'\", ]|$)");
             std::cmatch kv_match;
             const char* text_iter = kv_string.c_str();

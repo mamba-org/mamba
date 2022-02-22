@@ -50,9 +50,9 @@ PYBIND11_MODULE(bindings, m)
     py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())
         .def("__str__", [](fs::path& self) -> std::string { return self.string(); })
-        .def("__repr__", [](fs::path& self) -> std::string {
-            return std::string("fs::path[") + std::string(self) + "]";
-        });
+        .def("__repr__",
+             [](fs::path& self) -> std::string
+             { return std::string("fs::path[") + std::string(self) + "]"; });
     py::implicitly_convertible<std::string, fs::path>();
 
     py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::path>());
@@ -132,7 +132,8 @@ PYBIND11_MODULE(bindings, m)
         .def("find",
              [](const Query& q,
                 const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string {
+                const query::RESULT_FORMAT format) -> std::string
+             {
                  std::stringstream res_stream;
                  switch (format)
                  {
@@ -151,7 +152,8 @@ PYBIND11_MODULE(bindings, m)
         .def("whoneeds",
              [](const Query& q,
                 const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string {
+                const query::RESULT_FORMAT format) -> std::string
+             {
                  // QueryResult res = q.whoneeds(query, tree);
                  std::stringstream res_stream;
                  query_result res = q.whoneeds(query, (format == query::TREE));
@@ -173,7 +175,8 @@ PYBIND11_MODULE(bindings, m)
         .def("depends",
              [](const Query& q,
                 const std::string& query,
-                const query::RESULT_FORMAT format) -> std::string {
+                const query::RESULT_FORMAT format) -> std::string
+             {
                  query_result res = q.depends(query, (format == query::TREE));
                  std::stringstream res_stream;
                  switch (format)
@@ -296,7 +299,8 @@ PYBIND11_MODULE(bindings, m)
     m.def("generate_ed25519_keypair", &validate::generate_ed25519_keypair_hex);
     m.def(
         "sign",
-        [](const std::string& data, const std::string& sk) {
+        [](const std::string& data, const std::string& sk)
+        {
             std::string signature;
             if (!validate::sign(data, sk, signature))
                 throw std::runtime_error("Signing failed");
@@ -310,7 +314,8 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("scheme", &validate::Key::scheme)
         .def_readwrite("keyval", &validate::Key::keyval)
         .def_property_readonly("json_str",
-                               [](const validate::Key& key) {
+                               [](const validate::Key& key)
+                               {
                                    nlohmann::json j;
                                    validate::to_json(j, key);
                                    return j.dump();
@@ -368,20 +373,18 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<const std::string&>(), py::arg("json_str"))
         .def(
             "update",
-            [](validate::v06::RootImpl& role, const std::string& json_str) {
-                return role.update(nlohmann::json::parse(json_str));
-            },
+            [](validate::v06::RootImpl& role, const std::string& json_str)
+            { return role.update(nlohmann::json::parse(json_str)); },
             py::arg("json_str"))
         .def(
             "create_key_mgr",
-            [](validate::v06::RootImpl& role, const std::string& json_str) {
-                return role.create_key_mgr(nlohmann::json::parse(json_str));
-            },
+            [](validate::v06::RootImpl& role, const std::string& json_str)
+            { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
             py::arg("json_str"));
 
     py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel")
-        .def(py::init(
-            [](const std::string& value) { return const_cast<Channel*>(&make_channel(value)); }))
+        .def(py::init([](const std::string& value)
+                      { return const_cast<Channel*>(&make_channel(value)); }))
         .def_property_readonly("scheme", &Channel::scheme)
         .def_property_readonly("location", &Channel::location)
         .def_property_readonly("name", &Channel::name)
@@ -396,33 +399,34 @@ PYBIND11_MODULE(bindings, m)
              &Channel::platform_url,
              py::arg("platform"),
              py::arg("with_credentials") = true)
-        .def("__repr__", [](const Channel& c) {
-            auto s = c.name();
-            s += "[";
-            bool first = true;
-            for (const auto& platform : c.platforms())
-            {
-                if (!first)
-                    s += ",";
-                s += platform;
-                first = false;
-            }
-            s += "]";
-            return s;
-        });
+        .def("__repr__",
+             [](const Channel& c)
+             {
+                 auto s = c.name();
+                 s += "[";
+                 bool first = true;
+                 for (const auto& platform : c.platforms())
+                 {
+                     if (!first)
+                         s += ",";
+                     s += platform;
+                     first = false;
+                 }
+                 s += "]";
+                 return s;
+             });
 
     m.def("clean", &clean);
 
     py::class_<Configuration, std::unique_ptr<Configuration, py::nodelete>>(m, "Configuration")
-        .def(py::init([]() {
-            return std::unique_ptr<Configuration, py::nodelete>(&Configuration::instance());
-        }))
+        .def(py::init(
+            []()
+            { return std::unique_ptr<Configuration, py::nodelete>(&Configuration::instance()); }))
         .def_property(
             "show_banner",
             []() -> bool { return Configuration::instance().at("show_banner").value<bool>(); },
-            [](py::object&, bool val) {
-                Configuration::instance().at("show_banner").set_value(val);
-            });
+            [](py::object&, bool val)
+            { Configuration::instance().at("show_banner").set_value(val); });
 
     m.def("get_channels", &get_channels);
 

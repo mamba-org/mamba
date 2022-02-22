@@ -48,15 +48,18 @@ set_constructor_command(CLI::App* subcom)
 {
     init_constructor_parser(subcom);
 
-    subcom->callback([&]() {
-        auto& c = Configuration::instance();
+    subcom->callback(
+        [&]()
+        {
+            auto& c = Configuration::instance();
 
-        auto& prefix = c.at("constructor_prefix").compute().value<fs::path>();
-        auto& extract_conda_pkgs = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
-        auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
+            auto& prefix = c.at("constructor_prefix").compute().value<fs::path>();
+            auto& extract_conda_pkgs
+                = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
+            auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
 
-        construct(prefix, extract_conda_pkgs, extract_tarball);
-    });
+            construct(prefix, extract_conda_pkgs, extract_tarball);
+        });
 }
 
 

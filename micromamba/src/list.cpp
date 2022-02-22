@@ -32,10 +32,12 @@ set_list_command(CLI::App* subcom)
 {
     init_list_parser(subcom);
 
-    subcom->callback([]() {
-        auto& config = Configuration::instance();
-        auto& regex = config.at("list_regex").compute().value<std::string>();
+    subcom->callback(
+        []()
+        {
+            auto& config = Configuration::instance();
+            auto& regex = config.at("list_regex").compute().value<std::string>();
 
-        list(regex);
-    });
+            list(regex);
+        });
 }

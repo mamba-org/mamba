@@ -24,7 +24,9 @@ init_shell_parser(CLI::App* subcom)
 
     auto& shell_type = config.insert(
         Configurable("shell_type", std::string("")).group("cli").description("A shell type"));
-    subcom->add_option("-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
+    subcom
+        ->add_option(
+            "-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
         ->check(CLI::IsMember(std::set<std::string>(
             { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish" })));
 
@@ -71,13 +73,15 @@ set_shell_command(CLI::App* subcom)
 {
     init_shell_parser(subcom);
 
-    subcom->callback([&]() {
-        auto& config = Configuration::instance();
+    subcom->callback(
+        [&]()
+        {
+            auto& config = Configuration::instance();
 
-        auto& prefix = config.at("shell_prefix").compute().value<std::string>();
-        auto& action = config.at("shell_action").compute().value<std::string>();
-        auto& shell = config.at("shell_type").compute().value<std::string>();
-        auto& stack = config.at("shell_stack").compute().value<bool>();
-        mamba::shell(action, shell, prefix, stack);
-    });
+            auto& prefix = config.at("shell_prefix").compute().value<std::string>();
+            auto& action = config.at("shell_action").compute().value<std::string>();
+            auto& shell = config.at("shell_type").compute().value<std::string>();
+            auto& stack = config.at("shell_stack").compute().value<bool>();
+            mamba::shell(action, shell, prefix, stack);
+        });
 }

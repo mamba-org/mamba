@@ -22,7 +22,8 @@ set_remove_command(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& specs = config.at("specs");
-    subcom->add_option("specs", specs.get_cli_config<string_list>(), "Specs to remove from the environment");
+    subcom->add_option(
+        "specs", specs.get_cli_config<string_list>(), "Specs to remove from the environment");
 
     static bool remove_all = false, force = false, prune = true;
     subcom->add_flag("-a,--all", remove_all, "Remove all packages in the environment");
@@ -32,14 +33,16 @@ set_remove_command(CLI::App* subcom)
         "Force removal of package (note: consistency of environment is not guaranteed!");
     subcom->add_flag("--prune,!--no-prune", prune, "Prune dependencies (default)");
 
-    subcom->callback([&]() {
-        int flags = 0;
-        if (prune)
-            flags |= MAMBA_REMOVE_PRUNE;
-        if (force)
-            flags |= MAMBA_REMOVE_FORCE;
-        if (remove_all)
-            flags |= MAMBA_REMOVE_ALL;
-        remove(flags);
-    });
+    subcom->callback(
+        [&]()
+        {
+            int flags = 0;
+            if (prune)
+                flags |= MAMBA_REMOVE_PRUNE;
+            if (force)
+                flags |= MAMBA_REMOVE_FORCE;
+            if (remove_all)
+                flags |= MAMBA_REMOVE_ALL;
+            remove(flags);
+        });
 }

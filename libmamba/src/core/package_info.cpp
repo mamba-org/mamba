@@ -78,17 +78,15 @@ namespace mamba
     PackageInfo::compare_fun PackageInfo::less(const std::string& member)
     {
         auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs) {
-            return getter(lhs) < getter(rhs);
-        };
+        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
+        { return getter(lhs) < getter(rhs); };
     }
 
     PackageInfo::compare_fun PackageInfo::equal(const std::string& member)
     {
         auto getter = get_field_getter(member);
-        return [getter](const PackageInfo& lhs, const PackageInfo& rhs) {
-            return getter(lhs) == getter(rhs);
-        };
+        return [getter](const PackageInfo& lhs, const PackageInfo& rhs)
+        { return getter(lhs) == getter(rhs); };
     }
 
     PackageInfo::PackageInfo(Solvable* s)

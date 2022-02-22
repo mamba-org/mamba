@@ -33,7 +33,6 @@ namespace mamba
         operator Pool*();
 
     private:
-
         std::pair<spdlog::logger*, std::string> m_debug_logger;
         Pool* m_pool;
     };

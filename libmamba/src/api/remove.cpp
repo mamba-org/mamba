@@ -82,7 +82,8 @@ namespace mamba
             const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });
 
-            auto execute_transaction = [&](MTransaction& transaction) {
+            auto execute_transaction = [&](MTransaction& transaction)
+            {
                 if (ctx.json)
                     transaction.log_json();
 

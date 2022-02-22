@@ -43,18 +43,20 @@ main(int argc, char** argv)
     CLI::App* lock_com = app.add_subcommand("lock", "Lock a path");
     lock_com->add_option("path", path, "Path to lock");
     lock_com->add_option("-t,--timeout", timeout, "Timeout in seconds");
-    lock_com->callback([&]() {
-        mamba::Context::instance().lock_timeout = timeout;
-        try
+    lock_com->callback(
+        [&]()
         {
-            mamba::LockFile lock(path);
-            std::cout << 1;
-        }
-        catch (...)
-        {
-            std::cout << 0;
-        }
-    });
+            mamba::Context::instance().lock_timeout = timeout;
+            try
+            {
+                mamba::LockFile lock(path);
+                std::cout << 1;
+            }
+            catch (...)
+            {
+                std::cout << 0;
+            }
+        });
 
     CLI::App* is_locked_com = app.add_subcommand("is-locked", "Check if a path is locked");
     is_locked_com->add_option("path", path, "Path to check");

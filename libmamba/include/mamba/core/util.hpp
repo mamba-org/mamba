@@ -91,14 +91,14 @@ namespace mamba
         return T{ seed_seq };
     }
 
-    template<typename T = std::mt19937>
+    template <typename T = std::mt19937>
     inline auto local_random_generator() -> T&
     {
         thread_local auto rng = random_generator<T>();
         return rng;
     }
 
-    template<typename T = int, typename G = std::mt19937>
+    template <typename T = int, typename G = std::mt19937>
     inline T random_int(T min, T max, G& generator = local_random_generator())
     {
         return std::uniform_int_distribution<T>{ min, max }(generator);

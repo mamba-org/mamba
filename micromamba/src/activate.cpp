@@ -24,43 +24,46 @@ set_activate_command(CLI::App* subcom)
         stack,
         "Activate the specified environment without first deactivating the current one");
 
-    subcom->callback([&]() {
-        std::string guessed_shell = guess_shell();
-        std::string shell_hook_command = "", shell_hook = "";
-
-        if (guessed_shell == "powershell")
-            shell_hook_command
-                = "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
-        else
-            shell_hook_command = "eval \"$(micromamba shell hook --shell=" + guessed_shell + ")\"";
-
-        if (guessed_shell != "cmd.exe")
+    subcom->callback(
+        [&]()
         {
-            shell_hook = unindent((R"(
+            std::string guessed_shell = guess_shell();
+            std::string shell_hook_command = "", shell_hook = "";
+
+            if (guessed_shell == "powershell")
+                shell_hook_command
+                    = "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
+            else
+                shell_hook_command
+                    = "eval \"$(micromamba shell hook --shell=" + guessed_shell + ")\"";
+
+            if (guessed_shell != "cmd.exe")
+            {
+                shell_hook = unindent((R"(
 
                 To initialize the current )"
-                                   + guessed_shell + R"( shell, run:
+                                       + guessed_shell + R"( shell, run:
                     $ )" + shell_hook_command
-                                   + R"(
+                                       + R"(
                 and then activate or deactivate with:
                     $ micromamba activate
                 )")
-                                      .c_str());
-        }
+                                          .c_str());
+            }
 
-        std::string message = unindent((R"(
+            std::string message = unindent((R"(
             'micromamba' is running as a subprocess and can't modify the parent shell.
             Thus you must initialize your shell before using activate and deactivate.
             )" + shell_hook + R"(
             To automatically initialize all future ()"
-                                        + guessed_shell + R"() shells, run:
+                                            + guessed_shell + R"() shells, run:
                 $ micromamba shell init --shell=)"
-                                        + guessed_shell + R"( --prefix=~/micromamba
+                                            + guessed_shell + R"( --prefix=~/micromamba
 
             Supported shells are {bash, zsh, xonsh, cmd.exe, powershell, fish}.)")
-                                           .c_str());
+                                               .c_str());
 
-        std::cout << "\n" << message << "\n" << std::endl;
-        throw std::runtime_error("Shell not initialized");
-    });
+            std::cout << "\n" << message << "\n" << std::endl;
+            throw std::runtime_error("Shell not initialized");
+        });
 }

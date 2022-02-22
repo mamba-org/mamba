@@ -8,7 +8,8 @@ namespace mamba
 {
     TEST(local_random_generator, one_rng_per_thread_and_type)
     {
-        auto same_thread_checks = []{
+        auto same_thread_checks = []
+        {
             auto& a = local_random_generator();
             auto& b = local_random_generator();
             EXPECT_EQ(&a, &b);
@@ -24,9 +25,7 @@ namespace mamba
         void* pointer_to_this_thread_rng = same_thread_checks();
 
         void* pointer_to_another_thread_rng = nullptr;
-        std::thread another_thread{[&]{
-            pointer_to_another_thread_rng = same_thread_checks();
-        }};
+        std::thread another_thread{ [&] { pointer_to_another_thread_rng = same_thread_checks(); } };
         another_thread.join();
 
         EXPECT_NE(pointer_to_this_thread_rng, pointer_to_another_thread_rng);
@@ -37,7 +36,7 @@ namespace mamba
         constexpr int arbitrary_min = -20;
         constexpr int arbitrary_max = 20;
         constexpr int attempts = 2000;
-        for(int i = 0; i < attempts; ++i)
+        for (int i = 0; i < attempts; ++i)
         {
             const int value = random_int(arbitrary_min, arbitrary_max);
             EXPECT_GE(value, arbitrary_min);

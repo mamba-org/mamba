@@ -267,9 +267,9 @@ namespace mamba
         if (old_conda_shlvl == 0)
         {
             bool no_condabin
-                = std::none_of(path_list.begin(), path_list.end(), [](const std::string& s) {
-                      return ends_with(s, "condabin");
-                  });
+                = std::none_of(path_list.begin(),
+                               path_list.end(),
+                               [](const std::string& s) { return ends_with(s, "condabin"); });
             if (no_condabin)
             {
                 auto condabin_dir = Context::instance().root_prefix / "condabin";

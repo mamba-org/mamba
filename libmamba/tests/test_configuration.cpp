@@ -29,9 +29,7 @@ namespace mamba
         public:
             Configuration()
             {
-                mamba::Configuration::instance()
-                    .at("show_banner")
-                    .set_default_value(false);
+                mamba::Configuration::instance().at("show_banner").set_default_value(false);
             }
 
         protected:
@@ -46,9 +44,7 @@ namespace mamba
                 mamba::Configuration::instance()
                     .at("rc_files")
                     .set_value<std::vector<fs::path>>({ fs::path(unique_location) });
-                mamba::Configuration::instance()
-                    .at("show_banner")
-                    .set_default_value(false);
+                mamba::Configuration::instance().at("show_banner").set_default_value(false);
                 mamba::Configuration::instance().load();
             }
 
@@ -70,12 +66,8 @@ namespace mamba
                 }
 
                 mamba::Configuration::instance().reset_configurables();
-                mamba::Configuration::instance()
-                    .at("rc_files")
-                    .set_value(sources);
-                mamba::Configuration::instance()
-                    .at("show_banner")
-                    .set_default_value(false);
+                mamba::Configuration::instance().at("rc_files").set_value(sources);
+                mamba::Configuration::instance().at("show_banner").set_default_value(false);
                 mamba::Configuration::instance().load();
             }
 

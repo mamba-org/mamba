@@ -147,7 +147,8 @@ namespace mamba
         m_pool.get().create_whatprovides();
     }
 
-    auto print_solvable = [](auto& pkg) {
+    auto print_solvable = [](auto& pkg)
+    {
         std::string title = pkg->name + " " + pkg->version + " " + pkg->build_string;
         std::cout << title << std::endl;
         std::cout << std::string(title.size(), '-') << std::endl;
@@ -210,13 +211,16 @@ namespace mamba
         query_result::dependency_graph g;
 
         Pool* pool = m_pool.get();
-        std::sort(solvables.elements, solvables.elements + solvables.count, [pool](Id a, Id b) {
-            Solvable* sa;
-            Solvable* sb;
-            sa = pool_id2solvable(pool, a);
-            sb = pool_id2solvable(pool, b);
-            return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-        });
+        std::sort(solvables.elements,
+                  solvables.elements + solvables.count,
+                  [pool](Id a, Id b)
+                  {
+                      Solvable* sa;
+                      Solvable* sb;
+                      sa = pool_id2solvable(pool, a);
+                      sb = pool_id2solvable(pool, b);
+                      return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+                  });
 
         for (int i = 0; i < solvables.count; i++)
         {
@@ -292,7 +296,8 @@ namespace mamba
 
         int depth = tree ? -1 : 1;
 
-        auto find_latest = [&](Queue& solvables) -> Solvable* {
+        auto find_latest = [&](Queue& solvables) -> Solvable*
+        {
             Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
             for (int i = 1; i < solvables.count; ++i)
             {
@@ -357,10 +362,14 @@ namespace mamba
         if (!rhs.m_ordered_pkg_list.empty())
         {
             auto tmp(rhs.m_ordered_pkg_list);
-            std::for_each(tmp.begin(), tmp.end(), [offset_lbd](auto& entry) {
-                std::transform(
-                    entry.second.begin(), entry.second.end(), entry.second.begin(), offset_lbd);
-            });
+            std::for_each(tmp.begin(),
+                          tmp.end(),
+                          [offset_lbd](auto& entry) {
+                              std::transform(entry.second.begin(),
+                                             entry.second.end(),
+                                             entry.second.begin(),
+                                             offset_lbd);
+                          });
             swap(m_ordered_pkg_list, tmp);
         }
     }
@@ -473,7 +482,8 @@ namespace mamba
             }
         }
 
-        auto format_row = [&](auto& pkg) {
+        auto format_row = [&](auto& pkg)
+        {
             std::vector<mamba::printers::FormattedString> row;
             for (std::size_t i = 0; i < cmds.size(); ++i)
             {

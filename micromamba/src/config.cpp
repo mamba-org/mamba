@@ -101,7 +101,8 @@ init_config_describe_options(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& specs = config.at("specs");
-    subcom->add_option("configs", specs.get_cli_config<std::vector<std::string>>(), "Configuration keys");
+    subcom->add_option(
+        "configs", specs.get_cli_config<std::vector<std::string>>(), "Configuration keys");
 
     auto& show_long_descriptions = config.at("show_config_long_descriptions");
     subcom->add_flag("-l,--long-descriptions",
@@ -121,14 +122,16 @@ init_config_list_options(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& show_sources = config.at("show_config_sources");
-    subcom->add_flag("-s,--sources", show_sources.get_cli_config<bool>(), show_sources.description());
+    subcom->add_flag(
+        "-s,--sources", show_sources.get_cli_config<bool>(), show_sources.description());
 
     auto& show_all = config.at("show_all_rc_configs");
     subcom->add_flag("-a,--all", show_all.get_cli_config<bool>(), show_all.description());
 
     auto& show_descriptions = config.at("show_config_descriptions");
-    subcom->add_flag(
-        "-d,--descriptions", show_descriptions.get_cli_config<bool>(), show_descriptions.description());
+    subcom->add_flag("-d,--descriptions",
+                     show_descriptions.get_cli_config<bool>(),
+                     show_descriptions.description());
 }
 
 void
@@ -136,10 +139,12 @@ set_config_list_command(CLI::App* subcom)
 {
     init_config_list_options(subcom);
 
-    subcom->callback([&]() {
-        config_list();
-        return 0;
-    });
+    subcom->callback(
+        [&]()
+        {
+            config_list();
+            return 0;
+        });
 }
 
 void
@@ -147,10 +152,12 @@ set_config_sources_command(CLI::App* subcom)
 {
     init_config_options(subcom);
 
-    subcom->callback([&]() {
-        config_sources();
-        return 0;
-    });
+    subcom->callback(
+        [&]()
+        {
+            config_sources();
+            return 0;
+        });
 }
 
 void
@@ -158,10 +165,12 @@ set_config_describe_command(CLI::App* subcom)
 {
     init_config_describe_options(subcom);
 
-    subcom->callback([&]() {
-        config_describe();
-        return 0;
-    });
+    subcom->callback(
+        [&]()
+        {
+            config_describe();
+            return 0;
+        });
 }
 
 void
@@ -173,15 +182,16 @@ set_config_path_command(CLI::App* subcom)
                                           .group("cli")
                                           .description("Set configuration on system's rc file"),
                                       true);
-    auto* system_flag
-        = subcom->add_flag("--system", system_path.get_cli_config<bool>(), system_path.description());
+    auto* system_flag = subcom->add_flag(
+        "--system", system_path.get_cli_config<bool>(), system_path.description());
 
     auto& env_path = config.insert(Configurable("config_set_env_path", false)
                                        .group("cli")
                                        .description("Set configuration on env's rc file"),
                                    true);
-    auto* env_flag = subcom->add_flag("--env", env_path.get_cli_config<bool>(), env_path.description())
-                         ->excludes(system_flag);
+    auto* env_flag
+        = subcom->add_flag("--env", env_path.get_cli_config<bool>(), env_path.description())
+              ->excludes(system_flag);
 
     auto& file_path = config.insert(Configurable("config_set_file_path", fs::path())
                                         .group("cli")
@@ -206,12 +216,14 @@ set_config_sequence_command(CLI::App* subcom)
 
     using config_set_sequence_type = std::vector<std::pair<std::string, std::string>>;
     auto& config = Configuration::instance();
-    auto& specs = config.insert(Configurable("config_set_sequence_spec",
-                                             config_set_sequence_type({}))
-                                    .group("Output, Prompt and Flow Control")
-                                    .description("Add value to a configurable sequence"),
-                                true);
-    subcom->add_option("specs", specs.get_cli_config<config_set_sequence_type>(), specs.description())->required();
+    auto& specs
+        = config.insert(Configurable("config_set_sequence_spec", config_set_sequence_type({}))
+                            .group("Output, Prompt and Flow Control")
+                            .description("Add value to a configurable sequence"),
+                        true);
+    subcom
+        ->add_option("specs", specs.get_cli_config<config_set_sequence_type>(), specs.description())
+        ->required();
 }
 
 void
@@ -312,45 +324,49 @@ set_config_remove_key_command(CLI::App* subcom)
     auto& remove_key = config.insert(Configurable("remove_key", std::string(""))
                                          .group("Output, Prompt and Flow Control")
                                          .description("Remove a configuration key and its values"));
-    subcom->add_option("remove_key", remove_key.get_cli_config<std::string>(), remove_key.description());
+    subcom->add_option(
+        "remove_key", remove_key.get_cli_config<std::string>(), remove_key.description());
 
-    subcom->callback([&]() {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        fs::path rc_source = compute_config_path(false);
-
-        bool key_removed = false;
-        // convert rc file to YAML::Node
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source);
-
-        // look for key to remove in file
-        for (auto v : rc_YAML)
+    subcom->callback(
+        [&]()
         {
-            const std::string& rk = remove_key.value<std::string>();
-            if (v.first.as<std::string>() == rk)
+            config.at("use_target_prefix_fallback").set_value(true);
+            config.at("show_banner").set_value(false);
+            config.at("target_prefix_checks")
+                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                           | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            config.load();
+
+            fs::path rc_source = compute_config_path(false);
+
+            bool key_removed = false;
+            // convert rc file to YAML::Node
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+
+            // look for key to remove in file
+            for (auto v : rc_YAML)
             {
-                rc_YAML.remove(rk);
-                key_removed = true;
-                break;
+                const std::string& rk = remove_key.value<std::string>();
+                if (v.first.as<std::string>() == rk)
+                {
+                    rc_YAML.remove(rk);
+                    key_removed = true;
+                    break;
+                }
             }
-        }
 
-        if (!key_removed)
-        {
-            std::cout << "Key is not present in file" << std::endl;
-        }
+            if (!key_removed)
+            {
+                std::cout << "Key is not present in file" << std::endl;
+            }
 
-        // if the rc file is being modified, it's necessary to rewrite it
-        std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
-        rc_file << rc_YAML << std::endl;
+            // if the rc file is being modified, it's necessary to rewrite it
+            std::ofstream rc_file
+                = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
+            rc_file << rc_YAML << std::endl;
 
-        config.operation_teardown();
-    });
+            config.operation_teardown();
+        });
 }
 
 void
@@ -370,65 +386,69 @@ set_config_remove_command(CLI::App* subcom)
     subcom->add_option(
         "remove", remove_vec_map.get_cli_config<string_list>(), remove_vec_map.description());
 
-    subcom->callback([&]() {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        fs::path rc_source = compute_config_path(false);
-        bool key_removed = false;
-
-        const string_list& rvm = remove_vec_map.value<string_list>();
-        std::string remove_vec_key = rvm.front();
-        std::string remove_vec_value = rvm.at(1);
-
-        if (rvm.size() > 2)
+    subcom->callback(
+        [&]()
         {
-            std::cout << "Only one value can be removed at a time" << std::endl;
-            return;
-        }
+            config.at("use_target_prefix_fallback").set_value(true);
+            config.at("show_banner").set_value(false);
+            config.at("target_prefix_checks")
+                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                           | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            config.load();
 
-        // convert rc file to YAML::Node
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            fs::path rc_source = compute_config_path(false);
+            bool key_removed = false;
 
-        // look for key to remove in file
-        for (auto v : rc_YAML)
-        {
-            if (v.first.as<std::string>() == remove_vec_key)
+            const string_list& rvm = remove_vec_map.value<string_list>();
+            std::string remove_vec_key = rvm.front();
+            std::string remove_vec_value = rvm.at(1);
+
+            if (rvm.size() > 2)
             {
-                for (std::size_t i = 0; i < v.second.size(); ++i)
-                {
-                    if (v.second.size() == 1 && v.second[i].as<std::string>() == remove_vec_value)
-                    {
-                        rc_YAML.remove(remove_vec_key);
-                        key_removed = true;
-                        break;
-                    }
-                    else if (v.second[i].as<std::string>() == remove_vec_value)
-                    {
-                        rc_YAML[remove_vec_key].remove(i);
-                        key_removed = true;
-                        break;
-                    }
-                }
-                break;
+                std::cout << "Only one value can be removed at a time" << std::endl;
+                return;
             }
-        }
 
-        if (!key_removed)
-        {
-            std::cout << "Key is not present in file" << std::endl;
-        }
+            // convert rc file to YAML::Node
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
 
-        // if the rc file is being modified, it's necessary to rewrite it
-        std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
-        rc_file << rc_YAML << std::endl;
+            // look for key to remove in file
+            for (auto v : rc_YAML)
+            {
+                if (v.first.as<std::string>() == remove_vec_key)
+                {
+                    for (std::size_t i = 0; i < v.second.size(); ++i)
+                    {
+                        if (v.second.size() == 1
+                            && v.second[i].as<std::string>() == remove_vec_value)
+                        {
+                            rc_YAML.remove(remove_vec_key);
+                            key_removed = true;
+                            break;
+                        }
+                        else if (v.second[i].as<std::string>() == remove_vec_value)
+                        {
+                            rc_YAML[remove_vec_key].remove(i);
+                            key_removed = true;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
 
-        config.operation_teardown();
-    });
+            if (!key_removed)
+            {
+                std::cout << "Key is not present in file" << std::endl;
+            }
+
+            // if the rc file is being modified, it's necessary to rewrite it
+            std::ofstream rc_file
+                = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
+            rc_file << rc_YAML << std::endl;
+
+            config.operation_teardown();
+        });
 }
 
 void
@@ -442,37 +462,41 @@ set_config_set_command(CLI::App* subcom)
     auto& set_value = config.insert(Configurable("set_value", std::vector<std::string>({}))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Set configuration value on rc file"));
-    subcom->add_option("set_value", set_value.get_cli_config<string_list>(), set_value.description());
+    subcom->add_option(
+        "set_value", set_value.get_cli_config<string_list>(), set_value.description());
 
 
-    subcom->callback([&]() {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        fs::path rc_source = compute_config_path(true);
-
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source);
-
-        const string_list& sv = set_value.value<string_list>();
-        if (is_valid_rc_key(sv.at(0)) && sv.size() < 3)
+    subcom->callback(
+        [&]()
         {
-            rc_YAML[sv.at(0)] = sv.at(1);
-        }
-        else
-        {
-            std::cout << "Key is invalid or more than one key was received" << std::endl;
-        }
+            config.at("use_target_prefix_fallback").set_value(true);
+            config.at("show_banner").set_value(false);
+            config.at("target_prefix_checks")
+                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                           | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            config.load();
 
-        // if the rc file is being modified, it's necessary to rewrite it
-        std::ofstream rc_file = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
-        rc_file << rc_YAML << std::endl;
+            fs::path rc_source = compute_config_path(true);
 
-        config.operation_teardown();
-    });
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+
+            const string_list& sv = set_value.value<string_list>();
+            if (is_valid_rc_key(sv.at(0)) && sv.size() < 3)
+            {
+                rc_YAML[sv.at(0)] = sv.at(1);
+            }
+            else
+            {
+                std::cout << "Key is invalid or more than one key was received" << std::endl;
+            }
+
+            // if the rc file is being modified, it's necessary to rewrite it
+            std::ofstream rc_file
+                = open_ofstream(rc_source, std::ofstream::in | std::ofstream::trunc);
+            rc_file << rc_YAML << std::endl;
+
+            config.operation_teardown();
+        });
 }
 
 void
@@ -486,41 +510,44 @@ set_config_get_command(CLI::App* subcom)
     auto& get_value = config.insert(Configurable("get_value", std::string(""))
                                         .group("Output, Prompt and Flow Control")
                                         .description("Display configuration value from rc file"));
-    subcom->add_option("get_value", get_value.get_cli_config<std::string>(), get_value.description());
+    subcom->add_option(
+        "get_value", get_value.get_cli_config<std::string>(), get_value.description());
 
-    subcom->callback([&]() {
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("show_banner").set_value(false);
-        config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
-        config.load();
-
-        fs::path rc_source = compute_config_path(false);
-
-        bool value_found = false;
-
-        YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
-
-        for (auto v : rc_YAML)
+    subcom->callback(
+        [&]()
         {
-            if (v.first.as<std::string>() == get_value.value<std::string>())
+            config.at("use_target_prefix_fallback").set_value(true);
+            config.at("show_banner").set_value(false);
+            config.at("target_prefix_checks")
+                .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                           | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
+            config.load();
+
+            fs::path rc_source = compute_config_path(false);
+
+            bool value_found = false;
+
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
+
+            for (auto v : rc_YAML)
             {
-                YAML::Node aux_rc_YAML;
-                aux_rc_YAML[v.first] = v.second;
-                std::cout << aux_rc_YAML << std::endl;
-                value_found = true;
-                break;
+                if (v.first.as<std::string>() == get_value.value<std::string>())
+                {
+                    YAML::Node aux_rc_YAML;
+                    aux_rc_YAML[v.first] = v.second;
+                    std::cout << aux_rc_YAML << std::endl;
+                    value_found = true;
+                    break;
+                }
             }
-        }
 
-        if (!value_found)
-        {
-            std::cout << "Key is not present in file" << std::endl;
-        }
+            if (!value_found)
+            {
+                std::cout << "Key is not present in file" << std::endl;
+            }
 
-        config.operation_teardown();
-    });
+            config.operation_teardown();
+        });
 }
 
 void

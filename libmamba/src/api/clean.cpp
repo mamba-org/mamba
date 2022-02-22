@@ -30,8 +30,8 @@ namespace mamba
         bool clean_trash = options & MAMBA_CLEAN_TRASH;
         bool clean_force_pkgs_dirs = options & MAMBA_CLEAN_FORCE_PKGS_DIRS;
 
-        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks
-              || clean_trash || clean_force_pkgs_dirs))
+        if (!(clean_all || clean_index || clean_pkgs || clean_tarballs || clean_locks || clean_trash
+              || clean_force_pkgs_dirs))
         {
             Console::stream() << "Nothing to do." << std::endl;
             return;
@@ -144,13 +144,15 @@ namespace mamba
             }
         }
 
-        auto get_file_size = [](const auto& s) -> std::string {
+        auto get_file_size = [](const auto& s) -> std::string
+        {
             std::stringstream ss;
             to_human_readable_filesize(ss, s);
             return ss.str();
         };
 
-        auto collect_tarballs = [&]() {
+        auto collect_tarballs = [&]()
+        {
             std::vector<fs::path> res;
             std::size_t total_size = 0;
             std::vector<printers::FormattedString> header = { "Package file", "Size" };
@@ -176,9 +178,9 @@ namespace mamba
                         total_size += p.file_size();
                     }
                 }
-                std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
-                    return a[0].s < b[0].s;
-                });
+                std::sort(rows.begin(),
+                          rows.end(),
+                          [](const auto& a, const auto& b) { return a[0].s < b[0].s; });
                 t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
@@ -210,7 +212,8 @@ namespace mamba
             }
         }
 
-        auto get_folder_size = [](auto& p) {
+        auto get_folder_size = [](auto& p)
+        {
             std::size_t size = 0;
             for (auto& fp : fs::recursive_directory_iterator(p))
             {
@@ -222,7 +225,8 @@ namespace mamba
             return size;
         };
 
-        auto collect_package_folders = [&]() {
+        auto collect_package_folders = [&]()
+        {
             std::vector<fs::path> res;
             std::size_t total_size = 0;
             std::vector<printers::FormattedString> header = { "Package folder", "Size" };
@@ -252,9 +256,9 @@ namespace mamba
                         total_size += folder_size;
                     }
                 }
-                std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
-                    return a[0].s < b[0].s;
-                });
+                std::sort(rows.begin(),
+                          rows.end(),
+                          [](const auto& a, const auto& b) { return a[0].s < b[0].s; });
                 t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
@@ -295,7 +299,7 @@ namespace mamba
 
         if (clean_force_pkgs_dirs)
         {
-            for (auto* cache: caches.writable_caches())
+            for (auto* cache : caches.writable_caches())
             {
                 fs::remove_all(cache->path());
             }

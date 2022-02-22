@@ -27,11 +27,26 @@ namespace mamba
             storage_type m_storage;
 
             cli_config() = default;
-            cli_config(const T& value) : m_storage(value) {}
-            storage_type& storage() { return m_storage; }
-            bool has_value() const { return m_storage.has_value(); }
-            const T& value() const { return m_storage.value(); }
-            void reset() { m_storage.reset(); }
+            cli_config(const T& value)
+                : m_storage(value)
+            {
+            }
+            storage_type& storage()
+            {
+                return m_storage;
+            }
+            bool has_value() const
+            {
+                return m_storage.has_value();
+            }
+            const T& value() const
+            {
+                return m_storage.value();
+            }
+            void reset()
+            {
+                m_storage.reset();
+            }
         };
 
         template <>
@@ -41,9 +56,18 @@ namespace mamba
             storage_type m_storage;
 
             cli_config() = default;
-            cli_config(int value) : m_storage(value) {}
-            storage_type& storage() { return m_storage; }
-            bool has_value() const { return m_storage != 0; }
+            cli_config(int value)
+                : m_storage(value)
+            {
+            }
+            storage_type& storage()
+            {
+                return m_storage;
+            }
+            bool has_value() const
+            {
+                return m_storage != 0;
+            }
             bool value() const
             {
                 if (m_storage == 1)
@@ -52,9 +76,12 @@ namespace mamba
                     return false;
                 else
                     throw std::runtime_error(
-                    "Invalid boolean storage, should be {'-1': false, '0': undefined, '1': true}");
+                        "Invalid boolean storage, should be {'-1': false, '0': undefined, '1': true}");
             }
-            void reset() { m_storage = 0; }
+            void reset()
+            {
+                m_storage = 0;
+            }
         };
 
         /**********************

@@ -126,14 +126,14 @@ namespace mamba
 
             virtual void set_rc_yaml_value(const YAML::Node& value, const std::string& source) = 0;
             virtual void set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                            const std::vector<std::string>& sources) = 0;
+                                            const std::vector<std::string>& sources)
+                = 0;
             virtual void set_cli_yaml_value(const YAML::Node& value) = 0;
             virtual void set_cli_yaml_value(const std::string& value) = 0;
             virtual void set_yaml_value(const YAML::Node& value) = 0;
             virtual void set_yaml_value(const std::string& value) = 0;
 
-            virtual void compute(int options,
-                                 const ConfigurationLevel& level) = 0;
+            virtual void compute(int options, const ConfigurationLevel& level) = 0;
 
 
             virtual bool is_valid_serialization(const std::string& value) const = 0;
@@ -187,8 +187,7 @@ namespace mamba
             void set_yaml_value(const YAML::Node& value) override;
             void set_yaml_value(const std::string& value) override;
 
-            void compute(int options,
-                         const ConfigurationLevel& level) override;
+            void compute(int options, const ConfigurationLevel& level) override;
 
             bool is_valid_serialization(const std::string& value) const override;
             bool is_sequence() const override;
@@ -227,7 +226,6 @@ namespace mamba
     class Configurable
     {
     public:
-
         template <class T>
         Configurable(const std::string& name, T* context);
 
@@ -292,7 +290,7 @@ namespace mamba
 
         template <class T>
         Configurable&& set_rc_values(const std::map<std::string, T>& mapped_values,
-                                    const std::vector<std::string>& sources);
+                                     const std::vector<std::string>& sources);
 
         template <class T>
         Configurable&& set_value(const T& value);
@@ -309,7 +307,7 @@ namespace mamba
         template <class T>
         using value_hook_type = typename detail::ConfigurableImpl<T>::value_hook_type;
         template <class T>
-        using post_merge_hook_type =typename detail::ConfigurableImpl<T>::post_merge_hook_type;
+        using post_merge_hook_type = typename detail::ConfigurableImpl<T>::post_merge_hook_type;
         using post_context_hook_type = detail::ConfigurableImplBase::post_context_hook_type;
 
         template <class T>
@@ -335,14 +333,14 @@ namespace mamba
 
         Configurable&& set_rc_yaml_value(const YAML::Node& value, const std::string& source);
         Configurable&& set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                        const std::vector<std::string>& sources);
+                                          const std::vector<std::string>& sources);
         Configurable&& set_cli_yaml_value(const YAML::Node& value);
         Configurable&& set_cli_yaml_value(const std::string& value);
         Configurable&& set_yaml_value(const YAML::Node& value);
         Configurable&& set_yaml_value(const std::string& value);
 
         Configurable&& compute(int options = 0,
-                              const ConfigurationLevel& level = ConfigurationLevel::kDefault);
+                               const ConfigurationLevel& level = ConfigurationLevel::kDefault);
 
         bool is_valid_serialization(const std::string& value) const;
         bool is_sequence() const;
@@ -351,7 +349,6 @@ namespace mamba
         void dump_json(nlohmann::json& node, const std::string& name) const;
 
     private:
-
         template <class T>
         detail::ConfigurableImpl<T>& get_wrapped();
 
@@ -382,8 +379,7 @@ namespace mamba
         Configurable& at(const std::string& name);
 
         using grouped_config_type = std::pair<std::string, std::vector<Configurable*>>;
-        std::vector<grouped_config_type>
-        get_grouped_config();
+        std::vector<grouped_config_type> get_grouped_config();
 
         std::vector<fs::path> sources();
         std::vector<fs::path> valid_sources();
@@ -485,7 +481,8 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
+        void ConfigurableImpl<T>::set_rc_yaml_value(const YAML::Node& value,
+                                                    const std::string& source)
         {
             try
             {
@@ -499,8 +496,9 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                                     const std::vector<std::string>& sources)
+        void ConfigurableImpl<T>::set_rc_yaml_values(
+            const std::map<std::string, YAML::Node>& values,
+            const std::vector<std::string>& sources)
         {
             std::map<std::string, T> converted_values;
             for (auto& y : values)
@@ -601,8 +599,7 @@ namespace mamba
         }
 
         template <class T>
-        void ConfigurableImpl<T>::compute(int options,
-                                          const ConfigurationLevel& level)
+        void ConfigurableImpl<T>::compute(int options, const ConfigurationLevel& level)
         {
             bool hook_disabled = options & MAMBA_CONF_DISABLE_HOOK;
             bool force_compute = options & MAMBA_CONF_FORCE_COMPUTE;
@@ -612,7 +609,8 @@ namespace mamba
             else
                 LOG_TRACE << "Compute configurable '" << this->m_name << "'";
 
-            if (!force_compute && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
+            if (!force_compute
+                && (Configuration::instance().is_loading() && (m_compute_counter > 0)))
                 throw std::runtime_error("Multiple computation of '" + m_name
                                          + "' detected during loading sequence.");
 
@@ -648,8 +646,8 @@ namespace mamba
                         catch (const YAML::Exception& e)
                         {
                             LOG_ERROR << "Bad conversion of configurable '" << this->m_name
-                                      << "' from environment variable '" << env_var << "' with value '"
-                                      << env_var_value.value() << "'";
+                                      << "' from environment variable '" << env_var
+                                      << "' with value '" << env_var_value.value() << "'";
                             throw e;
                         }
                     }
@@ -761,7 +759,7 @@ namespace mamba
 
     template <class T>
     Configurable&& Configurable::set_rc_values(const std::map<std::string, T>& mapped_values,
-                                              const std::vector<std::string>& sources)
+                                               const std::vector<std::string>& sources)
     {
         get_wrapped<T>().set_rc_values(mapped_values, sources);
         return std::move(*this);

@@ -13,7 +13,8 @@ namespace mamba
         static const auto aux_file_path = fs::absolute("history_test/parse/conda-meta/aux_file");
 
         // Backup history file and restore it at the end of the test, whatever the output.
-        struct ScopedHistoryFileBackup {
+        struct ScopedHistoryFileBackup
+        {
             ScopedHistoryFileBackup()
             {
                 fs::remove(aux_file_path);
@@ -46,7 +47,8 @@ namespace mamba
 
         std::cout << check_buffer.str() << std::endl;
 
-        // Re-inject history into history file: history file should then have the same duplicate content as the buffer.
+        // Re-inject history into history file: history file should then have the same duplicate
+        // content as the buffer.
         for (const auto& req : user_reqs)
         {
             history_instance.add_entry(req);
@@ -61,18 +63,20 @@ namespace mamba
         history_file.close();
 
         ASSERT_EQ(updated_history_buffer.str(), check_buffer.str());
-
     }
 
 #ifndef _WIN32
     TEST(history, parse_segfault)
     {
         pid_t child = fork();
-        if (child) {
+        if (child)
+        {
             int wstatus;
             waitpid(child, &wstatus, 0);
             ASSERT_TRUE(WIFEXITED(wstatus));
-        } else {
+        }
+        else
+        {
             History history_instance("history_test/parse_segfault");
             history_instance.get_user_requests();
             exit(0);

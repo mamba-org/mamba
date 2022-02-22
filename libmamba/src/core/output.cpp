@@ -112,7 +112,8 @@ namespace mamba
             std::size_t total_length = std::accumulate(cell_sizes.begin(), cell_sizes.end(), 0);
             total_length = std::accumulate(m_padding.begin(), m_padding.end(), total_length);
 
-            auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row) {
+            auto print_row = [this, &cell_sizes, &out](const std::vector<FormattedString>& row)
+            {
                 for (size_t j = 0; j < row.size(); ++j)
                 {
                     if (row[j].flag != format::none)
@@ -490,10 +491,10 @@ namespace mamba
     }
 
     Logger::Logger(const std::string& name, const std::string& pattern, const std::string& eol)
-        : spdlog::logger(name,
-                         std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
+        : spdlog::logger(name, std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
     {
-        auto f = std::make_unique<spdlog::pattern_formatter>(pattern, spdlog::pattern_time_type::local, eol);
+        auto f = std::make_unique<spdlog::pattern_formatter>(
+            pattern, spdlog::pattern_time_type::local, eol);
         set_formatter(std::move(f));
     }
 
@@ -502,10 +503,12 @@ namespace mamba
         using spdlog::details::log_msg;
         if (tracer_.enabled())
         {
-            tracer_.foreach_pop([this](const log_msg& msg) {
-                if (this->should_log(msg.level))
-                    this->sink_it_(msg);
-            });
+            tracer_.foreach_pop(
+                [this](const log_msg& msg)
+                {
+                    if (this->should_log(msg.level))
+                        this->sink_it_(msg);
+                });
         }
     }
 

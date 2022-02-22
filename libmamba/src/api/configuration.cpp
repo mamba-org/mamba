@@ -89,7 +89,8 @@ namespace mamba
 
     const std::string& Configurable::long_description() const
     {
-        return p_impl->m_long_description.empty() ? p_impl->m_description : p_impl->m_long_description;
+        return p_impl->m_long_description.empty() ? p_impl->m_description
+                                                  : p_impl->m_long_description;
     }
 
     Configurable&& Configurable::long_description(const std::string& desc)
@@ -269,14 +270,15 @@ namespace mamba
         return std::move(*this);
     }
 
-    Configurable&& Configurable::set_rc_yaml_value(const YAML::Node& value, const std::string& source)
+    Configurable&& Configurable::set_rc_yaml_value(const YAML::Node& value,
+                                                   const std::string& source)
     {
         p_impl->set_rc_yaml_value(value, source);
         return std::move(*this);
     }
 
     Configurable&& Configurable::set_rc_yaml_values(const std::map<std::string, YAML::Node>& values,
-                                          const std::vector<std::string>& sources)
+                                                    const std::vector<std::string>& sources)
     {
         p_impl->set_rc_yaml_values(values, sources);
         return std::move(*this);
@@ -306,8 +308,7 @@ namespace mamba
         return std::move(*this);
     }
 
-    Configurable&& Configurable::compute(int options,
-                                        const ConfigurationLevel& level)
+    Configurable&& Configurable::compute(int options, const ConfigurationLevel& level)
     {
         p_impl->compute(options, level);
         return std::move(*this);
@@ -378,8 +379,7 @@ namespace mamba
                 return;
             }
 
-            auto& cacert
-                = Configuration::instance().at("cacert_path").value<std::string>();
+            auto& cacert = Configuration::instance().at("cacert_path").value<std::string>();
             if (!cacert.empty())
             {
                 value = cacert;
@@ -834,10 +834,7 @@ namespace mamba
             return fs::exists(path) && (!fs::is_directory(path)) && has_config_name(path.string());
         }
 
-        void print_node(YAML::Emitter& out,
-                        YAML::Node value,
-                        YAML::Node source,
-                        bool show_source);
+        void print_node(YAML::Emitter& out, YAML::Node value, YAML::Node source, bool show_source);
 
         void print_scalar_node(YAML::Emitter& out,
                                YAML::Node value,
@@ -904,10 +901,7 @@ namespace mamba
             out << YAML::EndMap;
         }
 
-        void print_node(YAML::Emitter& out,
-                        YAML::Node value,
-                        YAML::Node source,
-                        bool show_source)
+        void print_node(YAML::Emitter& out, YAML::Node value, YAML::Node source, bool show_source)
         {
             if (value.IsScalar())
             {
@@ -923,9 +917,7 @@ namespace mamba
             }
         }
 
-        void print_configurable(YAML::Emitter& out,
-                                const Configurable& config,
-                                bool show_source)
+        void print_configurable(YAML::Emitter& out, const Configurable& config, bool show_source)
         {
             auto value = config.yaml_value();
             auto source = YAML::Node(config.source());
@@ -946,9 +938,7 @@ namespace mamba
             out << YAML::Comment(std::string(54, '#'));
         }
 
-        void dump_configurable(nl::json& node,
-                               const Configurable& c,
-                               const std::string& name)
+        void dump_configurable(nl::json& node, const Configurable& c, const std::string& name)
         {
             c.dump_json(node, name);
         }
@@ -1902,15 +1892,14 @@ namespace mamba
 
     namespace detail
     {
-        void dump_configurable(nl::json& node,
-                               const Configurable& c,
-                               const std::string& name);
+        void dump_configurable(nl::json& node, const Configurable& c, const std::string& name);
     }
 
-    std::string dump_json(int opts, const std::vector<std::string>& names,
+    std::string dump_json(int opts,
+                          const std::vector<std::string>& names,
                           const std::vector<Configuration::grouped_config_type>& grouped_config)
     {
-        //bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
+        // bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;
         bool show_sources = opts & MAMBA_SHOW_CONFIG_SRCS;
         bool show_descs = opts & MAMBA_SHOW_CONFIG_DESCS;
         bool show_long_descs = opts & MAMBA_SHOW_CONFIG_LONG_DESCS;
@@ -1982,7 +1971,8 @@ namespace mamba
         return root.dump(4);
     }
 
-    std::string dump_yaml(int opts, const std::vector<std::string>& names,
+    std::string dump_yaml(int opts,
+                          const std::vector<std::string>& names,
                           const std::vector<Configuration::grouped_config_type>& grouped_config)
     {
         bool show_values = opts & MAMBA_SHOW_CONFIG_VALUES;

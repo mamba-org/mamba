@@ -9,11 +9,29 @@ namespace mamba
 {
     TEST(history, parse)
     {
-        History history_instance("history_test/parse");
+        static const auto history_file_path = fs::absolute("history_test/parse/conda-meta/history");
+        static const auto aux_file_path = fs::absolute("history_test/parse/conda-meta/aux_file");
 
+        // Backup history file and restore it at the end of the test, whatever the output.
+        struct ScopedHistoryFileBackup {
+            ScopedHistoryFileBackup()
+            {
+                fs::remove(aux_file_path);
+                fs::copy(history_file_path, aux_file_path);
+            }
+            ~ScopedHistoryFileBackup()
+            {
+                fs::remove(history_file_path);
+                fs::copy(aux_file_path, history_file_path);
+            }
+        } scoped_history_file_backup;
+
+        // Gather history from current history file.
+        History history_instance("history_test/parse");
         std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
 
-        std::ifstream history_file("history_test/parse/conda-meta/history");
+        // Extract raw history file content into buffer.
+        std::ifstream history_file(history_file_path);
         std::stringstream original_history_buffer;
         std::string line;
         while (getline(history_file, line))
@@ -22,22 +40,19 @@ namespace mamba
         }
         history_file.close();
 
-        std::ifstream src_beg("history_test/parse/conda-meta/history", std::ios::binary);
-        std::ofstream dst_beg("history_test/parse/conda-meta/aux_file", std::ios::binary);
-        dst_beg << src_beg.rdbuf();
-        src_beg.close();
-        dst_beg.close();
-
+        // Generate a history buffer with duplicate history.
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
         std::cout << check_buffer.str() << std::endl;
+
+        // Re-inject history into history file: history file should then have the same duplicate content as the buffer.
         for (const auto& req : user_reqs)
         {
             history_instance.add_entry(req);
         }
 
-        history_file.open("history_test/parse/conda-meta/history");
+        history_file.open(history_file_path);
         std::stringstream updated_history_buffer;
         while (getline(history_file, line))
         {
@@ -47,11 +62,6 @@ namespace mamba
 
         ASSERT_EQ(updated_history_buffer.str(), check_buffer.str());
 
-        std::ofstream src_end("history_test/conda-meta/history", std::ios::binary);
-        std::ifstream dst_end("history_test/conda-meta/aux_file", std::ios::binary);
-        src_end << dst_end.rdbuf();
-        src_end.close();
-        dst_end.close();
     }
 
 #ifndef _WIN32

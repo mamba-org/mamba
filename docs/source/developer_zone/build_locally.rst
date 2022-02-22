@@ -313,7 +313,7 @@ or with ``libmamba``:
     mkdir -p build
     cd build
     cmake .. \
-        -DBUILD_LIBMAMBA=ON \.. 
+        -DBUILD_LIBMAMBA=ON \..
         -DBUILD_STATIC_DEPS=ON \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=FULL_STATIC
@@ -334,7 +334,7 @@ Building the docs
 Mamba docs uses sphinx. The following packages need to be installed in your environment:
 
 .. code::
-    
+
     mamba install sphinx sphinx-book-theme myst-parser
 
 To build the docs go to ``.../mamba/docs`` and run:

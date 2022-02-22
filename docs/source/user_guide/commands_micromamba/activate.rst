@@ -1,23 +1,25 @@
 .. _commands_micromamba/activate:
 
 ``activate``
-=============
+============
 
-Usage: ``micromamba activate [OPTIONS] [prefix]``
 
+Activate an environment
+
+**Usage:** ``micromamba activate [OPTIONS] [prefix]``
 
 **Positionals:**
 
-``specs TEXT ...``
+TEXT
 
-Specs to activate from the environment.
+prefix The prefix to activate
 
 
 **Options:**
 
 ``-h,--help``
 
-Print a help message and exit.
+Print this help message and exit
 
 ``--stack``
 

@@ -1,81 +1,122 @@
 .. _commands_micromamba/config:
 
 ``config``
-===========
+==========
 
-Usage: ``micromamba config [OPTIONS] [SUBCOMMAND]``
 
+Configuration of micromamba
+
+**Usage:** ``micromamba config [OPTIONS] [SUBCOMMAND]``
 
 **Options:**
 
 ``-h,--help``
 
-Print this help message and exit.
+Print this help message and exit
 
 
 **Configuration options:**
 
-``--rc-file TEXT``
+``--rc-file`` TEXT
 
-Paths to the configuration files to use.
+... Paths to the configuration files to use
 
 ``--no-rc``
 
-Disable the use of configuration files.
+Disable the use of configuration files
 
 ``--no-env``
 
-Disable the use of environment variables.
+Disable the use of environment variables
 
 
 **Global options:**
 
-``-v,--verbose``
+``-v,--verbose`` ``-v,`` ``-vvv)``
 
-Set verbosity (higher verbosity with multiple -v, e.g. -vvv).
+Set verbosity (higher verbosity with multiple e.g.
 
-``--log-level TEXT:{critical,error,warning,info,debug,trace,off}``
+``--log-level`` OR    ENUM:value in {critical->5,debug->1,error->4,info->2,off->6,trace->0,warning->3}  {5,1,4,2,6,0,3}
 
-Set the log level.
+Set the log level
 
 ``-q,--quiet``
 
-Set quiet mode (print less output).
+Set quiet mode (print less output)
 
 ``-y,--yes``
 
-Automatically answer yes on prompted questions.
+Automatically answer yes on prompted questions
 
 ``--json``
 
-Report all output as json.
+Report all output as json
 
 ``--offline``
 
-Force use cached repodata.
+Force use cached repodata
 
 ``--dry-run``
 
-Only display what would have been done.
+Only display what would have been done
 
 ``--experimental``
 
-Enable experimental features.
+Enable experimental features
 
 
 **Prefix options:**
 
-``-r,--root-prefix TEXT``
+``-r,--root-prefix`` TEXT
 
-Path to the root prefix.
+Path to the root prefix
 
-``-p,--prefix TEXT``
+``-p,--prefix`` TEXT
 
-Path to the target prefix.
+Path to the target prefix
 
-``-n,--name TEXT``
+``-n,--name`` TEXT
 
-Name of the target prefix.
+Name of the target prefix
+
+
+**Subcommands:**
+
+
+
+list List configuration values
+
+
+
+sources Show configuration sources
+
+
+
+describe Describe given configuration parameters
+
+
+
+prepend Add one configuration value to the beginning of a list key
+
+
+
+append Add one configuration value to the end of a list key
+
+
+
+remove-key Remove a configuration key and its values
+
+
+
+remove Remove a configuration value from a list key. This removes all instances of the value.
+
+
+
+set Set a configuration value
+
+
+
+get Get a configuration value
 
 **Subcommands:**
 
@@ -87,4 +128,3 @@ Name of the target prefix.
 - :ref:`commands_micromamba/config/remove_key`
 - :ref:`commands_micromamba/config/remove`
 - :ref:`commands_micromamba/config/set`
-- :ref:`commands_micromamba/config/get`

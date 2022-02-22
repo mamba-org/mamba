@@ -3,61 +3,63 @@
 ``create``
 ==========
 
-Usage: ``micromamba create [OPTIONS] [specs...]``
 
+Create new environment
+
+**Usage:** ``micromamba create [OPTIONS] [specs...]``
 
 **Positionals:**
 
-``specs TEXT ...``
+TEXT
 
-Specs to install into the environment.
+specs ... Specs to install into the environment
 
 
 **Options:**
 
 ``-h,--help``
 
-Print a help message and exit.
+Print this help message and exit
 
-``-c,--channel TEXT ...``
+``-c,--channel`` TEXT
 
-Define the list of channels.
+... Define the list of channels
 
 ``--override-channels``
 
-Override channels.
+Override channels
 
-``--channel-priority TEXT:{disabled,flexible,strict}``
+``--channel-priority`` OR    ENUM:value in {disabled->0,flexible->1,strict->2}  {0,1,2}
 
-Define the channel priority ('strict' or 'disabled').
+Define the channel priority ('strict' or 'disabled')
 
-``--channel-alias TEXT``
+``--channel-alias`` TEXT
 
-The prepended url location to associate with channel names.
+The prepended url location to associate with channel names
 
 ``--strict-channel-priority``
 
-Enable strict channel priority.
+Enable strict channel priority
 
 ``--no-channel-priority``
 
-Disable channel priority.
+Disable channel priority
 
-``-f,--file TEXT ...``
+``-f,--file`` TEXT
 
-File (yaml, explicit or plain).
+... File (yaml, explicit or plain)
 
 ``--no-pin,--pin{false}``
 
-Ignore pinned packages.
+Ignore pinned packages
 
 ``--no-py-pin,--py-pin{false}``
 
-Do not automatically pin Python.
+Do not automatically pin Python
 
-``--pyc,--no-pyc{false}``
+``--pyc,--no-pyc{false}`` PYC
 
-Defines if PYC files will be compiled or not.
+Defines if files will be compiled or not
 
 ``--allow-uninstall,--no-allow-uninstall{false}``
 
@@ -69,124 +71,132 @@ Allow downgrade when installing packages. Default is false.
 
 ``--allow-softlinks,--no-allow-softlinks{false}``
 
-Allow to use soft-links when hard-links are not possible.
+Allow to use soft-links when hard-links are not possible
 
 ``--always-softlink,--no-always-softlink{false}``
 
-Use soft-link instead of hard-link.
+Use soft-link instead of hard-link
 
 ``--always-copy,--no-always-copy{false}``
 
-Use copy instead of hard-link.
+Use copy instead of hard-link
 
 ``--extra-safety-checks,--no-extra-safety-checks{false}``
 
-Run extra verifications on packages.
+Run extra verifications on packages
 
-``--lock-timeout INT``
+``--lock-timeout`` UINT
 
-LockFile timeout.
+LockFile timeout
 
 ``--shortcuts,--no-shortcuts{false}``
 
-Install start-menu shortcuts on Windows (not implemented on Linux / macOS).
+Install start-menu shortcuts on Windows (not implemented on Linux / macOS)
 
-``--safety-checks TEXT:{disabled,enabled,warn}``
+``--safety-checks`` OR    ENUM:value in {disabled->0,enabled->2,warn->1}  {0,2,1}
 
-Safety checks policy ('enabled', 'warn', or 'disabled').
+Safety checks policy ('enabled', 'warn', or 'disabled')
 
 ``--verify-artifacts``
 
-Run verifications on packages signatures.
+Run verifications on packages signatures
 
-``--platform TEXT``
+``--platform`` TEXT
 
-The platform description.
+The platform description
+
+``--no-deps`` WILL
+
+Do not install dependencies. This lead to broken environments and inconsistent behavior. Use at your own risk
+
+``--only-deps``
+
+Only install dependencies
 
 
 **Configuration options:**
 
-``--rc-file TEXT``
+``--rc-file`` TEXT
 
-Paths to the configuration files to use.
+... Paths to the configuration files to use
 
 ``--no-rc``
 
-Disable the use of configuration files.
+Disable the use of configuration files
 
 ``--no-env``
 
-Disable the use of environment variables.
+Disable the use of environment variables
 
 
 **Global options:**
 
-``-v,--verbose``
+``-v,--verbose`` ``-v,`` ``-vvv)``
 
-Set verbosity (higher verbosity with multiple -v, e.g. -vvv).
+Set verbosity (higher verbosity with multiple e.g.
 
-``--log-level TEXT:{critical,error,warning,info,debug,trace,off}``
+``--log-level`` OR    ENUM:value in {critical->5,debug->1,error->4,info->2,off->6,trace->0,warning->3}  {5,1,4,2,6,0,3}
 
-Set the log level.
+Set the log level
 
 ``-q,--quiet``
 
-Set quiet mode (print less output).
+Set quiet mode (print less output)
 
 ``-y,--yes``
 
-Automatically answer yes on prompted questions.
+Automatically answer yes on prompted questions
 
 ``--json``
 
-Report all output as json.
+Report all output as json
 
 ``--offline``
 
-Force use cached repodata.
+Force use cached repodata
 
 ``--dry-run``
 
-Only display what would have been done.
+Only display what would have been done
 
 ``--experimental``
 
-Enable experimental features.
+Enable experimental features
 
 
 **Prefix options:**
 
-``-r,--root-prefix TEXT``
+``-r,--root-prefix`` TEXT
 
-Path to the root prefix.
+Path to the root prefix
 
-``-p,--prefix TEXT``
+``-p,--prefix`` TEXT
 
-Path to the target prefix.
+Path to the target prefix
 
-``-n,--name TEXT``
+``-n,--name`` TEXT
 
-Name of the target prefix.
+Name of the target prefix
 
 
 **Network options:**
 
-``--ssl-verify TEXT``
+``--ssl-verify`` TEXT SSL HTTPS
 
-Verify SSL certificates for HTTPS requests.
+Verify certificates for requests
 
-``--ssl-no-revoke``
+``--ssl-no-revoke`` SSL
 
-SSL certificate revocation checks.
+certificate revocation checks
 
-``--cacert-path TEXT``
+``--cacert-path`` TEXT SSL
 
-Path (file or directory) SSL certificate(s).
+Path (file or directory) certificate(s)
 
-``--repodata-ttl INT``
+``--repodata-ttl`` UINT
 
-Repodata time-to-live.
+Repodata time-to-live
 
 ``--retry-clean-cache``
 
-If solve fails, try to fetch updated repodata.
+If solve fails, try to fetch updated repodata

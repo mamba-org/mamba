@@ -16,7 +16,6 @@ namespace mamba
                    bool use_local,
                    const std::string& query)
     {
-        std::cout << "FORMAT: " << int(format) << std::endl;
         auto& ctx = Context::instance();
         auto& config = Configuration::instance();
         config.at("use_target_prefix_fallback").set_value(true);

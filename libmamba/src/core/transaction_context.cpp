@@ -173,7 +173,7 @@ namespace mamba
         {
             LOG_ERROR << "Bad conversion of Python version '" << python_version
                       << "': " << e.what();
-            throw std::runtime_error("Bad conversion. Aborting.");
+            return false;
         }
 
         m_pyc_process = std::make_unique<reproc::process>();
@@ -209,7 +209,8 @@ namespace mamba
         {
             LOG_ERROR << "Program not found. Make sure it's available from the PATH. "
                       << ec.message();
-            throw std::runtime_error("pyc compilation failed with program not found. Aborting.");
+            m_pyc_process = nullptr;
+            return false;
         }
 
         return true;
@@ -226,8 +227,7 @@ namespace mamba
             return false;
         }
 
-        start_pyc_compilation_process();
-        if (!m_pyc_process)
+        if (start_pyc_compilation_process() && !m_pyc_process)
         {
             return false;
         }

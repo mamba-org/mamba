@@ -250,7 +250,7 @@ namespace mamba
             return false;
         }
 
-        LOG_INFO << "Compiling " << py_files.size() << " to pyc";
+        LOG_INFO << "Compiling " << py_files.size() << " files to pyc";
         for (auto& f : py_files)
         {
             auto fs = f.string() + "\n";

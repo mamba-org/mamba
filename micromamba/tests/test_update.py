@@ -114,7 +114,8 @@ class TestUpdate:
         ][0]
 
         assert requests_link["version"] == requests_unlink["version"]
-        assert not os.path.exists(site_packages_path("", "3.9"))
+        if platform.system() != "Windows":
+            assert not os.path.exists(site_packages_path("", "3.9"))
         assert os.path.exists(site_packages_path("requests/__pycache__", "3.10"))
 
         assert requests_link["version"] == prev_requests["version"]

@@ -18,6 +18,9 @@ set_install_command(CLI::App* subcom)
     subcom->add_flag("--freeze-installed",
                      freeze_installed.get_cli_config<bool>(),
                      freeze_installed.description());
+    auto& force_reinstall = config.at("force_reinstall");
+    subcom->add_flag(
+        "--force-reinstall", force_reinstall.get_cli_config<bool>(), force_reinstall.description());
 
     subcom->callback([&]() { install(); });
 }

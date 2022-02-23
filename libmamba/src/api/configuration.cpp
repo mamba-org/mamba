@@ -1228,9 +1228,21 @@ namespace mamba
                    .set_env_var_names()
                    .description("A list of package specs to pin for every environment resolution"));
 
-        insert(Configurable("freeze_installed", &ctx.freeze_installed)
+        insert(Configurable("freeze_installed", false)
                    .group("Solver")
                    .description("Freeze already installed dependencies"));
+
+        insert(Configurable("force_reinstall", false)
+                   .group("Solver")
+                   .description("Force reinstall of package"));
+
+        insert(Configurable("no_deps", false)
+                   .group("Solver")
+                   .description("Force reinstall of package"));
+
+        insert(Configurable("only_deps", false)
+                   .group("Solver")
+                   .description("Force reinstall of package"));
 
         insert(Configurable("retry_clean_cache", false)
                    .group("Solver")

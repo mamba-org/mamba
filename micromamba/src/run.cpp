@@ -96,7 +96,6 @@ namespace mamba
 
     std::unique_ptr<LockFile> lock_proc_dir()
     {
-        fs::create_directories(proc_dir());
         auto lockfile = LockFile::try_lock(proc_dir());
         if (!lockfile)
         {
@@ -296,6 +295,9 @@ set_run_command(CLI::App* subcom)
                 LOG_ERROR << "Did not receive any command to run inside environment";
                 exit(1);
             }
+
+            // Make sure the proc directory is always existing and ready.
+            fs::create_directories(proc_dir());
 
             LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
             LOG_DEBUG << "Remaining args to run as command: " << join(" ", command);

@@ -237,6 +237,20 @@ def umamba_list(*args):
     return res.decode()
 
 
+def umamba_run(*args):
+    umamba = get_umamba()
+
+    cmd = [umamba, "run"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+
+    if "--json" in args:
+        j = json.loads(res)
+        return j
+
+    return res.decode()
+
+
+
 def get_concrete_pkg(t, needle):
     pkgs = t["actions"]["LINK"]
     for p in pkgs:

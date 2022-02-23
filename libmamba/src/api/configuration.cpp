@@ -1236,13 +1236,15 @@ namespace mamba
                    .group("Solver")
                    .description("Force reinstall of package"));
 
-        insert(Configurable("no_deps", false)
-                   .group("Solver")
-                   .description("Force reinstall of package"));
+        insert(
+            Configurable("no_deps", false)
+                .group("Solver")
+                .description("Do not install dependencies. This WILL lead to broken environments "
+                             "and inconsistent behavior. Use at your own risk"));
 
         insert(Configurable("only_deps", false)
                    .group("Solver")
-                   .description("Force reinstall of package"));
+                   .description("Only install dependencies"));
 
         insert(Configurable("retry_clean_cache", false)
                    .group("Solver")

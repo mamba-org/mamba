@@ -276,7 +276,7 @@ set_run_command(CLI::App* subcom)
     subcom->add_option(
         "--label",
         specific_process_name,
-        "Specifies the name of the process. If not set, a unique name enerated by deriving from the executable name will be generated.");
+        "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible.");
 #endif
 
     subcom->prefix_command();

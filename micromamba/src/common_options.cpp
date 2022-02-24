@@ -405,4 +405,9 @@ init_install_options(CLI::App* subcom)
     auto& platform = config.at("platform");
     subcom->add_option(
         "--platform", platform.get_cli_config<std::string>(), platform.description());
+
+    auto& no_deps = config.at("no_deps");
+    subcom->add_flag("--no-deps", no_deps.get_cli_config<bool>(), no_deps.description());
+    auto& only_deps = config.at("only_deps");
+    subcom->add_flag("--only-deps", only_deps.get_cli_config<bool>(), only_deps.description());
 }

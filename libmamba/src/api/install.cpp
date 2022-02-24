@@ -323,6 +323,10 @@ namespace mamba
 
         auto& no_pin = config.at("no_pin").value<bool>();
         auto& no_py_pin = config.at("no_py_pin").value<bool>();
+        auto& freeze_installed = config.at("freeze_installed").value<bool>();
+        auto& force_reinstall = config.at("force_reinstall").value<bool>();
+        auto& no_deps = config.at("no_deps").value<bool>();
+        auto& only_deps = config.at("only_deps").value<bool>();
         auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
         if (ctx.target_prefix.empty())
@@ -371,9 +375,14 @@ namespace mamba
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
                          { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
                          { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                           ctx.channel_priority == ChannelPriority::kStrict } });
+                           ctx.channel_priority == ChannelPriority::kStrict } },
+                       &prefix_data);
 
-        if (ctx.freeze_installed && !prefix_pkgs.empty())
+        solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
+                                     { MAMBA_ONLY_DEPS, only_deps },
+                                     { MAMBA_FORCE_REINSTALL, force_reinstall } });
+
+        if (freeze_installed && !prefix_pkgs.empty())
         {
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             solver.add_jobs(prefix_pkgs, SOLVER_LOCK);
@@ -412,7 +421,7 @@ namespace mamba
                 ctx.local_repodata_ttl = 2;
                 return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
             }
-            if (ctx.freeze_installed)
+            if (freeze_installed)
                 Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");
 
             if (ctx.json)

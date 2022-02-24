@@ -211,7 +211,6 @@ namespace mamba
         bool override_channels_enabled = true;
 
         std::vector<std::string> pinned_packages = {};
-        bool freeze_installed = false;
 
         bool use_only_tar_bz2 = false;
 

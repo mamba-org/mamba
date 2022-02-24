@@ -235,6 +235,19 @@ namespace mamba
         assign_or(j, "sha256", sha256, ""s);
         assign_or(j, "track_features", track_features, ""s);
 
+        // add the noarch type if we know it (only known for installed packages)
+        if (j.contains("noarch"))
+        {
+            if (j["noarch"].type() == nlohmann::json::value_t::boolean)
+            {
+                noarch = "generic_v1";
+            }
+            else
+            {
+                assign_or(j, "noarch", noarch, ""s);
+            }
+        }
+
         if (j.contains("depends"))
         {
             depends = j["depends"].get<std::vector<std::string>>();

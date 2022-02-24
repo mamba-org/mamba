@@ -26,6 +26,11 @@ namespace mamba
     std::string compute_short_python_version(const std::string& long_version)
     {
         auto sv = split(long_version, ".");
+        if (sv.size() < 2)
+        {
+            LOG_ERROR << "Could not compute short python version from " << long_version;
+            return long_version;
+        }
         return concat(sv[0], '.', sv[1]);
     }
 
@@ -87,12 +92,13 @@ namespace mamba
         compile_pyc = Context::instance().compile_pyc;
     }
 
-    TransactionContext::TransactionContext(const fs::path& prefix,
-                                           const std::string& py_version,
+    TransactionContext::TransactionContext(const fs::path& target_prefix,
+                                           const std::pair<std::string, std::string>& py_versions,
                                            const std::vector<MatchSpec>& requested_specs)
-        : has_python(py_version.size() != 0)
-        , target_prefix(prefix)
-        , python_version(py_version)
+        : has_python(py_versions.first.size() != 0)
+        , target_prefix(target_prefix)
+        , python_version(py_versions.first)
+        , old_python_version(py_versions.second)
         , requested_specs(requested_specs)
     {
         auto& ctx = Context::instance();
@@ -101,6 +107,7 @@ namespace mamba
         always_copy = ctx.always_copy;
         always_softlink = ctx.always_softlink;
 
+        std::string old_short_python_version;
         if (python_version.size() == 0)
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
@@ -111,6 +118,15 @@ namespace mamba
             python_path = get_python_short_path(short_python_version);
             site_packages_path = get_python_site_packages_short_path(short_python_version);
         }
+        if (old_python_version.size())
+        {
+            old_short_python_version = compute_short_python_version(old_python_version);
+            relink_noarch = (short_python_version != old_short_python_version);
+        }
+        else
+        {
+            relink_noarch = false;
+        }
     }
 
     TransactionContext& TransactionContext::operator=(const TransactionContext& other)
@@ -120,6 +136,7 @@ namespace mamba
             has_python = other.has_python;
             target_prefix = other.target_prefix;
             python_version = other.python_version;
+            old_python_version = other.old_python_version;
             requested_specs = other.requested_specs;
 
             compile_pyc = other.compile_pyc;
@@ -129,6 +146,7 @@ namespace mamba
             short_python_version = other.short_python_version;
             python_path = other.python_path;
             site_packages_path = other.site_packages_path;
+            relink_noarch = other.relink_noarch;
         }
         return *this;
     }
@@ -232,9 +250,9 @@ namespace mamba
             return false;
         }
 
+        LOG_INFO << "Compiling " << py_files.size() << " files to pyc";
         for (auto& f : py_files)
         {
-            LOG_INFO << "Compiling " << f;
             auto fs = f.string() + "\n";
 
             auto [nbytes, ec]

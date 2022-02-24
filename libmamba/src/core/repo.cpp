@@ -56,6 +56,7 @@ namespace mamba
         Pool* pool = m_repo->pool;
 
         static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
 
         Id handle = repo_add_solvable(m_repo);
         Solvable* s;
@@ -69,6 +70,9 @@ namespace mamba
         repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
 
         solvable_set_str(s, real_repo_key, info.url.c_str());
+
+        if (!info.noarch.empty())
+            solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
 
         repodata_set_checksum(
             data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
@@ -177,7 +181,7 @@ namespace mamba
         return m_url;
     }
 
-    Repo* MRepo::repo()
+    Repo* MRepo::repo() const
     {
         return m_repo;
     }

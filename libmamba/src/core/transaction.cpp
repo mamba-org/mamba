@@ -612,8 +612,107 @@ namespace mamba
             Console::instance().json_down("actions");
             Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
         }
+
         m_transaction_context = TransactionContext(
             Context::instance().target_prefix, find_python_version(), solver.install_specs());
+
+        if (m_transaction_context.relink_noarch && pool->installed != nullptr)
+        {
+            Id p;
+            Solvable* s;
+            Queue job, q, decision;
+            queue_init(&job);
+            queue_init(&q);
+            queue_init(&decision);
+
+            solver_get_decisionqueue(solver, &decision);
+
+            const Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
+
+            FOR_REPO_SOLVABLES(pool->installed, p, s)
+            {
+                const char* noarch_type = solvable_lookup_str(s, noarch_repo_key);
+
+                if (noarch_type == nullptr)
+                    continue;
+
+                if (strcmp(noarch_type, "python") == 0)
+                {
+                    bool skip_relink = false;
+                    for (int x = 0; x < decision.count; ++x)
+                    {
+                        // if the installed package is kept, delete decision
+                        if (decision.elements[x] == p)
+                        {
+                            queue_delete(&decision, x);
+                            break;
+                        }
+                        else if (decision.elements[x] == -p)
+                        {
+                            // package is _already_ getting delete
+                            // in this case, we do not need to manually relink
+                            skip_relink = true;
+                            break;
+                        }
+                    }
+
+                    if (skip_relink)
+                        continue;
+
+                    PackageInfo pi(s);
+
+                    Id id = pool_conda_matchspec(
+                        (Pool*) pool,
+                        fmt::format("{} {} {}", pi.name, pi.version, pi.build_string).c_str());
+
+                    if (id)
+                        queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+
+                    selection_solvables(pool, &job, &q);
+
+                    Id reinstall_id = -1;
+                    for (int xi = 0; xi < q.count; ++xi)
+                    {
+                        auto* xid = pool_id2solvable(pool, q.elements[xi]);
+                        if (xid->repo != pool->installed)
+                        {
+                            reinstall_id = q.elements[xi];
+                            break;
+                        }
+                    }
+
+                    if (reinstall_id == -1)
+                    {
+                        // TODO we should also search the local package cache to make offline
+                        // installs work
+                        LOG_WARNING << fmt::format("To upgrade python we need to reinstall noarch",
+                                                   " package {} {} {} but we could not find it in",
+                                                   " any of the loaded channels.",
+                                                   pi.name,
+                                                   pi.version,
+                                                   pi.build_string);
+                        continue;
+                    }
+
+                    queue_push(&decision, reinstall_id);
+                    queue_push(&decision, -p);
+
+                    queue_empty(&q);
+                    queue_empty(&job);
+                }
+            }
+
+            transaction_free(m_transaction);
+            m_transaction = transaction_create_decisionq((Pool*) pool, &decision, nullptr);
+            transaction_order(m_transaction, 0);
+
+            queue_free(&decision);
+            queue_free(&job);
+            queue_free(&q);
+
+            // init everything again...
+            init();
+        }
     }
 
     MTransaction::~MTransaction()
@@ -624,17 +723,17 @@ namespace mamba
 
     void MTransaction::init()
     {
+        m_to_remove.clear();
+        m_to_install.clear();
         for (int i = 0; i < m_transaction->steps.count && !is_sig_interrupted(); i++)
         {
             Id p = m_transaction->steps.elements[i];
             Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable* s = pool_id2solvable(m_transaction->pool, p);
-
             if (filter(s))
             {
                 continue;
             }
-
             switch (ttype)
             {
                 case SOLVER_TRANSACTION_DOWNGRADED:
@@ -642,9 +741,6 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    if (ttype == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
-                        break;
-
                     m_to_remove.push_back(s);
                     m_to_install.push_back(m_transaction->pool->solvables
                                            + transaction_obs_pkg(m_transaction, p));
@@ -669,7 +765,8 @@ namespace mamba
         }
     }
 
-    std::string MTransaction::find_python_version()
+    // TODO rewrite this in terms of `m_transaction`
+    std::pair<std::string, std::string> MTransaction::find_python_version()
     {
         // We need to find the python version that will be there after this
         // Transaction is finished in order to compile the noarch packages correctly,
@@ -677,16 +774,16 @@ namespace mamba
         Pool* pool = m_transaction->pool;
         assert(pool != nullptr);
 
-        std::string py_ver;
+        std::string installed_py_ver, new_py_ver;
         Id python = pool_str2id(pool, "python", 0);
 
         for (Solvable* s : m_to_install)
         {
             if (s->name == python)
             {
-                py_ver = pool_id2str(pool, s->evr);
-                LOG_INFO << "Found python version in packages to be installed " << py_ver;
-                return py_ver;
+                new_py_ver = pool_id2str(pool, s->evr);
+                LOG_INFO << "Found python version in packages to be installed " << new_py_ver;
+                break;
             }
         }
         if (pool->installed != nullptr)
@@ -698,22 +795,18 @@ namespace mamba
             {
                 if (s->name == python)
                 {
-                    py_ver = pool_id2str(pool, s->evr);
-                    LOG_INFO << "Found python in installed packages " << py_ver;
+                    installed_py_ver = pool_id2str(pool, s->evr);
+                    LOG_INFO << "Found python in installed packages " << installed_py_ver;
                     break;
                 }
             }
         }
-        if (py_ver.size())
+        // if we do not install a new python version but keep the current one
+        if (new_py_ver.empty())
         {
-            // we need to make sure that we're not about to remove python!
-            for (Solvable* s : m_to_remove)
-            {
-                if (s->name == python)
-                    return "";
-            }
+            new_py_ver = installed_py_ver;
         }
-        return py_ver;
+        return std::make_pair(new_py_ver, installed_py_ver);
     }
 
     class TransactionRollback
@@ -777,7 +870,6 @@ namespace mamba
         Console::stream() << "\nTransaction starting";
         fetch_extract_packages();
 
-        // m_transaction_context = TransactionContext(prefix.path(), find_python_version());
         History::UserRequest ur = History::UserRequest::prefilled();
 
         TransactionRollback rollback;
@@ -802,9 +894,6 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    if (ttype == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
-                        break;
-
                     Solvable* s2
                         = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
                     Console::stream()
@@ -1213,7 +1302,7 @@ namespace mamba
 
         using rows = std::vector<std::vector<printers::FormattedString>>;
 
-        rows downgraded, upgraded, changed, erased, installed, ignored;
+        rows downgraded, upgraded, changed, reinstalled, erased, installed, ignored;
         std::size_t total_size = 0;
         auto* pool = m_transaction->pool;
 
@@ -1317,16 +1406,15 @@ namespace mamba
                                    "+");
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
-                    case SOLVER_TRANSACTION_REINSTALLED:
-                        if (cls == SOLVER_TRANSACTION_REINSTALLED && m_force_reinstall == false)
-                            break;
-
                         format_row(changed, s, printers::format::red, "-");
                         format_row(changed,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
                                    printers::format::green,
                                    "+");
+                        break;
+                    case SOLVER_TRANSACTION_REINSTALLED:
+                        format_row(reinstalled, s, printers::format::green, "o");
                         break;
                     case SOLVER_TRANSACTION_DOWNGRADED:
                         format_row(downgraded, s, printers::format::red, "-");
@@ -1372,6 +1460,11 @@ namespace mamba
         {
             t.add_rows("Change:", changed);
             summary << "  Change: " << changed.size() / 2 << " packages\n";
+        }
+        if (reinstalled.size())
+        {
+            t.add_rows("Reinstall:", reinstalled);
+            summary << "  Reinstall: " << reinstalled.size() / 2 << " packages\n";
         }
         if (upgraded.size())
         {

@@ -74,6 +74,28 @@ PYBIND11_MODULE(bindings, m)
     py::class_<MRepo>(m, "Repo")
         .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
         .def(py::init<MPool&, const PrefixData&>())
+        .def("add_python_noarch_info",
+             [](const MRepo& self, const std::vector<std::string>& names)
+             {
+                 Id pkg_id;
+                 Solvable* pkg_s;
+                 Pool* p = self.repo()->pool;
+                 static Id noarch_repo_key = pool_str2id(p, "solvable:noarch_type", 1);
+
+                 for (auto& name : names)
+                 {
+                     Id nid = pool_str2id(p, name.c_str(), 0);
+
+                     FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
+                     {
+                         if (pkg_s->name == nid)
+                         {
+                             solvable_set_str(pkg_s, noarch_repo_key, "python");
+                         }
+                     }
+                 }
+                 repo_internalize(self.repo());
+             })
         .def("set_installed", &MRepo::set_installed)
         .def("set_priority", &MRepo::set_priority)
         .def("name", &MRepo::name)

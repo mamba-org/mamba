@@ -49,6 +49,7 @@ namespace mamba
         std::string name;
         std::string version;
         std::string build_string;
+        std::string noarch;
         std::size_t build_number = 0;
         std::string channel;
         std::string url;

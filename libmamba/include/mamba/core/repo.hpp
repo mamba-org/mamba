@@ -102,7 +102,7 @@ namespace mamba
         std::string name() const;
         bool write() const;
         const std::string& url() const;
-        Repo* repo();
+        Repo* repo() const;
         std::tuple<int, int> priority() const;
         std::size_t size() const;
 

@@ -112,10 +112,10 @@ namespace mamba
 #endif
         }
 
-        inline fs::path which(const std::string& exe)
+        inline fs::path which(const std::string& exe, const std::string& override_path = "")
         {
             // TODO maybe add a cache?
-            auto env_path = env::get("PATH");
+            auto env_path = override_path == "" ? env::get("PATH") : override_path;
             if (env_path)
             {
                 std::string path = env_path.value();
@@ -135,6 +135,21 @@ namespace mamba
                     }
                 }
             }
+
+#ifndef _WIN32
+            if (override_path == "")
+            {
+                char* pathbuf;
+                size_t n = confstr(_CS_PATH, NULL, (size_t) 0);
+                pathbuf = (char*) malloc(n);
+                if (pathbuf != NULL)
+                {
+                    confstr(_CS_PATH, pathbuf, n);
+                    return which(exe, pathbuf);
+                }
+            }
+#endif
+
             return "";  // empty path
         }
 

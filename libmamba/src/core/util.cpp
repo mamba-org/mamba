@@ -1465,6 +1465,11 @@ namespace mamba
             {
                 shell_path = env::which("sh");
             }
+            if (shell_path.empty())
+            {
+                LOG_ERROR << "Failed to find a shell to run the script with.";
+                shell_path = "sh";
+            }
 
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);

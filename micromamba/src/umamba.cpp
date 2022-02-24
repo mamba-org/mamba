@@ -89,6 +89,9 @@ set_umamba_command(CLI::App* com)
     CLI::App* run_subcom = com->add_subcommand("run", "Run an executable in an environment");
     set_run_command(run_subcom);
 
+    CLI::App* ps_subcom = com->add_subcommand("ps", "Show, inspect or kill running processes");
+    set_ps_command(ps_subcom);
+
     CLI::App* search_subcom
         = com->add_subcommand("search", "Find packages in active environment or channels");
     set_search_command(search_subcom);

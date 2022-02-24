@@ -68,6 +68,9 @@ void
 set_run_command(CLI::App* subcom);
 
 void
+set_ps_command(CLI::App* subcom);
+
+void
 get_completions(CLI::App* app, int argc, char** argv);
 
 void

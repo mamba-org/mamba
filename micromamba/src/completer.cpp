@@ -1,6 +1,7 @@
 #include "mamba/api/configuration.hpp"
 
 #include "mamba/core/output.hpp"
+#include "run.hpp"
 
 #include <CLI/CLI.hpp>
 
@@ -25,7 +26,7 @@ complete_options(CLI::App* app, const std::vector<std::string>& last_args, bool&
 
         if (fs::exists(root_prefix / "envs"))
             for (const auto& p : fs::directory_iterator(root_prefix / "envs"))
-                if (p.is_directory() && fs::exists(p / "conda-meta"))
+                if (p.is_directory() && fs::exists(p.path() / "conda-meta"))
                 {
                     auto name = p.path().filename().string();
                     if (mamba::starts_with(name, name_start))
@@ -103,6 +104,40 @@ add_activate_completion(CLI::App* app, std::vector<std::string>& completer_args,
 }
 
 void
+add_ps_completion(CLI::App* app, std::vector<std::string>& completer_args, bool& completed)
+{
+    auto* current_subcom = app->get_subcommand("ps");
+    app->remove_subcommand(current_subcom);
+
+    CLI::App* activate_subcom = app->add_subcommand("ps", "Mock ps function for completion");
+
+    CLI::App* stop_subcom
+        = activate_subcom->add_subcommand("stop", "Mock ps stop function for completion");
+
+    stop_subcom->callback(
+        [app, &completer_args, &completed]()
+        {
+            if (completer_args.size() == 1)
+            {
+                nlohmann::json info;
+                {
+                    auto proc_lock = mamba::lock_proc_dir();
+                    info = mamba::get_all_running_processes_info();
+                }
+                std::vector<std::string> procs;
+                for (auto& i : info)
+                {
+                    procs.push_back(i["name"].get<std::string>());
+                }
+
+                completed = true;
+                std::cout << mamba::printers::table_like(procs, 90).str() << std::endl;
+            }
+        });
+}
+
+
+void
 get_completions(CLI::App* app, int argc, char** argv)
 {
     std::vector<std::string> completer_args;
@@ -120,6 +155,7 @@ get_completions(CLI::App* app, int argc, char** argv)
     std::vector<CLI::App*> apps = { app };
     overwrite_callbacks(apps, completer_args, completed);
     add_activate_completion(app, completer_args, completed);
+    add_ps_completion(app, completer_args, completed);
     argv[1] = argv[0];
 
     try

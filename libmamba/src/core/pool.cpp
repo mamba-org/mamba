@@ -19,17 +19,18 @@ namespace mamba
             return;
         }
 
+        auto log = Console::hide_secrets(dbg->second);
         if (type & SOLV_FATAL || type & SOLV_ERROR)
         {
-            dbg->first->error(dbg->second);
+            dbg->first->error(log);
         }
         else if (type & SOLV_WARN)
         {
-            dbg->first->warn(dbg->second);
+            dbg->first->warn(log);
         }
         else if (Context::instance().verbosity > 2)
         {
-            dbg->first->info(dbg->second);
+            dbg->first->info(log);
         }
         dbg->second.clear();
     }

@@ -48,10 +48,7 @@ namespace mamba
 
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
-        if (ctx.experimental)
-        {
-            load_tokens();
-        }
+        load_tokens();
 
         for (auto channel : get_channels(channel_urls))
         {

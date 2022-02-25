@@ -1,3 +1,18 @@
+libmamba 0.22.0 (February 25, 2022)
+===================================
+
+Bug fixes
+
+- Add noarch recompilation step for mamba and micromamba #1511
+
+Improvements
+
+- Remove compile time warnings by updating deprecated openssl functions #1509
+- Use custom debug callback from libcurl and libsolv (routed through spdlog) #1507
+- Refactor Channel implementation (thanks @JohanMabille) #1537
+- Hide tokens in libcurl and libsolv as well (and remove need for `--experimental` flag to load tokens) #1538
+- Pass through QEMU_LD_PREFIX to subprocesses (thanks @chrisburr) #1533
+
 libmamba 0.21.2 (February 14, 2022)
 ===================================
 

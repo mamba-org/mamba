@@ -1,3 +1,10 @@
+mamba 0.22.0 (February 25, 2022)
+================================
+
+Bug fixes
+
+- Add noarch recompilation step for mamba and micromamba #1511
+
 mamba 0.21.2 (February 14, 2022)
 ================================
 

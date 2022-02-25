@@ -1,3 +1,25 @@
+2022.02.25
+==========
+
+Releases: libmamba 0.22.0, libmambapy 0.22.0, mamba 0.22.0, micromamba 0.22.0
+
+Bug fixes
+- [libmamba, mamba, micromamba] Add noarch recompilation step for mamba and micromamba #1511
+- [micromamba] Add `--force-reinstall`, `--only-deps` and `--no-deps` to micromamba #1531
+- [micromamba] Tolerate `PATH` being unset better (thanks @chrisburr) #1532
+
+Improvements
+- [micromamba] Add `--label` option to micromamba run and automatically generate process names otherwise (thanks @Klaim) #1491, #1530, #1529
+- [libmamba] Remove compile time warnings by updating deprecated openssl functions #1509
+- [micromamba] Add `search` as an alias for `repoquery search` (thanks @JohanMabille) #1510
+- [micromamba] Fix `repoquery search` not working outside activated environment (thanks @JohanMabille) #1510
+- [micromamba] Refactor configuration system (thanks @JohanMabille) #1500
+- [libmamba] Use custom debug callback from libcurl and libsolv (routed through spdlog) #1507
+- [libmamba] Refactor Channel implementation (thanks @JohanMabille) #1537
+- [libmamba] Hide tokens in libcurl and libsolv as well (and remove need for `--experimental` flag to load tokens) #1538
+- [libmamba] Pass through QEMU_LD_PREFIX to subprocesses (thanks @chrisburr) #1533
+- [micromamba] Fix segfault on Linux with "fake" micromamba activate command #1496
+
 2022.02.14
 ==========
 

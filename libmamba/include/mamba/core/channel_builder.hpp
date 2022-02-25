@@ -4,21 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-/** Contains the internal interface within Channel, exposed mainly for testing purposes. **/
-
-#ifndef MAMBA_CORE_CHANNEL_INTERNAL_HPP
-#define MAMBA_CORE_CHANNEL_INTERNAL_HPP
-
-#include <map>
-#include <optional>
-#include <string>
-#include <vector>
+#ifndef MAMBA_CORE_CHANNEL_BUILDER_HPP
+#define MAMBA_CORE_CHANNEL_BUILDER_HPP
 
 #include "channel.hpp"
 
 namespace mamba
 {
-    class ChannelInternal : public Channel
+    class ChannelBuilder
     {
     public:
         static Channel make_simple_channel(const Channel& channel_alias,
@@ -31,24 +24,17 @@ namespace mamba
         static void clear_cache();
 
     private:
-        ChannelInternal(const std::string& scheme,
-                        const std::string& location,
-                        const std::string& name,
-                        const std::optional<std::string>& auth = {},
-                        const std::optional<std::string>& token = {},
-                        const std::optional<std::string>& package_filename = {},
-                        const std::optional<std::string>& canonical_name = {});
-
         using cache_type = std::map<std::string, Channel>;
         static cache_type& get_cache();
 
-        static ChannelInternal from_url(const std::string& url);
-        static ChannelInternal from_name(const std::string& name);
-        static ChannelInternal from_value(const std::string& value);
-        static ChannelInternal from_alias(const std::string& scheme,
-                                          const std::string& location,
-                                          const std::optional<std::string>& auth = {},
-                                          const std::optional<std::string>& token = {});
+        static Channel from_url(const std::string& url);
+        static Channel from_name(const std::string& name);
+        static Channel from_value(const std::string& value);
+        static Channel from_alias(const std::string& scheme,
+                                  const std::string& location,
+                                  const std::optional<std::string>& auth = {},
+                                  const std::optional<std::string>& token = {});
+
         friend class ChannelContext;
     };
 
@@ -86,7 +72,6 @@ namespace mamba
         multichannel_map m_custom_multichannels;
         channel_list m_whitelist_channels;
     };
-
-}  // namespace mamba
+}
 
 #endif

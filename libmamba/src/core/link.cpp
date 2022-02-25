@@ -419,6 +419,11 @@ namespace mamba
         if (activate)
         {
             options.env.behavior = reproc::env::empty;
+            auto qemu_ld_prefix = env::get("QEMU_LD_PREFIX");
+            if (qemu_ld_prefix)
+            {
+                envmap["QEMU_LD_PREFIX"] = qemu_ld_prefix.value();
+            }
         }
         else
         {

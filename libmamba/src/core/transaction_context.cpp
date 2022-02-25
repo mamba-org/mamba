@@ -9,6 +9,7 @@
 
 #include <reproc++/drain.hpp>
 
+#include "mamba/core/environment.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
@@ -203,6 +204,11 @@ namespace mamba
         std::map<std::string, std::string> envmap;
         auto& ctx = Context::instance();
         envmap["MAMBA_EXTRACT_THREADS"] = std::to_string(ctx.extract_threads);
+        auto qemu_ld_prefix = env::get("QEMU_LD_PREFIX");
+        if (qemu_ld_prefix)
+        {
+            envmap["QEMU_LD_PREFIX"] = qemu_ld_prefix.value();
+        }
         options.env.extra = envmap;
 
         options.stop = {

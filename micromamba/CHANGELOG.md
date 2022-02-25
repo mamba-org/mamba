@@ -1,3 +1,20 @@
+micromamba 0.22.0 (February 25, 2022)
+=====================================
+
+Bug fixes
+
+- Add noarch recompilation step for mamba and micromamba #1511
+- Add `--force-reinstall`, `--only-deps` and `--no-deps` to micromamba #1531
+- Tolerate `PATH` being unset better (thanks @chrisburr) #1532
+
+Improvements
+
+- Add `--label` option to micromamba run and automatically generate process names otherwise (thanks @Klaim) #1491, #1530, #1529
+- Add `search` as an alias for `repoquery search` (thanks @JohanMabille) #1510
+- Fix `repoquery search` not working outside activated environment (thanks @JohanMabille) #1510
+- Refactor configuration system (thanks @JohanMabille) #1500
+- Fix segfault on Linux with "fake" micromamba activate command #1496
+
 micromamba 0.21.2 (February 14, 2022)
 =====================================
 

@@ -219,16 +219,17 @@ namespace mamba
         CURL* handle, curl_infotype type, char* data, size_t size, void* userptr)
     {
         auto* logger = (spdlog::logger*) (userptr);
+        auto log = Console::hide_secrets(std::string_view(data, size));
         switch (type)
         {
             case CURLINFO_TEXT:
-                logger->info(fmt::format("* {}", std::string_view(data, size)));
+                logger->info(fmt::format("* {}", log));
                 break;
             case CURLINFO_HEADER_OUT:
-                logger->info(fmt::format("> {}", std::string_view(data, size)));
+                logger->info(fmt::format("> {}", log));
                 break;
             case CURLINFO_HEADER_IN:
-                logger->info(fmt::format("< {}", std::string_view(data, size)));
+                logger->info(fmt::format("< {}", log));
                 break;
             default:
                 break;

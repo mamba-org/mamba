@@ -2,7 +2,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
-#include "mamba/core/channel_internal.hpp"
+#include "mamba/core/channel_builder.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
@@ -426,7 +426,7 @@ namespace mamba
         auto& ctx = Context::instance();
         ctx.channel_tokens["https://conda.anaconda.org"] = "my-12345-token";
 
-        ChannelInternal::clear_cache();
+        ChannelBuilder::clear_cache();
 
         const auto& chan = make_channel("conda-forge[noarch]");
         EXPECT_EQ(chan.token(), "my-12345-token");

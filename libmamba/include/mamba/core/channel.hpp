@@ -18,14 +18,8 @@
 
 namespace mamba
 {
-    namespace detail
-    {
-        std::string concat_scheme_url(const std::string& scheme, const std::string& location);
-    }
-
     void load_tokens();
 
-    // accessors public
     class Channel
     {
     public:
@@ -46,7 +40,7 @@ namespace mamba
                                                                        = true) const;
         std::vector<std::string> urls(bool with_credential = true) const;
 
-    protected:
+    private:
         Channel(const std::string& scheme,
                 const std::string& location,
                 const std::string& name,
@@ -64,15 +58,13 @@ namespace mamba
         std::optional<std::string> m_package_filename;
         mutable std::optional<std::string> m_canonical_name;
         mutable std::unique_ptr<validate::RepoChecker> p_repo_checker;
+
+        friend class ChannelBuilder;
     };
 
-    // public
     const Channel& make_channel(const std::string& value);
-
-    // public
     std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
-    // XXX unused, but should be in python API according to docs
     void check_whitelist(const std::vector<std::string>& urls);
 }  // namespace mamba
 

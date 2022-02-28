@@ -178,6 +178,28 @@ def test_empty_create():
     )
 
 
+def test_update_py():
+    # check updating a package when a newer version
+    if platform.system() == "Windows":
+        shell_type = "cmd.exe"
+    else:
+        shell_type = "bash"
+
+    with Environment(shell_type) as env:
+        env.mamba(f'install -q -y "python=3.8" pip -c conda-forge')
+        out = env.execute('python -c "import sys; print(sys.version)"')
+        assert "3.8" in out[0]
+
+        out = env.execute('python -c "import pip; print(pip.__version__)"')
+        assert len(out)
+
+        env.mamba(f'install -q -y "python=3.9" -c conda-forge')
+        out = env.execute('python -c "import sys; print(sys.version)"')
+        assert "3.9" in out[0]
+        out = env.execute('python -c "import pip; print(pip.__version__)"')
+        assert len(out)
+
+
 def test_unicode(tmpdir):
     uc = "320 áγђß家固êôōçñ한"
     output = subprocess.check_output(

@@ -374,7 +374,12 @@ def compute_final_precs(
         if key not in lookup_dict:
             raise ValueError("missing key {} in channels: {}".format(key, lookup_dict))
         sdir = lookup_dict[key]
+
         rec = to_package_record_from_subjson(sdir, pkg, jsn_s)
+        for ipkg in installed_pkg_recs:
+            if ipkg.name == rec.name:
+                rec.noarch = ipkg.noarch
+
         final_precs.add(rec)
         to_link_records.append(rec)
 

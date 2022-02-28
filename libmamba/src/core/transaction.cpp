@@ -1062,8 +1062,8 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            std::string url;
-            MRepo* mamba_repo = nullptr;
+            MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
+            /*MRepo* mamba_repo = nullptr;
             for (auto& r : m_repos)
             {
                 if (r->repo() == s->repo)
@@ -1071,8 +1071,9 @@ namespace mamba
                     mamba_repo = r;
                     break;
                 }
-            }
+            }*/
 
+            std::string url;
             if (mamba_repo == nullptr || mamba_repo->url() == "")
             {
                 // use fallback mediadir / mediafile

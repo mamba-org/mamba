@@ -8,6 +8,7 @@
 #include "mamba/core/channel.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 
 namespace mamba
@@ -36,20 +37,9 @@ namespace mamba
 
     inline bool channel_match(Solvable* s, const std::string& channel)
     {
-        // TODO this could should be a lot better.
-        // TODO this might match too much (e.g. bioconda would also match
-        // bioconda-experimental etc) Note: s->repo->name is the URL of the repo
-        // TODO maybe better to check all repos, select pointers, and compare the
-        // pointer (s->repo == ptr?)
-        const Channel& chan = make_channel(s->repo->name);
-        for (const auto& url : chan.urls(false))
-        {
-            if (url.find(channel) != std::string::npos)
-            {
-                return true;
-            }
-        }
-        return false;
+        MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
+        const Channel* chan = mrepo->channel();
+        return chan && chan->name() == channel;
     }
 
     void MSolver::add_global_job(int job_flag)

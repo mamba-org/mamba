@@ -13,6 +13,7 @@
 
 #include "nlohmann/json.hpp"
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/mamba_fs.hpp"
@@ -57,6 +58,11 @@ namespace mamba
                     MultiPackageCache& caches,
                     bool is_noarch);
 
+        MSubdirData(const Channel& channel,
+                    const std::string& platform,
+                    const std::string& url,
+                    MultiPackageCache& caches);
+
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
                                                  const fs::file_time_type::clock::time_point& ref);
@@ -100,6 +106,7 @@ namespace mamba
         bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;
+        const Channel* p_channel = nullptr;
     };
 
     // Contrary to conda original function, this one expects a full url

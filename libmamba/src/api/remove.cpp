@@ -72,8 +72,7 @@ namespace mamba
             MPool pool;
             PrefixData prefix_data(ctx.target_prefix);
             prefix_data.load();
-            auto repo = MRepo(pool, prefix_data);
-            repos.push_back(repo);
+            repos.push_back(MRepo(pool, prefix_data));
 
             std::vector<MRepo*> repo_ptrs;
             for (auto& r : repos)

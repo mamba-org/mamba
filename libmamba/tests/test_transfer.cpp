@@ -10,13 +10,10 @@ namespace mamba
 #ifdef __linux__
         Context::instance().quiet = true;
         {
+            const mamba::Channel& c = mamba::make_channel("conda-forge");
             mamba::MultiDownloadTarget multi_dl;
             mamba::MultiPackageCache pkg_cache({ "/tmp/" });
-            mamba::MSubdirData cf("conda-forge/linux-64",
-                                  "file:///nonexistent/repodata.json",
-                                  "zyx.json",
-                                  pkg_cache,
-                                  false);
+            mamba::MSubdirData cf(c, "linux-64", "file:///nonexistent/repodata.json", pkg_cache);
             cf.load();
             multi_dl.add(cf.target());
 
@@ -29,13 +26,10 @@ namespace mamba
             EXPECT_EQ(cf.target()->result, 37);
         }
         {
+            const mamba::Channel& c = mamba::make_channel("conda-forge");
             mamba::MultiDownloadTarget multi_dl;
             mamba::MultiPackageCache pkg_cache({ "/tmp/" });
-            mamba::MSubdirData cf("conda-forge/noarch",
-                                  "file:///nonexistent/repodata.json",
-                                  "zyx.json",
-                                  pkg_cache,
-                                  true);
+            mamba::MSubdirData cf(c, "noarch", "file:///nonexistent/repodata.json", pkg_cache);
             cf.load();
             multi_dl.add(cf.target());
             EXPECT_THROW(multi_dl.download(MAMBA_DOWNLOAD_FAILFAST), std::runtime_error);

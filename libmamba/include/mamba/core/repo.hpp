@@ -10,6 +10,7 @@
 #include <string>
 #include <tuple>
 
+#include "channel.hpp"
 #include "prefix_data.hpp"
 
 extern "C"
@@ -82,6 +83,12 @@ namespace mamba
               const fs::path& filename,
               const RepoMetadata& meta);
 
+        MRepo(MPool& pool,
+              const std::string& name,
+              const fs::path& filename,
+              const RepoMetadata& meta,
+              const Channel& channel);
+
         /**
          * Constructor.
          * @param pool ``libsolv`` pool wrapper
@@ -91,6 +98,12 @@ namespace mamba
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
         ~MRepo();
+
+        MRepo(const MRepo&) = delete;
+        MRepo& operator=(const MRepo&) = delete;
+
+        MRepo(MRepo&&);
+        MRepo& operator=(MRepo&&);
 
         void set_installed();
         void set_priority(int priority, int subpriority);
@@ -103,6 +116,7 @@ namespace mamba
         bool write() const;
         const std::string& url() const;
         Repo* repo() const;
+        const Channel* channel() const;
         std::tuple<int, int> priority() const;
         std::size_t size() const;
 
@@ -117,6 +131,7 @@ namespace mamba
         RepoMetadata m_metadata;
 
         Repo* m_repo;
+        const Channel* p_channel = nullptr;
     };
 }  // namespace mamba
 

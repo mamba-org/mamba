@@ -1,3 +1,11 @@
+2022.02.28
+==========
+
+Releases: libmamba 0.22.1, libmambapy 0.22.1, mamba 0.22.1
+
+Bug fixes
+- [mamba] Properly add `noarch` to package record to force recompilation #1545
+
 2022.02.25
 ==========
 

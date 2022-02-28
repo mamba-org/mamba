@@ -1,3 +1,10 @@
+mamba 0.22.1 (February 28, 2022)
+================================
+
+Bug fixes
+
+- Properly add `noarch` to package record to force recompilation #1545
+
 mamba 0.22.0 (February 25, 2022)
 ================================
 

@@ -186,22 +186,19 @@ def test_update_py():
         shell_type = "bash"
 
     with Environment(shell_type) as env:
-        env.mamba(
-            f'install -q -y "python=3.8" pip -c conda-forge'
-        )
+        env.mamba(f'install -q -y "python=3.8" pip -c conda-forge')
         out = env.execute('python -c "import sys; print(sys.version)"')
-        assert("3.8" in out[0])
+        assert "3.8" in out[0]
 
         out = env.execute('python -c "import pip; print(pip.__version__)"')
-        assert(len(out))
+        assert len(out)
 
-        env.mamba(
-            f'install -q -y "python=3.9" -c conda-forge'
-        )
+        env.mamba(f'install -q -y "python=3.9" -c conda-forge')
         out = env.execute('python -c "import sys; print(sys.version)"')
-        assert("3.9" in out[0])
+        assert "3.9" in out[0]
         out = env.execute('python -c "import pip; print(pip.__version__)"')
-        assert(len(out))
+        assert len(out)
+
 
 def test_unicode(tmpdir):
     uc = "320 áγђß家固êôōçñ한"

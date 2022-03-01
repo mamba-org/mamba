@@ -70,4 +70,11 @@ namespace mamba
     {
         return m_pool;
     }
+
+    MRepo& MPool::add_repo(MRepo&& repo)
+    {
+        m_repo_list.push_back(std::move(repo));
+        return m_repo_list.back();
+    }
+
 }  // namespace mamba

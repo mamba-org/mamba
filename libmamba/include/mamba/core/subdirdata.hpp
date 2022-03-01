@@ -19,6 +19,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 
@@ -65,7 +66,7 @@ namespace mamba
         DownloadTarget* target();
         bool finalize_transfer();
 
-        MRepo create_repo(MPool& pool);
+        MRepo& create_repo(MPool& pool);
 
     private:
         bool decompress();

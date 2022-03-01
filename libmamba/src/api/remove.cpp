@@ -68,11 +68,10 @@ namespace mamba
                 throw std::runtime_error("Aborted.");
             }
 
-            std::vector<MRepo> repos;
-            MPool pool;
             PrefixData prefix_data(ctx.target_prefix);
             prefix_data.load();
-            repos.push_back(MRepo(pool, prefix_data));
+            MPool pool;
+            pool.add_repo(MRepo(pool, prefix_data));
 
             const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });

@@ -223,7 +223,7 @@ PYBIND11_MODULE(bindings, m)
                       const std::string&,
                       MultiPackageCache&,
                       const std::string&>())
-        .def("create_repo", &MSubdirData::create_repo)
+        .def("create_repo", &MSubdirData::create_repo, py::return_value_policy::reference)
         .def("load", &MSubdirData::load)
         .def("loaded", &MSubdirData::loaded)
         .def("cache_path", &MSubdirData::cache_path);

@@ -35,7 +35,7 @@ namespace mamba
         MPool pool;
         MultiPackageCache package_caches(ctx.pkgs_dirs);
 
-        auto repos = load_channels(pool, package_caches, 0);
+        load_channels(pool, package_caches, 0);
 
         PrefixData prefix_data(ctx.target_prefix);
         prefix_data.load();
@@ -46,7 +46,7 @@ namespace mamba
 
         prefix_data.add_virtual_packages(get_virtual_packages());
 
-        repos.push_back(MRepo(pool, prefix_data));
+        pool.add_repo(MRepo(pool, prefix_data));
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },

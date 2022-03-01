@@ -27,17 +27,16 @@ namespace mamba
 
         // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
         MultiPackageCache package_caches(ctx.pkgs_dirs);
-        std::vector<MRepo> repos;
         if (use_local)
         {
             auto prefix_data = PrefixData(ctx.target_prefix);
             prefix_data.load();
-            repos.push_back(MRepo(pool, prefix_data));
+            pool.add_repo(MRepo(pool, prefix_data));
             Console::stream() << "Loaded current active prefix: " << ctx.target_prefix << std::endl;
         }
         else
         {
-            repos = load_channels(pool, package_caches, 0);
+            load_channels(pool, package_caches, 0);
         }
 
         Query q(pool);

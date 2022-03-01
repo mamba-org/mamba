@@ -8,6 +8,7 @@
 #define MAMBA_CORE_POOL_HPP
 
 #include "context.hpp"
+#include "repo.hpp"
 
 extern "C"
 {
@@ -32,9 +33,12 @@ namespace mamba
 
         operator Pool*();
 
+        MRepo& add_repo(MRepo&& repo);
+
     private:
         std::pair<spdlog::logger*, std::string> m_debug_logger;
         Pool* m_pool;
+        std::vector<MRepo> m_repo_list;
     };
 }  // namespace mamba
 

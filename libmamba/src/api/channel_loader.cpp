@@ -54,14 +54,7 @@ namespace mamba
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {
-                std::string repodata_full_url = concat(url, "/repodata.json");
-
-                auto sdir = std::make_shared<MSubdirData>(
-                    concat(channel->canonical_name(), "/", platform),
-                    repodata_full_url,
-                    cache_fn_url(repodata_full_url),
-                    package_caches,
-                    platform == "noarch");
+                auto sdir = std::make_shared<MSubdirData>(*channel, platform, url, package_caches);
 
                 sdir->load();
                 multi_dl.add(sdir->target());
@@ -118,7 +111,7 @@ namespace mamba
             {
                 MRepo repo = subdir->create_repo(pool);
                 repo.set_priority(prio.first, prio.second);
-                repos.push_back(repo);
+                repos.push_back(std::move(repo));
             }
             catch (std::runtime_error& e)
             {

@@ -244,6 +244,16 @@ namespace mamba
         return build_url(*this, join_url(base, name(), platform), with_credential);
     }
 
+    bool operator==(const Channel& lhs, const Channel& rhs)
+    {
+        return lhs.location() == rhs.location() && lhs.name() == rhs.name();
+    }
+
+    bool operator!=(const Channel& lhs, const Channel& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
     /************************************
      * utility functions implementation *
      ************************************/

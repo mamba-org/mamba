@@ -121,9 +121,8 @@ namespace mamba
         MTransaction(MPool& pool,
                      const std::vector<MatchSpec>& specs_to_remove,
                      const std::vector<MatchSpec>& specs_to_install,
-                     MultiPackageCache& caches,
-                     std::vector<MRepo*> repos);
-        MTransaction(MSolver& solver, MultiPackageCache& caches, std::vector<MRepo*> repos);
+                     MultiPackageCache& caches);
+        MTransaction(MSolver& solver, MultiPackageCache& caches);
 
         ~MTransaction();
 
@@ -157,7 +156,6 @@ namespace mamba
         MultiPackageCache m_multi_cache;
         const fs::path m_cache_path;
         std::vector<Solvable*> m_to_install, m_to_remove;
-        std::vector<MRepo*> m_repos;
 
         History::UserRequest m_history_entry;
         Transaction* m_transaction;
@@ -169,8 +167,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_urls(MPool& pool,
                                                        const std::vector<std::string>& urls,
-                                                       MultiPackageCache& package_caches,
-                                                       std::vector<MRepo*>& repos);
+                                                       MultiPackageCache& package_caches);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

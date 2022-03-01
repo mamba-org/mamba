@@ -46,8 +46,7 @@ namespace mamba
 
         prefix_data.add_virtual_packages(get_virtual_packages());
 
-        auto repo = MRepo(pool, prefix_data);
-        repos.push_back(repo);
+        repos.push_back(MRepo(pool, prefix_data));
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
@@ -106,13 +105,7 @@ namespace mamba
 
         solver.solve();
 
-        // TODO this is not so great
-        std::vector<MRepo*> repo_ptrs;
-        for (auto& r : repos)
-        {
-            repo_ptrs.push_back(&r);
-        }
-        MTransaction transaction(solver, package_caches, repo_ptrs);
+        MTransaction transaction(solver, package_caches);
 
         auto execute_transaction = [&](MTransaction& transaction)
         {

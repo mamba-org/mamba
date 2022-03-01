@@ -13,6 +13,7 @@
 
 #include "nlohmann/json.hpp"
 
+#include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/mamba_fs.hpp"
@@ -43,19 +44,11 @@ namespace mamba
     class MSubdirData
     {
     public:
-        /**
-         * Constructor.
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param repodata_url URL of the repodata file
-         * @param repodata_fn Local path of the repodata file
-         * @param possible packages caches
-         * @param is_noarch Local path of the repodata file
-         */
-        MSubdirData(const std::string& name,
-                    const std::string& repodata_url,
-                    const std::string& repodata_fn,
+        MSubdirData(const Channel& channel,
+                    const std::string& platform,
+                    const std::string& url,
                     MultiPackageCache& caches,
-                    bool is_noarch);
+                    const std::string& repodata_fn = "repodata.json");
 
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
@@ -100,6 +93,7 @@ namespace mamba
         bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;
+        const Channel* p_channel = nullptr;
     };
 
     // Contrary to conda original function, this one expects a full url

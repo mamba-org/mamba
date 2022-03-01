@@ -37,7 +37,18 @@ namespace mamba
     {
         m_url = rsplit(metadata.url, "/", 1)[0];
         m_repo = repo_create(pool, m_url.c_str());
+        m_repo->appdata = this;
         read_file(index);
+    }
+
+    MRepo::MRepo(MPool& pool,
+                 const std::string& name,
+                 const fs::path& index,
+                 const RepoMetadata& metadata,
+                 const Channel& channel)
+        : MRepo(pool, name, index, metadata)
+    {
+        p_channel = &channel;
     }
 
     MRepo::MRepo(MPool& pool,
@@ -47,6 +58,7 @@ namespace mamba
         : m_url(url)
     {
         m_repo = repo_create(pool, name.c_str());
+        m_repo->appdata = this;
         read_file(index);
     }
 
@@ -119,6 +131,7 @@ namespace mamba
                  const std::vector<PackageInfo>& package_infos)
     {
         m_repo = repo_create(pool, name.c_str());
+        m_repo->appdata = this;
         int flags = 0;
         Repodata* data;
         data = repo_add_repodata(m_repo, flags);
@@ -132,6 +145,7 @@ namespace mamba
     MRepo::MRepo(MPool& pool, const PrefixData& prefix_data)
     {
         m_repo = repo_create(pool, "installed");
+        m_repo->appdata = this;
         int flags = 0;
         Repodata* data;
         data = repo_add_repodata(m_repo, flags);
@@ -160,6 +174,32 @@ namespace mamba
         // /*reuse_ids*/1);
     }
 
+    MRepo::MRepo(MRepo&& rhs)
+        : m_json_file(std::move(rhs.m_json_file))
+        , m_solv_file(std::move(rhs.m_solv_file))
+        , m_url(std::move(rhs.m_url))
+        , m_metadata(std::move(rhs.m_metadata))
+        , m_repo(rhs.m_repo)
+        , p_channel(rhs.p_channel)
+    {
+        rhs.m_repo = nullptr;
+        rhs.p_channel = nullptr;
+        m_repo->appdata = this;
+    }
+
+    MRepo& MRepo::operator=(MRepo&& rhs)
+    {
+        using std::swap;
+        swap(m_json_file, rhs.m_json_file);
+        swap(m_solv_file, rhs.m_solv_file);
+        swap(m_url, rhs.m_url);
+        swap(m_metadata, rhs.m_metadata);
+        swap(m_repo, rhs.m_repo);
+        swap(p_channel, rhs.p_channel);
+        m_repo->appdata = this;
+        return *this;
+    }
+
     void MRepo::set_installed()
     {
         pool_set_installed(m_repo->pool, m_repo);
@@ -184,6 +224,11 @@ namespace mamba
     Repo* MRepo::repo() const
     {
         return m_repo;
+    }
+
+    const Channel* MRepo::channel() const
+    {
+        return p_channel;
     }
 
     std::tuple<int, int> MRepo::priority() const

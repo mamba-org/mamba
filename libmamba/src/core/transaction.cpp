@@ -420,10 +420,8 @@ namespace mamba
     MTransaction::MTransaction(MPool& pool,
                                const std::vector<MatchSpec>& specs_to_remove,
                                const std::vector<MatchSpec>& specs_to_install,
-                               MultiPackageCache& caches,
-                               std::vector<MRepo*> repos)
+                               MultiPackageCache& caches)
         : m_multi_cache(caches)
-        , m_repos(repos)
     {
         // auto& ctx = Context::instance();
         std::vector<PackageInfo> pi_result;
@@ -525,11 +523,8 @@ namespace mamba
     }
 
 
-    MTransaction::MTransaction(MSolver& solver,
-                               MultiPackageCache& caches,
-                               std::vector<MRepo*> repos)
+    MTransaction::MTransaction(MSolver& solver, MultiPackageCache& caches)
         : m_multi_cache(caches)
-        , m_repos(repos)
     {
         if (!solver.is_solved())
         {
@@ -1062,17 +1057,9 @@ namespace mamba
 
         for (auto& s : m_to_install)
         {
-            std::string url;
-            MRepo* mamba_repo = nullptr;
-            for (auto& r : m_repos)
-            {
-                if (r->repo() == s->repo)
-                {
-                    mamba_repo = r;
-                    break;
-                }
-            }
+            MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
 
+            std::string url;
             if (mamba_repo == nullptr || mamba_repo->url() == "")
             {
                 // use fallback mediadir / mediafile
@@ -1491,8 +1478,7 @@ namespace mamba
 
     MTransaction create_explicit_transaction_from_urls(MPool& pool,
                                                        const std::vector<std::string>& urls,
-                                                       MultiPackageCache& package_caches,
-                                                       std::vector<MRepo*>& repos)
+                                                       MultiPackageCache& package_caches)
     {
         std::vector<MatchSpec> specs_to_install;
         for (auto& u : urls)
@@ -1518,6 +1504,6 @@ namespace mamba
             }
             specs_to_install.push_back(ms);
         }
-        return MTransaction(pool, {}, specs_to_install, package_caches, repos);
+        return MTransaction(pool, {}, specs_to_install, package_caches);
     }
 }  // namespace mamba

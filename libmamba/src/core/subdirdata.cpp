@@ -160,22 +160,22 @@ namespace mamba
 
     }
 
-
-    MSubdirData::MSubdirData(const std::string& name,
-                             const std::string& repodata_url,
-                             const std::string& repodata_fn,
+    MSubdirData::MSubdirData(const Channel& channel,
+                             const std::string& platform,
+                             const std::string& url,
                              MultiPackageCache& caches,
-                             bool is_noarch)
+                             const std::string& repodata_fn)
         : m_progress_bar(ProgressProxy())
         , m_loaded(false)
         , m_download_complete(false)
-        , m_repodata_url(repodata_url)
-        , m_name(name)
-        , m_json_fn(repodata_fn)
-        , m_solv_fn(repodata_fn.substr(0, repodata_fn.size() - 4) + "solv")
+        , m_repodata_url(concat(url, "/", repodata_fn))
+        , m_name(concat(channel.canonical_name(), "/", platform))
         , m_caches(caches)
-        , m_is_noarch(is_noarch)
+        , m_is_noarch(platform == "noarch")
+        , p_channel(&channel)
     {
+        m_json_fn = cache_fn_url(m_repodata_url);
+        m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
     }
 
     fs::file_time_type::duration MSubdirData::check_cache(
@@ -593,7 +593,7 @@ namespace mamba
                            m_mod_etag.value("_etag", ""),
                            m_mod_etag.value("_mod", "") };
 
-        return MRepo(pool, m_name, cache_path(), meta);
+        return MRepo(pool, m_name, cache_path(), meta, *p_channel);
     }
 
     void MSubdirData::clear_cache()

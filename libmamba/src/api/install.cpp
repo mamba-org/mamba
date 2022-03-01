@@ -368,8 +368,7 @@ namespace mamba
 
         prefix_data.add_virtual_packages(get_virtual_packages());
 
-        auto repo = MRepo(pool, prefix_data);
-        repos.push_back(repo);
+        repos.push_back(MRepo(pool, prefix_data));
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
@@ -436,11 +435,7 @@ namespace mamba
             throw std::runtime_error("UnsatisfiableError");
         }
 
-        std::vector<MRepo*> repo_ptrs;
-        for (auto& r : repos)
-            repo_ptrs.push_back(&r);
-
-        MTransaction trans(solver, package_caches, repo_ptrs);
+        MTransaction trans(solver, package_caches);
 
         if (ctx.json)
         {
@@ -473,8 +468,7 @@ namespace mamba
         fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
         MultiPackageCache pkg_caches({ pkgs_dirs });
 
-        std::vector<MRepo*> repos = {};
-        auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches, repos);
+        auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
 
         prefix_data.load();
         prefix_data.add_virtual_packages(get_virtual_packages());

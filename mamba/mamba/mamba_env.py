@@ -136,7 +136,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         exit(1)
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)
-    transaction = api.Transaction(solver, package_cache, repos)
+    transaction = api.Transaction(solver, package_cache)
     mmb_specs, to_link, to_unlink = transaction.to_conda()
 
     specs_to_add = [MatchSpec(m) for m in mmb_specs[0]]

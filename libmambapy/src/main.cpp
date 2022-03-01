@@ -104,7 +104,7 @@ PYBIND11_MODULE(bindings, m)
         .def("clear", &MRepo::clear);
 
     py::class_<MTransaction>(m, "Transaction")
-        .def(py::init<MSolver&, MultiPackageCache&, std::vector<MRepo*>&>())
+        .def(py::init<MSolver&, MultiPackageCache&>())
         .def("to_conda", &MTransaction::to_conda)
         .def("log_json", &MTransaction::log_json)
         .def("print", &MTransaction::print)

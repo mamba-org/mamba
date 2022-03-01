@@ -74,10 +74,6 @@ namespace mamba
             prefix_data.load();
             repos.push_back(MRepo(pool, prefix_data));
 
-            std::vector<MRepo*> repo_ptrs;
-            for (auto& r : repos)
-                repo_ptrs.push_back(&r);
-
             const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });
 
@@ -93,7 +89,7 @@ namespace mamba
             if (force)
             {
                 std::vector<MatchSpec> mspecs(specs.begin(), specs.end());
-                auto transaction = MTransaction(pool, mspecs, {}, package_caches, repo_ptrs);
+                auto transaction = MTransaction(pool, mspecs, {}, package_caches);
                 execute_transaction(transaction);
             }
             else
@@ -120,7 +116,7 @@ namespace mamba
                 solver.add_jobs(specs, solver_flag);
                 solver.solve();
 
-                MTransaction transaction(solver, package_caches, repo_ptrs);
+                MTransaction transaction(solver, package_caches);
                 execute_transaction(transaction);
             }
         }

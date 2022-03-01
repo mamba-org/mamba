@@ -62,6 +62,9 @@ namespace mamba
         friend class ChannelBuilder;
     };
 
+    bool operator==(const Channel& lhs, const Channel& rhs);
+    bool operator!=(const Channel& lhs, const Channel& rhs);
+
     const Channel& make_channel(const std::string& value);
     std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 

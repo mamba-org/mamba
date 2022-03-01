@@ -232,26 +232,36 @@ void
 set_ps_command(CLI::App* subcom)
 {
     auto list_subcom = subcom->add_subcommand("list");
-    list_subcom->callback(
-        []()
-        {
-            nlohmann::json info;
-            {
-                auto proc_dir_lock = lock_proc_dir();
-                info = get_all_running_processes_info();
-            }
-            printers::Table table({ "PID", "Name", "Prefix", "Command" });
-            table.set_padding({ 2, 4, 4, 4 });
-            for (auto& el : info)
-            {
-                table.add_row({ el["pid"].get<std::string>(),
-                                el["name"].get<std::string>(),
-                                env_name(el["prefix"].get<std::string>()),
-                                join(" ", el["command"].get<std::vector<std::string>>()) });
-            }
 
-            table.print(std::cout);
+    auto list_callback = []()
+    {
+        nlohmann::json info;
+        {
+            auto proc_dir_lock = lock_proc_dir();
+            info = get_all_running_processes_info();
+        }
+        printers::Table table({ "PID", "Name", "Prefix", "Command" });
+        table.set_padding({ 2, 4, 4, 4 });
+        for (auto& el : info)
+        {
+            table.add_row({ el["pid"].get<std::string>(),
+                            el["name"].get<std::string>(),
+                            env_name(el["prefix"].get<std::string>()),
+                            join(" ", el["command"].get<std::vector<std::string>>()) });
+        }
+
+        table.print(std::cout);
+    };
+
+    // ps is an alias for `ps list`
+    list_subcom->callback(list_callback);
+    subcom->callback(
+        [subcom, list_subcom, list_callback]()
+        {
+            if (!subcom->got_subcommand(list_subcom))
+                list_callback();
         });
+
 
     auto stop_subcom = subcom->add_subcommand("stop");
     static std::string pid_or_name;
@@ -275,11 +285,11 @@ set_ps_command(CLI::App* subcom)
             };
 #else
             auto stop_process = [](const std::string& name, PID pid)
-            { LOG_ERROR << "Process stopping not yet implemented on Windows." };
+            { LOG_ERROR << "Process stopping not yet implemented on Windows."; };
 #endif
             for (auto& p : procs)
             {
-                auto pid = std::stoull(p["pid"].get<std::string>());
+                PID pid = std::stoull(p["pid"].get<std::string>());
                 stop_process(p["name"], pid);
             }
             if (procs.empty())
@@ -426,6 +436,7 @@ set_run_command(CLI::App* subcom)
 #endif
             int status;
             {
+#ifndef _WIN32
                 // Lock the process directory to read and write in it until we are ready to launch
                 // the child process.
                 auto proc_dir_lock = lock_proc_dir();
@@ -461,7 +472,7 @@ set_run_command(CLI::App* subcom)
                 ScopedProcFile scoped_proc_file{ process_name,
                                                  raw_command,
                                                  std::move(proc_dir_lock) };
-
+#endif
                 PID pid;
                 std::error_code ec;
 

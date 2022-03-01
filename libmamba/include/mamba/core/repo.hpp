@@ -21,10 +21,10 @@ extern "C"
 #include "solv/repo_solv.h"
 }
 
-#include "pool.hpp"
-
 namespace mamba
 {
+    class MPool;
+
     /**
      * Represents a channel subdirectory
      * index.

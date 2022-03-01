@@ -586,14 +586,14 @@ namespace mamba
         return cache_dir;
     }
 
-    MRepo MSubdirData::create_repo(MPool& pool)
+    MRepo& MSubdirData::create_repo(MPool& pool)
     {
         RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
                            m_mod_etag.value("_etag", ""),
                            m_mod_etag.value("_mod", "") };
 
-        return MRepo(pool, m_name, cache_path(), meta, *p_channel);
+        return pool.add_repo(MRepo(pool, m_name, cache_path(), meta, *p_channel));
     }
 
     void MSubdirData::clear_cache()

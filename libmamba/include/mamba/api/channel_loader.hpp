@@ -8,8 +8,8 @@ namespace mamba
 {
     namespace detail
     {
-        MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
+        MRepo& create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
     }
 
-    std::vector<MRepo> load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry);
+    void load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry);
 }

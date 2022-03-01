@@ -10,7 +10,7 @@ namespace mamba
 {
     namespace detail
     {
-        MRepo create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
+        MRepo& create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -27,11 +27,11 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return MRepo(pool, prefix_data);
+            return pool.add_repo(MRepo(pool, prefix_data));
         }
     }
 
-    std::vector<MRepo> load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
+    void load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
@@ -81,14 +81,12 @@ namespace mamba
             multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
         }
 
-        std::vector<MRepo> repos;
         if (ctx.offline)
         {
             LOG_INFO << "Creating repo from pkgs_dir for offline";
             for (const auto& c : ctx.pkgs_dirs)
-                repos.push_back(detail::create_repo_from_pkgs_dir(pool, c));
+                detail::create_repo_from_pkgs_dir(pool, c);
         }
-
         std::string prev_channel;
         bool loading_failed = false;
         for (std::size_t i = 0; i < subdirs.size(); ++i)
@@ -109,9 +107,8 @@ namespace mamba
             auto& prio = priorities[i];
             try
             {
-                MRepo repo = subdir->create_repo(pool);
+                MRepo& repo = subdir->create_repo(pool);
                 repo.set_priority(prio.first, prio.second);
-                repos.push_back(std::move(repo));
             }
             catch (std::runtime_error& e)
             {
@@ -139,7 +136,6 @@ namespace mamba
             }
             throw std::runtime_error("Could not load repodata. Cache corrupted?");
         }
-        return repos;
     }
 
 }

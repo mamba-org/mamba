@@ -357,7 +357,7 @@ namespace mamba
         }
 
         MPool pool;
-        std::vector<MRepo> repos = load_channels(pool, package_caches, is_retry);
+        load_channels(pool, package_caches, is_retry);
 
         PrefixData prefix_data(ctx.target_prefix);
         prefix_data.load();
@@ -368,7 +368,7 @@ namespace mamba
 
         prefix_data.add_virtual_packages(get_virtual_packages());
 
-        repos.push_back(MRepo(pool, prefix_data));
+        pool.add_repo(MRepo(pool, prefix_data));
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },

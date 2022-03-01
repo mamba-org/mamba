@@ -8,7 +8,6 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/util_os.hpp"
 
-#include <spdlog/fmt/ostr.h>
 #include <nlohmann/json.hpp>
 
 #ifndef _WIN32
@@ -23,13 +22,10 @@ extern "C"
 }
 #endif
 
+#include "run.hpp"
 
 namespace mamba
 {
-
-
-    bool is_process_name_running(const std::string& name);
-
     std::string generate_unique_process_name(std::string_view program_name)
     {
         assert(!program_name.empty());
@@ -101,22 +97,13 @@ namespace mamba
         {
             throw std::runtime_error(
                 fmt::format("'mamba run' failed to lock ({}) or lockfile was not properly deleted",
-                            proc_dir()));
+                            proc_dir().string()));
         }
         return lockfile;
     }
 
-    struct Predicate_AlwaysTrue
-    {
-        template <typename T>
-        constexpr bool operator()(T&&) noexcept
-        {
-            return true;
-        }
-    };
-
-    template <typename Predicate = Predicate_AlwaysTrue>
-    nlohmann::json get_all_running_processes_info(Predicate filter = {})
+    nlohmann::json get_all_running_processes_info(
+        const std::function<bool(const nlohmann::json&)>& filter)
     {
         nlohmann::json all_processes_info;
 
@@ -128,15 +115,16 @@ namespace mamba
             if (file_location.extension() != ".json")
                 continue;
 
-            fs::ifstream pid_file{ file_location, open_mode };
+            std::ifstream pid_file{ file_location, open_mode };
             if (!pid_file.is_open())
             {
-                LOG_WARNING << fmt::format("failed to open {}", file_location);
+                LOG_WARNING << fmt::format("failed to open {}", file_location.string());
                 continue;
             }
 
-            const auto running_processes_info = nlohmann::json::parse(pid_file);
-            if (filter(running_processes_info))
+            auto running_processes_info = nlohmann::json::parse(pid_file);
+            running_processes_info["pid"] = file_location.filename().replace_extension();
+            if (!filter || filter(running_processes_info))
                 all_processes_info.push_back(running_processes_info);
         }
 
@@ -146,7 +134,7 @@ namespace mamba
     bool is_process_name_running(const std::string& name)
     {
         const auto other_processes_with_same_name = get_all_running_processes_info(
-            [&](auto&& process_info) { return process_info["child_name"] == name; });
+            [&](const nlohmann::json& process_info) { return process_info["name"] == name; });
         return !other_processes_with_same_name.empty();
     }
 
@@ -156,25 +144,25 @@ namespace mamba
         const fs::path location;
 
     public:
-        ScopedProcFile(const std::string& child_name,
+        ScopedProcFile(const std::string& name,
                        const std::vector<std::string>& command,
                        std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
             assert(proc_dir_lock);  // Lock must be hold for the duraction of this constructor.
 
-            const auto open_mode
-                = std::ios::binary | std::ios::trunc | std::ios::in | std::ios::out;
-            fs::fstream pid_file{ location, open_mode };
+            const auto open_mode = std::ios::binary | std::ios::trunc | std::ios::out;
+            std::ofstream pid_file{ location, open_mode };
             if (!pid_file.is_open())
             {
                 throw std::runtime_error(
-                    fmt::format("'mamba run' failed to open/create file: {}", location));
+                    fmt::format("'mamba run' failed to open/create file: {}", location.string()));
             }
 
             nlohmann::json file_json;
-            file_json["child_name"] = child_name;
+            file_json["name"] = name;
             file_json["command"] = command;
+            file_json["prefix"] = Context::instance().target_prefix;
             // TODO: add other info here if necessary
             pid_file << file_json;
         }
@@ -187,7 +175,7 @@ namespace mamba
             if (!is_removed)
             {
                 LOG_WARNING << fmt::format(
-                    "Failed to remove file '{}' : {}", location, errcode.message());
+                    "Failed to remove file '{}' : {}", location.string(), errcode.message());
             }
         }
     };
@@ -239,6 +227,79 @@ daemonize()
     }
 }
 #endif
+
+void
+set_ps_command(CLI::App* subcom)
+{
+    auto list_subcom = subcom->add_subcommand("list");
+
+    auto list_callback = []()
+    {
+        nlohmann::json info;
+        {
+            auto proc_dir_lock = lock_proc_dir();
+            info = get_all_running_processes_info();
+        }
+        printers::Table table({ "PID", "Name", "Prefix", "Command" });
+        table.set_padding({ 2, 4, 4, 4 });
+        for (auto& el : info)
+        {
+            table.add_row({ el["pid"].get<std::string>(),
+                            el["name"].get<std::string>(),
+                            env_name(el["prefix"].get<std::string>()),
+                            join(" ", el["command"].get<std::vector<std::string>>()) });
+        }
+
+        table.print(std::cout);
+    };
+
+    // ps is an alias for `ps list`
+    list_subcom->callback(list_callback);
+    subcom->callback(
+        [subcom, list_subcom, list_callback]()
+        {
+            if (!subcom->got_subcommand(list_subcom))
+                list_callback();
+        });
+
+
+    auto stop_subcom = subcom->add_subcommand("stop");
+    static std::string pid_or_name;
+    stop_subcom->add_option("pid_or_name", pid_or_name, "Process ID or process name (label)");
+    stop_subcom->callback(
+        []()
+        {
+            auto filter = [](const nlohmann::json& j) -> bool
+            { return j["name"] == pid_or_name || j["pid"] == pid_or_name; };
+            nlohmann::json procs;
+            {
+                auto proc_dir_lock = lock_proc_dir();
+                procs = get_all_running_processes_info(filter);
+            }
+
+#ifndef _WIN32
+            auto stop_process = [](const std::string& name, PID pid)
+            {
+                std::cout << fmt::format("Stopping {} [{}]", name, pid) << std::endl;
+                kill(pid, SIGTERM);
+            };
+#else
+            auto stop_process = [](const std::string& name, PID pid)
+            { LOG_ERROR << "Process stopping not yet implemented on Windows."; };
+#endif
+            for (auto& p : procs)
+            {
+                PID pid = std::stoull(p["pid"].get<std::string>());
+                stop_process(p["name"], pid);
+            }
+            if (procs.empty())
+            {
+                Console::print("Did not find any matching process.");
+                return -1;
+            }
+            return 0;
+        });
+}
 
 void
 set_run_command(CLI::App* subcom)
@@ -296,6 +357,9 @@ set_run_command(CLI::App* subcom)
                 exit(1);
             }
 
+            // create a copy before inserting additional things
+            std::vector<std::string> raw_command = command;
+
             // Make sure the proc directory is always existing and ready.
             fs::create_directories(proc_dir());
 
@@ -306,44 +370,6 @@ set_run_command(CLI::App* subcom)
 #ifndef _WIN32
             if (command.front() != "exec")
                 command.insert(command.begin(), "exec");
-
-            // Lock the process directory to read and write in it until we are ready to launch the
-            // child process.
-            auto proc_dir_lock = lock_proc_dir();
-
-            const std::string process_name = [&]
-            {
-                // Insert a unique process name associated to the command, either specified by the
-                // user or generated.
-                command.reserve(4);  // We need at least 4 objects to not move around.
-
-                const auto exe_name_it = std::next(command.begin());
-                if (specific_process_name.empty())
-                {
-                    const auto unique_name = generate_unique_process_name(*exe_name_it);
-                    command.insert(exe_name_it, { { "-a" }, unique_name });
-                    return unique_name;
-                }
-                else
-                {
-                    if (is_process_name_running(specific_process_name))
-                    {
-                        throw std::runtime_error(
-                            fmt::format("Another process with name '{}' is currently running.",
-                                        specific_process_name));
-                    }
-                    command.insert(exe_name_it, { { "-a" }, specific_process_name });
-                    return specific_process_name;
-                }
-            }();
-
-            // Writes the process file then unlock the directory. Deletes the process file once exit
-            // is called (in the destructor).
-            static ScopedProcFile scoped_proc_file{
-                process_name, command, std::move(proc_dir_lock)
-            };  // Note: this object is static only so that calls to `std::exit()` will call the
-                // destructor.
-
 #endif
 
             auto [wrapped_command, script_file]
@@ -408,57 +434,95 @@ set_run_command(CLI::App* subcom)
                 daemonize();
             }
 #endif
-
             int status;
-            PID pid;
-            std::error_code ec;
-
-            ec = proc.start(wrapped_command, opt);
-
-            std::tie(pid, ec) = proc.pid();
-
-            if (ec)
             {
-                std::cerr << ec.message() << std::endl;
-                exit(1);
-            }
+#ifndef _WIN32
+                // Lock the process directory to read and write in it until we are ready to launch
+                // the child process.
+                auto proc_dir_lock = lock_proc_dir();
+
+                const std::string process_name = [&]
+                {
+                    // Insert a unique process name associated to the command, either specified by
+                    // the user or generated.
+                    command.reserve(4);  // We need at least 4 objects to not move around.
+
+                    const auto exe_name_it = std::next(command.begin());
+                    if (specific_process_name.empty())
+                    {
+                        const auto unique_name = generate_unique_process_name(*exe_name_it);
+                        command.insert(exe_name_it, { { "-a" }, unique_name });
+                        return unique_name;
+                    }
+                    else
+                    {
+                        if (is_process_name_running(specific_process_name))
+                        {
+                            throw std::runtime_error(
+                                fmt::format("Another process with name '{}' is currently running.",
+                                            specific_process_name));
+                        }
+                        command.insert(exe_name_it, { { "-a" }, specific_process_name });
+                        return specific_process_name;
+                    }
+                }();
+
+                // Writes the process file then unlock the directory. Deletes the process file once
+                // exit is called (in the destructor).
+                ScopedProcFile scoped_proc_file{ process_name,
+                                                 raw_command,
+                                                 std::move(proc_dir_lock) };
+#endif
+                PID pid;
+                std::error_code ec;
+
+                ec = proc.start(wrapped_command, opt);
+
+                std::tie(pid, ec) = proc.pid();
+
+                if (ec)
+                {
+                    std::cerr << ec.message() << std::endl;
+                    exit(1);
+                }
 
 #ifndef _WIN32
-            std::thread t(
-                []()
-                {
-                    signal(SIGTERM,
-                           [](int signum)
-                           {
-                               LOG_INFO
-                                   << "Received SIGTERM on micromamba run - terminating process";
-                               reproc::stop_actions sa;
-                               sa.first = reproc::stop_action{ reproc::stop::terminate,
-                                                               std::chrono::milliseconds(3000) };
-                               sa.second = reproc::stop_action{ reproc::stop::kill,
+                std::thread t(
+                    []()
+                    {
+                        signal(
+                            SIGTERM,
+                            [](int signum)
+                            {
+                                LOG_INFO
+                                    << "Received SIGTERM on micromamba run - terminating process";
+                                reproc::stop_actions sa;
+                                sa.first = reproc::stop_action{ reproc::stop::terminate,
                                                                 std::chrono::milliseconds(3000) };
-                               proc.stop(sa);
-                           });
-                });
-            t.detach();
+                                sa.second = reproc::stop_action{ reproc::stop::kill,
+                                                                 std::chrono::milliseconds(3000) };
+                                proc.stop(sa);
+                            });
+                    });
+                t.detach();
 #endif
 
-            // check if we need this
-            if (!opt.redirect.discard && opt.redirect.file == nullptr
-                && opt.redirect.path == nullptr)
-            {
-                opt.redirect.parent = true;
+                // check if we need this
+                if (!opt.redirect.discard && opt.redirect.file == nullptr
+                    && opt.redirect.path == nullptr)
+                {
+                    opt.redirect.parent = true;
+                }
+
+                ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
+
+                std::tie(status, ec) = proc.stop(opt.stop);
+
+                if (ec)
+                {
+                    std::cerr << ec.message() << std::endl;
+                }
             }
-
-            ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
-
-            std::tie(status, ec) = proc.stop(opt.stop);
-
-            if (ec)
-            {
-                std::cerr << ec.message() << std::endl;
-            }
-
             // exit with status code from reproc
             exit(status);
         });

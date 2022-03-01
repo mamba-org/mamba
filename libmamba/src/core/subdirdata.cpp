@@ -593,7 +593,7 @@ namespace mamba
                            m_mod_etag.value("_etag", ""),
                            m_mod_etag.value("_mod", "") };
 
-        return pool.add_repo(MRepo(pool, m_name, cache_path(), meta, *p_channel));
+        return MRepo::create(pool, m_name, cache_path(), meta, *p_channel);
     }
 
     void MSubdirData::clear_cache()

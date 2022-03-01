@@ -33,22 +33,14 @@ namespace mamba
     MRepo::MRepo(MPool& pool,
                  const std::string& name,
                  const fs::path& index,
-                 const RepoMetadata& metadata)
+                 const RepoMetadata& metadata,
+                 const Channel& channel)
         : m_metadata(metadata)
     {
         m_url = rsplit(metadata.url, "/", 1)[0];
         m_repo = repo_create(pool, m_url.c_str());
         m_repo->appdata = this;
         read_file(index);
-    }
-
-    MRepo::MRepo(MPool& pool,
-                 const std::string& name,
-                 const fs::path& index,
-                 const RepoMetadata& metadata,
-                 const Channel& channel)
-        : MRepo(pool, name, index, metadata)
-    {
         p_channel = &channel;
     }
 
@@ -61,70 +53,6 @@ namespace mamba
         m_repo = repo_create(pool, name.c_str());
         m_repo->appdata = this;
         read_file(index);
-    }
-
-    void MRepo::add_package_info(Repodata* data, const PackageInfo& info)
-    {
-        LOG_INFO << "Adding package record to repo " << info.name;
-        Pool* pool = m_repo->pool;
-
-        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
-        static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
-
-        Id handle = repo_add_solvable(m_repo);
-        Solvable* s;
-        s = pool_id2solvable(pool, handle);
-        repodata_set_str(
-            data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
-        repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
-        s->name = pool_str2id(pool, info.name.c_str(), 1);
-        s->evr = pool_str2id(pool, info.version.c_str(), 1);
-        repodata_set_num(data, handle, SOLVABLE_DOWNLOADSIZE, info.size);
-        repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
-
-        solvable_set_str(s, real_repo_key, info.url.c_str());
-
-        if (!info.noarch.empty())
-            solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
-
-        repodata_set_checksum(
-            data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
-
-        if (strcmp(m_repo->name, "__explicit_specs__") == 0)
-        {
-            repodata_set_location(data, handle, 0, nullptr, info.url.c_str());
-        }
-        else
-        {
-            repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
-        }
-
-        if (!info.depends.empty())
-        {
-            for (std::string dep : info.depends)
-            {
-                Id dep_id = pool_conda_matchspec(pool, dep.c_str());
-                if (dep_id)
-                {
-                    s->requires = repo_addid_dep(m_repo, s->requires, dep_id, 0);
-                }
-            }
-        }
-
-        if (!info.constrains.empty())
-        {
-            for (std::string cst : info.constrains)
-            {
-                Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
-                if (constrains_id)
-                {
-                    repodata_add_idarray(data, handle, SOLVABLE_CONSTRAINS, constrains_id);
-                }
-            }
-        }
-
-        s->provides
-            = repo_addid_dep(m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
     }
 
     MRepo::MRepo(MPool& pool,
@@ -212,6 +140,70 @@ namespace mamba
         m_repo->subpriority = subpriority;
     }
 
+    void MRepo::add_package_info(Repodata* data, const PackageInfo& info)
+    {
+        LOG_INFO << "Adding package record to repo " << info.name;
+        Pool* pool = m_repo->pool;
+
+        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
+
+        Id handle = repo_add_solvable(m_repo);
+        Solvable* s;
+        s = pool_id2solvable(pool, handle);
+        repodata_set_str(
+            data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
+        repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());
+        s->name = pool_str2id(pool, info.name.c_str(), 1);
+        s->evr = pool_str2id(pool, info.version.c_str(), 1);
+        repodata_set_num(data, handle, SOLVABLE_DOWNLOADSIZE, info.size);
+        repodata_set_checksum(data, handle, SOLVABLE_PKGID, REPOKEY_TYPE_MD5, info.md5.c_str());
+
+        solvable_set_str(s, real_repo_key, info.url.c_str());
+
+        if (!info.noarch.empty())
+            solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
+
+        repodata_set_checksum(
+            data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
+
+        if (strcmp(m_repo->name, "__explicit_specs__") == 0)
+        {
+            repodata_set_location(data, handle, 0, nullptr, info.url.c_str());
+        }
+        else
+        {
+            repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
+        }
+
+        if (!info.depends.empty())
+        {
+            for (std::string dep : info.depends)
+            {
+                Id dep_id = pool_conda_matchspec(pool, dep.c_str());
+                if (dep_id)
+                {
+                    s->requires = repo_addid_dep(m_repo, s->requires, dep_id, 0);
+                }
+            }
+        }
+
+        if (!info.constrains.empty())
+        {
+            for (std::string cst : info.constrains)
+            {
+                Id constrains_id = pool_conda_matchspec(pool, cst.c_str());
+                if (constrains_id)
+                {
+                    repodata_add_idarray(data, handle, SOLVABLE_CONSTRAINS, constrains_id);
+                }
+            }
+        }
+
+        s->provides
+            = repo_addid_dep(m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
+    }
+
     std::string MRepo::name() const
     {
         return m_repo->name ? m_repo->name : "";
@@ -272,6 +264,33 @@ namespace mamba
                     = repo_addid_dep(m_repo, pkg_s->requires, python_dep, SOLVABLE_PREREQMARKER);
             }
         }
+    }
+
+    MRepo& MRepo::create(MPool& pool,
+                         const std::string& name,
+                         const std::string& filename,
+                         const std::string& url)
+    {
+        return pool.add_repo(MRepo(pool, name, filename, url));
+    }
+
+    MRepo& MRepo::create(MPool& pool,
+                         const std::string& name,
+                         const fs::path& filename,
+                         const RepoMetadata& meta,
+                         const Channel& channel)
+    {
+        return pool.add_repo(MRepo(pool, name, filename, meta, channel));
+    }
+
+    MRepo& MRepo::create(MPool& pool, const PrefixData& prefix_data)
+    {
+        return pool.add_repo(MRepo(pool, prefix_data));
+    }
+
+    MRepo& MRepo::create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris)
+    {
+        return pool.add_repo(MRepo(pool, name, uris));
     }
 
     bool MRepo::read_file(const fs::path& filename)

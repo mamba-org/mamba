@@ -46,7 +46,7 @@ namespace mamba
 
         prefix_data.add_virtual_packages(get_virtual_packages());
 
-        pool.add_repo(MRepo(pool, prefix_data));
+        MRepo::create(pool, prefix_data);
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },

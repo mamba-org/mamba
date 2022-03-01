@@ -57,7 +57,7 @@ namespace mamba
 
         // TODO check prereq marker to `pip` if it's part of the installed packages
         // so that it gets installed after Python.
-        auto repo = MRepo(pool, *this);
+        auto& repo = MRepo::create(pool, *this);
 
         Queue q;
         queue_init(&q);

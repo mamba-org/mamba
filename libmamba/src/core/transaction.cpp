@@ -445,7 +445,7 @@ namespace mamba
             pi_result.push_back(p);
         }
 
-        MRepo mrepo(pool, "__explicit_specs__", pi_result);
+        MRepo& mrepo = MRepo::create(pool, "__explicit_specs__", pi_result);
 
         pool.create_whatprovides();
 

@@ -71,7 +71,7 @@ namespace mamba
             PrefixData prefix_data(ctx.target_prefix);
             prefix_data.load();
             MPool pool;
-            pool.add_repo(MRepo(pool, prefix_data));
+            MRepo::create(pool, prefix_data);
 
             const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });

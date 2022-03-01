@@ -79,20 +79,12 @@ def get_index(
 
     for channel in api.get_channels(all_channels):
         for channel_platform, url in channel.platform_urls(with_credentials=True):
-            full_url = CondaHttpAuth.add_binstar_token(url + "/" + repodata_fn)
-            name = None
-            if channel.name:
-                name = channel.name + "/" + channel_platform
-            else:
-                name = channel.platform_url(channel_platform, with_credentials=False)
+            full_url = CondaHttpAuth.add_binstar_token(url)
 
             sd = api.SubdirData(
-                name,
-                full_url,
-                api.cache_fn_url(full_url),
-                pkgs_dirs,
-                channel_platform == "noarch",
+                channel, channel_platform, full_url, pkgs_dirs, repodata_fn
             )
+
             sd.load()
 
             index.append(

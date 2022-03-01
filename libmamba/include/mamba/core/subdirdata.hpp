@@ -44,24 +44,11 @@ namespace mamba
     class MSubdirData
     {
     public:
-        /**
-         * Constructor.
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param repodata_url URL of the repodata file
-         * @param repodata_fn Local path of the repodata file
-         * @param possible packages caches
-         * @param is_noarch Local path of the repodata file
-         */
-        MSubdirData(const std::string& name,
-                    const std::string& repodata_url,
-                    const std::string& repodata_fn,
-                    MultiPackageCache& caches,
-                    bool is_noarch);
-
         MSubdirData(const Channel& channel,
                     const std::string& platform,
                     const std::string& url,
-                    MultiPackageCache& caches);
+                    MultiPackageCache& caches,
+                    const std::string& repodata_fn = "repodata.json");
 
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,

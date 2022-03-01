@@ -259,38 +259,30 @@ set_ps_command(CLI::App* subcom)
     stop_subcom->callback(
         []()
         {
-            nlohmann::json info;
+            auto filter = [](const nlohmann::json& j) -> bool
+            { return j["name"] == pid_or_name || j["pid"] == pid_or_name; };
+            nlohmann::json procs;
             {
                 auto proc_dir_lock = lock_proc_dir();
-                info = get_all_running_processes_info();
+                procs = get_all_running_processes_info(filter);
             }
 
+#ifndef _WIN32
             auto stop_process = [](const std::string& name, PID pid)
             {
                 std::cout << fmt::format("Stopping {} [{}]", name, pid) << std::endl;
                 kill(pid, SIGTERM);
             };
-
-            bool process_found = false;
-            for (auto& i : info)
+#else
+            auto stop_process = [](const std::string& name, PID pid)
+            { LOG_ERROR << "Process stopping not yet implemented on Windows." };
+#endif
+            for (auto& p : procs)
             {
-                if (i["name"].get<std::string>() == pid_or_name)
-                {
-                    auto pid = stoull(i["pid"].get<std::string>());
-                    process_found = true;
-                    stop_process(i["name"], pid);
-                }
+                auto pid = std::stoull(p["pid"].get<std::string>());
+                stop_process(p["name"], pid);
             }
-            for (auto& i : info)
-            {
-                if (i["pid"].get<std::string>() == pid_or_name)
-                {
-                    auto pid = stoull(i["pid"].get<std::string>());
-                    process_found = true;
-                    stop_process(i["name"], pid);
-                }
-            }
-            if (!process_found)
+            if (procs.empty())
             {
                 Console::print("Did not find any matching process.");
                 return -1;

@@ -12,7 +12,7 @@ namespace mamba
     const fs::path& proc_dir();
     std::unique_ptr<LockFile> lock_proc_dir();
 
-    inline nlohmann::json get_all_running_processes_info(
+    nlohmann::json get_all_running_processes_info(
         const std::function<bool(const nlohmann::json&)>& filter
         = std::function<bool(const nlohmann::json&)>());
     bool is_process_name_running(const std::string& name);

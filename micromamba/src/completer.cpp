@@ -109,10 +109,19 @@ add_ps_completion(CLI::App* app, std::vector<std::string>& completer_args, bool&
     auto* current_subcom = app->get_subcommand("ps");
     app->remove_subcommand(current_subcom);
 
-    CLI::App* activate_subcom = app->add_subcommand("ps", "Mock ps function for completion");
+    CLI::App* ps_subcom = app->add_subcommand("ps", "Mock ps function for completion");
 
     CLI::App* stop_subcom
-        = activate_subcom->add_subcommand("stop", "Mock ps stop function for completion");
+        = ps_subcom->add_subcommand("stop", "Mock ps stop function for completion");
+
+    CLI::App* list_subcom
+        = ps_subcom->add_subcommand("list", "Mock ps list function for completion");
+
+    ps_subcom->callback([ps_subcom, &completer_args, &completed]()
+                        { complete_options(ps_subcom, completer_args, completed); });
+
+    list_subcom->callback([list_subcom, &completer_args, &completed]()
+                          { complete_options(list_subcom, completer_args, completed); });
 
     stop_subcom->callback(
         [app, &completer_args, &completed]()

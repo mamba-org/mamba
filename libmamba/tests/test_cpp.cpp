@@ -503,6 +503,12 @@ namespace mamba
         EXPECT_FALSE(lexists("emptytestfile"));
     }
 
+    namespace detail
+    {
+        // read the header that contains json like {"_mod": "...", ...}
+        nlohmann::json read_mod_and_etag(const fs::path& file);
+    }
+    
     TEST(subdirdata, parse_mod_etag)
     {
         fs::path cache_folder = fs::path("repodata_json_cache");

@@ -8,7 +8,7 @@ from warnings import catch_warnings
 
 import pytest
 
-from .helpers import umamba_run
+from .helpers import umamba_run, umamba_run_simple
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -79,3 +79,21 @@ class TestRun:
         res = umamba_run(option_flag, *make_label_flags(), simple_short_program())
         print(res)
         assert len(res) > 0
+
+    @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
+    def test_bash_output(self):
+        assert umamba_run_simple("-n", "base", "/bin/bash", "-c", "test -t 0") == 1
+        assert umamba_run_simple("-n", "base", "/bin/bash", "-c", "test -t 1") == 0
+        assert umamba_run_simple("-a", "stdin stderr stdout", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
+        assert umamba_run_simple("-a", "stdin stderr stdout", "-n", "base", "/bin/bash", "-c", "test -t 1") == 0
+        assert umamba_run_simple("-a", "stderr stdout", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
+        assert umamba_run_simple("-a", "stdin", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
+        assert umamba_run_simple("-a", "", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
+        assert umamba_run_simple("-a", "", "-n", "base", "/bin/bash", "-c", "test -t 1") == 1
+        assert umamba_run_simple("-n", "base", "--no-capture-output", "/bin/bash", "-c", "test -t 0") == 0
+
+        
+        
+
+
+

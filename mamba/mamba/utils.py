@@ -29,7 +29,7 @@ import libmambapy as api
 def load_channel(subdir_data, result_container):
     if not context.quiet:
         print("Getting ", subdir_data.channel.name, subdir_data.channel.platform)
-    return result_container.append(subdir_data.load())
+    return result_container.append(subdir_data.loaded())
 
 
 def get_index(
@@ -84,8 +84,6 @@ def get_index(
             sd = api.SubdirData(
                 channel, channel_platform, full_url, pkgs_dirs, repodata_fn
             )
-
-            sd.load()
 
             index.append(
                 (sd, {"platform": channel_platform, "url": url, "channel": channel})

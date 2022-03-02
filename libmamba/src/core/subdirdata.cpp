@@ -176,6 +176,7 @@ namespace mamba
     {
         m_json_fn = cache_fn_url(m_repodata_url);
         m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
+        load();
     }
 
     fs::file_time_type::duration MSubdirData::check_cache(
@@ -194,7 +195,7 @@ namespace mamba
         }
     }
 
-    bool MSubdirData::loaded()
+    bool MSubdirData::loaded() const
     {
         return m_loaded;
     }

@@ -31,12 +31,6 @@ namespace decompress
 
 namespace mamba
 {
-    namespace detail
-    {
-        // read the header that contains json like {"_mod": "...", ...}
-        nlohmann::json read_mod_and_etag(const fs::path& file);
-    }
-
     /**
      * Represents a channel subdirectory (i.e. a platform)
      * packages index. Handles downloading of the index
@@ -54,8 +48,7 @@ namespace mamba
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
                                                  const fs::file_time_type::clock::time_point& ref);
-        bool load();
-        bool loaded();
+        bool loaded() const;
 
         bool forbid_cache();
         void clear_cache();
@@ -69,6 +62,7 @@ namespace mamba
         MRepo& create_repo(MPool& pool);
 
     private:
+        bool load();
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);

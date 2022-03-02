@@ -56,7 +56,6 @@ namespace mamba
             {
                 auto sdir = std::make_shared<MSubdirData>(*channel, platform, url, package_caches);
 
-                sdir->load();
                 multi_dl.add(sdir->target());
                 subdirs.push_back(sdir);
                 if (ctx.channel_priority == ChannelPriority::kDisabled)

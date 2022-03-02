@@ -17,7 +17,7 @@ def generate_label_flags():
     random_string = ''.join(random.choice(possible_characters_for_process_names) for _ in range(16))
     return ["--label", random_string]
 
-next_label_flags = [ lambda: [], generate_label_flags ]
+next_label_flags = [ lambda: [], generate_label_flags ] if platform != "win32" else []
 
 
 def simple_short_program():

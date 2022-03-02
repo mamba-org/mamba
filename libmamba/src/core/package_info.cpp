@@ -110,7 +110,7 @@ namespace mamba
             build_number = n;
         }
 
-        Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
         if (solvable_lookup_str(s, real_repo_key))
         {
             url = solvable_lookup_str(s, real_repo_key);

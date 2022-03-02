@@ -43,7 +43,6 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
 from conda.misc import explicit, touch_nonadmin
-from conda.models.enums import NoarchType
 from conda.models.match_spec import MatchSpec
 
 import libmambapy as api
@@ -55,6 +54,7 @@ from mamba.utils import (
     get_installed_jsonfile,
     init_api_context,
     load_channels,
+    load_conda_installed,
     print_activate,
     to_txn,
 )
@@ -203,14 +203,7 @@ def remove(args, parser):
             repo = api.Repo(pool, prefix_data)
             repos.append(repo)
         else:
-            repo = api.Repo(pool, "installed", installed_json_f.name, "")
-            py_noarchs = [
-                rec.name
-                for rec in installed_pkg_recs
-                if rec.noarch == NoarchType.python
-            ]
-            repo.add_python_noarch_info(py_noarchs)
-            repo.set_installed()
+            repo = load_conda_installed(pool, installed_json_f, installed_pkg_recs)
             repos.append(repo)
 
         solver = api.Solver(pool, solver_options)
@@ -483,12 +476,7 @@ def install(args, parser, command="install"):
         repo = api.Repo(pool, prefix_data)
         repos.append(repo)
     else:
-        repo = api.Repo(pool, "installed", installed_json_f.name, "")
-        py_noarchs = [
-            rec.name for rec in installed_pkg_recs if rec.noarch == NoarchType.python
-        ]
-        repo.add_python_noarch_info(py_noarchs)
-        repo.set_installed()
+        repo = load_conda_installed(pool, installed_json_f, installed_pkg_recs)
         repos.append(repo)
 
     if newenv and not specs:
@@ -504,10 +492,7 @@ def install(args, parser, command="install"):
     else:
         index = load_channels(pool, channels, repos)
 
-        if context.force_reinstall:
-            solver = api.Solver(pool, solver_options, prefix_data)
-        else:
-            solver = api.Solver(pool, solver_options)
+        solver = api.Solver(pool, solver_options)
 
         solver.set_postsolve_flags(
             [

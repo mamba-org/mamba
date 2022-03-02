@@ -373,8 +373,7 @@ namespace mamba
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
                          { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
                          { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                           ctx.channel_priority == ChannelPriority::kStrict } },
-                       &prefix_data);
+                           ctx.channel_priority == ChannelPriority::kStrict } });
 
         solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
                                      { MAMBA_ONLY_DEPS, only_deps },

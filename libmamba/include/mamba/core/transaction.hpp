@@ -146,6 +146,11 @@ namespace mamba
         bool execute(PrefixData& prefix);
         bool filter(Solvable* s);
 
+        inline operator Transaction*()
+        {
+            return m_transaction;
+        }
+
         std::pair<std::string, std::string> find_python_version();
 
     private:

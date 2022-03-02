@@ -93,6 +93,33 @@ namespace mamba
         set_installed();
     }
 
+    MRepo::MRepo(MPool& pool, const std::string& name, Transaction* transaction)
+    {
+        // create a fake installed repo from a transaction
+        Queue q;
+        queue_init(&q);
+        m_repo = repo_create(pool, name.c_str());
+        int flags = 0;
+        Repodata* data;
+        data = repo_add_repodata(m_repo, flags);
+
+        int res = transaction_installedresult(transaction, &q);
+
+        for (int i = 0; i < q.count; ++i)
+        {
+            Solvable* sold = pool_id2solvable(pool, q.elements[i]);
+            PackageInfo pold(sold);
+            // if (starts_with(pold.name, "__"))
+            //     continue;
+
+            std::cout << "Adding " << pold.name << std::endl;
+            Id handle = repo_add_solvable(m_repo);
+            add_package_info(data, pold);
+        }
+
+        repodata_internalize(data);
+    }
+
     MRepo::~MRepo()
     {
         // not sure if reuse_ids is useful here
@@ -291,6 +318,11 @@ namespace mamba
     MRepo& MRepo::create(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris)
     {
         return pool.add_repo(MRepo(pool, name, uris));
+    }
+
+    MRepo& MRepo::create(MPool& pool, const std::string& name, Transaction* transaction)
+    {
+        return pool.add_repo(MRepo(pool, name, transaction));
     }
 
     bool MRepo::read_file(const fs::path& filename)

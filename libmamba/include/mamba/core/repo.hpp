@@ -19,6 +19,7 @@ extern "C"
 #include "solv/repo.h"
 #include "solv/repo_conda.h"
 #include "solv/repo_solv.h"
+#include "solv/transaction.h"
 }
 
 namespace mamba
@@ -120,6 +121,14 @@ namespace mamba
                              const std::string& name,
                              const std::vector<PackageInfo>& uris);
 
+        /**
+         * Static constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name
+         * @param uris libsolv Transaction to derive installed packages from
+         */
+        static MRepo& create(MPool& pool, const std::string& name, Transaction* transaction);
+
     private:
         MRepo(MPool& pool,
               const std::string& name,
@@ -135,6 +144,8 @@ namespace mamba
         MRepo(MPool& pool, const PrefixData& prefix_data);
 
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
+
+        MRepo(MPool& pool, const std::string& name, Transaction* transaction);
 
         bool read_file(const fs::path& filename);
 

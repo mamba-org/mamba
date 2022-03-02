@@ -370,16 +370,20 @@ namespace mamba
 
         MRepo::create(pool, prefix_data);
 
-        MSolver solver(pool,
-                       { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-                         { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-                         { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                           ctx.channel_priority == ChannelPriority::kStrict } },
-                       &prefix_data);
+        std::vector<std::pair<int, int>> flags
+            = { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+                { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+                { SOLVER_FLAG_STRICT_REPO_PRIORITY,
+                  ctx.channel_priority == ChannelPriority::kStrict } };
 
-        solver.set_postsolve_flags({ { MAMBA_NO_DEPS, no_deps },
-                                     { MAMBA_ONLY_DEPS, only_deps },
-                                     { MAMBA_FORCE_REINSTALL, force_reinstall } });
+        MSolver solver(pool, flags, &prefix_data);
+
+        std::vector<std::pair<int, int>> post_solve_flags
+            = { { MAMBA_NO_DEPS, no_deps },
+                { MAMBA_ONLY_DEPS, only_deps },
+                { MAMBA_FORCE_REINSTALL, force_reinstall } };
+
+        solver.set_postsolve_flags(post_solve_flags);
 
         if (freeze_installed && !prefix_pkgs.empty())
         {
@@ -437,26 +441,46 @@ namespace mamba
 
         MTransaction trans(solver, package_caches);
 
-        if (ctx.json)
-        {
-            trans.log_json();
-        }
+        auto& fake_installed = MRepo::create(pool, "fake_installed", trans);
+        // TODO move to interface of pool?!
+        fake_installed.set_installed();
 
-        Console::stream();
+        MSolver new_solver(pool, flags, &prefix_data);
+        new_solver.add_jobs({ "xtl" }, SOLVER_USERINSTALLED);
+        new_solver.add_jobs({ "xtensor" }, SOLVER_ERASE | SOLVER_CLEANDEPS);
 
-        if (trans.prompt())
-        {
-            if (create_env && !Context::instance().dry_run)
-                detail::create_target_directory(ctx.target_prefix);
+        new_solver.solve();
 
-            trans.execute(prefix_data);
+        MTransaction trans2(new_solver, package_caches);
 
-            for (auto other_spec : config.at("others_pkg_mgrs_specs")
-                                       .value<std::vector<detail::other_pkg_mgr_spec>>())
-            {
-                install_for_other_pkgmgr(other_spec);
-            }
-        }
+        trans.print();
+        trans2.print();
+        exit(0);
+        // LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
+        // success = solver_problem_count(m_solver) == 0;
+        // Console::instance().json_write({ { "success", success } });
+
+
+        // if (ctx.json)
+        // {
+        //     trans.log_json();
+        // }
+
+        // Console::stream();
+
+        // if (trans.prompt())
+        // {
+        //     if (create_env && !Context::instance().dry_run)
+        //         detail::create_target_directory(ctx.target_prefix);
+
+        //     trans.execute(prefix_data);
+
+        //     for (auto other_spec : config.at("others_pkg_mgrs_specs")
+        //                                .value<std::vector<detail::other_pkg_mgr_spec>>())
+        //     {
+        //         install_for_other_pkgmgr(other_spec);
+        //     }
+        // }
     }
 
 

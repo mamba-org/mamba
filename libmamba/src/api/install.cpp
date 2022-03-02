@@ -360,13 +360,12 @@ namespace mamba
         load_channels(pool, package_caches, is_retry);
 
         PrefixData prefix_data(ctx.target_prefix);
-        prefix_data.load();
 
         std::vector<std::string> prefix_pkgs;
-        for (auto& it : prefix_data.m_package_records)
+        for (auto& it : prefix_data.records())
             prefix_pkgs.push_back(it.first);
 
-        prefix_data.add_virtual_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages());
 
         MRepo::create(pool, prefix_data);
 
@@ -470,8 +469,7 @@ namespace mamba
 
         auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
 
-        prefix_data.load();
-        prefix_data.add_virtual_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages());
         MRepo::create(pool, prefix_data);
 
         if (ctx.json)

@@ -38,13 +38,12 @@ namespace mamba
         load_channels(pool, package_caches, 0);
 
         PrefixData prefix_data(ctx.target_prefix);
-        prefix_data.load();
 
         std::vector<std::string> prefix_pkgs;
-        for (auto& it : prefix_data.m_package_records)
+        for (auto& it : prefix_data.records())
             prefix_pkgs.push_back(it.first);
 
-        prefix_data.add_virtual_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages());
 
         MRepo::create(pool, prefix_data);
 
@@ -56,9 +55,6 @@ namespace mamba
 
         if (update_all)
         {
-            PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
-
             auto hist_map = prefix_data.history().get_requested_specs_map();
             std::vector<std::string> keep_specs;
             for (auto& it : hist_map)

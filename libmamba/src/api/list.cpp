@@ -47,7 +47,6 @@ namespace mamba
             auto& ctx = Context::instance();
 
             PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
 
             std::regex spec_pat(regex);
 
@@ -56,7 +55,7 @@ namespace mamba
                 auto jout = nlohmann::json::array();
                 std::vector<std::string> keys;
 
-                for (const auto& pkg : prefix_data.m_package_records)
+                for (const auto& pkg : prefix_data.records())
                 {
                     keys.push_back(pkg.first);
                 }
@@ -65,7 +64,7 @@ namespace mamba
                 for (const auto& key : keys)
                 {
                     auto obj = nlohmann::json();
-                    const auto& pkg_info = prefix_data.m_package_records.find(key)->second;
+                    const auto& pkg_info = prefix_data.records().find(key)->second;
 
                     if (regex.empty() || std::regex_search(pkg_info.name, spec_pat))
                     {
@@ -93,7 +92,7 @@ namespace mamba
             auto requested_specs = prefix_data.history().get_requested_specs_map();
 
             // order list of packages from prefix_data by alphabetical order
-            for (const auto& package : prefix_data.m_package_records)
+            for (const auto& package : prefix_data.records())
             {
                 if (regex.empty() || std::regex_search(package.second.name, spec_pat))
                 {

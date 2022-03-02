@@ -39,7 +39,7 @@ namespace mamba
             EXPECT_EQ(pin, "");
 
             PackageInfo pkg_info("python", "3.7.10", "abcde", 0);
-            prefix_data.m_package_records.insert({ "python", pkg_info });
+            prefix_data.add_packages({ pkg_info });
             ASSERT_EQ(prefix_data.records().size(), 1);
 
             specs = { "python" };

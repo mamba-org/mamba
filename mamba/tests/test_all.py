@@ -211,7 +211,6 @@ def test_unicode(tmpdir):
     import libmambapy
 
     pd = libmambapy.PrefixData(str(tmpdir / uc))
-    pd.load()
     assert len(pd.package_records) > 1
     assert "xtl" in pd.package_records
     assert "xtensor" in pd.package_records

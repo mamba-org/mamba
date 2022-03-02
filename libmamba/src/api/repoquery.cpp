@@ -30,7 +30,6 @@ namespace mamba
         if (use_local)
         {
             auto prefix_data = PrefixData(ctx.target_prefix);
-            prefix_data.load();
             MRepo::create(pool, prefix_data);
             Console::stream() << "Loaded current active prefix: " << ctx.target_prefix << std::endl;
         }

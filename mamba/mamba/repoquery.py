@@ -38,7 +38,6 @@ def create_pool(
 
     if installed:
         prefix_data = api.PrefixData(context.target_prefix)
-        prefix_data.load()
         repo = api.Repo(pool, prefix_data)
         repos.append(repo)
 

@@ -18,6 +18,7 @@ namespace mamba
         : m_history(prefix_path)
         , m_prefix_path(prefix_path)
     {
+        load();
     }
 
     void PrefixData::load()
@@ -35,7 +36,7 @@ namespace mamba
         }
     }
 
-    void PrefixData::add_virtual_packages(const std::vector<PackageInfo>& packages)
+    void PrefixData::add_packages(const std::vector<PackageInfo>& packages)
     {
         for (const auto& pkg : packages)
         {

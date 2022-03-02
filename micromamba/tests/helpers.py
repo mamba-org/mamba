@@ -250,7 +250,6 @@ def umamba_run(*args):
     return res.decode()
 
 
-
 def get_concrete_pkg(t, needle):
     pkgs = t["actions"]["LINK"]
     for p in pkgs:

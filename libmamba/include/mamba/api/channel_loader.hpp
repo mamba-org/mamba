@@ -6,10 +6,5 @@
 
 namespace mamba
 {
-    namespace detail
-    {
-        MRepo& create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir);
-    }
-
     void load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry);
 }

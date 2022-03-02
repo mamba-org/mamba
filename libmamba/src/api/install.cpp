@@ -368,7 +368,7 @@ namespace mamba
 
         prefix_data.add_virtual_packages(get_virtual_packages());
 
-        pool.add_repo(MRepo(pool, prefix_data));
+        MRepo::create(pool, prefix_data);
 
         MSolver solver(pool,
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
@@ -472,7 +472,7 @@ namespace mamba
 
         prefix_data.load();
         prefix_data.add_virtual_packages(get_virtual_packages());
-        MRepo(pool, prefix_data);
+        MRepo::create(pool, prefix_data);
 
         if (ctx.json)
             transaction.log_json();

@@ -71,9 +71,17 @@ PYBIND11_MODULE(bindings, m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    py::class_<MRepo>(m, "Repo")
-        .def(py::init<MPool&, const std::string&, const std::string&, const std::string&>())
-        .def(py::init<MPool&, const PrefixData&>())
+    py::class_<MRepo, std::unique_ptr<MRepo, py::nodelete>>(m, "Repo")
+        .def(py::init(
+            [](MPool& pool,
+               const std::string& name,
+               const std::string& filename,
+               const std::string& url) {
+                return std::unique_ptr<MRepo, py::nodelete>(
+                    &MRepo::create(pool, name, filename, url));
+            }))
+        .def(py::init([](MPool& pool, const PrefixData& data)
+                      { return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, data)); }))
         .def("add_python_noarch_info",
              [](const MRepo& self, const std::vector<std::string>& names)
              {

@@ -27,7 +27,7 @@ namespace mamba
                 }
                 prefix_data.load_single_record(repodata_record_json);
             }
-            return pool.add_repo(MRepo(pool, prefix_data));
+            return MRepo::create(pool, prefix_data);
         }
     }
 

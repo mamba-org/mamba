@@ -52,51 +52,6 @@ namespace mamba
     class MRepo
     {
     public:
-        /**
-         * Constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param prefix_data prefix data
-         */
-        MRepo(MPool& pool, const PrefixData& prefix_data);
-
-        /**
-         * Constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param index Path to the index file
-         * @param url Subdirectory URL
-         */
-        MRepo(MPool& pool,
-              const std::string& name,
-              const std::string& filename,
-              const std::string& url);
-
-        /**
-         * Constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name of the subdirectory (<channel>/<subdir>)
-         * @param index Path to the index file
-         * @param meta Metadata of the repo
-         */
-        MRepo(MPool& pool,
-              const std::string& name,
-              const fs::path& filename,
-              const RepoMetadata& meta);
-
-        MRepo(MPool& pool,
-              const std::string& name,
-              const fs::path& filename,
-              const RepoMetadata& meta,
-              const Channel& channel);
-
-        /**
-         * Constructor.
-         * @param pool ``libsolv`` pool wrapper
-         * @param name Name
-         * @param uris Matchspecs pointing to unique resources (URL or files)
-         */
-        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
-
         ~MRepo();
 
         MRepo(const MRepo&) = delete;
@@ -122,7 +77,65 @@ namespace mamba
 
         bool clear(bool reuse_ids);
 
+        /**
+         * Static constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name of the subdirectory (<channel>/<subdir>)
+         * @param filename Name of the index file
+         * @param url Subdirectory URL
+         */
+        static MRepo& create(MPool& pool,
+                             const std::string& name,
+                             const std::string& filename,
+                             const std::string& url);
+
+        /**
+         * Static constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name of the subdirectory (<channel>/<subdir>)
+         * @param index Path to the index file
+         * @param meta Metadata of the repo
+         * @param channel Channel of the repo
+         */
+        static MRepo& create(MPool& pool,
+                             const std::string& name,
+                             const fs::path& filename,
+                             const RepoMetadata& meta,
+                             const Channel& channel);
+
+        /**
+         * Static constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param prefix_data prefix data
+         */
+        static MRepo& create(MPool& pool, const PrefixData& prefix_data);
+
+        /**
+         * Static constructor.
+         * @param pool ``libsolv`` pool wrapper
+         * @param name Name
+         * @param uris Matchspecs pointing to unique resources (URL or files)
+         */
+        static MRepo& create(MPool& pool,
+                             const std::string& name,
+                             const std::vector<PackageInfo>& uris);
+
     private:
+        MRepo(MPool& pool,
+              const std::string& name,
+              const std::string& filename,
+              const std::string& url);
+
+        MRepo(MPool& pool,
+              const std::string& name,
+              const fs::path& filename,
+              const RepoMetadata& meta,
+              const Channel& channel);
+
+        MRepo(MPool& pool, const PrefixData& prefix_data);
+
+        MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
+
         bool read_file(const fs::path& filename);
 
         fs::path m_json_file, m_solv_file;
@@ -133,6 +146,7 @@ namespace mamba
         Repo* m_repo;
         const Channel* p_channel = nullptr;
     };
+
 }  // namespace mamba
 
 #endif  // MAMBA_REPO_HPP

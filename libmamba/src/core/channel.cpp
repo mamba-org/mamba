@@ -887,8 +887,7 @@ namespace mamba
 
                     std::string token_content = read_contents(entry.path());
                     ctx.channel_tokens[token_url] = token_content;
-                    LOG_WARNING << "Found token for " << token_url;
-                    LOG_DEBUG << "Token content: " << token_content;
+                    LOG_INFO << "Found token for " << token_url;
                 }
             }
         }

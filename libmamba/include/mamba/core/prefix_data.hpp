@@ -23,7 +23,7 @@ namespace mamba
 
         PrefixData(const fs::path& prefix_path);
 
-        void add_virtual_packages(const std::vector<PackageInfo>& packages);
+        void add_packages(const std::vector<PackageInfo>& packages);
         const package_map& records() const;
         void load_single_record(const fs::path& path);
 

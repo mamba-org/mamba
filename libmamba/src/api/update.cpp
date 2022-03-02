@@ -43,7 +43,7 @@ namespace mamba
         for (auto& it : prefix_data.records())
             prefix_pkgs.push_back(it.first);
 
-        prefix_data.add_virtual_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages());
 
         MRepo::create(pool, prefix_data);
 

@@ -36,7 +36,7 @@ namespace mamba
         }
     }
 
-    void PrefixData::add_virtual_packages(const std::vector<PackageInfo>& packages)
+    void PrefixData::add_packages(const std::vector<PackageInfo>& packages)
     {
         for (const auto& pkg : packages)
         {

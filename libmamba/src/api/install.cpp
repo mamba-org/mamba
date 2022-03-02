@@ -365,7 +365,7 @@ namespace mamba
         for (auto& it : prefix_data.records())
             prefix_pkgs.push_back(it.first);
 
-        prefix_data.add_virtual_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages());
 
         MRepo::create(pool, prefix_data);
 
@@ -469,7 +469,7 @@ namespace mamba
 
         auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
 
-        prefix_data.add_virtual_packages(get_virtual_packages());
+        prefix_data.add_packages(get_virtual_packages());
         MRepo::create(pool, prefix_data);
 
         if (ctx.json)

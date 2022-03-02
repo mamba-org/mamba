@@ -296,8 +296,8 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init<const fs::path&>())
-        .def("package_records", &PrefixData::records)
-        .def("add_virtual_packages", &PrefixData::add_virtual_packages);
+        .def_property_readonly("package_records", &PrefixData::records)
+        .def("add_packages", &PrefixData::add_packages);
 
     py::class_<PackageInfo>(m, "PackageInfo")
         .def(py::init<Solvable*>())

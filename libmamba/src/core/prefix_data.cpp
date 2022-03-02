@@ -18,6 +18,7 @@ namespace mamba
         : m_history(prefix_path)
         , m_prefix_path(prefix_path)
     {
+        load();
     }
 
     void PrefixData::load()

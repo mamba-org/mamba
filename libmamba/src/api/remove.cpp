@@ -36,9 +36,8 @@ namespace mamba
         if (remove_all)
         {
             PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
 
-            for (const auto& package : prefix_data.m_package_records)
+            for (const auto& package : prefix_data.records())
             {
                 remove_specs.push_back(package.second.name);
             }
@@ -69,7 +68,7 @@ namespace mamba
             }
 
             PrefixData prefix_data(ctx.target_prefix);
-            prefix_data.load();
+
             MPool pool;
             MRepo::create(pool, prefix_data);
 

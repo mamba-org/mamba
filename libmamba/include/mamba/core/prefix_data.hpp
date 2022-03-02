@@ -23,7 +23,6 @@ namespace mamba
 
         PrefixData(const fs::path& prefix_path);
 
-        void load();
         void add_virtual_packages(const std::vector<PackageInfo>& packages);
         const package_map& records() const;
         void load_single_record(const fs::path& path);
@@ -31,6 +30,9 @@ namespace mamba
         History& history();
         const fs::path& path() const;
         std::vector<PackageInfo> sorted_records() const;
+
+    private:
+        void load();
 
         History m_history;
         std::unordered_map<std::string, PackageInfo> m_package_records;

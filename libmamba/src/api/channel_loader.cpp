@@ -17,7 +17,6 @@ namespace mamba
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
             PrefixData prefix_data(pkgs_dir);
-            prefix_data.load();
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
                 fs::path repodata_record_json = entry.path() / "info" / "repodata_record.json";

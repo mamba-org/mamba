@@ -200,7 +200,6 @@ def remove(args, parser):
         # add installed
         if use_mamba_experimental:
             prefix_data = api.PrefixData(context.target_prefix)
-            prefix_data.load()
             repo = api.Repo(pool, prefix_data)
             repos.append(repo)
         else:
@@ -478,7 +477,6 @@ def install(args, parser, command="install"):
     repos = []
 
     prefix_data = api.PrefixData(context.target_prefix)
-    prefix_data.load()
 
     # add installed
     if use_mamba_experimental:

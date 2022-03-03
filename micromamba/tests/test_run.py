@@ -82,17 +82,14 @@ class TestRun:
 
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
     def test_shell_io_routing(self):
-
         test_script_file_name = "test_run.sh"
-        test_script_path = os.path.join(os.path.dirname(__file__), test_script_file_name)
+        test_script_path = os.path.join(
+            os.path.dirname(__file__), test_script_file_name
+        )
         if not os.path.isfile(test_script_path):
-            raise RuntimeError("missing test script '{}' at '{}".format(test_script_file_name, test_script_path))
+            raise RuntimeError(
+                "missing test script '{}' at '{}".format(
+                    test_script_file_name, test_script_path
+                )
+            )
         assert subprocess.run(test_script_path, shell=True).returncode == 0
-
-
-
-        
-        
-
-
-

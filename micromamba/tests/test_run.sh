@@ -88,4 +88,3 @@ test $? -eq 1 && echo "ok" || (echo "fail" ; exit 1)
 
 micromamba run -a "" -n base /bin/bash -c "test -t 2"
 test $? -eq 1 && echo "ok" || (echo "fail" ; exit 1)
-

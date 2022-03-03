@@ -45,6 +45,7 @@ namespace mamba
     MPool::~MPool()
     {
         LOG_INFO << "Freeing pool.";
+        m_repo_list.clear();
         pool_free(m_pool);
     }
 
@@ -75,6 +76,11 @@ namespace mamba
     {
         m_repo_list.push_back(std::move(repo));
         return m_repo_list.back();
+    }
+
+    void MPool::remove_repo(Id repo_id)
+    {
+        m_repo_list.remove_if([repo_id](const MRepo& repo) { return repo_id == repo.id(); });
     }
 
 }  // namespace mamba

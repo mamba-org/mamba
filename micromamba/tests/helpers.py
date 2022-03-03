@@ -250,14 +250,6 @@ def umamba_run(*args):
     return res.decode()
 
 
-def umamba_run_simple(*args):
-    umamba = get_umamba()
-
-    cmd = [umamba, "run"] + [arg for arg in args if arg]
-    res = subprocess.run(cmd)
-    return res.returncode
-
-
 def get_concrete_pkg(t, needle):
     pkgs = t["actions"]["LINK"]
     for p in pkgs:

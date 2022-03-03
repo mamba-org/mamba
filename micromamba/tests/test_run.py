@@ -8,7 +8,7 @@ from warnings import catch_warnings
 
 import pytest
 
-from .helpers import umamba_run, umamba_run_simple
+from .helpers import umamba_run
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -81,16 +81,15 @@ class TestRun:
         assert len(res) > 0
 
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
-    def test_bash_output(self):
-        assert umamba_run_simple("-n", "base", "/bin/bash", "-c", "test -t 0") == 1
-        assert umamba_run_simple("-n", "base", "/bin/bash", "-c", "test -t 1") == 0
-        assert umamba_run_simple("-a", "stdin stderr stdout", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
-        assert umamba_run_simple("-a", "stdin stderr stdout", "-n", "base", "/bin/bash", "-c", "test -t 1") == 0
-        assert umamba_run_simple("-a", "stderr stdout", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
-        assert umamba_run_simple("-a", "stdin", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
-        assert umamba_run_simple("-a", "", "-n", "base", "/bin/bash", "-c", "test -t 0") == 1
-        assert umamba_run_simple("-a", "", "-n", "base", "/bin/bash", "-c", "test -t 1") == 1
-        assert umamba_run_simple("-n", "base", "--no-capture-output", "/bin/bash", "-c", "test -t 0") == 0
+    def test_shell_io_routing(self):
+
+        test_script_file_name = "test_run.sh"
+        test_script_path = os.path.join(os.path.dirname(__file__), test_script_file_name)
+        if not os.path.isfile(test_script_path):
+            raise RuntimeError("missing test script '{}' at '{}".format(test_script_file_name, test_script_path))
+        assert subprocess.run(test_script_path, shell=True).returncode == 0
+
+
 
         
         

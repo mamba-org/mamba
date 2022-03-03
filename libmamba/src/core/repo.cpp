@@ -95,6 +95,10 @@ namespace mamba
 
     MRepo::~MRepo()
     {
+        if (m_repo)
+        {
+            repo_free(m_repo, 1);
+        }
         // not sure if reuse_ids is useful here
         // repo will be freed with pool as well though
         // maybe explicitly free pool for faster repo deletion as well
@@ -202,6 +206,11 @@ namespace mamba
 
         s->provides
             = repo_addid_dep(m_repo, s->provides, pool_rel2id(pool, s->name, s->evr, REL_EQ, 1), 0);
+    }
+
+    Id MRepo::id() const
+    {
+        return m_repo->repoid;
     }
 
     std::string MRepo::name() const

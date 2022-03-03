@@ -67,6 +67,7 @@ namespace mamba
 
         const fs::path& index_file();
 
+        Id id() const;
         std::string name() const;
         bool write() const;
         const std::string& url() const;

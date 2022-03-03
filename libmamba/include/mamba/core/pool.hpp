@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
+#include <list>
 #include "context.hpp"
 #include "repo.hpp"
 
@@ -34,11 +35,12 @@ namespace mamba
         operator Pool*();
 
         MRepo& add_repo(MRepo&& repo);
+        void remove_repo(Id repo_id);
 
     private:
         std::pair<spdlog::logger*, std::string> m_debug_logger;
         Pool* m_pool;
-        std::vector<MRepo> m_repo_list;
+        std::list<MRepo> m_repo_list;
     };
 }  // namespace mamba
 

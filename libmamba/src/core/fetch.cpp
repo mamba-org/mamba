@@ -613,7 +613,9 @@ namespace mamba
 
         bool ret = true;
         if (m_finalize_callback)
+        {
             ret = m_finalize_callback();
+        }
         else
         {
             if (m_has_progress_bar)

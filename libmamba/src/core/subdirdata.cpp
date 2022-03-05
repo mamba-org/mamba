@@ -160,23 +160,112 @@ namespace mamba
 
     }
 
+    subdirdata_error::subdirdata_error(const char* msg)
+        : m_message(msg)
+    {
+    }
+
+    subdirdata_error::subdirdata_error(const std::string& msg)
+        : m_message(msg)
+    {
+    }
+
+    const std::string& subdirdata_error::what() const noexcept
+    {
+        return m_message;
+    }
+
+    auto MSubdirData::create(const Channel& channel,
+                             const std::string& platform,
+                             const std::string& url,
+                             MultiPackageCache& caches,
+                             const std::string& repodata_fn) -> expected<std::shared_ptr<MSubdirData>>
+    {
+        try
+        {
+            return std::make_shared<MSubdirData>(channel, platform, url, caches, repodata_fn);
+        }
+        catch(std::exception& e)
+        {
+            return tl::make_unexpected(e.what());
+        }
+        catch(...)
+        {
+            return tl::make_unexpected("Unkown error when trying to load subdir data " + url);
+        }
+    }
+
     MSubdirData::MSubdirData(const Channel& channel,
                              const std::string& platform,
                              const std::string& url,
                              MultiPackageCache& caches,
                              const std::string& repodata_fn)
-        : m_progress_bar(ProgressProxy())
+        : m_target(nullptr)
+        , m_progress_bar(ProgressProxy())
         , m_loaded(false)
         , m_download_complete(false)
         , m_repodata_url(concat(url, "/", repodata_fn))
         , m_name(concat(channel.canonical_name(), "/", platform))
-        , m_caches(caches)
+        , p_caches(&caches)
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
     {
         m_json_fn = cache_fn_url(m_repodata_url);
         m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
         load();
+    }
+
+    MSubdirData::MSubdirData(MSubdirData&& rhs)
+        : m_target(std::move(rhs.m_target))
+        , m_json_cache_valid(rhs.m_json_cache_valid)
+        , m_solv_cache_valid(rhs.m_solv_cache_valid)
+        , m_valid_cache_path(std::move(rhs.m_valid_cache_path))
+        , m_expired_cache_path(std::move(rhs.m_expired_cache_path))
+        , m_progress_bar(std::move(m_progress_bar))
+        , m_loaded(rhs.m_loaded)
+        , m_download_complete(rhs.m_download_complete)
+        , m_repodata_url(std::move(rhs.m_repodata_url))
+        , m_name(std::move(rhs.m_name))
+        , m_json_fn(std::move(rhs.m_json_fn))
+        , m_solv_fn(std::move(rhs.m_solv_fn))
+        , p_caches(rhs.p_caches)
+        , m_is_noarch(rhs.m_is_noarch)
+        , m_mod_etag(std::move(rhs.m_mod_etag))
+        , m_temp_file(std::move(rhs.m_temp_file))
+        , p_channel(rhs.p_channel)
+    {
+        if (m_target != nullptr)
+        {
+            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        }
+    }
+
+    MSubdirData& MSubdirData::operator=(MSubdirData&& rhs)
+    {
+        using std::swap;
+        swap(m_target, rhs.m_target);
+        if (m_target != nullptr)
+        {
+            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        }
+        swap(m_json_cache_valid, rhs.m_json_cache_valid);
+        swap(m_solv_cache_valid, rhs.m_solv_cache_valid);
+        swap(m_valid_cache_path, rhs.m_valid_cache_path);
+        swap(m_expired_cache_path, rhs.m_expired_cache_path);
+        swap(m_progress_bar, m_progress_bar);
+        swap(m_loaded, rhs.m_loaded);
+        swap(m_download_complete, rhs.m_download_complete);
+        swap(m_repodata_url, rhs.m_repodata_url);
+        swap(m_name, rhs.m_name);
+        swap(m_json_fn, rhs.m_json_fn);
+        swap(m_solv_fn, rhs.m_solv_fn);
+        swap(p_caches, rhs.p_caches);
+        swap(m_is_noarch, rhs.m_is_noarch);
+        swap(m_mod_etag, rhs.m_mod_etag);
+        swap(m_temp_file, rhs.m_temp_file);
+        swap(p_channel, rhs.p_channel);
+ 
+        return *this;
     }
 
     fs::file_time_type::duration MSubdirData::check_cache(
@@ -216,7 +305,7 @@ namespace mamba
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
-        for (const auto& cache_path : m_caches.paths())
+        for (const auto& cache_path : p_caches->paths())
         {
             auto json_file = cache_path / "cache" / m_json_fn;
             auto solv_file = cache_path / "cache" / m_solv_fn;
@@ -366,7 +455,7 @@ namespace mamba
         }
 
         fs::path json_file, solv_file;
-        fs::path writable_cache_path = m_caches.first_writable_path();
+        fs::path writable_cache_path = p_caches->first_writable_path();
 
         if (m_target->http_status == 304)
         {

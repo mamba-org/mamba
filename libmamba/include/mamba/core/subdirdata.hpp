@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 
+#include "tl/expected.hpp"
 #include "nlohmann/json.hpp"
 
 #include "mamba/core/channel.hpp"
@@ -31,6 +32,20 @@ namespace decompress
 
 namespace mamba
 {
+
+    class subdirdata_error
+    {
+    public:
+
+        subdirdata_error(const char* msg);
+        subdirdata_error(const std::string& msg);
+        const std::string& what() const noexcept;
+
+    private:
+
+        std::string m_message;
+    };
+
     /**
      * Represents a channel subdirectory (i.e. a platform)
      * packages index. Handles downloading of the index
@@ -39,11 +54,22 @@ namespace mamba
     class MSubdirData
     {
     public:
-        MSubdirData(const Channel& channel,
-                    const std::string& platform,
-                    const std::string& url,
-                    MultiPackageCache& caches,
-                    const std::string& repodata_fn = "repodata.json");
+        template <class T>
+        using expected = tl::expected<T, subdirdata_error>;
+
+        static expected<std::shared_ptr<MSubdirData>> create(const Channel& channel,
+                                            const std::string& platform,
+                                            const std::string& url,
+                                            MultiPackageCache& caches,
+                                            const std::string& repodata_fn = "repodata.json");
+
+        ~MSubdirData() = default;
+
+        MSubdirData(const MSubdirData&) = delete;
+        MSubdirData& operator=(const MSubdirData&) = delete;
+
+        MSubdirData(MSubdirData&&);
+        MSubdirData& operator=(MSubdirData&&);
 
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
@@ -61,6 +87,12 @@ namespace mamba
 
         MRepo& create_repo(MPool& pool);
 
+        MSubdirData(const Channel& channel,
+                    const std::string& platform,
+                    const std::string& url,
+                    MultiPackageCache& caches,
+                    const std::string& repodata_fn = "repodata.json");
+
     private:
         bool load();
         bool decompress();
@@ -72,9 +104,8 @@ namespace mamba
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
 
-        fs::path m_valid_cache_path, m_expired_cache_path;
-
-        std::ofstream out_file;
+        fs::path m_valid_cache_path;
+        fs::path m_expired_cache_path;
 
         ProgressProxy m_progress_bar;
 
@@ -84,7 +115,7 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
-        MultiPackageCache& m_caches;
+        MultiPackageCache* p_caches;
         bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;

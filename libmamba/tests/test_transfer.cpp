@@ -13,7 +13,9 @@ namespace mamba
             const mamba::Channel& c = mamba::make_channel("conda-forge");
             mamba::MultiDownloadTarget multi_dl;
             mamba::MultiPackageCache pkg_cache({ "/tmp/" });
-            mamba::MSubdirData cf(c, "linux-64", "file:///nonexistent/repodata.json", pkg_cache);
+            auto pcf = mamba::MSubdirData::create(c, "linux-64", "file:///nonexistent/repodata.json", pkg_cache).value();
+            //mamba::MSubdirData cf = mamba::MSubdirData::create(c, "linux-64", "file:///nonexistent/repodata.json", pkg_cache).value();
+            mamba::MSubdirData& cf = *pcf;
             multi_dl.add(cf.target());
 
             // file:// url should not retry
@@ -28,7 +30,9 @@ namespace mamba
             const mamba::Channel& c = mamba::make_channel("conda-forge");
             mamba::MultiDownloadTarget multi_dl;
             mamba::MultiPackageCache pkg_cache({ "/tmp/" });
-            mamba::MSubdirData cf(c, "noarch", "file:///nonexistent/repodata.json", pkg_cache);
+            auto pcf = mamba::MSubdirData::create(c, "noarch", "file:///nonexistent/repodata.json", pkg_cache).value();
+            //mamba::MSubdirData cf = mamba::MSubdirData::create(c, "noarch", "file:///nonexistent/repodata.json", pkg_cache).value();
+            mamba::MSubdirData& cf = *pcf;
             multi_dl.add(cf.target());
             EXPECT_THROW(multi_dl.download(MAMBA_DOWNLOAD_FAILFAST), std::runtime_error);
         }

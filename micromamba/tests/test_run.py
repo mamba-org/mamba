@@ -118,4 +118,4 @@ class TestRunVenv:
         res = umamba_run(
             "-p", temp_env_prefix, "python", "-c", "import sys; print(sys.prefix)"
         )
-        assert res == temp_env_prefix + "\n"
+        assert res.strip() == temp_env_prefix

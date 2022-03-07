@@ -4,11 +4,10 @@ import shutil
 import string
 import subprocess
 from sys import platform
-from warnings import catch_warnings
 
 import pytest
 
-from .helpers import umamba_run
+from .helpers import umamba_run, create, random_string
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -93,3 +92,31 @@ class TestRun:
                 )
             )
         assert subprocess.run(test_script_path, shell=True).returncode == 0
+
+
+@pytest.fixture()
+def temp_env_prefix():
+    previous_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
+    previous_prefix = os.environ["CONDA_PREFIX"]
+
+    env_name = random_string()
+    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
+    prefix = os.path.join(root_prefix, "envs", env_name)
+    
+    os.environ["MAMBA_ROOT_PREFIX"] = root_prefix
+    create("-p", prefix, "python")
+
+    yield prefix
+
+    shutil.rmtree(prefix)
+    os.environ["MAMBA_ROOT_PREFIX"] = previous_root_prefix
+    os.environ["CONDA_PREFIX"] = previous_prefix
+    
+
+class TestRunVenv:
+    
+    def test_classic_specs(self, temp_env_prefix):
+        res = umamba_run("-p", temp_env_prefix, "python", "-c", "import sys; print(sys.prefix)")
+        assert res == temp_env_prefix + '\n'
+
+        

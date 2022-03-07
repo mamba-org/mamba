@@ -179,11 +179,11 @@ namespace mamba
                              const std::string& platform,
                              const std::string& url,
                              MultiPackageCache& caches,
-                             const std::string& repodata_fn) -> expected<std::shared_ptr<MSubdirData>>
+                             const std::string& repodata_fn) -> expected<MSubdirData>
     {
         try
         {
-            return std::make_shared<MSubdirData>(channel, platform, url, caches, repodata_fn);
+            return MSubdirData(channel, platform, url, caches, repodata_fn);
         }
         catch(std::exception& e)
         {
@@ -201,7 +201,7 @@ namespace mamba
                              MultiPackageCache& caches,
                              const std::string& repodata_fn)
         : m_target(nullptr)
-        , m_progress_bar(ProgressProxy())
+        , m_progress_bar()
         , m_loaded(false)
         , m_download_complete(false)
         , m_repodata_url(concat(url, "/", repodata_fn))
@@ -221,7 +221,7 @@ namespace mamba
         , m_solv_cache_valid(rhs.m_solv_cache_valid)
         , m_valid_cache_path(std::move(rhs.m_valid_cache_path))
         , m_expired_cache_path(std::move(rhs.m_expired_cache_path))
-        , m_progress_bar(std::move(m_progress_bar))
+        , m_progress_bar(std::move(rhs.m_progress_bar))
         , m_loaded(rhs.m_loaded)
         , m_download_complete(rhs.m_download_complete)
         , m_repodata_url(std::move(rhs.m_repodata_url))
@@ -244,10 +244,6 @@ namespace mamba
     {
         using std::swap;
         swap(m_target, rhs.m_target);
-        if (m_target != nullptr)
-        {
-            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
-        }
         swap(m_json_cache_valid, rhs.m_json_cache_valid);
         swap(m_solv_cache_valid, rhs.m_solv_cache_valid);
         swap(m_valid_cache_path, rhs.m_valid_cache_path);
@@ -264,7 +260,15 @@ namespace mamba
         swap(m_mod_etag, rhs.m_mod_etag);
         swap(m_temp_file, rhs.m_temp_file);
         swap(p_channel, rhs.p_channel);
- 
+
+        if (m_target != nullptr)
+        {
+            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        }
+        if (rhs.m_target != nullptr)
+        {
+            rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
+        }
         return *this;
     }
 

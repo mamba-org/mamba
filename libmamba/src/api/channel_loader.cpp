@@ -38,7 +38,7 @@ namespace mamba
 
         std::vector<std::string> channel_urls = ctx.channels;
 
-        std::vector<std::shared_ptr<MSubdirData>> subdirs;
+        std::vector<MSubdirData> subdirs;
         MultiDownloadTarget multi_dl;
 
         std::vector<std::pair<int, int>> priorities;
@@ -62,7 +62,7 @@ namespace mamba
                 //auto sdir = std::make_shared<MSubdirData>(*channel, platform, url, package_caches);
                 auto sdir = std::move(sdires).value();
 
-                multi_dl.add(sdir->target());
+                multi_dl.add(sdir.target());
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::kDisabled)
                 {
@@ -96,7 +96,7 @@ namespace mamba
         bool loading_failed = false;
         for (std::size_t i = 0; i < subdirs.size(); ++i)
         {
-            auto& subdir = (*subdirs[i]);
+            auto& subdir = subdirs[i];
             if (!subdir.loaded())
             {
                 if (ctx.offline || !mamba::ends_with(subdir.name(), "/noarch"))

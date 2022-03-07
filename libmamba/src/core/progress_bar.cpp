@@ -707,7 +707,7 @@ namespace mamba
         : p_bar(ptr)
     {
     }
-
+    
     bool ProgressProxy::defined() const
     {
         return p_bar != nullptr;

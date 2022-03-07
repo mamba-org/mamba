@@ -152,6 +152,72 @@ namespace mamba
         init_curl_target(m_url);
     }
 
+    DownloadTarget::~DownloadTarget()
+    {
+        curl_easy_cleanup(m_handle);
+        curl_slist_free_all(m_headers);
+    }
+
+    DownloadTarget::DownloadTarget(DownloadTarget&& rhs)
+        : result(std::move(rhs.result))
+        , failed(std::move(rhs.failed))
+        , http_status(std::move(rhs.http_status))
+        , downloaded_size(std::move(rhs.downloaded_size))
+        , avg_speed(std::move(rhs.avg_speed))
+        , final_url(std::move(rhs.final_url))
+        , etag(std::move(rhs.etag))
+        , mod(std::move(rhs.mod))
+        , cache_control(std::move(rhs.cache_control))
+        , m_finalize_callback(std::move(rhs.m_finalize_callback))
+        , m_name(std::move(rhs.m_name))
+        , m_filename(std::move(rhs.m_filename))
+        , m_url(std::move(rhs.m_url))
+        , m_expected_size(std::move(rhs.m_expected_size))
+        , m_next_retry(std::move(rhs.m_next_retry))
+        , m_retry_wait_seconds(std::move(rhs.m_retry_wait_seconds))
+        , m_retries(std::move(rhs.m_retries))
+        , m_handle(std::move(rhs.m_handle))
+        , m_headers(std::move(rhs.m_headers))
+        , m_has_progress_bar(std::move(rhs.m_has_progress_bar))
+        , m_ignore_failure(std::move(rhs.m_ignore_failure))
+        , m_progress_bar(std::move(rhs.m_progress_bar))
+        , m_file(std::move(rhs.m_file))
+    {
+        rhs.m_handle = nullptr;
+        rhs.m_headers = nullptr;
+        std::copy(rhs.m_errbuf, rhs.m_errbuf+CURL_ERROR_SIZE, m_errbuf);
+    }
+
+    DownloadTarget& DownloadTarget::operator=(DownloadTarget&& rhs)
+    {
+        using std::swap;
+        swap(result, rhs.result);
+        swap(failed, rhs.failed);
+        swap(http_status, rhs.http_status);
+        swap(downloaded_size, rhs.downloaded_size);
+        swap(avg_speed, rhs.avg_speed);
+        swap(final_url, rhs.final_url);
+        swap(etag, rhs.etag);
+        swap(mod, rhs.mod);
+        swap(cache_control, rhs.cache_control);
+        swap(m_finalize_callback, m_finalize_callback);
+        swap(m_name, rhs.m_name);
+        swap(m_filename, rhs.m_filename);
+        swap(m_url, rhs.m_url);
+        swap(m_expected_size, rhs.m_expected_size);
+        swap(m_next_retry, rhs.m_next_retry);
+        swap(m_retry_wait_seconds, rhs.m_retry_wait_seconds);
+        swap(m_retries, rhs.m_retries);
+        swap(m_handle, rhs.m_handle);
+        swap(m_headers, rhs.m_headers);
+        swap(m_has_progress_bar, rhs.m_has_progress_bar);
+        swap(m_ignore_failure, rhs.m_ignore_failure);
+        swap(m_progress_bar, rhs.m_progress_bar);
+        swap(m_errbuf, rhs.m_errbuf);
+        swap(m_file, rhs.m_file);
+        return *this;
+    }
+
     void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
     {
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
@@ -237,7 +303,6 @@ namespace mamba
         return 0;
     }
 
-
     void DownloadTarget::init_curl_target(const std::string& url)
     {
         init_curl_handle(m_handle, url);
@@ -307,11 +372,6 @@ namespace mamba
         }
     }
 
-    DownloadTarget::~DownloadTarget()
-    {
-        curl_easy_cleanup(m_handle);
-        curl_slist_free_all(m_headers);
-    }
 
     size_t DownloadTarget::write_callback(char* ptr, size_t size, size_t nmemb, void* self)
     {

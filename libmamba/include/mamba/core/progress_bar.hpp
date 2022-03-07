@@ -280,7 +280,7 @@ namespace mamba
         const ProgressBar& progress_bar() const;
 
     private:
-        ProgressBar* p_progress_bar;
+        ProgressBar* p_progress_bar = nullptr;
         std::size_t m_width = 0;
 
         void set_same_widths(const ProgressBarRepr& r);
@@ -359,7 +359,7 @@ namespace mamba
         int width() const;
 
     private:
-        ProgressBar* p_bar;
+        ProgressBar* p_bar = nullptr;
 
         friend class ProgressBarManager;
     };

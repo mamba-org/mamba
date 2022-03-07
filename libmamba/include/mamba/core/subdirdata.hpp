@@ -57,7 +57,7 @@ namespace mamba
         template <class T>
         using expected = tl::expected<T, subdirdata_error>;
 
-        static expected<std::shared_ptr<MSubdirData>> create(const Channel& channel,
+        static expected<MSubdirData> create(const Channel& channel,
                                             const std::string& platform,
                                             const std::string& url,
                                             MultiPackageCache& caches,
@@ -87,19 +87,19 @@ namespace mamba
 
         MRepo& create_repo(MPool& pool);
 
+    private:
         MSubdirData(const Channel& channel,
                     const std::string& platform,
                     const std::string& url,
                     MultiPackageCache& caches,
                     const std::string& repodata_fn = "repodata.json");
 
-    private:
         bool load();
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
 
-        std::unique_ptr<DownloadTarget> m_target;
+        std::unique_ptr<DownloadTarget> m_target = nullptr;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;

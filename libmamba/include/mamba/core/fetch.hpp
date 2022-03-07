@@ -35,6 +35,12 @@ namespace mamba
                        const std::string& filename);
         ~DownloadTarget();
 
+        DownloadTarget(const DownloadTarget&) = delete;
+        DownloadTarget& operator=(const DownloadTarget&) = delete;
+
+        DownloadTarget(DownloadTarget&&);
+        DownloadTarget& operator=(DownloadTarget&&);
+
         static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self);
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
 

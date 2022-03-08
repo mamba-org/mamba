@@ -190,7 +190,6 @@ namespace mamba
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
-        // curl_easy_setopt(handle, CURLOPT_UNRESTRICTED_AUTH, true);
 
         // curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &DownloadTarget::debug_callback);
         // curl_easy_setopt(handle, CURLOPT_DEBUGDATA, NULL);
@@ -309,7 +308,7 @@ namespace mamba
             {
                 curl_easy_setopt(
                     m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-                curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
+                curl_easy_setopt(m_handlelibmamba_static, CURLOPT_XFERINFODATA, this);
             }
             m_retry_wait_seconds = m_retry_wait_seconds * Context::instance().retry_backoff;
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);

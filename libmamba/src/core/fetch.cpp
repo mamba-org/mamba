@@ -205,10 +205,10 @@ namespace mamba
         // - fixing how the progress bar works
         curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
-        if (std::getenv("MAMBA_SET_USEDPWD"))
-        {
-            curl_easy_setopt(handle, CURLOPT_USERPWD, ":test");
-        }
+        // if (std::getenv("MAMBA_SET_USEDPWD"))
+        // {
+        //     curl_easy_setopt(handle, CURLOPT_USERPWD, ":test");
+        // }
 
         // if the request is slower than 30b/s for 60 seconds, cancel.
         std::string no_low_speed_limit = std::getenv("MAMBA_NO_LOW_SPEED_LIMIT")

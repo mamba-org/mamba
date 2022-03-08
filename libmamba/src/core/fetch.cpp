@@ -308,7 +308,7 @@ namespace mamba
             {
                 curl_easy_setopt(
                     m_handle, CURLOPT_XFERINFOFUNCTION, &DownloadTarget::progress_callback);
-                curl_easy_setopt(m_handlelibmamba_static, CURLOPT_XFERINFODATA, this);
+                curl_easy_setopt(m_handle, CURLOPT_XFERINFODATA, this);
             }
             m_retry_wait_seconds = m_retry_wait_seconds * Context::instance().retry_backoff;
             m_next_retry = now + std::chrono::seconds(m_retry_wait_seconds);

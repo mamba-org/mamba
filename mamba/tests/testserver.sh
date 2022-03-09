@@ -35,3 +35,13 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 	sleep 5s
 	kill -TERM $PID
 fi
+
+export TESTPWD=":test"
+python reposerver.py -d repo/ --auth basic --port 8005 & PID=$!
+python reposerver.py -d repo/ --auth basic --port 8006 & PID2=$!
+python reposerver.py -d repo/ --auth basic --port 8007 & PID3=$!
+mamba create -y -q -n $ENV_NAME --override-channels -c http://:test@localhost:8005/ -c http://:test@localhost:8006/ -c http://:test@localhost:8007/ test-package --json
+kill -TERM $PID
+kill -TERM $PID2
+kill -TERM $PID3
+rm -rf $CONDA_PREFIX/envs/$ENV_NAME

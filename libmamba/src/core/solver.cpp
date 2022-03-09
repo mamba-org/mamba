@@ -13,6 +13,22 @@
 
 namespace mamba
 {
+    std::string MSolverProblem::to_string() const
+    {
+        return solver_problemruleinfo2str(
+            solver, (SolverRuleinfo) type, source_id, target_id, dep_id);
+    }
+
+    PackageInfo MSolverProblem::target() const
+    {
+        return pool_id2solvable(solver->pool, target_id);
+    }
+
+    PackageInfo MSolverProblem::source() const
+    {
+        return pool_id2solvable(solver->pool, source_id);
+    }
+
     MSolver::MSolver(MPool& pool,
                      const std::vector<std::pair<int, int>>& flags,
                      const PrefixData* prefix_data)
@@ -348,6 +364,38 @@ namespace mamba
         Console::instance().json_write({ { "success", success } });
         return success;
     }
+
+
+    std::vector<MSolverProblem> MSolver::all_problems_structured() const
+    {
+        std::vector<MSolverProblem> res;
+        Queue problem_rules;
+        queue_init(&problem_rules);
+        Id count = solver_problem_count(m_solver);
+        for (Id i = 1; i <= count; ++i)
+        {
+            solver_findallproblemrules(m_solver, i, &problem_rules);
+            for (Id j = 0; j < problem_rules.count; ++j)
+            {
+                Id type, source, target, dep;
+                Id r = problem_rules.elements[j];
+                if (r)
+                {
+                    type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
+                    MSolverProblem problem;
+                    problem.source_id = source;
+                    problem.target_id = target;
+                    problem.dep_id = dep;
+                    problem.solver = m_solver;
+                    problem.type = static_cast<SolverRuleinfo>(type);
+                    res.push_back(problem);
+                }
+            }
+        }
+        queue_free(&problem_rules);
+        return res;
+    }
+
 
     std::string MSolver::all_problems_to_str() const
     {

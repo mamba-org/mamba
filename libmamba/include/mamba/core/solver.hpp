@@ -31,6 +31,22 @@ extern "C"
 
 namespace mamba
 {
+    class MSolverProblem
+    {
+    public:
+        SolverRuleinfo type;
+        Id source_id;
+        Id target_id;
+        Id dep_id;
+
+        Solver* solver;
+
+        std::string to_string() const;
+
+        PackageInfo target() const;
+        PackageInfo source() const;
+    };
+
     class MSolver
     {
     public:
@@ -55,6 +71,7 @@ namespace mamba
         bool solve();
         std::string problems_to_str() const;
         std::vector<std::string> all_problems() const;
+        std::vector<MSolverProblem> all_problems_structured() const;
         std::string all_problems_to_str() const;
 
         const std::vector<MatchSpec>& install_specs() const;

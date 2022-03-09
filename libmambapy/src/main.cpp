@@ -133,7 +133,17 @@ PYBIND11_MODULE(bindings, m)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
+        .def("all_problems_structured", &MSolver::all_problems_structured)
         .def("solve", &MSolver::solve);
+
+    py::class_<MSolverProblem>(m, "SolverProblem")
+        .def_readonly("target_id", &MSolverProblem::target_id)
+        .def_readonly("source_id", &MSolverProblem::source_id)
+        .def_readonly("dep_id", &MSolverProblem::dep_id)
+        .def_readonly("type", &MSolverProblem::type)
+        .def("__str__", &MSolverProblem::to_string)
+        .def("target", &MSolverProblem::target)
+        .def("source", &MSolverProblem::source);
 
     py::class_<History>(m, "History")
         .def(py::init<const fs::path&>())
@@ -529,6 +539,36 @@ PYBIND11_MODULE(bindings, m)
     m.attr("SOLVER_FLAG_INSTALL_ALSO_UPDATES") = SOLVER_FLAG_INSTALL_ALSO_UPDATES;
     m.attr("SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED") = SOLVER_FLAG_ONLY_NAMESPACE_RECOMMENDED;
     m.attr("SOLVER_FLAG_STRICT_REPO_PRIORITY") = SOLVER_FLAG_STRICT_REPO_PRIORITY;
+
+    // Solver rule flags
+    py::enum_<SolverRuleinfo>(m, "SolverRuleinfo")
+        .value("SOLVER_RULE_UNKNOWN", SolverRuleinfo::SOLVER_RULE_UNKNOWN)
+        .value("SOLVER_RULE_PKG", SolverRuleinfo::SOLVER_RULE_PKG)
+        .value("SOLVER_RULE_PKG_NOT_INSTALLABLE", SolverRuleinfo::SOLVER_RULE_PKG_NOT_INSTALLABLE)
+        .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP",
+               SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
+        .value("SOLVER_RULE_PKG_REQUIRES", SolverRuleinfo::SOLVER_RULE_PKG_REQUIRES)
+        .value("SOLVER_RULE_PKG_SELF_CONFLICT", SolverRuleinfo::SOLVER_RULE_PKG_SELF_CONFLICT)
+        .value("SOLVER_RULE_PKG_CONFLICTS", SolverRuleinfo::SOLVER_RULE_PKG_CONFLICTS)
+        .value("SOLVER_RULE_PKG_SAME_NAME", SolverRuleinfo::SOLVER_RULE_PKG_SAME_NAME)
+        .value("SOLVER_RULE_PKG_OBSOLETES", SolverRuleinfo::SOLVER_RULE_PKG_OBSOLETES)
+        .value("SOLVER_RULE_PKG_IMPLICIT_OBSOLETES",
+               SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
+        .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES",
+               SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
+        .value("SOLVER_RULE_UPDATE", SolverRuleinfo::SOLVER_RULE_UPDATE)
+        .value("SOLVER_RULE_FEATURE", SolverRuleinfo::SOLVER_RULE_FEATURE)
+        .value("SOLVER_RULE_JOB", SolverRuleinfo::SOLVER_RULE_JOB)
+        .value("SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP",
+               SolverRuleinfo::SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP)
+        .value("SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM",
+               SolverRuleinfo::SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM)
+        .value("SOLVER_RULE_JOB_UNKNOWN_PACKAGE", SolverRuleinfo::SOLVER_RULE_JOB_UNKNOWN_PACKAGE)
+        .value("SOLVER_RULE_JOB_UNSUPPORTED", SolverRuleinfo::SOLVER_RULE_JOB_UNSUPPORTED)
+        .value("SOLVER_RULE_DISTUPGRADE", SolverRuleinfo::SOLVER_RULE_DISTUPGRADE)
+        .value("SOLVER_RULE_INFARCH", SolverRuleinfo::SOLVER_RULE_INFARCH)
+        .value("SOLVER_RULE_CHOICE", SolverRuleinfo::SOLVER_RULE_CHOICE)
+        .value("SOLVER_RULE_LEARNT", SolverRuleinfo::SOLVER_RULE_LEARNT);
 
     // INSTALL FLAGS
     m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;

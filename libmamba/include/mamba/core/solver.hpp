@@ -11,6 +11,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <optional>
 
 #include "match_spec.hpp"
 #include "output.hpp"
@@ -43,8 +44,9 @@ namespace mamba
 
         std::string to_string() const;
 
-        PackageInfo target() const;
-        PackageInfo source() const;
+        std::optional<PackageInfo> target() const;
+        std::optional<PackageInfo> source() const;
+        std::optional<std::string> dep() const;
     };
 
     class MSolver

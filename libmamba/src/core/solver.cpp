@@ -19,14 +19,26 @@ namespace mamba
             solver, (SolverRuleinfo) type, source_id, target_id, dep_id);
     }
 
-    PackageInfo MSolverProblem::target() const
+    std::optional<PackageInfo> MSolverProblem::target() const
     {
+        if (target_id == 0 || target_id >= solver->pool->nsolvables)
+            return std::nullopt;
         return pool_id2solvable(solver->pool, target_id);
     }
 
-    PackageInfo MSolverProblem::source() const
+    std::optional<PackageInfo> MSolverProblem::source() const
     {
+        if (source_id == 0 || source_id >= solver->pool->nsolvables)
+            return std::nullopt;
+        ;
         return pool_id2solvable(solver->pool, source_id);
+    }
+
+    std::optional<std::string> MSolverProblem::dep() const
+    {
+        if (!dep_id)
+            return std::nullopt;
+        return pool_dep2str(solver->pool, dep_id);
     }
 
     MSolver::MSolver(MPool& pool,

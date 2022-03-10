@@ -18,12 +18,13 @@ namespace mamba
     enum class mamba_error_code
     {
         unknown,
+        aggregated,
         prefix_data_not_loaded,
         subdirdata_not_loaded,
         cache_not_loaded,
         repodata_not_loaded,
         configurable_bad_cast,
-        aggregated
+        env_lockfile_parsing_failed,
     };
 
     class mamba_error : public std::runtime_error

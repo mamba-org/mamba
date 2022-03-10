@@ -133,6 +133,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/util_os.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/validate.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -192,8 +193,10 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp

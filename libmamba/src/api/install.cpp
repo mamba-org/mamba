@@ -18,6 +18,7 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/core/env_lockfile.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -320,7 +321,13 @@ namespace mamba
         auto& install_specs = config.at("specs").value<std::vector<std::string>>();
         auto& use_explicit = config.at("explicit_install").value<bool>();
 
-        if (!install_specs.empty())
+        if (Context::instance().env_lockfile)
+        {
+            const auto lockfile_path = Context::instance().env_lockfile.value();
+            LOG_DEBUG << "Lockfile: " << lockfile_path.string();
+            install_lockfile_specs(lockfile_path, false);
+        }
+        else if (!install_specs.empty())
         {
             if (use_explicit)
             {
@@ -498,37 +505,57 @@ namespace mamba
         }
     }
 
+    namespace detail
+    {
+        // TransactionFunc: (MPool& pool, MultiPackageCache& package_caches) -> MTransaction
+        template <typename TransactionFunc>
+        void install_explicit_with_transaction(TransactionFunc create_transaction, bool create_env)
+        {
+            MPool pool;
+            auto& ctx = Context::instance();
+            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            if (!exp_prefix_data)
+            {
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error("could not load prefix data");
+            }
+            PrefixData& prefix_data = exp_prefix_data.value();
+
+            fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
+            MultiPackageCache pkg_caches({ pkgs_dirs });
+
+            auto transaction = create_transaction(pool, pkg_caches);
+
+            prefix_data.add_packages(get_virtual_packages());
+            MRepo::create(pool, prefix_data);
+
+            if (ctx.json)
+                transaction.log_json();
+
+            if (transaction.prompt())
+            {
+                if (create_env && !Context::instance().dry_run)
+                    detail::create_target_directory(ctx.target_prefix);
+
+                transaction.execute(prefix_data);
+            }
+        }
+    }
 
     void install_explicit_specs(const std::vector<std::string>& specs, bool create_env)
     {
-        MPool pool;
-        auto& ctx = Context::instance();
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
-        if (!exp_prefix_data)
-        {
-            // TODO: propagate tl::expected mechanism
-            throw std::runtime_error(exp_prefix_data.error().what());
-        }
-        PrefixData& prefix_data = exp_prefix_data.value();
+        detail::install_explicit_with_transaction(
+            [&](auto& pool, auto& pkg_caches)
+            { return create_explicit_transaction_from_urls(pool, specs, pkg_caches); },
+            create_env);
+    }
 
-        fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
-        MultiPackageCache pkg_caches({ pkgs_dirs });
-
-        auto transaction = create_explicit_transaction_from_urls(pool, specs, pkg_caches);
-
-        prefix_data.add_packages(get_virtual_packages());
-        MRepo::create(pool, prefix_data);
-
-        if (ctx.json)
-            transaction.log_json();
-
-        if (transaction.prompt())
-        {
-            if (create_env && !Context::instance().dry_run)
-                detail::create_target_directory(ctx.target_prefix);
-
-            transaction.execute(prefix_data);
-        }
+    void install_lockfile_specs(const fs::path& lockfile, bool create_env)
+    {
+        detail::install_explicit_with_transaction(
+            [&](auto& pool, auto& pkg_caches)
+            { return create_explicit_transaction_from_lockfile(pool, lockfile, pkg_caches); },
+            create_env);
     }
 
     namespace detail
@@ -558,9 +585,9 @@ namespace mamba
             if (file_specs.size() == 0)
                 return;
 
-            for (auto& file : file_specs)
+            for (const auto& file : file_specs)
             {
-                if ((ends_with(file, ".yml") || ends_with(file, ".yaml")) && file_specs.size() != 1)
+                if (is_yaml_file_name(file) && file_specs.size() != 1)
                 {
                     throw std::runtime_error("Can only handle 1 yaml file!");
                 }
@@ -569,9 +596,15 @@ namespace mamba
             for (auto& file : file_specs)
             {
                 // read specs from file :)
-                if (ends_with(file, ".yml") || ends_with(file, ".yaml"))
+                if (is_env_lockfile_name(file))
                 {
-                    auto parse_result = read_yaml_file(file);
+                    const auto lockfile_path = fs::absolute(file);
+                    LOG_DEBUG << "File spec Lockfile: " << lockfile_path.string();
+                    Context::instance().env_lockfile = lockfile_path;
+                }
+                else if (is_yaml_file_name(file))
+                {
+                    const auto parse_result = read_yaml_file(file);
 
                     if (parse_result.channels.size() != 0)
                     {
@@ -610,7 +643,7 @@ namespace mamba
                 }
                 else
                 {
-                    std::vector<std::string> file_contents = read_lines(file);
+                    const std::vector<std::string> file_contents = read_lines(file);
                     if (file_contents.size() == 0)
                     {
                         throw std::runtime_error(concat("Got an empty file: ", file));

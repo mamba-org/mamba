@@ -15,6 +15,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util_scope.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -711,6 +712,49 @@ namespace mamba
             // init everything again...
             init();
         }
+    }
+
+    MTransaction::MTransaction(MPool& pool,
+                               const std::vector<PackageInfo>& packages,
+                               MultiPackageCache& caches)
+        : m_multi_cache(caches)
+    {
+        LOG_WARNING << "MTransaction::MTransaction - packages already resolved (lockfile)";
+        MRepo& mrepo = MRepo::create(pool, "__explicit_specs__", packages);
+        pool.create_whatprovides();
+
+        Queue job;
+        queue_init(&job);
+        const on_scope_exit _job_release{ [&] { queue_free(&job); } };
+
+        Queue decision;
+        queue_init(&decision);
+        const on_scope_exit _decision_release{ [&] { queue_free(&decision); } };
+
+        Id pkg_id = {};
+        Solvable* solvable = nullptr;
+
+        FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
+        {
+            queue_push(&decision, pkg_id);
+        }
+
+        m_transaction = transaction_create_decisionq((Pool*) pool, &decision, nullptr);
+        transaction_order(m_transaction, 0);
+
+        init();
+
+        m_history_entry = History::UserRequest::prefilled();
+
+        std::vector<MatchSpec> specs_to_install;
+        for (const auto& pkginfo : packages)
+        {
+            specs_to_install.push_back(MatchSpec(
+                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)));
+        }
+
+        m_transaction_context = TransactionContext(
+            Context::instance().target_prefix, find_python_version(), specs_to_install);
     }
 
     MTransaction::~MTransaction()
@@ -1507,4 +1551,25 @@ namespace mamba
         }
         return MTransaction(pool, {}, specs_to_install, package_caches);
     }
+
+    MTransaction create_explicit_transaction_from_lockfile(MPool& pool,
+                                                           const fs::path& env_lockfile_path,
+                                                           MultiPackageCache& package_caches)
+    {
+        const auto maybe_lockfile = read_environment_lockfile(env_lockfile_path);
+        if (!maybe_lockfile)
+            throw maybe_lockfile.error();  // NOTE: we cannot return an `un/expected` because
+                                           // MTransaction is not move-enabled.
+
+        const auto lockfile_data = maybe_lockfile.value();
+
+        constexpr auto default_category = "main";
+        constexpr auto default_manager = "conda";
+
+        const auto packages = lockfile_data.get_packages_for(
+            default_category, Context::instance().platform, default_manager);
+
+        return MTransaction{ pool, packages, package_caches };
+    }
+
 }  // namespace mamba

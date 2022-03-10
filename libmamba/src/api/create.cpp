@@ -59,7 +59,13 @@ namespace mamba
                 detail::store_platform_config(ctx.target_prefix, ctx.platform);
         }
 
-        if (!create_specs.empty())
+        if (Context::instance().env_lockfile)
+        {
+            const auto lockfile_path = Context::instance().env_lockfile.value();
+            LOG_DEBUG << "Lockfile: " << lockfile_path.string();
+            install_lockfile_specs(lockfile_path, true);
+        }
+        else if (!create_specs.empty())
         {
             if (use_explicit)
                 install_explicit_specs(create_specs, true);

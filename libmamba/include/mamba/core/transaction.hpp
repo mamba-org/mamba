@@ -26,6 +26,7 @@
 #include "repo.hpp"
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
+#include "env_lockfile.hpp"
 
 extern "C"
 {
@@ -122,6 +123,11 @@ namespace mamba
                      MultiPackageCache& caches);
         MTransaction(MSolver& solver, MultiPackageCache& caches);
 
+        // Only use if the packages have been solved previously already.
+        MTransaction(MPool& pool,
+                     const std::vector<PackageInfo>& packages,
+                     MultiPackageCache& caches);
+
         ~MTransaction();
 
         MTransaction(const MTransaction&) = delete;
@@ -166,6 +172,10 @@ namespace mamba
     MTransaction create_explicit_transaction_from_urls(MPool& pool,
                                                        const std::vector<std::string>& urls,
                                                        MultiPackageCache& package_caches);
+
+    MTransaction create_explicit_transaction_from_lockfile(MPool& pool,
+                                                           const fs::path& env_lockfile_path,
+                                                           MultiPackageCache& package_caches);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

@@ -26,6 +26,7 @@ set(TEST_SRCS
     test_validate.cpp
     test_virtual_packages.cpp
     test_util.cpp
+    test_env_lockfile.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")
@@ -46,6 +47,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_file_test
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/validation_data
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/repodata_json_cache
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_lockfile_test
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 
 target_link_libraries(test_libmamba PRIVATE GTest::GTest GTest::Main Threads::Threads)

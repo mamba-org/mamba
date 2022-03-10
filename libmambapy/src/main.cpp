@@ -71,16 +71,16 @@ PYBIND11_MODULE(bindings, m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
-    struct AdditionalPkgInfo
+    struct ExtraPkgInfo
     {
         std::string noarch;
         std::string repo_url;
     };
 
-    py::class_<AdditionalPkgInfo>(m, "AdditionalPkgInfo")
+    py::class_<ExtraPkgInfo>(m, "ExtraPkgInfo")
         .def(py::init<>())
-        .def_readwrite("noarch", &AdditionalPkgInfo::noarch)
-        .def_readwrite("repo_url", &AdditionalPkgInfo::repo_url);
+        .def_readwrite("noarch", &ExtraPkgInfo::noarch)
+        .def_readwrite("repo_url", &ExtraPkgInfo::repo_url);
 
     py::class_<MRepo, std::unique_ptr<MRepo, py::nodelete>>(m, "Repo")
         .def(py::init(
@@ -93,8 +93,8 @@ PYBIND11_MODULE(bindings, m)
             }))
         .def(py::init([](MPool& pool, const PrefixData& data)
                       { return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, data)); }))
-        .def("add_additional_info",
-             [](const MRepo& self, const std::map<std::string, AdditionalPkgInfo>& additional_info)
+        .def("add_extra_pkg_info",
+             [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
              {
                  Id pkg_id;
                  Solvable* pkg_s;

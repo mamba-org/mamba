@@ -30,14 +30,14 @@ def load_conda_installed(pool, installed_json_f, installed_pkg_recs):
     repo = api.Repo(pool, "installed", installed_json_f.name, "")
     additional_infos = {}
     for rec in installed_pkg_recs:
-        info = api.AdditionalPkgInfo()
+        info = api.ExtraPkgInfo()
         if rec.noarch:
             info.noarch = rec.noarch.value
         if rec.url:
             info.repo_url = rec.url
         additional_infos[rec.name] = info
 
-    repo.add_additional_info(additional_infos)
+    repo.add_extra_pkg_info(additional_infos)
     repo.set_installed()
 
     return repo

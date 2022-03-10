@@ -143,7 +143,8 @@ PYBIND11_MODULE(bindings, m)
         .def_readonly("type", &MSolverProblem::type)
         .def("__str__", &MSolverProblem::to_string)
         .def("target", &MSolverProblem::target)
-        .def("source", &MSolverProblem::source);
+        .def("source", &MSolverProblem::source)
+        .def("dep", &MSolverProblem::dep);
 
     py::class_<History>(m, "History")
         .def(py::init<const fs::path&>())

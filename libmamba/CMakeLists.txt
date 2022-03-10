@@ -283,6 +283,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_library(LIBSOLV_BUILD_STATICRARIES NAMES solv_static)
             find_library(LIBSOLVEXT_BUILD_STATICRARIES NAMES solvext_static)
             find_package(reproc++ CONFIG REQUIRED)
+            find_package(tl-expected REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv)
@@ -308,6 +309,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${sodium_LIBRARY_RELEASE}
                 reproc++
                 reproc
+                tl::expected
             )
 
             add_definitions("-DLIBARCHIVE_STATIC -DCURL_STATICLIB -DSOLV_BUILD_STATIC")
@@ -325,6 +327,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_package(OpenSSL REQUIRED)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
+        find_package(tl-expected REQUIRED)
 
         set(LIBMAMBA_LIBRARIES_DEPS
             ${LIBSOLV_LIBRARIES}
@@ -335,6 +338,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             ${YAML_CPP_LIBRARIES}
             reproc++
             reproc
+            tl::expected
         )
 
         target_link_libraries(${target_name} PUBLIC

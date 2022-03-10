@@ -14,9 +14,15 @@ namespace mamba
         {
             if (!fs::exists(pkgs_dir))
             {
+                // TODO : us tl::expected mechanis
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
-            PrefixData prefix_data(pkgs_dir);
+            auto sprefix_data = PrefixData::create(pkgs_dir);
+            if (!sprefix_data)
+            {
+                throw std::runtime_error("Specified pkgs_dir does not exist\n");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
                 fs::path repodata_record_json = entry.path() / "info" / "repodata_record.json";
@@ -38,7 +44,7 @@ namespace mamba
 
         std::vector<std::string> channel_urls = ctx.channels;
 
-        std::vector<std::shared_ptr<MSubdirData>> subdirs;
+        std::vector<MSubdirData> subdirs;
         MultiDownloadTarget multi_dl;
 
         std::vector<std::pair<int, int>> priorities;
@@ -53,10 +59,18 @@ namespace mamba
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {
-                auto sdir = std::make_shared<MSubdirData>(*channel, platform, url, package_caches);
+                auto sdires = MSubdirData::create(*channel, platform, url, package_caches);
+                if (!sdires.has_value())
+                {
+                    // TODO: error handling
+                    continue;
+                }
+                // auto sdir = std::make_shared<MSubdirData>(*channel, platform, url,
+                // package_caches);
+                auto sdir = std::move(sdires).value();
 
-                multi_dl.add(sdir->target());
-                subdirs.push_back(sdir);
+                multi_dl.add(sdir.target());
+                subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::kDisabled)
                 {
                     priorities.push_back(std::make_pair(0, 0));
@@ -90,22 +104,22 @@ namespace mamba
         for (std::size_t i = 0; i < subdirs.size(); ++i)
         {
             auto& subdir = subdirs[i];
-            if (!subdir->loaded())
+            if (!subdir.loaded())
             {
-                if (ctx.offline || !mamba::ends_with(subdir->name(), "/noarch"))
+                if (ctx.offline || !mamba::ends_with(subdir.name(), "/noarch"))
                 {
                     continue;
                 }
                 else
                 {
-                    throw std::runtime_error("Subdir " + subdir->name() + " not loaded!");
+                    throw std::runtime_error("Subdir " + subdir.name() + " not loaded!");
                 }
             }
 
             auto& prio = priorities[i];
             try
             {
-                MRepo& repo = subdir->create_repo(pool);
+                MRepo& repo = subdir.create_repo(pool);
                 repo.set_priority(prio.first, prio.second);
             }
             catch (std::runtime_error& e)
@@ -113,14 +127,14 @@ namespace mamba
                 if (is_retry & RETRY_SUBDIR_FETCH)
                 {
                     std::stringstream ss;
-                    ss << "Could not load repodata.json for " << subdir->name() << " after retry."
+                    ss << "Could not load repodata.json for " << subdir.name() << " after retry."
                        << "Please check repodata source. Exiting." << std::endl;
                     throw std::runtime_error(ss.str());
                 }
 
-                LOG_WARNING << "Could not load repodata.json for " << subdir->name()
+                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
                             << ". Deleting cache, and retrying.";
-                subdir->clear_cache();
+                subdir.clear_cache();
                 loading_failed = true;
             }
         }

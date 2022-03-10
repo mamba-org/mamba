@@ -52,12 +52,6 @@ namespace mamba
     const static std::regex token_re("/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)");
     const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
 
-    class mamba_error : public std::runtime_error
-    {
-    public:
-        using std::runtime_error::runtime_error;
-    };
-
     bool is_package_file(const std::string_view& fn);
 
     bool lexists(const fs::path& p);
@@ -116,6 +110,26 @@ namespace mamba
         std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
         return result;
     }
+
+    enum class unspecified_error
+    {
+        unkown
+    };
+
+    template <class error_type>
+    class mamba_error : public std::runtime_error
+    {
+    public:
+        using base_type = std::runtime_error;
+
+        mamba_error(const std::string& msg, error_type ec);
+        mamba_error(const char* msg, error_type ec);
+
+        error_type error_code() const noexcept;
+
+    private:
+        error_type m_error_code;
+    };
 
     class TemporaryDirectory
     {
@@ -466,6 +480,30 @@ namespace mamba
 
     std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
         const fs::path& prefix, const std::vector<std::string>& cmd);
+
+    /******************************
+     * mamba_error implementation *
+     ******************************/
+
+    template <class ET>
+    mamba_error<ET>::mamba_error(const std::string& msg, ET ec)
+        : base_type(msg)
+        , m_error_code(ec)
+    {
+    }
+
+    template <class ET>
+    mamba_error<ET>::mamba_error(const char* msg, ET ec)
+        : base_type(msg)
+        , m_error_code(ec)
+    {
+    }
+
+    template <class ET>
+    ET mamba_error<ET>::error_code() const noexcept
+    {
+        return m_error_code;
+    }
 
 }  // namespace mamba
 

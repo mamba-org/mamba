@@ -9,6 +9,7 @@
 
 #include <string>
 #include <unordered_map>
+#include "tl/expected.hpp"
 
 #include "history.hpp"
 #include "package_info.hpp"
@@ -16,12 +17,21 @@
 
 namespace mamba
 {
+    enum class prefixdata_error
+    {
+        unknown,
+        load
+    };
+
     class PrefixData
     {
     public:
         using package_map = std::unordered_map<std::string, PackageInfo>;
 
-        PrefixData(const fs::path& prefix_path);
+        template <class T>
+        using expected = tl::expected<T, mamba_error<prefixdata_error>>;
+
+        static expected<PrefixData> create(const fs::path& prefix_path);
 
         void add_packages(const std::vector<PackageInfo>& packages);
         const package_map& records() const;
@@ -32,6 +42,7 @@ namespace mamba
         std::vector<PackageInfo> sorted_records() const;
 
     private:
+        PrefixData(const fs::path& prefix_path);
         void load();
 
         History m_history;

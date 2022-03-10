@@ -14,6 +14,24 @@
 
 namespace mamba
 {
+    auto PrefixData::create(const fs::path& prefix_path) -> expected<PrefixData>
+    {
+        try
+        {
+            return PrefixData(prefix_path);
+        }
+        catch (std::exception& e)
+        {
+            return tl::make_unexpected(mamba_error(e.what(), prefixdata_error::load));
+        }
+        catch (...)
+        {
+            return tl::make_unexpected(mamba_error("Unkown error when trying to load prefix data "
+                                                       + std::string(prefix_path),
+                                                   prefixdata_error::unknown));
+        }
+    }
+
     PrefixData::PrefixData(const fs::path& prefix_path)
         : m_history(prefix_path)
         , m_prefix_path(prefix_path)

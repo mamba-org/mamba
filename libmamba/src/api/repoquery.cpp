@@ -29,7 +29,13 @@ namespace mamba
         MultiPackageCache package_caches(ctx.pkgs_dirs);
         if (use_local)
         {
-            auto prefix_data = PrefixData(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            if (!sprefix_data)
+            {
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error("could not load prefix data");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
             MRepo::create(pool, prefix_data);
             Console::stream() << "Loaded current active prefix: " << ctx.target_prefix << std::endl;
         }

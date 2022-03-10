@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 
+#include "tl/expected.hpp"
 #include "nlohmann/json.hpp"
 
 #include "mamba/core/channel.hpp"
@@ -31,6 +32,13 @@ namespace decompress
 
 namespace mamba
 {
+
+    enum class subdirdata_error
+    {
+        unknown,
+        load
+    };
+
     /**
      * Represents a channel subdirectory (i.e. a platform)
      * packages index. Handles downloading of the index
@@ -39,11 +47,22 @@ namespace mamba
     class MSubdirData
     {
     public:
-        MSubdirData(const Channel& channel,
-                    const std::string& platform,
-                    const std::string& url,
-                    MultiPackageCache& caches,
-                    const std::string& repodata_fn = "repodata.json");
+        template <class T>
+        using expected = tl::expected<T, mamba_error<subdirdata_error>>;
+
+        static expected<MSubdirData> create(const Channel& channel,
+                                            const std::string& platform,
+                                            const std::string& url,
+                                            MultiPackageCache& caches,
+                                            const std::string& repodata_fn = "repodata.json");
+
+        ~MSubdirData() = default;
+
+        MSubdirData(const MSubdirData&) = delete;
+        MSubdirData& operator=(const MSubdirData&) = delete;
+
+        MSubdirData(MSubdirData&&);
+        MSubdirData& operator=(MSubdirData&&);
 
         // TODO return seconds as double
         fs::file_time_type::duration check_cache(const fs::path& cache_file,
@@ -62,19 +81,24 @@ namespace mamba
         MRepo& create_repo(MPool& pool);
 
     private:
+        MSubdirData(const Channel& channel,
+                    const std::string& platform,
+                    const std::string& url,
+                    MultiPackageCache& caches,
+                    const std::string& repodata_fn = "repodata.json");
+
         bool load();
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
 
-        std::unique_ptr<DownloadTarget> m_target;
+        std::unique_ptr<DownloadTarget> m_target = nullptr;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
 
-        fs::path m_valid_cache_path, m_expired_cache_path;
-
-        std::ofstream out_file;
+        fs::path m_valid_cache_path;
+        fs::path m_expired_cache_path;
 
         ProgressProxy m_progress_bar;
 
@@ -84,7 +108,7 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
-        MultiPackageCache& m_caches;
+        MultiPackageCache* p_caches;
         bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;

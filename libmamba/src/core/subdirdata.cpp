@@ -160,21 +160,6 @@ namespace mamba
 
     }
 
-    subdirdata_error::subdirdata_error(const char* msg)
-        : m_message(msg)
-    {
-    }
-
-    subdirdata_error::subdirdata_error(const std::string& msg)
-        : m_message(msg)
-    {
-    }
-
-    const std::string& subdirdata_error::what() const noexcept
-    {
-        return m_message;
-    }
-
     auto MSubdirData::create(const Channel& channel,
                              const std::string& platform,
                              const std::string& url,
@@ -185,13 +170,14 @@ namespace mamba
         {
             return MSubdirData(channel, platform, url, caches, repodata_fn);
         }
-        catch(std::exception& e)
+        catch (std::exception& e)
         {
-            return tl::make_unexpected(e.what());
+            return tl::make_unexpected(mamba_error(e.what(), subdirdata_error::load));
         }
-        catch(...)
+        catch (...)
         {
-            return tl::make_unexpected("Unkown error when trying to load subdir data " + url);
+            return tl::make_unexpected(mamba_error(
+                "Unkown error when trying to load subdir data " + url, subdirdata_error::unknown));
         }
     }
 

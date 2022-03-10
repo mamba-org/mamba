@@ -35,8 +35,13 @@ namespace mamba
 
         if (remove_all)
         {
-            PrefixData prefix_data(ctx.target_prefix);
-
+            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            if (!sprefix_data)
+            {
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error("could not load prefix data");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
             for (const auto& package : prefix_data.records())
             {
                 remove_specs.push_back(package.second.name);
@@ -67,7 +72,13 @@ namespace mamba
                 throw std::runtime_error("Aborted.");
             }
 
-            PrefixData prefix_data(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            if (!sprefix_data)
+            {
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error("could not load prefix data");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
 
             MPool pool;
             MRepo::create(pool, prefix_data);

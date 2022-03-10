@@ -66,7 +66,8 @@ set_env_command(CLI::App* com)
 
             if (explicit_format)
             {
-                PrefixData pd(ctx.target_prefix);
+                // TODO: handle error
+                auto pd = PrefixData::create(ctx.target_prefix).value();
                 auto records = pd.sorted_records();
                 std::cout << "# This file may be used to create an environment using:\n"
                           << "# $ conda create --name <env> --file <this file>\n"
@@ -87,7 +88,7 @@ set_env_command(CLI::App* com)
             }
             else
             {
-                PrefixData pd(ctx.target_prefix);
+                auto pd = PrefixData::create(ctx.target_prefix).value();
                 History& hist = pd.history();
 
                 auto versions_map = pd.records();

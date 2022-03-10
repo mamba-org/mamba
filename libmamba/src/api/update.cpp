@@ -37,7 +37,13 @@ namespace mamba
 
         load_channels(pool, package_caches, 0);
 
-        PrefixData prefix_data(ctx.target_prefix);
+        auto sprefix_data = PrefixData::create(ctx.target_prefix);
+        if (!sprefix_data)
+        {
+            // TODO: propagate tl::expected mechanism
+            throw std::runtime_error("could not load prefix data");
+        }
+        PrefixData& prefix_data = sprefix_data.value();
 
         std::vector<std::string> prefix_pkgs;
         for (auto& it : prefix_data.records())

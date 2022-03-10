@@ -57,7 +57,7 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::path>());
 
-    py::register_exception<mamba_error>(m, "MambaNativeException");
+    py::register_exception<mamba_error<unspecified_error>>(m, "MambaNativeException");
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
@@ -225,12 +225,15 @@ PYBIND11_MODULE(bindings, m)
                  return res_stream.str();
              });
 
+    py::register_exception<mamba_error<subdirdata_error>>(m, "SubdirDataError");
+
     py::class_<MSubdirData>(m, "SubdirData")
-        .def(py::init([](const Channel& channel,
-                         const std::string& platform,
-                         const std::string& url,
-                         MultiPackageCache& caches,
-                         const std::string& repodata_fn) -> MSubdirData
+        .def(py::init(
+            [](const Channel& channel,
+               const std::string& platform,
+               const std::string& url,
+               MultiPackageCache& caches,
+               const std::string& repodata_fn) -> MSubdirData
             {
                 auto sres = MSubdirData::create(channel, platform, url, caches, repodata_fn);
                 if (sres.has_value())
@@ -239,7 +242,7 @@ PYBIND11_MODULE(bindings, m)
                 }
                 else
                 {
-                    throw std::runtime_error(sres.error().what());
+                    throw sres.error();
                 }
             }))
         .def("create_repo", &MSubdirData::create_repo, py::return_value_policy::reference)
@@ -306,7 +309,19 @@ PYBIND11_MODULE(bindings, m)
         .def("set_log_level", &Context::set_log_level);
 
     py::class_<PrefixData>(m, "PrefixData")
-        .def(py::init<const fs::path&>())
+        .def(py::init(
+            [](const fs::path& prefix_path) -> PrefixData
+            {
+                auto sres = PrefixData::create(prefix_path);
+                if (sres.has_value())
+                {
+                    return std::move(sres.value());
+                }
+                else
+                {
+                    throw sres.error();
+                }
+            }))
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 

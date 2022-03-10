@@ -33,17 +33,10 @@ namespace decompress
 namespace mamba
 {
 
-    class subdirdata_error
+    enum class subdirdata_error
     {
-    public:
-
-        subdirdata_error(const char* msg);
-        subdirdata_error(const std::string& msg);
-        const std::string& what() const noexcept;
-
-    private:
-
-        std::string m_message;
+        unknown,
+        load
     };
 
     /**
@@ -55,7 +48,7 @@ namespace mamba
     {
     public:
         template <class T>
-        using expected = tl::expected<T, subdirdata_error>;
+        using expected = tl::expected<T, mamba_error<subdirdata_error>>;
 
         static expected<MSubdirData> create(const Channel& channel,
                                             const std::string& platform,

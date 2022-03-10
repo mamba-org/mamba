@@ -14,9 +14,15 @@ namespace mamba
         {
             if (!fs::exists(pkgs_dir))
             {
+                // TODO : us tl::expected mechanis
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
-            PrefixData prefix_data(pkgs_dir);
+            auto sprefix_data = PrefixData::create(pkgs_dir);
+            if (!sprefix_data)
+            {
+                throw std::runtime_error("Specified pkgs_dir does not exist\n");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
                 fs::path repodata_record_json = entry.path() / "info" / "repodata_record.json";
@@ -59,7 +65,8 @@ namespace mamba
                     // TODO: error handling
                     continue;
                 }
-                //auto sdir = std::make_shared<MSubdirData>(*channel, platform, url, package_caches);
+                // auto sdir = std::make_shared<MSubdirData>(*channel, platform, url,
+                // package_caches);
                 auto sdir = std::move(sdires).value();
 
                 multi_dl.add(sdir.target());

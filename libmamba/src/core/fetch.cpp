@@ -185,7 +185,7 @@ namespace mamba
     {
         rhs.m_handle = nullptr;
         rhs.m_headers = nullptr;
-        std::copy(rhs.m_errbuf, rhs.m_errbuf+CURL_ERROR_SIZE, m_errbuf);
+        std::copy(rhs.m_errbuf, rhs.m_errbuf + CURL_ERROR_SIZE, m_errbuf);
     }
 
     DownloadTarget& DownloadTarget::operator=(DownloadTarget&& rhs)

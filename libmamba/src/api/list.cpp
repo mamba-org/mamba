@@ -46,7 +46,13 @@ namespace mamba
         {
             auto& ctx = Context::instance();
 
-            PrefixData prefix_data(ctx.target_prefix);
+            auto sprefix_data = PrefixData::create(ctx.target_prefix);
+            if (!sprefix_data)
+            {
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error("could not load prefix data");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
 
             std::regex spec_pat(regex);
 

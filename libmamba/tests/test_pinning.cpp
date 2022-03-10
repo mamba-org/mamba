@@ -11,7 +11,14 @@ namespace mamba
         {
             std::vector<std::string> specs;
             std::string pin;
-            PrefixData prefix_data("");
+
+            auto sprefix_data = PrefixData::create("");
+            if (!sprefix_data)
+            {
+                // TODO: propagate tl::expected mechanism
+                throw std::runtime_error("could not load prefix data");
+            }
+            PrefixData& prefix_data = sprefix_data.value();
             ASSERT_EQ(prefix_data.records().size(), 0);
 
             specs = { "python" };

@@ -192,13 +192,13 @@ namespace mamba
         , m_download_complete(false)
         , m_repodata_url(concat(url, "/", repodata_fn))
         , m_name(concat(channel.canonical_name(), "/", platform))
-        , p_caches(&caches)
+        , m_writable_pkgs_dir(caches.first_writable_path())
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
     {
         m_json_fn = cache_fn_url(m_repodata_url);
         m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
-        load();
+        load(caches);
     }
 
     MSubdirData::MSubdirData(MSubdirData&& rhs)
@@ -207,6 +207,7 @@ namespace mamba
         , m_solv_cache_valid(rhs.m_solv_cache_valid)
         , m_valid_cache_path(std::move(rhs.m_valid_cache_path))
         , m_expired_cache_path(std::move(rhs.m_expired_cache_path))
+        , m_writable_pkgs_dir(std::move(rhs.m_writable_pkgs_dir))
         , m_progress_bar(std::move(rhs.m_progress_bar))
         , m_loaded(rhs.m_loaded)
         , m_download_complete(rhs.m_download_complete)
@@ -214,7 +215,6 @@ namespace mamba
         , m_name(std::move(rhs.m_name))
         , m_json_fn(std::move(rhs.m_json_fn))
         , m_solv_fn(std::move(rhs.m_solv_fn))
-        , p_caches(rhs.p_caches)
         , m_is_noarch(rhs.m_is_noarch)
         , m_mod_etag(std::move(rhs.m_mod_etag))
         , m_temp_file(std::move(rhs.m_temp_file))
@@ -234,6 +234,7 @@ namespace mamba
         swap(m_solv_cache_valid, rhs.m_solv_cache_valid);
         swap(m_valid_cache_path, rhs.m_valid_cache_path);
         swap(m_expired_cache_path, rhs.m_expired_cache_path);
+        swap(m_writable_pkgs_dir, rhs.m_writable_pkgs_dir);
         swap(m_progress_bar, m_progress_bar);
         swap(m_loaded, rhs.m_loaded);
         swap(m_download_complete, rhs.m_download_complete);
@@ -241,7 +242,6 @@ namespace mamba
         swap(m_name, rhs.m_name);
         swap(m_json_fn, rhs.m_json_fn);
         swap(m_solv_fn, rhs.m_solv_fn);
-        swap(p_caches, rhs.p_caches);
         swap(m_is_noarch, rhs.m_is_noarch);
         swap(m_mod_etag, rhs.m_mod_etag);
         swap(m_temp_file, rhs.m_temp_file);
@@ -284,7 +284,7 @@ namespace mamba
         return starts_with(m_repodata_url, "file://");
     }
 
-    bool MSubdirData::load()
+    bool MSubdirData::load(MultiPackageCache& caches)
     {
         auto now = fs::file_time_type::clock::now();
 
@@ -295,7 +295,7 @@ namespace mamba
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
-        for (const auto& cache_path : p_caches->paths())
+        for (const auto& cache_path : caches.paths())
         {
             auto json_file = cache_path / "cache" / m_json_fn;
             auto solv_file = cache_path / "cache" / m_solv_fn;
@@ -445,7 +445,6 @@ namespace mamba
         }
 
         fs::path json_file, solv_file;
-        fs::path writable_cache_path = p_caches->first_writable_path();
 
         if (m_target->http_status == 304)
         {
@@ -466,15 +465,15 @@ namespace mamba
             }
             else
             {
-                if (writable_cache_path.empty())
+                if (m_writable_pkgs_dir.empty())
                 {
                     LOG_ERROR << "Could not find any writable cache directory for repodata file";
                     throw std::runtime_error("Non-writable cache error.");
                 }
 
                 LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
-                          << "' to '" << writable_cache_path.string() << "'";
-                fs::path writable_cache_dir = create_cache_dir(writable_cache_path);
+                          << "' to '" << m_writable_pkgs_dir.string() << "'";
+                fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
                 auto lock = LockFile(writable_cache_dir);
 
                 auto copied_json_file = writable_cache_dir / m_json_fn;
@@ -492,7 +491,7 @@ namespace mamba
                     solv_file = copied_solv_file;
                 }
 
-                m_valid_cache_path = writable_cache_path;
+                m_valid_cache_path = m_writable_pkgs_dir;
             }
 
             {
@@ -529,7 +528,7 @@ namespace mamba
         }
         else
         {
-            if (writable_cache_path.empty())
+            if (m_writable_pkgs_dir.empty())
             {
                 LOG_ERROR << "Could not find any writable cache directory for repodata file";
                 throw std::runtime_error("Non-writable cache error.");
@@ -538,7 +537,7 @@ namespace mamba
 
         LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
 
-        fs::path writable_cache_dir = create_cache_dir(writable_cache_path);
+        fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
         auto lock = LockFile(writable_cache_dir);
 
@@ -595,7 +594,7 @@ namespace mamba
             m_progress_bar.mark_as_completed();
         }
 
-        m_valid_cache_path = writable_cache_path;
+        m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
         m_loaded = true;
 

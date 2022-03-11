@@ -87,7 +87,7 @@ namespace mamba
                     MultiPackageCache& caches,
                     const std::string& repodata_fn = "repodata.json");
 
-        bool load();
+        bool load(MultiPackageCache& caches);
         bool decompress();
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
@@ -99,6 +99,7 @@ namespace mamba
 
         fs::path m_valid_cache_path;
         fs::path m_expired_cache_path;
+        fs::path m_writable_pkgs_dir;
 
         ProgressProxy m_progress_bar;
 
@@ -108,7 +109,6 @@ namespace mamba
         std::string m_name;
         std::string m_json_fn;
         std::string m_solv_fn;
-        MultiPackageCache* p_caches;
         bool m_is_noarch;
         nlohmann::json m_mod_etag;
         std::unique_ptr<TemporaryFile> m_temp_file;
@@ -118,7 +118,7 @@ namespace mamba
     // Contrary to conda original function, this one expects a full url
     // (that is channel url + / + repodata_fn). It is not the
     // responsibility of this function to decide whether it should
-    // concatenante base url and repodata depending on repodata value
+    // concatenate base url and repodata depending on repodata value
     // and old behavior support.
     std::string cache_fn_url(const std::string& url);
     std::string create_cache_dir(const fs::path& cache_path);

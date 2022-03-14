@@ -154,7 +154,7 @@ You can either rely on ``libmamba`` package already installed in your environmen
     mkdir -p build
     cd build
     cmake .. \
-        -DBUILD_LIBMAMBAPY=ON
+    –-DBUILD_LIBMAMBAPY=ON
     make
 
 or rebuild ``libmamba`` in the same time:
@@ -201,6 +201,7 @@ Build ``mamba``
 You need to build and install ``libmambapy``, which is a dependency of ``mamba``, then install ``mamba``:
 
 .. code::
+
     pip install -e ./mamba/ --no-deps
 
 .. note::

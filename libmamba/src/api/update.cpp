@@ -35,15 +35,19 @@ namespace mamba
         MPool pool;
         MultiPackageCache package_caches(ctx.pkgs_dirs);
 
-        load_channels(pool, package_caches, 0);
+        auto exp_loaded = load_channels(pool, package_caches, 0);
+        if (!exp_loaded)
+        {
+            throw std::runtime_error(exp_loaded.error().what());
+        }
 
-        auto sprefix_data = PrefixData::create(ctx.target_prefix);
-        if (!sprefix_data)
+        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        if (!exp_prefix_data)
         {
             // TODO: propagate tl::expected mechanism
-            throw std::runtime_error("could not load prefix data");
+            throw std::runtime_error(exp_prefix_data.error().what());
         }
-        PrefixData& prefix_data = sprefix_data.value();
+        PrefixData& prefix_data = exp_prefix_data.value();
 
         std::vector<std::string> prefix_pkgs;
         for (auto& it : prefix_data.records())

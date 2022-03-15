@@ -111,26 +111,6 @@ namespace mamba
         return result;
     }
 
-    enum class unspecified_error
-    {
-        unkown
-    };
-
-    template <class error_type>
-    class mamba_error : public std::runtime_error
-    {
-    public:
-        using base_type = std::runtime_error;
-
-        mamba_error(const std::string& msg, error_type ec);
-        mamba_error(const char* msg, error_type ec);
-
-        error_type error_code() const noexcept;
-
-    private:
-        error_type m_error_code;
-    };
-
     class TemporaryDirectory
     {
     public:
@@ -481,29 +461,7 @@ namespace mamba
     std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
         const fs::path& prefix, const std::vector<std::string>& cmd);
 
-    /******************************
-     * mamba_error implementation *
-     ******************************/
 
-    template <class ET>
-    mamba_error<ET>::mamba_error(const std::string& msg, ET ec)
-        : base_type(msg)
-        , m_error_code(ec)
-    {
-    }
-
-    template <class ET>
-    mamba_error<ET>::mamba_error(const char* msg, ET ec)
-        : base_type(msg)
-        , m_error_code(ec)
-    {
-    }
-
-    template <class ET>
-    ET mamba_error<ET>::error_code() const noexcept
-    {
-        return m_error_code;
-    }
 
 }  // namespace mamba
 

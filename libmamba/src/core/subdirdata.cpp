@@ -160,11 +160,11 @@ namespace mamba
 
     }
 
-    auto MSubdirData::create(const Channel& channel,
-                             const std::string& platform,
-                             const std::string& url,
-                             MultiPackageCache& caches,
-                             const std::string& repodata_fn) -> expected<MSubdirData>
+    expected_t<MSubdirData> MSubdirData::create(const Channel& channel,
+                                                const std::string& platform,
+                                                const std::string& url,
+                                                MultiPackageCache& caches,
+                                                const std::string& repodata_fn)
     {
         try
         {
@@ -172,12 +172,12 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            return tl::make_unexpected(mamba_error(e.what(), subdirdata_error::load));
+            return make_unexpected(e.what(), mamba_error_code::subdirdata_not_loaded);
         }
         catch (...)
         {
-            return tl::make_unexpected(mamba_error(
-                "Unkown error when trying to load subdir data " + url, subdirdata_error::unknown));
+            return make_unexpected(
+                "Unkown error when trying to load subdir data " + url, mamba_error_code::unknown);
         }
     }
 
@@ -187,12 +187,12 @@ namespace mamba
                              MultiPackageCache& caches,
                              const std::string& repodata_fn)
         : m_target(nullptr)
+        , m_writable_pkgs_dir(caches.first_writable_path())
         , m_progress_bar()
         , m_loaded(false)
         , m_download_complete(false)
         , m_repodata_url(concat(url, "/", repodata_fn))
         , m_name(concat(channel.canonical_name(), "/", platform))
-        , m_writable_pkgs_dir(caches.first_writable_path())
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
     {
@@ -389,7 +389,7 @@ namespace mamba
         return true;
     }
 
-    std::string MSubdirData::cache_path() const
+    expected_t<std::string> MSubdirData::cache_path() const
     {
         // TODO invalidate solv cache on version updates!!
         if (m_json_cache_valid && m_solv_cache_valid)
@@ -400,7 +400,7 @@ namespace mamba
         {
             return m_valid_cache_path / "cache" / m_json_fn;
         }
-        throw std::runtime_error("Cache not loaded!");
+        return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
     DownloadTarget* MSubdirData::target()
@@ -665,14 +665,17 @@ namespace mamba
         return cache_dir;
     }
 
-    MRepo& MSubdirData::create_repo(MPool& pool)
+    expected_t<MRepo*> MSubdirData::create_repo(MPool& pool)
     {
+        using return_type = expected_t<MRepo*>;
         RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
                            m_mod_etag.value("_etag", ""),
                            m_mod_etag.value("_mod", "") };
 
-        return MRepo::create(pool, m_name, cache_path(), meta, *p_channel);
+        auto cache = cache_path();
+        return cache ? return_type(&MRepo::create(pool, m_name, *cache, meta, *p_channel))
+                     : return_type(forward_error(cache));
     }
 
     void MSubdirData::clear_cache()

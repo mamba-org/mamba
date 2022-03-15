@@ -11,7 +11,6 @@
 #include <regex>
 #include <string>
 
-#include "tl/expected.hpp"
 #include "nlohmann/json.hpp"
 
 #include "mamba/core/channel.hpp"
@@ -33,12 +32,6 @@ namespace decompress
 namespace mamba
 {
 
-    enum class subdirdata_error
-    {
-        unknown,
-        load
-    };
-
     /**
      * Represents a channel subdirectory (i.e. a platform)
      * packages index. Handles downloading of the index
@@ -47,14 +40,12 @@ namespace mamba
     class MSubdirData
     {
     public:
-        template <class T>
-        using expected = tl::expected<T, mamba_error<subdirdata_error>>;
 
-        static expected<MSubdirData> create(const Channel& channel,
-                                            const std::string& platform,
-                                            const std::string& url,
-                                            MultiPackageCache& caches,
-                                            const std::string& repodata_fn = "repodata.json");
+        static expected_t<MSubdirData> create(const Channel& channel,
+                                              const std::string& platform,
+                                              const std::string& url,
+                                              MultiPackageCache& caches,
+                                              const std::string& repodata_fn = "repodata.json");
 
         ~MSubdirData() = default;
 
@@ -72,13 +63,13 @@ namespace mamba
         bool forbid_cache();
         void clear_cache();
 
-        std::string cache_path() const;
+        expected_t<std::string> cache_path() const;
         const std::string& name() const;
 
         DownloadTarget* target();
         bool finalize_transfer();
 
-        MRepo& create_repo(MPool& pool);
+        expected_t<MRepo*> create_repo(MPool& pool);
 
     private:
         MSubdirData(const Channel& channel,

@@ -36,8 +36,9 @@ namespace mamba
         }
     }
 
-    expected_t<void, mamba_aggregated_error>
-    load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
+    expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
+                                                           MultiPackageCache& package_caches,
+                                                           int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
@@ -109,27 +110,17 @@ namespace mamba
             {
                 if (!ctx.offline && mamba::ends_with(subdir.name(), "/noarch"))
                 {
-                    error_list.push_back(mamba_error(
-                                "Subdir " + subdir.name() + " not loaded!",
-                                mamba_error_code::subdirdata_not_loaded
-                                ));
+                    error_list.push_back(mamba_error("Subdir " + subdir.name() + " not loaded!",
+                                                     mamba_error_code::subdirdata_not_loaded));
                 }
                 continue;
-                /*if (ctx.offline || !mamba::ends_with(subdir.name(), "/noarch"))
-                {
-                    continue;
-                }
-                else
-                {
-                    throw std::runtime_error("Subdir " + subdir.name() + " not loaded!");
-                }*/
             }
 
             auto repo = subdir.create_repo(pool);
             if (repo)
             {
                 auto& prio = priorities[i];
-                repo.value()->set_priority(prio.first, prio.second);
+                repo.value().set_priority(prio.first, prio.second);
             }
             else
             {
@@ -138,8 +129,8 @@ namespace mamba
                     std::stringstream ss;
                     ss << "Could not load repodata.json for " << subdir.name() << " after retry."
                        << "Please check repodata source. Exiting." << std::endl;
-                    error_list.push_back(mamba_error(ss.str(),
-                                                     mamba_error_code::repodata_not_loaded));
+                    error_list.push_back(
+                        mamba_error(ss.str(), mamba_error_code::repodata_not_loaded));
                 }
                 else
                 {
@@ -149,26 +140,6 @@ namespace mamba
                     loading_failed = true;
                 }
             }
-            /*try
-            {
-                MRepo& repo = subdir.create_repo(pool);
-                repo.set_priority(prio.first, prio.second);
-            }
-            catch (std::runtime_error& e)
-            {
-                if (is_retry & RETRY_SUBDIR_FETCH)
-                {
-                    std::stringstream ss;
-                    ss << "Could not load repodata.json for " << subdir.name() << " after retry."
-                       << "Please check repodata source. Exiting." << std::endl;
-                    throw std::runtime_error(ss.str());
-                }
-
-                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                            << ". Deleting cache, and retrying.";
-                subdir.clear_cache();
-                loading_failed = true;
-            }*/
         }
 
         if (loading_failed)
@@ -178,10 +149,8 @@ namespace mamba
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
                 return load_channels(pool, package_caches, is_retry | RETRY_SUBDIR_FETCH);
             }
-            error_list.push_back(mamba_error(
-                    "Could not load repodata. Cache corrupted?",
-                    mamba_error_code::repodata_not_loaded));
-            //throw std::runtime_error("Could not load repodata. Cache corrupted?");
+            error_list.push_back(mamba_error("Could not load repodata. Cache corrupted?",
+                                             mamba_error_code::repodata_not_loaded));
         }
         using return_type = expected_t<void, mamba_aggregated_error>;
         return error_list.empty() ? return_type()

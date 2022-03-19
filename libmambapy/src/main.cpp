@@ -245,28 +245,16 @@ PYBIND11_MODULE(bindings, m)
                const std::string& repodata_fn) -> MSubdirData
             {
                 auto sres = MSubdirData::create(channel, platform, url, caches, repodata_fn);
-                if (sres.has_value())
-                {
-                    return std::move(sres.value());
-                }
-                else
-                {
-                    throw sres.error();
-                }
+                return extract(std::move(sres));
             }))
-        .def("create_repo",
-             [](MSubdirData& subdir, MPool& pool) -> MRepo&{
-                 auto exp_res = subdir.create_repo(pool);
-                 if (exp_res)
-                 {
-                     return *(exp_res.value());
-                 }
-                 else
-                 {
-                     throw exp_res.error();
-                 }
-             },
-             py::return_value_policy::reference)
+        .def(
+            "create_repo",
+            [](MSubdirData& subdir, MPool& pool) -> MRepo&
+            {
+                auto exp_res = subdir.create_repo(pool);
+                return extract(exp_res);
+            },
+            py::return_value_policy::reference)
         .def("loaded", &MSubdirData::loaded)
         .def("cache_path", &MSubdirData::cache_path);
 

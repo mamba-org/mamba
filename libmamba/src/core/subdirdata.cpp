@@ -176,8 +176,8 @@ namespace mamba
         }
         catch (...)
         {
-            return make_unexpected(
-                "Unkown error when trying to load subdir data " + url, mamba_error_code::unknown);
+            return make_unexpected("Unkown error when trying to load subdir data " + url,
+                                   mamba_error_code::unknown);
         }
     }
 
@@ -665,16 +665,16 @@ namespace mamba
         return cache_dir;
     }
 
-    expected_t<MRepo*> MSubdirData::create_repo(MPool& pool)
+    expected_t<MRepo&> MSubdirData::create_repo(MPool& pool)
     {
-        using return_type = expected_t<MRepo*>;
+        using return_type = expected_t<MRepo&>;
         RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
                            m_mod_etag.value("_etag", ""),
                            m_mod_etag.value("_mod", "") };
 
         auto cache = cache_path();
-        return cache ? return_type(&MRepo::create(pool, m_name, *cache, meta, *p_channel))
+        return cache ? return_type(MRepo::create(pool, m_name, *cache, meta, *p_channel))
                      : return_type(forward_error(cache));
     }
 

@@ -14,12 +14,32 @@ namespace mamba
     {
     }
 
+    mamba_error::mamba_error(const std::string& msg, mamba_error_code ec, std::any&& data)
+        : base_type(msg)
+        , m_error_code(ec)
+        , m_data(std::move(data))
+    {
+    }
+
+    mamba_error::mamba_error(const char* msg, mamba_error_code ec, std::any&& data)
+        : base_type(msg)
+        , m_error_code(ec)
+        , m_data(std::move(data))
+    {
+    }
+
+
     mamba_error_code mamba_error::error_code() const noexcept
     {
         return m_error_code;
     }
 
-    std::string mamba_aggregated_error::m_base_message = "Many errors occured:\n";
+    const std::any& mamba_error::data() const noexcept
+    {
+        return m_data;
+    }
+
+    constexpr const char* mamba_aggregated_error::m_base_message;  // = "Many errors occured:\n";
 
     mamba_aggregated_error::mamba_aggregated_error(error_list_t&& error_list)
         : base_type(mamba_aggregated_error::m_base_message, mamba_error_code::aggregated)
@@ -44,22 +64,18 @@ namespace mamba
     }
 
 
-    tl::unexpected<mamba_error>
-    make_unexpected(const char* msg, mamba_error_code ec)
+    tl::unexpected<mamba_error> make_unexpected(const char* msg, mamba_error_code ec)
     {
         return tl::make_unexpected(mamba_error(msg, ec));
     }
 
-    tl::unexpected<mamba_error>
-    make_unexpected(const std::string& msg, mamba_error_code ec)
+    tl::unexpected<mamba_error> make_unexpected(const std::string& msg, mamba_error_code ec)
     {
         return tl::make_unexpected(mamba_error(msg, ec));
     }
 
-    tl::unexpected<mamba_aggregated_error>
-    make_unexpected(std::vector<mamba_error>&& error_list)
+    tl::unexpected<mamba_aggregated_error> make_unexpected(std::vector<mamba_error>&& error_list)
     {
         return tl::make_unexpected(mamba_aggregated_error(std::move(error_list)));
     }
 }
-

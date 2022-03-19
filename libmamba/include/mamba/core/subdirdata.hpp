@@ -15,6 +15,7 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
@@ -40,7 +41,6 @@ namespace mamba
     class MSubdirData
     {
     public:
-
         static expected_t<MSubdirData> create(const Channel& channel,
                                               const std::string& platform,
                                               const std::string& url,
@@ -69,7 +69,7 @@ namespace mamba
         DownloadTarget* target();
         bool finalize_transfer();
 
-        expected_t<MRepo*> create_repo(MPool& pool);
+        expected_t<MRepo&> create_repo(MPool& pool);
 
     private:
         MSubdirData(const Channel& channel,

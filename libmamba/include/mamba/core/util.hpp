@@ -462,7 +462,6 @@ namespace mamba
         const fs::path& prefix, const std::vector<std::string>& cmd);
 
 
-
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

@@ -360,9 +360,9 @@ namespace mamba
         // functions implied in 'and_then' coding-styles must return the same type
         // which limits this syntax
         /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
-                               .and_then([&ctx](const auto&) { return PrefixData::create(ctx.target_prefix); } )
-                               .map_error([](const mamba_error& err) {
-                                    throw std::runtime_error(err.what());
+                               .and_then([&ctx](const auto&) { return
+           PrefixData::create(ctx.target_prefix); } ) .map_error([](const mamba_error& err) { throw
+           std::runtime_error(err.what());
                                 });*/
         auto exp_load = load_channels(pool, package_caches, is_retry);
         auto exp_prefix_data = PrefixData::create(ctx.target_prefix);

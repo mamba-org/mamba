@@ -22,6 +22,7 @@ from mamba.utils import (
     get_installed_jsonfile,
     init_api_context,
     load_channels,
+    load_conda_installed,
     to_txn,
     to_txn_precs,
 )
@@ -74,8 +75,8 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         installed_pkg_recs_prefix = installed_pkg_recs
         with tempfile.TemporaryDirectory() as td:
             installed_json_f, installed_pkg_recs = get_installed_jsonfile(td)
-    repo = api.Repo(pool, "installed", installed_json_f.name, "")
-    repo.set_installed()
+
+    repo = load_conda_installed(pool, installed_json_f, installed_pkg_recs)
     repos.append(repo)
 
     solver = api.Solver(pool, solver_options)

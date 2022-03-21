@@ -41,14 +41,11 @@ namespace mamba
         return pool_dep2str(solver->pool, dep_id);
     }
 
-    MSolver::MSolver(MPool& pool,
-                     const std::vector<std::pair<int, int>>& flags,
-                     const PrefixData* prefix_data)
+    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
         : m_flags(flags)
         , m_is_solved(false)
         , m_solver(nullptr)
         , m_pool(pool)
-        , m_prefix_data(prefix_data)
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
@@ -103,15 +100,17 @@ namespace mamba
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
     {
-        if (!m_prefix_data)
+        if (!m_pool->installed)
         {
-            throw std::runtime_error("Solver needs PrefixData for reinstall jobs.");
+            throw std::runtime_error("Did not find any packages marked as installed.");
         }
 
         Pool* pool = m_pool;
 
         // 1. check if spec is already installed
         Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
+        static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+
         if (needle && m_pool->installed)
         {
             Id pkg_id;
@@ -121,17 +120,20 @@ namespace mamba
                 if (s->name == needle)
                 {
                     // the data about the channel is only in the prefix_data unfortunately
-                    const auto& records = m_prefix_data->records();
-                    auto record = records.find(ms.name);
+
                     std::string selected_channel;
-                    if (record != records.end())
+                    if (solvable_lookup_str(s, real_repo_key))
                     {
-                        selected_channel = record->second.channel;
+                        // this is the _full_ url to the file (incl. abc.tar.bz2)
+                        selected_channel = solvable_lookup_str(s, real_repo_key);
                     }
                     else
                     {
-                        throw std::runtime_error("Could not retrieve the original channel.");
+                        throw std::runtime_error(
+                            "Could not find channel associated with reinstall package");
                     }
+
+                    selected_channel = make_channel(selected_channel).name();
 
                     MatchSpec modified_spec(ms);
                     if (!ms.channel.empty() || !ms.version.empty() || !ms.build.empty())

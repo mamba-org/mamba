@@ -71,6 +71,17 @@ PYBIND11_MODULE(bindings, m)
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
+    struct ExtraPkgInfo
+    {
+        std::string noarch;
+        std::string repo_url;
+    };
+
+    py::class_<ExtraPkgInfo>(m, "ExtraPkgInfo")
+        .def(py::init<>())
+        .def_readwrite("noarch", &ExtraPkgInfo::noarch)
+        .def_readwrite("repo_url", &ExtraPkgInfo::repo_url);
+
     py::class_<MRepo, std::unique_ptr<MRepo, py::nodelete>>(m, "Repo")
         .def(py::init(
             [](MPool& pool,
@@ -82,24 +93,26 @@ PYBIND11_MODULE(bindings, m)
             }))
         .def(py::init([](MPool& pool, const PrefixData& data)
                       { return std::unique_ptr<MRepo, py::nodelete>(&MRepo::create(pool, data)); }))
-        .def("add_python_noarch_info",
-             [](const MRepo& self, const std::vector<std::string>& names)
+        .def("add_extra_pkg_info",
+             [](const MRepo& self, const std::map<std::string, ExtraPkgInfo>& additional_info)
              {
                  Id pkg_id;
                  Solvable* pkg_s;
                  Pool* p = self.repo()->pool;
                  static Id noarch_repo_key = pool_str2id(p, "solvable:noarch_type", 1);
+                 static Id real_repo_url_key = pool_str2id(p, "solvable:real_repo_url", 1);
 
-                 for (auto& name : names)
+                 FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
                  {
-                     Id nid = pool_str2id(p, name.c_str(), 0);
-
-                     FOR_REPO_SOLVABLES(self.repo(), pkg_id, pkg_s)
+                     std::string name = pool_id2str(p, pkg_s->name);
+                     auto it = additional_info.find(name);
+                     if (it != additional_info.end())
                      {
-                         if (pkg_s->name == nid)
-                         {
-                             solvable_set_str(pkg_s, noarch_repo_key, "python");
-                         }
+                         if (!it->second.noarch.empty())
+                             solvable_set_str(pkg_s, noarch_repo_key, it->second.noarch.c_str());
+                         if (!it->second.repo_url.empty())
+                             solvable_set_str(
+                                 pkg_s, real_repo_url_key, it->second.repo_url.c_str());
                      }
                  }
                  repo_internalize(self.repo());
@@ -123,7 +136,6 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<MSolver>(m, "Solver")
         .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
-        .def(py::init<MPool&, std::vector<std::pair<int, int>>, const PrefixData*>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_constraint", &MSolver::add_constraint)

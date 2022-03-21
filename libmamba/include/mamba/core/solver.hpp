@@ -52,9 +52,7 @@ namespace mamba
     class MSolver
     {
     public:
-        MSolver(MPool& pool,
-                const std::vector<std::pair<int, int>>& flags = {},
-                const PrefixData* = nullptr);
+        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
         ~MSolver();
 
         MSolver(const MSolver&) = delete;
@@ -100,7 +98,6 @@ namespace mamba
         Solver* m_solver;
         Pool* m_pool;
         Queue m_jobs;
-        const PrefixData* m_prefix_data = nullptr;
     };
 }  // namespace mamba
 

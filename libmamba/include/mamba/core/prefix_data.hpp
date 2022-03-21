@@ -11,25 +11,20 @@
 #include <unordered_map>
 #include "tl/expected.hpp"
 
+#include "error_handling.hpp"
 #include "history.hpp"
 #include "package_info.hpp"
 #include "util.hpp"
 
 namespace mamba
 {
-    enum class prefixdata_error
-    {
-        unknown,
-        load
-    };
-
     class PrefixData
     {
     public:
         using package_map = std::unordered_map<std::string, PackageInfo>;
 
         template <class T>
-        using expected = tl::expected<T, mamba_error<prefixdata_error>>;
+        using expected = tl::expected<T, mamba_error>;
 
         static expected<PrefixData> create(const fs::path& prefix_path);
 

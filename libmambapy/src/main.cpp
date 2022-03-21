@@ -57,7 +57,7 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::path>());
 
-    py::register_exception<mamba_error<unspecified_error>>(m, "MambaNativeException");
+    py::register_exception<mamba_error>(m, "MambaNativeException");
 
     py::add_ostream_redirect(m, "ostream_redirect");
 
@@ -236,8 +236,6 @@ PYBIND11_MODULE(bindings, m)
                  return res_stream.str();
              });
 
-    py::register_exception<mamba_error<subdirdata_error>>(m, "SubdirDataError");
-
     py::class_<MSubdirData>(m, "SubdirData")
         .def(py::init(
             [](const Channel& channel,
@@ -247,16 +245,16 @@ PYBIND11_MODULE(bindings, m)
                const std::string& repodata_fn) -> MSubdirData
             {
                 auto sres = MSubdirData::create(channel, platform, url, caches, repodata_fn);
-                if (sres.has_value())
-                {
-                    return std::move(sres.value());
-                }
-                else
-                {
-                    throw sres.error();
-                }
+                return extract(std::move(sres));
             }))
-        .def("create_repo", &MSubdirData::create_repo, py::return_value_policy::reference)
+        .def(
+            "create_repo",
+            [](MSubdirData& subdir, MPool& pool) -> MRepo&
+            {
+                auto exp_res = subdir.create_repo(pool);
+                return extract(exp_res);
+            },
+            py::return_value_policy::reference)
         .def("loaded", &MSubdirData::loaded)
         .def("cache_path", &MSubdirData::cache_path);
 

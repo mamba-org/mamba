@@ -357,14 +357,22 @@ namespace mamba
         }
 
         MPool pool;
-        load_channels(pool, package_caches, is_retry);
-        auto sprefix_data = PrefixData::create(ctx.target_prefix);
-        if (!sprefix_data)
+        // functions implied in 'and_then' coding-styles must return the same type
+        // which limits this syntax
+        /*auto exp_prefix_data = load_channels(pool, package_caches, is_retry)
+                               .and_then([&ctx](const auto&) { return
+           PrefixData::create(ctx.target_prefix); } ) .map_error([](const mamba_error& err) { throw
+           std::runtime_error(err.what());
+                                });*/
+        auto exp_load = load_channels(pool, package_caches, is_retry);
+        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        if (!exp_load || !exp_prefix_data)
         {
+            const char* msg = !exp_load ? exp_load.error().what() : exp_prefix_data.error().what();
             // TODO: propagate tl::expected mechanism
-            throw std::runtime_error("could not load prefix data");
+            throw std::runtime_error(msg);
         }
-        PrefixData& prefix_data = sprefix_data.value();
+        PrefixData& prefix_data = exp_prefix_data.value();
 
         std::vector<std::string> prefix_pkgs;
         for (auto& it : prefix_data.records())
@@ -468,13 +476,13 @@ namespace mamba
     {
         MPool pool;
         auto& ctx = Context::instance();
-        auto sprefix_data = PrefixData::create(ctx.target_prefix);
-        if (!sprefix_data)
+        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        if (!exp_prefix_data)
         {
             // TODO: propagate tl::expected mechanism
-            throw std::runtime_error("could not load prefix data");
+            throw std::runtime_error(exp_prefix_data.error().what());
         }
-        PrefixData& prefix_data = sprefix_data.value();
+        PrefixData& prefix_data = exp_prefix_data.value();
 
         fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
         MultiPackageCache pkg_caches({ pkgs_dirs });

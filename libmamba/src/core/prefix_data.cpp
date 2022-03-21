@@ -22,13 +22,14 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            return tl::make_unexpected(mamba_error(e.what(), prefixdata_error::load));
+            return tl::make_unexpected(
+                mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded));
         }
         catch (...)
         {
             return tl::make_unexpected(mamba_error("Unkown error when trying to load prefix data "
                                                        + std::string(prefix_path),
-                                                   prefixdata_error::unknown));
+                                                   mamba_error_code::unknown));
         }
     }
 

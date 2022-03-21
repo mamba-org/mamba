@@ -36,7 +36,9 @@ namespace mamba
         }
     }
 
-    void load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry)
+    expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
+                                                           MultiPackageCache& package_caches,
+                                                           int is_retry)
     {
         int RETRY_SUBDIR_FETCH = 1 << 0;
 
@@ -55,6 +57,8 @@ namespace mamba
 
         load_tokens();
 
+        std::vector<mamba_error> error_list;
+
         for (auto channel : get_channels(channel_urls))
         {
             for (auto& [platform, url] : channel->platform_urls(true))
@@ -62,11 +66,9 @@ namespace mamba
                 auto sdires = MSubdirData::create(*channel, platform, url, package_caches);
                 if (!sdires.has_value())
                 {
-                    // TODO: error handling
+                    error_list.push_back(std::move(sdires).error());
                     continue;
                 }
-                // auto sdir = std::make_shared<MSubdirData>(*channel, platform, url,
-                // package_caches);
                 auto sdir = std::move(sdires).value();
 
                 multi_dl.add(sdir.target());
@@ -106,36 +108,37 @@ namespace mamba
             auto& subdir = subdirs[i];
             if (!subdir.loaded())
             {
-                if (ctx.offline || !mamba::ends_with(subdir.name(), "/noarch"))
+                if (!ctx.offline && mamba::ends_with(subdir.name(), "/noarch"))
                 {
-                    continue;
+                    error_list.push_back(mamba_error("Subdir " + subdir.name() + " not loaded!",
+                                                     mamba_error_code::subdirdata_not_loaded));
                 }
-                else
-                {
-                    throw std::runtime_error("Subdir " + subdir.name() + " not loaded!");
-                }
+                continue;
             }
 
-            auto& prio = priorities[i];
-            try
+            auto repo = subdir.create_repo(pool);
+            if (repo)
             {
-                MRepo& repo = subdir.create_repo(pool);
-                repo.set_priority(prio.first, prio.second);
+                auto& prio = priorities[i];
+                repo.value().set_priority(prio.first, prio.second);
             }
-            catch (std::runtime_error& e)
+            else
             {
                 if (is_retry & RETRY_SUBDIR_FETCH)
                 {
                     std::stringstream ss;
                     ss << "Could not load repodata.json for " << subdir.name() << " after retry."
                        << "Please check repodata source. Exiting." << std::endl;
-                    throw std::runtime_error(ss.str());
+                    error_list.push_back(
+                        mamba_error(ss.str(), mamba_error_code::repodata_not_loaded));
                 }
-
-                LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                            << ". Deleting cache, and retrying.";
-                subdir.clear_cache();
-                loading_failed = true;
+                else
+                {
+                    LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                << ". Deleting cache, and retrying.";
+                    subdir.clear_cache();
+                    loading_failed = true;
+                }
             }
         }
 
@@ -146,8 +149,12 @@ namespace mamba
                 LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
                 return load_channels(pool, package_caches, is_retry | RETRY_SUBDIR_FETCH);
             }
-            throw std::runtime_error("Could not load repodata. Cache corrupted?");
+            error_list.push_back(mamba_error("Could not load repodata. Cache corrupted?",
+                                             mamba_error_code::repodata_not_loaded));
         }
+        using return_type = expected_t<void, mamba_aggregated_error>;
+        return error_list.empty() ? return_type()
+                                  : return_type(make_unexpected(std::move(error_list)));
     }
 
 }

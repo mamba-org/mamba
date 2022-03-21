@@ -72,13 +72,13 @@ namespace mamba
                 throw std::runtime_error("Aborted.");
             }
 
-            auto sprefix_data = PrefixData::create(ctx.target_prefix);
-            if (!sprefix_data)
+            auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+            if (!exp_prefix_data)
             {
                 // TODO: propagate tl::expected mechanism
-                throw std::runtime_error("could not load prefix data");
+                throw std::runtime_error(exp_prefix_data.error().what());
             }
-            PrefixData& prefix_data = sprefix_data.value();
+            PrefixData& prefix_data = exp_prefix_data.value();
 
             MPool pool;
             MRepo::create(pool, prefix_data);

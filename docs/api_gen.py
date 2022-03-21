@@ -28,6 +28,8 @@ def generate_string_docs(commands_list):
                         f.write("**Usage:**" + " ``" + aux + "`` \n")
                         aux = ""
                         continue
+                    if line.startswith("Subcommands"):
+                        break;
                     f.write("\n**" + line[:-1] + ":**\n\n")
                     aux = aux.replace(line[:-1] + ":", "")
 
@@ -90,6 +92,7 @@ if __name__ == "__main__":
         f.writelines(config_subcommands)
 
     config_commands_list = [
+        "config/list",
         "config/sources",
         "config/describe",
         "config/prepend",

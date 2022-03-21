@@ -29,7 +29,7 @@ def generate_string_docs(commands_list):
                         aux = ""
                         continue
                     if line.startswith("Subcommands"):
-                        break;
+                        break
                     f.write("\n**" + line[:-1] + ":**\n\n")
                     aux = aux.replace(line[:-1] + ":", "")
 

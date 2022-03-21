@@ -6,23 +6,22 @@
 
 Commands to support using micromamba in constructor
 
-**Usage:** ``micromamba constructor [OPTIONS]`` 
+**Usage:** ``micromamba constructor [OPTIONS]``
 
 **Options:**
 
-``-h,--help`` 
+``-h,--help``
 
 Print this help message and exit
 
-``-p,--prefix`` TEXT 
+``-p,--prefix`` TEXT
 
 Extract the conda pkgs in <prefix>/pkgs
 
-``--extract-conda-pkgs`` 
+``--extract-conda-pkgs``
 
 Extract the conda pkgs in <prefix>/pkgs
 
-``--extract-tarball`` 
+``--extract-tarball``
 
 Extract given tarball into prefix
-

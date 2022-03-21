@@ -6,11 +6,11 @@
 
 Generate shell init scripts
 
-**Usage:** ``micromamba shell [OPTIONS] action [prefix]`` 
+**Usage:** ``micromamba shell [OPTIONS] action [prefix]``
 
 **Positionals:**
 
-REQUIRED 
+REQUIRED
 
 action TEXT:{init,hook,activate,deactivate,reactivate}
 
@@ -18,80 +18,79 @@ action TEXT:{init,hook,activate,deactivate,reactivate}
 
 The action to complete
 
-TEXT 
+TEXT
 
 prefix The root prefix to configure (for init and hook), and the prefix to activate for activate, either by name or by path
 
 
 **Options:**
 
-``-h,--help`` 
+``-h,--help``
 
 Print this help message and exit
 
-``-s,--shell`` 
+``-s,--shell``
 
 TEXT:{bash,cmd.exe,fish,posix,powershell,xonsh,zsh}
 
-A 
+A
 
 shell type
 
-``--stack`` 
+``--stack``
 
 Stack the environment being activated
 
-``-p,-n,--prefix,--name`` TEXT 
+``-p,-n,--prefix,--name`` TEXT
 
 The root prefix to configure (for init and hook), and the prefix to activate for activate, either by name or by path
 
 
 **Configuration options:**
 
-``--rc-file`` TEXT 
+``--rc-file`` TEXT
 
 ... Paths to the configuration files to use
 
-``--no-rc`` 
+``--no-rc``
 
 Disable the use of configuration files
 
-``--no-env`` 
+``--no-env``
 
 Disable the use of environment variables
 
 
 **Global options:**
 
-``-v,--verbose`` ``-v,`` ``-vvv)`` 
+``-v,--verbose`` ``-v,`` ``-vvv)``
 
 Set verbosity (higher verbosity with multiple e.g.
 
-``--log-level`` OR    ENUM:value in {critical->5,debug->1,error->4,info->2,off->6,trace->0,warning->3}  {5,1,4,2,6,0,3} 
+``--log-level`` OR    ENUM:value in {critical->5,debug->1,error->4,info->2,off->6,trace->0,warning->3}  {5,1,4,2,6,0,3}
 
 Set the log level
 
-``-q,--quiet`` 
+``-q,--quiet``
 
 Set quiet mode (print less output)
 
-``-y,--yes`` 
+``-y,--yes``
 
 Automatically answer yes on prompted questions
 
-``--json`` 
+``--json``
 
 Report all output as json
 
-``--offline`` 
+``--offline``
 
 Force use cached repodata
 
-``--dry-run`` 
+``--dry-run``
 
 Only display what would have been done
 
-``--experimental`` 
+``--experimental``
 
 Enable experimental features
-

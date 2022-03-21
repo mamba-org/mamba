@@ -6,22 +6,21 @@
 
 Activate an environment
 
-**Usage:** ``micromamba activate [OPTIONS] [prefix]`` 
+**Usage:** ``micromamba activate [OPTIONS] [prefix]``
 
 **Positionals:**
 
-TEXT 
+TEXT
 
 prefix The prefix to activate
 
 
 **Options:**
 
-``-h,--help`` 
+``-h,--help``
 
 Print this help message and exit
 
-``--stack`` 
+``--stack``
 
 Activate the specified environment without first deactivating the current one
-

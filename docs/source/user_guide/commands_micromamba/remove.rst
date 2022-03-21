@@ -6,95 +6,94 @@
 
 Remove packages from active environment
 
-**Usage:** ``micromamba remove [OPTIONS] [specs...]`` 
+**Usage:** ``micromamba remove [OPTIONS] [specs...]``
 
 **Positionals:**
 
-TEXT 
+TEXT
 
 specs ... Specs to remove from the environment
 
 
 **Options:**
 
-``-h,--help`` 
+``-h,--help``
 
 Print this help message and exit
 
-``-a,--all`` 
+``-a,--all``
 
 Remove all packages in the environment
 
-``-f,--force`` 
+``-f,--force``
 
 Force removal of package (note: consistency of environment is not guaranteed!
 
-``--prune,--no-prune{false}`` 
+``--prune,--no-prune{false}``
 
 Prune dependencies (default)
 
 
 **Configuration options:**
 
-``--rc-file`` TEXT 
+``--rc-file`` TEXT
 
 ... Paths to the configuration files to use
 
-``--no-rc`` 
+``--no-rc``
 
 Disable the use of configuration files
 
-``--no-env`` 
+``--no-env``
 
 Disable the use of environment variables
 
 
 **Global options:**
 
-``-v,--verbose`` ``-v,`` ``-vvv)`` 
+``-v,--verbose`` ``-v,`` ``-vvv)``
 
 Set verbosity (higher verbosity with multiple e.g.
 
-``--log-level`` OR    ENUM:value in {critical->5,debug->1,error->4,info->2,off->6,trace->0,warning->3}  {5,1,4,2,6,0,3} 
+``--log-level`` OR    ENUM:value in {critical->5,debug->1,error->4,info->2,off->6,trace->0,warning->3}  {5,1,4,2,6,0,3}
 
 Set the log level
 
-``-q,--quiet`` 
+``-q,--quiet``
 
 Set quiet mode (print less output)
 
-``-y,--yes`` 
+``-y,--yes``
 
 Automatically answer yes on prompted questions
 
-``--json`` 
+``--json``
 
 Report all output as json
 
-``--offline`` 
+``--offline``
 
 Force use cached repodata
 
-``--dry-run`` 
+``--dry-run``
 
 Only display what would have been done
 
-``--experimental`` 
+``--experimental``
 
 Enable experimental features
 
 
 **Prefix options:**
 
-``-r,--root-prefix`` TEXT 
+``-r,--root-prefix`` TEXT
 
 Path to the root prefix
 
-``-p,--prefix`` TEXT 
+``-p,--prefix`` TEXT
 
 Path to the target prefix
 
-``-n,--name`` TEXT 
+``-n,--name`` TEXT
 
 Name of the target prefix
-

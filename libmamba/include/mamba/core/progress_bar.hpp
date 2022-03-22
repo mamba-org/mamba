@@ -10,7 +10,6 @@
 #include "spdlog/fmt/fmt.h"
 #include "spdlog/fmt/bundled/color.h"
 
-#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <set>

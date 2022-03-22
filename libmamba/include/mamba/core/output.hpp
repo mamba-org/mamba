@@ -16,7 +16,6 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 #include <chrono>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>

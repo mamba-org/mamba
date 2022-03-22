@@ -15,7 +15,6 @@
 #include <reproc++/reproc.hpp>
 
 #include <array>
-#include <iomanip>
 #include <limits>
 #include <sstream>
 #include <stdexcept>

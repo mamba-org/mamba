@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <regex>
+
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/url.hpp"

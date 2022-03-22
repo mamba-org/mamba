@@ -23,7 +23,6 @@
 #include <string_view>
 #include <time.h>
 #include <vector>
-#include <regex>
 #include <chrono>
 
 #define MAMBA_EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -45,11 +44,6 @@ namespace mamba
 #else
 #error "no supported OS detected"
 #endif
-
-    // usernames on anaconda.org can have a underscore, which influences the
-    // first two characters
-    const static std::regex token_re("/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)");
-    const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
 
     bool is_package_file(const std::string_view& fn);
 

@@ -76,6 +76,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/environment.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fetch.cpp

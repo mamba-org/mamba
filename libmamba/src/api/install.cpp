@@ -4,29 +4,21 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <set>
+#include <reproc++/run.hpp>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/api/channel_loader.hpp"
 
-#include "mamba/core/channel.hpp"
-#include "mamba/core/link.hpp"
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/link.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pinning.hpp"
-#include "mamba/core/subdirdata.hpp"
-#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
 
 #include "termcolor/termcolor.hpp"
-
-#include "spdlog/spdlog.h"
 
 namespace mamba
 {

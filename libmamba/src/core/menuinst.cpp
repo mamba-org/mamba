@@ -1,9 +1,7 @@
 #include <string>
-#include <regex>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction_context.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
 
 #ifdef _WIN32

@@ -9,10 +9,6 @@ extern "C"
 #include <solv/evr.h>
 }
 
-#include <iomanip>
-#include <numeric>
-#include <set>
-#include <sstream>
 #include <stack>
 
 #include "mamba/core/query.hpp"

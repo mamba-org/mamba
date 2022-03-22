@@ -11,7 +11,6 @@
 
 #include "termcolor/termcolor.hpp"
 #include <reproc++/run.hpp>
-#include <reproc++/drain.hpp>
 #include <reproc++/reproc.hpp>
 
 #include "mamba/core/environment.hpp"
@@ -22,8 +21,6 @@
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"
-#include "mamba/core/shell_init.hpp"
-#include "mamba/core/activation.hpp"
 
 #if _WIN32
 #include "../data/conda_exe.hpp"

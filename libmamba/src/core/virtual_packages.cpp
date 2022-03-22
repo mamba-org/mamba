@@ -14,6 +14,7 @@
 #include <vector>
 #include <regex>
 
+#include <reproc++/run.hpp>
 
 namespace mamba
 {

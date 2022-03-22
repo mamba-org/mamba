@@ -6,13 +6,13 @@
 
 #include <iostream>
 #include <stack>
-#include <thread>
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
 
 #include "termcolor/termcolor.hpp"

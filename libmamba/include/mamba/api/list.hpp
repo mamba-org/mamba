@@ -7,8 +7,7 @@
 #ifndef MAMBA_API_LIST_HPP
 #define MAMBA_API_LIST_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-
+#include <string>
 
 namespace mamba
 {

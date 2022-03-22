@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/validate.hpp"

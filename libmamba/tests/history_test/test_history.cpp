@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <fstream>
 #include <string>
 
 #include "mamba/core/history.hpp"

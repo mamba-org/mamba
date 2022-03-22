@@ -1,20 +1,16 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/progress_bar.hpp"
 
-#include "spdlog/fmt/bundled/core.h"
 #include "spdlog/fmt/bundled/format.h"
-#include "spdlog/fmt/bundled/format-inl.h"
-#include "spdlog/fmt/bundled/ostream.h"
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <sstream>
 #include <utility>
 #include <thread>
 #include <limits>
-#include <numeric>
 #include <random>
+#include <sstream>
 
 namespace mamba
 {

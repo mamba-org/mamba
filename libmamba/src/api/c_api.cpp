@@ -14,7 +14,6 @@
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
 
-#include <stdio.h>
 #include <string>
 
 using namespace mamba;

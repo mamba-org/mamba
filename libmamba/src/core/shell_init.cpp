@@ -12,7 +12,6 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/virtual_packages.hpp"
 
 #include "termcolor/termcolor.hpp"
 

@@ -1,7 +1,6 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/validate.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 
 #include <gtest/gtest.h>
@@ -10,7 +9,6 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
-#include <cstdio>
 #include <map>
 
 

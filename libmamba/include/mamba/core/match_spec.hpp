@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_MATCH_SPEC
 #define MAMBA_CORE_MATCH_SPEC
 
-#include <regex>
 #include <string>
 #include <tuple>
 #include <unordered_map>

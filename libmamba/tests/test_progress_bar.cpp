@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <sstream>
-#include <tuple>
 
 #include "mamba/core/progress_bar.hpp"
 

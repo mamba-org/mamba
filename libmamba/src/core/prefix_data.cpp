@@ -4,17 +4,20 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+extern "C"
+{
+#include <solv/transaction.h>
+}
+
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/output.hpp"
 
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/transaction.hpp"
-
 
 namespace mamba
 {
-    auto PrefixData::create(const fs::path& prefix_path) -> expected<PrefixData>
+    auto PrefixData::create(const fs::path& prefix_path) -> expected_t<PrefixData>
     {
         try
         {

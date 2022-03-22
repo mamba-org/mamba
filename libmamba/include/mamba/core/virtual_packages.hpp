@@ -9,13 +9,8 @@
 
 #include "mamba/core/package_info.hpp"
 
-#include <reproc++/run.hpp>
-
 #include <vector>
 #include <string>
-#include <iostream>
-#include <fstream>
-
 
 namespace mamba
 {

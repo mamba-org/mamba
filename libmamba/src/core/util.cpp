@@ -44,6 +44,7 @@ extern "C"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_random.hpp"
 
 
 namespace mamba
@@ -156,7 +157,7 @@ namespace mamba
 
         do
         {
-            std::string random_file_name = generate_random_alphanumeric_string(10);
+            std::string random_file_name = mamba::generate_random_alphanumeric_string(10);
             final_path = temp_path / concat(prefix, random_file_name, suffix);
         } while (fs::exists(final_path));
 

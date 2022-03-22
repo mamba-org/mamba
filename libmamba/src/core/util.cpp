@@ -7,14 +7,11 @@
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
 
 #include <csignal>
-#include <sys/file.h>
 #endif
 
 #ifdef _WIN32
@@ -30,13 +27,13 @@ extern "C"
 #include <fcntl.h>
 }
 
+#include "mamba/core/shell_init.hpp"
+
 #endif
 
 #include <cerrno>
 #include <iomanip>
-#include <iostream>
 #include <mutex>
-#include <thread>
 #include <condition_variable>
 
 #include <reproc/reproc.h>
@@ -45,7 +42,6 @@ extern "C"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/shell_init.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
 

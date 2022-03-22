@@ -6,19 +6,14 @@
 
 #include <cassert>
 #include <iostream>
-#include <regex>
 #include <set>
-#include <sstream>
-#include <tuple>
 #include <utility>
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/channel_builder.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/fsutil.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/package_handling.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"

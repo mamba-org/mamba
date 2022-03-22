@@ -3,13 +3,13 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
-#include "mamba/core/thread_utils.hpp"
-#include <iostream>
 
+#include <atomic>
 #ifndef _WIN32
 #include <signal.h>
 #endif
 
+#include "mamba/core/thread_utils.hpp"
 
 namespace mamba
 {

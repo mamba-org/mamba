@@ -12,7 +12,10 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/shell_init.hpp"
+
+#ifdef _WIN32
 #include "mamba/core/util_os.hpp"
+#endif
 
 namespace mamba
 {

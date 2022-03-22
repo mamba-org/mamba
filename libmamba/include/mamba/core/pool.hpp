@@ -8,12 +8,11 @@
 #define MAMBA_CORE_POOL_HPP
 
 #include <list>
-#include "context.hpp"
 #include "repo.hpp"
 
 extern "C"
 {
-#include "solv/pool.h"
+#include "solv/pooltypes.h"
 }
 
 namespace mamba

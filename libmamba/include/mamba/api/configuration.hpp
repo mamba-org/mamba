@@ -11,13 +11,12 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/api/constants.hpp"
 #include "mamba/api/configuration_impl.hpp"
 
 #include <yaml-cpp/yaml.h>
 
-#include "spdlog/spdlog.h"
+#include "spdlog/common.h"
 
 #include <functional>
 

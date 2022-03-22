@@ -4,9 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+extern "C"
+{
+#include <solv/pool.h>
+}
+
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 
 namespace mamba
 {

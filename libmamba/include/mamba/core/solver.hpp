@@ -7,23 +7,17 @@
 #ifndef MAMBA_CORE_SOLVER_HPP
 #define MAMBA_CORE_SOLVER_HPP
 
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 #include <optional>
 
 #include "match_spec.hpp"
-#include "output.hpp"
-#include "pool.hpp"
-#include "prefix_data.hpp"
 
 extern "C"
 {
-#include "solv/conda.h"
 #include "solv/queue.h"
 #include "solv/solver.h"
-#include "solv/solverdebug.h"
 }
 
 #define MAMBA_NO_DEPS 0b0001
@@ -32,6 +26,9 @@ extern "C"
 
 namespace mamba
 {
+    class MPool;
+    class PackageInfo;
+
     class MSolverProblem
     {
     public:

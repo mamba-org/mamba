@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_THREAD_UTILS_HPP
 #define MAMBA_CORE_THREAD_UTILS_HPP
 
-#include <atomic>
 #include <condition_variable>
 #include <csignal>
 #include <exception>

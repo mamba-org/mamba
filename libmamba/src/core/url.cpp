@@ -4,15 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
-
+#include <regex>
 #include "openssl/evp.h"
 
-#include <iostream>
-#include <regex>
-
+#include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {

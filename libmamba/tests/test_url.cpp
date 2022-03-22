@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/url.hpp"
+
+#ifdef _WIN32
+#include "mamba/core/mamba_fs.hpp"
+#endif
 
 namespace mamba
 {

@@ -9,7 +9,6 @@
 #include "mamba/api/install.hpp"
 
 #include "mamba/core/environment.hpp"
-#include "mamba/core/fetch.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction.hpp"
@@ -18,13 +17,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include "spdlog/spdlog.h"
-
 #include <algorithm>
 #include <regex>
 #include <stdexcept>
-
-#include "termcolor/termcolor.hpp"
 
 namespace mamba
 {

@@ -9,7 +9,6 @@
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/channel.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 
 namespace mamba

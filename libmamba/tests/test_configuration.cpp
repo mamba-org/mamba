@@ -2,9 +2,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
-
-#include <cstdio>
-
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {

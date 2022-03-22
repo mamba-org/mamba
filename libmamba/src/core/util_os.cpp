@@ -1,6 +1,5 @@
 #include <regex>
 
-#include "termcolor/termcolor.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util_os.hpp"
 
@@ -15,17 +14,14 @@
 #include <libProc.h>
 #endif
 #include <inttypes.h>
-#if defined(__linux__)
-#include <linux/limits.h>
-#else
 #include <limits.h>
-#endif
 #else
 #include <atomic>
 #include <windows.h>
 #include <intrin.h>
 #include <tlhelp32.h>
 #include "WinReg.hpp"
+#include "termcolor/termcolor.hpp"
 #endif
 
 

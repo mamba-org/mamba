@@ -1,14 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 
 #include <reproc++/run.hpp>
 
-#include <cstdio>
 #include <string>
-#include <ostream>
 
 #ifdef _WIN32
 #include <io.h>

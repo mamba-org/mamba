@@ -7,15 +7,11 @@
 #ifndef MAMBA_CORE_PACKAGE_CACHE
 #define MAMBA_CORE_PACKAGE_CACHE
 
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "context.hpp"
-#include "environment.hpp"
 #include "fsutil.hpp"
-#include "output.hpp"
 #include "package_info.hpp"
 
 #define PACKAGE_CACHE_MAGIC_FILE "urls.txt"

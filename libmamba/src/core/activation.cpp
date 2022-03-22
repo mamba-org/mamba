@@ -7,6 +7,7 @@
 #include "mamba/core/activation.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/shell_init.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {

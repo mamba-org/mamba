@@ -3,11 +3,6 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/channel_builder.hpp"
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
-
-#include "mamba/api/install.hpp"
 
 namespace mamba
 {

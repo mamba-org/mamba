@@ -8,7 +8,6 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
-#include "mamba/core/match_spec.hpp"
 
 extern "C"
 {

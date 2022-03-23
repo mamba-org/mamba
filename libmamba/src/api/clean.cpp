@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
 

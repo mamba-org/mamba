@@ -4,6 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <regex>
+#include <iostream>
+#include <stdexcept>
+
+#include <reproc++/run.hpp>
+
+#include <nlohmann/json.hpp>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/api/install.hpp"
@@ -12,14 +21,6 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction.hpp"
-
-#include <reproc++/run.hpp>
-
-#include <nlohmann/json.hpp>
-
-#include <algorithm>
-#include <regex>
-#include <stdexcept>
 
 namespace mamba
 {

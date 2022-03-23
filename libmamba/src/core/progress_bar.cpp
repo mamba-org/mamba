@@ -13,6 +13,143 @@
 #include <random>
 #include <sstream>
 
+namespace cursor
+{
+    class CursorMovementTriple
+    {
+    public:
+        CursorMovementTriple(const char* esc, int n, const char* mod)
+            : m_esc(esc)
+            , m_mod(mod)
+            , m_n(n)
+        {
+        }
+
+        const char* m_esc;
+        const char* m_mod;
+        int m_n;
+    };
+
+    inline std::ostream& operator<<(std::ostream& o, const CursorMovementTriple& m)
+    {
+        o << m.m_esc << m.m_n << m.m_mod;
+        return o;
+    }
+
+    class CursorMod
+    {
+    public:
+        CursorMod(const char* mod)
+            : m_mod(mod)
+        {
+        }
+
+        std::ostream& operator<<(std::ostream& o)
+        {
+            o << m_mod;
+            return o;
+        }
+
+        const char* m_mod;
+    };
+
+    inline std::ostream& operator<<(std::ostream& o, const CursorMod& m)
+    {
+        o << m.m_mod;
+        return o;
+    }
+
+    inline auto up(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "A");
+    }
+
+    inline auto down(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "B");
+    }
+
+    inline auto forward(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "C");
+    }
+
+    inline auto back(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "D");
+    }
+
+    inline auto next_line(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "E");
+    }
+
+    inline auto prev_line(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "F");
+    }
+
+    inline auto horizontal_abs(int n)
+    {
+        return CursorMovementTriple("\x1b[", n, "G");
+    }
+
+    inline auto home()
+    {
+        return CursorMod("\x1b[H");
+    }
+
+    inline auto erase_display(int n = 0)
+    {
+        return CursorMovementTriple("\x1b[", n, "J");
+    }
+
+    inline auto erase_line(int n = 0)
+    {
+        return CursorMovementTriple("\x1b[", n, "K");
+    }
+
+    inline auto scroll_up(int n = 1)
+    {
+        return CursorMovementTriple("\x1b[", n, "S");
+    }
+
+    inline auto scroll_down(int n = 1)
+    {
+        return CursorMovementTriple("\x1b[", n, "T");
+    }
+
+    inline auto show()
+    {
+        return CursorMod("\x1b[?25h");
+    }
+
+    inline auto hide()
+    {
+        return CursorMod("\x1b[?25l");
+    }
+
+    inline auto pos()
+    {
+        return CursorMod("\x1b[R");
+    }
+
+    inline auto delete_line(int n = 1)
+    {
+        return CursorMovementTriple("\x1b[", n, "M");
+    }
+
+    inline auto alternate_screen()
+    {
+        return CursorMod("\x1b[?1049h");
+    }
+
+    inline auto main_screen()
+    {
+        return CursorMod("\x1b[?1049l");
+    }
+}  // namespace cursor
+
 namespace mamba
 {
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <reproc/reproc.h>
 #include <reproc++/run.hpp>
 
 #include "mamba/api/configuration.hpp"
@@ -22,9 +23,45 @@
 
 namespace mamba
 {
-    static std::map<std::string, std::string> other_pkg_mgr_install_instructions
+    namespace
+    {
+        std::map<std::string, std::string> other_pkg_mgr_install_instructions
         = { { "pip", "pip install -r {0} --no-input" } };
+    }
 
+    bool reproc_killed(int status)
+    {
+        return status == REPROC_SIGKILL;
+    }
+
+    bool reproc_terminated(int status)
+    {
+        return status == REPROC_SIGTERM;
+    }
+
+    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec)
+    {
+        bool killed_not_an_err = (options.stop.first.action == reproc::stop::kill)
+                                 || (options.stop.second.action == reproc::stop::kill)
+                                 || (options.stop.third.action == reproc::stop::kill);
+
+        bool terminated_not_an_err = (options.stop.first.action == reproc::stop::terminate)
+                                     || (options.stop.second.action == reproc::stop::terminate)
+                                     || (options.stop.third.action == reproc::stop::terminate);
+
+        if (ec || (!killed_not_an_err && reproc_killed(status))
+            || (!terminated_not_an_err && reproc_terminated(status)))
+        {
+            if (ec)
+                LOG_ERROR << "Subprocess call failed: " << ec.message();
+            else if (reproc_killed(status))
+                LOG_ERROR << "Subprocess call failed (killed)";
+            else
+                LOG_ERROR << "Subprocess call failed (terminated)";
+            throw std::runtime_error("Subprocess call failed. Aborting.");
+        }
+    }
+    
     auto install_for_other_pkgmgr(const detail::other_pkg_mgr_spec& other_spec)
     {
         const auto& pkg_mgr = other_spec.pkg_mgr;

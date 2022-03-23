@@ -12,12 +12,9 @@
 
 #include "nlohmann/json.hpp"
 
-#include <reproc++/reproc.hpp>
-
 #include <array>
 #include <limits>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <time.h>
@@ -365,8 +362,6 @@ namespace mamba
     std::time_t parse_utc_timestamp(const std::string& timestamp, int& error_code) noexcept;
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
-
-    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec);
 
     inline std::ofstream open_ofstream(const fs::path& path,
                                        std::ios::openmode mode = std::ios::out | std::ios::binary)

@@ -36,8 +36,6 @@ extern "C"
 #include <mutex>
 #include <condition_variable>
 
-#include <reproc/reproc.h>
-
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
@@ -1224,39 +1222,6 @@ namespace mamba
             throw std::runtime_error("Timestamp format error. Aborting");
         }
         return res;
-    }
-
-    bool reproc_killed(int status)
-    {
-        return status == REPROC_SIGKILL;
-    }
-
-    bool reproc_terminated(int status)
-    {
-        return status == REPROC_SIGTERM;
-    }
-
-    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec)
-    {
-        bool killed_not_an_err = (options.stop.first.action == reproc::stop::kill)
-                                 || (options.stop.second.action == reproc::stop::kill)
-                                 || (options.stop.third.action == reproc::stop::kill);
-
-        bool terminated_not_an_err = (options.stop.first.action == reproc::stop::terminate)
-                                     || (options.stop.second.action == reproc::stop::terminate)
-                                     || (options.stop.third.action == reproc::stop::terminate);
-
-        if (ec || (!killed_not_an_err && reproc_killed(status))
-            || (!terminated_not_an_err && reproc_terminated(status)))
-        {
-            if (ec)
-                LOG_ERROR << "Subprocess call failed: " << ec.message();
-            else if (reproc_killed(status))
-                LOG_ERROR << "Subprocess call failed (killed)";
-            else
-                LOG_ERROR << "Subprocess call failed (terminated)";
-            throw std::runtime_error("Subprocess call failed. Aborting.");
-        }
     }
 
     bool ensure_comspec_set()

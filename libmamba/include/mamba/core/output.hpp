@@ -15,7 +15,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 #include <chrono>
-#include <iostream>
+#include <iosfwd>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -24,25 +24,6 @@
 #include <utility>
 #include <vector>
 
-
-#define ENUM_FLAG_OPERATOR(T, X)                                                                   \
-    inline T operator X(T lhs, T rhs)                                                              \
-    {                                                                                              \
-        return (T) (static_cast<std::underlying_type_t<T>>(lhs)                                    \
-                        X static_cast<std::underlying_type_t<T>>(rhs));                            \
-    }
-#define ENUM_FLAGS(T)                                                                              \
-    enum class T;                                                                                  \
-    inline T operator~(T t)                                                                        \
-    {                                                                                              \
-        return (T) (~static_cast<std::underlying_type_t<T>>(t));                                   \
-    }                                                                                              \
-    ENUM_FLAG_OPERATOR(T, |)                                                                       \
-    ENUM_FLAG_OPERATOR(T, ^)                                                                       \
-    ENUM_FLAG_OPERATOR(T, &)                                                                       \
-    enum class T
-
-#define PREFIX_LENGTH 25
 
 namespace mamba
 {
@@ -134,9 +115,10 @@ namespace mamba
 
         static ConsoleStream stream();
         static void print(const std::string_view& str, bool force_print = false);
+        static bool prompt(const std::string_view& message, char fallback = '_');
         static bool prompt(const std::string_view& message,
-                           char fallback = '_',
-                           std::istream& input_stream = std::cin);
+                           char fallback,
+                           std::istream& input_stream);
 
         ProgressProxy add_progress_bar(const std::string& name, size_t expected_total = 0);
         void clear_progress_bars();

@@ -15,8 +15,9 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/channel_builder.hpp"
-#include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environment.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"

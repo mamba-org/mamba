@@ -12,6 +12,7 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
 

@@ -19,7 +19,6 @@
 #include "fetch.hpp"
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
-#include "output.hpp"
 #include "package_cache.hpp"
 #include "package_handling.hpp"
 #include "prefix_data.hpp"

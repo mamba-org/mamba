@@ -4,8 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/list.hpp"
+#include <regex>
 
+#include "mamba/api/list.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/prefix_data.hpp"

@@ -305,6 +305,13 @@ namespace mamba
         m_buffer.clear();
     }
 
+    // We use an overload instead of a default argument to avoid exposing std::cin
+    // in the header (this would require to include iostream)
+    bool Console::prompt(const std::string_view& message, char fallback)
+    {
+        return Console::prompt(message, fallback, std::cin);
+    }
+
     bool Console::prompt(const std::string_view& message, char fallback, std::istream& input_stream)
     {
         if (Context::instance().always_yes)

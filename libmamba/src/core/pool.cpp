@@ -9,6 +9,7 @@ extern "C"
 #include <solv/pool.h>
 }
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
 

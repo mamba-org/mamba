@@ -1,6 +1,10 @@
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
 
+#ifdef _WIN32
+#include "mamba/core/output.hpp"
+#endif
+
 namespace mamba
 {
     namespace env

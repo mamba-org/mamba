@@ -22,6 +22,7 @@ namespace mamba
         subdirdata_not_loaded,
         cache_not_loaded,
         repodata_not_loaded,
+        configurable_bad_cast,
         aggregated
     };
 

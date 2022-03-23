@@ -8,6 +8,7 @@
 #include "mamba/core/history.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {

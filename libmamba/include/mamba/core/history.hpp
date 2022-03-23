@@ -7,16 +7,13 @@
 #ifndef MAMBA_CORE_HISTORY
 #define MAMBA_CORE_HISTORY
 
-#include <regex>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "context.hpp"
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
-#include "output.hpp"
 
 namespace mamba
 {

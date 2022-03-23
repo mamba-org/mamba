@@ -1,6 +1,7 @@
 #include "mamba/api/channel_loader.hpp"
 
 #include "mamba/core/channel.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
 

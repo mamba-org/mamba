@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <map>
 
+#include "spdlog/spdlog.h"
 
 namespace validate
 {

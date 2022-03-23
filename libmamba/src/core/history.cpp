@@ -4,8 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <regex>
+
+#include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/history.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {

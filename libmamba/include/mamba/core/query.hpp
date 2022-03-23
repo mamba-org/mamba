@@ -7,17 +7,11 @@
 #ifndef MAMBA_CORE_QUERY_HPP
 #define MAMBA_CORE_QUERY_HPP
 
-#include <algorithm>
-#include <deque>
-#include <functional>
 #include <map>
-#include <ostream>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "graph_util.hpp"
-#include "output.hpp"
 #include "package_info.hpp"
 #include "pool.hpp"
 

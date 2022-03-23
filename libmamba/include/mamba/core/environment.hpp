@@ -12,7 +12,6 @@
 #include <cassert>
 #include <string_view>
 #include <optional>
-#include "mamba/core/output.hpp"
 
 #include "mamba_fs.hpp"
 

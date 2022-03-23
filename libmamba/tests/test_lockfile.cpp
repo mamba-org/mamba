@@ -4,6 +4,7 @@
 #include "mamba/core/util.hpp"
 
 #include <reproc++/run.hpp>
+#include "spdlog/spdlog.h"
 
 #include <string>
 

@@ -11,7 +11,6 @@
 #include "mamba_fs.hpp"
 #include "util.hpp"
 
-#include <iostream>
 #include <string>
 #include <system_error>
 

@@ -3,6 +3,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/channel_builder.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {

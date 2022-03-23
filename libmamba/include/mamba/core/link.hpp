@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_LINK
 #define MAMBA_CORE_LINK
 
-#include <iostream>
 #include <stack>
 #include <string>
 #include <tuple>

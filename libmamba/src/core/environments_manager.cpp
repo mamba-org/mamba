@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"

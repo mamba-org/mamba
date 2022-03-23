@@ -8,6 +8,7 @@
 #include <windows.h>
 #endif
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"

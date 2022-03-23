@@ -26,7 +26,7 @@ namespace mamba
     namespace
     {
         std::map<std::string, std::string> other_pkg_mgr_install_instructions
-        = { { "pip", "pip install -r {0} --no-input" } };
+            = { { "pip", "pip install -r {0} --no-input" } };
     }
 
     bool reproc_killed(int status)
@@ -61,7 +61,7 @@ namespace mamba
             throw std::runtime_error("Subprocess call failed. Aborting.");
         }
     }
-    
+
     auto install_for_other_pkgmgr(const detail::other_pkg_mgr_spec& other_spec)
     {
         const auto& pkg_mgr = other_spec.pkg_mgr;

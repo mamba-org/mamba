@@ -1,6 +1,7 @@
 #include <string>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util.hpp"
 

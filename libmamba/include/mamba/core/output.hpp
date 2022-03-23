@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_OUTPUT_HPP
 #define MAMBA_CORE_OUTPUT_HPP
 
-#include "context.hpp"
 #include "progress_bar.hpp"
 
 #include "nlohmann/json.hpp"

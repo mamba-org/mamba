@@ -13,6 +13,7 @@
 #include <reproc++/run.hpp>
 
 #include "nlohmann/json.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/output.hpp"

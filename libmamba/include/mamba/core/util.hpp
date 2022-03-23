@@ -8,7 +8,6 @@
 #define MAMBA_CORE_UTIL_HPP
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/output.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -277,58 +276,6 @@ namespace mamba
         return hex_string(buffer, buffer.size());
     }
 
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
-    {
-        std::vector<unsigned char> res;
-        if (size % 2 != 0)
-            return res;
-
-        std::string extract;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res.push_back(std::stoi(extract, nullptr, 16));
-        }
-        return res;
-    }
-
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer) noexcept
-    {
-        return hex_to_bytes(buffer, buffer.size());
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
-    {
-        std::array<unsigned char, S> res{};
-        if (buffer.size() != (S * 2))
-        {
-            LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
-                      << buffer.size();
-            error_code = 1;
-            return res;
-        }
-
-        std::string extract;
-        std::size_t i = 0;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res[i] = std::stoi(extract, nullptr, 16);
-            ++i;
-        }
-        return res;
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
-    {
-        int ec;
-        return hex_to_bytes<S>(buffer, ec);
-    }
-
     // get the value corresponding to a key in a JSON object and assign it to target
     // if the key is not found, assign default_value to target
     template <typename T>
@@ -363,39 +310,11 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    inline std::ofstream open_ofstream(const fs::path& path,
-                                       std::ios::openmode mode = std::ios::out | std::ios::binary)
-    {
-        std::ofstream outfile;
-#if _WIN32
-        outfile.open(path.wstring(), mode);
-#else
-        outfile.open(path, mode);
-#endif
-        if (!outfile.good())
-        {
-            LOG_ERROR << "Error opening for writing " << path << ": " << strerror(errno);
-        }
+    std::ofstream open_ofstream(const fs::path& path,
+                                std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-        return outfile;
-    }
-
-    inline std::ifstream open_ifstream(const fs::path& path,
-                                       std::ios::openmode mode = std::ios::in | std::ios::binary)
-    {
-        std::ifstream infile;
-#if _WIN32
-        infile.open(path.wstring(), mode);
-#else
-        infile.open(path, mode);
-#endif
-        if (!infile.good())
-        {
-            LOG_ERROR << "Error opening for reading " << path << ": " << strerror(errno);
-        }
-
-        return infile;
-    }
+    std::ifstream open_ifstream(const fs::path& path,
+                                std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
     std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,

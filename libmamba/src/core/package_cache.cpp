@@ -4,8 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/package_cache.hpp"
 #include "nlohmann/json.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/url.hpp"

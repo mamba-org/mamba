@@ -1247,6 +1247,39 @@ namespace mamba
         return true;
     }
 
+    std::ofstream open_ofstream(const fs::path& path, std::ios::openmode mode)
+    {
+        std::ofstream outfile;
+#if _WIN32
+        outfile.open(path.wstring(), mode);
+#else
+        outfile.open(path, mode);
+#endif
+        if (!outfile.good())
+        {
+            LOG_ERROR << "Error opening for writing " << path << ": " << strerror(errno);
+        }
+
+        return outfile;
+    }
+
+    std::ifstream open_ifstream(const fs::path& path, std::ios::openmode mode)
+    {
+        std::ifstream infile;
+#if _WIN32
+        infile.open(path.wstring(), mode);
+#else
+        infile.open(path, mode);
+#endif
+        if (!infile.good())
+        {
+            LOG_ERROR << "Error opening for reading " << path << ": " << strerror(errno);
+        }
+
+        return infile;
+    }
+
+
     std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
                                              const fs::path& prefix,
                                              bool dev_mode,

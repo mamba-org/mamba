@@ -55,4 +55,3 @@ namespace mamba
 }
 
 #endif
-

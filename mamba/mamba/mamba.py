@@ -894,9 +894,7 @@ def main(*args, **kwargs):
     # Set to false so we don't allow uploading our issues to conda!
     context.report_errors = False
 
-    from conda.common.compat import ensure_text_type, init_std_stream_encoding
-
-    init_std_stream_encoding()
+    from conda.common.compat import ensure_text_type
 
     if "activate" in sys.argv or "deactivate" in sys.argv:
         print(

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/core/solver.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"

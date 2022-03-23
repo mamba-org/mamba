@@ -215,6 +215,11 @@ namespace mamba
         return *this;
     }
 
+    std::size_t DownloadTarget::get_default_retry_timeout()
+    {
+        return Context::instance().retry_timeout;
+    }
+
     void DownloadTarget::init_curl_handle(CURL* handle, const std::string& url)
     {
         curl_easy_setopt(handle, CURLOPT_URL, url.c_str());

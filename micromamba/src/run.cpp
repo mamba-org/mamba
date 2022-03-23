@@ -7,6 +7,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_random.hpp"
 
 #include <nlohmann/json.hpp>
 

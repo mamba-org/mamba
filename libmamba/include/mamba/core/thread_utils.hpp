@@ -14,12 +14,9 @@
 #include <mutex>
 #include <thread>
 #include <utility>
-#include <iostream>
 
 namespace mamba
 {
-#ifdef MAMBA_TEST_SUITE
-#endif
 
     /***********************
      * thread interruption *

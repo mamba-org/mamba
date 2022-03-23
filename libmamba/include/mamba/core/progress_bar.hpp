@@ -10,15 +10,12 @@
 #include "spdlog/fmt/fmt.h"
 #include "spdlog/fmt/bundled/color.h"
 
-#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <set>
 #include <string_view>
 #include <vector>
 #include <map>
-#include <functional>
-
 
 namespace cursor
 {

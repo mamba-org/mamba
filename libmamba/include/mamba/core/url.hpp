@@ -15,6 +15,7 @@ extern "C"
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // typedef enum {
@@ -63,6 +64,7 @@ namespace mamba
     std::string decode_url(const std::string& url);
     // Only returns a cache name without extension
     std::string cache_name_from_url(const std::string& url);
+    std::string hide_secrets(const std::string_view& str);
 
     class URLHandler
     {

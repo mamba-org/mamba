@@ -12,6 +12,14 @@
 
 namespace mamba
 {
+    namespace
+    {
+        // usernames on anaconda.org can have a underscore, which influences the
+        // first two characters
+        const static std::regex token_re("/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)");
+        const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
+    }
+
     bool has_scheme(const std::string& url)
     {
         std::regex re("[a-z][a-z0-9]{0,11}://");
@@ -164,6 +172,23 @@ namespace mamba
 
         std::string hex_digest = hex_string(hash, 16);
         return hex_digest.substr(0u, 8u);
+    }
+
+    std::string hide_secrets(const std::string_view& str)
+    {
+        std::string copy(str);
+
+        if (contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, token_re, "/t/*****");
+        }
+
+        if (contains(str, "://"))
+        {
+            copy = std::regex_replace(copy, http_basicauth_re, "://$1:*****@");
+        }
+
+        return copy;
     }
 
     URLHandler::URLHandler(const std::string& url)

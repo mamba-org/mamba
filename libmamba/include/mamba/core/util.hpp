@@ -8,23 +8,16 @@
 #define MAMBA_CORE_UTIL_HPP
 
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/output.hpp"
 
 #include "nlohmann/json.hpp"
 
-#include <reproc++/reproc.hpp>
-
 #include <array>
-#include <iomanip>
 #include <limits>
-#include <random>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <time.h>
 #include <vector>
-#include <regex>
 #include <chrono>
 
 #define MAMBA_EMPTY_SHA "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -47,11 +40,6 @@ namespace mamba
 #error "no supported OS detected"
 #endif
 
-    // usernames on anaconda.org can have a underscore, which influences the
-    // first two characters
-    const static std::regex token_re("/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)");
-    const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
-
     bool is_package_file(const std::string_view& fn);
 
     bool lexists(const fs::path& p);
@@ -68,47 +56,6 @@ namespace mamba
         fs::permissions(p,
                         fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
                             | fs::perms::others_exec);
-    }
-
-    template <typename T = std::mt19937>
-    inline auto random_generator() -> T
-    {
-        using std::begin;
-        using std::end;
-        auto constexpr seed_bits = sizeof(typename T::result_type) * T::state_size;
-        auto constexpr seed_len
-            = seed_bits / std::numeric_limits<std::seed_seq::result_type>::digits;
-        auto seed = std::array<std::seed_seq::result_type, seed_len>{};
-        auto dev = std::random_device{};
-        std::generate_n(begin(seed), seed_len, std::ref(dev));
-        auto seed_seq = std::seed_seq(begin(seed), end(seed));
-        return T{ seed_seq };
-    }
-
-    template <typename T = std::mt19937>
-    inline auto local_random_generator() -> T&
-    {
-        thread_local auto rng = random_generator<T>();
-        return rng;
-    }
-
-    template <typename T = int, typename G = std::mt19937>
-    inline T random_int(T min, T max, G& generator = local_random_generator())
-    {
-        return std::uniform_int_distribution<T>{ min, max }(generator);
-    }
-
-    inline std::string generate_random_alphanumeric_string(std::size_t len)
-    {
-        static constexpr auto chars = "0123456789"
-                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                      "abcdefghijklmnopqrstuvwxyz";
-        auto& rng = local_random_generator<std::mt19937>();
-
-        auto dist = std::uniform_int_distribution{ {}, std::strlen(chars) - 1 };
-        auto result = std::string(len, '\0');
-        std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
-        return result;
     }
 
     class TemporaryDirectory
@@ -329,58 +276,6 @@ namespace mamba
         return hex_string(buffer, buffer.size());
     }
 
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
-    {
-        std::vector<unsigned char> res;
-        if (size % 2 != 0)
-            return res;
-
-        std::string extract;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res.push_back(std::stoi(extract, nullptr, 16));
-        }
-        return res;
-    }
-
-    template <class B>
-    std::vector<unsigned char> hex_to_bytes(const B& buffer) noexcept
-    {
-        return hex_to_bytes(buffer, buffer.size());
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
-    {
-        std::array<unsigned char, S> res{};
-        if (buffer.size() != (S * 2))
-        {
-            LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
-                      << buffer.size();
-            error_code = 1;
-            return res;
-        }
-
-        std::string extract;
-        std::size_t i = 0;
-        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
-        {
-            extract.assign(pos, pos + 2);
-            res[i] = std::stoi(extract, nullptr, 16);
-            ++i;
-        }
-        return res;
-    }
-
-    template <size_t S, class B>
-    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
-    {
-        int ec;
-        return hex_to_bytes<S>(buffer, ec);
-    }
-
     // get the value corresponding to a key in a JSON object and assign it to target
     // if the key is not found, assign default_value to target
     template <typename T>
@@ -415,41 +310,11 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec);
+    std::ofstream open_ofstream(const fs::path& path,
+                                std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-    inline std::ofstream open_ofstream(const fs::path& path,
-                                       std::ios::openmode mode = std::ios::out | std::ios::binary)
-    {
-        std::ofstream outfile;
-#if _WIN32
-        outfile.open(path.wstring(), mode);
-#else
-        outfile.open(path, mode);
-#endif
-        if (!outfile.good())
-        {
-            LOG_ERROR << "Error opening for writing " << path << ": " << strerror(errno);
-        }
-
-        return outfile;
-    }
-
-    inline std::ifstream open_ifstream(const fs::path& path,
-                                       std::ios::openmode mode = std::ios::in | std::ios::binary)
-    {
-        std::ifstream infile;
-#if _WIN32
-        infile.open(path.wstring(), mode);
-#else
-        infile.open(path, mode);
-#endif
-        if (!infile.good())
-        {
-            LOG_ERROR << "Error opening for reading " << path << ": " << strerror(errno);
-        }
-
-        return infile;
-    }
+    std::ifstream open_ifstream(const fs::path& path,
+                                std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
     std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,

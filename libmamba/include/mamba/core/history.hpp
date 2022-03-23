@@ -13,10 +13,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include "context.hpp"
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
 #include "output.hpp"
-
 
 namespace mamba
 {
@@ -34,19 +34,7 @@ namespace mamba
 
         struct UserRequest
         {
-            static UserRequest prefilled()
-            {
-                UserRequest ur;
-                std::time_t t = std::time(nullptr);
-                char mbstr[100];
-                if (std::strftime(mbstr, sizeof(mbstr), "%Y-%m-%d %H:%M:%S", std::localtime(&t)))
-                {
-                    ur.date = mbstr;
-                }
-                ur.cmd = Context::instance().current_command;
-                ur.conda_version = Context::instance().conda_version;
-                return ur;
-            }
+            static UserRequest prefilled();
 
             std::string date;
             std::string cmd;

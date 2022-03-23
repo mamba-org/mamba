@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_OUTPUT_HPP
 #define MAMBA_CORE_OUTPUT_HPP
 
-#include "context.hpp"
 #include "progress_bar.hpp"
 
 #include "nlohmann/json.hpp"
@@ -16,7 +15,6 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 #include <chrono>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>

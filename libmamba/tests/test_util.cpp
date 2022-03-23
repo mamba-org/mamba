@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_random.hpp"
 
 namespace mamba
 {

@@ -105,7 +105,7 @@ namespace mamba
 
         // retry & backoff
         std::chrono::steady_clock::time_point m_next_retry;
-        std::size_t m_retry_wait_seconds = Context::instance().retry_timeout;
+        std::size_t m_retry_wait_seconds = get_default_retry_timeout();
         std::size_t m_retries = 0;
 
         CURL* m_handle;
@@ -119,6 +119,7 @@ namespace mamba
         char m_errbuf[CURL_ERROR_SIZE];
         std::ofstream m_file;
 
+        static std::size_t get_default_retry_timeout();
         static void init_curl_handle(CURL* handle, const std::string& url);
         std::function<void(ProgressBarRepr&)> download_repr();
 

@@ -8,6 +8,7 @@
 #include <windows.h>
 #endif
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
@@ -19,7 +20,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
-#include <regex>
 #include <string>
 
 namespace mamba
@@ -274,19 +274,7 @@ namespace mamba
 
     std::string Console::hide_secrets(const std::string_view& str)
     {
-        std::string copy(str);
-
-        if (contains(str, "/t/"))
-        {
-            copy = std::regex_replace(copy, token_re, "/t/*****");
-        }
-
-        if (contains(str, "://"))
-        {
-            copy = std::regex_replace(copy, http_basicauth_re, "://$1:*****@");
-        }
-
-        return copy;
+        return mamba::hide_secrets(str);
     }
 
     void Console::print(const std::string_view& str, bool force_print)

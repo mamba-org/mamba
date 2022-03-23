@@ -20,6 +20,60 @@
 #include <set>
 #include <regex>
 
+namespace mamba
+{
+    template <class B>
+    std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
+    {
+        std::vector<unsigned char> res;
+        if (size % 2 != 0)
+            return res;
+
+        std::string extract;
+        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+        {
+            extract.assign(pos, pos + 2);
+            res.push_back(std::stoi(extract, nullptr, 16));
+        }
+        return res;
+    }
+
+    template <class B>
+    std::vector<unsigned char> hex_to_bytes(const B& buffer) noexcept
+    {
+        return hex_to_bytes(buffer, buffer.size());
+    }
+
+    template <size_t S, class B>
+    std::array<unsigned char, S> hex_to_bytes(const B& buffer, int& error_code) noexcept
+    {
+        std::array<unsigned char, S> res{};
+        if (buffer.size() != (S * 2))
+        {
+            LOG_DEBUG << "Wrong size for hexadecimal buffer, expected " << S * 2 << " but is "
+                      << buffer.size();
+            error_code = 1;
+            return res;
+        }
+
+        std::string extract;
+        std::size_t i = 0;
+        for (auto pos = buffer.cbegin(); pos < buffer.cend(); pos += 2)
+        {
+            extract.assign(pos, pos + 2);
+            res[i] = std::stoi(extract, nullptr, 16);
+            ++i;
+        }
+        return res;
+    }
+
+    template <size_t S, class B>
+    std::array<unsigned char, S> hex_to_bytes(const B& buffer) noexcept
+    {
+        int ec;
+        return hex_to_bytes<S>(buffer, ec);
+    }
+}
 
 namespace validate
 {

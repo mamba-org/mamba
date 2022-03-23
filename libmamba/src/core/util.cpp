@@ -36,14 +36,13 @@ extern "C"
 #include <mutex>
 #include <condition_variable>
 
-#include <reproc/reproc.h>
-
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_random.hpp"
 
 
 namespace mamba
@@ -156,7 +155,7 @@ namespace mamba
 
         do
         {
-            std::string random_file_name = generate_random_alphanumeric_string(10);
+            std::string random_file_name = mamba::generate_random_alphanumeric_string(10);
             final_path = temp_path / concat(prefix, random_file_name, suffix);
         } while (fs::exists(final_path));
 
@@ -1225,39 +1224,6 @@ namespace mamba
         return res;
     }
 
-    bool reproc_killed(int status)
-    {
-        return status == REPROC_SIGKILL;
-    }
-
-    bool reproc_terminated(int status)
-    {
-        return status == REPROC_SIGTERM;
-    }
-
-    void assert_reproc_success(const reproc::options& options, int status, std::error_code ec)
-    {
-        bool killed_not_an_err = (options.stop.first.action == reproc::stop::kill)
-                                 || (options.stop.second.action == reproc::stop::kill)
-                                 || (options.stop.third.action == reproc::stop::kill);
-
-        bool terminated_not_an_err = (options.stop.first.action == reproc::stop::terminate)
-                                     || (options.stop.second.action == reproc::stop::terminate)
-                                     || (options.stop.third.action == reproc::stop::terminate);
-
-        if (ec || (!killed_not_an_err && reproc_killed(status))
-            || (!terminated_not_an_err && reproc_terminated(status)))
-        {
-            if (ec)
-                LOG_ERROR << "Subprocess call failed: " << ec.message();
-            else if (reproc_killed(status))
-                LOG_ERROR << "Subprocess call failed (killed)";
-            else
-                LOG_ERROR << "Subprocess call failed (terminated)";
-            throw std::runtime_error("Subprocess call failed. Aborting.");
-        }
-    }
-
     bool ensure_comspec_set()
     {
         std::string cmd_exe = env::get("COMSPEC").value_or("");
@@ -1280,6 +1246,39 @@ namespace mamba
         }
         return true;
     }
+
+    std::ofstream open_ofstream(const fs::path& path, std::ios::openmode mode)
+    {
+        std::ofstream outfile;
+#if _WIN32
+        outfile.open(path.wstring(), mode);
+#else
+        outfile.open(path, mode);
+#endif
+        if (!outfile.good())
+        {
+            LOG_ERROR << "Error opening for writing " << path << ": " << strerror(errno);
+        }
+
+        return outfile;
+    }
+
+    std::ifstream open_ifstream(const fs::path& path, std::ios::openmode mode)
+    {
+        std::ifstream infile;
+#if _WIN32
+        infile.open(path.wstring(), mode);
+#else
+        infile.open(path, mode);
+#endif
+        if (!infile.good())
+        {
+            LOG_ERROR << "Error opening for reading " << path << ": " << strerror(errno);
+        }
+
+        return infile;
+    }
+
 
     std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
                                              const fs::path& prefix,

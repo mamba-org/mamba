@@ -15,6 +15,20 @@ namespace mamba
     {
     }
 
+    History::UserRequest History::UserRequest::prefilled()
+    {
+        UserRequest ur;
+        std::time_t t = std::time(nullptr);
+        char mbstr[100];
+        if (std::strftime(mbstr, sizeof(mbstr), "%Y-%m-%d %H:%M:%S", std::localtime(&t)))
+        {
+            ur.date = mbstr;
+        }
+        ur.cmd = Context::instance().current_command;
+        ur.conda_version = Context::instance().conda_version;
+        return ur;
+    }
+
     std::vector<History::ParseResult> History::parse()
     {
         std::vector<ParseResult> res;

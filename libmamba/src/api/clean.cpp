@@ -13,6 +13,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
 
+#include "../core/progress_bar_impl.hpp"
 
 namespace mamba
 {

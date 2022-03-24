@@ -102,6 +102,8 @@ namespace mamba
         ~ConsoleStream();
     };
 
+    class ProgressBarManager;
+
     class Console
     {
     public:

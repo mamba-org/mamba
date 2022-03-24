@@ -14,6 +14,8 @@
 #include "mamba/core/activation.hpp"
 #include "mamba/core/environment.hpp"
 
+#include "progress_bar_impl.hpp"
+
 #include "termcolor/termcolor.hpp"
 
 #include <reproc++/run.hpp>

@@ -92,6 +92,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/pool.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp

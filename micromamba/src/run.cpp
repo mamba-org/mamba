@@ -1,6 +1,9 @@
 #include <csignal>
 #include <exception>
 
+#include "spdlog/fmt/fmt.h"
+#include "spdlog/fmt/bundled/color.h"
+
 #include <reproc++/run.hpp>
 #include "common_options.hpp"
 

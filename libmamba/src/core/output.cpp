@@ -22,6 +22,8 @@
 #include <map>
 #include <string>
 
+#include "progress_bar_impl.hpp"
+
 namespace mamba
 {
     std::string cut_repo_name(const std::string& full_url)

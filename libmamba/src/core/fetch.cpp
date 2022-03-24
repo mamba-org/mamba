@@ -14,6 +14,8 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
 
+#include "progress_bar_impl.hpp"
+
 namespace mamba
 {
     void init_curl_ssl()

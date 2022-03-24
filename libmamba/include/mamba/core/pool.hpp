@@ -15,6 +15,11 @@ extern "C"
 #include "solv/pooltypes.h"
 }
 
+namespace spdlog
+{
+    class logger;
+}
+
 namespace mamba
 {
     class MPool

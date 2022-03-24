@@ -1,6 +1,7 @@
 #include <regex>
 
 #include "mamba/core/environment.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 
 #include <reproc++/run.hpp>

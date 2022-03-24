@@ -18,7 +18,6 @@ extern "C"
 
 #include "nlohmann/json.hpp"
 
-#include "output.hpp"
 #include "progress_bar.hpp"
 #include "validate.hpp"
 

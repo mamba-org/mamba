@@ -6,6 +6,7 @@
 
 #include "nlohmann/json.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/validate.hpp"

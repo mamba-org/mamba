@@ -18,7 +18,6 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"

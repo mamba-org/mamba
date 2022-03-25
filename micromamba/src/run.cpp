@@ -1,5 +1,6 @@
 #include <csignal>
 #include <exception>
+#include <thread>
 
 #include "spdlog/fmt/fmt.h"
 #include "spdlog/fmt/bundled/color.h"
@@ -24,6 +25,8 @@ extern "C"
 #include <sys/stat.h>
 #include <fcntl.h>
 }
+#else
+#include <process.h>
 #endif
 
 #include "run.hpp"

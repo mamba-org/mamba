@@ -6,6 +6,8 @@
 
 #include <string_view>
 
+#include "spdlog/spdlog.h"
+
 #include "mamba/version.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/context.hpp"

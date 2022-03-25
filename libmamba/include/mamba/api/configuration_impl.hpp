@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "spdlog/spdlog.h"
 #include <yaml-cpp/yaml.h>
 
+#include "mamba/core/common_types.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 
@@ -350,24 +350,25 @@ namespace YAML
     };
 
     template <>
-    struct convert<spdlog::level::level_enum>
+    struct convert<mamba::log_level>
     {
-        static Node encode(const spdlog::level::level_enum& rhs)
-        {
-            using namespace spdlog::level;
+    private:
+        static inline const std::array<std::string, 7> log_level_names
+            = { "trace", "debug", "info", "warning", "error", "critical", "off" };
 
-            return Node(to_string_view(rhs).data());
+    public:
+        static Node encode(const mamba::log_level& rhs)
+        {
+            return Node(log_level_names[static_cast<size_t>(rhs)]);
         }
 
-        static bool decode(const Node& node, spdlog::level::level_enum& rhs)
+        static bool decode(const Node& node, mamba::log_level& rhs)
         {
-            using namespace spdlog::level;
-
             auto name = node.as<std::string>();
-            auto it = std::find(std::begin(level_string_views), std::end(level_string_views), name);
-            if (it != std::end(level_string_views))
+            auto it = std::find(log_level_names.begin(), log_level_names.end(), name);
+            if (it != log_level_names.end())
             {
-                rhs = static_cast<level_enum>(it - std::begin(level_string_views));
+                rhs = static_cast<mamba::log_level>(it - log_level_names.begin());
                 return true;
             }
 

@@ -224,4 +224,3 @@ namespace mamba
         return p_bar->repr();
     }
 }
-

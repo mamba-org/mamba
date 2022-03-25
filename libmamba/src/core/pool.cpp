@@ -9,6 +9,8 @@ extern "C"
 #include <solv/pool.h>
 }
 
+#include "spdlog/spdlog.h"
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"

@@ -11,6 +11,8 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 
+#include "progress_bar_impl.hpp"
+
 namespace decompress
 {
     bool raw(const std::string& in, const std::string& out)

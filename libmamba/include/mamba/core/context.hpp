@@ -7,9 +7,8 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
+#include "mamba/core/common_types.hpp"
 #include "mamba/core/mamba_fs.hpp"
-
-#include "spdlog/spdlog.h"
 
 #include <map>
 #include <string>
@@ -126,12 +125,11 @@ namespace mamba
 
         int verbosity = 0;
         void set_verbosity(int lvl);
-        void set_log_level(const spdlog::level::level_enum& level);
+        void set_log_level(log_level level);
 
-        spdlog::level::level_enum log_level = spdlog::level::level_enum::warn;
+        log_level logging_level = log_level::warn;
         std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
-        std::shared_ptr<Logger> logger;
 
         bool dev = false;
         bool on_ci = false;
@@ -223,10 +221,13 @@ namespace mamba
         Context& operator=(Context&&) = delete;
 
         const void debug_print();
+        void dump_backtrace_no_guards();
 
     private:
         Context();
         ~Context() = default;
+
+        std::shared_ptr<Logger> logger;
     };
 }  // namespace mamba
 

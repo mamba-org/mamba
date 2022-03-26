@@ -12,8 +12,46 @@
 
 #include "termcolor/termcolor.hpp"
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+
 namespace mamba
 {
+    class Logger : public spdlog::logger
+    {
+    public:
+        Logger(const std::string& name, const std::string& pattern, const std::string& eol);
+
+        void dump_backtrace_no_guards();
+    };
+
+    Logger::Logger(const std::string& name, const std::string& pattern, const std::string& eol)
+        : spdlog::logger(name, std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
+    {
+        auto f = std::make_unique<spdlog::pattern_formatter>(
+            pattern, spdlog::pattern_time_type::local, eol);
+        set_formatter(std::move(f));
+    }
+
+    void Logger::dump_backtrace_no_guards()
+    {
+        using spdlog::details::log_msg;
+        if (tracer_.enabled())
+        {
+            tracer_.foreach_pop(
+                [this](const log_msg& msg)
+                {
+                    if (this->should_log(msg.level))
+                        this->sink_it_(msg);
+                });
+        }
+    }
+
+    spdlog::level::level_enum convert_log_level(log_level l)
+    {
+        return static_cast<spdlog::level::level_enum>(l);
+    }
+
     Context::Context()
     {
         on_ci = bool(env::get("CI"));
@@ -55,7 +93,7 @@ namespace mamba
 
         spdlog::set_default_logger(l);
         logger = std::dynamic_pointer_cast<Logger>(l);
-        spdlog::set_level(log_level);
+        spdlog::set_level(convert_log_level(logging_level));
     }
 
     Context& Context::instance()
@@ -71,37 +109,37 @@ namespace mamba
         switch (lvl)
         {
             case -3:
-                this->log_level = spdlog::level::off;
+                this->logging_level = log_level::off;
                 break;
             case -2:
-                this->log_level = spdlog::level::critical;
+                this->logging_level = log_level::critical;
                 break;
             case -1:
-                this->log_level = spdlog::level::err;
+                this->logging_level = log_level::err;
                 break;
             case 0:
-                this->log_level = spdlog::level::warn;
+                this->logging_level = log_level::warn;
                 break;
             case 1:
-                this->log_level = spdlog::level::info;
+                this->logging_level = log_level::info;
                 break;
             case 2:
-                this->log_level = spdlog::level::debug;
+                this->logging_level = log_level::debug;
                 break;
             case 3:
-                this->log_level = spdlog::level::trace;
+                this->logging_level = log_level::trace;
                 break;
             default:
-                this->log_level = spdlog::level::info;
+                this->logging_level = log_level::info;
                 break;
         }
-        spdlog::set_level(log_level);
+        spdlog::set_level(convert_log_level(logging_level));
     }
 
-    void Context::set_log_level(const spdlog::level::level_enum& level)
+    void Context::set_log_level(log_level level)
     {
-        log_level = level;
-        spdlog::set_level(level);
+        logging_level = level;
+        spdlog::set_level(convert_log_level(level));
     }
 
     std::vector<std::string> Context::platforms()
@@ -199,4 +237,10 @@ namespace mamba
         // clang-format on
 #undef PRINT_CTX
     }
+
+    void Context::dump_backtrace_no_guards()
+    {
+        logger->dump_backtrace_no_guards();
+    }
+
 }  // namespace mamba

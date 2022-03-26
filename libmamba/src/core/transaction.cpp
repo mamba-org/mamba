@@ -23,6 +23,8 @@ extern "C"
 #include "solv/selection.h"
 }
 
+#include "progress_bar_impl.hpp"
+
 namespace
 {
     bool need_pkg_download(const mamba::PackageInfo& pkg_info, mamba::MultiPackageCache& caches)

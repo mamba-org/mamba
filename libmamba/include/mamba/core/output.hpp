@@ -11,19 +11,13 @@
 
 #include "nlohmann/json.hpp"
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-
-#include <chrono>
 #include <iosfwd>
-#include <memory>
-#include <mutex>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
+#include "mamba/core/common_types.hpp"
 
 namespace mamba
 {
@@ -102,6 +96,9 @@ namespace mamba
         ~ConsoleStream();
     };
 
+    class ProgressBarManager;
+    class ConsoleData;
+
     class Console
     {
     public:
@@ -139,18 +136,11 @@ namespace mamba
 
     private:
         Console();
-        ~Console() = default;
+        ~Console();
 
         void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
 
-        std::mutex m_mutex;
-        std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
-
-        std::string json_hier;
-        unsigned int json_index;
-        nlohmann::json json_log;
-
-        static std::vector<std::string> m_buffer;
+        ConsoleData* p_data;
 
         friend class ProgressProxy;
     };
@@ -158,7 +148,7 @@ namespace mamba
     class MessageLogger
     {
     public:
-        MessageLogger(const char* file, int line, spdlog::level::level_enum level);
+        MessageLogger(const char* file, int line, log_level level);
         ~MessageLogger();
 
         std::stringstream& stream();
@@ -170,24 +160,12 @@ namespace mamba
     private:
         std::string m_file;
         int m_line;
-        spdlog::level::level_enum m_level;
+        log_level m_level;
         std::stringstream m_stream;
 
-        static std::mutex m_mutex;
-        static bool use_buffer;
-        static std::vector<std::pair<std::string, spdlog::level::level_enum>> m_buffer;
-
-        static void emit(const std::string& msg, const spdlog::level::level_enum& level);
+        static void emit(const std::string& msg, const log_level& level);
     };
 
-
-    class Logger : public spdlog::logger
-    {
-    public:
-        Logger(const std::string& name, const std::string& pattern, const std::string& eol);
-
-        void dump_backtrace_no_guards();
-    };
 }  // namespace mamba
 
 #undef LOG
@@ -199,11 +177,11 @@ namespace mamba
 #undef LOG_CRITICAL
 
 #define LOG(severity) mamba::MessageLogger(__FILE__, __LINE__, severity).stream()
-#define LOG_TRACE LOG(spdlog::level::trace)
-#define LOG_DEBUG LOG(spdlog::level::debug)
-#define LOG_INFO LOG(spdlog::level::info)
-#define LOG_WARNING LOG(spdlog::level::warn)
-#define LOG_ERROR LOG(spdlog::level::err)
-#define LOG_CRITICAL LOG(spdlog::level::critical)
+#define LOG_TRACE LOG(mamba::log_level::trace)
+#define LOG_DEBUG LOG(mamba::log_level::debug)
+#define LOG_INFO LOG(mamba::log_level::info)
+#define LOG_WARNING LOG(mamba::log_level::warn)
+#define LOG_ERROR LOG(mamba::log_level::err)
+#define LOG_CRITICAL LOG(mamba::log_level::critical)
 
 #endif  // MAMBA_OUTPUT_HPP

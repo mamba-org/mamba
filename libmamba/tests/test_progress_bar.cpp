@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include "mamba/core/progress_bar.hpp"
-
+#include "../src/core/progress_bar_impl.hpp"
 
 namespace mamba
 {

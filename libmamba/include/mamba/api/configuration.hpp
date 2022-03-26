@@ -16,8 +16,6 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "spdlog/common.h"
-
 #include <functional>
 
 
@@ -64,8 +62,6 @@ namespace YAML
     {
         static Node encode(const mamba::RCConfigLevel& rhs)
         {
-            using namespace spdlog::level;
-
             switch (rhs)
             {
                 case mamba::RCConfigLevel::kHomeDir:

@@ -284,14 +284,14 @@ PYBIND11_MODULE(bindings, m)
         .value("kStrict", ChannelPriority::kStrict)
         .value("kDisabled", ChannelPriority::kDisabled);
 
-    py::enum_<spdlog::level::level_enum>(m, "LogLevel")
-        .value("TRACE", spdlog::level::trace)
-        .value("DEBUG", spdlog::level::debug)
-        .value("INFO", spdlog::level::info)
-        .value("WARNING", spdlog::level::warn)
-        .value("ERROR", spdlog::level::err)
-        .value("CRITICAL", spdlog::level::critical)
-        .value("OFF", spdlog::level::off);
+    py::enum_<mamba::log_level>(m, "LogLevel")
+        .value("TRACE", mamba::log_level::trace)
+        .value("DEBUG", mamba::log_level::debug)
+        .value("INFO", mamba::log_level::info)
+        .value("WARNING", mamba::log_level::warn)
+        .value("ERROR", mamba::log_level::err)
+        .value("CRITICAL", mamba::log_level::critical)
+        .value("OFF", mamba::log_level::off);
 
     py::class_<Context, std::unique_ptr<Context, py::nodelete>>(m, "Context")
         .def(

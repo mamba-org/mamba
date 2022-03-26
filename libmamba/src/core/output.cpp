@@ -22,6 +22,11 @@
 #include <map>
 #include <string>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+
+#include "progress_bar_impl.hpp"
+
 namespace mamba
 {
     std::string cut_repo_name(const std::string& full_url)
@@ -250,8 +255,20 @@ namespace mamba
      * Console *
      ***********/
 
+    struct ConsoleData
+    {
+        std::mutex m_mutex;
+        std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
+
+        std::string json_hier;
+        unsigned int json_index;
+        nlohmann::json json_log;
+
+        std::vector<std::string> m_buffer;
+    };
+
     Console::Console()
-        : m_mutex()
+        : p_data(new ConsoleData())
     {
         init_progress_bar_manager(ProgressBarMode::multi);
 #ifdef _WIN32
@@ -259,6 +276,12 @@ namespace mamba
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
         SetConsoleMode(hStdout, ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
+    }
+
+    Console::~Console()
+    {
+        delete p_data;
+        p_data = nullptr;
     }
 
     Console& Console::instance()
@@ -281,28 +304,30 @@ namespace mamba
     {
         if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
-            const std::lock_guard<std::mutex> lock(instance().m_mutex);
+            ConsoleData* data = instance().p_data;
+            const std::lock_guard<std::mutex> lock(data->m_mutex);
 
-            if (instance().p_progress_bar_manager && instance().p_progress_bar_manager->started())
+            if (data->p_progress_bar_manager && data->p_progress_bar_manager->started())
             {
-                instance().m_buffer.push_back(instance().hide_secrets(str));
+                data->m_buffer.push_back(hide_secrets(str));
             }
             else
             {
-                std::cout << instance().hide_secrets(str) << std::endl;
+                std::cout << hide_secrets(str) << std::endl;
             }
         }
     }
 
-    std::vector<std::string> Console::m_buffer({});
+    // std::vector<std::string> Console::m_buffer({});
 
     void Console::print_buffer(std::ostream& ostream)
     {
-        for (auto& message : m_buffer)
+        ConsoleData* data = instance().p_data;
+        for (auto& message : data->m_buffer)
             ostream << message << "\n";
 
-        const std::lock_guard<std::mutex> lock(instance().m_mutex);
-        m_buffer.clear();
+        const std::lock_guard<std::mutex> lock(data->m_mutex);
+        data->m_buffer.clear();
     }
 
     // We use an overload instead of a default argument to avoid exposing std::cin
@@ -363,28 +388,28 @@ namespace mamba
         if (Context::instance().no_progress_bars)
             return ProgressProxy();
         else
-            return p_progress_bar_manager->add_progress_bar(name, expected_total);
+            return p_data->p_progress_bar_manager->add_progress_bar(name, expected_total);
     }
 
     void Console::clear_progress_bars()
     {
-        return p_progress_bar_manager->clear_progress_bars();
+        return p_data->p_progress_bar_manager->clear_progress_bars();
     }
 
     ProgressBarManager& Console::init_progress_bar_manager(ProgressBarMode mode)
     {
-        p_progress_bar_manager = make_progress_bar_manager(mode);
-        p_progress_bar_manager->register_print_hook(Console::print_buffer);
-        p_progress_bar_manager->register_print_hook(MessageLogger::print_buffer);
-        p_progress_bar_manager->register_pre_start_hook(MessageLogger::activate_buffer);
-        p_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
+        p_data->p_progress_bar_manager = make_progress_bar_manager(mode);
+        p_data->p_progress_bar_manager->register_print_hook(Console::print_buffer);
+        p_data->p_progress_bar_manager->register_print_hook(MessageLogger::print_buffer);
+        p_data->p_progress_bar_manager->register_pre_start_hook(MessageLogger::activate_buffer);
+        p_data->p_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
 
-        return *p_progress_bar_manager;
+        return *(p_data->p_progress_bar_manager);
     }
 
     ProgressBarManager& Console::progress_bar_manager()
     {
-        return *p_progress_bar_manager;
+        return *(p_data->p_progress_bar_manager);
     }
 
     std::string strip_file_prefix(const std::string& file)
@@ -398,11 +423,82 @@ namespace mamba
         return pos != std::string::npos ? file.substr(pos + 1, std::string::npos) : file;
     }
 
+    void Console::json_print()
+    {
+        if (Context::instance().json)
+            print(p_data->json_log.unflatten().dump(4), true);
+    }
+
+    // write all the key/value pairs of a JSON object into the current entry, which
+    // is then a JSON object
+    void Console::json_write(const nlohmann::json& j)
+    {
+        if (Context::instance().json)
+        {
+            nlohmann::json tmp = j.flatten();
+            for (auto it = tmp.begin(); it != tmp.end(); ++it)
+                p_data->json_log[p_data->json_hier + it.key()] = it.value();
+        }
+    }
+
+    // append a value to the current entry, which is then a list
+    void Console::json_append(const std::string& value)
+    {
+        if (Context::instance().json)
+        {
+            p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index)] = value;
+            p_data->json_index += 1;
+        }
+    }
+
+    // append a JSON object to the current entry, which is then a list
+    void Console::json_append(const nlohmann::json& j)
+    {
+        if (Context::instance().json)
+        {
+            nlohmann::json tmp = j.flatten();
+            for (auto it = tmp.begin(); it != tmp.end(); ++it)
+                p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index)
+                                 + it.key()]
+                    = it.value();
+            p_data->json_index += 1;
+        }
+    }
+
+    // go down in the hierarchy in the "key" entry, create it if it doesn't exist
+    void Console::json_down(const std::string& key)
+    {
+        if (Context::instance().json)
+        {
+            p_data->json_hier += '/' + key;
+            p_data->json_index = 0;
+        }
+    }
+
+    // go up in the hierarchy
+    void Console::json_up()
+    {
+        if (Context::instance().json)
+            p_data->json_hier.erase(p_data->json_hier.rfind('/'));
+    }
+
     /*****************
      * MessageLogger *
      *****************/
 
-    MessageLogger::MessageLogger(const char* file, int line, spdlog::level::level_enum level)
+    struct MessageLoggerData
+    {
+        static std::mutex m_mutex;
+        static bool use_buffer;
+        static std::vector<std::pair<std::string, log_level>> m_buffer;
+    };
+
+    std::mutex MessageLoggerData::m_mutex;
+    bool MessageLoggerData::use_buffer(false);
+    std::vector<std::pair<std::string, log_level>> MessageLoggerData::m_buffer({});
+
+
+    MessageLogger::MessageLogger(const char* file, int line, log_level level)
         : m_file(strip_file_prefix(file))
         , m_line(line)
         , m_level(level)
@@ -412,44 +508,38 @@ namespace mamba
 
     MessageLogger::~MessageLogger()
     {
-        if (!use_buffer)
+        if (!MessageLoggerData::use_buffer)
             emit(m_stream.str(), m_level);
         else
         {
-            const std::lock_guard<std::mutex> lock(m_mutex);
-            m_buffer.push_back({ m_stream.str(), m_level });
+            const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
+            MessageLoggerData::m_buffer.push_back({ m_stream.str(), m_level });
         }
     }
 
-    std::mutex MessageLogger::m_mutex;
-
-    bool MessageLogger::use_buffer(false);
-
-    std::vector<std::pair<std::string, spdlog::level::level_enum>> MessageLogger::m_buffer({});
-
-    void MessageLogger::emit(const std::string& msg, const spdlog::level::level_enum& level)
+    void MessageLogger::emit(const std::string& msg, const log_level& level)
     {
         auto str = Console::hide_secrets(msg);
         switch (level)
         {
-            case spdlog::level::critical:
+            case log_level::critical:
                 SPDLOG_CRITICAL(prepend(str, "", std::string(4, ' ').c_str()));
-                if (Context::instance().log_level != spdlog::level::off)
+                if (Context::instance().logging_level != log_level::off)
                     spdlog::dump_backtrace();
                 break;
-            case spdlog::level::err:
+            case log_level::err:
                 SPDLOG_ERROR(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case spdlog::level::warn:
+            case log_level::warn:
                 SPDLOG_WARN(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case spdlog::level::info:
+            case log_level::info:
                 SPDLOG_INFO(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case spdlog::level::debug:
+            case log_level::debug:
                 SPDLOG_DEBUG(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
-            case spdlog::level::trace:
+            case log_level::trace:
                 SPDLOG_TRACE(prepend(str, "", std::string(4, ' ').c_str()));
                 break;
             default:
@@ -464,101 +554,24 @@ namespace mamba
 
     void MessageLogger::activate_buffer()
     {
-        use_buffer = true;
+        MessageLoggerData::use_buffer = true;
     }
 
     void MessageLogger::deactivate_buffer()
     {
-        use_buffer = false;
+        MessageLoggerData::use_buffer = false;
     }
 
     void MessageLogger::print_buffer(std::ostream& /*ostream*/)
     {
-        for (auto& [msg, level] : m_buffer)
+        for (auto& [msg, level] : MessageLoggerData::m_buffer)
             emit(msg, level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
 
-        const std::lock_guard<std::mutex> lock(m_mutex);
-        m_buffer.clear();
+        const std::lock_guard<std::mutex> lock(MessageLoggerData::m_mutex);
+        MessageLoggerData::m_buffer.clear();
     }
 
-    Logger::Logger(const std::string& name, const std::string& pattern, const std::string& eol)
-        : spdlog::logger(name, std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
-    {
-        auto f = std::make_unique<spdlog::pattern_formatter>(
-            pattern, spdlog::pattern_time_type::local, eol);
-        set_formatter(std::move(f));
-    }
 
-    void Logger::dump_backtrace_no_guards()
-    {
-        using spdlog::details::log_msg;
-        if (tracer_.enabled())
-        {
-            tracer_.foreach_pop(
-                [this](const log_msg& msg)
-                {
-                    if (this->should_log(msg.level))
-                        this->sink_it_(msg);
-                });
-        }
-    }
-
-    void Console::json_print()
-    {
-        if (Context::instance().json)
-            print(json_log.unflatten().dump(4), true);
-    }
-
-    // write all the key/value pairs of a JSON object into the current entry, which
-    // is then a JSON object
-    void Console::json_write(const nlohmann::json& j)
-    {
-        if (Context::instance().json)
-        {
-            nlohmann::json tmp = j.flatten();
-            for (auto it = tmp.begin(); it != tmp.end(); ++it)
-                json_log[json_hier + it.key()] = it.value();
-        }
-    }
-
-    // append a value to the current entry, which is then a list
-    void Console::json_append(const std::string& value)
-    {
-        if (Context::instance().json)
-        {
-            json_log[json_hier + '/' + std::to_string(json_index)] = value;
-            json_index += 1;
-        }
-    }
-
-    // append a JSON object to the current entry, which is then a list
-    void Console::json_append(const nlohmann::json& j)
-    {
-        if (Context::instance().json)
-        {
-            nlohmann::json tmp = j.flatten();
-            for (auto it = tmp.begin(); it != tmp.end(); ++it)
-                json_log[json_hier + '/' + std::to_string(json_index) + it.key()] = it.value();
-            json_index += 1;
-        }
-    }
-
-    // go down in the hierarchy in the "key" entry, create it if it doesn't exist
-    void Console::json_down(const std::string& key)
-    {
-        if (Context::instance().json)
-        {
-            json_hier += '/' + key;
-            json_index = 0;
-        }
-    }
-
-    // go up in the hierarchy
-    void Console::json_up()
-    {
-        if (Context::instance().json)
-            json_hier.erase(json_hier.rfind('/'));
-    }
 }  // namespace mamba

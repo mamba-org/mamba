@@ -5,12 +5,12 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
+#include <iostream>
 
 #include "mamba/api/list.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/prefix_data.hpp"
-
 
 namespace mamba
 {

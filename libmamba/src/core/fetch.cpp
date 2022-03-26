@@ -6,6 +6,8 @@
 
 #include <string_view>
 
+#include "spdlog/spdlog.h"
+
 #include "mamba/version.hpp"
 #include "mamba/core/fetch.hpp"
 #include "mamba/core/context.hpp"
@@ -13,6 +15,8 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
+
+#include "progress_bar_impl.hpp"
 
 namespace mamba
 {

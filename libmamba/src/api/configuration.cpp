@@ -4,6 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <regex>
+#include <iostream>
+#include <stdexcept>
+
+#include <reproc++/run.hpp>
+
+#include <nlohmann/json.hpp>
+
+#include "spdlog/spdlog.h"
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
 #include "mamba/api/install.hpp"
@@ -12,14 +23,6 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction.hpp"
-
-#include <reproc++/run.hpp>
-
-#include <nlohmann/json.hpp>
-
-#include <algorithm>
-#include <regex>
-#include <stdexcept>
 
 namespace mamba
 {
@@ -579,28 +582,28 @@ namespace mamba
             }
         }
 
-        spdlog::level::level_enum log_level_fallback_hook()
+        mamba::log_level log_level_fallback_hook()
         {
             auto& ctx = Context::instance();
 
             if (ctx.json)
-                return spdlog::level::off;
+                return mamba::log_level::off;
             else if (Configuration::instance().at("verbose").configured())
             {
                 switch (ctx.verbosity)
                 {
                     case 0:
-                        return spdlog::level::warn;
+                        return mamba::log_level::warn;
                     case 1:
-                        return spdlog::level::info;
+                        return mamba::log_level::info;
                     case 2:
-                        return spdlog::level::debug;
+                        return mamba::log_level::debug;
                     default:
-                        return spdlog::level::trace;
+                        return mamba::log_level::trace;
                 }
             }
             else
-                return spdlog::level::warn;
+                return mamba::log_level::warn;
         }
 
         void verbose_hook(std::uint8_t& lvl)
@@ -1386,7 +1389,7 @@ namespace mamba
                    .set_env_var_names()
                    .description("Only display what would have been done"));
 
-        insert(Configurable("log_level", &ctx.log_level)
+        insert(Configurable("log_level", &ctx.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .set_env_var_names()
@@ -1659,12 +1662,12 @@ namespace mamba
             Console::print(banner());
 
         auto& ctx = Context::instance();
-        spdlog::set_level(ctx.log_level);
+        ctx.set_log_level(ctx.logging_level);
 
         spdlog::apply_all([&](std::shared_ptr<spdlog::logger> l) { l->flush(); });
         spdlog::flush_on(spdlog::level::off);
 
-        Context::instance().logger->dump_backtrace_no_guards();
+        Context::instance().dump_backtrace_no_guards();
         if (ctx.log_backtrace > 0)
             spdlog::enable_backtrace(ctx.log_backtrace);
         else

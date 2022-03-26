@@ -48,19 +48,17 @@ init_general_options(CLI::App* subcom)
                    "Set verbosity (higher verbosity with multiple -v, e.g. -vvv)")
         ->group(cli_group);
 
-    std::map<std::string, spdlog::level::level_enum> le_map
-        = { { "critical", spdlog::level::critical },
-            { "error", spdlog::level::err },
-            { "warning", spdlog::level::warn },
-            { "info", spdlog::level::info },
-            { "debug", spdlog::level::debug },
-            { "trace", spdlog::level::trace },
-            { "off", spdlog::level::off } };
+    std::map<std::string, mamba::log_level> le_map = { { "critical", mamba::log_level::critical },
+                                                       { "error", mamba::log_level::err },
+                                                       { "warning", mamba::log_level::warn },
+                                                       { "info", mamba::log_level::info },
+                                                       { "debug", mamba::log_level::debug },
+                                                       { "trace", mamba::log_level::trace },
+                                                       { "off", mamba::log_level::off } };
     auto& log_level = config.at("log_level");
     subcom
-        ->add_option("--log-level",
-                     log_level.get_cli_config<spdlog::level::level_enum>(),
-                     log_level.description())
+        ->add_option(
+            "--log-level", log_level.get_cli_config<mamba::log_level>(), log_level.description())
         ->group(cli_group)
         ->transform(CLI::CheckedTransformer(le_map, CLI::ignore_case));
 

@@ -92,6 +92,9 @@ set_umamba_command(CLI::App* com)
     CLI::App* ps_subcom = com->add_subcommand("ps", "Show, inspect or kill running processes");
     set_ps_command(ps_subcom);
 
+    CLI::App* login_subcom = com->add_subcommand("login", "Store login information for host");
+    set_login_command(login_subcom);
+
     CLI::App* search_subcom
         = com->add_subcommand("search", "Find packages in active environment or channels");
     set_search_command(search_subcom);

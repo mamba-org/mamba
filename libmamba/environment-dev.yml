@@ -18,6 +18,6 @@ dependencies:
   - reproc-cpp
   - yaml-cpp
   - termcolor-cpp
-  - cli11
+  - cli11 2.1.2
   - spdlog
   - sel(win): winreg

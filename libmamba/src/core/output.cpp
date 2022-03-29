@@ -280,8 +280,8 @@ namespace mamba
 
     Console::~Console()
     {
-        delete p_data;
-        p_data = nullptr;
+        
+        
     }
 
     Console& Console::instance()
@@ -304,7 +304,7 @@ namespace mamba
     {
         if (!(Context::instance().quiet || Context::instance().json) || force_print)
         {
-            ConsoleData* data = instance().p_data;
+            auto& data = instance().p_data;
             const std::lock_guard<std::mutex> lock(data->m_mutex);
 
             if (data->p_progress_bar_manager && data->p_progress_bar_manager->started())
@@ -318,11 +318,9 @@ namespace mamba
         }
     }
 
-    // std::vector<std::string> Console::m_buffer({});
-
     void Console::print_buffer(std::ostream& ostream)
     {
-        ConsoleData* data = instance().p_data;
+        auto& data = instance().p_data;
         for (auto& message : data->m_buffer)
             ostream << message << "\n";
 

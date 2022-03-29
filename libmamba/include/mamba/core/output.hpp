@@ -140,7 +140,7 @@ namespace mamba
 
         void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
 
-        ConsoleData* p_data;
+        std::unique_ptr<ConsoleData> p_data;
 
         friend class ProgressProxy;
     };

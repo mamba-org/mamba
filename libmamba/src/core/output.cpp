@@ -478,7 +478,7 @@ namespace mamba
     // go up in the hierarchy
     void Console::json_up()
     {
-        if (Context::instance().json)
+        if (Context::instance().json && !p_data->json_hier.empty())
             p_data->json_hier.erase(p_data->json_hier.rfind('/'));
     }
 

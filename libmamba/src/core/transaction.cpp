@@ -853,8 +853,6 @@ namespace mamba
         if (empty())
             Console::instance().json_write(
                 { { "message", "All requested packages already installed" } });
-        // finally, print the JSON
-        Console::instance().json_print();
 
         if (ctx.dry_run)
         {

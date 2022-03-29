@@ -125,7 +125,6 @@ namespace mamba
 
         static std::string hide_secrets(const std::string_view& str);
 
-        void json_print();
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);
@@ -138,6 +137,7 @@ namespace mamba
         Console();
         ~Console();
 
+        void json_print();
         void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");
 
         std::unique_ptr<ConsoleData> p_data;

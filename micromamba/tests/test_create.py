@@ -117,6 +117,9 @@ class TestCreate:
         assert res["env_name"] == ""
         assert res["specs"] == specs
 
+        json_res = create(*cmd, "--json")
+        assert json_res["success"] == True
+
     @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
     @pytest.mark.parametrize("target_is_root", (False, True))
     @pytest.mark.parametrize("cli_prefix", (False, True))

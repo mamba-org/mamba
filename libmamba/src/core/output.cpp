@@ -280,8 +280,11 @@ namespace mamba
 
     Console::~Console()
     {
-        
-        
+        if (!p_data->json_log.is_null())  // Note: we cannot rely on Context::instance() to still be
+                                          // valid at this point.
+        {
+            this->json_print();
+        }
     }
 
     Console& Console::instance()
@@ -302,7 +305,7 @@ namespace mamba
 
     void Console::print(const std::string_view& str, bool force_print)
     {
-        if (!(Context::instance().quiet || Context::instance().json) || force_print)
+        if (force_print || !(Context::instance().quiet || Context::instance().json))
         {
             auto& data = instance().p_data;
             const std::lock_guard<std::mutex> lock(data->m_mutex);
@@ -423,8 +426,7 @@ namespace mamba
 
     void Console::json_print()
     {
-        if (Context::instance().json)
-            print(p_data->json_log.unflatten().dump(4), true);
+        print(p_data->json_log.unflatten().dump(4), true);
     }
 
     // write all the key/value pairs of a JSON object into the current entry, which

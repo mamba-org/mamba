@@ -22,6 +22,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/core/environment.hpp"
 
 
 namespace mamba
@@ -385,10 +386,16 @@ namespace mamba
             auto token_base = concat_scheme_url(chan.scheme(), chan.location());
             if (!chan.token())
             {
-                auto it = ctx.channel_tokens.find(token_base);
-                if (it != ctx.channel_tokens.end())
+                auto it = ctx.authentication_infos.find(token_base);
+                if (it != ctx.authentication_infos.end()
+                    && it->second.type == AuthenticationType::kCondaToken)
                 {
-                    chan.m_token = it->second;
+                    chan.m_token = it->second.value;
+                }
+                else if (it != ctx.authentication_infos.end()
+                         && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                {
+                    chan.m_token = it->second.value;
                 }
             }
             res = get_cache().insert(std::make_pair(value, std::move(chan))).first;
@@ -886,9 +893,40 @@ namespace mamba
                     token_url = token_url.substr(0, token_url.size() - 6);
 
                     std::string token_content = read_contents(entry.path());
-                    ctx.channel_tokens[token_url] = token_content;
-                    LOG_INFO << "Found token for " << token_url;
+                    AuthenticationInfo auth_info{ AuthenticationType::kCondaToken, token_content };
+                    ctx.authentication_infos[token_url] = auth_info;
+                    LOG_INFO << "Found token for " << token_url << " at " << entry.path();
                 }
+            }
+        }
+
+        std::map<std::string, AuthenticationInfo> res;
+        fs::path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
+        if (fs::exists(auth_loc))
+        {
+            auto infile = open_ifstream(auth_loc);
+            nlohmann::json j;
+            infile >> j;
+            for (auto& [key, el] : j.items())
+            {
+                std::string host = key;
+                std::string type = el["type"];
+                AuthenticationInfo info;
+                if (type == "CondaToken")
+                {
+                    info.type = AuthenticationType::kCondaToken;
+                    info.value = el["token"].get<std::string>();
+                }
+                else if (type == "BasicHTTPAuthentication")
+                {
+                    info.type = AuthenticationType::kBasicHTTPAuthentication;
+                    info.value = concat(
+                        el["user"].get<std::string>(), ":", el["password"].get<std::string>());
+                }
+                LOG_INFO << "Found token or password for " << host
+                         << " in ~/.mamba/auth/authentication.json file";
+
+                ctx.authentication_infos[host] = info;
             }
         }
     }

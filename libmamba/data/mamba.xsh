@@ -1,4 +1,3 @@
-R"MAMBARAW(
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 # Much of this forked from https://github.com/gforsyth/xonda
@@ -111,5 +110,3 @@ def _mamba_completer(prefix, line, start, end, ctx):
 __xonsh__.completers['mamba'] = _mamba_completer
 # bump to top of list
 __xonsh__.completers.move_to_end('mamba', last=False)
-
-)MAMBARAW"

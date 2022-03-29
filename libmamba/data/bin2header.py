@@ -25,65 +25,44 @@
 
 import argparse
 import sys
-
-comment = """
-/*
-This is a conda-specific repackaged launcher.c from Python setuptools.
-The original source code for launcher.c can be found here:
-
-    https://raw.githubusercontent.com/python/cpython/3.7/PC/launcher.c
-
-The source code for the conda.exe launcher can be found here:
-
-    https://github.com/conda/conda-build/tree/master/conda_build/launcher_sources
-
-In conda-build / launcher_sources
-*/
-"""
+from pathlib import Path
 
 
-def bin2header(data, var_name="var"):
-    out = []
-    out.append(comment)
-    out.append("\n")
-    out.append("char {var_name}[] = {{".format(var_name=var_name))
-    elems = [data[i : i + 12] for i in range(0, len(data), 12)]
-    for i, x in enumerate(elems):
-        line = ", ".join(["0x{val:02x}".format(val=c) for c in x])
-        out.append(
-            "  {line}{end_comma}".format(
-                line=line, end_comma="," if i < len(elems) - 1 else ""
-            )
-        )
-    out.append("};")
-    out.append(
-        "std::size_t {var_name}_len = {data_len};".format(
-            var_name=var_name, data_len=len(data)
-        )
-    )
-    return "\n".join(out)
+def bin2header(comment, data, var_name, extern=False):
+    yield comment
+    yield "#include <cstddef>"
+    if extern:
+        yield f"extern const char {var_name}[];"
+        yield f"extern const std::size_t {var_name}_len;"
+    yield f"const char {var_name}[] = {{"
+    indent = "  "
+    for i in range(0, len(data), 12):
+        hex_chunk = ", ".join(f"0x{x:02x}" for x in data[i:][:12])
+        yield indent + hex_chunk + ","
+    yield indent + "0x00 // Terminating null byte"
+    yield "};"
+    yield f"const std::size_t {var_name}_len = {len(data)};"
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate binary header output")
-    parser.add_argument("-i", "--input", required=True, help="Input file")
-    parser.add_argument("-o", "--out", required=True, help="Output file")
+    parser.add_argument("-i", "--input", required=True, help="Input file", type=Path)
+    parser.add_argument("-o", "--out", required=True, help="Output file", type=Path)
     parser.add_argument(
         "-v", "--var", required=True, help="Variable name to use in file"
     )
-
+    parser.add_argument(
+        "-e", "--extern", action="store_true", help="Add 'extern' declaration"
+    )
     args = parser.parse_args()
-    if not args:
-        return 1
 
-    with open(args.input, "rb") as f:
-        data = f.read()
+    argv_pretty = " ".join(
+        Path(arg).name if "/" in arg or "\\" in arg else arg for arg in sys.argv
+    )
+    comment = f"/* This file was generated using {argv_pretty} */"
 
-    out = bin2header(data, args.var)
-    with open(args.out, "w") as f:
-        f.write(out)
-
-    return 0
+    out = bin2header(comment, args.input.read_bytes(), args.var, args.extern)
+    args.out.write_text("\n".join(out))
 
 
 if __name__ == "__main__":

@@ -18,11 +18,7 @@ namespace mamba
         fs::path PREFIX_STATE_FILE = fs::path("conda-meta") / "state";
         fs::path PACKAGE_ENV_VARS_DIR = fs::path("etc") / "conda" / "env_vars.d";
         std::string CONDA_ENV_VARS_UNSET_VAR = "***unset***";  // NOLINT(runtime/string)
-
-        constexpr const char mamba_posix_completion[] =
-#include "../data/mamba_completion.posix"
-            ;
-    }  // namespace
+    }                                                          // namespace
 
     /****************************
      * Activator implementation *
@@ -705,7 +701,7 @@ namespace mamba
         {
             if (shell() == "posix")
             {
-                builder << mamba_posix_completion;
+                builder << data_mamba_completion_posix;
             }
         }
         if (Context::instance().auto_activate_base)

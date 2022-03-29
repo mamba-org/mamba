@@ -11,6 +11,17 @@
 
 #include "mamba_fs.hpp"
 
+extern const char data_micromamba_sh[];
+extern const char data_micromamba_bat[];
+extern const char data_activate_bat[];
+extern const char data__mamba_activate_bat[];
+extern const char data_mamba_hook_bat[];
+extern const char data_mamba_hook_ps1[];
+extern const char data_Mamba_psm1[];
+extern const char data_mamba_xsh[];
+extern const char data_mamba_fish[];
+extern const char data_mamba_completion_posix[];
+
 namespace mamba
 {
     std::string guess_shell();

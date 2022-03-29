@@ -12,6 +12,7 @@ project(libmamba)
 
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(LIBMAMBA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(LIBMAMBA_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
 
 # Versionning
 # ===========
@@ -70,6 +71,30 @@ endif ()
 # Source files
 # ============
 
+set(SHELL_SCRIPTS
+    micromamba.sh
+    micromamba.bat
+    activate.bat
+    _mamba_activate.bat
+    mamba_hook.bat
+    mamba_hook.ps1
+    Mamba.psm1
+    mamba.xsh
+    mamba.fish
+    compile_pyc.py
+    mamba_completion.posix)
+
+foreach(script ${SHELL_SCRIPTS})
+    string(REPLACE "." "_" script_var ${script})
+    add_custom_command(OUTPUT shell_scripts/${script}.cpp
+                       DEPENDS data/${script}
+                       COMMAND python3 ${LIBMAMBA_DATA_DIR}/bin2header.py
+                        --extern
+                        -v data_${script_var}
+                        -i ${CMAKE_CURRENT_SOURCE_DIR}/data/${script}
+                        -o ${CMAKE_CURRENT_BINARY_DIR}/shell_scripts/${script}.cpp)
+endforeach()
+
 set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # Core API (low-level)
@@ -122,6 +147,9 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
+foreach(script ${SHELL_SCRIPTS})
+    list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
+endforeach()
 
 set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp

@@ -9,7 +9,6 @@
 #include "mamba/api/list.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
-#include <openssl/evp.h>
 
 std::string
 read_stdin()
@@ -29,33 +28,6 @@ read_stdin()
     return result;
 }
 
-std::string
-base64(const std::string& input)
-{
-    const auto pl = 4 * ((input.size() + 2) / 3);
-    std::vector<unsigned char> output(pl + 1);
-    const auto ol
-        = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
-    if (pl != ol)
-    {
-        std::cerr << "Whoops, encode predicted " << pl << " but we got " << ol << "\n";
-    }
-    return std::string((const char*) output.data());
-}
-
-std::string
-decode64(const std::string& input)
-{
-    const auto pl = 3 * input.size() / 4 + 1;
-    std::vector<unsigned char> output(pl);
-    const auto ol
-        = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
-    if (pl != ol)
-    {
-        std::cerr << "Whoops, decode predicted " << pl << " but we got " << ol << "\n";
-    }
-    return std::string((const char*) output.data());
-}
 
 void
 set_login_command(CLI::App* subcom)
@@ -75,7 +47,15 @@ set_login_command(CLI::App* subcom)
         {
             // remove any scheme etc.
             mamba::URLHandler url_handler(host);
-            host = url_handler.host();
+            std::string token_base
+                = mamba::concat((url_handler.scheme().empty() ? "https" : url_handler.scheme()),
+                                "://",
+                                url_handler.host());
+            if (!url_handler.port().empty())
+            {
+                token_base.append(":");
+                token_base.append(url_handler.port());
+            }
 
             if (pass_stdin)
                 pass = read_stdin();
@@ -102,9 +82,8 @@ set_login_command(CLI::App* subcom)
 
             if (!pass.empty())
             {
-                pass = mamba::strip(pass);
-                auth_object["type"] = "HTTPBaseAuth";
-                auth_object["password"] = base64(pass);
+                auth_object["type"] = "BasicHTTPAuthentication";
+                auth_object["password"] = mamba::encode_base64(mamba::strip(pass));
             }
             if (!user.empty())
             {
@@ -116,7 +95,7 @@ set_login_command(CLI::App* subcom)
                 auth_object["token"] = mamba::strip(token);
             }
 
-            auth_info[host] = auth_object;
+            auth_info[token_base] = auth_object;
 
             auto out = mamba::open_ofstream(auth_file);
             out << auth_info.dump(4);

@@ -35,6 +35,7 @@ extern "C"
 #include <iomanip>
 #include <mutex>
 #include <condition_variable>
+#include <openssl/evp.h>
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
@@ -1473,4 +1474,31 @@ namespace mamba
         }
         return std::make_tuple(command_args, std::move(script_file));
     }
+
+    std::string encode_base64(const std::string_view& input)
+    {
+        const auto pl = 4 * ((input.size() + 2) / 3);
+        std::vector<unsigned char> output(pl + 1);
+        const auto ol
+            = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
+        if (pl != ol)
+        {
+            // std::cerr << "Encode predicted " << pl << " but we got " << ol << "\n";
+        }
+        return std::string((const char*) output.data());
+    }
+
+    std::string decode_base64(const std::string_view& input)
+    {
+        const auto pl = 3 * input.size() / 4 + 1;
+        std::vector<unsigned char> output(pl);
+        const auto ol
+            = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
+        if (pl != ol)
+        {
+            // std::cerr << "Decode predicted " << pl << " but we got " << ol << "\n";
+        }
+        return std::string((const char*) output.data());
+    }
+
 }  // namespace mamba

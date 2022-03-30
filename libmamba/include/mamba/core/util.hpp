@@ -208,6 +208,9 @@ namespace mamba
     std::string to_upper(const std::string_view& input);
     std::string to_lower(const std::string_view& input);
 
+    std::string encode_base64(const std::string_view& input);
+    std::string decode_base64(const std::string_view& input);
+
     namespace concat_impl
     {
         template <class T>

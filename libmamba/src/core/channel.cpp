@@ -395,7 +395,7 @@ namespace mamba
                 else if (it != ctx.authentication_infos.end()
                          && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
                 {
-                    chan.m_token = it->second.value;
+                    chan.m_auth = it->second.value;
                 }
             }
             res = get_cache().insert(std::make_pair(value, std::move(chan))).first;
@@ -920,11 +920,12 @@ namespace mamba
                 else if (type == "BasicHTTPAuthentication")
                 {
                     info.type = AuthenticationType::kBasicHTTPAuthentication;
-                    info.value = concat(
-                        el["user"].get<std::string>(), ":", el["password"].get<std::string>());
+                    info.value = concat(el["user"].get<std::string>(),
+                                        ":",
+                                        decode_base64(el["password"].get<std::string>()));
                 }
                 LOG_INFO << "Found token or password for " << host
-                         << " in ~/.mamba/auth/authentication.json file";
+                         << " in ~/.mamba/auth/authentication.json file " << info.value;
 
                 ctx.authentication_infos[host] = info;
             }

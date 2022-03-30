@@ -92,7 +92,13 @@ namespace mamba
         // TODO load local channels even when offline
         if (!ctx.offline)
         {
-            multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
+            try
+            {
+                multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
+            } catch (const std::runtime_error& e)
+            {
+                error_list.push_back(mamba_error(e.what(), mamba_error_code::repodata_not_loaded));
+            }
         }
 
         if (ctx.offline)

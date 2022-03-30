@@ -1,4 +1,3 @@
-R"MAMBARAW(
 @REM Copyright (C) 2012 Anaconda, Inc
 @REM SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,4 +28,3 @@ __MAMBA_INSERT_ROOT_PREFIX__
 @IF [%1]==[uninstall] "%~dp0_mamba_activate" reactivate
 
 @EXIT /B %errorlevel%
-)MAMBARAW"

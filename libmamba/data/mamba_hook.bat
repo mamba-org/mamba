@@ -1,4 +1,3 @@
-R"MAMBARAW(
 @REM Copyright (C) 2021 QuantStack
 @REM SPDX-License-Identifier: BSD-3-Clause
 @REM This file is derived from conda_hook.bat
@@ -17,4 +16,3 @@ __MAMBA_INSERT_MAMBA_EXE__
 @DOSKEY micromamba="%MAMBA_BAT%" $*
 
 @SET CONDA_SHLVL=0
-)MAMBARAW"

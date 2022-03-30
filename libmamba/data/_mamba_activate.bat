@@ -1,4 +1,3 @@
-R"MAMBARAW(
 @REM Copyright (C) 2012 Anaconda, Inc
 @REM SPDX-License-Identifier: BSD-3-Clause
 @REM Helper routine for activation, deactivation, and reactivation.
@@ -51,4 +50,3 @@ R"MAMBARAW(
 @IF "%CONDA_TEST_SAVE_TEMPS%x"=="x" @DEL /F /Q "%_TEMP_SCRIPT_PATH%"
 @SET _TEMP_SCRIPT_PATH=
 @SET "PROMPT=%CONDA_PROMPT_MODIFIER%%PROMPT%"
-)MAMBARAW"

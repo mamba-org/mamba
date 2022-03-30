@@ -1,4 +1,3 @@
-R"MAMBARAW(
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -111,4 +110,3 @@ if [ -z "${CONDA_SHLVL+x}" ]; then
         PS1=
     fi
 fi
-)MAMBARAW"

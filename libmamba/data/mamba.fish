@@ -1,5 +1,3 @@
-R"MAMBARAW(
-
 if not set -q MAMBA_SHLVL
   set -gx MAMBA_SHLVL "0"
   set -gx PATH $MAMBA_ROOT_PREFIX/condabin $PATH
@@ -169,5 +167,3 @@ complete -x -c micromamba -n '__fish_mamba_using_command remove' -a '(__fish_mam
 complete -x -c micromamba -n '__fish_mamba_using_command uninstall' -a '(__fish_mamba_packages)'
 complete -x -c micromamba -n '__fish_mamba_using_command upgrade' -a '(__fish_mamba_packages)'
 complete -x -c micromamba -n '__fish_mamba_using_command update' -a '(__fish_mamba_packages)'
-
-)MAMBARAW"

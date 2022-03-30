@@ -14,14 +14,13 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 
+extern const char data_compile_pyc_py[];
+
 namespace mamba
 {
     void compile_python_sources(std::ostream& out)
     {
-        constexpr const char script[] =
-#include "../data/compile_pyc.py.hpp"
-            ;
-        out << script;
+        out << data_compile_pyc_py;
     }
 
     std::string compute_short_python_version(const std::string& long_version)

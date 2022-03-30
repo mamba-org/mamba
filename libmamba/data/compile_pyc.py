@@ -1,8 +1,8 @@
-R"MAMBARAW(
-from compileall import compile_file
-from concurrent.futures import ProcessPoolExecutor
 import os
 import sys
+from compileall import compile_file
+from concurrent.futures import ProcessPoolExecutor
+
 
 def main():
     max_workers = int(os.environ.get("MAMBA_EXTRACT_THREADS", "0"))
@@ -20,8 +20,7 @@ def main():
             success = all(r.result() for r in results)
     return success
 
+
 if __name__ == "__main__":
     success = main()
     sys.exit(int(not success))
-
-)MAMBARAW"

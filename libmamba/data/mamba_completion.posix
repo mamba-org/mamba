@@ -1,4 +1,3 @@
-R"MAMBARAW(
 if [ -n "${ZSH_VERSION:+x}" ]; then
   autoload -U +X compinit && compinit
   autoload -U +X bashcompinit && bashcompinit
@@ -17,4 +16,3 @@ if [ -n "${BASH_VERSION:+x}" ]; then
   }
   complete -o default -F _umamba_bash_completions micromamba
 fi
-)MAMBARAW"

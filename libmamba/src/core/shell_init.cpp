@@ -28,35 +28,6 @@ namespace mamba
 {
     namespace
     {
-        // Here we are embedding the shell scripts
-        constexpr const char micromamba_sh[] =
-#include "../data/micromamba.sh"
-            ;
-        constexpr const char mamba_bat[] =
-#include "../data/micromamba.bat"
-            ;
-        constexpr const char activate_bat[] =
-#include "../data/activate.bat"
-            ;
-        constexpr const char _mamba_activate_bat[] =
-#include "../data/_mamba_activate.bat"
-            ;
-        constexpr const char mamba_hook_bat[] =
-#include "../data/mamba_hook.bat"
-            ;
-        constexpr const char mamba_hook_ps1[] =
-#include "../data/mamba_hook.ps1"
-            ;
-        constexpr const char mamba_psm1[] =
-#include "../data/Mamba.psm1"
-            ;
-        constexpr const char mamba_xsh[] =
-#include "../data/mamba.xsh"
-            ;
-        constexpr const char mamba_fish[] =
-#include "../data/mamba.fish"
-            ;
-
         std::regex CONDA_INITIALIZE_RE_BLOCK("# >>> mamba initialize >>>(?:\n|\r\n)?"
                                              "([\\s\\S]*?)"
                                              "# <<< mamba initialize <<<(?:\n|\r\n)?");
@@ -376,13 +347,13 @@ namespace mamba
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
-            std::string contents = micromamba_sh;
+            std::string contents = data_micromamba_sh;
             replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
         else if (shell == "xonsh")
         {
-            std::string contents = mamba_xsh;
+            std::string contents = data_mamba_xsh;
             replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
@@ -390,7 +361,7 @@ namespace mamba
         {
             std::stringstream contents;
             contents << "$Env:MAMBA_EXE='" << exe.native() << "'\n";
-            std::string psm1 = mamba_psm1;
+            std::string psm1 = data_Mamba_psm1;
             psm1 = psm1.substr(0, psm1.find("## EXPORTS ##"));
             contents << psm1;
             return contents.str();
@@ -406,7 +377,7 @@ namespace mamba
         }
         else if (shell == "fish")
         {
-            std::string contents = mamba_fish;
+            std::string contents = data_mamba_fish;
             replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
@@ -428,7 +399,7 @@ namespace mamba
         }
 
         std::ofstream mamba_bat_f = open_ofstream(root_prefix / "condabin" / "micromamba.bat");
-        std::string mamba_bat_contents(mamba_bat);
+        std::string mamba_bat_contents(data_micromamba_bat);
         replace_all(mamba_bat_contents,
                     std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
                     std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
@@ -439,10 +410,10 @@ namespace mamba
         mamba_bat_f << mamba_bat_contents;
         std::ofstream _mamba_activate_bat_f
             = open_ofstream(root_prefix / "condabin" / "_mamba_activate.bat");
-        _mamba_activate_bat_f << _mamba_activate_bat;
+        _mamba_activate_bat_f << data__mamba_activate_bat;
 
 
-        std::string activate_bat_contents(activate_bat);
+        std::string activate_bat_contents(data_activate_bat);
         replace_all(activate_bat_contents,
                     std::string("__MAMBA_INSERT_ROOT_PREFIX__"),
                     std::string("@SET \"MAMBA_ROOT_PREFIX=" + root_prefix.string() + "\""));
@@ -459,7 +430,7 @@ namespace mamba
             = open_ofstream(root_prefix / "Scripts" / "activate.bat");
         scripts_activate_bat_f << activate_bat_contents;
 
-        std::string hook_content = mamba_hook_bat;
+        std::string hook_content = data_mamba_hook_bat;
         replace_all(hook_content,
                     std::string("__MAMBA_INSERT_MAMBA_EXE__"),
                     std::string("@SET \"MAMBA_EXE=" + exe.string() + "\""));
@@ -485,7 +456,7 @@ namespace mamba
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
             std::ofstream sh_file = open_ofstream(sh_source_path);
-            sh_file << micromamba_sh;
+            sh_file << data_micromamba_sh;
         }
         if (shell == "xonsh")
         {
@@ -500,7 +471,7 @@ namespace mamba
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
             std::ofstream sh_file = open_ofstream(sh_source_path);
-            sh_file << mamba_xsh;
+            sh_file << data_mamba_xsh;
         }
         else if (shell == "cmd.exe")
         {
@@ -517,9 +488,9 @@ namespace mamba
                 // Maybe the prefix isn't writable. No big deal, just keep going.
             }
             std::ofstream mamba_hook_f = open_ofstream(root_prefix / "condabin" / "mamba_hook.ps1");
-            mamba_hook_f << mamba_hook_ps1;
+            mamba_hook_f << data_mamba_hook_ps1;
             std::ofstream mamba_psm1_f = open_ofstream(root_prefix / "condabin" / "Mamba.psm1");
-            mamba_psm1_f << mamba_psm1;
+            mamba_psm1_f << data_Mamba_psm1;
         }
     }
 

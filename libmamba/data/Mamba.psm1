@@ -1,4 +1,3 @@
-R"MAMBARAW(
 ## ENVIRONMENT MANAGEMENT ######################################################
 
 <#
@@ -287,4 +286,3 @@ Export-ModuleMember `
 
 # We don't export TabExpansion as it's currently not implemented for Micromamba
 # TabExpansion
-)MAMBARAW"

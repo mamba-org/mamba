@@ -36,6 +36,7 @@ jobs:
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
+
       - name: build libmamba-static
         shell: bash -l {0}
         run: |
@@ -55,55 +56,19 @@ jobs:
           ninja
           ccache --show-stats
 
-  libmamba_cpp_tests:
-    needs: [libmamba_static]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: run docs linter
+        uses: ammaraskar/sphinx-action@master
+        with:
+          build-command: "python docs/API-gen.py"
+          docs-folder: "docs/"
+
         shell: bash -l {0}
         run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: ./libmamba/environment-dev.yml
-          environment-name: build_env
-      - name: build and run libmamba C++ tests
-        shell: bash -l {0}
-        run: |
-          micromamba activate build_env
-          mkdir build
-          cd build
-          ccache --show-stats
-          ccache -z
-          export CCACHE_DIR=$HOME/ccache
-          cmake \
-              -GNinja \
-              -DBUILD_LIBMAMBA=ON \
-              -DBUILD_SHARED=ON \
-              -DBUILD_LIBMAMBA_TESTS=ON \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              ..
-          ninja testing_libmamba_lock
-          ninja test
-          ccache --show-stats
+            git add docs/source/user_guide/commands_micromamba
+            git diff --name-status master > diff
+            python doc_linter.py
 
   umamba_tests:
     needs: [libmamba_static]
@@ -480,21 +445,21 @@ jobs:
 
           pytest micromamba/tests/ -v -s
 
-      # - name: micromamba python based tests
-      #   shell: cmd /C call {0}
-      #   run: |
-      #     set PYTHONIOENCODING=UTF-8
-      #     set MAMBA_ROOT_PREFIX=%cd%\mambaroot
-      #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
-      #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
-      #
-      #     pytest micromamba/tests/test_shell.py -v -s
+      - name: micromamba python based tests
+        shell: cmd /C call {0}
+        run: |
+          set PYTHONIOENCODING=UTF-8
+          set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+          set MAMBA_TEST_SHELL_TYPE=cmd.exe
+          reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
 
-      # - name: micromamba python based tests
-      #   shell: bash -l -eo pipefail {0}
-      #   run: |
-      #     export PYTHONIOENCODING=UTF-8
-      #     export MAMBA_ROOT_PREFIX=~/mambaroot
-      #     export MAMBA_TEST_SHELL_TYPE=bash
-      #
-      #     pytest micromamba/tests/test_shell.py -v -s
+          pytest micromamba/tests/test_shell.py -v -s
+
+      - name: micromamba python based tests
+        shell: bash -l -eo pipefail {0}
+        run: |
+          export PYTHONIOENCODING=UTF-8
+          export MAMBA_ROOT_PREFIX=~/mambaroot
+          export MAMBA_TEST_SHELL_TYPE=bash
+
+          pytest micromamba/tests/test_shell.py -v -s

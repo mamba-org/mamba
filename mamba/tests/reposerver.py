@@ -16,6 +16,7 @@ import rich.console
 
 console = rich.console.Console()
 
+default_user, default_password = os.environ.get("TESTPWD", "user:pass").split(":")
 
 parser = argparse.ArgumentParser(description="Start a simple conda package server.")
 parser.add_argument("-p", "--port", type=int, default=8000, help="Port to use.")
@@ -38,9 +39,25 @@ parser.add_argument(
     action="store_true",
     help="Sign repodata (note: run generate_gpg_keys.sh before)",
 )
+parser.add_argument(
+    "--token",
+    type=str,
+    default="xy-12345678-1234-1234-1234-123456789012",
+    help="Use token as API Key",
+)
+parser.add_argument(
+    "--user",
+    type=str,
+    default=default_user,
+    help="Use token as API Key",
+)
+parser.add_argument(
+    "--password",
+    type=str,
+    default=default_password,
+    help="Use token as API Key",
+)
 args = parser.parse_args()
-
-api_key = "xy-12345678-1234-1234-1234-123456789012"
 
 
 def get_fingerprint(gpg_output):
@@ -217,6 +234,12 @@ class RepoSigner:
 class BasicAuthHandler(SimpleHTTPRequestHandler):
     """Main class to present webpages and authentication."""
 
+    user = args.user
+    password = args.password
+    key = base64.b64encode(bytes(f"{args.user}:{args.password}", "utf-8")).decode(
+        "ascii"
+    )
+
     def do_HEAD(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -229,15 +252,13 @@ class BasicAuthHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        key = os.environ["TESTPWD"]
-        key = base64.b64encode(bytes(key, "utf-8")).decode("ascii")
-        """ Present frontpage with user authentication. """
+        """Present frontpage with user authentication."""
         auth_header = self.headers.get("Authorization", "")
         if not auth_header:
             self.do_AUTHHEAD()
             self.wfile.write(b"no auth header received")
             pass
-        elif auth_header == "Basic " + key:
+        elif auth_header == "Basic " + self.key:
             SimpleHTTPRequestHandler.do_GET(self)
             pass
         else:
@@ -250,17 +271,17 @@ class BasicAuthHandler(SimpleHTTPRequestHandler):
 class CondaTokenHandler(SimpleHTTPRequestHandler):
     """Main class to present webpages and authentication."""
 
+    api_key = args.token
     token_pattern = re.compile("^/t/([^/]+?)/")
 
     def do_GET(self):
         """Present frontpage with user authentication."""
-        global api_key
         match = self.token_pattern.search(self.path)
         if match:
             prefix_length = len(match.group(0)) - 1
             new_path = self.path[prefix_length:]
             found_api_key = match.group(1)
-            if found_api_key == api_key:
+            if found_api_key == self.api_key:
                 self.path = new_path
                 return SimpleHTTPRequestHandler.do_GET(self)
 

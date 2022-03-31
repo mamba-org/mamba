@@ -194,7 +194,7 @@ namespace mamba
         , m_loaded(false)
         , m_download_complete(false)
         , m_repodata_url(concat(url, "/", repodata_fn))
-        , m_name(concat(channel.canonical_name(), "/", platform))
+        , m_name(join_url(channel.canonical_name(), platform))
         , m_is_noarch(platform == "noarch")
         , p_channel(&channel)
     {

@@ -16,44 +16,32 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
       - name: build libmamba-static
         shell: bash -l {0}
         run: |
           micromamba activate build_env
           mkdir build
           cd build
-          ccache --show-stats
-          ccache -z
-          export CCACHE_DIR=$HOME/ccache
-          cmake \
-              -GNinja \
-              -DBUILD_LIBMAMBA=ON \
-              -DBUILD_STATIC=ON \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              ..
+          cmake .. -DBUILD_LIBMAMBA=ON \
+                   -DBUILD_STATIC=ON \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -GNinja
           ninja
-          ccache --show-stats
+          sccache --show-stats
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -63,47 +51,39 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static-${{ matrix.os }}
       - name: build and run libmamba C++ tests
         shell: bash -l {0}
         run: |
           micromamba activate build_env
           mkdir build
           cd build
-          ccache --show-stats
-          ccache -z
-          export CCACHE_DIR=$HOME/ccache
-          cmake \
-              -GNinja \
-              -DBUILD_LIBMAMBA=ON \
-              -DBUILD_SHARED=ON \
-              -DBUILD_LIBMAMBA_TESTS=ON \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              ..
+          cmake .. -DBUILD_LIBMAMBA=ON \
+                   -DBUILD_SHARED=ON \
+                   -DBUILD_LIBMAMBA_TESTS=ON \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -GNinja
           ninja testing_libmamba_lock
           ninja test
-          ccache --show-stats
+          sccache --show-stats
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   umamba_tests:
     needs: [libmamba_static]
@@ -113,45 +93,33 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static-${{ matrix.os }}
       - name: build micromamba
         shell: bash -l {0}
         run: |
           micromamba activate build_env
-          ccache --show-stats
-          ccache -z
-          export CCACHE_DIR=$HOME/ccache
           mkdir build
           cd build
-          cmake .. \
-              -GNinja \
-              -DBUILD_MICROMAMBA=ON \
-              -DBUILD_LIBMAMBA=ON \
-              -DBUILD_SHARED=ON \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          cmake .. -DBUILD_MICROMAMBA=ON \
+                   -DBUILD_LIBMAMBA=ON \
+                   -DBUILD_SHARED=ON \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -GNinja
           ninja
-          ccache --show-stats
+          sccache --show-stats
       - name: install zsh, xonsh and fish in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
@@ -168,6 +136,11 @@ jobs:
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           micromamba activate build_env
           pytest micromamba/tests/ -v -s
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -179,28 +152,20 @@ jobs:
         python-version: ["3.8"]
 
     steps:
-      - uses: actions/checkout@v2
-      - name: generate ccache key
-        id: ccache_key
-        shell: bash -l {0}
-        run: |
-          key_prefix="ccache-${{ runner.os }}-$(TZ=UTC date +%F)"
-          echo ::set-output name=key_prefix::"$key_prefix"
-          echo ::set-output name=key::"$key_prefix-${{ github.job }}-$(TZ=UTC date '+%H:%M:%S')"
-      - name: cache CCACHE paths
-        uses: actions/cache@v2
-        with:
-          path: ~/ccache
-          key: ${{ steps.ccache_key.outputs.key }}
-          restore-keys: |
-            ${{ steps.ccache_key.outputs.key_prefix }}-${{ github.job }}
-            ${{ steps.ccache_key.outputs.key_prefix }}-libmamba_static
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
           extra-specs: conda-build
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static-${{ matrix.os }}
       - name: run conda init
         shell: bash -l {0}
         run: conda init
@@ -210,23 +175,18 @@ jobs:
           micromamba activate build_env
           mkdir build
           cd build
-          ccache --show-stats
-          ccache -z
-          export CCACHE_DIR=$HOME/ccache
-          cmake \
-              -GNinja \
-              -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-              -DBUILD_LIBMAMBAPY=ON \
-              -DBUILD_LIBMAMBA=ON \
-              -DBUILD_SHARED=ON \
-              -DBUILD_MAMBA_PACKAGE=ON \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              ..
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+                   -DBUILD_LIBMAMBAPY=ON \
+                   -DBUILD_LIBMAMBA=ON \
+                   -DBUILD_SHARED=ON \
+                   -DBUILD_MAMBA_PACKAGE=ON \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -GNinja
           ninja
           ninja install
           pip install -e ../libmambapy/ --no-deps
-          ccache --show-stats
+          sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -279,6 +239,11 @@ jobs:
           pip install git+https://github.com/conda/conda-content-trust.git@master
 
           ./testserver.sh
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
@@ -288,12 +253,17 @@ jobs:
         os: [windows-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
       - name: build libmamba-static
         shell: cmd /C call {0}
         run: |
@@ -303,10 +273,19 @@ jobs:
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja
           ninja
+          sccache --show-stats
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   mamba_python_tests_win:
+    needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -315,15 +294,22 @@ jobs:
         python-version: ["3.7"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
           extra-specs: |
             conda-build
             curl
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static_win-${{ matrix.os }}
       - name: run conda init
         shell: bash -l {0}
         run: conda init
@@ -338,10 +324,13 @@ jobs:
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_SHARED=ON ^
                    -DBUILD_MAMBA_PACKAGE=ON ^
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja
           ninja install
           pip install -e ..\libmambapy\ --no-deps
+          sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -378,8 +367,14 @@ jobs:
           if [ "$(grep -c "local" list.txt)" -ne 2 ]; then
             exit 1
           fi
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   libmamba_cpp_tests_win:
+    needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -388,12 +383,19 @@ jobs:
         python-version: ["3.7"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static_win-${{ matrix.os }}
       - name: build and run libmamba C++ tests
         shell: cmd /C call {0}
         run: |
@@ -404,11 +406,20 @@ jobs:
                    -DBUILD_LIBMAMBA_TESTS=ON ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_SHARED=ON ^
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja install
           ninja test
+          sccache --show-stats
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   umamba_tests_win:
+    needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -417,12 +428,19 @@ jobs:
         python-version: ["3.7"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
+          cache-env: true
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static_win-${{ matrix.os }}
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
@@ -434,8 +452,11 @@ jobs:
                    -DMICROMAMBA_LINKAGE=STATIC ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja install
+          sccache --show-stats
           .\micromamba\micromamba.exe --help
       - name: tar micromamba artifact
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe
@@ -443,6 +464,11 @@ jobs:
         with:
           name: micromamba_binary
           path: umamba.tar
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
   umamba_tests_win_cmd:
     needs: [umamba_tests_win]
@@ -454,7 +480,7 @@ jobs:
         python-version: ["3.7"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v2
         with:
           name: micromamba_binary
@@ -498,3 +524,9 @@ jobs:
       #     export MAMBA_TEST_SHELL_TYPE=bash
       #
       #     pytest micromamba/tests/test_shell.py -v -s
+
+      - name: Cleanup
+        shell: bash -l {0}
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs

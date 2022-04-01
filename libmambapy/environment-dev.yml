@@ -5,7 +5,6 @@ dependencies:
   - cxx-compiler
   - cmake
   - ninja
-  - ccache
   - nlohmann_json
   - libsolv >=0.7.18
   - libarchive

@@ -292,10 +292,16 @@ namespace mamba
                                 << "' has invalid 'repodata_record.json' file: " << e.what();
                     valid = false;
                 }
-                catch (...)
+                catch (const std::runtime_error& re)
                 {
                     LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                << "' is invalid'";
+                                << " couldn't be validated due to runtime error: " << re.what();
+                    valid = false;
+                }
+                catch (const std::exception& ex)
+                {
+                    LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                << " couldn't be validated due to error: " << ex.what();
                     valid = false;
                 }
 

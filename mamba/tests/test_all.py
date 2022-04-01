@@ -234,7 +234,7 @@ def test_unicode(tmpdir):
         ["mamba", "create", "-p", str(tmpdir / uc), "--json", "xtensor"]
     )
     output = json.loads(output)
-    assert output["prefix"] == str(tmpdir / uc)
+    assert output["actions"]["PREFIX"] == str(tmpdir / uc)
 
     import libmambapy
 

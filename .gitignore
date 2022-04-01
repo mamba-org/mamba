@@ -14,6 +14,7 @@ __pycache__
 .idea
 .ipynb_checkpoints
 build/
+/build-*/
 tmp/
 mamba.egg-info/
 *.orig

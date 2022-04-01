@@ -7,8 +7,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from xprocess import ProcessStarter
+
+import pytest
 
 from .helpers import create as umamba_create
 from .helpers import get_env, get_umamba, login, random_string

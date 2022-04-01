@@ -10,8 +10,9 @@ import sys
 from enum import Enum
 from pathlib import Path
 
-import pytest
 import yaml
+
+import pytest
 
 
 class DryRun(Enum):

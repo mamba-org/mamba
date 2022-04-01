@@ -13,12 +13,10 @@ try:
     import conda_content_trust.metadata_construction as cct_metadata_construction
     import conda_content_trust.root_signing as cct_root_signing
     import conda_content_trust.signing as cct_signing
+
     conda_content_trust_available = True
 except ImportError:
     conda_content_trust_available = False
-
-import rich.console
-console = rich.console.Console()
 
 default_user, default_password = os.environ.get("TESTPWD", "user:pass").split(":")
 
@@ -145,7 +143,7 @@ class RepoSigner:
 
         cct_authentication.verify_signable(signed_root_md, root_pubkeys, 1, gpg=True)
 
-        console.print("[green]Root metadata signed & verified!")
+        print("[reposigner] Root metadata signed & verified!")
 
     def create_key_mgr(self, keys):
 
@@ -192,9 +190,7 @@ class RepoSigner:
         # Doing delegation processing.
         cct_authentication.verify_delegation("key_mgr", key_mgr_metadata, root_metadata)
 
-        console.print(
-            "[green]Success: key mgr metadata verified based on root metadata."
-        )
+        print("[reposigner] success: key mgr metadata verified based on root metadata.")
 
         return key_mgr
 
@@ -209,7 +205,7 @@ class RepoSigner:
 
         pkg_mgr_key = keys["pkg_mgr"][0]["private"]
         cct_signing.sign_all_in_repodata(str(final_fn), pkg_mgr_key)
-        console.print(f"[green]Signed [bold]{final_fn}[/bold]")
+        print(f"[reposigner] Signed {final_fn}")
 
     def __init__(self, in_folder=args.directory):
 
@@ -225,9 +221,9 @@ class RepoSigner:
             os.mkdir(self.folder)
 
         self.keys = self.normalize_keys(self.keys)
-        console.print("Using keys:", self.keys)
+        print("[reposigner] Using keys:", self.keys)
 
-        console.print("Using folder:", self.folder)
+        print("[reposigner] Using folder:", self.folder)
 
         self.create_root(self.keys)
         self.create_key_mgr(self.keys)

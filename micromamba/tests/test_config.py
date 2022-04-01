@@ -5,8 +5,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import pytest
 import yaml
+
+import pytest
 
 from .helpers import create, get_umamba, random_string, remove
 

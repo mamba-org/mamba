@@ -84,6 +84,7 @@ set(SHELL_SCRIPTS
     compile_pyc.py
     mamba_completion.posix)
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/shell_scripts)
 foreach(script ${SHELL_SCRIPTS})
     string(REPLACE "." "_" script_var ${script})
     add_custom_command(OUTPUT shell_scripts/${script}.cpp
@@ -147,6 +148,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
+
 foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
 endforeach()

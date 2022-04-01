@@ -20,6 +20,7 @@ dependencies:
   - cli11 >=2.2
   - pytest
   - pytest-lazy-fixture
+  - pytest-xprocess
   - pyyaml
   - spdlog
   - sel(win): winreg

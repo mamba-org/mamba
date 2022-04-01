@@ -41,7 +41,7 @@ def reposerver(
 
     class Starter(ProcessStarter):
         # startup pattern
-        pattern = "Server started at localhost"
+        pattern = "Server started at localhost:"
 
         # command to start process
         args = computed_args

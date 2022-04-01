@@ -7,13 +7,17 @@ import shutil
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
-import conda_content_trust.authentication as cct_authentication
-import conda_content_trust.common as cct_common
-import conda_content_trust.metadata_construction as cct_metadata_construction
-import conda_content_trust.root_signing as cct_root_signing
-import conda_content_trust.signing as cct_signing
-import rich.console
+try:
+    import conda_content_trust.authentication as cct_authentication
+    import conda_content_trust.common as cct_common
+    import conda_content_trust.metadata_construction as cct_metadata_construction
+    import conda_content_trust.root_signing as cct_root_signing
+    import conda_content_trust.signing as cct_signing
+    conda_content_trust_available = True
+except ImportError:
+    conda_content_trust_available = False
 
+import rich.console
 console = rich.console.Console()
 
 default_user, default_password = os.environ.get("TESTPWD", "user:pass").split(":")
@@ -292,6 +296,9 @@ class CondaTokenHandler(SimpleHTTPRequestHandler):
 
 
 if args.sign:
+    if not conda_content_trust_available:
+        print("Conda content trust not installed!")
+        exit(1)
     signer = RepoSigner()
     os.chdir(signer.folder)
 else:

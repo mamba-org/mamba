@@ -4,10 +4,11 @@ import shutil
 import subprocess
 import time
 import uuid
-import yaml
 from pathlib import Path
 
 import pytest
+import yaml
+
 
 def get_lines(std_pipe):
     """Generator that yields lines from a standard pipe as they are printed."""
@@ -143,12 +144,13 @@ def config_file(request):
     if file_loc.exists():
         old_config_file = file_loc.rename(Path.home() / ".condarc.bkup")
 
-    with open(file_loc, 'w') as fo:
+    with open(file_loc, "w") as fo:
         yaml.dump(request.param, fo)
 
     yield file_loc
 
     if old_config_file:
+        file_loc.unlink()
         old_config_file.rename(file_loc)
 
 

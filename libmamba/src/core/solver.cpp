@@ -63,11 +63,30 @@ namespace mamba
         }
     }
 
-    inline bool channel_match(Solvable* s, const std::string& channel)
+    inline bool channel_match(Solvable* s, const Channel& needle)
     {
         MRepo* mrepo = reinterpret_cast<MRepo*>(s->repo->appdata);
         const Channel* chan = mrepo->channel();
-        return chan && chan->name() == channel;
+
+        if (!chan)
+            return false;
+
+        if ((*chan) == needle)
+            return true;
+
+        auto& custom_multichannels = Context::instance().custom_multichannels;
+        auto x = custom_multichannels.find(needle.name());
+        if (x != custom_multichannels.end())
+        {
+            for (auto el : (x->second))
+            {
+                const Channel& inner = make_channel(el);
+                if ((*chan) == inner)
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     void MSolver::add_global_job(int job_flag)
@@ -84,9 +103,10 @@ namespace mamba
         // conda_build_form does **NOT** contain the channel info
         Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
 
+        const Channel& c = make_channel(ms.channel);
         for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
         {
-            if (channel_match(pool_id2solvable(pool, *wp), ms.channel))
+            if (channel_match(pool_id2solvable(pool, *wp), c))
             {
                 queue_push(&selected_pkgs, *wp);
             }
@@ -264,11 +284,13 @@ namespace mamba
         Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
 
         std::set<Id> matching_solvables;
+        const Channel& c = make_channel(ms.channel);
+
         for (Id* wp = pool_whatprovides_ptr(pool, match); *wp; wp++)
         {
             if (!ms.channel.empty())
             {
-                if (!channel_match(pool_id2solvable(pool, *wp), ms.channel))
+                if (!channel_match(pool_id2solvable(pool, *wp), c))
                 {
                     continue;
                 }

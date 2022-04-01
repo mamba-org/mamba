@@ -4,6 +4,10 @@ import shutil
 import subprocess
 import time
 import uuid
+from pathlib import Path
+
+import pytest
+import yaml
 
 
 def get_lines(std_pipe):
@@ -131,6 +135,23 @@ def run(exe, channels, package):
 def run_mamba_conda(channels, package):
     run("conda", channels, package)
     run("mamba", channels, package)
+
+
+@pytest.fixture
+def config_file(request):
+    file_loc = Path.home() / ".condarc"
+    old_config_file = None
+    if file_loc.exists():
+        old_config_file = file_loc.rename(Path.home() / ".condarc.bkup")
+
+    with open(file_loc, "w") as fo:
+        yaml.dump(request.param, fo)
+
+    yield file_loc
+
+    if old_config_file:
+        file_loc.unlink()
+        old_config_file.rename(file_loc)
 
 
 def add_glibc_virtual_package():

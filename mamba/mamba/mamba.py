@@ -43,6 +43,7 @@ from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import delete_trash, path_is_clean, rm_rf
 from conda.gateways.disk.test import is_conda_environment
 from conda.misc import explicit, touch_nonadmin
+from conda.models.channel import MultiChannel
 from conda.models.match_spec import MatchSpec
 
 import libmambapy as api
@@ -377,8 +378,11 @@ def install(args, parser, command="install"):
     for spec in specs:
         # CONDA TODO: correct handling for subdir isn't yet done
         spec_channel = spec.get_exact_value("channel")
-        if spec_channel and spec_channel.base_url not in channels:
-            channels.append(spec_channel.base_url)
+        if spec_channel:
+            if isinstance(spec_channel, MultiChannel):
+                channels.append(spec_channel.name)
+            elif spec_channel.base_url not in channels:
+                channels.append(spec_channel.base_url)
 
     index_args["channel_urls"] = channels
 

@@ -9,6 +9,7 @@ import pytest
 from utils import (
     Environment,
     add_glibc_virtual_package,
+    config_file,
     copy_channels_osx,
     platform_shells,
     run_mamba_conda,
@@ -176,6 +177,33 @@ def test_empty_create():
     output2 = subprocess.check_output(
         ["mamba", "create", "-n", "test_env_xyz_ii", "--dry-run"]
     )
+
+
+multichannel_config = {
+    "channels": ["conda-forge"],
+    "custom_multichannels": {"conda-forge2": ["conda-forge"]},
+}
+
+
+@pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])
+def test_multi_channels(config_file):
+    # we need to create a config file first
+    output = subprocess.check_output(
+        [
+            "mamba",
+            "create",
+            "-n",
+            "multichannels",
+            "conda-forge2::xtensor",
+            "--dry-run",
+            "--json",
+        ]
+    )
+    res = json.loads(output.decode())
+    for pkg in res["actions"]["FETCH"]:
+        assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
+    for pkg in res["actions"]["LINK"]:
+        assert pkg["base_url"] == "https://conda.anaconda.org/conda-forge"
 
 
 def test_update_py():

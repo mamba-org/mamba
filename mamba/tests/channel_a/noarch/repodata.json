@@ -16,6 +16,23 @@
       "subdir": "noarch",
       "timestamp": 1578950023135,
       "version": "0.1.0"
+    },
+    "_r-mutex-1.0.1-anacondar_1.tar.bz2": {
+      "build": "anacondar_1",
+      "build_number": 1,
+      "constrains": [],
+      "depends": [],
+      "license": "BSD",
+      "md5": "19f9db5f4f1b7f5ef5f6d67207f25f38",
+      "name": "_r-mutex",
+      "noarch": "generic",
+      "platform": null,
+      "sha256": "e58f9eeb416b92b550e824bcb1b9fb1958dee69abfe3089dfd1a9173e3a0528a",
+      "size": 3566,
+      "subdir": "noarch",
+      "timestamp": 1562343890778,
+      "track_features": "",
+      "version": "1.0.1"
     }
   },
   "removed": [],

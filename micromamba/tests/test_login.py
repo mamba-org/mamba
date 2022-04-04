@@ -70,13 +70,20 @@ def basic_auth_server(user, password, xprocess):
     yield from reposerver(xprocess, "basic", user=user, password=password)
 
 
-def create(*args):
+def create(*in_args, folder=None, root=None):
+    args = [arg for arg in in_args]
+
+    if folder:
+        args += ["-p", str(folder)]
+    else:
+        args += ["--dry-run", "-n", random_string()]
+
+    if root:
+        args += ["--root-prefix", str(root)]
+
     return umamba_create(
-        "-n",
-        random_string(),
         "--override-channels",
-        "--dry-run",
-        "--json",
+        # "--json",
         *args,
         default_channel=False,
     )
@@ -95,9 +102,6 @@ def test_token(token, token_server):
     pkg = res["actions"]["FETCH"][0]
     assert pkg["name"] == "testpkg"
 
-    print(pkg)
-
-    print(pkg["channel"])
     login(token_server, "--token", token)
 
 
@@ -113,3 +117,25 @@ def test_basic_auth(user, password, basic_auth_server):
 
     res = create("-c", basic_auth_server, "testpkg")
     print(res)
+
+env_file_content = """
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+# env_hash: 8ef82ce4a41fff8289b0b0fbc60703426eb2144d9bcd6fcf481c3e67d4da070f
+@EXPLICIT
+{server}/noarch/_r-mutex-1.0.1-anacondar_1.tar.bz2#19f9db5f4f1b7f5ef5f6d67207f25f38
+"""
+
+@pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
+def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
+    login(basic_auth_server, "--username", user, "--password", password)
+
+    env_file = tmp_path / "environment.txt"
+    env_file.write_text(env_file_content.format(server=basic_auth_server))
+    env_folder = tmp_path / "env"
+    root_folder = tmp_path / "root"
+    res = create("-f", str(env_file), folder=env_folder, root=root_folder)
+    print(res)
+
+    assert ((env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists())

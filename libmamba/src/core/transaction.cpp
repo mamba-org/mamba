@@ -69,7 +69,8 @@ namespace mamba
     {
         m_filename = pkg_info.fn;
         m_channel = pkg_info.channel;
-        m_url = pkg_info.url;
+        std::cout << pkg_info.url << std::endl;
+        m_url = make_channel(pkg_info.url).urls(true)[0];
         m_name = pkg_info.name;
 
         m_expected_size = pkg_info.size;
@@ -385,6 +386,7 @@ namespace mamba
                 caches.clear_query_cache(m_package_info);
                 // need to download this file
                 LOG_DEBUG << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
+                LOG_WARNING << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
 
                 m_tarball_path = m_cache_path / m_filename;
                 m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path);
@@ -1109,15 +1111,23 @@ namespace mamba
         {
             MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
 
-            std::string url;
-            if (mamba_repo == nullptr || mamba_repo->url() == "")
-            {
-                // use fallback mediadir / mediafile
-                // this happens with explicit transactions
-                url = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
-                if (url.empty())
-                    throw std::runtime_error("Repo not associated.");
-            }
+            // std::string url;
+            // if (mamba_repo == nullptr || mamba_repo->url() == "")
+            // {
+            //     // use fallback mediadir / mediafile
+            //     // this happens with explicit transactions
+            //     url = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
+            //     if (url.empty())
+            //         throw std::runtime_error("Repo not associated.");
+
+            //     load_tokens();
+            //     auto channels = make_channel(url).urls(true);
+            //     for (auto& el:  channels)
+            //     {
+            //         std::cout << "Channel URL: " << el << std::endl;
+            //     }
+            //     url = make_channel(url).urls(true)[0];
+            // }
 
             if (ctx.experimental && ctx.verify_artifacts)
             {

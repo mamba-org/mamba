@@ -254,6 +254,8 @@ class BasicAuthHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         """Present frontpage with user authentication."""
         auth_header = self.headers.get("Authorization", "")
+        print(auth_header)
+
         if not auth_header:
             self.do_AUTHHEAD()
             self.wfile.write(b"no auth header received")

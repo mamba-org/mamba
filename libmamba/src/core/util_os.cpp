@@ -12,7 +12,7 @@
 #include <sys/ioctl.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
-#include <libProc.h>
+#include <libproc.h>
 #endif
 #include <inttypes.h>
 #include <limits.h>

@@ -139,7 +139,7 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
 def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes=True):
     umamba = get_umamba()
     cmd = [umamba, "create"] + [arg for arg in args if arg]
-    print(" ".join(cmd))
+
     if "--print-config-only" in args:
         cmd += ["--debug"]
     if always_yes:

@@ -18,7 +18,10 @@ try:
 except ImportError:
     conda_content_trust_available = False
 
-default_user, default_password = os.environ.get("TESTPWD", "user:pass").split(":")
+if os.environ.get("TESTPWD"):
+    default_user, default_password = os.environ.get("TESTPWD").split(":")
+else:
+    default_user, default_password = None, None
 
 parser = argparse.ArgumentParser(description="Start a simple conda package server.")
 parser.add_argument("-p", "--port", type=int, default=8000, help="Port to use.")
@@ -32,7 +35,7 @@ parser.add_argument(
 parser.add_argument(
     "-a",
     "--auth",
-    default="none",
+    default=None,
     type=str,
     help="auth method (none, basic, or token)",
 )
@@ -44,7 +47,7 @@ parser.add_argument(
 parser.add_argument(
     "--token",
     type=str,
-    default="xy-12345678-1234-1234-1234-123456789012",
+    default=None,
     help="Use token as API Key",
 )
 parser.add_argument(
@@ -302,11 +305,11 @@ if args.sign:
 else:
     os.chdir(args.directory)
 
-if not args.auth or args.auth == "none":
+if args.auth == "none":
     handler = SimpleHTTPRequestHandler
-elif not args.auth or args.auth == "basic":
+elif args.auth == "basic" or (args.user and args.password):
     handler = BasicAuthHandler
-elif not args.auth or args.auth == "token":
+elif args.auth == "token" or args.token:
     handler = CondaTokenHandler
 
 PORT = args.port

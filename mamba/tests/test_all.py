@@ -8,6 +8,7 @@ import subprocess
 import uuid
 from distutils.version import StrictVersion
 
+import pytest
 from utils import (
     Environment,
     add_glibc_virtual_package,
@@ -16,8 +17,6 @@ from utils import (
     platform_shells,
     run_mamba_conda,
 )
-
-import pytest
 
 
 def random_string(N=10):

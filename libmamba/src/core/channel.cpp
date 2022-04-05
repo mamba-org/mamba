@@ -203,8 +203,9 @@ namespace mamba
                 base = join_url(base, "t", *token());
             }
 
+            std::string platform = m_platforms[0];
             return { { build_url(
-                *this, join_url(base, name(), *package_filename()), with_credential) } };
+                *this, join_url(base, name(), platform, *package_filename()), with_credential) } };
         }
         else
         {

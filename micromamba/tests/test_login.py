@@ -7,9 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from xprocess import ProcessStarter
-
 import pytest
+from xprocess import ProcessStarter
 
 from .helpers import create as umamba_create
 from .helpers import get_env, get_umamba, login, random_string
@@ -70,7 +69,7 @@ def basic_auth_server(user, password, xprocess):
     yield from reposerver(xprocess, "basic", user=user, password=password)
 
 
-def create(*in_args, folder=None, root=None):
+def create(*in_args, folder=None, root=None, override_channels=True):
     args = [arg for arg in in_args]
 
     if folder:
@@ -81,8 +80,10 @@ def create(*in_args, folder=None, root=None):
     if root:
         args += ["--root-prefix", str(root)]
 
+    if override_channels:
+        args += ["--override-channels"]
+
     return umamba_create(
-        "--override-channels",
         # "--json",
         *args,
         default_channel=False,
@@ -97,12 +98,9 @@ def test_token(token, token_server):
     assert token_server in data
     assert data[token_server]["token"] == token
 
-    res = create("-c", token_server, "testpkg")
-
+    res = create("-c", token_server, "testpkg", "--json")
     pkg = res["actions"]["FETCH"][0]
     assert pkg["name"] == "testpkg"
-
-    login(token_server, "--token", token)
 
 
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
@@ -115,8 +113,18 @@ def test_basic_auth(user, password, basic_auth_server):
         password.encode("utf-8")
     ).decode("utf-8")
 
-    res = create("-c", basic_auth_server, "testpkg")
-    print(res)
+    res = create("-c", basic_auth_server, "testpkg", "--json")
+    pkg = res["actions"]["FETCH"][0]
+    assert pkg["name"] == "testpkg"
+
+
+env_yaml_content = """
+name: example_env
+channels:
+- {server}
+dependencies:
+- _r-mutex
+"""
 
 env_file_content = """
 # This file may be used to create an environment using:
@@ -127,6 +135,7 @@ env_file_content = """
 {server}/noarch/_r-mutex-1.0.1-anacondar_1.tar.bz2#19f9db5f4f1b7f5ef5f6d67207f25f38
 """
 
+
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
 def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
     login(basic_auth_server, "--username", user, "--password", password)
@@ -136,6 +145,37 @@ def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
     env_folder = tmp_path / "env"
     root_folder = tmp_path / "root"
     res = create("-f", str(env_file), folder=env_folder, root=root_folder)
-    print(res)
 
-    assert ((env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists())
+    assert (env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists()
+
+
+@pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
+def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
+    login(basic_auth_server, "--username", user, "--password", password)
+
+    env_file = tmp_path / "environment.yml"
+    env_file.write_text(env_yaml_content.format(server=basic_auth_server))
+    env_folder = tmp_path / "env"
+    root_folder = tmp_path / "root"
+    res = create(
+        "-f",
+        str(env_file),
+        folder=env_folder,
+        root=root_folder,
+        override_channels=False,
+    )
+
+    assert (env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists()
+
+
+@pytest.mark.parametrize("token", ["randomverystrongtoken"])
+def test_token_explicit(token, token_server, tmp_path):
+    login(token_server, "--token", token)
+
+    env_file = tmp_path / "environment.txt"
+    env_file.write_text(env_file_content.format(server=token_server))
+    env_folder = tmp_path / "env"
+    root_folder = tmp_path / "root"
+    res = create("-f", str(env_file), folder=env_folder, root=root_folder)
+
+    assert (env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists()

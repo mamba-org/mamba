@@ -69,7 +69,6 @@ namespace mamba
     {
         m_filename = pkg_info.fn;
         m_channel = pkg_info.channel;
-        std::cout << pkg_info.url << std::endl;
         m_url = make_channel(pkg_info.url).urls(true)[0];
         m_name = pkg_info.name;
 
@@ -307,6 +306,14 @@ namespace mamba
             m_download_bar.mark_as_completed();
         }
 
+        if (m_target->http_status >= 400)
+        {
+            LOG_ERROR << "Failed to download package from " << m_url << " (status "
+                      << m_target->http_status << ")";
+            m_validation_result = VALIDATION_RESULT::UNDEFINED;
+            return false;
+        }
+
         LOG_INFO << "Download finished, validating '" << m_tarball_path.string() << "'";
         thread v(&PackageDownloadExtractTarget::validate_extract, this);
         v.detach();
@@ -386,7 +393,6 @@ namespace mamba
                 caches.clear_query_cache(m_package_info);
                 // need to download this file
                 LOG_DEBUG << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
-                LOG_WARNING << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
 
                 m_tarball_path = m_cache_path / m_filename;
                 m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path);

@@ -235,7 +235,6 @@ jobs:
             ./generate_gpg_keys.sh
             pip install securesystemslib
           fi
-          pip install rich
           pip install git+https://github.com/conda/conda-content-trust.git@master
 
           ./testserver.sh

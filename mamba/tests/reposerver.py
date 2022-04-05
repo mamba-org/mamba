@@ -97,7 +97,6 @@ class RepoSigner:
             for el in iv:
                 if isinstance(el, str):
                     el = el.lower()
-                    print(el)
                     keyval = cct_root_signing.fetch_keyval_from_gpg(el)
                     res = {"fingerprint": el, "public": keyval}
                 elif isinstance(el, dict):
@@ -257,7 +256,6 @@ class BasicAuthHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         """Present frontpage with user authentication."""
         auth_header = self.headers.get("Authorization", "")
-        print(auth_header)
 
         if not auth_header:
             self.do_AUTHHEAD()

@@ -27,6 +27,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
+#include "mamba/core/output.hpp"
 
 #include <stdexcept>
 
@@ -508,6 +509,8 @@ PYBIND11_MODULE(bindings, m)
     m.def("transmute", &transmute);
 
     m.def("get_virtual_packages", &get_virtual_packages);
+
+    m.def("cancel_json_output", []{ Console::instance().cancel_json_print(); });
 
     m.attr("SOLVER_SOLVABLE") = SOLVER_SOLVABLE;
     m.attr("SOLVER_SOLVABLE_NAME") = SOLVER_SOLVABLE_NAME;

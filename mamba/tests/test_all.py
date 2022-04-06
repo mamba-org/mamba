@@ -208,7 +208,6 @@ def test_multi_channels(config_file, tmpdir):
         ],
         env=call_env
     )
-    os.removedirs(call_env["CONDA_PKGS_DIRS"])
     result = output.decode()
     print(result)
     res = json.loads(result)

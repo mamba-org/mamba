@@ -9,7 +9,7 @@ from conda.exceptions import (
     DryRunExit,
     PackagesNotFoundError,
 )
-
+from libmambapy import cancel_json_output as cancel_mamba_json_output
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
@@ -18,6 +18,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
             raise PackagesNotFoundError(args.package_names)
         elif not newenv:
             if context.json:
+                cancel_mamba_json_output()
                 cli_common.stdout_json_success(
                     message="All requested packages already installed."
                 )
@@ -26,6 +27,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if context.dry_run:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
         if context.json:
+            cancel_mamba_json_output()
             cli_common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
         raise DryRunExit()
 
@@ -42,5 +44,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         raise CondaSystemExit("Exiting", e)
 
     if context.json:
+        cancel_mamba_json_output()
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
         cli_common.stdout_json_success(prefix=prefix, actions=actions)

@@ -133,6 +133,8 @@ namespace mamba
 
         static void print_buffer(std::ostream& ostream);
 
+        void cancel_json_print();
+
     private:
         Console();
         ~Console();

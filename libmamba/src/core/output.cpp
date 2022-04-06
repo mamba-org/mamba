@@ -263,6 +263,7 @@ namespace mamba
         std::string json_hier;
         unsigned int json_index;
         nlohmann::json json_log;
+        bool is_json_print_cancelled = false;
 
         std::vector<std::string> m_buffer;
     };
@@ -280,8 +281,9 @@ namespace mamba
 
     Console::~Console()
     {
-        if (!p_data->json_log.is_null())  // Note: we cannot rely on Context::instance() to still be
-                                          // valid at this point.
+        if (!p_data->is_json_print_cancelled
+        && !p_data->json_log.is_null()) // Note: we cannot rely on Context::instance() to still be
+                                        // valid at this point.
         {
             this->json_print();
         }
@@ -296,6 +298,11 @@ namespace mamba
     ConsoleStream Console::stream()
     {
         return ConsoleStream();
+    }
+
+    void Console::cancel_json_print()
+    {
+        p_data->is_json_print_cancelled = true;
     }
 
     std::string Console::hide_secrets(const std::string_view& str)

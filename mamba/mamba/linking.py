@@ -9,7 +9,9 @@ from conda.exceptions import (
     DryRunExit,
     PackagesNotFoundError,
 )
+
 from libmambapy import cancel_json_output as cancel_mamba_json_output
+
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:

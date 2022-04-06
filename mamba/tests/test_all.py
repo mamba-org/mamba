@@ -22,6 +22,7 @@ from utils import (
 def random_string(N=10):
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
+
 def test_install():
     add_glibc_virtual_package()
     copy_channels_osx()
@@ -206,7 +207,7 @@ def test_multi_channels(config_file, tmpdir):
             "--dry-run",
             "--json",
         ],
-        env=call_env
+        env=call_env,
     )
     result = output.decode()
     print(result)

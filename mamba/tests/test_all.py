@@ -1,6 +1,9 @@
 import json
 import os
 import platform
+import random
+import shutil
+import string
 import subprocess
 import uuid
 from distutils.version import StrictVersion
@@ -15,6 +18,9 @@ from utils import (
     run_mamba_conda,
 )
 
+
+def random_string(N=10):
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 def test_install():
     add_glibc_virtual_package()
@@ -186,8 +192,10 @@ multichannel_config = {
 
 
 @pytest.mark.parametrize("config_file", [multichannel_config], indirect=["config_file"])
-def test_multi_channels(config_file):
+def test_multi_channels(config_file, tmpdir):
     # we need to create a config file first
+    call_env = os.environ.copy()
+    call_env["CONDA_PKGS_DIRS"] = str(tmpdir / random_string())
     output = subprocess.check_output(
         [
             "mamba",
@@ -197,9 +205,13 @@ def test_multi_channels(config_file):
             "conda-forge2::xtensor",
             "--dry-run",
             "--json",
-        ]
+        ],
+        env=call_env
     )
-    res = json.loads(output.decode())
+    os.removedirs(call_env["CONDA_PKGS_DIRS"])
+    result = output.decode()
+    print(result)
+    res = json.loads(result)
     for pkg in res["actions"]["FETCH"]:
         assert pkg["channel"].startswith("https://conda.anaconda.org/conda-forge")
     for pkg in res["actions"]["LINK"]:

@@ -263,6 +263,7 @@ namespace mamba
         std::string json_hier;
         unsigned int json_index;
         nlohmann::json json_log;
+        bool is_json_print_cancelled = false;
 
         std::vector<std::string> m_buffer;
     };
@@ -280,8 +281,12 @@ namespace mamba
 
     Console::~Console()
     {
-        delete p_data;
-        p_data = nullptr;
+        if (!p_data->is_json_print_cancelled
+            && !p_data->json_log.is_null())  // Note: we cannot rely on Context::instance() to still
+                                             // be valid at this point.
+        {
+            this->json_print();
+        }
     }
 
     Console& Console::instance()
@@ -295,6 +300,11 @@ namespace mamba
         return ConsoleStream();
     }
 
+    void Console::cancel_json_print()
+    {
+        p_data->is_json_print_cancelled = true;
+    }
+
     std::string Console::hide_secrets(const std::string_view& str)
     {
         return mamba::hide_secrets(str);
@@ -302,9 +312,9 @@ namespace mamba
 
     void Console::print(const std::string_view& str, bool force_print)
     {
-        if (!(Context::instance().quiet || Context::instance().json) || force_print)
+        if (force_print || !(Context::instance().quiet || Context::instance().json))
         {
-            ConsoleData* data = instance().p_data;
+            auto& data = instance().p_data;
             const std::lock_guard<std::mutex> lock(data->m_mutex);
 
             if (data->p_progress_bar_manager && data->p_progress_bar_manager->started())
@@ -318,11 +328,9 @@ namespace mamba
         }
     }
 
-    // std::vector<std::string> Console::m_buffer({});
-
     void Console::print_buffer(std::ostream& ostream)
     {
-        ConsoleData* data = instance().p_data;
+        auto& data = instance().p_data;
         for (auto& message : data->m_buffer)
             ostream << message << "\n";
 
@@ -425,8 +433,7 @@ namespace mamba
 
     void Console::json_print()
     {
-        if (Context::instance().json)
-            print(p_data->json_log.unflatten().dump(4), true);
+        print(p_data->json_log.unflatten().dump(4), true);
     }
 
     // write all the key/value pairs of a JSON object into the current entry, which
@@ -478,7 +485,7 @@ namespace mamba
     // go up in the hierarchy
     void Console::json_up()
     {
-        if (Context::instance().json)
+        if (Context::instance().json && !p_data->json_hier.empty())
             p_data->json_hier.erase(p_data->json_hier.rfind('/'));
     }
 

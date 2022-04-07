@@ -106,7 +106,6 @@ namespace mamba
                       { "operation", "shell_hook" },
                       { "context", { { "shell_type", shell_type } } },
                       { "actions", { { "print", { activator->hook() } } } } });
-                Console::instance().json_print();
             }
             else
             {

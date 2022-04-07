@@ -467,7 +467,6 @@ namespace mamba
             {
                 Console::instance().json_write(
                     { { "success", false }, { "solver_problems", solver.all_problems() } });
-                Console::instance().json_print();
             }
 
             Console::stream() << "The environment can't be solved, aborting the operation";
@@ -541,8 +540,6 @@ namespace mamba
             Console::print(join(
                 "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix })));
             Console::instance().json_write({ { "success", true } });
-
-            Console::instance().json_print();
         }
 
         void create_target_directory(const fs::path prefix)

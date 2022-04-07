@@ -85,7 +85,6 @@ namespace mamba
                 items_map.insert({ key, val });
 
             Console::instance().json_write(items_map);
-            Console::instance().json_print();
         }
 
         void print_info()

@@ -99,10 +99,10 @@ def test_login_logout():
     assert data["https://myserver.com:1234"]["token"] == "mytoken"
     assert data["https://myserver2.com:1234"]["token"] == "othertoken"
 
+    logout("https://myserver.com:1234")
     with open(auth_file) as fi:
         data = json.load(fi)
 
-    logout("https://myserver.com:1234")
     assert "https://myserver.com:1234" not in data
 
 

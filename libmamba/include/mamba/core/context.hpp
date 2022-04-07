@@ -220,9 +220,11 @@ namespace mamba
         };
 
         std::string channel_alias = "https://conda.anaconda.org";
-        std::map<std::string, AuthenticationInfo> authentication_infos;
+        std::map<std::string, AuthenticationInfo>& authentication_info();
         std::vector<fs::path> token_locations{ "~/.continuum/anaconda-client/tokens" };
+
         bool override_channels_enabled = true;
+
 
         std::vector<std::string> pinned_packages = {};
 
@@ -242,6 +244,10 @@ namespace mamba
     private:
         Context();
         ~Context() = default;
+
+        void load_authentication_info();
+        std::map<std::string, AuthenticationInfo> m_authentication_info;
+        bool m_authentication_infos_loaded = false;
 
         std::shared_ptr<Logger> logger;
     };

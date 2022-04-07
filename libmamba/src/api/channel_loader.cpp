@@ -55,8 +55,6 @@ namespace mamba
 
         Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
-        load_tokens();
-
         std::vector<mamba_error> error_list;
 
         for (auto channel : get_channels(channel_urls))

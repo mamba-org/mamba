@@ -101,7 +101,14 @@ def info(*args):
 
 def login(*args):
     umamba = get_umamba()
-    cmd = [umamba, "login"] + [arg for arg in args if arg]
+    cmd = [umamba, "auth", "login"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+    return res.decode()
+
+
+def logout(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "auth", "logout"] + [arg for arg in args if arg]
     res = subprocess.check_output(cmd)
     return res.decode()
 

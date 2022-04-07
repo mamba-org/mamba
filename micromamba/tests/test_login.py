@@ -11,7 +11,7 @@ import pytest
 from xprocess import ProcessStarter
 
 from .helpers import create as umamba_create
-from .helpers import get_env, get_umamba, login, random_string
+from .helpers import get_env, get_umamba, login, logout, random_string
 
 here = Path(__file__).absolute()
 pyserver = here.parent.parent.parent / "mamba" / "tests" / "reposerver.py"
@@ -88,6 +88,22 @@ def create(*in_args, folder=None, root=None, override_channels=True):
         *args,
         default_channel=False,
     )
+
+
+def test_login_logout():
+    login("https://myserver.com:1234", "--token", "mytoken")
+    login("https://myserver2.com:1234", "--token", "othertoken")
+
+    with open(auth_file) as fi:
+        data = json.load(fi)
+    assert data["https://myserver.com:1234"]["token"] == "mytoken"
+    assert data["https://myserver2.com:1234"]["token"] == "othertoken"
+
+    with open(auth_file) as fi:
+        data = json.load(fi)
+
+    logout("https://myserver.com:1234")
+    assert "https://myserver.com:1234" not in data
 
 
 @pytest.mark.parametrize("token", ["crazytoken1234"])

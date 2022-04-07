@@ -387,13 +387,13 @@ namespace mamba
             auto token_base = concat_scheme_url(chan.scheme(), chan.location());
             if (!chan.token())
             {
-                auto it = ctx.authentication_infos.find(token_base);
-                if (it != ctx.authentication_infos.end()
+                auto it = ctx.authentication_info().find(token_base);
+                if (it != ctx.authentication_info().end()
                     && it->second.type == AuthenticationType::kCondaToken)
                 {
                     chan.m_token = it->second.value;
                 }
-                else if (it != ctx.authentication_infos.end()
+                else if (it != ctx.authentication_info().end()
                          && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
                 {
                     chan.m_auth = it->second.value;
@@ -861,76 +861,4 @@ namespace mamba
                 ChannelBuilder::make_simple_channel(m_channel_alias, ch.second, ch.first));
         }
     }
-
-    void load_tokens()
-    {
-        auto& ctx = Context::instance();
-        std::vector<fs::path> found_tokens;
-
-        for (const auto& loc : ctx.token_locations)
-        {
-            auto px = env::expand_user(loc);
-            if (!fs::exists(px) || !fs::is_directory(px))
-            {
-                continue;
-            }
-            for (const auto& entry : fs::directory_iterator(px))
-            {
-                if (ends_with(entry.path().filename().string(), ".token"))
-                {
-                    found_tokens.push_back(entry.path());
-                    std::string token_url = decode_url(entry.path().filename());
-
-                    // anaconda client writes out a token for https://api.anaconda.org...
-                    // but we need the token for https://conda.anaconda.org
-                    // conda does the same
-                    std::size_t api_pos = token_url.find("://api.");
-                    if (api_pos != std::string::npos)
-                    {
-                        token_url.replace(api_pos, 7, "://conda.");
-                    }
-
-                    // cut ".token" ending
-                    token_url = token_url.substr(0, token_url.size() - 6);
-
-                    std::string token_content = read_contents(entry.path());
-                    AuthenticationInfo auth_info{ AuthenticationType::kCondaToken, token_content };
-                    ctx.authentication_infos[token_url] = auth_info;
-                    LOG_INFO << "Found token for " << token_url << " at " << entry.path();
-                }
-            }
-        }
-
-        std::map<std::string, AuthenticationInfo> res;
-        fs::path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
-        if (fs::exists(auth_loc))
-        {
-            auto infile = open_ifstream(auth_loc);
-            nlohmann::json j;
-            infile >> j;
-            for (auto& [key, el] : j.items())
-            {
-                std::string host = key;
-                std::string type = el["type"];
-                AuthenticationInfo info;
-                if (type == "CondaToken")
-                {
-                    info.type = AuthenticationType::kCondaToken;
-                    info.value = el["token"].get<std::string>();
-                }
-                else if (type == "BasicHTTPAuthentication")
-                {
-                    info.type = AuthenticationType::kBasicHTTPAuthentication;
-                    info.value = concat(el["user"].get<std::string>(),
-                                        ":",
-                                        decode_base64(el["password"].get<std::string>()));
-                }
-                LOG_INFO << "Found token or password for " << host
-                         << " in ~/.mamba/auth/authentication.json file " << info.value;
-
-                ctx.authentication_infos[host] = info;
-            }
-        }
-    }
-
 }  // namespace mamba

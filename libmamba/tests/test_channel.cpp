@@ -429,7 +429,7 @@ namespace mamba
     TEST(Channel, add_token)
     {
         auto& ctx = Context::instance();
-        ctx.authentication_infos["https://conda.anaconda.org"]
+        ctx.authentication_info()["https://conda.anaconda.org"]
             = AuthenticationInfo{ AuthenticationType::kCondaToken, "my-12345-token" };
 
         ChannelBuilder::clear_cache();

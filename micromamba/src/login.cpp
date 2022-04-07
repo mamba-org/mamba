@@ -28,6 +28,57 @@ read_stdin()
     return result;
 }
 
+std::string
+get_token_base(const std::string& host)
+{
+    mamba::URLHandler url_handler(host);
+
+    std::string token_base = mamba::concat(
+        (url_handler.scheme().empty() ? "https" : url_handler.scheme()), "://", url_handler.host());
+    if (!url_handler.port().empty())
+    {
+        token_base.append(":");
+        token_base.append(url_handler.port());
+    }
+    return token_base;
+}
+
+void
+set_logout_command(CLI::App* subcom)
+{
+    static std::string host;
+    subcom->add_option("host", host, "Host for the account");
+
+    subcom->callback(
+        []()
+        {
+            auto token_base = get_token_base(host);
+
+            nlohmann::json auth_info;
+
+            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
+            fs::path auth_file = path / "authentication.json";
+            if (fs::exists(auth_file))
+            {
+                auto fi = mamba::open_ifstream(auth_file);
+                fi >> auth_info;
+            }
+
+            auto it = auth_info.find(host);
+            if (it != auth_info.end())
+            {
+                auth_info.erase(it);
+                std::cout << "Logged out from " << token_base << std::endl;
+            }
+            else
+            {
+                std::cout << "You are not logged in to " << token_base << std::endl;
+            }
+
+            auto fo = mamba::open_ofstream(auth_file);
+            fo << auth_info;
+        });
+}
 
 void
 set_login_command(CLI::App* subcom)
@@ -46,16 +97,7 @@ set_login_command(CLI::App* subcom)
         []()
         {
             // remove any scheme etc.
-            mamba::URLHandler url_handler(host);
-            std::string token_base
-                = mamba::concat((url_handler.scheme().empty() ? "https" : url_handler.scheme()),
-                                "://",
-                                url_handler.host());
-            if (!url_handler.port().empty())
-            {
-                token_base.append(":");
-                token_base.append(url_handler.port());
-            }
+            auto token_base = get_token_base(host);
 
             if (pass_stdin)
                 pass = read_stdin();
@@ -99,5 +141,18 @@ set_login_command(CLI::App* subcom)
 
             auto out = mamba::open_ofstream(auth_file);
             out << auth_info.dump(4);
+            std::cout << "Successfully stored login information" << std::endl;
         });
+}
+
+void
+set_auth_command(CLI::App* subcom)
+{
+    CLI::App* login_cmd
+        = subcom->add_subcommand("login", "Store login information for a specific host");
+    set_login_command(login_cmd);
+
+    CLI::App* logout_cmd
+        = subcom->add_subcommand("logout", "Erase login information for a specific host");
+    set_logout_command(logout_cmd);
 }

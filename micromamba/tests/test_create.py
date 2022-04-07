@@ -11,6 +11,8 @@ import pytest
 
 from .helpers import *
 
+source_dir_path = os.path.dirname(os.path.realpath(__file__))
+
 
 class TestCreate:
 
@@ -26,8 +28,13 @@ class TestCreate:
         os.path.join("~", "mamba_spec_files_test_" + random_string())
     )
 
+    test_lockfile_path = os.path.realpath(
+        os.path.join(source_dir_path, "test_env-lock.yaml")
+    )
+
     @classmethod
     def setup_class(cls):
+        assert os.path.exists(TestCreate.test_lockfile_path)
         os.environ["MAMBA_ROOT_PREFIX"] = TestCreate.root_prefix
         os.makedirs(TestCreate.spec_files_location, exist_ok=True)
 
@@ -100,10 +107,12 @@ class TestCreate:
                 ]
                 file_content = ["@EXPLICIT"] + explicit_specs
                 specs = explicit_specs
-            else:  # yaml
+            elif file_type == "yaml":
                 spec_file += ".yaml"
                 file_content = ["dependencies:", "  - xtensor >0.20", "  - xsimd"]
                 specs += ["xtensor >0.20", "xsimd"]
+            else:
+                raise RuntimeError("unhandled file type : ", file_type)
 
             os.makedirs(TestCreate.root_prefix, exist_ok=True)
             with open(spec_file, "w") as f:
@@ -119,6 +128,22 @@ class TestCreate:
 
         json_res = create(*cmd, "--json")
         assert json_res["success"] == True
+
+    def test_lockfile(self):
+        cmd_prefix = ["-p", TestCreate.prefix]
+        f_name = random_string()
+        spec_file = os.path.join(TestCreate.spec_files_location, f_name) + "-lock.yaml"
+        shutil.copyfile(TestCreate.test_lockfile_path, spec_file)
+        assert os.path.exists(spec_file)
+
+        res = create(*cmd_prefix, "-f", spec_file, "--json")
+        assert res["success"] == True
+
+        packages = umamba_list(*cmd_prefix, "--json")
+        assert any(
+            package["name"] == "zlib" and package["version"] == "1.2.11"
+            for package in packages
+        )
 
     @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
     @pytest.mark.parametrize("target_is_root", (False, True))

@@ -22,6 +22,7 @@ mamba create -y -q -n $ENV_NAME --override-channels -c http://user@email.com:tes
 kill -TERM $PID
 rm -rf $CONDA_PREFIX/envs/$ENV_NAME
 
+unset TESTPWD
 python reposerver.py -d repo/ --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
 mamba create -y -q -n $ENV_NAME --override-channels -c http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012 test-package --json
 kill -TERM $PID

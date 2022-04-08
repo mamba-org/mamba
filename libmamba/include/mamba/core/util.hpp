@@ -326,6 +326,12 @@ namespace mamba
     std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
         const fs::path& prefix, const std::vector<std::string>& cmd);
 
+    /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
+    /// NOTE: this does not check if the file exists.
+    inline bool is_yaml_file_name(const std::string_view filename)
+    {
+        return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
+    }
 
 }  // namespace mamba
 

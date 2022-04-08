@@ -13,6 +13,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <optional>
 
 #define ROOT_ENV_NAME "base"
 
@@ -111,6 +112,7 @@ namespace mamba
         // TODO check writable and add other potential dirs
         std::vector<fs::path> envs_dirs;
         std::vector<fs::path> pkgs_dirs;
+        std::optional<fs::path> env_lockfile;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header

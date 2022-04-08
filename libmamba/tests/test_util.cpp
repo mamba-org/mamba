@@ -4,6 +4,8 @@
 
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/core/util_scope.hpp"
+
 
 namespace mamba
 {
@@ -44,4 +46,46 @@ namespace mamba
             EXPECT_LE(value, arbitrary_max);
         }
     }
+
+    TEST(on_scope_exit, basics)
+    {
+        bool executed = false;
+        {
+            on_scope_exit _{ [&] { executed = true; } };
+            EXPECT_FALSE(executed);
+        }
+        EXPECT_TRUE(executed);
+    }
+
+    TEST(is_yaml_file_name, basics)
+    {
+        EXPECT_TRUE(is_yaml_file_name("something.yaml"));
+        EXPECT_TRUE(is_yaml_file_name("something.yml"));
+        EXPECT_TRUE(is_yaml_file_name("something-lock.yaml"));
+        EXPECT_TRUE(is_yaml_file_name("something-lock.yml"));
+        EXPECT_TRUE(is_yaml_file_name("/some/dir/something.yaml"));
+        EXPECT_TRUE(is_yaml_file_name("/some/dir/something.yaml"));
+        EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
+        EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
+
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yml" }.string()));
+
+        EXPECT_FALSE(is_yaml_file_name("something"));
+        EXPECT_FALSE(is_yaml_file_name("something-lock"));
+        EXPECT_FALSE(is_yaml_file_name("/some/dir/something"));
+        EXPECT_FALSE(is_yaml_file_name("../../some/dir/something"));
+
+        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something-lock" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::path{ "/some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::path{ "../../some/dir/something" }.string()));
+    }
+
 }

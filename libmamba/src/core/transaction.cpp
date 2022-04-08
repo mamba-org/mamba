@@ -47,18 +47,14 @@ namespace mamba
 
     counting_semaphore DownloadExtractSemaphore::semaphore(0);
 
+    std::ptrdiff_t DownloadExtractSemaphore::get_max()
+    {
+        return DownloadExtractSemaphore::semaphore.get_max();
+    }
+
     void DownloadExtractSemaphore::set_max(int value)
     {
         DownloadExtractSemaphore::semaphore.set_max(value);
-    }
-
-    static std::mutex lookup_checksum_mutex;
-    std::string lookup_checksum(Solvable* s, Id checksum_type)
-    {
-        Id unused;
-        std::lock_guard<std::mutex> lock(lookup_checksum_mutex);
-        std::string chksum = check_char(solvable_lookup_checksum(s, checksum_type, &unused));
-        return chksum;
     }
 
     PackageDownloadExtractTarget::PackageDownloadExtractTarget(Solvable* solvable)
@@ -224,7 +220,16 @@ namespace mamba
                     remove_all(extract_path);
                 }
 
-                mamba::extract_subproc(m_tarball_path, extract_path);
+                // Use non-subproc version if concurrency is disabled to avoid
+                // any potential subprocess issues
+                if (DownloadExtractSemaphore::get_max() == 1)
+                {
+                    mamba::extract(m_tarball_path, extract_path);
+                }
+                else
+                {
+                    mamba::extract_subproc(m_tarball_path, extract_path);
+                }
                 // mamba::extract(m_tarball_path, extract_path);
                 interruption_point();
                 LOG_DEBUG << "Extracted to '" << extract_path.string() << "'";

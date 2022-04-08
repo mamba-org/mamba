@@ -147,6 +147,7 @@ namespace mamba
         inline counting_semaphore(std::ptrdiff_t max = 0);
         inline void lock();
         inline void unlock();
+        inline std::ptrdiff_t get_max();
         inline void set_max(std::ptrdiff_t value);
 
     private:
@@ -182,6 +183,11 @@ namespace mamba
             }
         }
         m_cv.notify_all();
+    }
+
+    inline std::ptrdiff_t counting_semaphore::get_max()
+    {
+        return m_max;
     }
 
     inline void counting_semaphore::set_max(std::ptrdiff_t value)

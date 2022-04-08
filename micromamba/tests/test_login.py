@@ -20,7 +20,28 @@ print(pyserver)
 
 assert pyserver.exists()
 
-auth_file = Path.home() / ".mamba" / "auth" / "authentication.json"
+
+@pytest.fixture
+def auth_file(auth_file_content=None):
+    loc = Path.home() / ".mamba" / "auth" / "authentication.json"
+    loc_exists = False
+    if loc.exists():
+        loc_exists = True
+        loc_backup = loc.rename(loc.with_suffix(".bkup"))
+
+    if auth_file_content:
+        if isinstance(auth_file_content, dict):
+            loc.write_text(json.dumps(auth_file_content))
+        else:
+            loc.write_text(auth_file_content)
+
+    yield loc
+
+    if loc_exists:
+        loc.unlink()
+        loc_backup.rename(loc)
+    else:
+        loc.unlink()
 
 
 def reposerver(
@@ -90,16 +111,18 @@ def create(*in_args, folder=None, root=None, override_channels=True):
     )
 
 
-def test_login_logout():
+def test_login_logout(auth_file):
     login("https://myserver.com:1234", "--token", "mytoken")
     login("https://myserver2.com:1234", "--token", "othertoken")
 
     with open(auth_file) as fi:
         data = json.load(fi)
+
     assert data["https://myserver.com:1234"]["token"] == "mytoken"
     assert data["https://myserver2.com:1234"]["token"] == "othertoken"
 
     logout("https://myserver.com:1234")
+
     with open(auth_file) as fi:
         data = json.load(fi)
 
@@ -107,7 +130,7 @@ def test_login_logout():
 
 
 @pytest.mark.parametrize("token", ["crazytoken1234"])
-def test_token(token, token_server):
+def test_token(auth_file, token, token_server):
     login(token_server, "--token", token)
     with open(auth_file) as fi:
         data = json.load(fi)
@@ -120,7 +143,7 @@ def test_token(token, token_server):
 
 
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
-def test_basic_auth(user, password, basic_auth_server):
+def test_basic_auth(auth_file, user, password, basic_auth_server):
     login(basic_auth_server, "--username", user, "--password", password)
     with open(auth_file) as fi:
         data = json.load(fi)
@@ -153,7 +176,7 @@ env_file_content = """
 
 
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
-def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
+def test_basic_auth_explicit(auth_file, user, password, basic_auth_server, tmp_path):
     login(basic_auth_server, "--username", user, "--password", password)
 
     env_file = tmp_path / "environment.txt"
@@ -166,7 +189,7 @@ def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
 
 
 @pytest.mark.parametrize("user,password", [["testuser", "xyzpass"]])
-def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
+def test_basic_auth_explicit(auth_file, user, password, basic_auth_server, tmp_path):
     login(basic_auth_server, "--username", user, "--password", password)
 
     env_file = tmp_path / "environment.yml"
@@ -185,7 +208,7 @@ def test_basic_auth_explicit(user, password, basic_auth_server, tmp_path):
 
 
 @pytest.mark.parametrize("token", ["randomverystrongtoken"])
-def test_token_explicit(token, token_server, tmp_path):
+def test_token_explicit(auth_file, token, token_server, tmp_path):
     login(token_server, "--token", token)
 
     env_file = tmp_path / "environment.txt"

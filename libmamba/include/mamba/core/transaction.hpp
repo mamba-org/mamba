@@ -98,6 +98,7 @@ namespace mamba
     class DownloadExtractSemaphore
     {
     public:
+        static std::ptrdiff_t get_max();
         static void set_max(int value);
 
     private:

@@ -457,7 +457,7 @@ namespace mamba
     {
         if (m_pkg_view_list.empty())
         {
-            out << "No entries matching \"" << m_query << "\" found";
+            out << "No entries matching \"" << m_query << "\" found" << std::endl;
         }
 
         std::vector<mamba::printers::FormattedString> headers;

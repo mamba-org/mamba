@@ -97,10 +97,9 @@ namespace mamba
         spdlog::set_level(convert_log_level(logging_level));
     }
 
-    Context& Context::instance()
+    Context::~Context()
     {
-        static Context ctx;
-        return ctx;
+        logger->flush();
     }
 
     void Context::set_verbosity(int lvl)

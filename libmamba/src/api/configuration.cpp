@@ -953,12 +953,6 @@ namespace mamba
         set_configurables();
     }
 
-    Configuration& Configuration::instance()
-    {
-        static Configuration config;
-        return config;
-    }
-
     void Configuration::set_configurables()
     {
         auto& ctx = Context::instance();

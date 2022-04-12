@@ -409,12 +409,6 @@ namespace mamba
         get_cache().clear();
     }
 
-    auto ChannelBuilder::get_cache() -> cache_type&
-    {
-        static cache_type cache;
-        return cache;
-    }
-
     namespace
     {
         void split_conda_url(const std::string& url,
@@ -731,12 +725,6 @@ namespace mamba
     /*********************************
      * ChannelContext implementation *
      *********************************/
-
-    ChannelContext& ChannelContext::instance()
-    {
-        static ChannelContext context;
-        return context;
-    }
 
     void ChannelContext::reset()
     {

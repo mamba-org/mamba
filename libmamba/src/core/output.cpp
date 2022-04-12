@@ -289,11 +289,6 @@ namespace mamba
         }
     }
 
-    Console& Console::instance()
-    {
-        static Console c;
-        return c;
-    }
 
     ConsoleStream Console::stream()
     {
@@ -493,7 +488,7 @@ namespace mamba
      * MessageLogger *
      *****************/
 
-    struct MessageLoggerData
+    struct MessageLoggerData // FIXME: HERE
     {
         static std::mutex m_mutex;
         static bool use_buffer;

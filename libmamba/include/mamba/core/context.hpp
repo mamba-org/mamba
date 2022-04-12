@@ -241,10 +241,10 @@ namespace mamba
         const void debug_print();
         void dump_backtrace_no_guards();
 
-    private:
         Context();
-        ~Context() = default;
+        ~Context();
 
+    private:
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;
         bool m_authentication_infos_loaded = false;

@@ -17,6 +17,10 @@
 #include <set>
 #include <stdexcept>
 
+namespace mamba
+{
+    class Singletons;
+}
 
 namespace validate
 {
@@ -331,9 +335,9 @@ namespace validate
         void set_now();
         std::string timestamp();
 
-    private:
         TimeRef();
         ~TimeRef() = default;
+    private:
 
         std::time_t m_time_ref;
     };

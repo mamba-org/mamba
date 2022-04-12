@@ -405,9 +405,9 @@ namespace mamba
 
         void reset_configurables();
 
-    protected:
         Configuration();
         ~Configuration() = default;
+    protected:
 
         Configuration(const Configuration&) = delete;
         Configuration& operator=(const Configuration&) = delete;

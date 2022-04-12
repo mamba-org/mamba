@@ -94,6 +94,7 @@ main(int argc, char** argv)
     }
     catch (const std::exception& e)
     {
+        std::cout <<"FORCED ERROR LOG : " << e.what() << std::endl;
         LOG_CRITICAL << e.what();
         set_sig_interrupted();
         err = true;

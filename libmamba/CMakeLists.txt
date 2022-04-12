@@ -120,6 +120,7 @@ endforeach()
 set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # Core API (low-level)
+    ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp

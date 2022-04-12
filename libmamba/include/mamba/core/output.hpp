@@ -135,9 +135,9 @@ namespace mamba
 
         void cancel_json_print();
 
-    private:
         Console();
         ~Console();
+    private:
 
         void json_print();
         void deactivate_progress_bar(std::size_t idx, const std::string_view& msg = "");

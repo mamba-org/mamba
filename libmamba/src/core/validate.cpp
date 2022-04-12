@@ -22,22 +22,6 @@
 
 namespace mamba
 {
-    class CURLSetup final
-    {
-    public:
-        CURLSetup()
-        {
-            if (curl_global_init(CURL_GLOBAL_ALL) != 0)
-                throw std::runtime_error("failed to initialize curl");
-        }
-
-        ~CURLSetup()
-        {
-            curl_global_cleanup();
-        }
-    };
-
-    static CURLSetup curl_setup;
 
     template <class B>
     std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
@@ -536,12 +520,6 @@ namespace validate
     TimeRef::TimeRef()
         : m_time_ref(mamba::utc_time_now())
     {
-    }
-
-    TimeRef& TimeRef::instance()
-    {
-        static TimeRef time_ref;
-        return time_ref;
     }
 
     void TimeRef::set(const std::time_t& time)

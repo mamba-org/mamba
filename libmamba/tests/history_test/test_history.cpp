@@ -78,7 +78,7 @@ namespace mamba
         {
             History history_instance("history_test/parse_segfault");
             history_instance.get_user_requests();
-            exit(0);
+            exit(EXIT_SUCCESS);
         }
     }
 #endif

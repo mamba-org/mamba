@@ -238,25 +238,33 @@ namespace validate
     {
         std::size_t key_len = MAMBA_ED25519_KEYSIZE_BYTES;
         EVP_PKEY* pkey = NULL;
-        EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL);
+        struct EVPContext
+        {
+            EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL);
 
-        int gen_status;
-        gen_status = EVP_PKEY_keygen_init(pctx);
+            ~EVPContext()
+            {
+                EVP_PKEY_CTX_free(pctx);
+            }
+
+        } evp_context;
+
+
+        int gen_status = EVP_PKEY_keygen_init(evp_context.pctx);
         if (gen_status != 1)
         {
             LOG_DEBUG << "Failed to initialize ED25519 key pair generation";
             return gen_status;
         }
 
-        gen_status = EVP_PKEY_keygen(pctx, &pkey);
+        gen_status = EVP_PKEY_keygen(evp_context.pctx, &pkey);
         if (gen_status != 1)
         {
             LOG_DEBUG << "Failed to generate ED25519 key pair";
             return gen_status;
         }
 
-        int storage_status;
-        storage_status = EVP_PKEY_get_raw_public_key(pkey, pk, &key_len);
+        int storage_status = EVP_PKEY_get_raw_public_key(pkey, pk, &key_len);
         if (storage_status != 1)
         {
             LOG_DEBUG << "Failed to store public key of generated ED25519 key pair";
@@ -269,7 +277,6 @@ namespace validate
             return storage_status;
         }
 
-        EVP_PKEY_CTX_free(pctx);
         return 1;
     }
 

@@ -9,6 +9,7 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/version.hpp"
 
 #include <map>
 #include <string>
@@ -164,6 +165,7 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
+        std::string user_agent = std::string("User-Agent: mamba/" LIBMAMBA_VERSION_STRING " ");
         bool curl_initialized = false;
         int connect_timeout_secs = 10;
         // int read_timeout_secs = 60;

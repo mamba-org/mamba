@@ -331,7 +331,8 @@ namespace mamba
         }
 
         static std::string user_agent
-            = std::string("User-Agent: mamba/" LIBMAMBA_VERSION_STRING " ") + curl_version();
+            = Context::instance().user_agent;
+        user_agent.append(curl_version());
 
         m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);

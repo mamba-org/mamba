@@ -1116,24 +1116,6 @@ namespace mamba
         {
             MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
 
-            // std::string url;
-            // if (mamba_repo == nullptr || mamba_repo->url() == "")
-            // {
-            //     // use fallback mediadir / mediafile
-            //     // this happens with explicit transactions
-            //     url = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
-            //     if (url.empty())
-            //         throw std::runtime_error("Repo not associated.");
-
-            //     load_tokens();
-            //     auto channels = make_channel(url).urls(true);
-            //     for (auto& el:  channels)
-            //     {
-            //         std::cout << "Channel URL: " << el << std::endl;
-            //     }
-            //     url = make_channel(url).urls(true)[0];
-            // }
-
             if (ctx.experimental && ctx.verify_artifacts)
             {
                 const auto& repo_checker

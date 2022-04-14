@@ -35,15 +35,14 @@ namespace mamba
 
             const char* version = "";
 #ifdef __linux__
-            size_t n;
-            char* ver;
-            n = confstr(_CS_GNU_LIBC_VERSION, NULL, (size_t) 0);
+            std::vector<char> ver;
+            const size_t n = confstr(_CS_GNU_LIBC_VERSION, NULL, (size_t) 0);
 
             if (n > 0)
             {
-                ver = (char*) malloc(n);
-                confstr(_CS_GNU_LIBC_VERSION, ver, n);
-                version = ver;
+                ver.assign(n, '\n');
+                confstr(_CS_GNU_LIBC_VERSION, ver.data(), n);
+                version = ver.data();
             }
 #endif
             return std::string(strip(version, "glibc "));

@@ -1152,7 +1152,7 @@ namespace mamba
             auto* dl_bar = aggregated_pbar_manager.aggregated_bar("Download");
             if (dl_bar)
                 dl_bar->set_repr_hook(
-                    [&](ProgressBarRepr& repr) -> void
+                    [=](ProgressBarRepr& repr) -> void
                     {
                         auto active_tasks = dl_bar->active_tasks().size();
                         if (active_tasks == 0)
@@ -1187,7 +1187,7 @@ namespace mamba
             auto* extract_bar = aggregated_pbar_manager.aggregated_bar("Extract");
             if (extract_bar)
                 extract_bar->set_repr_hook(
-                    [&](ProgressBarRepr& repr) -> void
+                    [=](ProgressBarRepr& repr) -> void
                     {
                         auto active_tasks = extract_bar->active_tasks().size();
                         if (active_tasks == 0)

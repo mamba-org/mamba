@@ -68,7 +68,6 @@ namespace mamba
         , m_package_info(pkg_info)
     {
         m_filename = pkg_info.fn;
-        m_channel = pkg_info.channel;
         m_url = make_channel(pkg_info.url).urls(true)[0];
         m_name = pkg_info.name;
 

@@ -196,34 +196,42 @@ namespace mamba
 
         std::map<std::string, AuthenticationInfo> res;
         fs::path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
-        if (fs::exists(auth_loc))
+        try
         {
-            auto infile = open_ifstream(auth_loc);
-            nlohmann::json j;
-            infile >> j;
-            for (auto& [key, el] : j.items())
+            if (fs::exists(auth_loc))
             {
-                std::string host = key;
-                std::string type = el["type"];
-                AuthenticationInfo info;
-                if (type == "CondaToken")
+                auto infile = open_ifstream(auth_loc);
+                nlohmann::json j;
+                infile >> j;
+                for (auto& [key, el] : j.items())
                 {
-                    info.type = AuthenticationType::kCondaToken;
-                    info.value = el["token"].get<std::string>();
-                }
-                else if (type == "BasicHTTPAuthentication")
-                {
-                    info.type = AuthenticationType::kBasicHTTPAuthentication;
-                    info.value = concat(el["user"].get<std::string>(),
-                                        ":",
-                                        decode_base64(el["password"].get<std::string>()));
-                }
-                LOG_INFO << "Found token or password for " << host
-                         << " in ~/.mamba/auth/authentication.json file " << info.value;
+                    std::string host = key;
+                    std::string type = el["type"];
+                    AuthenticationInfo info;
+                    if (type == "CondaToken")
+                    {
+                        info.type = AuthenticationType::kCondaToken;
+                        info.value = el["token"].get<std::string>();
+                    }
+                    else if (type == "BasicHTTPAuthentication")
+                    {
+                        info.type = AuthenticationType::kBasicHTTPAuthentication;
+                        info.value = concat(el.value("user", ""),
+                                            ":",
+                                            decode_base64(el["password"].get<std::string>()));
+                    }
+                    LOG_INFO << "Found token or password for " << host
+                             << " in ~/.mamba/auth/authentication.json file " << info.value;
 
-                m_authentication_info[host] = info;
+                    m_authentication_info[host] = info;
+                }
             }
         }
+        catch (nlohmann::json::exception& e)
+        {
+            LOG_WARNING << "Could not parse authentication information from " << auth_loc;
+        }
+
         m_authentication_infos_loaded = true;
     }
 

@@ -96,6 +96,10 @@ set_login_command(CLI::App* subcom)
     subcom->callback(
         []()
         {
+            if (host.empty())
+            {
+                throw std::runtime_error("No host given.");
+            }
             // remove any scheme etc.
             auto token_base = get_token_base(host);
 
@@ -122,16 +126,18 @@ set_login_command(CLI::App* subcom)
             }
             nlohmann::json auth_object = nlohmann::json::object();
 
+            if (pass.empty() && token.empty())
+            {
+                throw std::runtime_error("No password or token given.");
+            }
+
             if (!pass.empty())
             {
                 auth_object["type"] = "BasicHTTPAuthentication";
                 auth_object["password"] = mamba::encode_base64(mamba::strip(pass));
-            }
-            if (!user.empty())
-            {
                 auth_object["user"] = user;
             }
-            if (!token.empty())
+            else if (!token.empty())
             {
                 auth_object["type"] = "CondaToken";
                 auth_object["token"] = mamba::strip(token);

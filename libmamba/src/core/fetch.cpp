@@ -330,8 +330,8 @@ namespace mamba
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
 
-        static std::string user_agent
-            = std::string("User-Agent: mamba/" LIBMAMBA_VERSION_STRING " ") + curl_version();
+        std::string user_agent
+            = fmt::format("User-Agent: {} {}", Context::instance().user_agent, curl_version());
 
         m_headers = curl_slist_append(m_headers, user_agent.c_str());
         curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_headers);

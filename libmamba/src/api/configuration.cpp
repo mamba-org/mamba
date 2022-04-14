@@ -656,6 +656,8 @@ namespace mamba
             else if (expect_existing)
             {
                 LOG_ERROR << "No prefix found at: " << prefix.string();
+                LOG_ERROR
+                    << "Environment must first be created with \"micromamba create -n {env_name} ...\"";
                 throw std::runtime_error("Aborting.");
             }
         }

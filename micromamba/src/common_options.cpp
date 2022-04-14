@@ -44,7 +44,7 @@ init_general_options(CLI::App* subcom)
     auto& verbose = config.at("verbose");
     subcom
         ->add_flag("-v,--verbose",
-                   verbose.get_cli_config<std::uint8_t>(),
+                   verbose.get_cli_config<int>(),
                    "Set verbosity (higher verbosity with multiple -v, e.g. -vvv)")
         ->group(cli_group);
 

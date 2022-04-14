@@ -606,7 +606,7 @@ namespace mamba
                 return mamba::log_level::warn;
         }
 
-        void verbose_hook(std::uint8_t& lvl)
+        void verbose_hook(int& lvl)
         {
             auto& ctx = Context::instance();
             ctx.verbosity = lvl;
@@ -1510,7 +1510,7 @@ namespace mamba
                    .needs({ "json", "print_config_only", "print_context_only" })
                    .description("Set quiet mode (print less output)"));
 
-        insert(Configurable("verbose", std::uint8_t(0))
+        insert(Configurable("verbose", int(0))
                    .group("Output, Prompt and Flow Control")
                    .set_post_merge_hook(detail::verbose_hook)
                    .description("Set the verbosity")

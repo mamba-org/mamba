@@ -49,41 +49,6 @@ namespace mamba
             }
         };
 
-        template <>
-        struct cli_config<bool>
-        {
-            using storage_type = int;
-            storage_type m_storage;
-
-            cli_config() = default;
-            cli_config(int value)
-                : m_storage(value)
-            {
-            }
-            storage_type& storage()
-            {
-                return m_storage;
-            }
-            bool has_value() const
-            {
-                return m_storage != 0;
-            }
-            bool value() const
-            {
-                if (m_storage == 1)
-                    return true;
-                else if (m_storage == -1)
-                    return false;
-                else
-                    throw std::runtime_error(
-                        "Invalid boolean storage, should be {'-1': false, '0': undefined, '1': true}");
-            }
-            void reset()
-            {
-                m_storage = 0;
-            }
-        };
-
         /**********************
          * Source declaration *
          **********************/

@@ -165,7 +165,7 @@ namespace mamba
         // micromamba only
         bool shell_completion = true;
 
-        std::string user_agent = std::string("User-Agent: mamba/" LIBMAMBA_VERSION_STRING " ");
+        std::string user_agent = "mamba/" LIBMAMBA_VERSION_STRING;
         bool curl_initialized = false;
         int connect_timeout_secs = 10;
         // int read_timeout_secs = 60;

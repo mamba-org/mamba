@@ -81,7 +81,7 @@ function Enter-MambaEnvironment {
         $OldPath = Add-Sys-Prefix-To-Path;
         $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Args | Out-String);
         $Env:PATH = $OldPath;
-        Write-Verbose "[micromamba shell activate --shell powershell $Name]`n$activateCommand";
+        Write-Verbose "[micromamba shell activate --shell powershell $Args]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }
 

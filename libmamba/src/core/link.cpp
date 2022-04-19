@@ -413,20 +413,10 @@ namespace mamba
 
         reproc::options options;
         options.redirect.parent = true;
-        if (activate)
-        {
-            options.env.behavior = reproc::env::empty;
-            auto qemu_ld_prefix = env::get("QEMU_LD_PREFIX");
-            if (qemu_ld_prefix)
-            {
-                envmap["QEMU_LD_PREFIX"] = qemu_ld_prefix.value();
-            }
-        }
-        else
-        {
-            options.env.behavior = reproc::env::extend;
-        }
+
+        options.env.behavior = reproc::env::extend;
         options.env.extra = envmap;
+
         std::string cwd = path.parent_path();
         options.working_directory = cwd.c_str();
 

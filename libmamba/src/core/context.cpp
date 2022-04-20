@@ -218,7 +218,13 @@ namespace mamba
                         info.type = AuthenticationType::kBasicHTTPAuthentication;
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
+                        {
                             info.value = concat(el.value("user", ""), ":", pass.value());
+                        }
+                        else
+                        {
+                            LOG_ERROR << "Could not decode base64 password" << std::endl;
+                        }
                     }
                     LOG_INFO << "Found token or password for " << host
                              << " in ~/.mamba/auth/authentication.json file " << info.value;

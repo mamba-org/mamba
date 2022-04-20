@@ -1483,21 +1483,26 @@ namespace mamba
             = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
 
         if (pl != ol)
+        {
             return make_unexpected("Could not encode base64 string",
                                    mamba_error_code::openssl_failed);
+        }
 
         return std::string((const char*) output.data());
     }
 
     tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
     {
-        const auto pl = 3 * input.size() / 4 + 1;
-        std::vector<unsigned char> output(pl);
+        const auto pl = 3 * input.size() / 4;
+
+        std::vector<unsigned char> output(pl + 1);
         const auto ol
             = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
         if (pl != ol)
+        {
             return make_unexpected("Could not decode base64 string",
                                    mamba_error_code::openssl_failed);
+        }
 
         return std::string((const char*) output.data());
     }

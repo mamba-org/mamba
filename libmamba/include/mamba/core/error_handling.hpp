@@ -25,6 +25,7 @@ namespace mamba
         repodata_not_loaded,
         configurable_bad_cast,
         env_lockfile_parsing_failed,
+        openssl_failed,
     };
 
     class mamba_error : public std::runtime_error

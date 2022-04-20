@@ -134,7 +134,12 @@ set_login_command(CLI::App* subcom)
             if (!pass.empty())
             {
                 auth_object["type"] = "BasicHTTPAuthentication";
-                auth_object["password"] = mamba::encode_base64(mamba::strip(pass));
+
+                auto pass_encoded = mamba::encode_base64(mamba::strip(pass));
+                if (!pass_encoded)
+                    throw pass_encoded.error();
+
+                auth_object["password"] = pass_encoded.value();
                 auth_object["user"] = user;
             }
             else if (!token.empty())

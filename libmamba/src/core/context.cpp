@@ -216,9 +216,9 @@ namespace mamba
                     else if (type == "BasicHTTPAuthentication")
                     {
                         info.type = AuthenticationType::kBasicHTTPAuthentication;
-                        info.value = concat(el.value("user", ""),
-                                            ":",
-                                            decode_base64(el["password"].get<std::string>()));
+                        auto pass = decode_base64(el["password"].get<std::string>());
+                        if (pass)
+                            info.value = concat(el.value("user", ""), ":", pass.value());
                     }
                     LOG_INFO << "Found token or password for " << host
                              << " in ~/.mamba/auth/authentication.json file " << info.value;

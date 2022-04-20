@@ -3,6 +3,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/execution.hpp"
 
 namespace mamba
 {
@@ -34,16 +35,15 @@ namespace mamba
 
             for (size_t i = 0; i < 5; ++i)
             {
-                mamba::thread t(
-                    [&res]()
+                MainExecutor::instance().take_ownership(mamba::thread{
+                    [&res]
                     {
                         {
                             std::unique_lock<std::mutex> lk(res_mutex);
                             ++res;
                         }
                         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                    });
-                t.detach();
+                    } }.extract());
             }
             if (interrupt)
             {

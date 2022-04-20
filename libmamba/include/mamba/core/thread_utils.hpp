@@ -90,6 +90,11 @@ namespace mamba
         void detach();
         std::thread::native_handle_type native_handle();
 
+        std::thread extract()
+        {
+            return std::move(m_thread);
+        }
+
     private:
         std::thread m_thread;
     };

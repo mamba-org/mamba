@@ -13,6 +13,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 
 #include <CLI/CLI.hpp>
@@ -24,6 +25,8 @@ using namespace mamba;  // NOLINT(build/namespaces)
 int
 main(int argc, char** argv)
 {
+    mamba::MainExecutor scoped_threads;
+
     init_console();
     auto& ctx = Context::instance();
 

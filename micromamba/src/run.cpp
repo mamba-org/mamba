@@ -12,6 +12,7 @@
 #include "mamba/api/install.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/core/execution.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -494,7 +495,7 @@ set_run_command(CLI::App* subcom)
                 }
 
 #ifndef _WIN32
-                std::thread t(
+                MainExecutor::instance().schedule(
                     []()
                     {
                         signal(
@@ -511,7 +512,6 @@ set_run_command(CLI::App* subcom)
                                 proc.stop(sa);
                             });
                     });
-                t.detach();
 #endif
 
                 // check if we need this

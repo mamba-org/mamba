@@ -15,7 +15,9 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/util_scope.hpp"
+
 
 #include "termcolor/termcolor.hpp"
 
@@ -320,8 +322,7 @@ namespace mamba
         }
 
         LOG_INFO << "Download finished, validating '" << m_tarball_path.string() << "'";
-        thread v(&PackageDownloadExtractTarget::validate_extract, this);
-        v.detach();
+        MainExecutor::instance().schedule(&PackageDownloadExtractTarget::validate_extract, this);
 
         return true;
     }
@@ -388,8 +389,8 @@ namespace mamba
 
                 m_tarball_path = tarball_cache / m_filename;
                 m_validation_result = VALIDATION_RESULT::VALID;
-                thread v(&PackageDownloadExtractTarget::extract_from_cache, this);
-                v.detach();
+                MainExecutor::instance().schedule(&PackageDownloadExtractTarget::extract_from_cache,
+                                                  this);
                 LOG_DEBUG << "Using cached tarball '" << m_filename << "'";
                 return nullptr;
             }

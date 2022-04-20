@@ -9,10 +9,11 @@
 #include <iostream>
 #include <iomanip>
 #include <utility>
-#include <thread>
 #include <limits>
 #include <random>
 #include <sstream>
+
+#include "mamba/core/execution.hpp"
 
 namespace cursor
 {
@@ -968,8 +969,7 @@ namespace mamba
         start();
         m_marked_to_terminate = false;
         m_watch_print_started = true;
-        std::thread t([&]() { run(); });
-        t.detach();
+        MainExecutor::instance().schedule([&] { run(); });
     }
 
     void ProgressBarManager::start()
@@ -1309,11 +1309,12 @@ namespace mamba
         pause();
         set_full();
 
-        time_point_t stop_time_point = now() + delay;
+        const time_point_t stop_time_point
+            = now() + delay;  // FIXME: can be captured by the lambda?
 
         if (delay.count())
         {
-            std::thread t(
+            MainExecutor::instance().schedule(
                 [&](const time_point_t& stop_time_point)
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
@@ -1324,7 +1325,6 @@ namespace mamba
                     stop();
                 },
                 stop_time_point);
-            t.detach();
         }
         else
         {

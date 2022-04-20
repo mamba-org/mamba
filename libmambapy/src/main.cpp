@@ -28,6 +28,7 @@
 #include "mamba/core/validate.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/execution.hpp"
 
 #include <stdexcept>
 
@@ -47,6 +48,11 @@ namespace query
 PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
+
+    // Close and destroy the main executor as soon as we are done.
+    // Closing makes sure all threads used by this library are done before the end
+    // of the program.
+    m.add_object("_cleanup", py::capsule([] { mamba::MainExecutor::stop_default(); }));
 
     py::class_<fs::path>(m, "Path")
         .def(py::init<std::string>())

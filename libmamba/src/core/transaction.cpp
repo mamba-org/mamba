@@ -68,7 +68,13 @@ namespace mamba
         , m_package_info(pkg_info)
     {
         m_filename = pkg_info.fn;
-        m_url = make_channel(pkg_info.url).urls(true)[0];
+
+        // We currently only do this for micromamba
+        if (Context::instance().is_micromamba)
+            m_url = make_channel(pkg_info.url).urls(true)[0];
+        else
+            m_url = pkg_info.url;
+
         m_name = pkg_info.name;
 
         m_expected_size = pkg_info.size;

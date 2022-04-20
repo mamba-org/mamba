@@ -49,34 +49,54 @@ set_logout_command(CLI::App* subcom)
     static std::string host;
     subcom->add_option("host", host, "Host for the account");
 
+    static bool all;
+    subcom->add_flag("--all", all, "Log out from all hosts");
+
     subcom->callback(
         []()
         {
+            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
+            fs::path auth_file = path / "authentication.json";
+
+            if (all)
+            {
+                if (fs::exists(auth_file))
+                    fs::remove(auth_file);
+                return 0;
+            }
             auto token_base = get_token_base(host);
 
             nlohmann::json auth_info;
 
-            static auto path = mamba::env::home_directory() / ".mamba" / "auth";
-            fs::path auth_file = path / "authentication.json";
-            if (fs::exists(auth_file))
+            try
             {
-                auto fi = mamba::open_ifstream(auth_file);
-                fi >> auth_info;
-            }
+                if (fs::exists(auth_file))
+                {
+                    auto fi = mamba::open_ifstream(auth_file);
+                    fi >> auth_info;
+                }
 
-            auto it = auth_info.find(host);
-            if (it != auth_info.end())
-            {
-                auth_info.erase(it);
-                std::cout << "Logged out from " << token_base << std::endl;
+                auto it = auth_info.find(host);
+                if (it != auth_info.end())
+                {
+                    auth_info.erase(it);
+                    std::cout << "Logged out from " << token_base << std::endl;
+                }
+                else
+                {
+                    std::cout << "You are not logged in to " << token_base << std::endl;
+                }
             }
-            else
+            catch (std::exception& e)
             {
-                std::cout << "You are not logged in to " << token_base << std::endl;
+                LOG_ERROR << "Could not parse " << auth_file;
+                LOG_ERROR << e.what();
+                return 1;
             }
 
             auto fo = mamba::open_ofstream(auth_file);
             fo << auth_info;
+            return 0;
         });
 }
 
@@ -112,47 +132,58 @@ set_login_command(CLI::App* subcom)
             static auto path = mamba::env::home_directory() / ".mamba" / "auth";
             fs::create_directories(path);
 
+
             nlohmann::json auth_info;
-
             fs::path auth_file = path / "authentication.json";
-            if (fs::exists(auth_file))
-            {
-                auto fi = mamba::open_ifstream(auth_file);
-                fi >> auth_info;
-            }
-            else
-            {
-                auth_info = nlohmann::json::object();
-            }
-            nlohmann::json auth_object = nlohmann::json::object();
 
-            if (pass.empty() && token.empty())
+            try
             {
-                throw std::runtime_error("No password or token given.");
-            }
+                if (fs::exists(auth_file))
+                {
+                    auto fi = mamba::open_ifstream(auth_file);
+                    fi >> auth_info;
+                }
+                else
+                {
+                    auth_info = nlohmann::json::object();
+                }
+                nlohmann::json auth_object = nlohmann::json::object();
 
-            if (!pass.empty())
+                if (pass.empty() && token.empty())
+                {
+                    throw std::runtime_error("No password or token given.");
+                }
+
+                if (!pass.empty())
+                {
+                    auth_object["type"] = "BasicHTTPAuthentication";
+
+                    auto pass_encoded = mamba::encode_base64(mamba::strip(pass));
+                    if (!pass_encoded)
+                        throw pass_encoded.error();
+
+                    auth_object["password"] = pass_encoded.value();
+                    auth_object["user"] = user;
+                }
+                else if (!token.empty())
+                {
+                    auth_object["type"] = "CondaToken";
+                    auth_object["token"] = mamba::strip(token);
+                }
+
+                auth_info[token_base] = auth_object;
+            }
+            catch (std::exception& e)
             {
-                auth_object["type"] = "BasicHTTPAuthentication";
-
-                auto pass_encoded = mamba::encode_base64(mamba::strip(pass));
-                if (!pass_encoded)
-                    throw pass_encoded.error();
-
-                auth_object["password"] = pass_encoded.value();
-                auth_object["user"] = user;
+                LOG_ERROR << "Could not modify " << auth_file;
+                LOG_ERROR << e.what();
+                return 1;
             }
-            else if (!token.empty())
-            {
-                auth_object["type"] = "CondaToken";
-                auth_object["token"] = mamba::strip(token);
-            }
-
-            auth_info[token_base] = auth_object;
 
             auto out = mamba::open_ofstream(auth_file);
             out << auth_info.dump(4);
             std::cout << "Successfully stored login information" << std::endl;
+            return 0;
         });
 }
 

@@ -272,11 +272,7 @@ PYBIND11_MODULE(bindings, m)
         .def("cache_path",
              [](const MSubdirData& self) -> std::string
              {
-                 auto cp = self.cache_path();
-                 if (cp)
-                     return cp.value();
-                 else
-                     throw cp.error();
+                 return extract(self.cache_path());
              });
 
     m.def("cache_fn_url", &cache_fn_url);

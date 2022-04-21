@@ -1,3 +1,28 @@
+micromamba 0.23.0 (April 21, 2022)
+==================================
+
+This release uses tl::expected for some improvements in the error handling.
+We also cleaned the API a bit and did some refactorings to make the code compile faster and clean up headers.
+
+Bug fixes
+
+- Do not clean env when running post-link scripts (fixes Qt install on Windows) #1630
+- Fix powershell activation in strict mode (thanks @mkessler) #1633
+
+Enhancements
+
+- Add `micromamba auth login / logout` commands
+- Add support for new conda-lock yml file format (thanks @Klaim) #1577
+- Use cli11 2.2.0 #1626
+- Use sscache to speed up builds (thanks @jonashaag) #1606
+- Upgrade black
+- Use bin2header to inline the various scripts (thanks @jonashaag) #1601
+- Fix JSON output issues (thanks @Klaim) #1600
+- Refactor the include chain, headers cleanup (thanks @JohanMabille) #1588, #1592, #1590
+- Refactor error handling (thanks @JohanMabille) #1579
+- Add tests for micromamba run (thanks @Klaim) #1564
+- Also complete for micromamba deactivate #1577
+
 micromamba 0.22.0 (February 25, 2022)
 =====================================
 

@@ -1,3 +1,38 @@
+2022.04.21
+==========
+
+Releases: libmamba 0.23.0, libmambapy 0.23.0, mamba 0.23.0, micromamba 0.23.0
+
+This release uses tl::expected for some improvements in the error handling.
+We also cleaned the API a bit and did some refactorings to make the code compile faster and clean up headers.
+
+Bug fixes
+- [micromamba] Do not clean env when running post-link scripts (fixes Qt install on Windows) #1630
+- [micromamba] Fix powershell activation in strict mode (thanks @mkessler) #1633
+
+Enhancements
+- [micromamba] Add `micromamba auth login / logout` commands
+- [micromamba] Add support for new conda-lock yml file format (thanks @Klaim) #1577
+- [libmamba, libmambapy] Make user agent configurable through Context
+- [micromamba] Use cli11 2.2.0 #1626
+- [libmamba] Correct header casing for macOS (thanks @l2dy) #1613
+- [libmamba] Log the thrown error when validating cache (thanks @johnhany97) #1608
+- [all] Use sscache to speed up builds (thanks @jonashaag) #1606
+- [all] Upgrade black
+- [micromamba, libmamba] Use bin2header to inline the various scripts (thanks @jonashaag) #1601
+- [micromamba] Fix JSON output issues (thanks @Klaim) #1600
+- [all] Refactor the include chain, headers cleanup (thanks @JohanMabille) #1588, #1592, #1590
+- [mamba] Remove import of init_std_stream_encoding (thanks @jezdez) #1589
+- [all] Refactor error handling (thanks @JohanMabille) #1579
+- [libmamba] Do not store multi pkgs cache in subdir anymore #1572
+- [libmambapy] Add structured problem extraction #1570, #1566
+- [micromamba] Add tests for micromamba run (thanks @Klaim) #1564
+- [libmamba, libmambapy] Add API to remove repo from pool
+- [libmamba] Store channel in subdirdata and libsolv repo appdata
+- [libmamba] Remove prefixdata.load() #1555
+- [libmamba] Remove prefixdata from solver interface #1550
+- [micromamba] Also complete for micromamba deactivate #1577
+
 2022.02.28
 ==========
 

@@ -1,3 +1,17 @@
+mamba 0.23.0 (April 21, 2022)
+=============================
+
+This release uses tl::expected for some improvements in the error handling.
+We also cleaned the API a bit and did some refactorings to make the code compile faster and clean up headers.
+
+Enhancements
+
+- Use sscache to speed up builds (thanks @jonashaag) #1606
+- Upgrade black
+- Refactor the include chain, headers cleanup (thanks @JohanMabille) #1588, #1592, #1590
+- Remove import of init_std_stream_encoding (thanks @jezdez) #1589
+- Refactor error handling (thanks @JohanMabille) #1579
+
 mamba 0.22.1 (February 28, 2022)
 ================================
 

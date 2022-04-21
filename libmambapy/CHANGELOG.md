@@ -1,3 +1,19 @@
+libmambapy 0.23.0 (April 21, 2022)
+==================================
+
+This release uses tl::expected for some improvements in the error handling.
+We also cleaned the API a bit and did some refactorings to make the code compile faster and clean up headers.
+
+Enhancements
+
+- Make user agent configurable through Context
+- Use sscache to speed up builds (thanks @jonashaag) #1606
+- Upgrade black
+- Refactor the include chain, headers cleanup (thanks @JohanMabille) #1588, #1592, #1590
+- Refactor error handling (thanks @JohanMabille) #1579
+- Add structured problem extraction #1570, #1566
+- Add API to remove repo from pool
+
 libmambapy 0.22.1 (February 28, 2022)
 =====================================
 

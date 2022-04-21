@@ -1,3 +1,25 @@
+libmamba 0.23.0 (April 21, 2022)
+================================
+
+This release uses tl::expected for some improvements in the error handling.
+We also cleaned the API a bit and did some refactorings to make the code compile faster and clean up headers.
+
+Enhancements
+
+- Make user agent configurable through Context
+- Correct header casing for macOS (thanks @l2dy) #1613
+- Log the thrown error when validating cache (thanks @johnhany97) #1608
+- Use sscache to speed up builds (thanks @jonashaag) #1606
+- Upgrade black
+- Use bin2header to inline the various scripts (thanks @jonashaag) #1601
+- Refactor the include chain, headers cleanup (thanks @JohanMabille) #1588, #1592, #1590
+- Refactor error handling (thanks @JohanMabille) #1579
+- Do not store multi pkgs cache in subdir anymore #1572
+- Add API to remove repo from pool
+- Store channel in subdirdata and libsolv repo appdata
+- Remove prefixdata.load() #1555
+- Remove prefixdata from solver interface #1550
+
 libmamba 0.22.1 (February 28, 2022)
 ===================================
 

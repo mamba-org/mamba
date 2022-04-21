@@ -88,4 +88,19 @@ namespace mamba
         EXPECT_FALSE(is_yaml_file_name(fs::path{ "../../some/dir/something" }.string()));
     }
 
+    TEST(utils, encode_decode_base64)
+    {
+        for (std::size_t i = 1; i < 20; ++i)
+        {
+            for (std::size_t j = 0; j < 5; ++j)
+            {
+                std::string r = mamba::generate_random_alphanumeric_string(i);
+                auto e = encode_base64(r);
+                EXPECT_TRUE(e);
+                auto x = decode_base64(e.value());
+                EXPECT_TRUE(x);
+                EXPECT_EQ(r, x.value());
+            }
+        }
+    }
 }

@@ -68,8 +68,13 @@ namespace mamba
         , m_package_info(pkg_info)
     {
         m_filename = pkg_info.fn;
-        m_channel = pkg_info.channel;
-        m_url = pkg_info.url;
+
+        // only do this for micromamba for now
+        if (Context::instance().is_micromamba)
+            m_url = make_channel(pkg_info.url).urls(true)[0];
+        else
+            m_url = pkg_info.url;
+
         m_name = pkg_info.name;
 
         m_expected_size = pkg_info.size;
@@ -304,6 +309,14 @@ namespace mamba
         {
             m_download_bar.repr().postfix.set_value("Downloaded").deactivate();
             m_download_bar.mark_as_completed();
+        }
+
+        if (m_target->http_status >= 400)
+        {
+            LOG_ERROR << "Failed to download package from " << m_url << " (status "
+                      << m_target->http_status << ")";
+            m_validation_result = VALIDATION_RESULT::UNDEFINED;
+            return false;
         }
 
         LOG_INFO << "Download finished, validating '" << m_tarball_path.string() << "'";
@@ -1108,16 +1121,6 @@ namespace mamba
         for (auto& s : m_to_install)
         {
             MRepo* mamba_repo = reinterpret_cast<MRepo*>(s->repo->appdata);
-
-            std::string url;
-            if (mamba_repo == nullptr || mamba_repo->url() == "")
-            {
-                // use fallback mediadir / mediafile
-                // this happens with explicit transactions
-                url = solvable_lookup_str(s, SOLVABLE_MEDIADIR);
-                if (url.empty())
-                    throw std::runtime_error("Repo not associated.");
-            }
 
             if (ctx.experimental && ctx.verify_artifacts)
             {

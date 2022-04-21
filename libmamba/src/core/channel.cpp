@@ -22,6 +22,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/core/environment.hpp"
 
 
 namespace mamba
@@ -202,8 +203,9 @@ namespace mamba
                 base = join_url(base, "t", *token());
             }
 
+            std::string platform = m_platforms[0];
             return { { build_url(
-                *this, join_url(base, name(), *package_filename()), with_credential) } };
+                *this, join_url(base, name(), platform, *package_filename()), with_credential) } };
         }
         else
         {
@@ -385,10 +387,16 @@ namespace mamba
             auto token_base = concat_scheme_url(chan.scheme(), chan.location());
             if (!chan.token())
             {
-                auto it = ctx.channel_tokens.find(token_base);
-                if (it != ctx.channel_tokens.end())
+                auto it = ctx.authentication_info().find(token_base);
+                if (it != ctx.authentication_info().end()
+                    && it->second.type == AuthenticationType::kCondaToken)
                 {
-                    chan.m_token = it->second;
+                    chan.m_token = it->second.value;
+                }
+                else if (it != ctx.authentication_info().end()
+                         && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                {
+                    chan.m_auth = it->second.value;
                 }
             }
             res = get_cache().insert(std::make_pair(value, std::move(chan))).first;
@@ -853,44 +861,4 @@ namespace mamba
                 ChannelBuilder::make_simple_channel(m_channel_alias, ch.second, ch.first));
         }
     }
-
-    void load_tokens()
-    {
-        auto& ctx = Context::instance();
-        std::vector<fs::path> found_tokens;
-
-        for (const auto& loc : ctx.token_locations)
-        {
-            auto px = env::expand_user(loc);
-            if (!fs::exists(px) || !fs::is_directory(px))
-            {
-                continue;
-            }
-            for (const auto& entry : fs::directory_iterator(px))
-            {
-                if (ends_with(entry.path().filename().string(), ".token"))
-                {
-                    found_tokens.push_back(entry.path());
-                    std::string token_url = decode_url(entry.path().filename());
-
-                    // anaconda client writes out a token for https://api.anaconda.org...
-                    // but we need the token for https://conda.anaconda.org
-                    // conda does the same
-                    std::size_t api_pos = token_url.find("://api.");
-                    if (api_pos != std::string::npos)
-                    {
-                        token_url.replace(api_pos, 7, "://conda.");
-                    }
-
-                    // cut ".token" ending
-                    token_url = token_url.substr(0, token_url.size() - 6);
-
-                    std::string token_content = read_contents(entry.path());
-                    ctx.channel_tokens[token_url] = token_content;
-                    LOG_INFO << "Found token for " << token_url;
-                }
-            }
-        }
-    }
-
 }  // namespace mamba

@@ -401,12 +401,15 @@ namespace mamba
            std::runtime_error(err.what());
                                 });*/
         auto exp_load = load_channels(pool, package_caches, is_retry);
-        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
-        if (!exp_load || !exp_prefix_data)
+        if (!exp_load)
         {
-            const char* msg = !exp_load ? exp_load.error().what() : exp_prefix_data.error().what();
-            // TODO: propagate tl::expected mechanism
-            throw std::runtime_error(msg);
+            throw std::runtime_error(exp_load.error().what());
+        }
+
+        auto exp_prefix_data = PrefixData::create(ctx.target_prefix);
+        if (!exp_prefix_data)
+        {
+            throw std::runtime_error(exp_prefix_data.error().what());
         }
         PrefixData& prefix_data = exp_prefix_data.value();
 

@@ -25,6 +25,7 @@ namespace mamba
         repodata_not_loaded,
         configurable_bad_cast,
         env_lockfile_parsing_failed,
+        openssl_failed,
     };
 
     class mamba_error : public std::runtime_error
@@ -58,7 +59,7 @@ namespace mamba
     private:
         error_list_t m_error_list;
         mutable std::string m_aggregated_message;
-        constexpr static const char* m_base_message = "Many errors occured:\n";
+        constexpr static const char* m_base_message = "Multiple errors occured:\n";
     };
 
     /********************************

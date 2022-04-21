@@ -18,8 +18,6 @@
 
 namespace mamba
 {
-    void load_tokens();
-
     class Channel
     {
     public:

@@ -85,7 +85,7 @@ namespace mamba
         ProgressProxy m_download_bar, m_extract_bar;
         std::unique_ptr<DownloadTarget> m_target;
 
-        std::string m_url, m_name, m_channel, m_filename;
+        std::string m_url, m_name, m_filename;
         fs::path m_tarball_path, m_cache_path;
 
         std::future<bool> m_extract_future;

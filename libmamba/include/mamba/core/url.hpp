@@ -140,7 +140,7 @@ namespace mamba
         template <class... Args>
         inline std::string join_url_impl(std::string& s1, const char* s2, const Args&... args)
         {
-            if (s1.back() != '/')
+            if (s1.size() && s1.back() != '/')
             {
                 s1 += '/';
             }

@@ -99,6 +99,20 @@ def info(*args):
     return res.decode()
 
 
+def login(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "auth", "login"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+    return res.decode()
+
+
+def logout(*args):
+    umamba = get_umamba()
+    cmd = [umamba, "auth", "logout"] + [arg for arg in args if arg]
+    res = subprocess.check_output(cmd)
+    return res.decode()
+
+
 def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "install", "-y"] + [arg for arg in args if arg]

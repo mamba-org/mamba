@@ -8,6 +8,7 @@
 #define MAMBA_CORE_UTIL_HPP
 
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/error_handling.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -207,6 +208,9 @@ namespace mamba
     // Note: this function only works for non-unicode!
     std::string to_upper(const std::string_view& input);
     std::string to_lower(const std::string_view& input);
+
+    tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input);
+    tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input);
 
     namespace concat_impl
     {

@@ -269,7 +269,8 @@ PYBIND11_MODULE(bindings, m)
             },
             py::return_value_policy::reference)
         .def("loaded", &MSubdirData::loaded)
-        .def("cache_path", &MSubdirData::cache_path);
+        .def("cache_path",
+             [](const MSubdirData& self) -> std::string { return extract(self.cache_path()); });
 
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);

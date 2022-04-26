@@ -37,7 +37,7 @@ namespace mamba
         MainExecutor();
 
         // Closes (see `close()`) and unregister itself as the main executor.
-        // Could be
+        // Blocks until all scheduled tasks are done and all resources are released (threads joined).
         ~MainExecutor();
 
         // Returns a reference to the current main executor.
@@ -53,7 +53,7 @@ namespace mamba
         static void stop_default();
 
         // Schedules a task for execution.
-        // The task must be a callable which takes either the provided arugments or none.
+        // The task must be a callable which takes either the provided arguments or none.
         // If this executor is open, the task is scheduled for execution and will be called
         // as soon as execution resources are available. The call to the task is not garanteed
         // to have been done at the end of the execution of this function, nor before.

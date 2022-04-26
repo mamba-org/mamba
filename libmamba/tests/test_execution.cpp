@@ -35,9 +35,12 @@ namespace mamba
 
     TEST(execution, stop_default_always_succeeds)
     {
-        // This will also make sure that the following tests are not running
-        MainExecutor::stop_default();
+        MainExecutor::stop_default(); // Make sure no other default main executor is running.
+        MainExecutor::instance();     // Make sure we use the defaut main executor.
+        MainExecutor::stop_default(); // Stop the default main executor and make sure it's not enabled for the following tests.
+        MainExecutor::stop_default(); // However the number of time we call it it should never fail.
     }
+
 
     TEST(execution, manual_executor_construction_destruction)
     {

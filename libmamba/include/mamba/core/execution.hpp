@@ -37,7 +37,8 @@ namespace mamba
         MainExecutor();
 
         // Closes (see `close()`) and unregister itself as the main executor.
-        // Blocks until all scheduled tasks are done and all resources are released (threads joined).
+        // Blocks until all scheduled tasks are done and all resources are released (threads
+        // joined).
         ~MainExecutor();
 
         // Returns a reference to the current main executor.

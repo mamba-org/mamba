@@ -70,6 +70,7 @@ namespace mamba
 
         void set_result(CURLcode r);
         bool finalize();
+        string get_failled_result();
 
         bool can_retry();
         CURL* retry();

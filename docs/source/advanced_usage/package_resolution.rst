@@ -16,13 +16,13 @@ The pruning and sorting works as follows (implemented in ``policy.c`` in libsolv
 **solver_prune_to_highest_prio**
 
 - if strict channel priority is activated, we prune (filter) packages not belonging to the highest prio channel
-- if a solvable is installed, it is sorted to the front and preffered
+- if a solvable is installed, it is sorted to the front and preferred
 
 **prune_to_best_version_conda**
 
 - we first sort by track_feature: if a package has a track_feature, it's sorted to the bottom
 - next we sort by version -- highest versions first (in libsolv, a version string is called ``evr`` which stands for epoch/version/release)
-- then we sort by the sub-priority of the repository, preffering the repo with higher sub-priority
+- then we sort by the sub-priority of the repository, preferring the repo with higher sub-priority
 - next we compare the build number
 
 Now, if multiple packages with the same build number are found, libsolv will create "variant" branches. The variants are also sorted, according to the following:

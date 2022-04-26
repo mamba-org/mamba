@@ -1,0 +1,20 @@
+name: mamba-dev
+channels:
+  - conda-forge
+dependencies:
+  - yaml-cpp-static
+  - libcurl=7.82.0=*_0
+  - libcurl-static=7.82.0 *_0
+  - xz-static
+  - libssh2-static
+  - libarchive=3.3
+  - krb5-static
+  - libsolv-static
+  - zstd-static
+  - libnghttp2-static
+  - lz4-c-static
+  - reproc-static
+  - reproc-cpp
+  - reproc-cpp-static
+  - openssl 1.1.1*
+  - libopenssl-static 1.1.1*

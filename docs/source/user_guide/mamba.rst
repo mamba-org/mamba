@@ -37,6 +37,7 @@ Once an environment is activated, ``mamba install`` can be used to install furth
 
     conda activate myjlabenv
     mamba install bqplot  # now you can use bqplot in myjlabenv
+    mamba install "matplotlib>=3.5.0" cartopy  # now you installed matplotlib with version>=3.5.0 and default version of cartopy
 
 ``mamba`` vs ``conda`` CLIs
 ===========================

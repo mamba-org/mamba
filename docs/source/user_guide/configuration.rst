@@ -73,7 +73,7 @@ The resulting configuration written using `YAML` syntax is:
 Multiple rc files
 -----------------
 
-A user may have multiple rc files located at different places on his machine.
+A user may have multiple rc files located at different places on their machine.
 
 It's a convenient way for configuration to apply in given scopes:
 

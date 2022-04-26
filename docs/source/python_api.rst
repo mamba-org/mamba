@@ -52,11 +52,10 @@ Here is an example usage of the mamba_api:
                 name_and_subdir = channel.name + "/" + channel.subdir
             sd = mamba_api.SubdirData(name_and_subdir, full_url, full_path_cache)
 
-            sd.load()
             index.append((sd, channel))
             dlist.add(sd)
 
-        is_downloaded = dlist.download(True)
+        is_downloaded = dlist.download(mamba_api.MAMBA_DOWNLOAD_FAILFAST)
 
         if not is_downloaded:
             raise RuntimeError("Error downloading repodata.")

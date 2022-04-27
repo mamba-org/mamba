@@ -15,6 +15,8 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/util_scope.hpp"
+#include "../src/core/progress_bar_impl.hpp"  // FIXME: HACK HACK HACK
 
 #include <CLI/CLI.hpp>
 
@@ -26,6 +28,7 @@ int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
+    mamba::on_scope_exit _cleanup{ [] { Console::instance().progress_bar_manager().terminate(); } };
 
     init_console();
     auto& ctx = Context::instance();

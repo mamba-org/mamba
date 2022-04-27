@@ -642,12 +642,6 @@ namespace mamba
 
     bool DownloadTarget::finalize()
     {
-        auto cres = curl_easy_getinfo(m_handle, CURLINFO_SPEED_DOWNLOAD_T, &avg_speed);
-        if (cres != CURLE_OK)
-        {
-            avg_speed = 0;
-        }
-
         avg_speed = get_speed();
         curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &http_status);
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
@@ -713,7 +707,7 @@ namespace mamba
         return ret;
     }
 
-    std::string DownloadTarget::get_failled_transfer_msg()
+    std::string DownloadTarget::get_failed_transfer_msg()
     {
          std::stringstream ss;
          ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "

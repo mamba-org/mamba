@@ -12,6 +12,7 @@
 
 #include <iosfwd>
 #include <mutex>
+#include <atomic>
 #include <set>
 #include <string_view>
 #include <vector>
@@ -201,7 +202,8 @@ namespace mamba
         duration_t m_period = std::chrono::milliseconds(100);
         std::vector<progress_bar_ptr> m_progress_bars = {};
         std::map<std::string, std::vector<ProgressBar*>> m_labels;
-        bool m_marked_to_terminate = false, m_watch_print_started = false;
+        std::atomic<bool> m_marked_to_terminate { false };
+        std::atomic<bool> m_watch_print_started { false };
         bool m_sort_bars = false;
         std::size_t m_width = 0;
 

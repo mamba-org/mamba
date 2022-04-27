@@ -42,6 +42,7 @@ extern "C"
 #include "mamba/core/util.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
 
@@ -1021,7 +1022,7 @@ namespace mamba
                 return signum;
             });
 
-        t.detach();
+        MainExecutor::instance().take_ownership(std::move(t.extract()));
 
         {
             std::unique_lock<std::mutex> l(m);

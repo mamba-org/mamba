@@ -155,6 +155,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/validate.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp

@@ -653,7 +653,7 @@ namespace mamba
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-        LOG_INFO << get_failled_transfer_msg();
+        LOG_INFO << get_failed_transfer_msg();
 
         if (http_status >= 500 && can_retry())
         {

@@ -78,7 +78,7 @@ namespace mamba
 
         void set_result(CURLcode r);
         bool finalize();
-        std::string get_failled_result();
+        std::string get_failed_transfer_msg();
 
         bool can_retry();
         CURL* retry();

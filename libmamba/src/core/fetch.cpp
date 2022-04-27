@@ -709,11 +709,10 @@ namespace mamba
 
     std::string DownloadTarget::get_failed_transfer_msg()
     {
-         std::stringstream ss;
-         ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
+        std::stringstream ss;
+        ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
            << downloaded_size << " bytes";
-         return ss.str();
-
+        return ss.str();
     }
 
     /**************************************
@@ -804,7 +803,6 @@ namespace mamba
                                                      + current_target->get_failed_transfer_msg());
                         }
                     }
-
                 }
             }
         }

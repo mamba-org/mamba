@@ -653,7 +653,7 @@ namespace mamba
         curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
         curl_easy_getinfo(m_handle, CURLINFO_SIZE_DOWNLOAD_T, &downloaded_size);
 
-        LOG_INFO << get_failled_result();
+        LOG_INFO << get_failled_transfer_msg();
 
         if (http_status >= 500 && can_retry())
         {
@@ -713,12 +713,12 @@ namespace mamba
         return ret;
     }
 
-    std::string DownloadTarget::get_failled_result()
+    std::string DownloadTarget::get_failled_transfer_msg()
     {
-        std::stringstream ss;
-        ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
-                 << downloaded_size << " bytes";
-        return ss.str();
+         std::stringstream ss;
+         ss << "Transfer finalized, status: " << http_status << " [" << effective_url << "] "
+           << downloaded_size << " bytes";
+         return ss.str();
 
     }
 
@@ -806,7 +806,8 @@ namespace mamba
                     {
                         if (failfast && current_target->ignore_failure() == false)
                         {
-                            throw std::runtime_error("Multi-download failed. Reason: " + current_target->get_failled_result());
+                            throw std::runtime_error("Multi-download failed. Reason: "
+                                                     + current_target->get_failed_transfer_msg());
                         }
                     }
 

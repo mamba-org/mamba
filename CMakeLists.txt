@@ -24,6 +24,9 @@ option(BUILD_LIBMAMBA_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_MICROMAMBA "Build micromamba" OFF)
 option(BUILD_MAMBA_PACKAGE "Build mamba package utility" OFF)
 
+set(CMAKE_CXX_FLAGS "-Os -g" ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "-Os -g" ${CMAKE_C_FLAGS}")
+
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX")
     set(CMAKE_BUILD_TYPE Release)

@@ -13,6 +13,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/execution.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -272,6 +273,7 @@ namespace mamba
         : p_data(new ConsoleData())
     {
         init_progress_bar_manager(ProgressBarMode::multi);
+        MainExecutor::instance().on_close([this]{ terminate_progress_bar_manager(); });
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -408,6 +410,14 @@ namespace mamba
         p_data->p_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
 
         return *(p_data->p_progress_bar_manager);
+    }
+
+    void Console::terminate_progress_bar_manager()
+    {
+        if(p_data->p_progress_bar_manager)
+        {
+            p_data->p_progress_bar_manager->terminate();
+        }
     }
 
     ProgressBarManager& Console::progress_bar_manager()

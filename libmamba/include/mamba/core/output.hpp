@@ -121,6 +121,7 @@ namespace mamba
         void clear_progress_bars();
         ProgressBarManager& init_progress_bar_manager(ProgressBarMode mode
                                                       = ProgressBarMode::multi);
+        void terminate_progress_bar_manager();
         ProgressBarManager& progress_bar_manager();
 
         static std::string hide_secrets(const std::string_view& str);

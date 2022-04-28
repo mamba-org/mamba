@@ -64,11 +64,13 @@ namespace mamba
         template <typename Task, typename... Args>
         void schedule(Task&& task, Args&&... args)
         {
-            if (is_open)
+            if (!is_open)
+                return;
+
+            std::scoped_lock lock{ threads_mutex };
+            if (is_open)  // Double check necessary for correctness
             {
-                std::scoped_lock lock{ mutex };
-                if (is_open)  // Double check necessary for correctness
-                    threads.emplace_back(std::forward<Task>(task), std::forward<Args>(args)...);
+                threads.emplace_back(std::forward<Task>(task), std::forward<Args>(args)...);
             }
         }
 
@@ -81,11 +83,13 @@ namespace mamba
         // resulting in a call to `std::terminate()` if the thread is not already joined.
         void take_ownership(std::thread thread)
         {
-            if (thread.joinable() && is_open)
+            if (!thread.joinable() || !is_open)
+                return;
+
+            std::scoped_lock lock{ threads_mutex };
+            if (is_open)  // Double check necessary for correctness
             {
-                std::scoped_lock lock{ mutex };
-                if (is_open)  // Double check necessary for correctness
-                    threads.push_back(std::move(thread));
+                threads.push_back(std::move(thread));
             }
         }
 
@@ -99,18 +103,41 @@ namespace mamba
         // manually determine the lifetime of the executor's resources.
         void close()
         {
-            is_open = false;
+            bool expected = true;
+            if(!is_open.compare_exchange_strong(expected, false))
+                return;
 
-            std::scoped_lock lock{ mutex };
+            invoke_close_handlers();
+
+            std::scoped_lock lock{ threads_mutex };
             for (auto&& t : threads)
                 t.join();
             threads.clear();
         }
 
+        using on_close_handler = std::function<void()>;
+
+        void on_close(on_close_handler handler)
+        {
+            if(!is_open)
+                return;
+
+            std::scoped_lock lock{ handlers_mutex };
+            if(is_open) // Double check needed to avoid adding new handles while closing.
+            {
+                close_handlers.push_back(std::move(handler));
+            }
+        }
+
     private:
         std::atomic<bool> is_open{ true };
         std::vector<std::thread> threads;
-        std::recursive_mutex mutex;
+        std::recursive_mutex threads_mutex; // TODO: replace by synchronized_value once available
+
+        std::vector<on_close_handler> close_handlers;
+        std::recursive_mutex handlers_mutex; // TODO: replace by synchronized_value once available
+
+        void invoke_close_handlers();
     };
 
 

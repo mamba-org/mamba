@@ -336,7 +336,7 @@ namespace validate
         std::string timestamp();
 
         TimeRef();
-        ~TimeRef() = default;
+        ~TimeRef();
     private:
 
         std::time_t m_time_ref;

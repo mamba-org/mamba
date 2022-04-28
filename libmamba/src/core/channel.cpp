@@ -765,6 +765,8 @@ namespace mamba
         init_custom_channels();
     }
 
+    ChannelContext::~ChannelContext() = default;
+
     Channel ChannelContext::build_channel_alias()
     {
         auto& ctx = Context::instance();

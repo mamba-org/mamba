@@ -12,6 +12,8 @@
 #include "mamba/core/util.hpp"
 
 #include "openssl/evp.h"
+#include "spdlog/fmt/fmt.h"
+
 
 #include <vector>
 #include <stdexcept>
@@ -22,6 +24,7 @@
 
 namespace mamba
 {
+
 
     template <class B>
     std::vector<unsigned char> hex_to_bytes(const B& buffer, std::size_t size) noexcept
@@ -521,6 +524,8 @@ namespace validate
         : m_time_ref(mamba::utc_time_now())
     {
     }
+
+    TimeRef::~TimeRef() = default;
 
     void TimeRef::set(const std::time_t& time)
     {

@@ -1541,6 +1541,8 @@ namespace mamba
                    .description("Disable the use of environment variables"));
     }
 
+    Configuration::~Configuration() = default;
+
     void Configuration::reset_configurables()
     {
         m_config.clear();

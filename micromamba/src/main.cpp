@@ -74,7 +74,7 @@ main(int argc, char** argv)
     }
     ctx.current_command = full_command.str();
 
-    bool err = false;
+    std::optional<std::string> error_to_report;
     try
     {
         CLI11_PARSE(app, argc, utf8argv);
@@ -92,11 +92,19 @@ main(int argc, char** argv)
     }
     catch (const std::exception& e)
     {
-        std::cout <<"FORCED ERROR LOG : " << e.what() << std::endl;
-        LOG_CRITICAL << e.what();
+        error_to_report = e.what();
         set_sig_interrupted();
-        err = true;
     }
+
     reset_console();
-    return err ? 1 : 0;
+
+    scoped_threads.close(); // We need to end all threads before reporting errors to avoid overlapping console progress bars.
+
+    if(error_to_report)
+    {
+        LOG_CRITICAL << error_to_report.value();
+        return 1; // TODO: consider returning EXIT_FAILURE
+    }
+
+    return 0;
 }

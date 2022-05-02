@@ -2,6 +2,7 @@
 #include <atomic>
 #include <mutex>
 #include <cassert>
+#include <regex>
 
 extern "C"
 {

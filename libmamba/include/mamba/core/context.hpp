@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <regex>
 
 #define ROOT_ENV_NAME "base"
 
@@ -229,6 +230,13 @@ namespace mamba
         std::vector<std::string> pinned_packages = {};
 
         bool use_only_tar_bz2 = false;
+
+
+        // usernames on anaconda.org can have a underscore, which influences the
+        // first two characters
+        const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        const std::regex http_basicauth_regex{ "://([^\\s]+):([^\\s]+)@" };
+        const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
 
         static Context& instance();
 

@@ -114,7 +114,11 @@ class MambaSolver:
 
 
 def install(
-    env_name: str, specs: tuple = (), channels: tuple = (), target_platform: str = None, base_prefix: str = None
+    env_name: str,
+    specs: tuple = (),
+    channels: tuple = (),
+    target_platform: str = None,
+    base_prefix: str = None,
 ):
     """Install packages in a given environment.
 
@@ -153,7 +157,11 @@ def install(
 
 
 def create(
-    env_name: str, specs: tuple = (), channels: tuple = (), target_platform: str = None, base_prefix: str = None
+    env_name: str,
+    specs: tuple = (),
+    channels: tuple = (),
+    target_platform: str = None,
+    base_prefix: str = None,
 ):
     """Create a mamba environment.
 

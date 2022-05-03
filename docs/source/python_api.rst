@@ -2,6 +2,24 @@
 Python API of ``mamba``
 =======================
 
+High-level Python API
+---------------------
+
+Mamba provides high-level Python APIs for creating environments and installing packages:
+
+.. code::
+
+    from mamba.api import create, install
+
+    # create(env_name, packages, channels)
+    create('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
+
+    # install(env_name, packages, channels)
+    install('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
+
+Using internal mamba APIs
+-------------------------
+
 The core of ``mamba`` is written in C++, but we expose the internals of mamba with a Python API (using ``pybind11``).
 
 You can import the ``mamba_api`` using ``from mamba import mamba_api``.

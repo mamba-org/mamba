@@ -5,7 +5,7 @@ import libmambapy
 
 from .utils import get_index, load_channels
 
-__all__ = ["create", "install"]
+__all__ = ["MambaSolver", "create", "install"]
 
 
 class MambaSolver:

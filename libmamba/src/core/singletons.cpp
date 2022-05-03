@@ -104,6 +104,8 @@ namespace mamba
             std::call_once(init_flag, [&]{
                 ptr = std::make_unique<T>();
             });
+            // In case the object was already created and destroyed, we make sure it is clearly visible (no undefined behavior).
+            if(!ptr) throw mamba::mamba_error(fmt::format("attempt to use {} singleton instance after destruction", typeid(T).name()), mamba_error_code::internal_failure);
         }
 
         static std::unique_ptr<Context> context;

@@ -141,6 +141,8 @@ def install(
     if base_prefix is None:
         base_prefix = os.environ.get("MAMBA_ROOT_PREFIX", sys.prefix)
 
+    base_prefix = pathlib.Path(base_prefix)
+
     prefix = base_prefix / "envs" / env_name
     (prefix / "conda-meta").mkdir(parents=True, exist_ok=True)
     (base_prefix / "pkgs").mkdir(parents=True, exist_ok=True)

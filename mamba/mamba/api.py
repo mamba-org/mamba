@@ -1,5 +1,6 @@
 import os
 import pathlib
+import sys
 
 import libmambapy
 
@@ -113,7 +114,7 @@ class MambaSolver:
 
 
 def install(
-    env_name: str, specs: tuple = (), channels: tuple = (), target_platform: str = None
+    env_name: str, specs: tuple = (), channels: tuple = (), target_platform: str = None, base_prefix: str = None
 ):
     """Install packages in a given environment.
 
@@ -125,18 +126,24 @@ def install(
         The list of spec strings e.g. ['xeus-python', 'matplotlib=3'].
     channels : tuple of str
         The channels from which to pull packages e.g. ['default', 'conda-forge'].
+    base_prefix : str
+        The base prefix where to create the environment, defaults to the current base prefix.
+
     Raises
     ------
     RuntimeError :
         If the solver did not find a solution or if the installation failed.
     """
-    prefix = pathlib.Path(os.environ["CONDA_PREFIX"]) / "envs" / env_name
+    if base_prefix is None:
+        base_prefix = os.environ.get("MAMBA_ROOT_PREFIX", sys.prefix)
+
+    prefix = base_prefix / "envs" / env_name
     (prefix / "conda-meta").mkdir(parents=True, exist_ok=True)
-    (prefix / "pkgs").mkdir(parents=True, exist_ok=True)
+    (base_prefix / "pkgs").mkdir(parents=True, exist_ok=True)
 
     context = libmambapy.Context()
     context.target_prefix = str(prefix)
-    context.pkgs_dirs = str(prefix / "pkgs")
+    context.pkgs_dirs = str(base_prefix / "pkgs")
 
     solver = MambaSolver(channels, target_platform, context)
 
@@ -146,7 +153,7 @@ def install(
 
 
 def create(
-    env_name: str, specs: tuple = (), channels: tuple = (), target_platform: str = None
+    env_name: str, specs: tuple = (), channels: tuple = (), target_platform: str = None, base_prefix: str = None
 ):
     """Create a mamba environment.
 
@@ -160,9 +167,12 @@ def create(
         The channels from which to pull packages e.g. ['default', 'conda-forge'].
     target_platform : str
         The target platform for the environment.
+    base_prefix : str
+        The base prefix where to create the environment, defaults to the current base prefix.
+
     Raises
     ------
     RuntimeError :
         If the solver did not find a solution or if the installation failed.
     """
-    return install(env_name, target_platform, specs)
+    return install(env_name, specs, channels, target_platform, base_prefix)

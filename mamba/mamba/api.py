@@ -130,17 +130,19 @@ def install(
     RuntimeError :
         If the solver did not find a solution or if the installation failed.
     """
-    prefix = "/home/martin/micromamba/envs/{}".format(env_name)
-    (pathlib.Path(prefix) / "conda-meta").mkdir(parents=True, exist_ok=True)
+    prefix = pathlib.Path(os.environ["CONDA_PREFIX"]) / "envs" / env_name
+    (prefix / "conda-meta").mkdir(parents=True, exist_ok=True)
+    (prefix / "pkgs").mkdir(parents=True, exist_ok=True)
 
     context = libmambapy.Context()
-    context.target_prefix = prefix
+    context.target_prefix = str(prefix)
+    context.pkgs_dirs = str(prefix / "pkgs")
 
     solver = MambaSolver(channels, target_platform, context)
 
     transaction = solver.solve(specs)
 
-    return transaction.execute(libmambapy.PrefixData(prefix))
+    return transaction.execute(libmambapy.PrefixData(str(prefix)))
 
 
 def create(

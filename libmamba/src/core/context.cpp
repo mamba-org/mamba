@@ -10,6 +10,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/execution.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -55,6 +56,10 @@ namespace mamba
 
     Context::Context()
     {
+        MainExecutor::instance().on_close(tasksync.synchronized([this]{
+            logger->flush();
+        }));
+
         on_ci = bool(env::get("CI"));
         root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");
         conda_prefix = root_prefix;
@@ -97,10 +102,7 @@ namespace mamba
         spdlog::set_level(convert_log_level(logging_level));
     }
 
-    Context::~Context()
-    {
-        logger->flush();
-    }
+    Context::~Context() = default;
 
     void Context::set_verbosity(int lvl)
     {

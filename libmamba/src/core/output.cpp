@@ -14,6 +14,7 @@
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/tasksync.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -267,13 +268,15 @@ namespace mamba
         bool is_json_print_cancelled = false;
 
         std::vector<std::string> m_buffer;
+
+        TaskSynchronizer tasksync;
     };
 
     Console::Console()
         : p_data(new ConsoleData())
     {
         init_progress_bar_manager(ProgressBarMode::multi);
-        MainExecutor::instance().on_close([this]{ terminate_progress_bar_manager(); });
+        MainExecutor::instance().on_close(p_data->tasksync.synchronized([this]{ terminate_progress_bar_manager(); }));
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);

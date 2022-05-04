@@ -9,6 +9,7 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/tasksync.hpp"
 #include "mamba/version.hpp"
 
 #include <map>
@@ -258,6 +259,8 @@ namespace mamba
         bool m_authentication_infos_loaded = false;
 
         std::shared_ptr<Logger> logger;
+
+        TaskSynchronizer tasksync;
     };
 }  // namespace mamba
 

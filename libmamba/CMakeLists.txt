@@ -220,6 +220,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp

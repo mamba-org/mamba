@@ -29,6 +29,7 @@ set(TEST_SRCS
     test_env_lockfile.cpp
     test_execution.cpp
     test_error_handling.cpp
+    test_tasksync.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

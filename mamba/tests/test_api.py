@@ -1,6 +1,6 @@
 import uuid
 
-from mamba.api import install, create
+from mamba.api import create, install
 
 
 def test_create(tmpdir):

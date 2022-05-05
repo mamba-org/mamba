@@ -656,6 +656,14 @@ namespace mamba
         if (can_retry())
         {
             // this request didn't work!
+
+            // respect Retry-After header if present, otherwise use default timeout
+            curl_easy_getinfo(m_handle, CURLINFO_RETRY_AFTER, &m_retry_wait_seconds);
+            if (!m_retry_wait_seconds)
+            {
+                m_retry_wait_seconds = get_default_retry_timeout();
+            }
+
             m_next_retry
                 = std::chrono::steady_clock::now() + std::chrono::seconds(m_retry_wait_seconds);
             std::stringstream msg;

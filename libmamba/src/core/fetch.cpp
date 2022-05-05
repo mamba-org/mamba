@@ -344,7 +344,8 @@ namespace mamba
 
     bool DownloadTarget::can_retry()
     {
-        return m_retries < size_t(Context::instance().max_retries) && http_status >= 500
+        return m_retries < size_t(Context::instance().max_retries)
+               && (http_status == 413 || http_status == 429 || http_status >= 500)
                && !starts_with(m_url, "file://");
     }
 
@@ -652,7 +653,7 @@ namespace mamba
         LOG_INFO << "Transfer finalized, status " << http_status << " [" << effective_url << "] "
                  << downloaded_size << " bytes";
 
-        if (http_status >= 500 && can_retry())
+        if (can_retry())
         {
             // this request didn't work!
             m_next_retry

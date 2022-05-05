@@ -9,8 +9,6 @@
 
 #include "channel.hpp"
 
-#include "spdlog/fmt/fmt.h"
-
 namespace mamba
 {
     struct ChannelCache : public std::map<std::string, Channel>

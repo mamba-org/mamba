@@ -98,7 +98,8 @@ main(int argc, char** argv)
 
     reset_console();
 
-    scoped_threads.close(); // We need to end all threads before reporting errors to avoid overlapping console progress bars.
+    // Make sure the progress bars are done before printing any potential error.
+    Console::instance().terminate_progress_bar_manager();
 
     if(error_to_report)
     {

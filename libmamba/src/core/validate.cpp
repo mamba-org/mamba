@@ -12,7 +12,6 @@
 #include "mamba/core/util.hpp"
 
 #include "openssl/evp.h"
-#include "spdlog/fmt/fmt.h"
 
 
 #include <vector>

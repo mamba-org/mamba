@@ -1,4 +1,5 @@
 import uuid
+from sys import platform
 
 from mamba.api import create, install
 
@@ -10,7 +11,10 @@ def test_create(tmpdir):
     create(env_name, ["python=3.8", "traitlets"], ["conda-forge"], base_prefix=tmpdir)
 
     assert env_dir.check()
-    assert (env_dir / "lib" / "python3.8" / "site-packages" / "traitlets").check()
+    if platform == "win32":
+        assert (env_dir / "lib" / "site-packages" / "traitlets").check()
+    else:
+        assert (env_dir / "lib" / "python3.8" / "site-packages" / "traitlets").check()
 
 
 def test_install(tmpdir):
@@ -21,5 +25,7 @@ def test_install(tmpdir):
     install(env_name, ["nodejs"], ["conda-forge"], base_prefix=tmpdir)
 
     assert env_dir.check()
-    assert (env_dir / "lib" / "python3.8" / "site-packages").check()
-    assert (env_dir / "bin" / "node").check()
+    if platform == "win32":
+        assert (env_dir / "lib" / "site-packages").check()
+    else:
+        assert (env_dir / "lib" / "python3.8" / "site-packages").check()

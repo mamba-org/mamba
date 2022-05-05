@@ -149,7 +149,7 @@ def install(
 
     context = libmambapy.Context()
     context.target_prefix = str(prefix)
-    context.pkgs_dirs = str(base_prefix / "pkgs")
+    context.pkgs_dirs = [str(base_prefix / "pkgs")]
 
     solver = MambaSolver(channels, target_platform, context)
 

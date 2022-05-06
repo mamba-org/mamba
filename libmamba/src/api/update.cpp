@@ -105,7 +105,7 @@ namespace mamba
             std::vector<std::string> pinned_str;
             for (auto& ms : solver.pinned_specs())
                 pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
-            Console::print("\nPinned packages:\n" + join("", pinned_str));
+            Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
         solver.solve();

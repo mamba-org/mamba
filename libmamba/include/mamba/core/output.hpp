@@ -109,9 +109,7 @@ namespace mamba
         Console& operator=(Console&&) = delete;
 
         static Console& instance();
-
         static ConsoleStream stream();
-        static void print(const std::string_view& str, bool force_print = false);
         static bool prompt(const std::string_view& message, char fallback = '_');
         static bool prompt(const std::string_view& message,
                            char fallback,
@@ -126,6 +124,7 @@ namespace mamba
 
         static std::string hide_secrets(const std::string_view& str);
 
+        void print(const std::string_view& str, bool force_print = false);
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);

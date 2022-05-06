@@ -314,12 +314,11 @@ namespace mamba
     {
         if (force_print || !(Context::instance().quiet || Context::instance().json))
         {
-            auto& data = instance().p_data;
-            const std::lock_guard<std::mutex> lock(data->m_mutex);
+            const std::lock_guard<std::mutex> lock(p_data->m_mutex);
 
-            if (data->p_progress_bar_manager && data->p_progress_bar_manager->started())
+            if (p_data->p_progress_bar_manager && p_data->p_progress_bar_manager->started())
             {
-                data->m_buffer.push_back(hide_secrets(str));
+                p_data->m_buffer.push_back(hide_secrets(str));
             }
             else
             {
@@ -384,7 +383,7 @@ namespace mamba
             if (response.compare("no") == 0 || response.compare("No") == 0
                 || response.compare("n") == 0 || response.compare("N") == 0)
             {
-                Console::print("Aborted.");
+                Console::instance().print("Aborted.");
                 return false;
             }
         }

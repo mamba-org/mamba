@@ -55,7 +55,7 @@ namespace mamba
         }
         else
         {
-            Console::print("Nothing to do.");
+            Console::instance().print("Nothing to do.");
         }
 
         config.operation_teardown();

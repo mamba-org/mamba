@@ -912,7 +912,7 @@ namespace mamba
 
         if (is_sig_interrupted())
         {
-            Console::print("Download interrupted");
+            Console::instance().print("Download interrupted");
             curl_multi_cleanup(m_handle);
             return false;
         }

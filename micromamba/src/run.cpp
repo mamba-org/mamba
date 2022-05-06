@@ -302,7 +302,7 @@ set_ps_command(CLI::App* subcom)
             }
             if (procs.empty())
             {
-                Console::print("Did not find any matching process.");
+                Console::instance().print("Did not find any matching process.");
                 return -1;
             }
             return 0;

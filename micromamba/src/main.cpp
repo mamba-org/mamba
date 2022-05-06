@@ -81,13 +81,13 @@ main(int argc, char** argv)
         if (app.get_subcommands().size() == 0)
         {
             Configuration::instance().load();
-            Console::print(app.help());
+            Console::instance().print(app.help());
         }
         if (app.got_subcommand("config")
             && app.get_subcommand("config")->get_subcommands().size() == 0)
         {
             Configuration::instance().load();
-            Console::print(app.get_subcommand("config")->help());
+            Console::instance().print(app.get_subcommand("config")->help());
         }
     }
     catch (const std::exception& e)

@@ -340,7 +340,7 @@ namespace mamba
         }
         else
         {
-            Console::print("Nothing to do.");
+            Console::instance().print("Nothing to do.");
         }
 
         config.operation_teardown();
@@ -458,7 +458,7 @@ namespace mamba
             std::vector<std::string> pinned_str;
             for (auto& ms : solver.pinned_specs())
                 pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
-            Console::print("\nPinned packages:\n" + join("", pinned_str));
+            Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
         bool success = solver.solve();
@@ -471,7 +471,7 @@ namespace mamba
                 return install_specs(specs, create_env, solver_flag, is_retry | RETRY_SOLVE_ERROR);
             }
             if (freeze_installed)
-                Console::print("Possible hints:\n  - 'freeze_installed' is turned on\n");
+                Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
 
             if (ctx.json)
             {
@@ -567,7 +567,7 @@ namespace mamba
         {
             detail::create_target_directory(prefix);
 
-            Console::print(join(
+            Console::instance().print(join(
                 "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix })));
             Console::instance().json_write({ { "success", true } });
         }

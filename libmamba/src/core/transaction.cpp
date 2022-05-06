@@ -1289,7 +1289,7 @@ namespace mamba
         if (Context::instance().json)
             return;
 
-        Console::print("Transaction\n");
+        Console::instance().print("Transaction\n");
         Console::stream() << "  Prefix: " << Context::instance().target_prefix.string() << "\n";
 
         // check size of transaction
@@ -1297,18 +1297,18 @@ namespace mamba
         {
             if (m_history_entry.update.size())
             {
-                Console::print("  All requested packages already installed\n");
+                Console::instance().print("  All requested packages already installed\n");
             }
             else
             {
-                Console::print("  Nothing to do\n");
+                Console::instance().print("  Nothing to do\n");
             }
             return;
         }
 
         if (m_history_entry.update.size())
         {
-            Console::print("  Updating specs:\n");
+            Console::instance().print("  Updating specs:\n");
             for (auto& s : m_history_entry.update)
             {
                 Console::stream() << "   - " << s;
@@ -1317,7 +1317,7 @@ namespace mamba
 
         if (m_history_entry.remove.size())
         {
-            Console::print("  Removing specs:\n");
+            Console::instance().print("  Removing specs:\n");
             for (auto& s : m_history_entry.remove)
             {
                 Console::stream() << "   - " << s;
@@ -1326,7 +1326,7 @@ namespace mamba
         Console::stream() << "\n";
         if (m_history_entry.update.empty() && m_history_entry.remove.empty())
         {
-            Console::print("  No specs added or removed.\n");
+            Console::instance().print("  No specs added or removed.\n");
         }
 
         printers::Table t({ "Package", "Version", "Build", "Channel", "Size" });

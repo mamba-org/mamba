@@ -407,8 +407,8 @@ namespace mamba
 
         Configuration();
         ~Configuration();
-    protected:
 
+    protected:
         Configuration(const Configuration&) = delete;
         Configuration& operator=(const Configuration&) = delete;
         Configuration(Configuration&&) = delete;

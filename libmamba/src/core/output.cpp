@@ -276,7 +276,8 @@ namespace mamba
         : p_data(new ConsoleData())
     {
         init_progress_bar_manager(ProgressBarMode::multi);
-        MainExecutor::instance().on_close(p_data->tasksync.synchronized([this]{ terminate_progress_bar_manager(); }));
+        MainExecutor::instance().on_close(
+            p_data->tasksync.synchronized([this] { terminate_progress_bar_manager(); }));
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -416,7 +417,7 @@ namespace mamba
 
     void Console::terminate_progress_bar_manager()
     {
-        if(p_data->p_progress_bar_manager)
+        if (p_data->p_progress_bar_manager)
         {
             p_data->p_progress_bar_manager->terminate();
         }
@@ -500,7 +501,7 @@ namespace mamba
      * MessageLogger *
      *****************/
 
-    struct MessageLoggerData // FIXME: HERE
+    struct MessageLoggerData
     {
         static std::mutex m_mutex;
         static bool use_buffer;

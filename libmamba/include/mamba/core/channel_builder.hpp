@@ -66,8 +66,8 @@ namespace mamba
 
         ChannelContext();
         ~ChannelContext();
-    private:
 
+    private:
         Channel build_channel_alias();
         void init_custom_channels();
 

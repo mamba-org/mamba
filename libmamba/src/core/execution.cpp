@@ -13,8 +13,9 @@ namespace mamba
         for (auto&& handler : close_handlers)
         {
             const auto result = safe_invoke(handler);
-            if(!result)
-                LOG_ERROR << "main executor close handler failed (ignored): " << result.error().what();
+            if (!result)
+                LOG_ERROR << "main executor close handler failed (ignored): "
+                          << result.error().what();
         }
     }
 }

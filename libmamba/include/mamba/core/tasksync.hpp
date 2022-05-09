@@ -15,9 +15,11 @@
 
 #include "mamba/core/util_scope.hpp"
 
-namespace mamba {
+namespace mamba
+{
 
-    // WARNING: this file will be moved to xtl as soon as possible, do not rely on it's existence here!
+    // WARNING: this file will be moved to xtl as soon as possible, do not rely on it's existence
+    // here!
 
     /** Synchronize tasks execution in multiple threads with this object's lifetime.
 
@@ -30,8 +32,8 @@ namespace mamba {
             tasks are ended;
 
         WARNING: When used as a member of a type to syncrhonized tasks of the `this` instance, it is
-        best to set the TaskSynchronizer as the last member so that it is the first one to be destroyed;
-        alternatively, `.join_tasks()` can be called manually in the destructor too.
+        best to set the TaskSynchronizer as the last member so that it is the first one to be
+       destroyed; alternatively, `.join_tasks()` can be called manually in the destructor too.
 
         Example:
 
@@ -71,8 +73,8 @@ namespace mamba {
         {
             return std::weak_ptr<Status>{ m_status };
         }
-    public:
 
+    public:
         TaskSynchronizer() = default;
 
         /** Destructor, joining tasks synchronized with this object.
@@ -83,18 +85,18 @@ namespace mamba {
             join_tasks();
         }
 
-        TaskSynchronizer( const TaskSynchronizer& ) = delete;
-        TaskSynchronizer& operator=( const TaskSynchronizer& ) = delete;
+        TaskSynchronizer(const TaskSynchronizer&) = delete;
+        TaskSynchronizer& operator=(const TaskSynchronizer&) = delete;
 
-        TaskSynchronizer( TaskSynchronizer&& other ) noexcept = delete;
-        TaskSynchronizer& operator=( TaskSynchronizer&& other ) noexcept = delete;
+        TaskSynchronizer(TaskSynchronizer&& other) noexcept = delete;
+        TaskSynchronizer& operator=(TaskSynchronizer&& other) noexcept = delete;
 
         /** Wrap the provided callable into a similar but synchronized callable.
 
             The wrapper guarantees that if the resulting callable is invoked:
                 - if the joining function of this synchronizer have been called, skip execution;
-                - if the joining function of this synchronizer is called while the callback is invoked,
-                    it will block until the end of the body of the original callable;
+                - if the joining function of this synchronizer is called while the callback is
+           invoked, it will block until the end of the body of the original callable;
                 - if no joining function have been called yet, notify the synchronizer that the
                     execution begins, then execute the body;
 
@@ -103,30 +105,37 @@ namespace mamba {
                 preventing execution of the original callable body if any joining function
                 of this synchronizer was called.
         */
-        template< class Work >
-        auto synchronized( Work&& work )
+        template <class Work>
+        auto synchronized(Work&& work)
         {
-            return [ this, new_work = std::forward<Work>( work ), remote_status = make_remote_status() ]
-            ( auto&&... args ) mutable
+            return [this,
+                    new_work = std::forward<Work>(work),
+                    remote_status = make_remote_status()](auto&&... args) mutable
             {
                 // If status is alive then we know the TaskSynchronizer is alive too.
                 auto status = remote_status.lock();
-                if( status && !status->join_requested ) // Don't add running tasks while join was requested.
-                { // We can use 'this' safely in this scope.
+                if (status
+                    && !status
+                            ->join_requested)  // Don't add running tasks while join was requested.
+                {                              // We can use 'this' safely in this scope.
                     notify_begin_execution();
-                    on_scope_exit _{ [&, this]{
-                        status.reset(); // Make sure we are not keeping the TaskSynchronizer waiting
-                        notify_end_execution();
-                    } };
-                    std::invoke( new_work, std::forward<decltype( args )>( args )... );
+                    on_scope_exit _{ [&, this]
+                                     {
+                                         status.reset();  // Make sure we are not keeping the
+                                                          // TaskSynchronizer waiting
+                                         notify_end_execution();
+                                     } };
+                    std::invoke(new_work, std::forward<decltype(args)>(args)...);
                 }
             };
         }
 
-        /** Notify all synchronized tasks and blocks until all already started synchronized tasks are done.
+        /** Notify all synchronized tasks and blocks until all already started synchronized tasks
+           are done.
 
-            This is a joining function: once it is called, no synchronized task body will be executed again.
-            Synchronized tasks which body is being executed will notify this synchronizer once done.
+            This is a joining function: once it is called, no synchronized task body will be
+           executed again. Synchronized tasks which body is being executed will notify this
+           synchronizer once done.
 
             Only returns once all the executing tasks have finished finishes.
 
@@ -135,10 +144,11 @@ namespace mamba {
         void join_tasks()
         {
             wait_all_running_tasks();
-            assert( is_joined() );
+            assert(is_joined());
         }
 
-        /** Join synchronized tasks and reset this object's state to be reusable like if it was just constructed.
+        /** Join synchronized tasks and reset this object's state to be reusable like if it was just
+           constructed.
 
             Similar to calling join_tasks() but is_joined() will return false after calling this.
 
@@ -148,20 +158,26 @@ namespace mamba {
         {
             join_tasks();
             m_status = std::make_shared<Status>();
-            assert( !is_joined() );
+            assert(!is_joined());
         }
 
-        /** @return true if all synchronized tasks have beeen joined, false otherwise. @see join_tasks(), reset()*/
-        bool is_joined() const { return !m_status && m_running_tasks == 0; }
+        /** @return true if all synchronized tasks have beeen joined, false otherwise. @see
+         * join_tasks(), reset()*/
+        bool is_joined() const
+        {
+            return !m_status && m_running_tasks == 0;
+        }
 
         /** @return Number of synchronized tasks which are currently beeing executed. */
-        int64_t running_tasks() const { return m_running_tasks; }
+        int64_t running_tasks() const
+        {
+            return m_running_tasks;
+        }
 
     private:
-
         struct Status
         {
-            std::atomic<bool> join_requested { false };
+            std::atomic<bool> join_requested{ false };
         };
 
         std::atomic<int64_t> m_running_tasks{ 0 };
@@ -187,7 +203,7 @@ namespace mamba {
 
         void wait_all_running_tasks()
         {
-            if( !m_status )
+            if (!m_status)
                 return;
 
             std::unique_lock exit_lock{ m_mutex };
@@ -196,17 +212,9 @@ namespace mamba {
             m_status->join_requested = true;
             m_status.reset();
 
-            m_task_end_condition.wait( exit_lock, [&] {
-                return m_running_tasks == 0
-                    && remote_status.expired();
-            } );
-
-
+            m_task_end_condition.wait(
+                exit_lock, [&] { return m_running_tasks == 0 && remote_status.expired(); });
         }
-
-
     };
 
 }
-
-

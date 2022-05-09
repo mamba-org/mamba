@@ -6,7 +6,7 @@
 
 extern "C"
 {
-    #include <curl/urlapi.h>
+#include <curl/urlapi.h>
 }
 
 #include "spdlog/spdlog.h"
@@ -29,10 +29,11 @@ namespace mamba
     // cleanup their resources (including joining threads) in a predictable order.
     // To achieve this we define them in the same translation unit, which at least guarantees
     // construction and destruction order will follow this file's order.
-    // Other static objects from other translation units can be destroyed in parallel to the ones here
-    // as C++ does not guarantee any order of destruction after `main()`.
+    // Other static objects from other translation units can be destroyed in parallel to the ones
+    // here as C++ does not guarantee any order of destruction after `main()`.
 
-    //--- Dependencie's singletons ----------------------------------------------------------------------
+    //--- Dependencie's singletons
+    //----------------------------------------------------------------------
 
     class CURLSetup final
     {
@@ -51,7 +52,8 @@ namespace mamba
 
     static CURLSetup curl_setup;
 
-    //--- Concurrency resources / thread-handling ------------------------------------------------------------------
+    //--- Concurrency resources / thread-handling
+    //------------------------------------------------------------------
 
     static std::atomic<MainExecutor*> main_executor{ nullptr };
 
@@ -93,21 +95,23 @@ namespace mamba
         main_executor = nullptr;
     }
 
-    //---- Singletons from this library -----------------------------------------------------------------------
+    //---- Singletons from this library ------------------------------------------------------------
 
     namespace singletons
     {
-        template<typename T>
+        template <typename T>
         void init_once(std::unique_ptr<T>& ptr)
         {
             static std::once_flag init_flag;
-            std::call_once(init_flag, [&]{
-                ptr = std::make_unique<T>();
-            });
-            // In case the object was already created and destroyed, we make sure it is clearly visible (no undefined behavior).
-            if(!ptr)
+            std::call_once(init_flag, [&] { ptr = std::make_unique<T>(); });
+            // In case the object was already created and destroyed, we make sure it is clearly
+            // visible (no undefined behavior).
+            if (!ptr)
             {
-                throw mamba::mamba_error(fmt::format("attempt to use {} singleton instance after destruction", typeid(T).name()), mamba_error_code::internal_failure);
+                throw mamba::mamba_error(
+                    fmt::format("attempt to use {} singleton instance after destruction",
+                                typeid(T).name()),
+                    mamba_error_code::internal_failure);
             }
         }
 

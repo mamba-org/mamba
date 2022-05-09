@@ -104,7 +104,7 @@ namespace mamba
         void close()
         {
             bool expected = true;
-            if(!is_open.compare_exchange_strong(expected, false))
+            if (!is_open.compare_exchange_strong(expected, false))
                 return;
 
             invoke_close_handlers();
@@ -119,11 +119,11 @@ namespace mamba
 
         void on_close(on_close_handler handler)
         {
-            if(!is_open)
+            if (!is_open)
                 return;
 
             std::scoped_lock lock{ handlers_mutex };
-            if(is_open) // Double check needed to avoid adding new handles while closing.
+            if (is_open)  // Double check needed to avoid adding new handles while closing.
             {
                 close_handlers.push_back(std::move(handler));
             }
@@ -132,10 +132,10 @@ namespace mamba
     private:
         std::atomic<bool> is_open{ true };
         std::vector<std::thread> threads;
-        std::recursive_mutex threads_mutex; // TODO: replace by synchronized_value once available
+        std::recursive_mutex threads_mutex;  // TODO: replace by synchronized_value once available
 
         std::vector<on_close_handler> close_handlers;
-        std::recursive_mutex handlers_mutex; // TODO: replace by synchronized_value once available
+        std::recursive_mutex handlers_mutex;  // TODO: replace by synchronized_value once available
 
         void invoke_close_handlers();
     };

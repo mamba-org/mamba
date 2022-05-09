@@ -17,11 +17,6 @@
 #include <set>
 #include <stdexcept>
 
-namespace mamba
-{
-    class Singletons;
-}
-
 namespace validate
 {
     using nlohmann::json;
@@ -337,8 +332,8 @@ namespace validate
 
         TimeRef();
         ~TimeRef();
-    private:
 
+    private:
         std::time_t m_time_ref;
     };
 

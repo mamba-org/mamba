@@ -101,10 +101,10 @@ main(int argc, char** argv)
     // Make sure the progress bars are done before printing any potential error.
     Console::instance().terminate_progress_bar_manager();
 
-    if(error_to_report)
+    if (error_to_report)
     {
         LOG_CRITICAL << error_to_report.value();
-        return 1; // TODO: consider returning EXIT_FAILURE
+        return 1;  // TODO: consider returning EXIT_FAILURE
     }
 
     return 0;

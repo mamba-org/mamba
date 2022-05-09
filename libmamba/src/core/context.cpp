@@ -56,9 +56,7 @@ namespace mamba
 
     Context::Context()
     {
-        MainExecutor::instance().on_close(tasksync.synchronized([this]{
-            logger->flush();
-        }));
+        MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
 
         on_ci = bool(env::get("CI"));
         root_prefix = env::get("MAMBA_ROOT_PREFIX").value_or("");

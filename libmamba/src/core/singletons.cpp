@@ -100,7 +100,7 @@ namespace mamba
     namespace singletons
     {
         template <typename T>
-        void init_once(std::unique_ptr<T>& ptr)
+        T& init_once(std::unique_ptr<T>& ptr)
         {
             static std::once_flag init_flag;
             std::call_once(init_flag, [&] { ptr = std::make_unique<T>(); });
@@ -113,6 +113,8 @@ namespace mamba
                                 typeid(T).name()),
                     mamba_error_code::internal_failure);
             }
+
+            return *ptr;
         }
 
         static std::unique_ptr<Context> context;
@@ -126,32 +128,27 @@ namespace mamba
 
     Configuration& Configuration::instance()
     {
-        singletons::init_once(singletons::config);
-        return *singletons::config;
+        return singletons::init_once(singletons::config);
     }
 
     ChannelContext& ChannelContext::instance()
     {
-        singletons::init_once(singletons::channel_context);
-        return *singletons::channel_context;
+        return singletons::init_once(singletons::channel_context);
     }
 
     Context& Context::instance()
     {
-        singletons::init_once(singletons::context);
-        return *singletons::context;
+        return singletons::init_once(singletons::context);
     }
 
     Console& Console::instance()
     {
-        singletons::init_once(singletons::console);
-        return *singletons::console;
+        return singletons::init_once(singletons::console);
     }
 
     auto ChannelBuilder::get_cache() -> ChannelCache&
     {
-        singletons::init_once(singletons::channel_cache);
-        return *singletons::channel_cache;
+        return singletons::init_once(singletons::channel_cache);
     }
 
 }
@@ -160,7 +157,6 @@ namespace validate
 {
     TimeRef& TimeRef::instance()
     {
-        mamba::singletons::init_once(mamba::singletons::time_ref);
-        return *mamba::singletons::time_ref;
+        return mamba::singletons::init_once(mamba::singletons::time_ref);
     }
 }

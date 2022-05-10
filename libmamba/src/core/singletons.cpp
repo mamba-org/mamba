@@ -100,7 +100,13 @@ namespace mamba
     namespace singletons
     {
         template <typename T>
-        T& init_once(std::unique_ptr<T>& ptr)
+        struct Singleton : public T
+        {
+            using T::T;
+        };
+
+        template <typename T, typename D>
+        T& init_once(std::unique_ptr<T, D>& ptr)
         {
             static std::once_flag init_flag;
             std::call_once(init_flag, [&] { ptr = std::make_unique<T>(); });
@@ -117,12 +123,12 @@ namespace mamba
             return *ptr;
         }
 
-        static std::unique_ptr<Context> context;
-        static std::unique_ptr<Console> console;
-        static std::unique_ptr<Configuration> config;
-        static std::unique_ptr<ChannelCache> channel_cache;
-        static std::unique_ptr<ChannelContext> channel_context;
-        static std::unique_ptr<validate::TimeRef> time_ref;
+        static std::unique_ptr<Singleton<Context>> context;
+        static std::unique_ptr<Singleton<Console>> console;
+        static std::unique_ptr<Singleton<Configuration>> config;
+        static std::unique_ptr<Singleton<ChannelCache>> channel_cache;
+        static std::unique_ptr<Singleton<ChannelContext>> channel_context;
+        static std::unique_ptr<Singleton<validate::TimeRef>> time_ref;
     }
 
 

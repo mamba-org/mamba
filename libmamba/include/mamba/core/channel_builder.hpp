@@ -11,10 +11,7 @@
 
 namespace mamba
 {
-    struct ChannelCache : public std::map<std::string, Channel>
-    {
-        using std::map<std::string, Channel>::map;
-    };
+    using ChannelCache = std::map<std::string, Channel>;
 
     class ChannelBuilder
     {
@@ -64,6 +61,7 @@ namespace mamba
 
         const channel_list& get_whitelist_channels() const;
 
+    protected:
         ChannelContext();
         ~ChannelContext();
 

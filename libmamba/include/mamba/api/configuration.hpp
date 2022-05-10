@@ -405,6 +405,7 @@ namespace mamba
 
         void reset_configurables();
 
+    protected:
         Configuration();
         ~Configuration();
 

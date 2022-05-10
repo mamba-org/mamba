@@ -330,6 +330,7 @@ namespace validate
         void set_now();
         std::string timestamp();
 
+    protected:
         TimeRef();
         ~TimeRef();
 

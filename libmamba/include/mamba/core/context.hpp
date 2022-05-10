@@ -250,8 +250,10 @@ namespace mamba
         const void debug_print();
         void dump_backtrace_no_guards();
 
+    protected:
         Context();
         ~Context();
+
 
     private:
         void load_authentication_info();

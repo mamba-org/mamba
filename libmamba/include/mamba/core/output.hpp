@@ -135,6 +135,7 @@ namespace mamba
 
         void cancel_json_print();
 
+    protected:
         Console();
         ~Console();
 

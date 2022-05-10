@@ -9,31 +9,25 @@
 
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/context.hpp"
 
 namespace mamba
 {
-    namespace
-    {
-        // usernames on anaconda.org can have a underscore, which influences the
-        // first two characters
-        const static std::regex token_re("/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)");
-        const static std::regex http_basicauth_re("://([^\\s]+):([^\\s]+)@");
-    }
 
     bool has_scheme(const std::string& url)
     {
-        std::regex re("[a-z][a-z0-9]{0,11}://");
-        return std::regex_search(url, re);
+        return std::regex_search(url, Context::instance().scheme_regex);
     }
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
-        auto token_begin = std::sregex_iterator(url.begin(), url.end(), token_re);
+        auto token_begin
+            = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
         if (token_begin != std::sregex_iterator())
         {
             token = token_begin->str().substr(3u);
-            cleaned_url
-                = std::regex_replace(url, token_re, "", std::regex_constants::format_first_only);
+            cleaned_url = std::regex_replace(
+                url, Context::instance().token_regex, "", std::regex_constants::format_first_only);
         }
         else
         {
@@ -180,12 +174,13 @@ namespace mamba
 
         if (contains(str, "/t/"))
         {
-            copy = std::regex_replace(copy, token_re, "/t/*****");
+            copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
         }
 
         if (contains(str, "://"))
         {
-            copy = std::regex_replace(copy, http_basicauth_re, "://$1:*****@");
+            copy = std::regex_replace(
+                copy, Context::instance().http_basicauth_regex, "://$1:*****@");
         }
 
         return copy;

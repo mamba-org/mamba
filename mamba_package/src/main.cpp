@@ -39,7 +39,7 @@ main(int argc, char** argv)
     if (app.get_subcommands().size() == 0)
     {
         Configuration::instance().load();
-        Console::print(app.help());
+        Console::instance().print(app.help());
     }
 
     return 0;

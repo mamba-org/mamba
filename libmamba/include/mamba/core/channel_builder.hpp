@@ -11,6 +11,8 @@
 
 namespace mamba
 {
+    using ChannelCache = std::map<std::string, Channel>;
+
     class ChannelBuilder
     {
     public:
@@ -24,8 +26,7 @@ namespace mamba
         static void clear_cache();
 
     private:
-        using cache_type = std::map<std::string, Channel>;
-        static cache_type& get_cache();
+        static ChannelCache& get_cache();
 
         static Channel from_url(const std::string& url);
         static Channel from_name(const std::string& name);
@@ -60,10 +61,11 @@ namespace mamba
 
         const channel_list& get_whitelist_channels() const;
 
-    private:
+    protected:
         ChannelContext();
-        ~ChannelContext() = default;
+        ~ChannelContext();
 
+    private:
         Channel build_channel_alias();
         void init_custom_channels();
 

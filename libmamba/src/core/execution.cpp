@@ -1,49 +1,21 @@
 #include "mamba/core/execution.hpp"
 
-#include <atomic>
-#include <mutex>
-#include <cassert>
+#include "mamba/core/invoke.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {
-    static std::atomic<MainExecutor*> main_executor{ nullptr };
+    // NOTE: see singleton.cpp for other functions and why they are located there instead of here
 
-    static std::mutex default_executor_mutex;  // TODO: replace by sychronized_value once available
-    static std::unique_ptr<MainExecutor> default_executor;
-
-    MainExecutor& MainExecutor::instance()
+    void MainExecutor::invoke_close_handlers()
     {
-        if (!main_executor)
+        std::scoped_lock lock{ handlers_mutex };
+        for (auto&& handler : close_handlers)
         {
-            // When no MainExecutor was created before we create a static one.
-            std::scoped_lock lock{ default_executor_mutex };
-            if (!main_executor)  // double check necessary to avoid data race
-            {
-                default_executor = std::make_unique<MainExecutor>();
-                assert(main_executor == default_executor.get());
-            }
+            const auto result = safe_invoke(handler);
+            if (!result)
+                LOG_ERROR << "main executor close handler failed (ignored): "
+                          << result.error().what();
         }
-
-        return *main_executor;
     }
-
-    void MainExecutor::stop_default()
-    {
-        std::scoped_lock lock{ default_executor_mutex };
-        default_executor.reset();
-    }
-
-    MainExecutor::MainExecutor()
-    {
-        MainExecutor* expected = nullptr;
-        if (!main_executor.compare_exchange_strong(expected, this))
-            throw MainExecutorError("attempted to create multiple main executors");
-    }
-
-    MainExecutor::~MainExecutor()
-    {
-        close();
-        main_executor = nullptr;
-    }
-
 }

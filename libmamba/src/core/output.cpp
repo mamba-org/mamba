@@ -13,6 +13,8 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/execution.hpp"
+#include "mamba/core/tasksync.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -266,12 +268,16 @@ namespace mamba
         bool is_json_print_cancelled = false;
 
         std::vector<std::string> m_buffer;
+
+        TaskSynchronizer tasksync;
     };
 
     Console::Console()
         : p_data(new ConsoleData())
     {
         init_progress_bar_manager(ProgressBarMode::multi);
+        MainExecutor::instance().on_close(
+            p_data->tasksync.synchronized([this] { terminate_progress_bar_manager(); }));
 #ifdef _WIN32
         // initialize ANSI codes on Win terminals
         auto hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -289,11 +295,6 @@ namespace mamba
         }
     }
 
-    Console& Console::instance()
-    {
-        static Console c;
-        return c;
-    }
 
     ConsoleStream Console::stream()
     {
@@ -314,12 +315,11 @@ namespace mamba
     {
         if (force_print || !(Context::instance().quiet || Context::instance().json))
         {
-            auto& data = instance().p_data;
-            const std::lock_guard<std::mutex> lock(data->m_mutex);
+            const std::lock_guard<std::mutex> lock(p_data->m_mutex);
 
-            if (data->p_progress_bar_manager && data->p_progress_bar_manager->started())
+            if (p_data->p_progress_bar_manager && p_data->p_progress_bar_manager->started())
             {
-                data->m_buffer.push_back(hide_secrets(str));
+                p_data->m_buffer.push_back(hide_secrets(str));
             }
             else
             {
@@ -384,7 +384,7 @@ namespace mamba
             if (response.compare("no") == 0 || response.compare("No") == 0
                 || response.compare("n") == 0 || response.compare("N") == 0)
             {
-                Console::print("Aborted.");
+                Console::instance().print("Aborted.");
                 return false;
             }
         }
@@ -413,6 +413,14 @@ namespace mamba
         p_data->p_progress_bar_manager->register_post_stop_hook(MessageLogger::deactivate_buffer);
 
         return *(p_data->p_progress_bar_manager);
+    }
+
+    void Console::terminate_progress_bar_manager()
+    {
+        if (p_data->p_progress_bar_manager)
+        {
+            p_data->p_progress_bar_manager->terminate();
+        }
     }
 
     ProgressBarManager& Console::progress_bar_manager()

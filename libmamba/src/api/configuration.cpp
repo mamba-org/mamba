@@ -953,12 +953,6 @@ namespace mamba
         set_configurables();
     }
 
-    Configuration& Configuration::instance()
-    {
-        static Configuration config;
-        return config;
-    }
-
     void Configuration::set_configurables()
     {
         auto& ctx = Context::instance();
@@ -1547,6 +1541,8 @@ namespace mamba
                    .description("Disable the use of environment variables"));
     }
 
+    Configuration::~Configuration() = default;
+
     void Configuration::reset_configurables()
     {
         m_config.clear();
@@ -1661,7 +1657,7 @@ namespace mamba
         CONFIG_DEBUGGING;
 
         if (at("show_banner").value<bool>())
-            Console::print(banner());
+            Console::instance().print(banner());
 
         auto& ctx = Context::instance();
         ctx.set_log_level(ctx.logging_level);

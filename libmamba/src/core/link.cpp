@@ -437,7 +437,7 @@ namespace mamba
         }
         else
         {
-            Console::print(msg);
+            Console::instance().print(msg);
         }
 
         if (ec)

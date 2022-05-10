@@ -16,7 +16,6 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
-#include "../src/core/progress_bar_impl.hpp"  // FIXME: HACK HACK HACK
 
 #include <CLI/CLI.hpp>
 
@@ -28,7 +27,6 @@ int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
-    mamba::on_scope_exit _cleanup{ [] { Console::instance().progress_bar_manager().terminate(); } };
 
     init_console();
     auto& ctx = Context::instance();
@@ -76,28 +74,38 @@ main(int argc, char** argv)
     }
     ctx.current_command = full_command.str();
 
-    bool err = false;
+    std::optional<std::string> error_to_report;
     try
     {
         CLI11_PARSE(app, argc, utf8argv);
         if (app.get_subcommands().size() == 0)
         {
             Configuration::instance().load();
-            Console::print(app.help());
+            Console::instance().print(app.help());
         }
         if (app.got_subcommand("config")
             && app.get_subcommand("config")->get_subcommands().size() == 0)
         {
             Configuration::instance().load();
-            Console::print(app.get_subcommand("config")->help());
+            Console::instance().print(app.get_subcommand("config")->help());
         }
     }
     catch (const std::exception& e)
     {
-        LOG_CRITICAL << e.what();
+        error_to_report = e.what();
         set_sig_interrupted();
-        err = true;
     }
+
     reset_console();
-    return err ? 1 : 0;
+
+    // Make sure the progress bars are done before printing any potential error.
+    Console::instance().terminate_progress_bar_manager();
+
+    if (error_to_report)
+    {
+        LOG_CRITICAL << error_to_report.value();
+        return 1;  // TODO: consider returning EXIT_FAILURE
+    }
+
+    return 0;
 }

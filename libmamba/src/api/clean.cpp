@@ -199,7 +199,7 @@ namespace mamba
             auto to_be_removed = collect_tarballs();
             if (!ctx.dry_run)
             {
-                Console::print("Cleaning tarballs..");
+                Console::instance().print("Cleaning tarballs..");
 
                 if (to_be_removed.size() == 0)
                 {
@@ -277,7 +277,7 @@ namespace mamba
             auto to_be_removed = collect_package_folders();
             if (!ctx.dry_run)
             {
-                Console::print("Cleaning packages..");
+                Console::instance().print("Cleaning packages..");
 
                 if (to_be_removed.size() == 0)
                 {

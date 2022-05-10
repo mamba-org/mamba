@@ -9,12 +9,14 @@
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/tasksync.hpp"
 #include "mamba/version.hpp"
 
 #include <map>
 #include <string>
 #include <vector>
 #include <optional>
+#include <regex>
 
 #define ROOT_ENV_NAME "base"
 
@@ -230,6 +232,13 @@ namespace mamba
 
         bool use_only_tar_bz2 = false;
 
+
+        // usernames on anaconda.org can have a underscore, which influences the
+        // first two characters
+        const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        const std::regex http_basicauth_regex{ "://([^\\s]+):([^\\s]+)@" };
+        const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
+
         static Context& instance();
 
         Context(const Context&) = delete;
@@ -241,15 +250,19 @@ namespace mamba
         const void debug_print();
         void dump_backtrace_no_guards();
 
-    private:
+    protected:
         Context();
-        ~Context() = default;
+        ~Context();
 
+
+    private:
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;
         bool m_authentication_infos_loaded = false;
 
         std::shared_ptr<Logger> logger;
+
+        TaskSynchronizer tasksync;
     };
 }  // namespace mamba
 

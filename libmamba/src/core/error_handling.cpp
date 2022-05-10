@@ -1,17 +1,31 @@
 #include "mamba/core/error_handling.hpp"
 
+#include "spdlog/spdlog.h"
+
 namespace mamba
 {
+    namespace
+    {
+        void maybe_dump_backtrace(mamba_error_code ec)
+        {
+            if (ec == mamba_error_code::internal_failure)
+                spdlog::dump_backtrace();
+        }
+
+    }
+
     mamba_error::mamba_error(const std::string& msg, mamba_error_code ec)
         : base_type(msg)
         , m_error_code(ec)
     {
+        maybe_dump_backtrace(m_error_code);
     }
 
     mamba_error::mamba_error(const char* msg, mamba_error_code ec)
         : base_type(msg)
         , m_error_code(ec)
     {
+        maybe_dump_backtrace(m_error_code);
     }
 
     mamba_error::mamba_error(const std::string& msg, mamba_error_code ec, std::any&& data)
@@ -19,6 +33,7 @@ namespace mamba
         , m_error_code(ec)
         , m_data(std::move(data))
     {
+        maybe_dump_backtrace(m_error_code);
     }
 
     mamba_error::mamba_error(const char* msg, mamba_error_code ec, std::any&& data)
@@ -26,6 +41,7 @@ namespace mamba
         , m_error_code(ec)
         , m_data(std::move(data))
     {
+        maybe_dump_backtrace(m_error_code);
     }
 
 

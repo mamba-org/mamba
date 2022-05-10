@@ -17,7 +17,6 @@
 #include <set>
 #include <stdexcept>
 
-
 namespace validate
 {
     using nlohmann::json;
@@ -331,10 +330,11 @@ namespace validate
         void set_now();
         std::string timestamp();
 
-    private:
+    protected:
         TimeRef();
-        ~TimeRef() = default;
+        ~TimeRef();
 
+    private:
         std::time_t m_time_ref;
     };
 

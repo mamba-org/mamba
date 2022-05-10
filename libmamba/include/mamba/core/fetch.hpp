@@ -78,6 +78,7 @@ namespace mamba
 
         void set_result(CURLcode r);
         bool finalize();
+        std::string get_transfer_msg();
 
         bool can_retry();
         CURL* retry();
@@ -88,6 +89,7 @@ namespace mamba
         CURLcode result;
         bool failed = false;
         int http_status = 10000;
+        char* effective_url = nullptr;
         curl_off_t downloaded_size = 0;
         curl_off_t avg_speed = 0;
         std::string final_url;

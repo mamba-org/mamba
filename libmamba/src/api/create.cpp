@@ -80,6 +80,9 @@ namespace mamba
     {
         void store_platform_config(const fs::path& prefix, const std::string& platform)
         {
+            if (!fs::exists(prefix))
+                fs::create_directories(prefix);
+
             auto out = open_ofstream(prefix / ".mambarc");
             out << "platform: " << platform;
         }

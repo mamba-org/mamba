@@ -627,14 +627,22 @@ namespace mamba
                             std::string& platform)
         {
             platform = "";
-            size_t pos = std::string::npos;
-            for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
+
+            size_t pos = url.find(Context::instance().platform);
+            if (pos != std::string::npos)
             {
-                pos = url.find(*it);
-                if (pos != std::string::npos)
+                platform = Context::instance().platform;
+            }
+            else
+            {
+                for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
                 {
-                    platform = *it;
-                    break;
+                    pos = url.find(*it);
+                    if (pos != std::string::npos)
+                    {
+                        platform = *it;
+                        break;
+                    }
                 }
             }
 

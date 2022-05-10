@@ -155,7 +155,15 @@ namespace mamba
         if (!fs::exists(env_txt_file))
             return {};
 
-        fs::path abs_loc = fs::absolute(location);
+        std::error_code fsabs_error;
+        fs::path abs_loc = fs::absolute(
+            location, fsabs_error);  // If it fails we just get the defaultly constructed path.
+        if (fsabs_error && !location.empty())  // Ignore cases where we got an empty location.
+        {
+            LOG_WARNING << fmt::format("Failed to get absolute path for location '{}' : {}",
+                                       location.string(),
+                                       fsabs_error.message());
+        }
 
         std::vector<std::string> lines = read_lines(env_txt_file);
         std::set<std::string> final_lines;

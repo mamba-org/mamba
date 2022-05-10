@@ -12,7 +12,6 @@ dependencies:
   - libcurl 7.82.0 *_0
   - gtest
   - gmock
-  - cpp-filesystem >=1.5.8
   - cpp-expected
   - reproc-cpp
   - yaml-cpp

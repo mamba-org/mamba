@@ -3,7 +3,7 @@
 #include <exception>
 
 #include "mamba/core/util.hpp"
-#include "mamba/core/error_handling.hpp"
+#include "mamba/core/invoke.hpp"
 
 namespace mamba
 {

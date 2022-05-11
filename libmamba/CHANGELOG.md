@@ -1,3 +1,16 @@
+libmamba 0.23.1 (May 11, 2022)
+==============================
+
+Bug fixes
+
+- Fix thread clean up and singleton destruction order (thanks @Klaim) #1666, #1620
+- Show reason for multi-download failure (thanks @syslaila) #1652
+- Fix platform splitting to work with unknown platforms #1662
+- Create prefix before writing the config file #1662
+- Retry HTTP request on 413 & 429, respect Retry-After header (thanks @kenodegard) #1661
+- Initialize curl (thanks @Klaim) #1648
+- Replace thread detaching by thread joining before main's end  (thanks @Klaim) #1637
+
 libmamba 0.23.0 (April 21, 2022)
 ================================
 

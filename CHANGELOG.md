@@ -1,3 +1,20 @@
+2022.05.11
+==========
+
+Releases: libmamba 0.23.1, libmambapy 0.23.1, mamba 0.23.1, micromamba 0.23.1
+
+Bug fixes
+- [micromamba] Fix powershell unset of env vars (thanks @chawyeshu) #1668
+- [all] Fix thread clean up and singleton destruction order (thanks @Klaim) #1666, #1620
+- [all] Show reason for multi-download failure (thanks @syslaila) #1652
+- [libmamba] Fix platform splitting to work with unknown platforms #1662
+- [libmamba] Create prefix before writing the config file #1662
+- [libmamba] Retry HTTP request on 413 & 429, respect Retry-After header (thanks @kenodegard) #1661
+- [mamba] Add high-level Python API (thanks @martinRenou) #1656
+- [libmamba] Initialize curl (thanks @Klaim) #1648
+- [libmamba] Replace thread detaching by thread joining before main's end  (thanks @Klaim) #1637
+
+
 2022.04.21
 ==========
 

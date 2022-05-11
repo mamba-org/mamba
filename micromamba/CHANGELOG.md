@@ -1,3 +1,12 @@
+micromamba 0.23.1 (May 11, 2022)
+================================
+
+Bug fixes
+
+- Fix powershell unset of env vars (thanks @chawyeshu) #1668
+- Fix thread clean up and singleton destruction order (thanks @Klaim) #1666, #1620
+- Show reason for multi-download failure (thanks @syslaila) #1652
+
 micromamba 0.23.0 (April 21, 2022)
 ==================================
 

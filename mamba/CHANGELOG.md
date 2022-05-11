@@ -1,3 +1,12 @@
+mamba 0.23.1 (May 11, 2022)
+===========================
+
+Bug fixes
+
+- Fix thread clean up and singleton destruction order (thanks @Klaim) #1666, #1620
+- Show reason for multi-download failure (thanks @syslaila) #1652
+- Add high-level Python API (thanks @martinRenou) #1656
+
 mamba 0.23.0 (April 21, 2022)
 =============================
 

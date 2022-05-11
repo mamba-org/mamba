@@ -955,7 +955,7 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "Remove-Item Env:/" << uvar << "\n";
+            out << "$Env:" << uvar << " = \"\"\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)

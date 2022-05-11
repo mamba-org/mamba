@@ -52,6 +52,17 @@ namespace mamba
 
     static CURLSetup curl_setup;
 
+    struct MessageLoggerData
+    {
+        static std::mutex m_mutex;
+        static bool use_buffer;
+        static std::vector<std::pair<std::string, log_level>> m_buffer;
+    };
+
+    std::mutex MessageLoggerData::m_mutex;
+    bool MessageLoggerData::use_buffer(false);
+    std::vector<std::pair<std::string, log_level>> MessageLoggerData::m_buffer({});
+
     //--- Concurrency resources / thread-handling
     //------------------------------------------------------------------
 

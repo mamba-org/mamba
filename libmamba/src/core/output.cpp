@@ -508,11 +508,6 @@ namespace mamba
         static std::vector<std::pair<std::string, log_level>> m_buffer;
     };
 
-    std::mutex MessageLoggerData::m_mutex;
-    bool MessageLoggerData::use_buffer(false);
-    std::vector<std::pair<std::string, log_level>> MessageLoggerData::m_buffer({});
-
-
     MessageLogger::MessageLogger(const char* file, int line, log_level level)
         : m_file(strip_file_prefix(file))
         , m_line(line)

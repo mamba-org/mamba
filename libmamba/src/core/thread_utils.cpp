@@ -188,7 +188,7 @@ namespace mamba
     interruption_guard::~interruption_guard()
     {
         wait_for_all_threads();
-        if (is_sig_interrupted())
+        if (is_sig_interrupted() || std::uncaught_exceptions() > 0)
         {
             m_cleanup_function();
         }

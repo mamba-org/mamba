@@ -98,9 +98,6 @@ main(int argc, char** argv)
 
     reset_console();
 
-    // Make sure the progress bars are done before printing any potential error.
-    Console::instance().terminate_progress_bar_manager();
-
     if (error_to_report)
     {
         LOG_CRITICAL << error_to_report.value();

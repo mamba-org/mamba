@@ -613,41 +613,53 @@ namespace mamba
 #endif
     }
 
-    namespace
+    void split_platform(const std::vector<std::string>& known_platforms,
+                        const std::string& url,
+                        std::string& cleaned_url,
+                        std::string& platform)
     {
-        void split_platform(const std::vector<std::string>& known_platforms,
-                            const std::string& url,
-                            std::string& cleaned_url,
-                            std::string& platform)
-        {
-            platform = "";
+        platform = "";
 
-            size_t pos = url.find(Context::instance().platform);
-            if (pos != std::string::npos)
+        auto check_platform_position = [&url](std::size_t pos, const std::string& platform) -> bool
+        {
+            if (pos == std::string::npos)
+                return false;
+            if (pos > 0 && url[pos - 1] != '/')
+                return false;
+            if ((pos + platform.size()) < url.size() && url[pos + platform.size()] != '/')
+                return false;
+
+            return true;
+        };
+
+        std::size_t pos = url.find(Context::instance().platform);
+        if (check_platform_position(pos, Context::instance().platform))
+        {
+            platform = Context::instance().platform;
+        }
+        else
+        {
+            for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
             {
-                platform = Context::instance().platform;
-            }
-            else
-            {
-                for (auto it = known_platforms.begin(); it != known_platforms.end(); ++it)
+                pos = url.find(*it);
+                if (check_platform_position(pos, *it))
                 {
-                    pos = url.find(*it);
-                    if (pos != std::string::npos)
-                    {
-                        platform = *it;
-                        break;
-                    }
+                    platform = *it;
+                    break;
                 }
             }
-
-            cleaned_url = url;
-            if (pos != std::string::npos)
-            {
-                cleaned_url.replace(pos - 1, platform.size() + 1, "");
-            }
-            cleaned_url = rstrip(cleaned_url, "/");
         }
 
+        cleaned_url = url;
+        if (pos != std::string::npos)
+        {
+            cleaned_url.replace(pos - 1, platform.size() + 1, "");
+        }
+        cleaned_url = rstrip(cleaned_url, "/");
+    }
+
+    namespace
+    {
         std::vector<std::string> take_platforms(std::string& value)
         {
             std::vector<std::string> platforms;

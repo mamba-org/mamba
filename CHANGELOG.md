@@ -1,3 +1,11 @@
+2022.05.12
+==========
+
+Releases: micromamba 0.23.2
+
+Bug fixes
+- [micromamba] Fix a bug with platform replacement in URLs #1670
+
 2022.05.11
 ==========
 

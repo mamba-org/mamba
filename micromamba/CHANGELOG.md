@@ -1,3 +1,10 @@
+micromamba 0.23.2 (May 12, 2022)
+================================
+
+Bug fixes
+
+- Fix a bug with platform replacement in URLs #1670
+
 micromamba 0.23.1 (May 11, 2022)
 ================================
 

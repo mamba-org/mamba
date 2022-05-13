@@ -83,7 +83,7 @@ namespace mamba
                                              + std::to_string(hres));
                 }
 
-                hres = pShellLink->SetPath(path.c_str());
+                hres = pShellLink->SetPath(path.string().c_str());
                 if (FAILED(hres))
                 {
                     throw std::runtime_error("SetPath() failed, error 0x" + std::to_string(hres));
@@ -107,7 +107,7 @@ namespace mamba
 
                 if (!icon_path.empty())
                 {
-                    hres = pShellLink->SetIconLocation(icon_path.c_str(), icon_index);
+                    hres = pShellLink->SetIconLocation(icon_path.string().c_str(), icon_index);
                     if (FAILED(hres))
                     {
                         throw std::runtime_error("SetIconLocation() error 0x"
@@ -117,7 +117,7 @@ namespace mamba
 
                 if (!work_dir.empty())
                 {
-                    hres = pShellLink->SetWorkingDirectory(work_dir.c_str());
+                    hres = pShellLink->SetWorkingDirectory(work_dir.string().c_str());
                     if (FAILED(hres))
                     {
                         throw std::runtime_error("SetWorkingDirectory() error 0x"
@@ -213,7 +213,7 @@ namespace mamba
             py_ver = transaction_context->python_version;
         }
 
-        std::string distribution_name = root_prefix.filename();
+        std::string distribution_name = root_prefix.filename().string();
         if (distribution_name.size() > 1)
         {
             distribution_name[0] = std::toupper(distribution_name[0]);
@@ -295,17 +295,18 @@ namespace mamba
             // }
 
             auto& ctx = mamba::Context::instance();
-            fs::path root_prefix = ctx.root_prefix;
-            fs::path target_prefix = ctx.target_prefix;
+            const fs::path root_prefix = ctx.root_prefix;
+            const fs::path target_prefix = ctx.target_prefix;
 
             // using legacy stuff here
-            fs::path root_py = root_prefix / "python.exe";
-            fs::path root_pyw = root_prefix / "pythonw.exe";
-            fs::path env_py = target_prefix / "python.exe";
-            fs::path env_pyw = target_prefix / "pythonw.exe";
-            std::vector<std::string> cwp_py_args({ root_prefix / "cwp.py", target_prefix, env_py });
-            std::vector<std::string> cwp_pyw_args(
-                { root_prefix / "cwp.py", target_prefix, env_pyw });
+            const fs::path root_py = root_prefix / "python.exe";
+            const fs::path root_pyw = root_prefix / "pythonw.exe";
+            const fs::path env_py = target_prefix / "python.exe";
+            const fs::path env_pyw = target_prefix / "pythonw.exe";
+            const auto cwp_path = root_prefix / "cwp.py";
+            std::vector<std::string> cwp_py_args(
+                { cwp_path.string(), target_prefix.string(), env_py.string() });
+            std::vector<std::string> cwp_pyw_args({ cwp_path.string(), target_prefix.string(), env_pyw.string() });
 
             fs::path target_dir = win::get_folder("programs") / menu_name;
             if (!fs::exists(target_dir))
@@ -360,7 +361,7 @@ namespace mamba
                 else if (item.contains("script"))
                 {
                     script = root_py;
-                    arguments = { root_prefix / "cwp.py", target_prefix };
+                    arguments = { cwp_path.string(), target_prefix.string() };
                     auto tmp = split(item["script"], " ");
                     std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     extend_script_args(item, arguments);

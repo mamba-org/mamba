@@ -69,7 +69,7 @@ namespace mamba
         if (py_ver[0] == '2')
         {
             // make `.pyc` file in same directory
-            return concat(py_path.c_str(), 'c');
+            return concat(py_path.string(), 'c');
         }
         else
         {
@@ -78,7 +78,7 @@ namespace mamba
             std::string py_ver_nodot = py_ver;
             replace_all(py_ver_nodot, ".", "");
             return directory / fs::path("__pycache__")
-                   / concat(py_file_stem.c_str(), ".cpython-", py_ver_nodot, ".pyc");
+                   / concat(py_file_stem.string(), ".cpython-", py_ver_nodot, ".pyc");
         }
     }
 
@@ -152,7 +152,7 @@ namespace mamba
         }
         if (!python_path.empty())
         {
-            std::string py_str = python_path.c_str();
+            const std::string py_str = python_path.string();
             // Shebangs cannot be longer than 127 characters
             if (py_str.size() > (127 - 2))
             {
@@ -182,7 +182,7 @@ namespace mamba
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
-        return std::array<std::string, 2>{ win_script, script_exe };
+        return std::array<std::string, 2>{ win_script, script_exe.string() };
 #else
         if (!python_path.empty())
         {
@@ -244,7 +244,7 @@ namespace mamba
 
         std::ofstream out_file = open_ofstream(target_full_path);
         out_file << "!#" << python_full_path.c_str() << "\n";
-        application_entry_point_template(out_file, win_path_double_escape(source_full_path));
+        application_entry_point_template(out_file, win_path_double_escape(source_full_path.string()));
         out_file.close();
 
         make_executable(target_full_path);
@@ -354,13 +354,13 @@ namespace mamba
                                         prefix,
                                         Context::instance().dev,
                                         false,
-                                        { "@CALL", path });
+                                        { "@CALL", path.string() });
 
-                command_args = { comspec.value(), "/d", "/c", script_file->path() };
+                command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
             }
             else
             {
-                command_args = { comspec.value(), "/d", "/c", path };
+                command_args = { comspec.value(), "/d", "/c", path.string() };
             }
         }
 
@@ -376,24 +376,24 @@ namespace mamba
             if (activate)
             {
                 // std::string caller
-                script_file = wrap_call(Context::instance().root_prefix,
+                script_file = wrap_call(Context::instance().root_prefix.string(),
                                         prefix,
                                         Context::instance().dev,
                                         false,
-                                        { ".", path });
-                command_args.push_back(shell_path);
-                command_args.push_back(script_file->path());
+                                        { ".", path.string() });
+                command_args.push_back(shell_path.string());
+                command_args.push_back(script_file->path().string());
             }
             else
             {
-                command_args.push_back(shell_path);
+                command_args.push_back(shell_path.string());
                 command_args.push_back("-x");
-                command_args.push_back(path);
+                command_args.push_back(path.string());
             }
         }
 
-        envmap["ROOT_PREFIX"] = Context::instance().root_prefix;
-        envmap["PREFIX"] = env_prefix.size() ? env_prefix : std::string(prefix);
+        envmap["ROOT_PREFIX"] = Context::instance().root_prefix.string();
+        envmap["PREFIX"] = env_prefix.size() ? env_prefix : prefix.string();
         envmap["PKG_NAME"] = pkg_info.name;
         envmap["PKG_VERSION"] = pkg_info.version;
         envmap["PKG_BUILDNUM"] = pkg_info.build_string.empty()
@@ -401,7 +401,7 @@ namespace mamba
                                      : pkg_info.build_string;
 
         std::string PATH = env::get("PATH").value_or("");
-        envmap["PATH"] = concat(path.parent_path().c_str(), env::pathsep(), PATH);
+        envmap["PATH"] = concat(path.parent_path().string(), env::pathsep(), PATH);
 
         std::string cargs = join(" ", command_args);
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
@@ -414,7 +414,7 @@ namespace mamba
         options.env.behavior = reproc::env::extend;
         options.env.extra = envmap;
 
-        std::string cwd = path.parent_path();
+        const std::string cwd = path.parent_path().string();
         options.working_directory = cwd.c_str();
 
         LOG_TRACE << "ENV MAP:"
@@ -574,7 +574,7 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(validate::sha256sum(dst), rel_dst);
+            return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
 #endif
             fs::remove(dst);
         }
@@ -587,7 +587,7 @@ namespace mamba
         {
             // we have to replace the PREFIX stuff in the data
             // and copy the file
-            std::string new_prefix = m_context->target_prefix;
+            std::string new_prefix = m_context->target_prefix.string();
 #ifdef _WIN32
             replace_all(new_prefix, "\\", "/");
 #endif
@@ -661,7 +661,7 @@ namespace mamba
                         fo << launcher << shebang << (buffer.c_str() + arc_pos);
                         fo.close();
                     }
-                    return std::make_tuple(validate::sha256sum(dst), rel_dst);
+                    return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
                 }
 #else
                 std::size_t padding_size
@@ -721,7 +721,7 @@ namespace mamba
                 }
             }
 #endif
-            return std::make_tuple(validate::sha256sum(dst), rel_dst);
+            return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
         }
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
@@ -773,7 +773,7 @@ namespace mamba
             fs::copy_symlink(src, dst);
             // we need to wait until all files are linked to compute the SHA256 sum!
             // otherwise the file that's pointed to might not be linked yet.
-            return std::make_tuple("", rel_dst);
+            return std::make_tuple("", rel_dst.string());
         }
         else
         {
@@ -781,7 +781,7 @@ namespace mamba
                                      + std::to_string(static_cast<int>(path_data.path_type)));
         }
         return std::make_tuple(
-            path_data.sha256.empty() ? validate::sha256sum(dst) : path_data.sha256, rel_dst);
+            path_data.sha256.empty() ? validate::sha256sum(dst) : path_data.sha256, rel_dst.string());
     }
 
     std::vector<fs::path> LinkPackage::compile_pyc_files(const std::vector<fs::path>& py_files)
@@ -954,11 +954,11 @@ namespace mamba
             }
         }
         out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->str() : "";
-        out_json["package_tarball_full_path"] = std::string(m_source) + ".tar.bz2";
-        out_json["extracted_package_dir"] = m_source;
+        out_json["package_tarball_full_path"] = m_source.string() + ".tar.bz2";
+        out_json["extracted_package_dir"] = m_source.string();
 
         // TODO find out what `1` means
-        out_json["link"] = { { "source", std::string(m_source) }, { "type", 1 } };
+        out_json["link"] = { { "source", m_source.string() }, { "type", 1 } };
 
         if (noarch_type == NoarchType::PYTHON)
         {
@@ -985,9 +985,9 @@ namespace mamba
             for (const fs::path& pyc_path : pyc_files)
             {
                 out_json["paths_data"]["paths"].push_back(
-                    { { "_path", std::string(pyc_path) }, { "path_type", "pyc_file" } });
+                    { { "_path", pyc_path.string() }, { "path_type", "pyc_file" } });
 
-                out_json["files"].push_back(pyc_path);
+                out_json["files"].push_back(pyc_path.string());
             }
 
             if (link_json.find("noarch") != link_json.end()

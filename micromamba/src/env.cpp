@@ -138,8 +138,12 @@ set_env_command(CLI::App* com)
             if (ctx.json)
             {
                 nlohmann::json res;
-                auto pfxs = env_manager.list_all_known_prefixes();
-                std::vector<std::string> envs(pfxs.begin(), pfxs.end());
+                const auto pfxs = env_manager.list_all_known_prefixes();
+                std::vector<std::string> envs(pfxs.size());
+                std::transform(pfxs.begin(),
+                               pfxs.end(),
+                               envs.begin(),
+                               [](const fs::path& path) { return path.string(); });
                 res["envs"] = envs;
                 std::cout << res.dump(4) << std::endl;
                 return;

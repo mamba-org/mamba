@@ -166,9 +166,9 @@ namespace mamba
 #ifndef _WIN32
         std::signal(SIGPIPE, SIG_IGN);
 #endif
-
+        const auto complete_python_path = target_prefix / python_path;
         std::vector<std::string> command
-            = { target_prefix / python_path, "-Wi", "-m", "compileall", "-q", "-l", "-i", "-" };
+            = { complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-" };
 
         auto py_ver_split = split(python_version, ".");
 
@@ -182,8 +182,7 @@ namespace mamba
                 compile_python_sources(compileall_f);
                 compileall_f.close();
 
-                command = {
-                    target_prefix / python_path, "-Wi", "-u", m_pyc_compileall->path().c_str()
+                command = { complete_python_path.string(), "-Wi", "-u", m_pyc_compileall->path().string()
                 };
             }
         }
@@ -219,7 +218,7 @@ namespace mamba
         options.redirect.out.type = reproc::redirect::pipe;
         options.redirect.err.type = reproc::redirect::pipe;
 
-        std::string cwd = target_prefix;
+        const std::string cwd = target_prefix.string();
         options.working_directory = cwd.c_str();
 
         auto [wrapped_command, script_file] = prepare_wrapped_call(target_prefix, command);

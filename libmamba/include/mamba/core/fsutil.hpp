@@ -22,7 +22,7 @@ namespace mamba
     {
         inline bool starts_with_home(const fs::path& p)
         {
-            std::string path = p;
+            std::string path = p.string();
             return path[0] == '~'
                    || starts_with(env::expand_user(path).string(), env::expand_user("~").string());
         }

@@ -87,7 +87,7 @@ namespace mamba
                 EXPECT_LOCKED(lock);
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path() };
+                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -105,7 +105,7 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempdir_path };
+                args = { lock_cli, "lock", "--timeout=1", tempdir_path.string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -129,7 +129,7 @@ namespace mamba
             fs::path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path };
+            args = { lock_cli, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
             reproc::run(
@@ -204,7 +204,7 @@ namespace mamba
                 EXPECT_LOCKED(lock);
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path() };
+                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -222,7 +222,7 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempfile_path };
+                args = { lock_cli, "lock", "--timeout=1", tempfile_path.string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -246,7 +246,7 @@ namespace mamba
             fs::path lock_path = tempfile_path.string() + ".lock";
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path };
+            args = { lock_cli, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
             reproc::run(

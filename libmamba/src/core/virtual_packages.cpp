@@ -92,7 +92,7 @@ namespace mamba
                         if (starts_with(p.path().filename().string(), "nv")
                             && fs::exists(p.path() / "nvidia-smi.exe"))
                         {
-                            std::string f = p.path() / "nvidia-smi.exe";
+                            std::string f = (p.path() / "nvidia-smi.exe").string();
                             LOG_DEBUG << "Found nvidia-smi in: " << f;
                             std::vector<std::string> command = { f, "--query", "-u", "-x" };
                             auto [_ /*cmd_status*/, cmd_ec]

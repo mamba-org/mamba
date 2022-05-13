@@ -228,7 +228,7 @@ namespace mamba
             auto p = path.string();
             if (p[0] == '~')
             {
-                p.replace(0, 1, home_directory());
+                p.replace(0, 1, home_directory().string());
             }
             return p;
         }

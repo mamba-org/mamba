@@ -170,7 +170,7 @@ namespace mamba
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
-                    std::string fname = p.path().filename();
+                    std::string fname = p.path().filename().string();
                     if (!p.is_directory()
                         && (ends_with(p.path().string(), ".tar.bz2")
                             || ends_with(p.path().string(), ".conda")))
@@ -244,10 +244,9 @@ namespace mamba
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
-                    std::string fname = p.path().filename();
                     if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
                     {
-                        if (installed_pkgs.find(p.path().filename()) != installed_pkgs.end())
+                        if (installed_pkgs.find(p.path().filename().string()) != installed_pkgs.end())
                         {
                             // do not remove installed packages
                             continue;

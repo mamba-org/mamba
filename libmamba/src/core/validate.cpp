@@ -1433,7 +1433,7 @@ namespace validate
             mamba::URLHandler url(base_url + "/key_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                "key_mgr.json", url.url(), tmp_metadata_path);
+                "key_mgr.json", url.url(), tmp_metadata_path.string());
 
             if (dl_target->resource_exists())
             {
@@ -1587,7 +1587,7 @@ namespace validate
             mamba::URLHandler url(base_url + "/pkg_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                "pkg_mgr.json", url.url(), tmp_metadata_path);
+                "pkg_mgr.json", url.url(), tmp_metadata_path.string());
 
             if (dl_target->resource_exists())
             {
@@ -2115,7 +2115,7 @@ namespace validate
                 tmp_file_path = tmp_dir_path / f;
 
                 auto dl_target
-                    = std::make_unique<mamba::DownloadTarget>(f.string(), url, tmp_file_path);
+                    = std::make_unique<mamba::DownloadTarget>(f.string(), url, tmp_file_path.string());
 
                 if (dl_target->resource_exists())
                 {

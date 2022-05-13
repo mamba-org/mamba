@@ -400,11 +400,11 @@ namespace mamba
         // TODO invalidate solv cache on version updates!!
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return m_valid_cache_path / "cache" / m_solv_fn;
+            return (m_valid_cache_path / "cache" / m_solv_fn).string();
         }
         else if (m_json_cache_valid)
         {
-            return m_valid_cache_path / "cache" / m_json_fn;
+            return (m_valid_cache_path / "cache" / m_json_fn).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
@@ -615,7 +615,7 @@ namespace mamba
     {
         LOG_INFO << "Decompressing metadata";
         auto json_temp_file = std::make_unique<TemporaryFile>();
-        bool result = decompress::raw(m_temp_file->path(), json_temp_file->path());
+        bool result = decompress::raw(m_temp_file->path().string(), json_temp_file->path().string());
         if (!result)
         {
             LOG_WARNING << "Could not decompress " << m_temp_file->path();
@@ -628,7 +628,7 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        m_target = std::make_unique<DownloadTarget>(m_name, m_repodata_url, m_temp_file->path());
+        m_target = std::make_unique<DownloadTarget>(m_name, m_repodata_url, m_temp_file->path().string());
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
@@ -661,12 +661,12 @@ namespace mamba
 
     std::string create_cache_dir(const fs::path& cache_path)
     {
-        std::string cache_dir = cache_path / "cache";
+        const auto cache_dir = cache_path / "cache";
         fs::create_directories(cache_dir);
 #ifndef _WIN32
         ::chmod(cache_dir.c_str(), 02775);
 #endif
-        return cache_dir;
+        return cache_dir.string();
     }
 
     expected_t<MRepo&> MSubdirData::create_repo(MPool& pool)

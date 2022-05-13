@@ -171,7 +171,7 @@ namespace mamba
                 if (ends_with(entry.path().filename().string(), ".token"))
                 {
                     found_tokens.push_back(entry.path());
-                    std::string token_url = decode_url(entry.path().filename());
+                    std::string token_url = decode_url(entry.path().filename().string());
 
                     // anaconda client writes out a token for https://api.anaconda.org...
                     // but we need the token for https://conda.anaconda.org
@@ -262,10 +262,10 @@ namespace mamba
         {
             if (paths_equal(d, maybe_env_dir))
             {
-                return prefix.filename();
+                return prefix.filename().string();
             }
         }
-        return prefix;
+        return prefix.string();
     }
 
     // Find the location of a prefix given a conda env name.

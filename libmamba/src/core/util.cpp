@@ -112,7 +112,7 @@ namespace mamba
         success = (pth != nullptr);
         template_path = pth;
 #else
-        std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
+        const std::string template_path = (fs::temp_directory_path() / "mambadXXXXXX").string();
         // include \0 terminator
         auto err [[maybe_unused]]
         = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
@@ -1210,10 +1210,11 @@ namespace mamba
         std::string cmd_exe = env::get("COMSPEC").value_or("");
         if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = fs::path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe";
+            cmd_exe
+                = (fs::path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe").string();
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = fs::path(env::get("windir").value_or("")) / "System32" / "cmd.exe";
+                cmd_exe = (fs::path(env::get("windir").value_or("")) / "System32" / "cmd.exe").string();
             }
             if (!fs::is_regular_file(cmd_exe))
             {
@@ -1281,12 +1282,12 @@ namespace mamba
 
         if (dev_mode)
         {
-            conda_bat = fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat";
+            conda_bat = (fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
         }
         else
         {
             conda_bat
-                = env::get("CONDA_BAT").value_or(fs::absolute(root_prefix) / "condabin" / bat_name);
+                = env::get("CONDA_BAT").value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
         if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
         {
@@ -1431,7 +1432,7 @@ namespace mamba
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
 
-            command_args = { comspec.value(), "/D", "/C", script_file->path() };
+            command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
         }
         else
         {
@@ -1449,8 +1450,8 @@ namespace mamba
 
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
-            command_args.push_back(shell_path);
-            command_args.push_back(script_file->path());
+            command_args.push_back(shell_path.string());
+            command_args.push_back(script_file->path().string());
         }
         return std::make_tuple(command_args, std::move(script_file));
     }

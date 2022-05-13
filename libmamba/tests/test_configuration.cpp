@@ -33,7 +33,7 @@ namespace mamba
         protected:
             void load_test_config(std::string rc)
             {
-                std::string unique_location = tempfile_ptr->path();
+                const auto unique_location = tempfile_ptr->path();
                 std::ofstream out_file(unique_location, std::ofstream::out | std::ofstream::trunc);
                 out_file << rc;
                 out_file.close();
@@ -41,7 +41,7 @@ namespace mamba
                 mamba::Configuration::instance().reset_configurables();
                 mamba::Configuration::instance()
                     .at("rc_files")
-                    .set_value<std::vector<fs::path>>({ fs::path(unique_location) });
+                    .set_value<std::vector<fs::path>>({ unique_location });
                 mamba::Configuration::instance().at("show_banner").set_default_value(false);
                 mamba::Configuration::instance().load();
             }
@@ -100,12 +100,12 @@ namespace mamba
                 channels:
                     - test1)");
             load_test_config(rc);
-            std::string src = env::shrink_user(tempfile_ptr->path());
+            const auto src = env::shrink_user(tempfile_ptr->path());
             EXPECT_EQ(config.sources().size(), 1);
             EXPECT_EQ(config.valid_sources().size(), 1);
             EXPECT_EQ(config.dump(), "channels:\n  - test1");
             EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS),
-                      "channels:\n  - test1  # '" + src + "'");
+                      "channels:\n  - test1  # '" + src.string() + "'");
 
             // ill-formed config file
             rc = unindent(R"(

@@ -209,7 +209,7 @@ namespace mamba
 #else
             bash = env::which("bash");
 #endif
-        std::string command = bash.empty() ? "cygpath" : bash.parent_path() / "cygpath";
+        const std::string command = bash.empty() ? "cygpath" : (bash.parent_path() / "cygpath").string();
         std::string out, err;
         try
         {
@@ -294,7 +294,7 @@ namespace mamba
         }
         else
         {
-            s_mamba_exe = mamba_exe;
+            s_mamba_exe = mamba_exe.string();
         }
 
         content << "\n# >>> mamba initialize >>>\n";
@@ -330,7 +330,7 @@ namespace mamba
         }
         else
         {
-            s_mamba_exe = mamba_exe;
+            s_mamba_exe = mamba_exe.string();
         }
 
         content << "\n# >>> mamba initialize >>>\n";
@@ -460,7 +460,7 @@ namespace mamba
         else if (shell == "powershell")
         {
             std::stringstream contents;
-            contents << "$Env:MAMBA_EXE='" << exe.native() << "'\n";
+            contents << "$Env:MAMBA_EXE='" << exe.string() << "'\n";
             std::string psm1 = data_Mamba_psm1;
             psm1 = psm1.substr(0, psm1.find("## EXPORTS ##"));
             contents << psm1;
@@ -716,8 +716,8 @@ namespace mamba
         out << "\n#region mamba initialize\n";
         out << "# !! Contents within this block are managed by 'mamba shell init' !!\n";
         out << "$Env:MAMBA_ROOT_PREFIX = " << conda_prefix << "\n";
-        out << "$Env:MAMBA_EXE = '" << self_exe.native() << "'\n";
-        out << "(& '" << self_exe.native() << "' 'shell' 'hook' -s 'powershell' -p " << conda_prefix
+        out << "$Env:MAMBA_EXE = '" << self_exe.string() << "'\n";
+        out << "(& '" << self_exe.string() << "' 'shell' 'hook' -s 'powershell' -p " << conda_prefix
             << ") | Out-String | Invoke-Expression\n";
         out << "#endregion\n";
         return out.str();

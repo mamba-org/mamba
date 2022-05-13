@@ -1292,7 +1292,7 @@ namespace validate
                     : PkgMgrT_v06()
                 {
                     m_repo_base_url = "file://" + channel_dir->path().string();
-                    m_ref_path = channel_dir->path();
+                    m_ref_path = channel_dir->path().string();
 
                     write_role(root1_json, channel_dir->path() / "root.json");
 

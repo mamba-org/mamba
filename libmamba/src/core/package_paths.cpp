@@ -46,7 +46,7 @@ namespace mamba
             }
             else
             {
-                throw std::runtime_error(concat("Could not parse ", std::string(path)));
+                throw std::runtime_error(concat("Could not parse ", path.string()));
             }
         }
         return res;

@@ -569,6 +569,24 @@ namespace mamba
             node[name] = m_value;
         }
 
+        template <>
+        inline void ConfigurableImpl<fs::path>::dump_json(nlohmann::json& node,
+                                                   const std::string& name) const
+        {
+            node[name] = m_value.string();
+        }
+
+        template <>
+        inline void ConfigurableImpl<std::vector<fs::path>>::dump_json(nlohmann::json& node, const std::string& name) const
+        {
+            std::vector<std::string> values(m_value.size());
+            std::transform(m_value.begin(),
+                           m_value.end(),
+                           values.begin(),
+                           [](const auto& value) { return value.string(); });
+            node[name] = values;
+        }
+
         template <class T>
         void ConfigurableImpl<T>::set_rc_value(const T& value, const std::string& source)
         {

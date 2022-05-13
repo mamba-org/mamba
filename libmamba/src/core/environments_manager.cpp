@@ -38,7 +38,7 @@ namespace mamba
             }
         }
 
-        std::string final_location_string = remove_trailing_slash(final_location);
+        std::string final_location_string = remove_trailing_slash(final_location.string());
         if (final_location_string.find("placehold_pl") != std::string::npos
             || final_location_string.find("skeleton_") != std::string::npos)
         {

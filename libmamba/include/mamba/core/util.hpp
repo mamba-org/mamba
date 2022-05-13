@@ -255,16 +255,29 @@ namespace mamba
                && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
     }
 
-    template <class S, class CharType>
-    inline std::basic_string<CharType> join(const CharType* sep, const S& container)
+    namespace details
+    {
+        struct PlusEqual
+        {
+            template<typename T, typename U>
+            auto operator()(T& left, const U& right)
+            {
+                left += right;
+            }
+        };
+    }
+
+    template <class S, class CharType, class Joiner = details::PlusEqual>
+    auto join(const CharType* sep, const S& container, Joiner joiner = details::PlusEqual{})
+        -> typename S::value_type
     {
         if (container.empty())
-            return std::basic_string<CharType>();
-        std::basic_string<CharType> result = container[0];
+            return {};
+        auto result = container[0];
         for (std::size_t i = 1; i < container.size(); ++i)
         {
-            result += sep;
-            result += container[i];
+            joiner(result, sep);
+            joiner(result, container[i]);
         }
         return result;
     }

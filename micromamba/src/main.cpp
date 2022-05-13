@@ -4,6 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#ifdef _WIN32  // This set of includes is requires for CommandLineToArgvW() to be available.
+#define VC_EXTRALEAN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <stdio.h>
+#include <shellapi.h>
+#endif
+
 #include "umamba.hpp"
 
 #include "mamba/version.hpp"

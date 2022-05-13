@@ -87,7 +87,7 @@ namespace mamba
             std::vector<std::string> pins;
 
             auto tempfile = std::make_unique<TemporaryFile>("pinned", "");
-            std::string path = tempfile->path();
+            const auto path = tempfile->path();
             std::ofstream out_file(path);
             out_file << "numpy=1.13\njupyterlab=3";
             out_file.close();

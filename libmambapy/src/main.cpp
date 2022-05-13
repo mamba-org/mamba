@@ -9,6 +9,7 @@
 #include <pybind11/stl.h>
 
 #include "nlohmann/json.hpp"
+#include "spdlog/fmt/fmt.h"
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
@@ -54,7 +55,7 @@ PYBIND11_MODULE(bindings, m)
         .def("__str__", [](fs::path& self) -> std::string { return self.string(); })
         .def("__repr__",
              [](fs::path& self) -> std::string
-             { return std::string("fs::path[") + std::string(self) + "]"; });
+             { return fmt::format("fs::path[{}]", self.string()); });
     py::implicitly_convertible<std::string, fs::path>();
 
     py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::path>());

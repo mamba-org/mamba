@@ -135,7 +135,7 @@ namespace mamba
             }
 
             auto running_processes_info = nlohmann::json::parse(pid_file);
-            running_processes_info["pid"] = file_location.filename().replace_extension();
+            running_processes_info["pid"] = file_location.filename().replace_extension().string();
             if (!filter || filter(running_processes_info))
                 all_processes_info.push_back(running_processes_info);
         }
@@ -174,7 +174,7 @@ namespace mamba
             nlohmann::json file_json;
             file_json["name"] = name;
             file_json["command"] = command;
-            file_json["prefix"] = Context::instance().target_prefix;
+            file_json["prefix"] = Context::instance().target_prefix.string();
             // TODO: add other info here if necessary
             pid_file << file_json;
         }

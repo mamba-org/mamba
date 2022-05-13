@@ -133,7 +133,7 @@ namespace mamba
             archive_write_set_options(a, comp_level.c_str());
         }
 
-        archive_write_open_filename(a, abs_out_path.c_str());
+        archive_write_open_filename(a, abs_out_path.string().c_str());
 
         auto prev_path = fs::current_path();
         if (!fs::exists(directory))
@@ -302,12 +302,12 @@ namespace mamba
         archive_write_disk_set_standard_lookup(ext);
 
         auto lock = LockFile::try_lock(file);
-        r = archive_read_open_filename(a, file.c_str(), 10240);
+        r = archive_read_open_filename(a, file.string().c_str(), 10240);
 
         if (r != ARCHIVE_OK)
         {
             LOG_ERROR << "Error opening archive: " << archive_error_string(a);
-            throw std::runtime_error(std::string(file) + ": Could not open archive for reading.");
+            throw std::runtime_error(file.string() + " : Could not open archive for reading.");
         }
 
         for (;;)
@@ -442,11 +442,11 @@ namespace mamba
         std::vector<std::string> args;
         if (Context::instance().is_micromamba)
         {
-            args = { get_self_exe_path(), "package", "extract", file, dest };
+            args = { get_self_exe_path().string(), "package", "extract", file.string(), dest.string() };
         }
         else
         {
-            args = { "mamba-package", "extract", file, dest };
+            args = { "mamba-package", "extract", file.string(), dest.string() };
         }
 
         std::string out, err;

@@ -38,7 +38,7 @@ namespace mamba
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } }
+                  { get_python_path(), "-m", "pip", "install", "-r", spec_file.string(), "--no-input"}}
             };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);
@@ -102,7 +102,7 @@ namespace mamba
         command_args install_instructions = [&]
         {
             const auto maybe_instructions
-                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix, specs.path());
+                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix.string(), specs.path());
             if (maybe_instructions)
                 return maybe_instructions.value();
             else
@@ -191,7 +191,7 @@ namespace mamba
             YAML::Node f;
             try
             {
-                f = YAML::LoadFile(file);
+                f = YAML::LoadFile(file.string());
             }
             catch (YAML::Exception& e)
             {
@@ -245,7 +245,7 @@ namespace mamba
                             result.others_pkg_mgrs_specs.push_back(
                                 { "pip",
                                   map_el.second.as<std::vector<std::string>>(),
-                                  fs::absolute(yaml_file.parent_path()) });
+                                  fs::absolute(yaml_file.parent_path()).string() });
                             has_pip_deps = true;
                         }
                     }
@@ -593,7 +593,7 @@ namespace mamba
             detail::create_target_directory(prefix);
 
             Console::instance().print(join(
-                "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix })));
+                "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix.string() })));
             Console::instance().json_write({ { "success", true } });
         }
 

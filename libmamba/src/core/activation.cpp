@@ -55,11 +55,11 @@ namespace mamba
         // if ../miniconda3/envs/my_super_env, return `my_super_env`, else path
         if (prefix.parent_path().stem() == "envs")
         {
-            return prefix.stem();
+            return prefix.stem().string();
         }
         else
         {
-            return prefix;
+            return prefix.string();
         }
     }
 
@@ -162,8 +162,8 @@ namespace mamba
             std::string prompt = Context::instance().env_prompt;
             replace_all(prompt, "{default_env}", conda_default_env);
             replace_all(prompt, "{stacked_env}", conda_stacked_env);
-            replace_all(prompt, "{prefix}", prefix);
-            replace_all(prompt, "{name}", prefix.stem());
+            replace_all(prompt, "{prefix}", prefix.string());
+            replace_all(prompt, "{name}", prefix.stem().string());
             return prompt;
         }
         else
@@ -268,7 +268,7 @@ namespace mamba
             bool no_condabin
                 = std::none_of(path_list.begin(),
                                path_list.end(),
-                               [](const std::string& s) { return ends_with(s, "condabin"); });
+                               [](const fs::path& s) { return ends_with(s.string(), "condabin"); });
             if (no_condabin)
             {
                 auto condabin_dir = Context::instance().root_prefix / "condabin";
@@ -282,7 +282,7 @@ namespace mamba
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
 
-        std::string result = join(env::pathsep(), final_path);
+        std::string result = join(env::pathsep(), final_path).string();
         return result;
     }
 
@@ -325,14 +325,14 @@ namespace mamba
 
             // remove duplicates
             final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-            std::string result = join(env::pathsep(), final_path);
+            std::string result = join(env::pathsep(), final_path).string();
             return result;
         }
         else
         {
             current_path.erase(std::unique(current_path.begin(), current_path.end()),
                                current_path.end());
-            std::string result = join(env::pathsep(), current_path);
+            std::string result = join(env::pathsep(), current_path).string();
             return result;
         }
     }
@@ -602,16 +602,15 @@ namespace mamba
             LOG_WARNING << "Overwriting variables: " << join(",", clobbering_env_vars);
         }
 
-        std::vector<std::pair<std::string, std::string>> env_vars_to_export;
-        std::vector<std::string> unset_vars;
-
         std::string new_path = add_prefix_to_path(prefix, old_conda_shlvl);
 
-        env_vars_to_export = { { "path", std::string(new_path) },
-                               { "conda_prefix", std::string(prefix) },
-                               { "conda_shlvl", std::to_string(new_conda_shlvl) },
-                               { "conda_default_env", conda_default_env },
-                               { "conda_prompt_modifier", conda_prompt_modifier } };
+        std::vector<std::pair<std::string, std::string>> env_vars_to_export{
+            { "path", new_path },
+            { "conda_prefix", prefix.string() },
+            { "conda_shlvl", std::to_string(new_conda_shlvl) },
+            { "conda_default_env", conda_default_env },
+            { "conda_prompt_modifier", conda_prompt_modifier }
+        };
 
         for (auto& [k, v] : conda_environment_env_vars)
         {
@@ -634,7 +633,7 @@ namespace mamba
             }
             else
             {
-                new_path = replace_prefix_in_path(old_conda_prefix, prefix);
+                new_path = replace_prefix_in_path(old_conda_prefix, prefix.string());
                 envt.deactivate_scripts = get_deactivate_scripts(old_conda_prefix);
                 env_vars_to_export[0] = { "PATH", new_path };
                 get_export_unset_vars(envt, env_vars_to_export);

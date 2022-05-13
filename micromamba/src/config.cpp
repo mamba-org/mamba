@@ -337,11 +337,11 @@ set_config_remove_key_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(false);
+            const fs::path rc_source = compute_config_path(false);
 
             bool key_removed = false;
             // convert rc file to YAML::Node
-            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             // look for key to remove in file
             for (auto v : rc_YAML)
@@ -396,7 +396,7 @@ set_config_remove_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(false);
+            const fs::path rc_source = compute_config_path(false);
             bool key_removed = false;
 
             const string_list& rvm = remove_vec_map.value<string_list>();
@@ -410,7 +410,7 @@ set_config_remove_command(CLI::App* subcom)
             }
 
             // convert rc file to YAML::Node
-            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             // look for key to remove in file
             for (auto v : rc_YAML)
@@ -476,9 +476,9 @@ set_config_set_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(true);
+            const fs::path rc_source = compute_config_path(true);
 
-            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             const string_list& sv = set_value.value<string_list>();
             if (is_valid_rc_key(sv.at(0)) && sv.size() < 3)

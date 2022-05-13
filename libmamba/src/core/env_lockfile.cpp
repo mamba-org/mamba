@@ -156,7 +156,7 @@ namespace mamba
         try
         {
             // TODO: add fields validation here (using some schema validation tool)
-            const YAML::Node lockfile_content = YAML::LoadFile(file_path);
+            const YAML::Node lockfile_content = YAML::LoadFile(file_path.string());
             const auto lockfile_version = lockfile_content["version"].as<int>();
             switch (lockfile_version)
             {

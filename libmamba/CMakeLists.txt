@@ -92,6 +92,8 @@ endif()
 # Source files
 # ============
 
+find_package (Python3 COMPONENTS Interpreter)
+
 set(SHELL_SCRIPTS
     micromamba.sh
     micromamba.bat
@@ -110,7 +112,7 @@ foreach(script ${SHELL_SCRIPTS})
     string(REPLACE "." "_" script_var ${script})
     add_custom_command(OUTPUT shell_scripts/${script}.cpp
                        DEPENDS data/${script}
-                       COMMAND python3 ${LIBMAMBA_DATA_DIR}/bin2header.py
+                       COMMAND ${Python3_EXECUTABLE} ${LIBMAMBA_DATA_DIR}/bin2header.py
                         --extern
                         -v data_${script_var}
                         -i ${CMAKE_CURRENT_SOURCE_DIR}/data/${script}

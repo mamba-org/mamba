@@ -187,6 +187,14 @@ namespace mamba
                                  std::string& extension);
     fs::path strip_package_extension(const std::string& file);
 
+    template <class T>
+    inline bool vector_is_prefix(const std::vector<T>& prefix, const std::vector<T>& vec)
+    {
+        return vec.size() >= prefix.size()
+               && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
+    }
+
+
     template <class S>
     inline std::string join(const char* j, const S& container)
     {

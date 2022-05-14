@@ -493,8 +493,7 @@ namespace mamba
             {
                 const Channel& channel = ca.second;
                 std::string test_url = join_url(channel.location(), channel.name());
-                // original code splits with '/' and compares tokens
-                if (starts_with(url, test_url))
+                if (vector_is_prefix(split(test_url, "/"), split(url, "/")))
                 {
                     auto subname = std::string(strip(url.replace(0u, test_url.size(), ""), "/"));
 

@@ -457,6 +457,7 @@ namespace mamba
             p.version = ms.version;
             p.channel = ms.channel;
             p.fn = ms.fn;
+            p.subdir = ms.subdir;
             if (ms.brackets.find("md5") != ms.brackets.end())
             {
                 p.md5 = ms.brackets.at("md5");
@@ -1390,6 +1391,7 @@ namespace mamba
             if (solvable_lookup_str(s, real_repo_key))
             {
                 std::string repo_key = solvable_lookup_str(s, real_repo_key);
+
                 if (repo_key == "explicit_specs")
                 {
                     channel = solvable_lookup_str(s, SOLVABLE_MEDIAFILE);
@@ -1401,13 +1403,10 @@ namespace mamba
             }
             else
             {
-                channel = s->repo->name;  // note this can and should be <unknown> when
-                                          // e.g. installing from a tarball
-                if (channel == "__explicit_specs__")
-                {
-                    channel
-                        = make_channel(solvable_lookup_str(s, SOLVABLE_MEDIADIR)).canonical_name();
-                }
+                // note this can and should be <unknown> when
+                // e.g. installing from a tarball
+                channel = s->repo->name;
+                assert(channel != "__explicit_specs__");
             }
 
             r.push_back({ name,

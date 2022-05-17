@@ -128,7 +128,7 @@ namespace mamba
         {
             if (!s2.empty())
             {
-                if (s1.back() != '/')
+                if (s1.empty() || s1.back() != '/')
                 {
                     s1 += '/';
                 }

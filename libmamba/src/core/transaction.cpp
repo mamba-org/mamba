@@ -739,7 +739,7 @@ namespace mamba
                                MultiPackageCache& caches)
         : m_multi_cache(caches)
     {
-        LOG_WARNING << "MTransaction::MTransaction - packages already resolved (lockfile)";
+        LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
         MRepo& mrepo = MRepo::create(pool, "__explicit_specs__", packages);
         pool.create_whatprovides();
 

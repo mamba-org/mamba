@@ -114,7 +114,7 @@ Note: it's advised to use micromamba in containers & CI only.
 Download and unzip the executable (from the official conda-forge package):
 
 ```sh
-wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 ```
 
 We can use `./micromamba shell init ... ` to initialize a shell (`.bashrc`) and a new root environment in `~/micromamba`:

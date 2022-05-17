@@ -162,6 +162,15 @@ namespace mamba
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
     bool contains(const std::string_view& str, const std::string_view& sub_str);
 
+    // TODO: add concepts here, or at least some contraints
+    template <typename T, typename AssociativeContainer>
+    auto contains(const AssociativeContainer& values, const T& value_to_find)
+        -> decltype(values.find(value_to_find)
+                    != values.end())  // this should make invalid usage SFINAE
+    {
+        return values.find(value_to_find) != values.end();
+    }
+
     bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix);
 
     bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix);

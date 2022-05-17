@@ -398,7 +398,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             ${LibArchive_LIBRARIES}
             ${CURL_LIBRARIES}
             ${OPENSSL_LIBRARIES}
-            ${YAML_CPP_LIBRARIES}
+            yaml-cpp
             reproc++
             reproc
             tl::expected

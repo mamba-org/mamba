@@ -10,6 +10,8 @@
 #endif
 
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/invoke.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {
@@ -190,7 +192,11 @@ namespace mamba
         wait_for_all_threads();
         if (is_sig_interrupted() || std::uncaught_exceptions() > 0)
         {
-            m_cleanup_function();
+            const auto result = safe_invoke(std::move(m_cleanup_function));
+            if (!result)
+            {
+                LOG_ERROR << "interruption_guard invocation failed: " << result.error().what();
+            }
         }
     }
 

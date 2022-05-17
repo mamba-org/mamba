@@ -129,7 +129,7 @@ namespace mamba
         bool m_locked;
         bool m_lockfile_existed;
 
-#if defined(__APPLE__) or defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__)
         pid_t m_pid;
 #else
         int m_pid;
@@ -161,6 +161,15 @@ namespace mamba
     bool starts_with(const std::string_view& str, const std::string_view& prefix);
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
     bool contains(const std::string_view& str, const std::string_view& sub_str);
+
+    // TODO: add concepts here, or at least some contraints
+    template <typename T, typename AssociativeContainer>
+    auto contains(const AssociativeContainer& values, const T& value_to_find)
+        -> decltype(values.find(value_to_find)
+                    != values.end())  // this should make invalid usage SFINAE
+    {
+        return values.find(value_to_find) != values.end();
+    }
 
     bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix);
 

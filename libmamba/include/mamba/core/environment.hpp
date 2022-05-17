@@ -16,7 +16,7 @@
 #include "mamba_fs.hpp"
 
 #ifdef _WIN32
-#include <Shlobj.h>;
+#include <Shlobj.h>
 #endif
 
 #ifndef _WIN32

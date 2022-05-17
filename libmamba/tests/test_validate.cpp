@@ -1799,8 +1799,8 @@ namespace validate
                     { "op": "replace", "path": "/signed/version", "value": 2 }
                     ])"_json;
 
-                RootImpl root(create_root_update("2.root.json", patch));
-                bool mirrors_role_found = (root.roles().find("mirrors") != root.roles().end());
+                const RootImpl root(create_root_update("2.root.json", patch));
+                bool mirrors_role_found = contains(root.roles(), "mirrors");
                 EXPECT_TRUE(mirrors_role_found);
             }
 

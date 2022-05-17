@@ -129,7 +129,7 @@ namespace mamba
         bool m_locked;
         bool m_lockfile_existed;
 
-#if defined(__APPLE__) or defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__)
         pid_t m_pid;
 #else
         int m_pid;

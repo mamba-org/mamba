@@ -84,7 +84,8 @@ set_clean_command(CLI::App* subcom)
                 options = options | MAMBA_CLEAN_TRASH;
             if (config.at("clean_force_pkgs_dirs").compute().value<bool>())
             {
-                if (config.at("always_yes").compute().value<bool>() || Console::prompt("Remove all contents from the package caches?"))
+                if (config.at("always_yes").compute().value<bool>()
+                    || Console::prompt("Remove all contents from the package caches?"))
                 {
                     options = options | MAMBA_CLEAN_FORCE_PKGS_DIRS;
                 }

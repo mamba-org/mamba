@@ -408,6 +408,7 @@ namespace mamba
     size_t DownloadTarget::write_callback(char* ptr, size_t size, size_t nmemb, void* self)
     {
         auto* s = reinterpret_cast<DownloadTarget*>(self);
+        auto expected_write_size = size * nmemb;
         if (!s->m_file.is_open())
         {
             s->m_file = open_ofstream(s->m_filename, std::ios::binary);
@@ -415,18 +416,20 @@ namespace mamba
             {
                 LOG_ERROR << "Could not open file for download " << s->m_filename << ": "
                           << strerror(errno);
-                return size * nmemb + 1;
+                // Return a size _different_ than the expected write size to signal an error
+                return expected_write_size + 1;
             }
         }
 
-        s->m_file.write(ptr, size * nmemb);
+        s->m_file.write(ptr, expected_write_size);
 
         if (!s->m_file)
         {
             LOG_ERROR << "Could not write to file " << s->m_filename << ": " << strerror(errno);
-            return size * nmemb + 1;
+            // Return a size _different_ than the expected write size to signal an error
+            return expected_write_size + 1;
         }
-        return size * nmemb;
+        return expected_write_size;
     }
 
     size_t DownloadTarget::header_callback(char* buffer, size_t size, size_t nitems, void* self)

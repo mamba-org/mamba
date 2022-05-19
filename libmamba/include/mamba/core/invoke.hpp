@@ -14,11 +14,14 @@ namespace mamba
                                              std::forward<Args>(args)...)),
                         mamba_error>
     {
-        auto call
-            = [&] { return std::invoke(std::forward<Func>(func), std::forward<Args>(args)...); };
-        using Result = decltype(call());
         try
         {
+            // If the callable is passed by being moved-in (r-value reference/temporary etc.)
+            // we make sure that the lifetime of that callable doesnt go beyond this block.
+            auto call = [&, callable = std::forward<Func>(func)]
+            { return std::invoke(callable, std::forward<Args>(args)...); };
+            using Result = decltype(call());
+
             if constexpr (std::is_void<Result>::value)
             {
                 call();

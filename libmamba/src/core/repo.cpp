@@ -168,17 +168,10 @@ namespace mamba
         if (!info.noarch.empty())
             solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
 
+        repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
+
         repodata_set_checksum(
             data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
-
-        if (strcmp(m_repo->name, "__explicit_specs__") == 0)
-        {
-            repodata_set_location(data, handle, 0, nullptr, info.url.c_str());
-        }
-        else
-        {
-            repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
-        }
 
         if (!info.depends.empty())
         {

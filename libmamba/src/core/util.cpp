@@ -457,7 +457,7 @@ namespace mamba
 
         if (extension == "")
         {
-            throw std::runtime_error("Don't know how to handle " + file);
+            throw std::runtime_error("Cannot strip file extension from: " + file);
         }
 
         return name;

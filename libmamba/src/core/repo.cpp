@@ -165,15 +165,13 @@ namespace mamba
 
         solvable_set_str(s, real_repo_key, info.url.c_str());
 
-        repodata_set_str(data, handle, SOLVABLE_MEDIADIR, info.subdir.c_str());
-
         if (!info.noarch.empty())
             solvable_set_str(s, noarch_repo_key, info.noarch.c_str());
 
+        repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
+
         repodata_set_checksum(
             data, handle, SOLVABLE_CHECKSUM, REPOKEY_TYPE_SHA256, info.sha256.c_str());
-
-        repodata_set_location(data, handle, 0, info.subdir.c_str(), info.fn.c_str());
 
         if (!info.depends.empty())
         {

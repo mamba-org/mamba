@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 
+from conda.base.constants import ChannelPriority
 from conda.base.context import context
 from conda.core.prefix_data import PrefixData
 from conda.core.solve import get_pinned_specs
@@ -57,6 +58,9 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
         print("\n\nLooking for: {}\n\n".format(specs))
 
     solver_options = [(api.SOLVER_FLAG_ALLOW_DOWNGRADE, 1)]
+
+    if context.channel_priority is ChannelPriority.STRICT:
+        solver_options.append((api.SOLVER_FLAG_STRICT_REPO_PRIORITY, 1))
 
     installed_pkg_recs = []
 

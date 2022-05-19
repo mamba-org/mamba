@@ -104,6 +104,27 @@ namespace mamba
         ChannelContext::instance().reset();
     }
 
+    // Regression test for https://github.com/mamba-org/mamba/issues/1671
+    TEST(ChannelContext, channel_alias_with_custom_default_channels)
+    {
+        auto& ctx = Context::instance();
+        auto old_default_channels = ctx.default_channels;
+        ctx.channel_alias = "https://ali.as/";
+        ctx.default_channels = { "prefix" };
+        ctx.channels = { "prefix-and-more" };
+        ChannelContext::instance().reset();
+
+        auto base = std::string("https://ali.as/prefix-and-more/");
+        auto& chan = make_channel(base);
+        std::vector<std::string> expected_urls = { base + platform, base + "noarch" };
+        EXPECT_EQ(chan.urls(), expected_urls);
+
+        ctx.channel_alias = "https://conda.anaconda.org";
+        ctx.custom_channels.clear();
+        ctx.default_channels = old_default_channels;
+        ChannelContext::instance().reset();
+    }
+
     TEST(ChannelContext, custom_channels)
     {
         // ChannelContext builds its custom channels with

@@ -1022,7 +1022,7 @@ namespace mamba
                 return signum;
             });
 
-        MainExecutor::instance().take_ownership(std::move(t.extract()));
+        MainExecutor::instance().take_ownership(t.extract());
 
         {
             std::unique_lock<std::mutex> l(m);

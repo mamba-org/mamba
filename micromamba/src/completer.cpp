@@ -92,7 +92,7 @@ add_activate_completion(CLI::App* app, std::vector<std::string>& completer_args,
 
     // Mock functions just for completion
     CLI::App* activate_subcom = app->add_subcommand("activate");
-    CLI::App* deactivate_subcom = app->add_subcommand("deactivate");
+    app->add_subcommand("deactivate");
     activate_subcom->callback(
         [app, &completer_args, &completed]()
         {
@@ -124,7 +124,7 @@ add_ps_completion(CLI::App* app, std::vector<std::string>& completer_args, bool&
                           { complete_options(list_subcom, completer_args, completed); });
 
     stop_subcom->callback(
-        [app, &completer_args, &completed]()
+        [&completer_args, &completed]()
         {
             if (completer_args.size() == 1)
             {

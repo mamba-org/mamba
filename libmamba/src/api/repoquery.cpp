@@ -80,6 +80,7 @@ namespace mamba
             switch (format)
             {
                 case QueryResultFormat::kTREE:
+                case QueryResultFormat::kPRETTY:
                     res.tree(std::cout);
                     break;
                 case QueryResultFormat::kJSON:
@@ -95,6 +96,7 @@ namespace mamba
             switch (format)
             {
                 case QueryResultFormat::kTREE:
+                case QueryResultFormat::kPRETTY:
                     res.tree(std::cout);
                     break;
                 case QueryResultFormat::kJSON:

@@ -257,8 +257,9 @@ namespace mamba
      * Console *
      ***********/
 
-    struct ConsoleData
+    class ConsoleData
     {
+    public:
         std::mutex m_mutex;
         std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
 

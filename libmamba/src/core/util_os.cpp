@@ -423,7 +423,7 @@ namespace mamba
         // Enable buffering to prevent VS from chopping up UTF-8 byte sequences
         setvbuf(stdout, nullptr, _IOFBF, 1000);
 #else
-        static constexpr char* utf8_locales[] = {
+        static constexpr const char* utf8_locales[] = {
             "C.UTF-8",
             "POSIX.UTF-8",
             "en_US.UTF-8",

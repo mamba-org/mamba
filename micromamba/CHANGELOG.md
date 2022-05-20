@@ -1,3 +1,16 @@
+micromamba 0.23.3 (May 20, 2022)
+================================
+
+Bug fixes
+
+- Fix summing behavior of `-v` flags #1690
+- fix curl callback to not exit anymore but report a proper error #1684
+- fix up explicit installation by using proper variables #1677
+
+Improvements
+
+- make clean_force_pkgs respect `-y` flag (thanks @Patricol) #1686
+
 micromamba 0.23.2 (May 12, 2022)
 ================================
 

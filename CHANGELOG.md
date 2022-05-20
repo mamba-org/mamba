@@ -1,3 +1,22 @@
+2022.05.20
+==========
+
+Releases: libmamba 0.23.3, libmambapy 0.23.3, mamba 0.23.3, micromamba 0.23.3
+
+Bug fixes
+- [micromamba] Fix summing behavior of `-v` flags #1690
+- [all] fix curl callback to not exit anymore but report a proper error #1684
+- [micromamba] fix up explicit installation by using proper variables #1677
+- [libmamba] fix channel prefix test (thanks @jonashaag) #1674
+- [mamba] fix strict priority for `mamba create env ...` #1688
+
+Improvements
+- [micromamba] make clean_force_pkgs respect `-y` flag (thanks @Patricol) #1686
+- [libmamba] various Windows / CMake improvements #1683
+- [libmamba] various warnings fixed on Windows and Unix #1683, 1691
+- [libmamba] fix yaml-cpp linkage #1678
+
+
 2022.05.12
 ==========
 

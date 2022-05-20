@@ -1,3 +1,10 @@
+libmambapy 0.23.3 (May 20, 2022)
+================================
+
+Bug fixes
+
+- fix curl callback to not exit anymore but report a proper error #1684
+
 libmambapy 0.23.1 (May 11, 2022)
 ================================
 

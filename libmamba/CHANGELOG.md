@@ -1,3 +1,17 @@
+libmamba 0.23.3 (May 20, 2022)
+==============================
+
+Bug fixes
+
+- fix curl callback to not exit anymore but report a proper error #1684
+- fix channel prefix test (thanks @jonashaag) #1674
+
+Improvements
+
+- various Windows / CMake improvements #1683
+- various warnings fixed on Windows and Unix #1683, 1691
+- fix yaml-cpp linkage #1678
+
 libmamba 0.23.1 (May 11, 2022)
 ==============================
 

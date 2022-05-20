@@ -46,6 +46,7 @@ init_general_options(CLI::App* subcom)
         ->add_flag("-v,--verbose",
                    verbose.get_cli_config<int>(),
                    "Set verbosity (higher verbosity with multiple -v, e.g. -vvv)")
+        ->multi_option_policy(CLI::MultiOptionPolicy::Sum)
         ->group(cli_group);
 
     std::map<std::string, mamba::log_level> le_map = { { "critical", mamba::log_level::critical },

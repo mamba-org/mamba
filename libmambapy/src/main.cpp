@@ -215,6 +215,7 @@ PYBIND11_MODULE(bindings, m)
                  switch (format)
                  {
                      case query::TREE:
+                     case query::PRETTY:
                          res.tree(res_stream);
                          break;
                      case query::JSON:
@@ -237,6 +238,7 @@ PYBIND11_MODULE(bindings, m)
                  switch (format)
                  {
                      case query::TREE:
+                     case query::PRETTY:
                          res.tree(res_stream);
                          break;
                      case query::JSON:

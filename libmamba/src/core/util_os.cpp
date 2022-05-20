@@ -30,7 +30,7 @@ namespace mamba
 {
     // Heavily inspired by https://github.com/gpakosz/whereami/
     // check their source to add support for other OS
-    fs::path get_self_exe_path()
+    fs::u8path get_self_exe_path()
     {
 #ifdef _WIN32
         DWORD size;

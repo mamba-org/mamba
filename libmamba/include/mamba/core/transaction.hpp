@@ -47,7 +47,7 @@ namespace mamba
         PackageDownloadExtractTarget(Solvable* solvable);
         PackageDownloadExtractTarget(const PackageInfo& pkg_info);
 
-        void write_repodata_record(const fs::path& base_path);
+        void write_repodata_record(const fs::u8path& base_path);
         void add_url();
         bool finalize_callback();
         bool finished();
@@ -86,7 +86,7 @@ namespace mamba
         std::unique_ptr<DownloadTarget> m_target;
 
         std::string m_url, m_name, m_filename;
-        fs::path m_tarball_path, m_cache_path;
+        fs::u8path m_tarball_path, m_cache_path;
 
         std::future<bool> m_extract_future;
 
@@ -159,7 +159,7 @@ namespace mamba
 
         TransactionContext m_transaction_context;
         MultiPackageCache m_multi_cache;
-        const fs::path m_cache_path;
+        const fs::u8path m_cache_path;
         std::vector<Solvable*> m_to_install, m_to_remove;
 
         History::UserRequest m_history_entry;
@@ -175,7 +175,7 @@ namespace mamba
                                                        MultiPackageCache& package_caches);
 
     MTransaction create_explicit_transaction_from_lockfile(MPool& pool,
-                                                           const fs::path& env_lockfile_path,
+                                                           const fs::u8path& env_lockfile_path,
                                                            MultiPackageCache& package_caches);
 }  // namespace mamba
 

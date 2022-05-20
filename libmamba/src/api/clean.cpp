@@ -42,7 +42,7 @@ namespace mamba
 
         Console::stream() << "Collect information..";
 
-        std::vector<fs::path> envs;
+        std::vector<fs::u8path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs);
         if (!ctx.dry_run && (clean_index || clean_all))
@@ -156,7 +156,7 @@ namespace mamba
 
         auto collect_tarballs = [&]()
         {
-            std::vector<fs::path> res;
+            std::vector<fs::u8path> res;
             std::size_t total_size = 0;
             std::vector<printers::FormattedString> header = { "Package file", "Size" };
             mamba::printers::Table t(header);
@@ -230,7 +230,7 @@ namespace mamba
 
         auto collect_package_folders = [&]()
         {
-            std::vector<fs::path> res;
+            std::vector<fs::u8path> res;
             std::size_t total_size = 0;
             std::vector<printers::FormattedString> header = { "Package folder", "Size" };
             mamba::printers::Table t(header);
@@ -246,7 +246,8 @@ namespace mamba
                 {
                     if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
                     {
-                        if (installed_pkgs.find(p.path().filename().string()) != installed_pkgs.end())
+                        if (installed_pkgs.find(p.path().filename().string())
+                            != installed_pkgs.end())
                         {
                             // do not remove installed packages
                             continue;

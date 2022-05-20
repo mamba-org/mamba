@@ -149,7 +149,7 @@ namespace mamba
     }
 
     tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
-        const fs::path& lockfile_location)
+        const fs::u8path& lockfile_location)
     {
         const auto file_path = fs::absolute(
             lockfile_location);  // Having the complete path helps with logging and error reports.

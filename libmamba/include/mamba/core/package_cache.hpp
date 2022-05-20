@@ -30,12 +30,12 @@ namespace mamba
     class PackageCacheData
     {
     public:
-        PackageCacheData(const fs::path& path);
+        PackageCacheData(const fs::u8path& path);
 
         bool create_directory();
         void set_writable(Writable writable);
         Writable is_writable();
-        fs::path path() const;
+        fs::u8path path() const;
         void clear_query_cache(const PackageInfo& s);
 
         bool has_valid_tarball(const PackageInfo& s);
@@ -47,20 +47,20 @@ namespace mamba
         std::map<std::string, bool> m_valid_tarballs;
         std::map<std::string, bool> m_valid_extracted_dir;
         Writable m_writable = Writable::UNKNOWN;
-        fs::path m_path;
+        fs::u8path m_path;
     };
 
     class MultiPackageCache
     {
     public:
-        MultiPackageCache(const std::vector<fs::path>& pkgs_dirs);
+        MultiPackageCache(const std::vector<fs::u8path>& pkgs_dirs);
 
-        std::vector<fs::path> paths() const;
+        std::vector<fs::u8path> paths() const;
 
-        fs::path get_tarball_path(const PackageInfo& s, bool return_empty = true);
-        fs::path get_extracted_dir_path(const PackageInfo& s, bool return_empty = true);
+        fs::u8path get_tarball_path(const PackageInfo& s, bool return_empty = true);
+        fs::u8path get_extracted_dir_path(const PackageInfo& s, bool return_empty = true);
 
-        fs::path first_writable_path();
+        fs::u8path first_writable_path();
         PackageCacheData& first_writable_cache(bool create = false);
         std::vector<PackageCacheData*> writable_caches();
 
@@ -68,8 +68,8 @@ namespace mamba
 
     private:
         std::vector<PackageCacheData> m_caches;
-        std::map<std::string, fs::path> m_cached_tarballs;
-        std::map<std::string, fs::path> m_cached_extracted_dirs;
+        std::map<std::string, fs::u8path> m_cached_tarballs;
+        std::map<std::string, fs::u8path> m_cached_extracted_dirs;
     };
 }  // namespace mamba
 

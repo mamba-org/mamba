@@ -84,7 +84,7 @@ namespace mamba
             MPool pool;
             MRepo::create(pool, prefix_data);
 
-            const fs::path pkgs_dirs(ctx.root_prefix / "pkgs");
+            const fs::u8path pkgs_dirs(ctx.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs });
 
             auto execute_transaction = [&](MTransaction& transaction)

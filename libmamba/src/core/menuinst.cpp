@@ -14,7 +14,7 @@ namespace mamba
 {
     namespace detail
     {
-        std::string get_formatted_env_name(const fs::path& target_prefix)
+        std::string get_formatted_env_name(const fs::u8path& target_prefix)
         {
             std::string name = env_name(target_prefix);
             if (name.find_first_of("\\/") != std::string::npos)
@@ -42,12 +42,12 @@ namespace mamba
          *   icon_path: path to an .ico file
          *   icon_index: index for icon
          */
-        void create_shortcut(const fs::path& path,
+        void create_shortcut(const fs::u8path& path,
                              const std::string& description,
-                             const fs::path& filename,
+                             const fs::u8path& filename,
                              const std::string& arguments,
-                             const fs::path& work_dir,
-                             const fs::path& icon_path,
+                             const fs::u8path& work_dir,
+                             const fs::u8path& icon_path,
                              int icon_index)
         {
             IShellLink* pShellLink = nullptr;
@@ -159,7 +159,7 @@ namespace mamba
             { "documents", FOLDERID_Documents },
         };
 
-        fs::path get_folder(const std::string& id)
+        fs::u8path get_folder(const std::string& id)
         {
             wchar_t* localAppData;
             HRESULT hres;
@@ -173,12 +173,12 @@ namespace mamba
             }
 
             std::wstring tmp(localAppData);
-            fs::path res(tmp);
+            fs::u8path res(tmp);
             CoTaskMemFree(localAppData);
             return res;
         }
 
-        void remove_shortcut(const fs::path& filename)
+        void remove_shortcut(const fs::u8path& filename)
         {
             try
             {
@@ -203,9 +203,9 @@ namespace mamba
     void replace_variables(std::string& text, TransactionContext* transaction_context)
     {
         auto& ctx = mamba::Context::instance();
-        fs::path root_prefix = ctx.root_prefix;
+        fs::u8path root_prefix = ctx.root_prefix;
 
-        fs::path target_prefix;
+        fs::u8path target_prefix;
         std::string py_ver;
         if (transaction_context)
         {
@@ -219,7 +219,7 @@ namespace mamba
             distribution_name[0] = std::toupper(distribution_name[0]);
         }
 
-        auto to_forward_slash = [](const fs::path& p)
+        auto to_forward_slash = [](const fs::u8path& p)
         {
             std::string ps = p.string();
             replace_all(ps, "\\", "/");
@@ -261,7 +261,7 @@ namespace mamba
 
     namespace detail
     {
-        void create_remove_shortcut_impl(const fs::path& json_file,
+        void create_remove_shortcut_impl(const fs::u8path& json_file,
                                          TransactionContext* transaction_context,
                                          bool remove)
         {
@@ -295,20 +295,21 @@ namespace mamba
             // }
 
             auto& ctx = mamba::Context::instance();
-            const fs::path root_prefix = ctx.root_prefix;
-            const fs::path target_prefix = ctx.target_prefix;
+            const fs::u8path root_prefix = ctx.root_prefix;
+            const fs::u8path target_prefix = ctx.target_prefix;
 
             // using legacy stuff here
-            const fs::path root_py = root_prefix / "python.exe";
-            const fs::path root_pyw = root_prefix / "pythonw.exe";
-            const fs::path env_py = target_prefix / "python.exe";
-            const fs::path env_pyw = target_prefix / "pythonw.exe";
+            const fs::u8path root_py = root_prefix / "python.exe";
+            const fs::u8path root_pyw = root_prefix / "pythonw.exe";
+            const fs::u8path env_py = target_prefix / "python.exe";
+            const fs::u8path env_pyw = target_prefix / "pythonw.exe";
             const auto cwp_path = root_prefix / "cwp.py";
             std::vector<std::string> cwp_py_args(
                 { cwp_path.string(), target_prefix.string(), env_py.string() });
-            std::vector<std::string> cwp_pyw_args({ cwp_path.string(), target_prefix.string(), env_pyw.string() });
+            std::vector<std::string> cwp_pyw_args(
+                { cwp_path.string(), target_prefix.string(), env_pyw.string() });
 
-            fs::path target_dir = win::get_folder("programs") / menu_name;
+            fs::u8path target_dir = win::get_folder("programs") / menu_name;
             if (!fs::exists(target_dir))
             {
                 fs::create_directories(target_dir);
@@ -338,7 +339,7 @@ namespace mamba
                 std::string full_name = concat(name, name_suffix);
 
                 std::vector<std::string> arguments;
-                fs::path script;
+                fs::u8path script;
                 if (item.contains("pywscript"))
                 {
                     script = root_pyw;
@@ -382,9 +383,9 @@ namespace mamba
                     throw std::runtime_error("Unknown shortcut type.");
                 }
 
-                fs::path dst = target_dir / (full_name + ".lnk");
-                fs::path workdir = item.value("workdir", "");
-                fs::path iconpath = item.value("icon", "");
+                fs::u8path dst = target_dir / (full_name + ".lnk");
+                fs::u8path workdir = item.value("workdir", "");
+                fs::u8path iconpath = item.value("icon", "");
                 if (remove == false)
                 {
                     std::string argstring;
@@ -438,7 +439,7 @@ namespace mamba
         }
     }
 
-    void remove_menu_from_json(const fs::path& json_file, TransactionContext* context)
+    void remove_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
     {
         try
         {
@@ -450,7 +451,7 @@ namespace mamba
         }
     }
 
-    void create_menu_from_json(const fs::path& json_file, TransactionContext* context)
+    void create_menu_from_json(const fs::u8path& json_file, TransactionContext* context)
     {
         try
         {

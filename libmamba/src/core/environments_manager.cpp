@@ -16,16 +16,16 @@
 
 namespace mamba
 {
-    bool is_conda_environment(const fs::path& prefix)
+    bool is_conda_environment(const fs::u8path& prefix)
     {
         return fs::exists(prefix / PREFIX_MAGIC_FILE);
     }
 
-    void EnvironmentsManager::register_env(const fs::path& location)
+    void EnvironmentsManager::register_env(const fs::u8path& location)
     {
-        fs::path env_txt_file = get_environments_txt_file(env::home_directory());
-        fs::path final_location = fs::absolute(location);
-        fs::path folder = final_location.parent_path();
+        fs::u8path env_txt_file = get_environments_txt_file(env::home_directory());
+        fs::u8path final_location = fs::absolute(location);
+        fs::u8path folder = final_location.parent_path();
 
         if (!fs::exists(env_txt_file))
         {
@@ -70,11 +70,11 @@ namespace mamba
         }
     }
 
-    void EnvironmentsManager::unregister_env(const fs::path& location)
+    void EnvironmentsManager::unregister_env(const fs::u8path& location)
     {
         if (fs::exists(location) && fs::is_directory(location))
         {
-            fs::path meta_dir = location / "conda-meta";
+            fs::u8path meta_dir = location / "conda-meta";
             if (fs::exists(meta_dir) && fs::is_directory(meta_dir))
             {
                 std::size_t count = 0;
@@ -94,16 +94,16 @@ namespace mamba
         clean_environments_txt(get_environments_txt_file(env::home_directory()), location);
     }
 
-    std::set<fs::path> EnvironmentsManager::list_all_known_prefixes()
+    std::set<fs::u8path> EnvironmentsManager::list_all_known_prefixes()
     {
-        std::vector<fs::path> search_dirs;
+        std::vector<fs::u8path> search_dirs;
 
         // TODO
         // if (is_admin())
         // {
         //     if (on_win)
         //     {
-        //         fs::path home_dir_dir = env::home_directory().parent_path();
+        //         fs::u8path home_dir_dir = env::home_directory().parent_path();
         //         search_dirs = tuple(join(home_dir_dir, d) for d in
         //         listdir(home_dir_dir))
         //     }
@@ -116,17 +116,17 @@ namespace mamba
         // }
         // else
         {
-            search_dirs = std::vector<fs::path>{ env::home_directory() };
+            search_dirs = std::vector<fs::u8path>{ env::home_directory() };
         }
 
-        std::set<fs::path> all_env_paths;
+        std::set<fs::u8path> all_env_paths;
 
         for (auto& d : search_dirs)
         {
             auto f = get_environments_txt_file(d);
             if (fs::exists(f))
             {
-                for (auto& env_path : clean_environments_txt(f, fs::path()))
+                for (auto& env_path : clean_environments_txt(f, fs::u8path()))
                 {
                     all_env_paths.insert(env_path);
                 }
@@ -149,14 +149,14 @@ namespace mamba
         return all_env_paths;
     }
 
-    std::set<std::string> EnvironmentsManager::clean_environments_txt(const fs::path& env_txt_file,
-                                                                      const fs::path& location)
+    std::set<std::string> EnvironmentsManager::clean_environments_txt(
+        const fs::u8path& env_txt_file, const fs::u8path& location)
     {
         if (!fs::exists(env_txt_file))
             return {};
 
         std::error_code fsabs_error;
-        fs::path abs_loc = fs::absolute(
+        fs::u8path abs_loc = fs::absolute(
             location, fsabs_error);  // If it fails we just get the defaultly constructed path.
         if (fsabs_error && !location.empty())  // Ignore cases where we got an empty location.
         {
@@ -198,7 +198,7 @@ namespace mamba
         return p;
     }
 
-    fs::path EnvironmentsManager::get_environments_txt_file(const fs::path& home) const
+    fs::u8path EnvironmentsManager::get_environments_txt_file(const fs::u8path& home) const
     {
         return home / ".conda" / "environments.txt";
     }

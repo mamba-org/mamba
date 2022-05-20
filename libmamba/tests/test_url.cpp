@@ -64,7 +64,7 @@ namespace mamba
 #ifndef _WIN32
         EXPECT_EQ(url, "file:///users/test/miniconda3");
 #else
-        std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
+        std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
         EXPECT_EQ(url, std::string("file://") + driveletter + ":/users/test/miniconda3");
         auto url2 = path_to_url("D:\\users\\test\\miniconda3");
         EXPECT_EQ(url2, "file://D:/users/test/miniconda3");

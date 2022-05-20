@@ -20,7 +20,7 @@ namespace mamba
     class History
     {
     public:
-        History(const fs::path& prefix);
+        History(const fs::u8path& prefix);
 
         struct ParseResult
         {
@@ -51,8 +51,8 @@ namespace mamba
         std::unordered_map<std::string, MatchSpec> get_requested_specs_map();
         void add_entry(const History::UserRequest& entry);
 
-        fs::path m_prefix;
-        fs::path m_history_file_path;
+        fs::u8path m_prefix;
+        fs::u8path m_history_file_path;
     };
 
 }  // namespace mamba

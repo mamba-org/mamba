@@ -64,10 +64,10 @@ namespace mamba
 
         envs_dirs = { root_prefix / "envs" };
         pkgs_dirs = { root_prefix / "pkgs",
-                      fs::path("~") / ".mamba" / "pkgs"
+                      fs::u8path("~") / ".mamba" / "pkgs"
 #ifdef _WIN32
                       ,
-                      fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
+                      fs::u8path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs"
 #endif
         };
 
@@ -157,7 +157,7 @@ namespace mamba
     void Context::load_authentication_info()
     {
         auto& ctx = Context::instance();
-        std::vector<fs::path> found_tokens;
+        std::vector<fs::u8path> found_tokens;
 
         for (const auto& loc : ctx.token_locations)
         {
@@ -194,7 +194,8 @@ namespace mamba
         }
 
         std::map<std::string, AuthenticationInfo> res;
-        fs::path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
+        fs::u8path auth_loc(mamba::env::home_directory() / ".mamba" / "auth"
+                            / "authentication.json");
         try
         {
             if (fs::exists(auth_loc))
@@ -247,7 +248,7 @@ namespace mamba
     }
 
 
-    std::string env_name(const fs::path& prefix)
+    std::string env_name(const fs::u8path& prefix)
     {
         if (prefix.empty())
         {
@@ -257,7 +258,7 @@ namespace mamba
         {
             return ROOT_ENV_NAME;
         }
-        fs::path maybe_env_dir = prefix.parent_path();
+        fs::u8path maybe_env_dir = prefix.parent_path();
         for (const auto& d : Context::instance().envs_dirs)
         {
             if (paths_equal(d, maybe_env_dir))
@@ -270,7 +271,7 @@ namespace mamba
 
     // Find the location of a prefix given a conda env name.
     // If the location does not exist, an error is raised.
-    fs::path locate_prefix_by_name(const std::string& name)
+    fs::u8path locate_prefix_by_name(const std::string& name)
     {
         assert(!name.empty());
         if (name == ROOT_ENV_NAME)
@@ -283,7 +284,7 @@ namespace mamba
             {
                 continue;
             }
-            fs::path prefix = d / name;
+            fs::u8path prefix = d / name;
             if (fs::exists(prefix) && fs::is_directory(prefix))
             {
                 return fs::absolute(prefix);

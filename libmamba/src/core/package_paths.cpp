@@ -13,7 +13,7 @@
 
 namespace mamba
 {
-    std::map<std::string, PrefixFileParse> read_has_prefix(const fs::path& path)
+    std::map<std::string, PrefixFileParse> read_has_prefix(const fs::u8path& path)
     {
         // reads `has_prefix` file and return dict mapping filepaths to
         // tuples(placeholder, FileMode) A line in `has_prefix` contains one of
@@ -24,7 +24,7 @@ namespace mamba
         //   * binary
         //
         std::map<std::string, PrefixFileParse> res;
-        fs::path file_path = path / "has_prefix";
+        fs::u8path file_path = path / "has_prefix";
         if (!fs::exists(file_path))
         {
             return res;
@@ -52,7 +52,7 @@ namespace mamba
         return res;
     }
 
-    std::set<std::string> read_no_link(const fs::path& info_dir)
+    std::set<std::string> read_no_link(const fs::u8path& info_dir)
     {
         std::vector<std::string> no_link_lines, no_softlink_lines;
         if (fs::exists(info_dir / "no_link"))
@@ -71,7 +71,7 @@ namespace mamba
         return result;
     }
 
-    std::vector<PathData> read_paths(const fs::path& directory)
+    std::vector<PathData> read_paths(const fs::u8path& directory)
     {
         auto info_dir = directory / "info";
         auto paths_json_path = info_dir / "paths.json";

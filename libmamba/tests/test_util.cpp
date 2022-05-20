@@ -69,24 +69,24 @@ namespace mamba
         EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
         EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
 
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something-lock.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something-lock.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yml" }.string()));
 
         EXPECT_FALSE(is_yaml_file_name("something"));
         EXPECT_FALSE(is_yaml_file_name("something-lock"));
         EXPECT_FALSE(is_yaml_file_name("/some/dir/something"));
         EXPECT_FALSE(is_yaml_file_name("../../some/dir/something"));
 
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something-lock" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "/some/dir/something" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "../../some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "something-lock" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "/some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "../../some/dir/something" }.string()));
     }
 
     TEST(utils, encode_decode_base64)

@@ -22,21 +22,23 @@ namespace mamba
         zstd
     };
 
-    void create_archive(const fs::path& directory,
-                        const fs::path& destination,
+    void create_archive(const fs::u8path& directory,
+                        const fs::u8path& destination,
                         compression_algorithm,
                         int compression_level);
-    void create_package(const fs::path& directory, const fs::path& out_file, int compression_level);
+    void create_package(const fs::u8path& directory,
+                        const fs::u8path& out_file,
+                        int compression_level);
 
-    void extract_archive(const fs::path& file, const fs::path& destination);
-    void extract_conda(const fs::path& file,
-                       const fs::path& dest_dir,
+    void extract_archive(const fs::u8path& file, const fs::u8path& destination);
+    void extract_conda(const fs::u8path& file,
+                       const fs::u8path& dest_dir,
                        const std::vector<std::string>& parts = { "info", "pkg" });
-    void extract(const fs::path& file, const fs::path& destination);
-    fs::path extract(const fs::path& file);
-    void extract_subproc(const fs::path& file, const fs::path& dest);
-    bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level);
-    bool validate(const fs::path& pkg_folder);
+    void extract(const fs::u8path& file, const fs::u8path& destination);
+    fs::u8path extract(const fs::u8path& file);
+    void extract_subproc(const fs::u8path& file, const fs::u8path& dest);
+    bool transmute(const fs::u8path& pkg_file, const fs::u8path& target, int compression_level);
+    bool validate(const fs::u8path& pkg_folder);
 }  // namespace mamba
 
 #endif  // MAMBA_PACKAGE_HANDLING_HPP

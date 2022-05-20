@@ -402,7 +402,7 @@ namespace mamba
         const Channel& c4 = make_channel(value4);
         EXPECT_EQ(c4.scheme(), "file");
 #ifdef _WIN32
-        std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
+        std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
         EXPECT_EQ(c4.location(), driveletter + ":/home/mamba/test");
 #else
         EXPECT_EQ(c4.location(), "/home/mamba/test");

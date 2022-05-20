@@ -20,7 +20,7 @@ namespace mamba
 {
     namespace path
     {
-        inline bool starts_with_home(const fs::path& p)
+        inline bool starts_with_home(const fs::u8path& p)
         {
             std::string path = p.string();
             return path[0] == '~'
@@ -28,12 +28,12 @@ namespace mamba
         }
 
         // TODO more error handling
-        inline void create_directories_sudo_safe(const fs::path& path)
+        inline void create_directories_sudo_safe(const fs::u8path& path)
         {
             if (fs::is_directory(path))
                 return;
 
-            fs::path base_dir = path.parent_path();
+            fs::u8path base_dir = path.parent_path();
             if (!fs::is_directory(base_dir))
             {
                 create_directories_sudo_safe(base_dir);
@@ -48,7 +48,7 @@ namespace mamba
 #endif
         }
 
-        inline bool touch(fs::path path, bool mkdir = false, bool sudo_safe = false)
+        inline bool touch(fs::u8path path, bool mkdir = false, bool sudo_safe = false)
         {
             // TODO error handling!
             path = env::expand_user(path);
@@ -96,7 +96,7 @@ namespace mamba
         // - a file name that does not exist but the parent directory in the path exists and we
         //   are able to create a file with that name in that directory for writing.
         // Returns `false` otherwise.
-        inline bool is_writable(const fs::path& path) noexcept
+        inline bool is_writable(const fs::u8path& path) noexcept
         {
             const auto& path_to_write_in = fs::exists(path) ? path : path.parent_path();
 

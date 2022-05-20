@@ -10,7 +10,7 @@ namespace mamba
     {
         bool has_config_name(const std::string& file);
 
-        bool is_config_file(const fs::path& path);
+        bool is_config_file(const fs::u8path& path);
 
         void print_scalar_node(YAML::Emitter&,
                                YAML::Node value,
@@ -34,14 +34,15 @@ namespace mamba
             void load_test_config(std::string rc)
             {
                 const auto unique_location = tempfile_ptr->path();
-                std::ofstream out_file(unique_location, std::ofstream::out | std::ofstream::trunc);
+                std::ofstream out_file(unique_location.std_path(),
+                                       std::ofstream::out | std::ofstream::trunc);
                 out_file << rc;
                 out_file.close();
 
                 mamba::Configuration::instance().reset_configurables();
                 mamba::Configuration::instance()
                     .at("rc_files")
-                    .set_value<std::vector<fs::path>>({ unique_location });
+                    .set_value<std::vector<fs::u8path>>({ unique_location });
                 mamba::Configuration::instance().at("show_banner").set_default_value(false);
                 mamba::Configuration::instance().load();
             }
@@ -49,14 +50,14 @@ namespace mamba
             void load_test_config(std::vector<std::string> rcs)
             {
                 std::vector<std::unique_ptr<TemporaryFile>> tempfiles;
-                std::vector<fs::path> sources;
+                std::vector<fs::u8path> sources;
 
                 for (auto rc : rcs)
                 {
                     tempfiles.push_back(std::make_unique<TemporaryFile>("mambarc", ".yaml"));
-                    fs::path loc = tempfiles.back()->path();
+                    fs::u8path loc = tempfiles.back()->path();
 
-                    std::ofstream out_file(loc);
+                    std::ofstream out_file(loc.std_path());
                     out_file << rc;
                     out_file.close();
 
@@ -491,23 +492,24 @@ namespace mamba
 #ifdef _WIN32
             std::string extra_cache
                 = "\n  - "
-                  + (fs::path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs").string()
+                  + (fs::u8path(env::get("APPDATA").value_or("")) / ".mamba" / "pkgs").string()
                   + "  # 'fallback'";
 #else
             std::string extra_cache = "";
 #endif
-            EXPECT_EQ(config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
-                                      | MAMBA_SHOW_ALL_CONFIGS,
-                                  { "pkgs_dirs" }),
-                      unindent((R"(
+            EXPECT_EQ(
+                config.dump(MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
+                                | MAMBA_SHOW_ALL_CONFIGS,
+                            { "pkgs_dirs" }),
+                unindent((R"(
                                 pkgs_dirs:
                                   - )"
-                                + (fs::path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
+                          + (fs::u8path(root_prefix_str) / "pkgs").string() + R"(  # 'fallback'
                                   - )"
-                                + (env::home_directory() / ".mamba" / "pkgs").string()
-                                + R"(  # 'fallback')" + extra_cache)
-                                   .c_str()));
-            EXPECT_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::path>>());
+                          + (env::home_directory() / ".mamba" / "pkgs").string()
+                          + R"(  # 'fallback')" + extra_cache)
+                             .c_str()));
+            EXPECT_EQ(ctx.pkgs_dirs, config.at("pkgs_dirs").value<std::vector<fs::u8path>>());
 
             std::string cache4 = (env::home_directory() / "babaz").string();
             env::set("CONDA_PKGS_DIRS", cache4);
@@ -962,15 +964,15 @@ namespace mamba
         {
             using namespace detail;
 
-            fs::path p = "config_test/.condarc";
+            fs::u8path p = "config_test/.condarc";
 
-            std::vector<fs::path> wrong_paths = {
+            std::vector<fs::u8path> wrong_paths = {
                 "config_test", "conf_test", "config_test/condarc", "history_test/conda-meta/history"
             };
 
             EXPECT_TRUE(is_config_file(p));
 
-            for (fs::path wp : wrong_paths)
+            for (const fs::u8path& wp : wrong_paths)
             {
                 EXPECT_FALSE(is_config_file(wp));
             }

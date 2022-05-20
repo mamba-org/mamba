@@ -295,21 +295,21 @@ namespace YAML
     };
 
     template <>
-    struct convert<fs::path>
+    struct convert<fs::u8path>
     {
-        static Node encode(const fs::path& rhs)
+        static Node encode(const fs::u8path& rhs)
         {
             return Node(rhs.string());
         }
 
-        static bool decode(const Node& node, fs::path& rhs)
+        static bool decode(const Node& node, fs::u8path& rhs)
         {
             if (!node.IsScalar())
             {
                 return false;
             }
 
-            rhs = fs::path(node.as<std::string>());
+            rhs = fs::u8path(node.as<std::string>());
             return true;
         }
     };

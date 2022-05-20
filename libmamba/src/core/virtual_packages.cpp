@@ -77,7 +77,7 @@ namespace mamba
 
                 for (auto& p : paths)
                 {
-                    if (fs::exists(fs::path(p) / "nvcuda.dll"))
+                    if (fs::exists(fs::u8path(p) / "nvcuda.dll"))
                     {
                         may_exist = true;
                         break;

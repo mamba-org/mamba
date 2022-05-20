@@ -15,8 +15,8 @@ namespace mamba
 {
     namespace
     {
-        fs::path PREFIX_STATE_FILE = fs::path("conda-meta") / "state";
-        fs::path PACKAGE_ENV_VARS_DIR = fs::path("etc") / "conda" / "env_vars.d";
+        fs::u8path PREFIX_STATE_FILE = fs::u8path("conda-meta") / "state";
+        fs::u8path PACKAGE_ENV_VARS_DIR = fs::u8path("etc") / "conda" / "env_vars.d";
         std::string CONDA_ENV_VARS_UNSET_VAR = "***unset***";  // NOLINT(runtime/string)
     }                                                          // namespace
 
@@ -29,24 +29,24 @@ namespace mamba
     {
     }
 
-    std::vector<fs::path> Activator::get_activate_scripts(const fs::path& prefix)
+    std::vector<fs::u8path> Activator::get_activate_scripts(const fs::u8path& prefix)
     {
-        fs::path script_dir = prefix / "etc" / "conda" / "activate.d";
-        std::vector<fs::path> result = filter_dir(script_dir, shell_extension());
+        fs::u8path script_dir = prefix / "etc" / "conda" / "activate.d";
+        std::vector<fs::u8path> result = filter_dir(script_dir, shell_extension());
         std::sort(result.begin(), result.end());
         return result;
     }
 
-    std::vector<fs::path> Activator::get_deactivate_scripts(const fs::path& prefix)
+    std::vector<fs::u8path> Activator::get_deactivate_scripts(const fs::u8path& prefix)
     {
-        fs::path script_dir = prefix / "etc" / "conda" / "deactivate.d";
-        std::vector<fs::path> result = filter_dir(script_dir, shell_extension());
+        fs::u8path script_dir = prefix / "etc" / "conda" / "deactivate.d";
+        std::vector<fs::u8path> result = filter_dir(script_dir, shell_extension());
         // reverse sort!
-        std::sort(result.begin(), result.end(), std::greater<fs::path>());
+        std::sort(result.begin(), result.end(), std::greater<fs::u8path>());
         return result;
     }
 
-    std::string Activator::get_default_env(const fs::path& prefix)
+    std::string Activator::get_default_env(const fs::u8path& prefix)
     {
         if (paths_equal(prefix, Context::instance().root_prefix))
         {
@@ -64,10 +64,10 @@ namespace mamba
     }
 
     std::vector<std::pair<std::string, std::string>> Activator::get_environment_vars(
-        const fs::path& prefix)
+        const fs::u8path& prefix)
     {
-        fs::path env_vars_file = prefix / PREFIX_STATE_FILE;
-        fs::path pkg_env_var_dir = prefix / PACKAGE_ENV_VARS_DIR;
+        fs::u8path env_vars_file = prefix / PREFIX_STATE_FILE;
+        fs::u8path pkg_env_var_dir = prefix / PACKAGE_ENV_VARS_DIR;
         std::vector<std::pair<std::string, std::string>> env_vars;
 
         // # First get env vars from packages
@@ -101,7 +101,7 @@ namespace mamba
         return env_vars;
     }
 
-    std::string Activator::get_prompt_modifier(const fs::path& prefix,
+    std::string Activator::get_prompt_modifier(const fs::u8path& prefix,
                                                const std::string& conda_default_env,
                                                int old_conda_shlvl)
     {
@@ -172,7 +172,7 @@ namespace mamba
         }
     }
 
-    std::vector<fs::path> get_path_dirs(const fs::path& prefix)
+    std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix)
     {
         if (on_win)
         {
@@ -189,7 +189,7 @@ namespace mamba
         }
     }
 
-    std::vector<fs::path> Activator::get_clean_dirs()
+    std::vector<fs::u8path> Activator::get_clean_dirs()
     {
         // For isolation, running the conda test suite *without* env. var. inheritance
         // every so often is a good idea. We should probably make this a pytest
@@ -203,7 +203,7 @@ namespace mamba
         //                         'C:\\Windows\\System32\\Wbem;'
         //                         'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\'
         //                }
-        std::vector<fs::path> path;
+        std::vector<fs::u8path> path;
         if (m_env.find("PATH") != m_env.end())
         {
             auto strings = split(m_env["PATH"], env::pathsep());
@@ -254,7 +254,7 @@ namespace mamba
         return path;
     }
 
-    std::string Activator::add_prefix_to_path(const fs::path& prefix, int old_conda_shlvl)
+    std::string Activator::add_prefix_to_path(const fs::u8path& prefix, int old_conda_shlvl)
     {
         // prefix = self.path_conversion(prefix)
         // path_list = list(self.path_conversion(self._get_starting_path_list()))
@@ -265,10 +265,10 @@ namespace mamba
         // never trigger.
         if (old_conda_shlvl == 0)
         {
-            bool no_condabin
-                = std::none_of(path_list.begin(),
-                               path_list.end(),
-                               [](const fs::path& s) { return ends_with(s.string(), "condabin"); });
+            bool no_condabin = std::none_of(path_list.begin(),
+                                            path_list.end(),
+                                            [](const fs::u8path& s)
+                                            { return ends_with(s.string(), "condabin"); });
             if (no_condabin)
             {
                 auto condabin_dir = Context::instance().root_prefix / "condabin";
@@ -278,7 +278,7 @@ namespace mamba
 
         // TODO check if path_conversion does something useful here.
         // path_list[0:0] = list(self.path_conversion(self._get_path_dirs(prefix)))
-        std::vector<fs::path> final_path = get_path_dirs(prefix);
+        std::vector<fs::u8path> final_path = get_path_dirs(prefix);
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
 
@@ -286,17 +286,17 @@ namespace mamba
         return result;
     }
 
-    std::string Activator::replace_prefix_in_path(const fs::path& old_prefix,
-                                                  const fs::path& new_prefix)
+    std::string Activator::replace_prefix_in_path(const fs::u8path& old_prefix,
+                                                  const fs::u8path& new_prefix)
     {
         // TODO not done yet.
-        std::vector<fs::path> current_path = get_clean_dirs();
+        std::vector<fs::u8path> current_path = get_clean_dirs();
         assert(!old_prefix.empty());
 
-        std::vector<fs::path> old_prefix_dirs = get_path_dirs(old_prefix);
+        std::vector<fs::u8path> old_prefix_dirs = get_path_dirs(old_prefix);
 
         // remove all old paths
-        std::vector<fs::path> cleaned_path;
+        std::vector<fs::u8path> cleaned_path;
         for (auto& cp : current_path)
         {
             bool is_in = false;
@@ -317,7 +317,7 @@ namespace mamba
 
         // TODO remove `sys.prefix\Library\bin` on Windows?!
         // Not sure if necessary as we don't fiddle with Python
-        std::vector<fs::path> final_path;
+        std::vector<fs::u8path> final_path;
         if (!new_prefix.empty())
         {
             final_path = get_path_dirs(new_prefix);
@@ -337,9 +337,9 @@ namespace mamba
         }
     }
 
-    std::string Activator::remove_prefix_from_path(const fs::path& prefix)
+    std::string Activator::remove_prefix_from_path(const fs::u8path& prefix)
     {
-        return replace_prefix_in_path(prefix, fs::path());
+        return replace_prefix_in_path(prefix, fs::u8path());
     }
 
     void Activator::get_export_unset_vars(
@@ -525,7 +525,7 @@ namespace mamba
         return envt;
     }
 
-    EnvironmentTransform Activator::build_activate(const fs::path& prefix)
+    EnvironmentTransform Activator::build_activate(const fs::u8path& prefix)
     {
         EnvironmentTransform envt;
 
@@ -654,7 +654,7 @@ namespace mamba
         return envt;
     }
 
-    std::string Activator::activate(const fs::path& prefix, bool stack)
+    std::string Activator::activate(const fs::u8path& prefix, bool stack)
     {
         m_stack = stack;
         m_action = ActivationType::ACTIVATE;
@@ -732,7 +732,7 @@ namespace mamba
             }
         }
 
-        for (const fs::path& ds : env_transform.deactivate_scripts)
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
         {
             out << ". " << ds << "\n";
         }
@@ -760,7 +760,7 @@ namespace mamba
             }
         }
 
-        for (const fs::path& p : env_transform.activate_scripts)
+        for (const fs::u8path& p : env_transform.activate_scripts)
         {
             out << ". " << p << "\n";
         }
@@ -825,7 +825,7 @@ namespace mamba
         return "";
     }
 
-    fs::path PosixActivator::hook_source_path()
+    fs::u8path PosixActivator::hook_source_path()
     {
         return Context::instance().root_prefix / "etc" / "profile.d" / "micromamba.sh";
     }
@@ -850,7 +850,7 @@ namespace mamba
         return "";
     }
 
-    fs::path CmdExeActivator::hook_source_path()
+    fs::u8path CmdExeActivator::hook_source_path()
     {
         return "";
     }
@@ -871,7 +871,7 @@ namespace mamba
             out << "@SET \"PATH=" << env_transform.export_path << "\"\n";
         }
 
-        for (const fs::path& ds : env_transform.deactivate_scripts)
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
         {
             out << "@CALL " << ds << "\n";
         }
@@ -891,7 +891,7 @@ namespace mamba
             out << "@SET \"" << ekey << "=" << evar << "\"\n";
         }
 
-        for (const fs::path& p : env_transform.activate_scripts)
+        for (const fs::u8path& p : env_transform.activate_scripts)
         {
             out << "@CALL " << p << "\n";
         }
@@ -927,7 +927,7 @@ namespace mamba
         return "";
     }
 
-    fs::path PowerShellActivator::hook_source_path()
+    fs::u8path PowerShellActivator::hook_source_path()
     {
         return Context::instance().root_prefix / "condabin" / "mamba_hook.ps1";
     }
@@ -947,7 +947,7 @@ namespace mamba
             out << "$Env:PATH =\"" << env_transform.export_path << "\"\n";
         }
 
-        for (const fs::path& ds : env_transform.deactivate_scripts)
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
         {
             out << ". " << ds << "\n";
         }
@@ -967,7 +967,7 @@ namespace mamba
             out << "$Env:" << ekey << " = \"" << evar << "\"\n";
         }
 
-        for (const fs::path& p : env_transform.activate_scripts)
+        for (const fs::u8path& p : env_transform.activate_scripts)
         {
             out << ". " << p << "\n";
         }
@@ -995,7 +995,7 @@ namespace mamba
         return "";
     }
 
-    fs::path XonshActivator::hook_source_path()
+    fs::u8path XonshActivator::hook_source_path()
     {
         return Context::instance().root_prefix / "etc" / "profile.d" / "mamba.xsh";
     }
@@ -1015,7 +1015,7 @@ namespace mamba
             out << "$PATH=\"" << env_transform.export_path << "\"\n";
         }
 
-        for (const fs::path& ds : env_transform.deactivate_scripts)
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
         {
             out << "source-bash " << ds << "\n";
         }
@@ -1035,7 +1035,7 @@ namespace mamba
             out << "$" << ekey << " = \"" << evar << "\"\n";
         }
 
-        for (const fs::path& p : env_transform.activate_scripts)
+        for (const fs::u8path& p : env_transform.activate_scripts)
         {
             out << "source-bash " << p << "\n";
         }
@@ -1063,7 +1063,7 @@ namespace mamba
         return "";
     }
 
-    fs::path FishActivator::hook_source_path()
+    fs::u8path FishActivator::hook_source_path()
     {
         return Context::instance().root_prefix / "etc" / "fish" / "conf.d" / "mamba.fish";
     }
@@ -1083,7 +1083,7 @@ namespace mamba
             out << "set -gx PATH \"" << env_transform.export_path << "\"\n";
         }
 
-        for (const fs::path& ds : env_transform.deactivate_scripts)
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
         {
             out << "source " << ds << "\n";
         }
@@ -1103,7 +1103,7 @@ namespace mamba
             out << "set -gx " << ekey << " \"" << evar << "\"\n";
         }
 
-        for (const fs::path& p : env_transform.activate_scripts)
+        for (const fs::u8path& p : env_transform.activate_scripts)
         {
             out << "source " << p << "\n";
         }

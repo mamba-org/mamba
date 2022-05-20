@@ -47,16 +47,16 @@ namespace mamba
 
     bool is_package_file(const std::string_view& fn);
 
-    bool lexists(const fs::path& p);
-    bool lexists(const fs::path& p, std::error_code& ec);
-    std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix);
-    bool paths_equal(const fs::path& lhs, const fs::path& rhs);
+    bool lexists(const fs::u8path& p);
+    bool lexists(const fs::u8path& p, std::error_code& ec);
+    std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix);
+    bool paths_equal(const fs::u8path& lhs, const fs::u8path& rhs);
 
-    std::string read_contents(const fs::path& path,
+    std::string read_contents(const fs::u8path& path,
                               std::ios::openmode mode = std::ios::in | std::ios::binary);
-    std::vector<std::string> read_lines(const fs::path& path);
+    std::vector<std::string> read_lines(const fs::u8path& path);
 
-    inline void make_executable(const fs::path& p)
+    inline void make_executable(const fs::u8path& p)
     {
         fs::permissions(p,
                         fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
@@ -73,11 +73,11 @@ namespace mamba
         TemporaryDirectory& operator=(const TemporaryDirectory&) = delete;
         TemporaryDirectory& operator=(TemporaryDirectory&&) = default;
 
-        fs::path& path();
-        operator fs::path();
+        const fs::u8path& path() const;
+        operator fs::u8path();
 
     private:
-        fs::path m_path;
+        fs::u8path m_path;
     };
 
     class TemporaryFile
@@ -90,11 +90,11 @@ namespace mamba
         TemporaryFile& operator=(const TemporaryFile&) = delete;
         TemporaryFile& operator=(TemporaryFile&&) = default;
 
-        fs::path& path();
-        operator fs::path();
+        fs::u8path& path();
+        operator fs::u8path();
 
     private:
-        fs::path m_path;
+        fs::u8path m_path;
     };
 
     const std::size_t MAMBA_LOCK_POS = 21;
@@ -102,23 +102,23 @@ namespace mamba
     class LockFile
     {
     public:
-        LockFile(const fs::path& path);
-        LockFile(const fs::path& path, const std::chrono::seconds& timeout);
+        LockFile(const fs::u8path& path);
+        LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
         ~LockFile();
 
         LockFile(const LockFile&) = delete;
         LockFile& operator=(const LockFile&) = delete;
         LockFile& operator=(LockFile&&) = default;
 
-        static std::unique_ptr<LockFile> try_lock(const fs::path& path) noexcept;
+        static std::unique_ptr<LockFile> try_lock(const fs::u8path& path) noexcept;
 
         int fd() const;
-        fs::path path() const;
-        fs::path lockfile_path() const;
+        fs::u8path path() const;
+        fs::u8path lockfile_path() const;
 
 #ifdef _WIN32
         // Using file descriptor on Windows may cause false negative
-        static bool is_locked(const fs::path& path);
+        static bool is_locked(const fs::u8path& path);
 #else
         // Opening a new file descriptor on Unix would clear locks
         static bool is_locked(int fd);
@@ -126,8 +126,8 @@ namespace mamba
         static int read_pid(int fd);
 
     private:
-        fs::path m_path;
-        fs::path m_lock;
+        fs::u8path m_path;
+        fs::u8path m_lock;
         std::chrono::seconds m_timeout;
         int m_fd = -1;
         bool m_locked;
@@ -246,7 +246,7 @@ namespace mamba
     void split_package_extension(const std::string& file,
                                  std::string& name,
                                  std::string& extension);
-    fs::path strip_package_extension(const std::string& file);
+    fs::u8path strip_package_extension(const std::string& file);
 
     template <class T>
     inline bool vector_is_prefix(const std::vector<T>& prefix, const std::vector<T>& vec)
@@ -259,7 +259,7 @@ namespace mamba
     {
         struct PlusEqual
         {
-            template<typename T, typename U>
+            template <typename T, typename U>
             auto operator()(T& left, const U& right)
             {
                 left += right;
@@ -383,8 +383,8 @@ namespace mamba
     std::string quote_for_shell(const std::vector<std::string>& arguments,
                                 const std::string& shell = "");
 
-    std::size_t clean_trash_files(const fs::path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const fs::path& path);
+    std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
+    std::size_t remove_or_rename(const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -403,21 +403,21 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    std::ofstream open_ofstream(const fs::path& path,
+    std::ofstream open_ofstream(const fs::u8path& path,
                                 std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-    std::ifstream open_ifstream(const fs::path& path,
+    std::ifstream open_ifstream(const fs::u8path& path,
                                 std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
-                                             const fs::path& prefix,
+    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
+                                             const fs::u8path& prefix,
                                              bool dev_mode,
                                              bool debug_wrapper_scripts,
                                              const std::vector<std::string>& arguments);
 
     std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::path& prefix, const std::vector<std::string>& cmd);
+        const fs::u8path& prefix, const std::vector<std::string>& cmd);
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.

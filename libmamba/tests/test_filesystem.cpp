@@ -28,4 +28,3 @@ namespace mamba
         EXPECT_EQ(path_read.string(), utf8_string);
     }
 }
-

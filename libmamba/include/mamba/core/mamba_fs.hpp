@@ -326,10 +326,13 @@ namespace fs
 
         //---- Utility ----
 
+        // Writing to stream always using UTF-8
+        // Note: this will not work well on Windows with std::cout which doesnt know it's UTF-8
+        //       In that case use `u8path::std_path()` instead.
         template <typename OutStream>
         friend OutStream& operator<<(OutStream& out, const u8path& path)
         {
-            out << path.m_path;
+            out << path.string();
             return out;
         }
 

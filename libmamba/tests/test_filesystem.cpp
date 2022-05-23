@@ -13,4 +13,14 @@ namespace mamba
         const fs::u8path file_path = fs::temp_directory_path() / filename;
         EXPECT_EQ(file_path.filename().string(), utf8_string);
     }
+
+    TEST(u8path, string_stream_encoding)
+    {
+        const auto utf8_string = u8"joël";
+        const fs::u8path filename(utf8_string);
+        std::stringstream stream;
+        stream << filename;
+        EXPECT_EQ(stream.str(), utf8_string);
+    }
 }
+

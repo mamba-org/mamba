@@ -31,7 +31,7 @@ namespace mamba
         std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
 
         // Extract raw history file content into buffer.
-        std::ifstream history_file(history_file_path);
+        std::ifstream history_file(history_file_path.std_path());
         std::stringstream original_history_buffer;
         std::string line;
         while (getline(history_file, line))
@@ -53,7 +53,7 @@ namespace mamba
             history_instance.add_entry(req);
         }
 
-        history_file.open(history_file_path);
+        history_file.open(history_file_path.std_path());
         std::stringstream updated_history_buffer;
         while (getline(history_file, line))
         {

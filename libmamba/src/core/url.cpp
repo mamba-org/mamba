@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
+#include <iostream>
 #include "openssl/evp.h"
 
 #include "mamba/core/url.hpp"
@@ -148,7 +149,10 @@ namespace mamba
 
     std::string cache_name_from_url(const std::string& url)
     {
-        std::string u = url;
+        std::string remaining, scheme, auth, token;
+        split_scheme_auth_token(url, remaining, scheme, auth, token);
+
+        std::string u = concat(scheme, "://", remaining);
         // mimicking conda's behavior by special handling repodata.json
         if (ends_with(u, "/repodata.json"))
         {

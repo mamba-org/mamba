@@ -21,6 +21,11 @@ namespace mamba
         std::stringstream stream;
         stream << filename;
         EXPECT_EQ(stream.str(), utf8_string);
+
+        fs::u8path path_read;
+        stream.seekg(0);
+        stream >> path_read;
+        EXPECT_EQ(path_read.string(), utf8_string);
     }
 }
 

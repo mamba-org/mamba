@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
-#include <iostream>
 #include "openssl/evp.h"
 
 #include "mamba/core/url.hpp"

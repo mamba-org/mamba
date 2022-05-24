@@ -82,15 +82,22 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
     {
         auto find_package = [](nlohmann::json& j, const std::string& fn) -> nlohmann::json
         {
-            if (ends_with(fn, ".tar.bz2"))
+            try
             {
-                return j["packages"][fn];
+                if (ends_with(fn, ".tar.bz2"))
+                {
+                    return j.at("packages").at(fn);
+                }
+                else if (ends_with(fn, ".conda"))
+                {
+                    return j.at("packages.conda").at(fn);
+                }
             }
-            else if (ends_with(fn, ".conda"))
-            {
-                return j["packages.conda"][fn];
+            catch (nlohmann::json::out_of_range& e)
+            { /* */
             }
-            throw std::runtime_error("Not found");
+            LOG_WARNING << "Could not find entry in repodata cache for " << fn;
+            return {};
         };
 
         fs::path pkgs_dir = prefix / "pkgs";

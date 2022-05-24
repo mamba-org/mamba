@@ -149,11 +149,7 @@ namespace mamba
 
     std::string cache_name_from_url(const std::string& url)
     {
-        std::string remaining, scheme, auth, token;
-        split_scheme_auth_token(url, remaining, scheme, auth, token);
-
-        std::string u = concat(scheme, "://", remaining);
-
+        std::string u = url;
         if (u.empty() || (u.back() != '/' && !ends_with(u, ".json")))
         {
             u += '/';

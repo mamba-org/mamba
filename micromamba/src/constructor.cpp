@@ -143,6 +143,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
             }
             else
             {
+                LOG_WARNING << "Did not find a repodata record for " << pkg_info.url;
                 repodata_record = index;
 
                 repodata_record["size"] = fs::file_size(entry);

@@ -153,6 +153,12 @@ namespace mamba
         split_scheme_auth_token(url, remaining, scheme, auth, token);
 
         std::string u = concat(scheme, "://", remaining);
+
+        if (u.empty() || (u.back() != '/' && !ends_with(u, ".json")))
+        {
+            u += '/';
+        }
+
         // mimicking conda's behavior by special handling repodata.json
         if (ends_with(u, "/repodata.json"))
         {

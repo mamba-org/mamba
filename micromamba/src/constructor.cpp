@@ -12,6 +12,7 @@
 
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/url.hpp"
 #include "mamba/core/package_info.hpp"
 
 
@@ -75,62 +76,107 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                    | MAMBA_ALLOW_NOT_ENV_PREFIX);
     config.load();
 
+    std::map<std::string, nlohmann::json> repodatas;
+
     if (extract_conda_pkgs)
     {
+        auto find_package = [](nlohmann::json& j, const std::string& fn) -> nlohmann::json
+        {
+            try
+            {
+                if (ends_with(fn, ".tar.bz2"))
+                {
+                    return j.at("packages").at(fn);
+                }
+                else if (ends_with(fn, ".conda"))
+                {
+                    return j.at("packages.conda").at(fn);
+                }
+            }
+            catch (nlohmann::json::out_of_range& e)
+            { /* */
+            }
+            LOG_WARNING << "Could not find entry in repodata cache for " << fn;
+            return {};
+        };
+
         fs::path pkgs_dir = prefix / "pkgs";
         fs::path urls_file = pkgs_dir / "urls";
 
         auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
 
-        for (const auto& entry : fs::directory_iterator(pkgs_dir))
+        for (const auto& pkg_info : package_details)
         {
-            if (is_package_file(entry.path().filename().string()))
+            fs::path entry = pkgs_dir / pkg_info.fn;
+            LOG_TRACE << "Extracting " << pkg_info.fn << std::endl;
+            std::cout << "Extracting " << pkg_info.fn << std::endl;
+
+            fs::path base_path = extract(entry);
+
+            fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
+            fs::path index_path = base_path / "info" / "index.json";
+
+            std::string channel_url;
+            if (pkg_info.url.size() > pkg_info.fn.size())
             {
-                LOG_TRACE << "Extracting " << entry.path().filename() << std::endl;
-                std::cout << "Extracting " << entry.path().filename() << std::endl;
-
-                fs::path base_path = extract(entry.path());
-
-                fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
-                fs::path index_path = base_path / "info" / "index.json";
-
-                nlohmann::json index;
-                std::ifstream index_file(index_path);
-                index_file >> index;
-
-                std::string pkg_name = index["name"];
-
-                index["fn"] = entry.path().filename();
-                bool found_match = false;
-                for (const auto& pkg_info : package_details)
-                {
-                    if (pkg_info.fn == entry.path().filename())
-                    {
-                        index["url"] = pkg_info.url;
-                        index["channel"] = pkg_info.channel;
-                        index["size"] = fs::file_size(entry.path());
-                        if (!pkg_info.md5.empty())
-                        {
-                            index["md5"] = pkg_info.md5;
-                        }
-                        if (!pkg_info.sha256.empty())
-                        {
-                            index["sha256"] = pkg_info.sha256;
-                        }
-                        found_match = true;
-                        break;
-                    }
-                }
-                if (!found_match)
-                {
-                    LOG_WARNING << "Failed to add extra info to " << repodata_record_path
-                                << std::endl;
-                }
-
-                LOG_TRACE << "Writing " << repodata_record_path;
-                std::ofstream repodata_record(repodata_record_path);
-                repodata_record << index.dump(4);
+                channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.fn.size());
             }
+            std::string repodata_cache_name = concat(cache_name_from_url(channel_url), ".json");
+            fs::path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
+
+            nlohmann::json repodata_record;
+            if (fs::exists(repodata_location))
+            {
+                if (repodatas.find(repodata_cache_name) == repodatas.end())
+                {
+                    auto infile = open_ifstream(repodata_location);
+                    nlohmann::json j;
+                    infile >> j;
+                    repodatas[repodata_cache_name] = j;
+                }
+                auto& j = repodatas[repodata_cache_name];
+                repodata_record = find_package(j, pkg_info.fn);
+            }
+
+            nlohmann::json index;
+            std::ifstream index_file(index_path);
+            index_file >> index;
+
+            if (!repodata_record.is_null())
+            {
+                // update values from index if there are any that are not part of the
+                // repodata_record.json yet
+                repodata_record.insert(index.cbegin(), index.cend());
+            }
+            else
+            {
+                LOG_WARNING << "Did not find a repodata record for " << pkg_info.url;
+                repodata_record = index;
+
+                repodata_record["size"] = fs::file_size(entry);
+                if (!pkg_info.md5.empty())
+                {
+                    repodata_record["md5"] = pkg_info.md5;
+                }
+                if (!pkg_info.sha256.empty())
+                {
+                    repodata_record["sha256"] = pkg_info.sha256;
+                }
+            }
+
+            repodata_record["fn"] = pkg_info.fn;
+            repodata_record["url"] = pkg_info.url;
+            repodata_record["channel"] = pkg_info.channel;
+
+            if (repodata_record.find("size") == repodata_record.end()
+                || repodata_record["size"] == 0)
+            {
+                repodata_record["size"] = fs::file_size(entry);
+            }
+
+            LOG_TRACE << "Writing " << repodata_record_path;
+            std::ofstream repodata_record_of(repodata_record_path);
+            repodata_record_of << repodata_record.dump(4);
         }
     }
 

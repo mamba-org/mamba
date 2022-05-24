@@ -149,6 +149,11 @@ namespace mamba
     std::string cache_name_from_url(const std::string& url)
     {
         std::string u = url;
+        if (u.empty() || (u.back() != '/' && !ends_with(u, ".json")))
+        {
+            u += '/';
+        }
+
         // mimicking conda's behavior by special handling repodata.json
         if (ends_with(u, "/repodata.json"))
         {

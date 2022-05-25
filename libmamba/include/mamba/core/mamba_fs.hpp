@@ -29,12 +29,21 @@
 //    then returns a `std::filesystem::path` and we then call `.string()` on it. That conversion
 //    assumes that the resulting string should be of the system's encoding (it's unspecified by the
 //    standard) which leads on Windows for example to the resulting `prefix` with invalid characters
-//    which are then rejected by directory creation functions used later. This kind of code seems
-//    valid but is silently broken. It is very easy to end up in this kind of situation which makes
+//    which are then rejected by directory creation functions used later. 
+//    Another example:
+// 
+//    for(const auto& entry : std::filesystem::directory_iterator(some_path))
+//         if (ends_with(entry.path().string(), ".json")) { ...
+// 
+//    Here `entry` is a `std::filesystem::directory_entry` therefore `.path()` returns a
+//    `std::filesystem::path` which makes `.string()` return a string with unknown encoding.
+//    Once passed in `ends_with` which takes a `u8path`, we end up with `???.json` because we assumed
+//    in `u8path` constructor that this string would be UTF-8 when it is of unknown encoding.
+// 
+//    This kind of code seems valid but is silently broken. It is very easy to end up in this kind of situation which makes
 //    us consider this situation brittle. Therefore, the only way to prevent this kind of issue is
-//    to make sure every path value is first converted to a `fs::u8path` before being passed to a
-//    standard filesystem function and that every returned path from a standard filesystem function
-//    is converted to a `fs::u8path`, thus giving use guarantees about encoding of our paths
+//    to make sure every path value passed to and returned by filesystem functions is first converted
+//    to `fs::u8path`, thus giving use guarantees about encoding of our paths
 //    whatever the platform (as long as strings filtered to be UTF-8).
 //
 // 3. Previous versions of this header were using another library `ghc::filesystem` which is an
@@ -103,11 +112,6 @@ namespace fs
         {
             m_path = std::move(path);
             return *this;
-        }
-
-        u8path(const std::filesystem::directory_entry& entry)
-            : m_path(entry)
-        {
         }
 
         u8path(std::string_view u8string)
@@ -376,7 +380,7 @@ namespace fs
             return *this;
         }
 
-        u8path& replace_extension(const u8path replacement)
+        u8path& replace_extension(const u8path replacement = u8path())
         {
             m_path.replace_extension(replacement.m_path);
             return *this;
@@ -528,18 +532,126 @@ namespace fs
         std::filesystem::path m_path;
     };
 
+    class directory_entry : public std::filesystem::directory_entry
+    {
+    public:
+        directory_entry() = default;
+        directory_entry(const directory_entry&) = default;
+        directory_entry(directory_entry&&) noexcept = default;
+        directory_entry& operator=(const directory_entry&) = default;
+        directory_entry& operator=(directory_entry&&) noexcept = default;
+
+        template<typename... OtherArgs>
+        explicit directory_entry(const u8path& path, OtherArgs&&... args)
+            : std::filesystem::directory_entry(path, std::forward<OtherArgs>(args)...)
+        {
+        }
+
+        directory_entry(const std::filesystem::directory_entry& other)
+            : std::filesystem::directory_entry(other)
+        {
+        }
+
+        u8path path() const
+        {
+            return std::filesystem::directory_entry::path();
+        }
+
+        operator u8path() noexcept
+        {
+            return std::filesystem::directory_entry::path();
+        }
+
+        template<typename... OtherArgs>
+        void replace(const u8path p, OtherArgs&&... args)
+        {
+            std::filesystem::directory_entry::replace_filename(p, std::forward<OtherArgs>(args)...);
+        }
+
+    };
+
+    static_assert(std::is_same_v<decltype(std::declval<directory_entry>().path()), u8path>);
+    
+    class directory_iterator : public std::filesystem::directory_iterator
+    {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = directory_entry;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = const directory_entry*;
+        using reference         = const directory_entry&;
+
+        directory_iterator() = default;
+        directory_iterator(const directory_iterator&) = default;
+        directory_iterator(directory_iterator&&) noexcept = default;
+        directory_iterator& operator=(const directory_iterator&) = default;
+        directory_iterator& operator=(directory_iterator&&) noexcept = default;
+
+        template <typename... OtherArgs>
+        explicit directory_iterator(const u8path& path, OtherArgs&&... args)
+            : std::filesystem::directory_iterator(path, std::forward<OtherArgs>(args)...)
+        {
+        }
+
+
+        directory_entry operator*() const
+        {
+            return std::filesystem::directory_iterator::operator*();
+        }
+
+        const directory_entry* operator->() const = delete;
+
+    };
+
+    static_assert(std::is_same_v<decltype(*std::declval<directory_iterator>()), directory_entry>);
+
+    inline directory_iterator begin(directory_iterator iter) noexcept { return iter; }
+    inline directory_iterator end(directory_iterator) noexcept { return {}; }
+
+    class recursive_directory_iterator : public std::filesystem::recursive_directory_iterator
+    {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = directory_entry;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = const directory_entry*;
+        using reference         = const directory_entry&;
+
+        recursive_directory_iterator() = default;
+        recursive_directory_iterator(const recursive_directory_iterator&) = default;
+        recursive_directory_iterator(recursive_directory_iterator&&) noexcept = default;
+        recursive_directory_iterator& operator=(const recursive_directory_iterator&) = default;
+        recursive_directory_iterator& operator=(recursive_directory_iterator&&) noexcept = default;
+
+        template <typename... OtherArgs>
+        explicit recursive_directory_iterator(const u8path& path, OtherArgs&&... args)
+            : std::filesystem::recursive_directory_iterator(path, std::forward<OtherArgs>(args)...)
+        {
+        }
+
+        directory_entry operator*() const
+        {
+            return std::filesystem::recursive_directory_iterator::operator*();
+        }
+
+        const directory_entry* operator->() const = delete;
+    };
+
+    static_assert(std::is_same_v<decltype(*std::declval<directory_iterator>()), directory_entry>);
+    
+    inline recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept { return iter; }
+    inline recursive_directory_iterator end(recursive_directory_iterator) noexcept { return {}; }
+
     //---- Standard Filesystem element we reuse here -----
 
-    using std::filesystem::copy_options;
-    using std::filesystem::directory_iterator;
     using std::filesystem::directory_options;
+    using std::filesystem::copy_options;
     using std::filesystem::file_status;
     using std::filesystem::file_time_type;
     using std::filesystem::file_type;
     using std::filesystem::filesystem_error;
     using std::filesystem::perm_options;
     using std::filesystem::perms;
-    using std::filesystem::recursive_directory_iterator;
     using std::filesystem::space_info;
 
     //----- Wrapped versions of std::filesystem algorithm that returns a `u8path` instead of

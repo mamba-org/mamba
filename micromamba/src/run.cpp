@@ -127,7 +127,7 @@ namespace mamba
             if (file_location.extension() != ".json")
                 continue;
 
-            std::ifstream pid_file{ file_location, open_mode };
+            std::ifstream pid_file{ file_location.std_path(), open_mode };
             if (!pid_file.is_open())
             {
                 LOG_WARNING << fmt::format("failed to open {}", file_location.string());

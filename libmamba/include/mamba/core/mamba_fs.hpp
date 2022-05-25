@@ -186,10 +186,39 @@ namespace fs
             return m_path / p.m_path;
         }
 
-        template <typename T>
-        u8path operator/(const T& p) const
+        u8path operator/(const std::filesystem::path& p) const
         {
-            return m_path / from_utf8(p);
+            return m_path / p;
+        }
+
+        u8path operator/(std::string_view str) const
+        {
+            return m_path / from_utf8(str);
+        }
+
+        u8path operator/(std::wstring_view wstr) const
+        {
+            return m_path / wstr;
+        }
+
+        u8path operator/(const std::string& str) const
+        {
+            return m_path / from_utf8(str);
+        }
+
+        u8path operator/(const std::wstring& wstr) const
+        {
+            return m_path / wstr;
+        }
+
+        u8path operator/(const char* str) const
+        {
+            return m_path / from_utf8(str);
+        }
+
+        u8path operator/(const wchar_t* wstr) const
+        {
+            return m_path / wstr;
         }
 
         u8path& operator+=(const u8path& to_append)
@@ -198,13 +227,60 @@ namespace fs
             return *this;
         }
 
-        // Append UTF-8 string or character
-        template <typename T>
-        u8path& operator+=(const T& to_append)
+        u8path& operator+=(const std::filesystem::path& to_append)
+        {
+            m_path += to_append;
+            return *this;
+        }
+
+        u8path& operator+=(std::string_view to_append)
+        {
+            m_path = from_utf8(this->string() + std::string(to_append));
+            return *this;
+        }
+
+        u8path& operator+=(std::wstring_view to_append)
+        {
+            m_path += to_append;
+            return *this;
+        }
+
+        u8path& operator+=(const char* to_append)
         {
             m_path = from_utf8(this->string() + to_append);
             return *this;
         }
+
+        u8path& operator+=(const wchar_t* to_append)
+        {
+            m_path += to_append;
+            return *this;
+        }
+
+        u8path& operator+=(const std::string& to_append)
+        {
+            m_path = from_utf8(this->string() + to_append);
+            return *this;
+        }
+
+        u8path& operator+=(const std::wstring& to_append)
+        {
+            m_path += to_append;
+            return *this;
+        }
+
+        u8path& operator+=(char to_append)
+        {
+            m_path = from_utf8(this->string() + to_append);
+            return *this;
+        }
+
+        u8path& operator+=(wchar_t to_append)
+        {
+            m_path += to_append;
+            return *this;
+        }
+
 
         //---- Conversions ----
 
@@ -386,6 +462,26 @@ namespace fs
         friend bool operator!=(const u8path& left, const char* right) noexcept
         {
             return left.m_path != from_utf8(right);
+        }
+
+        friend bool operator==(const u8path& left, const std::wstring& right) noexcept
+        {
+            return left.m_path == right;
+        }
+
+        friend bool operator!=(const u8path& left, const std::wstring& right) noexcept
+        {
+            return left.m_path != right;
+        }
+
+        friend bool operator==(const u8path& left, const wchar_t* right) noexcept
+        {
+            return left.m_path == right;
+        }
+
+        friend bool operator!=(const u8path& left, const wchar_t* right) noexcept
+        {
+            return left.m_path != right;
         }
 
 

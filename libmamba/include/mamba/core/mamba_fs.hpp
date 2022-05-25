@@ -552,12 +552,30 @@ namespace fs
         {
         }
 
+        directory_entry(std::filesystem::directory_entry&& other)
+            : std::filesystem::directory_entry(std::move(other))
+        {
+        }
+
+        
+        directory_entry& operator=(const std::filesystem::directory_entry& other)
+        {
+            std::filesystem::directory_entry::operator=(other);
+            return *this;
+        }
+
+        directory_entry& operator=(std::filesystem::directory_entry&& other) noexcept 
+        { 
+            std::filesystem::directory_entry::operator=(other);
+            return *this;
+        }
+
         u8path path() const
         {
             return std::filesystem::directory_entry::path();
         }
 
-        operator u8path() noexcept
+        operator u8path() const noexcept
         {
             return std::filesystem::directory_entry::path();
         }
@@ -594,16 +612,19 @@ namespace fs
         }
 
 
-        directory_entry operator*() const
+        const directory_entry& operator*() const
         {
-            return std::filesystem::directory_iterator::operator*();
+            current_entry = std::filesystem::directory_iterator::operator*();
+            return current_entry;
         }
 
         const directory_entry* operator->() const = delete;
 
+        private:
+        mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<decltype(*std::declval<directory_iterator>()), directory_entry>);
+    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
 
     inline directory_iterator begin(directory_iterator iter) noexcept { return iter; }
     inline directory_iterator end(directory_iterator) noexcept { return {}; }
@@ -629,15 +650,19 @@ namespace fs
         {
         }
 
-        directory_entry operator*() const
+        const directory_entry& operator*() const
         {
-            return std::filesystem::recursive_directory_iterator::operator*();
+            current_entry = std::filesystem::recursive_directory_iterator::operator*();
+            return current_entry;
         }
 
         const directory_entry* operator->() const = delete;
+
+        private:
+        mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<decltype(*std::declval<directory_iterator>()), directory_entry>);
+    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
     
     inline recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept { return iter; }
     inline recursive_directory_iterator end(recursive_directory_iterator) noexcept { return {}; }

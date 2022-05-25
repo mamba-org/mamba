@@ -50,7 +50,7 @@ namespace mamba
             };
 
             std::vector<fs::u8path> entries_found;
-            for (auto&& entry : fs::recursive_directory_iterator(tmp_dir))
+            for (const auto& entry : fs::recursive_directory_iterator(tmp_dir))
             {
                 static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                 entries_found.push_back(entry.path());
@@ -64,7 +64,7 @@ namespace mamba
             };
 
             std::vector<fs::u8path> entries_found;
-            for (auto&& entry : fs::directory_iterator(file_dir))
+            for (const auto& entry : fs::directory_iterator(file_dir))
             {
                 static_assert(std::is_same_v<decltype(entry.path()), fs::u8path>);
                 entries_found.push_back(entry.path());

@@ -29,22 +29,23 @@
 //    then returns a `std::filesystem::path` and we then call `.string()` on it. That conversion
 //    assumes that the resulting string should be of the system's encoding (it's unspecified by the
 //    standard) which leads on Windows for example to the resulting `prefix` with invalid characters
-//    which are then rejected by directory creation functions used later. 
+//    which are then rejected by directory creation functions used later.
 //    Another example:
-// 
+//
 //    for(const auto& entry : std::filesystem::directory_iterator(some_path))
 //         if (ends_with(entry.path().string(), ".json")) { ...
-// 
+//
 //    Here `entry` is a `std::filesystem::directory_entry` therefore `.path()` returns a
 //    `std::filesystem::path` which makes `.string()` return a string with unknown encoding.
-//    Once passed in `ends_with` which takes a `u8path`, we end up with `???.json` because we assumed
-//    in `u8path` constructor that this string would be UTF-8 when it is of unknown encoding.
-// 
-//    This kind of code seems valid but is silently broken. It is very easy to end up in this kind of situation which makes
-//    us consider this situation brittle. Therefore, the only way to prevent this kind of issue is
-//    to make sure every path value passed to and returned by filesystem functions is first converted
-//    to `fs::u8path`, thus giving use guarantees about encoding of our paths
-//    whatever the platform (as long as strings filtered to be UTF-8).
+//    Once passed in `ends_with` which takes a `u8path`, we end up with `???.json` because we
+//    assumed in `u8path` constructor that this string would be UTF-8 when it is of unknown
+//    encoding.
+//
+//    This kind of code seems valid but is silently broken. It is very easy to end up in this kind
+//    of situation which makes us consider this situation brittle. Therefore, the only way to
+//    prevent this kind of issue is to make sure every path value passed to and returned by
+//    filesystem functions is first converted to `fs::u8path`, thus giving use guarantees about
+//    encoding of our paths whatever the platform (as long as strings filtered to be UTF-8).
 //
 // 3. Previous versions of this header were using another library `ghc::filesystem` which is an
 //    implementation of the standard filesystem library but with a guarantee that
@@ -541,7 +542,7 @@ namespace fs
         directory_entry& operator=(const directory_entry&) = default;
         directory_entry& operator=(directory_entry&&) noexcept = default;
 
-        template<typename... OtherArgs>
+        template <typename... OtherArgs>
         explicit directory_entry(const u8path& path, OtherArgs&&... args)
             : std::filesystem::directory_entry(path, std::forward<OtherArgs>(args)...)
         {
@@ -557,15 +558,15 @@ namespace fs
         {
         }
 
-        
+
         directory_entry& operator=(const std::filesystem::directory_entry& other)
         {
             std::filesystem::directory_entry::operator=(other);
             return *this;
         }
 
-        directory_entry& operator=(std::filesystem::directory_entry&& other) noexcept 
-        { 
+        directory_entry& operator=(std::filesystem::directory_entry&& other) noexcept
+        {
             std::filesystem::directory_entry::operator=(other);
             return *this;
         }
@@ -580,24 +581,23 @@ namespace fs
             return std::filesystem::directory_entry::path();
         }
 
-        template<typename... OtherArgs>
+        template <typename... OtherArgs>
         void replace(const u8path p, OtherArgs&&... args)
         {
             std::filesystem::directory_entry::replace_filename(p, std::forward<OtherArgs>(args)...);
         }
-
     };
 
     static_assert(std::is_same_v<decltype(std::declval<directory_entry>().path()), u8path>);
-    
+
     class directory_iterator : public std::filesystem::directory_iterator
     {
     public:
         using iterator_category = std::input_iterator_tag;
-        using value_type        = directory_entry;
-        using difference_type   = std::ptrdiff_t;
-        using pointer           = const directory_entry*;
-        using reference         = const directory_entry&;
+        using value_type = directory_entry;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const directory_entry*;
+        using reference = const directory_entry&;
 
         directory_iterator() = default;
         directory_iterator(const directory_iterator&) = default;
@@ -620,23 +620,30 @@ namespace fs
 
         const directory_entry* operator->() const = delete;
 
-        private:
+    private:
         mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
+    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>,
+                                 directory_entry>);
 
-    inline directory_iterator begin(directory_iterator iter) noexcept { return iter; }
-    inline directory_iterator end(directory_iterator) noexcept { return {}; }
+    inline directory_iterator begin(directory_iterator iter) noexcept
+    {
+        return iter;
+    }
+    inline directory_iterator end(directory_iterator) noexcept
+    {
+        return {};
+    }
 
     class recursive_directory_iterator : public std::filesystem::recursive_directory_iterator
     {
     public:
         using iterator_category = std::input_iterator_tag;
-        using value_type        = directory_entry;
-        using difference_type   = std::ptrdiff_t;
-        using pointer           = const directory_entry*;
-        using reference         = const directory_entry&;
+        using value_type = directory_entry;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const directory_entry*;
+        using reference = const directory_entry&;
 
         recursive_directory_iterator() = default;
         recursive_directory_iterator(const recursive_directory_iterator&) = default;
@@ -658,19 +665,26 @@ namespace fs
 
         const directory_entry* operator->() const = delete;
 
-        private:
+    private:
         mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
-    
-    inline recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept { return iter; }
-    inline recursive_directory_iterator end(recursive_directory_iterator) noexcept { return {}; }
+    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>,
+                                 directory_entry>);
+
+    inline recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept
+    {
+        return iter;
+    }
+    inline recursive_directory_iterator end(recursive_directory_iterator) noexcept
+    {
+        return {};
+    }
 
     //---- Standard Filesystem element we reuse here -----
 
-    using std::filesystem::directory_options;
     using std::filesystem::copy_options;
+    using std::filesystem::directory_options;
     using std::filesystem::file_status;
     using std::filesystem::file_time_type;
     using std::filesystem::file_type;

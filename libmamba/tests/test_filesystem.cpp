@@ -71,6 +71,5 @@ namespace mamba
             }
             EXPECT_EQ(entries_found, expected_entries);
         }
-        
     }
 }

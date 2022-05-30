@@ -11,12 +11,15 @@ extern "C"
 
 #include <iostream>
 #include <stack>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/fmt/chrono.h>
 
 #include "mamba/core/query.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/url.hpp"
 
 namespace mamba
 {
@@ -146,45 +149,54 @@ namespace mamba
 
     auto print_solvable = [](auto& pkg)
     {
-        std::string title = pkg->name + " " + pkg->version + " " + pkg->build_string;
-        std::cout << title << std::endl;
-        std::cout << std::string(title.size(), '-') << std::endl;
-        printf("%-12s: %1s\n", "file name", pkg->fn.c_str());
-        printf("%-12s: %1s\n", "name", pkg->name.c_str());
-        printf("%-12s: %1s\n", "version", pkg->version.c_str());
-        printf("%-12s: %1s\n", "build", pkg->build_string.c_str());
-        printf("%-12s: %1lu\n", "build number", pkg->build_number);
-        printf("%-12s: %1lu KB\n", "size", pkg->size / 1000);
-        printf("%-12s: %1s\n", "license", pkg->license.c_str());
-        printf("%-12s: %1s\n", "subdir", pkg->subdir.c_str());
-        printf("%-12s: %1s\n", "url", pkg->url.c_str());
-        printf("%-12s: %1s\n", "md5", pkg->md5.c_str());
-        time_t timestamp = pkg->timestamp / 1000;
-        char timestamp_buffer[100];
-        strftime(timestamp_buffer,
-                 sizeof(timestamp_buffer),
-                 "%Y-%m-%d %H:%M:%S",
-                 std::gmtime(&timestamp));
-        std::string timestamp_string(timestamp_buffer);
-        printf("%-12s: %1s UTC\n", "timestamp", timestamp_string.c_str());
-        if (!pkg->constrains.empty())
+        std::string header = fmt::format("{} {} {}", pkg->name, pkg->version, pkg->build_string);
+        std::cout << fmt::format(
+            "{:^40}\n{}\n\n", header, std::string(header.size() > 40 ? header.size() : 40, '-'));
+
+        constexpr const char* fmtstring = " {:<15} {}\n";
+        std::cout << fmt::format(fmtstring, "File Name", pkg->fn);
+        std::cout << fmt::format(fmtstring, "Name", pkg->name);
+        std::cout << fmt::format(fmtstring, "Version", pkg->version);
+        std::cout << fmt::format(fmtstring, "Build", pkg->build_string);
+        std::cout << fmt::format(fmtstring, "Build Number", pkg->build_number);
+        std::cout << fmt::format(" {:<15} {} Kb\n", "Size", pkg->size / 1000);
+        std::cout << fmt::format(fmtstring, "License", pkg->license);
+        std::cout << fmt::format(fmtstring, "Subdir", pkg->subdir);
+
+        std::string url_remaining, url_scheme, url_auth, url_token;
+        split_scheme_auth_token(pkg->url, url_remaining, url_scheme, url_auth, url_token);
+
+        std::cout << fmt::format(" {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+
+        std::cout << fmt::format(fmtstring, "MD5", pkg->md5.empty() ? "Not available" : pkg->md5);
+        std::cout << fmt::format(
+            fmtstring, "SHA256", pkg->sha256.empty() ? "Not available" : pkg->sha256);
+        if (pkg->track_features.size())
         {
-            std::vector<std::string> constrains = pkg->constrains;
-            printf("%-12s: \n", "constraints");
-            for (auto& each_constraint : constrains)
-            {
-                printf("  - %1s\n", each_constraint.c_str());
-            }
+            std::cout << fmt::format(fmtstring, "Track Features", pkg->track_features);
         }
+
+        std::cout << fmt::format(
+            " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg->timestamp));
+
         if (!pkg->depends.empty())
         {
-            std::vector<std::string> depends = pkg->depends;
-            printf("%-12s: \n", "dependencies");
-            for (auto& each_dependency : depends)
+            std::cout << fmt::format("\n {}\n", "Dependencies:");
+            for (auto& d : pkg->depends)
             {
-                printf("  - %1s\n", each_dependency.c_str());
+                std::cout << fmt::format("  - {}\n", d);
             }
         }
+
+        if (!pkg->constrains.empty())
+        {
+            std::cout << fmt::format("\n {}\n", "Run Constraints:");
+            for (auto& c : pkg->constrains)
+            {
+                std::cout << fmt::format("  - {}\n", c);
+            }
+        }
+
         std::cout << std::endl;
     };
 

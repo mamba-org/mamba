@@ -101,56 +101,66 @@ namespace fs
         u8path(const std::filesystem::path& path)
             : m_path(path)
         {
+            check_long_path();
         }
 
         u8path& operator=(const std::filesystem::path& path)
         {
             m_path = path;
+            check_long_path();
             return *this;
         }
 
         u8path& operator=(std::filesystem::path&& path)
         {
             m_path = std::move(path);
+            check_long_path();
             return *this;
         }
 
         u8path(std::string_view u8string)
             : m_path(from_utf8(u8string))
         {
+            check_long_path();
         }
 
         u8path& operator=(std::string_view u8string)
         {
             m_path = from_utf8(u8string);
+            check_long_path();
             return *this;
         }
 
         u8path(const char* u8string)
             : m_path(from_utf8(u8string))
         {
+            check_long_path();
         }
 
         u8path& operator=(const char* u8string)
         {
             m_path = from_utf8(u8string);
+            check_long_path();
             return *this;
         }
 
         u8path(const std::string& u8string)
             : m_path(from_utf8(u8string))
         {
+            check_long_path();
         }
 
         u8path& operator=(const std::string& u8string)
         {
             m_path = from_utf8(u8string);
+            check_long_path();
             return *this;
         }
 
         u8path& operator=(std::string&& u8string)
         {
             m_path = from_utf8(std::move(u8string));
+            check_long_path();
             return *this;
         }
 
@@ -159,28 +169,33 @@ namespace fs
         u8path(const wchar_t* wstr)
             : m_path(wstr)
         {
+            check_long_path();
         }
 
         u8path& operator=(const wchar_t* wstr)
         {
             m_path = wstr;
+            check_long_path();
             return *this;
         }
 
         u8path(const std::wstring& wstr)
             : m_path(wstr)
         {
+            check_long_path();
         }
 
         u8path& operator=(const std::wstring& wstr)
         {
             m_path = wstr;
+            check_long_path();
             return *this;
         }
 
         u8path& operator=(std::wstring&& wstr)
         {
             m_path = std::move(wstr);
+            check_long_path();
             return *this;
         }
 
@@ -226,63 +241,81 @@ namespace fs
             return m_path / wstr;
         }
 
+        template<typename T>
+        u8path& operator/=(T&& some_string)
+        {
+            *this = *this / std::forward<T>(some_string);
+            check_long_path();
+            return *this;
+        }
+
         u8path& operator+=(const u8path& to_append)
         {
             m_path += to_append.m_path;
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(const std::filesystem::path& to_append)
         {
             m_path += to_append;
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(std::string_view to_append)
         {
             m_path = from_utf8(this->string() + std::string(to_append));
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(std::wstring_view to_append)
         {
             m_path += to_append;
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(const char* to_append)
         {
             m_path = from_utf8(this->string() + to_append);
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(const wchar_t* to_append)
         {
             m_path += to_append;
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(const std::string& to_append)
         {
             m_path = from_utf8(this->string() + to_append);
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(const std::wstring& to_append)
         {
             m_path += to_append;
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(char to_append)
         {
             m_path = from_utf8(this->string() + to_append);
+            check_long_path();
             return *this;
         }
 
         u8path& operator+=(wchar_t to_append)
         {
             m_path += to_append;
+            check_long_path();
             return *this;
         }
 
@@ -378,12 +411,14 @@ namespace fs
         u8path& replace_filename(const u8path replacement)
         {
             m_path.replace_filename(replacement.m_path);
+            check_long_path();
             return *this;
         }
 
         u8path& replace_extension(const u8path replacement = u8path())
         {
             m_path.replace_extension(replacement.m_path);
+            check_long_path();
             return *this;
         }
 
@@ -516,6 +551,7 @@ namespace fs
             std::string raw_input;
             in >> std::quoted(raw_input);
             path.m_path = from_utf8(raw_input);
+            path.check_long_path();
             return in;
         }
 
@@ -531,6 +567,19 @@ namespace fs
 
     private:
         std::filesystem::path m_path;
+
+        void check_long_path()
+        {
+#if defined(_WIN32)
+            // When we have long paths on windows, we need to mark the path so that if the system is set to allow long paths, we handle them properly.
+            // To achieve this we need to prefix long paths with a marker. This is one of windows weirderies.
+            if (m_path.native().size() >= 248 // MAX_PATH - 12 (but MAX_PATH is not necessarilly available here - it's set to 260)
+                && !m_path.native()._Starts_with(LR"(\\?\)")) // TODO: replace by std::basic_string::starts_with() in C++20
+            {
+                m_path = LR"(\\?\)" + m_path.native();
+            }
+#endif
+        }
     };
 
     class directory_entry : public std::filesystem::directory_entry

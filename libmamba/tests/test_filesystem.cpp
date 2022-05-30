@@ -73,4 +73,15 @@ namespace mamba
             EXPECT_EQ(entries_found, expected_entries);
         }
     }
+
+    TEST(u8path, long_paths)
+    {
+        const auto tmp_dir = fs::temp_directory_path() / "mamba_fs_long_path";
+        fs::u8path long_path = tmp_dir;
+        for (int i = 0; i < 42; ++i)
+            long_path /= u8"some_very_long_prefix";
+
+        fs::create_directories(long_path);
+    }
+
 }

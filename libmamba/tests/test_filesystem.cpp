@@ -19,10 +19,11 @@ namespace mamba
     TEST(u8path, string_stream_encoding)
     {
         const auto utf8_string = u8"日本語";
+        const std::string quoted_utf8_string = std::string("\"") + utf8_string + std::string("\"");
         const fs::u8path filename(utf8_string);
         std::stringstream stream;
         stream << filename;
-        EXPECT_EQ(stream.str(), utf8_string);
+        EXPECT_EQ(stream.str(), quoted_utf8_string);
 
         fs::u8path path_read;
         stream.seekg(0);

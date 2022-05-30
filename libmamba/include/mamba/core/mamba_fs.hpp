@@ -505,7 +505,7 @@ namespace fs
         template <typename OutStream>
         friend OutStream& operator<<(OutStream& out, const u8path& path)
         {
-            out << path.string();
+            out << std::quoted(path.string());
             return out;
         }
 
@@ -514,7 +514,7 @@ namespace fs
         friend InputStream& operator>>(InputStream& in, u8path& path)
         {
             std::string raw_input;
-            in >> raw_input;
+            in >> std::quoted(raw_input);
             path.m_path = from_utf8(raw_input);
             return in;
         }

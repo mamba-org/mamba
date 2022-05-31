@@ -57,6 +57,7 @@ namespace mamba
         MSolver(MSolver&&) = delete;
         MSolver& operator=(MSolver&&) = delete;
 
+        void add_implicit_jobs();
         void add_global_job(int job_flag);
         void add_jobs(const std::vector<std::string>& jobs, int job_flag);
         void add_constraint(const std::string& job);

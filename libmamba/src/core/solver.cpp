@@ -14,6 +14,13 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
 
+extern "C"
+{
+#include "solv/selection.h"
+#include "solv/conda.h"
+#include <solv/evr.h>
+}
+
 namespace mamba
 {
     std::string MSolverProblem::to_string() const
@@ -87,6 +94,48 @@ namespace mamba
         }
 
         return false;
+    }
+
+    std::vector<Solvable*> find_latest(Pool* pool, const std::string& query)
+    {
+        Queue job, solvables;
+        queue_init(&job);
+        queue_init(&solvables);
+
+        Id id = pool_conda_matchspec(pool, query.c_str());
+        if (id)
+        {
+            queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+        }
+        else
+        {
+            LOG_ERROR << "Could not generate query" << std::endl;
+            throw std::runtime_error("Could not generate query for " + query);
+        }
+
+        selection_solvables(pool, &job, &solvables);
+
+        std::vector<Solvable*> result;
+        LOG_ERROR << "Found " << solvables.count << std::endl;
+
+        for (int i = 0; i < solvables.count; ++i)
+        {
+            result.push_back(pool_id2solvable(pool, solvables.elements[i]));
+        }
+
+        std::sort(result.begin(),
+                  result.end(),
+                  [pool](auto a, auto b) -> int
+                  {
+                      // LOG_ERROR << "EVR COMP " << std::endl;
+
+                      return pool_evrcmp(pool, a->evr, b->evr, EVRCMP_COMPARE) > 0;
+                  });
+
+        queue_free(&job);
+        queue_free(&solvables);
+
+        return result;
     }
 
     void MSolver::add_global_job(int job_flag)
@@ -181,6 +230,27 @@ namespace mamba
         Id inst_id
             = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
         queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
+    }
+
+    void MSolver::add_implicit_jobs()
+    {
+        LOG_ERROR << "Adding implicit jobs!" << std::endl;
+        for (const auto& install_spec : m_install_specs)
+        {
+            auto res = find_latest(m_pool, install_spec.str());
+            if (res.size())
+            {
+                auto latest = pool_id2str(m_pool, res[0]->evr);
+
+                std::string version = install_spec.name + " " + latest;
+                LOG_ERROR << "Adding latest version " << version << std::endl;
+
+                // LOG_INFO << "Adding job: " << ms.conda_build_form();
+
+                Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), version.c_str());
+                queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
+            }
+        }
     }
 
     void MSolver::add_jobs(const std::vector<std::string>& jobs, int job_flag)
@@ -393,6 +463,7 @@ namespace mamba
     bool MSolver::solve()
     {
         bool success;
+        add_implicit_jobs();
         m_solver = solver_create(m_pool);
         set_flags(m_flags);
 

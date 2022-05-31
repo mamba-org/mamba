@@ -532,6 +532,57 @@ namespace fs
             return m_path.empty();
         }
 
+        bool is_absolute() const
+        {
+            return m_path.is_absolute();
+        }
+
+        bool is_relative() const
+        {
+            return m_path.is_relative();
+        }
+        
+        bool has_root_path() const
+        {
+            return m_path.has_root_path();
+        }
+
+        bool has_root_name() const
+        {
+            return m_path.has_root_name();
+        }
+
+        bool has_root_directory() const
+        {
+            return m_path.has_root_directory();
+        }
+
+        bool has_relative_path() const
+
+        {
+            return m_path.has_relative_path();
+        }
+
+        bool has_parent_path() const
+        {
+            return m_path.has_parent_path();
+        }
+
+        bool has_filename() const
+        {
+            return m_path.has_filename();
+        }
+
+        bool has_stem() const
+        {
+            return m_path.has_stem();
+        }
+
+        bool has_extension() const
+        {
+            return m_path.has_extension();
+        }
+
         //---- Utility ----
 
         // Writing to stream always using UTF-8.

@@ -120,6 +120,7 @@ foreach(script ${SHELL_SCRIPTS})
 endforeach()
 
 set(LIBMAMBA_SOURCES
+    longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp

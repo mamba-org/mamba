@@ -78,14 +78,11 @@ namespace mamba
     TEST(u8path, long_paths)
     {
         const auto tmp_dir = fs::temp_directory_path() / "mamba_fs_long_path";
-        EXPECT_FALSE(starts_with(tmp_dir.string(), u8R"(\\?\)"));
 
         fs::u8path long_path = tmp_dir;
         for (int i = 0; i < 42; ++i)
             long_path /= u8"some_very_long_prefix";
-#if defined(_WIN32)
-        EXPECT_TRUE(starts_with(long_path.string(), u8R"(\\?\)"));
-#endif
+
         fs::create_directories(long_path);
     }
 

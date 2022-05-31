@@ -6,6 +6,7 @@ find_package(Threads REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 
 set(TEST_SRCS
+    ../longpath.manifest
     test_activation.cpp
     test_channel.cpp
     test_configuration.cpp

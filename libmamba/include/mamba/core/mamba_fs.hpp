@@ -624,7 +624,8 @@ namespace fs
 #if defined(_WIN32)
             // When we have long paths on windows, we need to mark the path so that if the system is set to allow long paths, we handle them properly.
             // To achieve this we need to prefix long paths with a marker. This is one of windows weirderies.
-            if (m_path.native().size() >= 248 // MAX_PATH - 12 (but MAX_PATH is not necessarilly available here - it's set to 260)
+            if (is_absolute()
+                && m_path.native().size() >= 248 // MAX_PATH - 12 (but MAX_PATH is not necessarilly available here - it's set to 260)
                 && !m_path.native()._Starts_with(LR"(\\?\)")) // TODO: replace by std::basic_string::starts_with() in C++20
             {
                 m_path = LR"(\\?\)" + m_path.native();

@@ -5,6 +5,8 @@
 #include <fstream>
 #include <string>
 
+#include "mamba/core/util_string.hpp"
+
 //---- RATIONAL: Why do we wrap standard filesystem here? ----
 // 1. This codebase relies on `std::string` and `const char*` to denote UTF-8 encoded text.
 //    However `std::filesystem::path` constructors cannot assume that `std::string` is in
@@ -62,11 +64,33 @@
 namespace fs
 {
 
+
+    // Maintain `\` on Windows, `/` on other platforms
+    inline std::filesystem::path normalized_separators(std::filesystem::path path)
+    {
+#if defined(_WIN32)
+        auto native_string = path.native();
+#else
+        auto native_string = path.generic_string();
+#endif
+
+#if defined(_WIN32)
+        static constexpr auto platform_separator = L"\\";
+        static constexpr auto other_separator = L"/";
+#else
+        static constexpr auto platform_separator = u8"/";
+        static constexpr auto other_separator = u8"\\";
+#endif
+        mamba::replace_all(native_string, other_separator, platform_separator);
+        path = std::move(native_string);
+        return path;
+    }
+
     // Returns an utf-8 string given a standard path.
     inline std::string to_utf8(const std::filesystem::path& path)
     {
 #if __cplusplus == 201703L
-        return path.u8string();
+        return normalized_separators(path).u8string();
 #else
 #error This function implementation is specific to C++17, using another version requires a different implementation here.
 #endif
@@ -76,7 +100,7 @@ namespace fs
     inline std::filesystem::path from_utf8(std::string_view u8string)
     {
 #if __cplusplus == 201703L
-        return std::filesystem::u8path(u8string);
+        return normalized_separators(std::filesystem::u8path(u8string));
 #else
 #error This function implementation is specific to C++17, using another version requires a different implementation here.
 #endif
@@ -99,19 +123,19 @@ namespace fs
         //---- Construction ----
 
         u8path(const std::filesystem::path& path)
-            : m_path(path)
+            : m_path(normalized_separators(path))
         {
         }
 
         u8path& operator=(const std::filesystem::path& path)
         {
-            m_path = path;
+            m_path = normalized_separators(path);
             return *this;
         }
 
         u8path& operator=(std::filesystem::path&& path)
         {
-            m_path = std::move(path);
+            m_path = normalized_separators(std::move(path));
             return *this;
         }
 
@@ -157,30 +181,30 @@ namespace fs
         //---- Wide character support (Windows usage mostly) - no Unicode conversions.
 
         u8path(const wchar_t* wstr)
-            : m_path(wstr)
+            : m_path(normalized_separators(wstr))
         {
         }
 
         u8path& operator=(const wchar_t* wstr)
         {
-            m_path = wstr;
+            m_path = normalized_separators(wstr);
             return *this;
         }
 
         u8path(const std::wstring& wstr)
-            : m_path(wstr)
+            : m_path(normalized_separators(wstr))
         {
         }
 
         u8path& operator=(const std::wstring& wstr)
         {
-            m_path = wstr;
+            m_path = normalized_separators(wstr);
             return *this;
         }
 
         u8path& operator=(std::wstring&& wstr)
         {
-            m_path = std::move(wstr);
+            m_path = normalized_separators(std::move(wstr));
             return *this;
         }
 
@@ -193,7 +217,7 @@ namespace fs
 
         u8path operator/(const std::filesystem::path& p) const
         {
-            return m_path / p;
+            return m_path / normalized_separators(p);
         }
 
         u8path operator/(std::string_view str) const
@@ -203,7 +227,7 @@ namespace fs
 
         u8path operator/(std::wstring_view wstr) const
         {
-            return m_path / wstr;
+            return m_path / normalized_separators(wstr);
         }
 
         u8path operator/(const std::string& str) const
@@ -213,7 +237,7 @@ namespace fs
 
         u8path operator/(const std::wstring& wstr) const
         {
-            return m_path / wstr;
+            return m_path / normalized_separators(wstr);
         }
 
         u8path operator/(const char* str) const
@@ -223,7 +247,7 @@ namespace fs
 
         u8path operator/(const wchar_t* wstr) const
         {
-            return m_path / wstr;
+            return m_path / normalized_separators(wstr);
         }
 
         template <typename T>
@@ -241,55 +265,56 @@ namespace fs
 
         u8path& operator+=(const std::filesystem::path& to_append)
         {
-            m_path += to_append;
+            m_path += normalized_separators(to_append);
             return *this;
         }
 
         u8path& operator+=(std::string_view to_append)
         {
-            m_path = from_utf8(this->string() + std::string(to_append));
+            m_path = from_utf8(this->string().append(to_append));
             return *this;
         }
 
         u8path& operator+=(std::wstring_view to_append)
         {
-            m_path += to_append;
+            m_path += normalized_separators(to_append);
             return *this;
         }
 
         u8path& operator+=(const char* to_append)
         {
-            m_path = from_utf8(this->string() + to_append);
+            m_path = from_utf8(this->string().append(to_append));
             return *this;
         }
 
         u8path& operator+=(const wchar_t* to_append)
         {
-            m_path += to_append;
+            m_path += normalized_separators(to_append);
             return *this;
         }
 
         u8path& operator+=(const std::string& to_append)
         {
-            m_path = from_utf8(this->string() + to_append);
+            m_path = from_utf8(this->string().append(to_append));
             return *this;
         }
 
         u8path& operator+=(const std::wstring& to_append)
         {
-            m_path += to_append;
+            m_path += normalized_separators(to_append);
             return *this;
         }
 
         u8path& operator+=(char to_append)
         {
-            m_path = from_utf8(this->string() + to_append);
+            m_path = from_utf8(this->string().append(1, to_append));
             return *this;
         }
 
         u8path& operator+=(wchar_t to_append)
         {
             m_path += to_append;
+            m_path = normalized_separators(std::move(m_path));
             return *this;
         }
 
@@ -591,9 +616,24 @@ namespace fs
         std::filesystem::path m_path;
     };
 
-    class directory_entry : public std::filesystem::directory_entry
+    class directory_entry : private std::filesystem::directory_entry
     {
     public:
+        using std::filesystem::directory_entry::exists;
+        using std::filesystem::directory_entry::file_size;
+        using std::filesystem::directory_entry::hard_link_count;
+        using std::filesystem::directory_entry::is_block_file;
+        using std::filesystem::directory_entry::is_character_file;
+        using std::filesystem::directory_entry::is_directory;
+        using std::filesystem::directory_entry::is_fifo;
+        using std::filesystem::directory_entry::is_other;
+        using std::filesystem::directory_entry::is_regular_file;
+        using std::filesystem::directory_entry::is_socket;
+        using std::filesystem::directory_entry::is_symlink;
+        using std::filesystem::directory_entry::last_write_time;
+        using std::filesystem::directory_entry::status;
+        using std::filesystem::directory_entry::symlink_status;
+
         directory_entry() = default;
         directory_entry(const directory_entry&) = default;
         directory_entry(directory_entry&&) noexcept = default;
@@ -602,10 +642,9 @@ namespace fs
 
         template <typename... OtherArgs>
         explicit directory_entry(const u8path& path, OtherArgs&&... args)
-            : std::filesystem::directory_entry(path, std::forward<OtherArgs>(args)...)
+            : std::filesystem::directory_entry(path.std_path(), std::forward<OtherArgs>(args)...)
         {
         }
-
         directory_entry(const std::filesystem::directory_entry& other)
             : std::filesystem::directory_entry(other)
         {
@@ -616,7 +655,6 @@ namespace fs
         {
         }
 
-
         directory_entry& operator=(const std::filesystem::directory_entry& other)
         {
             std::filesystem::directory_entry::operator=(other);
@@ -625,8 +663,18 @@ namespace fs
 
         directory_entry& operator=(std::filesystem::directory_entry&& other) noexcept
         {
-            std::filesystem::directory_entry::operator=(other);
+            std::filesystem::directory_entry::operator=(std::move(other));
             return *this;
+        }
+
+        bool operator==(const directory_entry& other) const noexcept
+        {
+            return std::filesystem::directory_entry::operator==(other);
+        }
+
+        bool operator!=(const directory_entry& other) const noexcept
+        {
+            return std::filesystem::directory_entry::operator!=(other);
         }
 
         u8path path() const
@@ -648,7 +696,7 @@ namespace fs
 
     static_assert(std::is_same_v<decltype(std::declval<directory_entry>().path()), u8path>);
 
-    class directory_iterator : public std::filesystem::directory_iterator
+    class directory_iterator : private std::filesystem::directory_iterator
     {
     public:
         using iterator_category = std::input_iterator_tag;
@@ -665,10 +713,9 @@ namespace fs
 
         template <typename... OtherArgs>
         explicit directory_iterator(const u8path& path, OtherArgs&&... args)
-            : std::filesystem::directory_iterator(path, std::forward<OtherArgs>(args)...)
+            : std::filesystem::directory_iterator(path.std_path(), std::forward<OtherArgs>(args)...)
         {
         }
-
 
         const directory_entry& operator*() const
         {
@@ -676,7 +723,32 @@ namespace fs
             return current_entry;
         }
 
-        const directory_entry* operator->() const = delete;
+        const directory_entry* operator->() const
+        {
+            return &(**this);
+        }
+
+        directory_iterator& operator++()
+        {
+            std::filesystem::directory_iterator::operator++();
+            return *this;
+        }
+
+        directory_iterator& increment(std::error_code& ec)
+        {
+            std::filesystem::directory_iterator::increment(ec);
+            return *this;
+        }
+
+        bool operator==(const directory_iterator& other) const noexcept
+        {
+            return static_cast<const std::filesystem::directory_iterator&>(*this) == other;
+        }
+
+        bool operator!=(const directory_iterator& other) const noexcept
+        {
+            return static_cast<const std::filesystem::directory_iterator&>(*this) != other;
+        }
 
     private:
         mutable directory_entry current_entry;
@@ -694,7 +766,7 @@ namespace fs
         return {};
     }
 
-    class recursive_directory_iterator : public std::filesystem::recursive_directory_iterator
+    class recursive_directory_iterator : private std::filesystem::recursive_directory_iterator
     {
     public:
         using iterator_category = std::input_iterator_tag;
@@ -702,6 +774,12 @@ namespace fs
         using difference_type = std::ptrdiff_t;
         using pointer = const directory_entry*;
         using reference = const directory_entry&;
+
+        using std::filesystem::recursive_directory_iterator::depth;
+        using std::filesystem::recursive_directory_iterator::disable_recursion_pending;
+        using std::filesystem::recursive_directory_iterator::options;
+        using std::filesystem::recursive_directory_iterator::pop;
+        using std::filesystem::recursive_directory_iterator::recursion_pending;
 
         recursive_directory_iterator() = default;
         recursive_directory_iterator(const recursive_directory_iterator&) = default;
@@ -711,17 +789,44 @@ namespace fs
 
         template <typename... OtherArgs>
         explicit recursive_directory_iterator(const u8path& path, OtherArgs&&... args)
-            : std::filesystem::recursive_directory_iterator(path, std::forward<OtherArgs>(args)...)
+            : std::filesystem::recursive_directory_iterator(path.std_path(),
+                                                            std::forward<OtherArgs>(args)...)
         {
         }
-
-        const directory_entry& operator*() const
+        const directory_entry& operator*() const noexcept
         {
             current_entry = std::filesystem::recursive_directory_iterator::operator*();
             return current_entry;
         }
 
-        const directory_entry* operator->() const = delete;
+        const directory_entry* operator->() const noexcept
+        {
+            return &(**this);
+        }
+
+        recursive_directory_iterator& operator++()
+        {
+            std::filesystem::recursive_directory_iterator::operator++();
+            return *this;
+        }
+
+        recursive_directory_iterator& increment(std::error_code& ec)
+        {
+            std::filesystem::recursive_directory_iterator::increment(ec);
+            return *this;
+        }
+
+        bool operator==(const recursive_directory_iterator& other) const noexcept
+        {
+            return static_cast<const std::filesystem::recursive_directory_iterator&>(*this)
+                   == other;
+        }
+
+        bool operator!=(const recursive_directory_iterator& other) const noexcept
+        {
+            return static_cast<const std::filesystem::recursive_directory_iterator&>(*this)
+                   != other;
+        }
 
     private:
         mutable directory_entry current_entry;
@@ -734,6 +839,7 @@ namespace fs
     {
         return iter;
     }
+
     inline recursive_directory_iterator end(recursive_directory_iterator) noexcept
     {
         return {};

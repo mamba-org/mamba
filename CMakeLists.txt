@@ -28,7 +28,8 @@ if (MSVC)
     # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>`
     # /EHsc : enable C++ exceptions (otherwise exceptions do not work)
     # /Zc:__cplusplus : makes sure `__cplusplus` is set to the current C++ version language. Otherwise it is always set to an incorrect wrong value.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX /EHsc /Zc:__cplusplus")
+    # /MP : enable multi-process build with MSBuild (it should be on by default but CMake generates the project files without the right params)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX /EHsc /Zc:__cplusplus /MP")
     set(CMAKE_BUILD_TYPE Release)
     # add_definitions("-DUNICODE -D_UNICODE")
 else()

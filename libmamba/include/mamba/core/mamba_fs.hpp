@@ -643,6 +643,7 @@ namespace fs
             : std::filesystem::directory_entry(path.std_path(), std::forward<OtherArgs>(args)...)
         {
         }
+
         directory_entry(const std::filesystem::directory_entry& other)
             : std::filesystem::directory_entry(other)
         {
@@ -791,6 +792,7 @@ namespace fs
                                                             std::forward<OtherArgs>(args)...)
         {
         }
+
         const directory_entry& operator*() const noexcept
         {
             current_entry = std::filesystem::recursive_directory_iterator::operator*();

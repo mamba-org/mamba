@@ -992,7 +992,8 @@ namespace mamba
                 {
                     PackageInfo package_info(s);
                     Console::stream() << "Linking " << package_info.str();
-                    const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(package_info, false));
+                    const fs::u8path cache_path(
+                        m_multi_cache.get_extracted_dir_path(package_info, false));
                     LinkPackage lp(package_info, cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);

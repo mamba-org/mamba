@@ -6,7 +6,7 @@ Releases: libmamba 0.24.0, libmambapy 0.24.0, mamba 0.24.0, micromamba 0.24.0
 Bug fixes:
 - [micromamba] constructor now uses proper (patched) repodata to create repodata_record.json files #1698
 - [libmamba, micromamba] use fmt::format for pretty printing in `micromamba search --pretty` #1710
-- [mamba] remove flag from clean subcommand that conflicts with conda (`mamba clean -l`, use `--lock` instead) #1709 
+- [mamba] remove flag from clean subcommand that conflicts with conda (`mamba clean -l`, use `--lock` instead) #1709
 - [libmamba] commit fix for compiling with ppc64le on conda-forge #1695
 
 

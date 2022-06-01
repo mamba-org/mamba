@@ -1,3 +1,10 @@
+mamba 0.24.0 (June 01, 2022)
+============================
+
+Bug fixes:
+
+- remove flag from clean subcommand that conflicts with conda (`mamba clean -l`, use `--lock` instead) #1709
+
 mamba 0.23.3 (May 20, 2022)
 ===========================
 

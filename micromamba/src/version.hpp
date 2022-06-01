@@ -11,8 +11,8 @@
 #include <string>
 
 #define UMAMBA_VERSION_MAJOR 0
-#define UMAMBA_VERSION_MINOR 23
-#define UMAMBA_VERSION_PATCH 3
+#define UMAMBA_VERSION_MINOR 24
+#define UMAMBA_VERSION_PATCH 0
 
 // Binary version
 #define UMAMBA_BINARY_CURRENT 1

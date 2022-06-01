@@ -157,15 +157,13 @@ namespace mamba
         fs::create_directories(long_path);
     }
 
+#if defined(_WIN32)
     TEST(u8path, append_maintains_slash_type)
     {
         const fs::u8path path = u8R"(a/b/c/d)";
         const auto path_1 = path / u8R"(e\f\g)";
-#if defined(_WIN32)
         EXPECT_EQ(path_1.string(), u8R"(a\b\c\d\e\f\g)");
-#else
-        EXPECT_EQ(path_1.string(), u8R"(a/b/c/d/e/f/g)");
-#endif
     }
+#endif
 
 }

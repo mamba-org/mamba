@@ -65,26 +65,24 @@ namespace fs
 {
 
 
+#if defined(_WIN32)
     // Maintain `\` on Windows, `/` on other platforms
     inline std::filesystem::path normalized_separators(std::filesystem::path path)
     {
-#if defined(_WIN32)
         auto native_string = path.native();
-#else
-        auto native_string = path.generic_string();
-#endif
-
-#if defined(_WIN32)
         static constexpr auto platform_separator = L"\\";
         static constexpr auto other_separator = L"/";
-#else
-        static constexpr auto platform_separator = u8"/";
-        static constexpr auto other_separator = u8"\\";
-#endif
         mamba::replace_all(native_string, other_separator, platform_separator);
         path = std::move(native_string);
         return path;
     }
+#else
+    // noop on non-Windows platforms
+    inline std::filesystem::path normalized_separators(std::filesystem::path path)
+    {
+        return path;
+    }
+#endif
 
     // Returns an utf-8 string given a standard path.
     inline std::string to_utf8(const std::filesystem::path& path)

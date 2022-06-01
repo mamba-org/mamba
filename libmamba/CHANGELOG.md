@@ -1,3 +1,11 @@
+libmamba 0.24.0 (June 01, 2022)
+===============================
+
+Bug fixes:
+
+- use fmt::format for pretty printing in `micromamba search --pretty` #1710
+- commit fix for compiling with ppc64le on conda-forge #1695
+
 libmamba 0.23.3 (May 20, 2022)
 ==============================
 

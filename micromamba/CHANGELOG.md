@@ -1,3 +1,11 @@
+micromamba 0.24.0 (June 01, 2022)
+=================================
+
+Bug fixes:
+
+- constructor now uses proper (patched) repodata to create repodata_record.json files #1698
+- use fmt::format for pretty printing in `micromamba search --pretty` #1710
+
 micromamba 0.23.3 (May 20, 2022)
 ================================
 

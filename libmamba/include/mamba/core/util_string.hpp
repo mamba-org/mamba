@@ -7,6 +7,7 @@
 #include <string_view>
 #include <ostream>
 #include <cstring>
+#include <sstream>
 
 namespace mamba
 {

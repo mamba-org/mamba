@@ -114,7 +114,8 @@ namespace mamba
 #else
         std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
         // include \0 terminator
-        auto [[maybe_unused]] err = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
+        auto err [[maybe_unused]]
+        = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
         assert(err == 0);
         success = fs::create_directory(template_path);
 #endif

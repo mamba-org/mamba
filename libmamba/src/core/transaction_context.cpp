@@ -35,7 +35,7 @@ namespace mamba
     }
 
     // supply short python version, e.g. 2.7, 3.5...
-    fs::path get_python_short_path(const std::string& [[maybe_unused]] python_version)
+    fs::path get_python_short_path(const std::string& python_version [[maybe_unused]])
     {
 #ifdef _WIN32
         return "python.exe";

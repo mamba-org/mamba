@@ -531,38 +531,38 @@ namespace mamba
 
     TEST(Channel, split_platform)
     {
-        std::string platform, cleaned_url;
+        std::string platform_found, cleaned_url;
         split_platform({ "noarch", "linux-64" },
                        "https://mamba.com/linux-64/package.tar.bz2",
                        cleaned_url,
-                       platform);
+                       platform_found);
 
-        EXPECT_EQ(platform, "linux-64");
+        EXPECT_EQ(platform_found, "linux-64");
         EXPECT_EQ(cleaned_url, "https://mamba.com/package.tar.bz2");
 
         split_platform({ "noarch", "linux-64" },
                        "https://mamba.com/linux-64/noarch-package.tar.bz2",
                        cleaned_url,
-                       platform);
-        EXPECT_EQ(platform, "linux-64");
+                       platform_found);
+        EXPECT_EQ(platform_found, "linux-64");
         EXPECT_EQ(cleaned_url, "https://mamba.com/noarch-package.tar.bz2");
 
         split_platform({ "linux-64", "osx-arm64", "noarch" },
                        "https://mamba.com/noarch/kernel_linux-64-package.tar.bz2",
                        cleaned_url,
-                       platform);
-        EXPECT_EQ(platform, "noarch");
+                       platform_found);
+        EXPECT_EQ(platform_found, "noarch");
         EXPECT_EQ(cleaned_url, "https://mamba.com/kernel_linux-64-package.tar.bz2");
 
         split_platform(
-            { "noarch", "linux-64" }, "https://mamba.com/linux-64", cleaned_url, platform);
+            { "noarch", "linux-64" }, "https://mamba.com/linux-64", cleaned_url, platform_found);
 
-        EXPECT_EQ(platform, "linux-64");
+        EXPECT_EQ(platform_found, "linux-64");
         EXPECT_EQ(cleaned_url, "https://mamba.com");
 
-        split_platform({ "noarch", "linux-64" }, "https://mamba.com/noarch", cleaned_url, platform);
+        split_platform({ "noarch", "linux-64" }, "https://mamba.com/noarch", cleaned_url, platform_found);
 
-        EXPECT_EQ(platform, "noarch");
+        EXPECT_EQ(platform_found, "noarch");
         EXPECT_EQ(cleaned_url, "https://mamba.com");
     }
 }  // namespace mamba

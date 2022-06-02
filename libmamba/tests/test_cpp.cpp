@@ -295,7 +295,7 @@ namespace mamba
 
     TEST(context, env_name)
     {
-        if (on_mac || on_linux)
+        if constexpr (on_mac || on_linux)
         {
             auto& ctx = Context::instance();
             ctx.root_prefix = "/home/user/micromamba/";

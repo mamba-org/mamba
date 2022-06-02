@@ -93,7 +93,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                     return j.at("packages.conda").at(fn);
                 }
             }
-            catch (nlohmann::json::out_of_range& e)
+            catch (nlohmann::json::out_of_range& /*e*/)
             { /* */
             }
             LOG_WARNING << "Could not find entry in repodata cache for " << fn;

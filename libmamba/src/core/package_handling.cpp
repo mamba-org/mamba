@@ -59,10 +59,10 @@ namespace mamba
 
     static int copy_data(archive* ar, archive* aw)
     {
-        int r;
-        const void* buff;
-        std::size_t size;
-        la_int64_t offset;
+        int r = 0;
+        const void* buff = nullptr;
+        std::size_t size = 0;
+        la_int64_t offset = 0;
 
         while (true && !is_sig_interrupted())
         {

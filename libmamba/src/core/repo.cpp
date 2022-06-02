@@ -31,7 +31,7 @@ namespace mamba
     }
 
     MRepo::MRepo(MPool& pool,
-                 const std::string& name,
+                 const std::string& /*name*/,
                  const fs::path& index,
                  const RepoMetadata& metadata,
                  const Channel& channel)

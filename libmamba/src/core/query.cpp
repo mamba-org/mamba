@@ -267,9 +267,9 @@ namespace mamba
             if (solvables.count > 0)
             {
                 Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-                auto id = g.add_node(PackageInfo(latest));
-                std::map<Solvable*, size_t> visited = { { latest, id } };
-                reverse_walk_graph(g, id, latest, visited);
+                const auto node_id = g.add_node(PackageInfo(latest));
+                std::map<Solvable*, size_t> visited = { { latest, node_id } };
+                reverse_walk_graph(g, node_id, latest, visited);
             }
         }
         else
@@ -322,10 +322,10 @@ namespace mamba
         if (solvables.count > 0)
         {
             Solvable* latest = find_latest(solvables);
-            auto id = g.add_node(PackageInfo(latest));
-            std::map<Solvable*, size_t> visited = { { latest, id } };
+            const auto node_id = g.add_node(PackageInfo(latest));
+            std::map<Solvable*, size_t> visited = { { latest, node_id } };
             std::map<std::string, size_t> not_found;
-            walk_graph(g, id, latest, visited, not_found, depth);
+            walk_graph(g, node_id, latest, visited, not_found, depth);
         }
 
         queue_free(&job);
@@ -363,10 +363,12 @@ namespace mamba
                    + (iter - rhs.m_dep_graph.get_node_list().begin());
         };
 
-        package_view_list tmp(rhs.m_pkg_view_list.size());
-        std::transform(
-            rhs.m_pkg_view_list.begin(), rhs.m_pkg_view_list.end(), tmp.begin(), offset_lbd);
-        swap(tmp, m_pkg_view_list);
+        {
+            package_view_list tmp(rhs.m_pkg_view_list.size());
+            std::transform(
+                rhs.m_pkg_view_list.begin(), rhs.m_pkg_view_list.end(), tmp.begin(), offset_lbd);
+            swap(tmp, m_pkg_view_list);
+        }
 
         if (!rhs.m_ordered_pkg_list.empty())
         {
@@ -582,7 +584,7 @@ namespace mamba
             }
         }
 
-        void finish_node(node_id node, const graph_type&)
+        void finish_node(node_id /*node*/, const graph_type&)
         {
             m_prefix_stack.pop_back();
         }
@@ -609,7 +611,7 @@ namespace mamba
                   << '\n';
         }
 
-        void finish_edge(node_id from, node_id to, const graph_type& g)
+        void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)
         {
             if (is_on_last_stack(to))
             {

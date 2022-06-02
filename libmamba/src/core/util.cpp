@@ -114,7 +114,7 @@ namespace mamba
 #else
         std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
         // include \0 terminator
-        auto err = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
+        auto [[maybe_unused]] err = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
         assert(err == 0);
         success = fs::create_directory(template_path);
 #endif
@@ -810,7 +810,7 @@ namespace mamba
         else
         {
             m_pid = getpid();
-            if (!(m_locked = lock_non_blocking()))
+            if ((m_locked = lock_non_blocking()) == false)
             {
                 LOG_WARNING << "Cannot lock '" << m_path.string() << "'"
                             << "\nWaiting for other mamba process to finish";
@@ -1043,7 +1043,7 @@ namespace mamba
 
     bool LockFile::set_fd_lock(bool blocking) const
     {
-        int ret;
+        int ret = 0;
 #ifdef _WIN32
         _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
 

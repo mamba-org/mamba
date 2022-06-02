@@ -78,20 +78,22 @@ namespace mamba
         std::vector<PackageInfo> result;
         MPool pool;
 
-        // TODO check prereq marker to `pip` if it's part of the installed packages
-        // so that it gets installed after Python.
-        auto& repo = MRepo::create(pool, *this);
-
         Queue q;
         queue_init(&q);
 
-        Solvable* s;
-        Id pkg_id;
-        pool_createwhatprovides(pool);
-
-        FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
         {
-            queue_push(&q, pkg_id);
+            // TODO check prereq marker to `pip` if it's part of the installed packages
+            // so that it gets installed after Python.
+            auto& repo = MRepo::create(pool, *this);
+
+            Solvable* s;
+            Id pkg_id;
+            pool_createwhatprovides(pool);
+
+            FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
+            {
+                queue_push(&q, pkg_id);
+            }
         }
 
         Pool* pp = pool;

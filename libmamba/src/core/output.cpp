@@ -104,12 +104,7 @@ namespace mamba
                     cell_sizes[j] = std::max(cell_sizes[j], m_table[i][j].size());
             }
 
-            if (m_padding.size())
-            {
-                for (std::size_t i = 0; i < n_col; ++i)
-                    cell_sizes[i];
-            }
-            else
+            if (m_padding.empty())
             {
                 m_padding = std::vector<int>(n_col, 1);
             }
@@ -184,7 +179,7 @@ namespace mamba
                     out << m_table[i][0].s;
 
                     out << "\n";
-                    for (size_t i = 0; i < total_length + m_padding[0]; ++i)
+                    for (size_t idx = 0; idx < total_length + m_padding[0]; ++idx)
                     {
                         out << MAMBA_TABLE_DELIM;
                     }

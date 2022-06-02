@@ -30,7 +30,7 @@ set_umamba_command(CLI::App* com)
 
     Context::instance().caller_version = umamba::version();
 
-    auto print_version = [](int count)
+    auto print_version = [](int /*count*/)
     {
         std::cout << umamba::version() << std::endl;
         exit(0);

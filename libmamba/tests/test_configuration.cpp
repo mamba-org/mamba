@@ -970,9 +970,9 @@ namespace mamba
 
             EXPECT_TRUE(is_config_file(p));
 
-            for (fs::path p : wrong_paths)
+            for (fs::path wp : wrong_paths)
             {
-                EXPECT_FALSE(is_config_file(p));
+                EXPECT_FALSE(is_config_file(wp));
             }
         }
 

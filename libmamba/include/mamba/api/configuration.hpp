@@ -487,7 +487,7 @@ namespace mamba
             catch (const YAML::Exception& e)
             {
                 LOG_ERROR << "Bad conversion of configurable '" << this->m_name << "' from source '"
-                          << source << "'";
+                          << source << "' : " << e.what();
             }
         }
 

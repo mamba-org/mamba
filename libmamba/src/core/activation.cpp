@@ -112,11 +112,11 @@ namespace mamba
             std::string env_i;
             for (int i = 1; i < old_conda_shlvl + 1; ++i)
             {
-                std::string env_prefix
+                const std::string env_prefix
                     = (i == old_conda_shlvl) ? "CONDA_PREFIX" : "CONDA_PREFIX_" + std::to_string(i);
-                std::string prefix
+                const std::string default_prefix
                     = (m_env.find(env_prefix) != m_env.end()) ? m_env[env_prefix] : "";
-                env_i = get_default_env(prefix);
+                env_i = get_default_env(default_prefix);
 
                 bool stacked_i = m_env.find("CONDA_STACKED_" + std::to_string(i)) != m_env.end();
                 env_stack.push_back(env_i);
@@ -857,7 +857,7 @@ namespace mamba
     }
 
     std::pair<std::string, std::string> CmdExeActivator::update_prompt(
-        const std::string& conda_prompt_modifier)
+        const std::string& /* conda_prompt_modifier */)
     {
         return { "", "" };
     }
@@ -934,7 +934,7 @@ namespace mamba
     }
 
     std::pair<std::string, std::string> PowerShellActivator::update_prompt(
-        const std::string& conda_prompt_modifier)
+        const std::string& /*conda_prompt_modifier*/)
     {
         return { "", "" };
     }
@@ -1002,7 +1002,7 @@ namespace mamba
     }
 
     std::pair<std::string, std::string> XonshActivator::update_prompt(
-        const std::string& conda_prompt_modifier)
+        const std::string& /*conda_prompt_modifier*/)
     {
         return { "", "" };
     }
@@ -1070,7 +1070,7 @@ namespace mamba
     }
 
     std::pair<std::string, std::string> FishActivator::update_prompt(
-        const std::string& conda_prompt_modifier)
+        const std::string& /*conda_prompt_modifier*/)
     {
         return { "", "" };
     }

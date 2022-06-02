@@ -292,7 +292,7 @@ set_ps_command(CLI::App* subcom)
                 kill(pid, SIGTERM);
             };
 #else
-            auto stop_process = [](const std::string& name, PID pid)
+            auto stop_process = [](const std::string& /*name*/, PID /*pid*/)
             { LOG_ERROR << "Process stopping not yet implemented on Windows."; };
 #endif
             for (auto& p : procs)

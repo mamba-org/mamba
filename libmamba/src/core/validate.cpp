@@ -988,7 +988,7 @@ namespace validate
         }
         catch (const threshold_error& e)
         {
-            LOG_ERROR << "Validation failed on role '" << type() << "'";
+            LOG_ERROR << "Validation failed on role '" << type() << "' : " << e.what();
             throw role_error();
         }
     }
@@ -1209,7 +1209,7 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& url, const fs::path& cache_path) const
+            const std::string& /*url*/, const fs::path& /*cache_path*/) const
         {
             std::unique_ptr<RepoIndexChecker> ptr;
             return ptr;
@@ -1854,7 +1854,7 @@ namespace validate
                     }
                     catch (const threshold_error& e)
                     {
-                        LOG_ERROR << "Validation failed on package: '" << pkg_name << "'";
+                        LOG_ERROR << "Validation failed on package: '" << pkg_name << "' : " << e.what();
                         throw package_error();
                     }
                 }
@@ -1884,7 +1884,7 @@ namespace validate
             }
             catch (const package_error& e)
             {
-                LOG_ERROR << "Validation failed on package index: '" << p.string() << "'";
+                LOG_ERROR << "Validation failed on package index: '" << p.string() << "' : " << e.what();
                 throw index_error();
             }
         }
@@ -1896,7 +1896,7 @@ namespace validate
             }
             catch (const threshold_error& e)
             {
-                LOG_ERROR << "Validation failed on package: '" << signed_data.at("name") << "'";
+                LOG_ERROR << "Validation failed on package: '" << signed_data.at("name") << "' : " << e.what();
                 throw package_error();
             }
         }

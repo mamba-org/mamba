@@ -234,7 +234,8 @@ namespace mamba
         }
         catch (nlohmann::json::exception& e)
         {
-            LOG_WARNING << "Could not parse authentication information from " << auth_loc;
+            LOG_WARNING << "Could not parse authentication information from " << auth_loc << ": "
+                        << e.what();
         }
 
         m_authentication_infos_loaded = true;

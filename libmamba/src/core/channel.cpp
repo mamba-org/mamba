@@ -797,14 +797,14 @@ namespace mamba
         // Default channels
         auto& default_channels = Context::instance().default_channels;
         std::vector<std::string> default_names(default_channels.size());
-        auto name_iter = default_names.begin();
+        auto default_name_iter = default_names.begin();
         for (auto& url : default_channels)
         {
             auto channel = ChannelBuilder::make_simple_channel(
                 m_channel_alias, url, "", DEFAULT_CHANNELS_NAME);
             std::string name = channel.name();
             auto res = m_custom_channels.emplace(std::move(name), std::move(channel));
-            *name_iter++ = res.first->first;
+            *default_name_iter++ = res.first->first;
         }
         m_custom_multichannels.emplace(DEFAULT_CHANNELS_NAME, std::move(default_names));
 

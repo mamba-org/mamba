@@ -94,13 +94,13 @@ namespace mamba
                         {
                             std::string f = p.path() / "nvidia-smi.exe";
                             LOG_DEBUG << "Found nvidia-smi in: " << f;
-                            std::vector<std::string> args = { f, "--query", "-u", "-x" };
-                            auto [status, ec] = reproc::run(args,
+                            std::vector<std::string> command = { f, "--query", "-u", "-x" };
+                            auto [_/*cmd_status*/, cmd_ec] = reproc::run(command,
                                                             reproc::options{},
                                                             reproc::sink::string(out),
                                                             reproc::sink::string(err));
 
-                            if (!ec)
+                            if (!cmd_ec)
                             {
                                 break;
                             }

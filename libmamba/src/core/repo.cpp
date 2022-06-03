@@ -351,14 +351,16 @@ namespace mamba
                     Id mod_id = pool_str2id(m_repo->pool, "mamba:mod", 1);
                     Id pip_added_id = pool_str2id(m_repo->pool, "mamba:pip_added", 1);
 
+                    static constexpr auto failure = std::numeric_limits<unsigned long long>::max();
                     const char* url = repodata_lookup_str(repodata, SOLVID_META, url_id);
-                    int pip_added = repodata_lookup_num(repodata, SOLVID_META, pip_added_id, -1);
+                    const auto pip_added
+                        = repodata_lookup_num(repodata, SOLVID_META, pip_added_id, failure);
                     const char* etag = repodata_lookup_str(repodata, SOLVID_META, etag_id);
                     const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
                     const char* tool_version
                         = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
                     bool metadata_valid
-                        = !(!url || !etag || !mod || !tool_version || pip_added == -1);
+                        = !(!url || !etag || !mod || !tool_version || pip_added == failure);
 
                     if (metadata_valid)
                     {

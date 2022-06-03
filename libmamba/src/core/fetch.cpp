@@ -640,7 +640,7 @@ namespace mamba
         result = r;
         if (r != CURLE_OK)
         {
-            char* effective_url = nullptr; // FIXME: there is a member with the same name... is that intended?
+            char* effective_url = nullptr;
             curl_easy_getinfo(m_handle, CURLINFO_EFFECTIVE_URL, &effective_url);
 
             std::stringstream err;

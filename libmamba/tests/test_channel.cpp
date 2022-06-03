@@ -560,7 +560,8 @@ namespace mamba
         EXPECT_EQ(platform_found, "linux-64");
         EXPECT_EQ(cleaned_url, "https://mamba.com");
 
-        split_platform({ "noarch", "linux-64" }, "https://mamba.com/noarch", cleaned_url, platform_found);
+        split_platform(
+            { "noarch", "linux-64" }, "https://mamba.com/noarch", cleaned_url, platform_found);
 
         EXPECT_EQ(platform_found, "noarch");
         EXPECT_EQ(cleaned_url, "https://mamba.com");

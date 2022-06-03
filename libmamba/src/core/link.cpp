@@ -605,7 +605,7 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
                 replace_all(buffer, path_data.prefix_placeholder, new_prefix);
 
-                if constexpr(!on_win) // only on non-windows platforms
+                if constexpr (!on_win)  // only on non-windows platforms
                 {
                     // we need to check the first line for a shebang and replace it if it's too long
                     if (buffer[0] == '#' && buffer[1] == '!')

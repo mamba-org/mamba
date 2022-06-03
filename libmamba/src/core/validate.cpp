@@ -1854,7 +1854,8 @@ namespace validate
                     }
                     catch (const threshold_error& e)
                     {
-                        LOG_ERROR << "Validation failed on package: '" << pkg_name << "' : " << e.what();
+                        LOG_ERROR << "Validation failed on package: '" << pkg_name
+                                  << "' : " << e.what();
                         throw package_error();
                     }
                 }
@@ -1884,7 +1885,8 @@ namespace validate
             }
             catch (const package_error& e)
             {
-                LOG_ERROR << "Validation failed on package index: '" << p.string() << "' : " << e.what();
+                LOG_ERROR << "Validation failed on package index: '" << p.string()
+                          << "' : " << e.what();
                 throw index_error();
             }
         }
@@ -1896,7 +1898,8 @@ namespace validate
             }
             catch (const threshold_error& e)
             {
-                LOG_ERROR << "Validation failed on package: '" << signed_data.at("name") << "' : " << e.what();
+                LOG_ERROR << "Validation failed on package: '" << signed_data.at("name")
+                          << "' : " << e.what();
                 throw package_error();
             }
         }

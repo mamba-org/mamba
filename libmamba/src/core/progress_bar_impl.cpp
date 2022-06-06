@@ -2,8 +2,6 @@
 
 #include "progress_bar_impl.hpp"
 
-#include "spdlog/fmt/bundled/format.h"
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>

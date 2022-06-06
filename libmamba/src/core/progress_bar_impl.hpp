@@ -7,8 +7,12 @@
 #ifndef MAMBA_CORE_PROGRESS_BAR_IMPL_HPP
 #define MAMBA_CORE_PROGRESS_BAR_IMPL_HPP
 
-#include "spdlog/fmt/fmt.h"
-#include "spdlog/fmt/bundled/color.h"
+#include "spdlog/spdlog.h"
+#ifdef SPDLOG_FMT_EXTERNAL
+    #include "fmt/color.h"
+#else
+    #include "spdlog/fmt/bundled/color.h"
+#endif
 
 #include <iosfwd>
 #include <mutex>

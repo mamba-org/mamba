@@ -11,7 +11,7 @@ extern "C"
 
 #include <iostream>
 #include <stack>
-#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <spdlog/fmt/chrono.h>
 
 #include "mamba/core/query.hpp"

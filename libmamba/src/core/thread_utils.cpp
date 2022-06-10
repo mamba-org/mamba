@@ -124,7 +124,6 @@ namespace mamba
         std::mutex clean_mutex;
         std::condition_variable clean_var;
 
-        std::mutex main_mutex;
         std::condition_variable main_var;
     }  // namespace
 

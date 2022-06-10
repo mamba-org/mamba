@@ -772,7 +772,7 @@ namespace mamba
             }
             else
             {
-                int pos = static_cast<int>(
+                const std::size_t pos = static_cast<std::size_t>(
                     std::round(p_progress_bar->progress() * (width - 1) / 100.0));
 
                 std::size_t current_pos = 0, in_progress_pos = 0;
@@ -791,7 +791,7 @@ namespace mamba
                     in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), width);
                 }
 
-                auto spinner_width = 8;
+                const std::size_t spinner_width = 8;
 
                 if (current_pos)
                 {
@@ -810,11 +810,9 @@ namespace mamba
                 }
                 else
                 {
-                    std::size_t spinner_start, spinner_length, rest;
-
-                    spinner_start = pos > spinner_width ? pos - spinner_width : 0;
-                    spinner_length = ((pos + spinner_width) < width ? pos + spinner_width : width)
-                                     - spinner_start;
+                    const std::size_t spinner_start = std::max(0ul, pos - spinner_width);
+                    const std::size_t spinner_length
+                        = std::min(pos + spinner_width, width) - spinner_start;
 
                     ProgressScaleWriter::format_progress(
                         sstream, fmt::fg(fmt::terminal_color::bright_black), spinner_start, false);
@@ -824,7 +822,7 @@ namespace mamba
                                                          spinner_start + spinner_length == width);
                     if (spinner_length + spinner_start < width)
                     {
-                        rest = width - spinner_start - spinner_length;
+                        const std::size_t rest = width - spinner_start - spinner_length;
                         ProgressScaleWriter::format_progress(
                             sstream, fmt::fg(fmt::terminal_color::bright_black), rest, true);
                     }

@@ -79,7 +79,7 @@ namespace mamba
         {
             prev_value = key.GetStringValue(L"AutoRun");
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             LOG_INFO << "No AutoRun key detected.";
         }
@@ -228,7 +228,7 @@ namespace mamba
     }
 
     std::string xonsh_content(const fs::path& env_prefix,
-                              const std::string& shell,
+                              const std::string& /*shell*/,
                               const fs::path& mamba_exe)
     {
         std::stringstream content;
@@ -264,7 +264,7 @@ namespace mamba
     }
 
     std::string fish_content(const fs::path& env_prefix,
-                             const std::string& shell,
+                             const std::string& /*shell*/,
                              const fs::path& mamba_exe)
     {
         std::stringstream content;

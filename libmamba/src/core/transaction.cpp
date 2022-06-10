@@ -982,24 +982,25 @@ namespace mamba
                 }
                 case SOLVER_TRANSACTION_ERASE:
                 {
-                    PackageInfo p(s);
-                    Console::stream() << "Unlinking " << p.str();
-                    const fs::path cache_path(m_multi_cache.get_extracted_dir_path(p));
-                    UnlinkPackage up(p, cache_path, &m_transaction_context);
+                    PackageInfo package_info(s);
+                    Console::stream() << "Unlinking " << package_info.str();
+                    const fs::path cache_path(m_multi_cache.get_extracted_dir_path(package_info));
+                    UnlinkPackage up(package_info, cache_path, &m_transaction_context);
                     up.execute();
                     rollback.record(up);
-                    m_history_entry.unlink_dists.push_back(p.long_str());
+                    m_history_entry.unlink_dists.push_back(package_info.long_str());
                     break;
                 }
                 case SOLVER_TRANSACTION_INSTALL:
                 {
-                    PackageInfo p(s);
-                    Console::stream() << "Linking " << p.str();
-                    const fs::path cache_path(m_multi_cache.get_extracted_dir_path(p, false));
-                    LinkPackage lp(p, cache_path, &m_transaction_context);
+                    PackageInfo pacakge_info(s);
+                    Console::stream() << "Linking " << pacakge_info.str();
+                    const fs::path cache_path(
+                        m_multi_cache.get_extracted_dir_path(pacakge_info, false));
+                    LinkPackage lp(pacakge_info, cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);
-                    m_history_entry.link_dists.push_back(p.long_str());
+                    m_history_entry.link_dists.push_back(pacakge_info.long_str());
                     break;
                 }
                 case SOLVER_TRANSACTION_IGNORE:
@@ -1369,9 +1370,9 @@ namespace mamba
                     }
                     else
                     {
-                        std::stringstream s;
-                        to_human_readable_filesize(s, dlsize);
-                        dlsize_s.s = s.str();
+                        std::stringstream ss;
+                        to_human_readable_filesize(ss, dlsize);
+                        dlsize_s.s = ss.str();
                         // Hacky hacky
                         if (static_cast<std::size_t>(flag)
                             & static_cast<std::size_t>(printers::format::green))

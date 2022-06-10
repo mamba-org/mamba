@@ -1580,7 +1580,7 @@ namespace mamba
         auto& ctx = Context::instance();
 
         std::vector<fs::path> system;
-        if (on_mac || on_linux)
+        if constexpr (on_mac || on_linux)
         {
             system = { "/etc/conda/.condarc",       "/etc/conda/condarc",
                        "/etc/conda/condarc.d/",     "/etc/conda/.mambarc",
@@ -1784,7 +1784,7 @@ namespace mamba
         {
             return m_config.at(name);
         }
-        catch (const std::out_of_range& e)
+        catch (const std::out_of_range& /*e*/)
         {
             LOG_ERROR << "Configurable '" << name << "' does not exists";
             throw std::runtime_error("ConfigurationError");

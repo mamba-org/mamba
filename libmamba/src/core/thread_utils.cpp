@@ -92,7 +92,7 @@ namespace mamba
 #else
     void set_default_signal_handler()
     {
-        std::signal(SIGINT, [](int signum) { set_sig_interrupted(); });
+        std::signal(SIGINT, [](int /*signum*/) { set_sig_interrupted(); });
     }
 #endif
 

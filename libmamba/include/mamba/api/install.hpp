@@ -80,12 +80,12 @@ namespace YAML
     template <>
     struct convert<mamba::detail::other_pkg_mgr_spec>
     {
-        static Node encode(const mamba::detail::other_pkg_mgr_spec& rhs)
+        static Node encode(const mamba::detail::other_pkg_mgr_spec& /*rhs*/)
         {
             return Node();
         }
 
-        static bool decode(const Node& node, mamba::detail::other_pkg_mgr_spec& rhs)
+        static bool decode(const Node& /*node*/, mamba::detail::other_pkg_mgr_spec& /*rhs*/)
         {
             return true;
         }

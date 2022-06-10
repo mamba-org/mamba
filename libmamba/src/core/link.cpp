@@ -605,15 +605,18 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
                 replace_all(buffer, path_data.prefix_placeholder, new_prefix);
 
-                // we need to check the first line for a shebang and replace it if it's too long
-                if (!on_win && buffer[0] == '#' && buffer[1] == '!')
+                if constexpr (!on_win)  // only on non-windows platforms
                 {
-                    std::size_t end_of_line = buffer.find_first_of('\n');
-                    std::string first_line = buffer.substr(0, end_of_line);
-                    if (first_line.size() > 127)
+                    // we need to check the first line for a shebang and replace it if it's too long
+                    if (buffer[0] == '#' && buffer[1] == '!')
                     {
-                        std::string new_shebang = replace_long_shebang(first_line);
-                        buffer.replace(0, end_of_line, new_shebang);
+                        std::size_t end_of_line = buffer.find_first_of('\n');
+                        std::string first_line = buffer.substr(0, end_of_line);
+                        if (first_line.size() > 127)
+                        {
+                            std::string new_shebang = replace_long_shebang(first_line);
+                            buffer.replace(0, end_of_line, new_shebang);
+                        }
                     }
                 }
             }

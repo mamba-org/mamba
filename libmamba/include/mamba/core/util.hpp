@@ -255,7 +255,7 @@ namespace mamba
             {
             }
 
-            inline sizer(const char s)
+            inline sizer(const char)
                 : size(1)
             {
             }

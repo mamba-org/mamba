@@ -7,7 +7,7 @@ namespace mamba
     TEST(env_file_reading, selector)
     {
         using namespace detail;
-        if (on_linux || on_mac)
+        if constexpr (on_linux || on_mac)
         {
             EXPECT_TRUE(eval_selector("sel(unix)"));
             if (on_mac)

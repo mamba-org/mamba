@@ -17,7 +17,7 @@ extern "C"
 
 namespace mamba
 {
-    void libsolv_debug_callback(Pool* pool, void* userptr, int type, const char* str)
+    void libsolv_debug_callback(Pool* /*pool*/, void* userptr, int type, const char* str)
     {
         auto* dbg = (std::pair<spdlog::logger*, std::string>*) (userptr);
         dbg->second += str;

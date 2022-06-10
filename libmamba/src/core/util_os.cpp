@@ -141,7 +141,7 @@ namespace mamba
         {
             prev_value = key.GetDwordValue(L"LongPathsEnabled");
         }
-        catch (const winreg::RegException& e)
+        catch (const winreg::RegException& /*e*/)
         {
             LOG_INFO << "No LongPathsEnabled key detected.";
             return false;
@@ -525,8 +525,6 @@ namespace mamba
         auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
         return coninfo.dwSize.X;
 #endif
-
-        return -1;
     }
 
     int get_console_height()
@@ -541,7 +539,5 @@ namespace mamba
         auto res = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &coninfo);
         return coninfo.srWindow.Bottom - coninfo.srWindow.Top + 1;
 #endif
-
-        return -1;
     }
 }

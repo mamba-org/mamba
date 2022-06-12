@@ -1,12 +1,8 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+  push: null
+  pull_request: null
 
 jobs:
   test_broken_channels:

@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
     steps:
       - uses: actions/checkout@v3
       - uses: mamba-org/provision-with-micromamba@main
@@ -20,4 +20,6 @@ jobs:
         run: |
           x="$(cat docs/environment.yml)"
           echo "$x" | sed s/forge/broken/ > env.yml
+      - shell: powershell
+        run: |
           micromamba create -n testenv --strict-channel-priority -y --log-level trace -f env.yml

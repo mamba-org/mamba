@@ -17,4 +17,7 @@ jobs:
         with:
           environment-file: false
       - shell: bash
-        run: micromamba info
+        run: |
+          x="$(cat docs/environment.yml)"
+          echo "$x" | sed s/forge/broken/ > env.yml
+          micromamba create -f env.yml -y

@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 
 from .helpers import *
 
@@ -114,3 +115,12 @@ class TestEnv:
         env_json = run_env("list", "--json")
         assert env_2_fp not in env_json["envs"]
         assert env_3_fp in env_json["envs"]
+
+    def test_env_export(self):
+        env_name = "env-create-export"
+        spec_file = Path(__file__).parent / "env-create-export.yaml"
+        create("", "-n", env_name, "-f", spec_file)
+        ret = yaml.safe_load(run_env("export", "-n", env_name))
+        assert ret["name"] == env_name
+        assert set(ret["channels"]) == {"https://conda.anaconda.org/conda-forge"}
+        assert "micromamba=0.24.0=0" in ret["dependencies"]

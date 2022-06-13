@@ -116,11 +116,7 @@ set_env_command(CLI::App* com)
                         dependencies << "\n";
                     }
 
-                    auto& c = make_channel(v.url);
-
-                    // remove platform
-                    auto u = c.base_url();
-                    channels.insert(rsplit(u, "/", 1)[0]);
+                    channels.insert(make_channel(v.url).base_url());
                 }
 
                 for (auto& c : channels)

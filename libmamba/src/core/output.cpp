@@ -202,8 +202,8 @@ namespace mamba
 
         std::ostringstream table_like(const std::vector<std::string>& data, std::size_t max_width)
         {
-            int pos = 0;
-            int padding = 3;
+            std::size_t pos = 0;
+            std::size_t padding = 3;
             std::size_t data_max_width = 0;
             std::ostringstream out;
 
@@ -212,13 +212,13 @@ namespace mamba
                     data_max_width = d.size();
 
             max_width -= max_width % (data_max_width + padding);
-            int block_width = padding + data_max_width;
+            const std::size_t block_width = padding + data_max_width;
 
             auto sorted_data = data;
             std::sort(sorted_data.begin(), sorted_data.end(), string_comparison);
             for (const auto& d : sorted_data)
             {
-                int p = block_width - d.size();
+                const auto p = block_width - d.size();
 
                 if ((pos + d.size()) < max_width)
                 {

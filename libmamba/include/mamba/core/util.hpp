@@ -226,6 +226,14 @@ namespace mamba
 
     void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace);
 
+    template <typename T>
+    auto without_duplicates(std::vector<T> values)
+    {
+        const auto end_it = std::unique(values.begin(), values.end());
+        values.erase(end_it, values.end());
+        return values;
+    }
+
     // Note: this function only works for non-unicode!
     std::string to_upper(const std::string_view& input);
     std::string to_lower(const std::string_view& input);

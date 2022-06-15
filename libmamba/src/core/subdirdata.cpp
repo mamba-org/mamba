@@ -297,7 +297,9 @@ namespace mamba
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
-        for (const auto& cache_path : caches.paths())
+        const auto cache_paths = without_duplicates(caches.paths());
+
+        for (const auto& cache_path : cache_paths)
         {
             auto json_file = cache_path / "cache" / m_json_fn;
             auto solv_file = cache_path / "cache" / m_solv_fn;

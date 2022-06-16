@@ -72,11 +72,11 @@ namespace mamba
                 }
                 // directory exists, now create empty file
                 std::ofstream outfile;
-                #if _WIN32
-                    outfile.open(path.wstring(), std::ios::out);
-                #else
-                    outfile.open(path, std::ios::out);
-                #endif
+#if _WIN32
+                outfile.open(path.wstring(), std::ios::out);
+#else
+                outfile.open(path, std::ios::out);
+#endif
 
                 if (!outfile.good())
                     LOG_INFO << "Could not touch file at " << path;
@@ -95,11 +95,11 @@ namespace mamba
             {
                 bool path_existed = lexists(path);
                 std::ofstream test;
-                #if _WIN32
-                    test.open(path.wstring(), std::ios_base::out | std::ios_base::app);
-                #else
-                    test.open(path, std::ios_base::out | std::ios_base::app);
-                #endif
+#if _WIN32
+                test.open(path.wstring(), std::ios_base::out | std::ios_base::app);
+#else
+                test.open(path, std::ios_base::out | std::ios_base::app);
+#endif
 
                 if (!test.good())
                     LOG_INFO << "File is not writable at " << path;

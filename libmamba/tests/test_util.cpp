@@ -128,11 +128,7 @@ namespace mamba
         {
             const auto existing_file_path = test_dir_path / "existing-writable-test-delete-me.txt";
             {
-#ifdef _WIN32
-                std::ofstream temp_file{ existing_file_path.wstring() };
-#else
-                std::ofstream temp_file{ existing_file_path };
-#endif
+                std::ofstream temp_file{ existing_file_path.std_path() };
                 ASSERT_TRUE(temp_file.is_open());
                 temp_file << "delete me" << std::endl;
             }

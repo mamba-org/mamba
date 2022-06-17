@@ -38,7 +38,13 @@ namespace mamba
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-r", spec_file.string(), "--no-input"}}
+                  { get_python_path(),
+                    "-m",
+                    "pip",
+                    "install",
+                    "-r",
+                    spec_file.string(),
+                    "--no-input" } }
             };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);
@@ -101,8 +107,8 @@ namespace mamba
 
         command_args install_instructions = [&]
         {
-            const auto maybe_instructions
-                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix.string(), specs.path());
+            const auto maybe_instructions = get_other_pkg_mgr_install_instructions(
+                pkg_mgr, ctx.target_prefix.string(), specs.path());
             if (maybe_instructions)
                 return maybe_instructions.value();
             else

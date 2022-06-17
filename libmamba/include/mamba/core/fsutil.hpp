@@ -72,12 +72,7 @@ namespace mamba
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream outfile;
-#if _WIN32
-                outfile.open(path.wstring(), std::ios::out);
-#else
-                outfile.open(path, std::ios::out);
-#endif
+                std::ofstream outfile{ path.std_path(), std::ios::out };
 
                 if (!outfile.good())
                     LOG_INFO << "Could not touch file at " << path;
@@ -120,7 +115,7 @@ namespace mamba
             if (ec)
                 return false;
 
-            const auto test_file_path
+            const auto& test_file_path
                 = is_directory ? path / ".mamba-is-writable-check-delete-me" : path;
             const auto _ = on_scope_exit(
                 [&]
@@ -131,12 +126,8 @@ namespace mamba
                         fs::remove(test_file_path, ec);
                     }
                 });
-#if _WIN32
-            std::ofstream test_file{ test_file_path.wstring(),
+            std::ofstream test_file{ test_file_path.std_path(),
                                      std::ios_base::out | std::ios_base::app };
-#else
-            std::ofstream test_file{ test_file_path, std::ios_base::out | std::ios_base::app };
-#endif
             return test_file.is_open();
         }
 

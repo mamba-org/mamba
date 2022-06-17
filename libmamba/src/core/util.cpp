@@ -77,7 +77,7 @@ namespace mamba
             = fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write;
         std::error_code ec;
         const auto status = fs::status(path, ec);
-        return !ec && status.type() == fs::file_type::not_found
+        return !ec && status.type() != fs::file_type::not_found
                && (status.permissions() & writable_flags) != fs::perms::none;
     }
 

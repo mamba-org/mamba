@@ -4,7 +4,8 @@
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/core/execution.hpp"
-
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util_scope.hpp"
 
 namespace mamba
 {
@@ -101,5 +102,18 @@ namespace mamba
                 EXPECT_EQ(r, x.value());
             }
         }
+    }
+
+    TEST(utils, is_writable)
+    {
+        const auto test_dir_path = fs::temp_directory_path() / "libmamba" / "writable_tests";
+        fs::create_directories(test_dir_path);
+        on_scope_exit _{ [&] { fs::remove_all(test_dir_path); } };
+
+        EXPECT_TRUE(is_writable(test_dir_path));
+        fs::permissions(test_dir_path, fs::perms::none);
+        EXPECT_FALSE(is_writable(test_dir_path));
+        fs::permissions(test_dir_path, fs::perms::owner_write | fs::perms::owner_read);
+        EXPECT_TRUE(is_writable(test_dir_path));
     }
 }

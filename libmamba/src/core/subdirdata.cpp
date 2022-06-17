@@ -332,7 +332,8 @@ namespace mamba
 
                     auto cache_age_seconds
                         = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-                    if ((max_age > cache_age_seconds || Context::instance().offline))
+                    if ((max_age > cache_age_seconds || Context::instance().offline
+                         || Context::instance().use_index_cache))
                     {
                         // valid json cache found
                         if (!m_loaded)

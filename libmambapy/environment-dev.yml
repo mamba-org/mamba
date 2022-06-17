@@ -1,8 +1,10 @@
 name: mamba-dev
 channels:
   - conda-forge
+  - wolfv
 dependencies:
-  - cxx-compiler
+  - sel(unix): cxx-compiler
+  - sel(win): vs2022_win-64
   - cmake
   - ninja
   - nlohmann_json

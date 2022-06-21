@@ -18,12 +18,12 @@ jobs:
         run: |
           set -eux
           function platform_name () {
-            local x
-            x=$(uname)-$(uname -m)
-            x=$(echo $x | tr "[:upper:]" "[:lower:]")
-            x=${x//darwin/osx}
-            x=${x//x86_/}
-            echo $x
+            uname="$(echo "$(uname -a)" | tr "[:upper:]" "[:lower:]")"
+            if [[ "$uname" =~ darwin.+arm64 ]]; then echo osx-arm64
+            elif [[ "$uname" =~ linux.+arm64 ]]; then echo linux-aarch64
+            elif [[ "$uname" =~ linux.+x86_64 ]]; then echo linux-64
+            elif [[ "$uname" =~ win ]] && [[ "$uname" =~ mingw ]]; then echo win-64
+            fi
           }
           curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | tar -xvj bin/micromamba
           bin/micromamba info

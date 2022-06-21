@@ -20,7 +20,7 @@ jobs:
           function platform_name () {
             local x
             x=$(uname)-$(uname -m)
-            x=${x,,}
+            x=$(echo $x | tr "[:upper:]" "[:lower:]")
             x=${x//darwin/osx}
             x=${x//x86_/}
             echo $x

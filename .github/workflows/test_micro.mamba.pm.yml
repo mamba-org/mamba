@@ -16,6 +16,7 @@ jobs:
     steps:
       - shell: bash
         run: |
+          set -eux
           function platform_name () {
             local x
             x=$(uname)-$(uname -m)

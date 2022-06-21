@@ -34,4 +34,5 @@ jobs:
             fi
           }
           curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | bunzip2 | tar xOf - $(binary_name) > m
+          chmod +x m
           ./m info

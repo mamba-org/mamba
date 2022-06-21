@@ -26,5 +26,10 @@ jobs:
             elif [[ "$uname" =~ win ]] || [[ "$uname" =~ mingw ]]; then echo win-64
             fi
           }
-          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | tar -xvj bin/micromamba
-          bin/micromamba info
+          if [[ $(platform_name) =~ win ]]; then
+            micromamba_exe=micromamba.exe
+          else
+            micromamba_exe=micromamba
+          fi
+          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | tar -xvj bin/$micromamba_exe
+          bin/$micromamba_exe info

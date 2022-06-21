@@ -6,6 +6,10 @@ on:
   schedule:
     - cron: '0 10 * * *'
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   test_micro_mamba_pm:
     runs-on: ${{ matrix.os }}
@@ -36,3 +40,11 @@ jobs:
           curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | bunzip2 | tar xOf - $(binary_name) > m
           chmod +x m
           ./m info
+      - uses: dblock/create-a-github-issue@2c9fa0d32c24d651281c37d21e5b49e333500fe8
+        if: failure()
+        with:
+          filename: .github/workflows/test_issue.md
+          update_existing: true
+          search_existing: all
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

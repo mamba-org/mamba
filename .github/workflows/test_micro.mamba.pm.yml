@@ -22,7 +22,7 @@ jobs:
             x=$(uname)-$(uname -m)
             x=${x,,}
             x=${x//darwin/osx}
-            x=${x//_x86/}
+            x=${x//x86_/}
             echo $x
           }
           curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | tar -xvj bin/micromamba

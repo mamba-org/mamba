@@ -17,7 +17,7 @@ jobs:
       - shell: bash
         run: |
           set -eux
-          function platform_name () {
+          function platform_name {
             uname="$(echo "$(uname -a)" | tr "[:upper:]" "[:lower:]")"
             if [[ "$uname" =~ darwin.+arm64 ]]; then echo osx-arm64
             elif [[ "$uname" =~ darwin.+x86_64 ]]; then echo osx-64
@@ -26,10 +26,12 @@ jobs:
             elif [[ "$uname" =~ win ]] || [[ "$uname" =~ mingw ]]; then echo win-64
             fi
           }
-          if [[ $(platform_name) =~ win ]]; then
-            micromamba_exe=Library/bin/micromamba.exe
-          else
-            micromamba_exe=bin/micromamba
-          fi
-          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | bunzip2 | tar xOf - $(micromamba_exe) > m
+          function binary_name {
+            if [[ $(platform_name) =~ win ]]; then
+              echo Library/bin/micromamba.exe
+            else
+              echo bin/micromamba
+            fi
+          }
+          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | bunzip2 | tar xOf - $(binary_name) > m
           ./m info

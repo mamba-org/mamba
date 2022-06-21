@@ -1,8 +1,10 @@
 name: Test micro.mamba.pm
 
 on:
+  push: null
+  pull_request: null
   schedule:
-    - cron:  '0 10 * * *'
+    - cron: '0 10 * * *'
 
 jobs:
   test_micro_mamba_pm:

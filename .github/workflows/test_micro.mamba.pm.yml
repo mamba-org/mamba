@@ -27,9 +27,9 @@ jobs:
             fi
           }
           if [[ $(platform_name) =~ win ]]; then
-            micromamba_exe=micromamba.exe
+            micromamba_exe=Library/bin/micromamba.exe
           else
-            micromamba_exe=micromamba
+            micromamba_exe=bin/micromamba
           fi
-          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | tar -xvj bin/$micromamba_exe
-          bin/$micromamba_exe info
+          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | bunzip2 | tar xOf - $(micromamba_exe) > m
+          ./m info

@@ -1,0 +1,44 @@
+name: Linters (Python, C++)
+
+on:
+  push:
+   branches:
+     - master
+  pull_request:
+    branches:
+     - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: 'latest'
+        activate-environment: linters
+        python-version: 3.8
+        auto-update-conda: true
+    - name: Config Channels
+      shell: pwsh
+      run: |
+        conda config --set always_yes yes
+        conda config --add channels conda-forge
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        conda install pre-commit
+    - name: Conda info
+      shell: pwsh
+      run: |
+        conda info -a
+        conda list
+    - name: Run all linters
+      shell: pwsh
+      run: |
+        pre-commit run --all-files --verbose --show-diff-on-failure

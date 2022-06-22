@@ -2,8 +2,12 @@
 #include <exception>
 #include <thread>
 
-#include "spdlog/fmt/fmt.h"
+#include "spdlog/spdlog.h"
+#ifdef SPDLOG_FMT_EXTERNAL
+#include "fmt/color.h"
+#else
 #include "spdlog/fmt/bundled/color.h"
+#endif
 
 #include <reproc++/run.hpp>
 #include "common_options.hpp"

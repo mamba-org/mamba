@@ -7,7 +7,7 @@
 #include "mamba/core/env_lockfile.hpp"
 
 #include <yaml-cpp/yaml.h>
-#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 
 #include "mamba/core/output.hpp"
 

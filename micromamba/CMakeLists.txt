@@ -66,6 +66,16 @@ message(STATUS "Micromamba linkage: ${MICROMAMBA_LINKAGE}")
 find_package(Threads REQUIRED)
 target_link_libraries(micromamba PRIVATE Threads::Threads)
 
+# Check spdlog C header for external fmt configuration.
+find_file(SPDLOG_TWEAK_H NAMES spdlog/tweakme.h)
+if(SPDLOG_TWEAK_H)
+    file(READ ${SPDLOG_TWEAK_H} SPDLOG_TWEAK_H_STRING)
+    if("${SPDLOG_TWEAK_H_STRING}" MATCHES "\n *#define *SPDLOG_FMT_EXTERNAL *")
+        find_package(fmt REQUIRED)
+        target_link_libraries(micromamba PRIVATE fmt::fmt)
+    endif()
+endif()
+
 if (${MICROMAMBA_LINKAGE} STREQUAL "FULL_STATIC")
     target_link_libraries(micromamba PRIVATE libmamba-full-static)
     if (WIN32)

@@ -9,9 +9,9 @@
 
 #include "spdlog/spdlog.h"
 #ifdef SPDLOG_FMT_EXTERNAL
-    #include "fmt/color.h"
+#include "fmt/color.h"
 #else
-    #include "spdlog/fmt/bundled/color.h"
+#include "spdlog/fmt/bundled/color.h"
 #endif
 
 #include <iosfwd>

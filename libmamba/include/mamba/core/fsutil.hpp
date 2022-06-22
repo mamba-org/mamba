@@ -9,6 +9,7 @@
 
 #include "environment.hpp"
 #include "mamba_fs.hpp"
+#include "output.hpp"
 #include "util.hpp"
 
 #include <string>
@@ -70,8 +71,17 @@ namespace mamba
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream ostream = open_ofstream(path, std::ios::out);
-                if (ostream.fail())
+                std::ofstream outfile;
+#if _WIN32
+                outfile.open(path.wstring(), std::ios::out);
+#else
+                outfile.open(path, std::ios::out);
+#endif
+
+                if (!outfile.good())
+                    LOG_INFO << "Could not touch file at " << path;
+
+                if (outfile.fail())
                     throw fs::filesystem_error("File creation failed",
                                                std::make_error_code(std::errc::permission_denied));
 
@@ -84,7 +94,16 @@ namespace mamba
             if (fs::is_directory(path.parent_path()))
             {
                 bool path_existed = lexists(path);
-                std::ofstream test = open_ofstream(path, std::ios_base::out | std::ios_base::app);
+                std::ofstream test;
+#if _WIN32
+                test.open(path.wstring(), std::ios_base::out | std::ios_base::app);
+#else
+                test.open(path, std::ios_base::out | std::ios_base::app);
+#endif
+
+                if (!test.good())
+                    LOG_INFO << "File is not writable at " << path;
+
                 bool is_writable = test.is_open();
                 if (!path_existed)
                 {

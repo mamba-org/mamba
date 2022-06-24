@@ -246,6 +246,17 @@ namespace mamba
         return strip(input, WHITESPACES);
     }
 
+    // todo one could deduplicate this code with the one in strip() by using C++ 20 with concepts
+    std::wstring_view strip(const std::wstring_view& input)
+    {
+        return strip<wchar_t>(input, WHITESPACES_WSTR);
+    }
+
+    std::string_view strip(const std::string_view& input, const std::string_view& chars)
+    {
+        return strip<char>(input, chars);
+    }
+
     std::string_view lstrip(const std::string_view& input)
     {
         return lstrip(input, WHITESPACES);
@@ -254,18 +265,6 @@ namespace mamba
     std::string_view rstrip(const std::string_view& input)
     {
         return rstrip(input, WHITESPACES);
-    }
-
-    std::string_view strip(const std::string_view& input, const std::string_view& chars)
-    {
-        size_t start = input.find_first_not_of(chars);
-        if (start == std::string::npos)
-        {
-            return "";
-        }
-        size_t stop = input.find_last_not_of(chars) + 1;
-        size_t length = stop - start;
-        return length == 0 ? "" : input.substr(start, length);
     }
 
     std::string_view lstrip(const std::string_view& input, const std::string_view& chars)
@@ -278,31 +277,6 @@ namespace mamba
     {
         size_t end = input.find_last_not_of(chars);
         return end == std::string::npos ? "" : input.substr(0, end + 1);
-    }
-
-    std::vector<std::string> split(const std::string_view& input,
-                                   const std::string_view& sep,
-                                   std::size_t max_split)
-    {
-        std::vector<std::string> result;
-        std::size_t i = 0, j = 0, len = input.size(), n = sep.size();
-
-        while (i + n <= len)
-        {
-            if (input[i] == sep[0] && input.substr(i, n) == sep)
-            {
-                if (max_split-- <= 0)
-                    break;
-                result.emplace_back(input.substr(j, i - j));
-                i = j = i + n;
-            }
-            else
-            {
-                i++;
-            }
-        }
-        result.emplace_back(input.substr(j, len - j));
-        return result;
     }
 
     std::vector<std::string> rsplit(const std::string_view& input,

@@ -61,14 +61,27 @@ paths = {
     "osx": {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
+        "xonsh": "~/.xonshrc",
         "fish": "~/.config/fish/config.fish",
     },
     "linux": {
         "zsh": "~/.zshrc",
         "bash": "~/.bashrc",
+        "xonsh": "~/.xonshrc",
         "fish": "~/.config/fish/config.fish",
     },
 }
+
+
+def xonsh_shell_args(interpreter):
+    # In macOS, the parent process name is "Python" and not "xonsh" like in Linux.
+    # Thus, we need to specify the shell explicitly.
+    return "-s xonsh" if interpreter == "xonsh" and plat == "osx" else ""
+
+
+def extract_vars(vxs, interpreter):
+    return [f"echo {v}={shvar(v, interpreter)}" for v in vxs]
+
 
 if plat == "win":
     # find powershell profile path
@@ -95,14 +108,9 @@ def write_script(interpreter, lines, path):
     return fname
 
 
-def emit_check(cond):
-    return cmds.if_(cond).then_(cmds.echo("YES")).else_(cmds.echo("NOPE"))
-
-
 possible_interpreters = {
     "win": {"powershell", "cmd.exe"},
-    # 'unix': {'bash', 'zsh', 'xonsh'},
-    "unix": {"bash", "zsh", "fish"},
+    "unix": {"bash", "zsh", "fish", "xonsh"},
 }
 
 shell_files = [
@@ -112,6 +120,7 @@ shell_files = [
         "~/.bash_profile",
         "~/.zshrc",
         "~/.zsh_profile",
+        "~/.xonshrc",
         "~/.config/fish/config.fish",
     ]
 ]
@@ -245,7 +254,9 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     return stdout, stderr
 
 
-def get_interpreters(exclude=[]):
+def get_interpreters(exclude=None):
+    if exclude is None:
+        exclude = []
     return [x for x in possible_interpreters[running_os] if x not in exclude]
 
 
@@ -268,14 +279,12 @@ valid_interpreters = get_valid_interpreters()
 
 
 def shvar(v, interpreter):
-    if interpreter in ["bash", "zsh"]:
+    if interpreter in ["bash", "zsh", "xonsh", "fish"]:
         return f"${v}"
     elif interpreter == "powershell":
         return f"$Env:{v}"
     elif interpreter == "cmd.exe":
         return f"%{v}%"
-    elif interpreter == "fish":
-        return f"${v}"
 
 
 class TestActivation:
@@ -341,8 +350,7 @@ class TestActivation:
         if interpreter not in valid_interpreters:
             pytest.skip(f"{interpreter} not available")
 
-        cwd = os.getcwd()
-        umamba = get_umamba(cwd=cwd)
+        umamba = get_umamba()
         env = {"MAMBA_ROOT_PREFIX": self.root_prefix}
         call = lambda s: call_interpreter(s, tmp_path, interpreter)
 
@@ -352,7 +360,7 @@ class TestActivation:
         assert stdout == self.root_prefix
 
         # TODO remove root prefix here
-        s = [f"{umamba} shell init -p {rpv}"]
+        s = [f"{umamba} shell init -p {rpv} {xonsh_shell_args(interpreter)}"]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
@@ -368,7 +376,7 @@ class TestActivation:
                 assert find_path_in_str(self.root_prefix, x)
                 prev_text = x
 
-        s = [f"{umamba} shell init -p {rpv}"]
+        s = [f"{umamba} shell init -p {rpv} {xonsh_shell_args(interpreter)}"]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
@@ -413,15 +421,16 @@ class TestActivation:
                 assert "mamba" in x
                 assert text == x
 
-        s = [f"{umamba} shell init -p {self.other_root_prefix}"]
+        s = [
+            f"{umamba} shell init -p {self.other_root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
         stdout, stderr = call(s)
 
         if interpreter == "cmd.exe":
             x = read_windows_registry(regkey)[0]
-            # CURRENTLY FAILING!
-            # assert "mamba" in x
-            # assert find_path_in_str(self.other_root_prefix, x)
-            # assert not find_path_in_str(self.root_prefix, x)
+            assert "mamba" in x
+            assert find_path_in_str(self.other_root_prefix, x)
+            assert not find_path_in_str(self.root_prefix, x)
         else:
             with open(path) as fi:
                 x = fi.read()
@@ -430,14 +439,146 @@ class TestActivation:
                 assert not find_path_in_str(self.root_prefix, x)
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_shell_init_deinit_root_prefix_files(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        umamba = get_umamba()
+
+        root_prefix_path = Path(self.root_prefix)
+        if interpreter == "bash" or interpreter == "zsh":
+            files = [root_prefix_path / "etc" / "profile.d" / "micromamba.sh"]
+        elif interpreter == "cmd.exe":
+            files = [
+                root_prefix_path / "condabin" / "mamba_hook.bat",
+                root_prefix_path / "condabin" / "micromamba.bat",
+                root_prefix_path / "condabin" / "_mamba_activate.bat",
+                root_prefix_path / "condabin" / "activate.bat",
+            ]
+        elif interpreter == "powershell":
+            files = [
+                root_prefix_path / "condabin" / "mamba_hook.ps1",
+                root_prefix_path / "condabin" / "Mamba.psm1",
+            ]
+        elif interpreter == "fish":
+            files = [root_prefix_path / "etc" / "fish" / "conf.d" / "mamba.fish"]
+        elif interpreter == "xonsh":
+            files = [root_prefix_path / "etc" / "profile.d" / "mamba.xsh"]
+        else:
+            raise ValueError(f"Unknown shell {interpreter}")
+
+        def call(command):
+            return call_interpreter(command, tmp_path, interpreter)
+
+        s = [
+            f"{umamba} shell init -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
+        call(s)
+
+        for file in files:
+            assert file.exists()
+
+        s = [
+            f"{umamba} shell deinit -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
+        call(s)
+
+        for file in files:
+            assert not file.exists()
+
+    def test_shell_init_deinit_contents_cmdexe(
+        self, tmp_path, clean_shell_files, new_root_prefix
+    ):
+        interpreter = "cmd.exe"
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        umamba = get_umamba()
+
+        def call(command):
+            return call_interpreter(command, tmp_path, interpreter)
+
+        prev_value = read_windows_registry(regkey)
+        assert "mamba_hook.bat" not in prev_value[0]
+        assert not find_path_in_str(self.root_prefix, prev_value[0])
+
+        s = [
+            f"{umamba} shell init -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
+        call(s)
+
+        value_after_init = read_windows_registry(regkey)
+        assert "mamba_hook.bat" in value_after_init[0]
+        assert find_path_in_str(self.root_prefix, value_after_init[0])
+
+        s = [
+            f"{umamba} shell deinit -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
+        call(s)
+
+        value_after_deinit = read_windows_registry(regkey)
+        assert value_after_deinit == prev_value
+
+    @pytest.mark.parametrize("interpreter", get_interpreters(exclude=["cmd.exe"]))
+    def test_shell_init_deinit_contents(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        umamba = get_umamba()
+
+        def call(command):
+            return call_interpreter(command, tmp_path, interpreter)
+
+        path = Path(paths[plat][interpreter]).expanduser()
+
+        if os.path.exists(path):
+            with open(path) as fi:
+                prev_rc_contents = fi.read()
+        else:
+            prev_rc_contents = ""
+        if interpreter == "powershell":
+            assert "#region mamba initialize" not in prev_rc_contents
+        else:
+            assert "# >>> mamba initialize >>>" not in prev_rc_contents
+        assert not find_path_in_str(self.root_prefix, prev_rc_contents)
+
+        s = [
+            f"{umamba} shell init -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
+        call(s)
+
+        with open(path) as fi:
+            rc_contents_after_init = fi.read()
+            if interpreter == "powershell":
+                assert "#region mamba initialize" in rc_contents_after_init
+            else:
+                assert "# >>> mamba initialize >>>" in rc_contents_after_init
+            assert find_path_in_str(self.root_prefix, rc_contents_after_init)
+
+        s = [
+            f"{umamba} shell deinit -p {self.root_prefix} {xonsh_shell_args(interpreter)}"
+        ]
+        call(s)
+
+        if os.path.exists(path):
+            with open(path) as fi:
+                rc_contents_after_deinit = fi.read()
+        else:
+            rc_contents_after_deinit = ""
+        assert rc_contents_after_deinit == prev_rc_contents
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_activation(
         self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
     ):
         if interpreter not in valid_interpreters:
             pytest.skip(f"{interpreter} not available")
 
-        cwd = os.getcwd()
-        umamba = get_umamba(cwd=cwd)
+        umamba = get_umamba()
 
         s = [f"{umamba} shell init -p {self.root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
@@ -446,17 +587,8 @@ class TestActivation:
             s, tmp_path, interpreter, interactive=True, env=clean_env
         )
 
-        if interpreter in ["bash", "zsh"]:
-            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
-        elif interpreter in ["cmd.exe"]:
-            extract_vars = lambda vxs: [f"echo {v}=%{v}%" for v in vxs]
-        elif interpreter in ["powershell"]:
-            extract_vars = lambda vxs: [f"echo {v}=$Env:{v}" for v in vxs]
-        elif interpreter in ["fish"]:
-            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
-
         rp = Path(self.root_prefix)
-        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"])
+        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
         if interpreter == "cmd.exe":
             x = read_windows_registry(regkey)
@@ -555,8 +687,7 @@ class TestActivation:
         if interpreter not in valid_interpreters:
             pytest.skip(f"{interpreter} not available")
 
-        cwd = os.getcwd()
-        umamba = get_umamba(cwd=cwd)
+        umamba = get_umamba()
 
         s = [f"{umamba} shell init -p {self.root_prefix}"]
         stdout, stderr = call_interpreter(s, tmp_path, interpreter)
@@ -565,17 +696,8 @@ class TestActivation:
             s, tmp_path, interpreter, interactive=True, env=clean_env
         )
 
-        if interpreter in ["bash", "zsh"]:
-            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
-        elif interpreter in ["cmd.exe"]:
-            extract_vars = lambda vxs: [f"echo {v}=%{v}%" for v in vxs]
-        elif interpreter in ["powershell"]:
-            extract_vars = lambda vxs: [f"echo {v}=$Env:{v}" for v in vxs]
-        elif interpreter in ["fish"]:
-            extract_vars = lambda vxs: [f"echo {v}=${v}" for v in vxs]
-
         rp = Path(self.root_prefix)
-        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"])
+        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
 
         if interpreter == "cmd.exe":
             x = read_windows_registry(regkey)

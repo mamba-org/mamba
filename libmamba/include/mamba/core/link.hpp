@@ -68,6 +68,7 @@ namespace mamba
         PackageInfo m_pkg_info;
         fs::path m_cache_path;
         fs::path m_source;
+        std::vector<std::string> m_clobber_warnings;
         TransactionContext* m_context;
     };
 

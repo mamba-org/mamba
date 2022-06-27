@@ -139,9 +139,7 @@ namespace mamba
 #endif
         if (fs::exists(script_path))
         {
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << "$CONDA_PREFIX/"
-                      << fs::relative(script_path, m_context->target_prefix).string() << std::endl;
+            m_clobber_warnings.push_back(fs::relative(script_path, m_context->target_prefix).string());
             fs::remove(script_path);
         }
         std::ofstream out_file = open_ofstream(script_path);
@@ -174,8 +172,7 @@ namespace mamba
 
         if (fs::exists(m_context->target_prefix / script_exe))
         {
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << "$CONDA_PREFIX/" << script_exe.string() << std::endl;
+            m_clobber_warnings.push_back(fs::relative(script_exe.string()).string());
             fs::remove(m_context->target_prefix / script_exe);
         }
 
@@ -234,11 +231,10 @@ namespace mamba
     {
         // source_full_path: where the entry point file points to
         // target_full_path: the location of the new entry point file being created
-        if (fs::exists(target_full_path))
-        {
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << target_full_path.string() << std::endl;
-        }
+        // if (fs::exists(target_full_path))
+        // {
+        //     m_clobber_warnings.push_back(target_full_path.string());
+        // }
 
         if (!fs::is_directory(target_full_path.parent_path()))
         {
@@ -575,9 +571,7 @@ namespace mamba
         if (fs::exists(dst))
         {
             // Sometimes we might want to raise here ...
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << "$CONDA_PREFIX/" << rel_dst.string() << std::endl;
-            LOG_WARNING << "Clobberwarning: $CONDA_PREFIX/" << rel_dst.string();
+            m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
 #endif
@@ -1051,6 +1045,11 @@ namespace mamba
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
         std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
+
+        if (!m_clobber_warnings.empty())
+        {
+            LOG_WARNING << "[" << f_name << "] The following files were already present in the environment:\n- " << join("\n- ", m_clobber_warnings);
+        }
 
         return true;
     }

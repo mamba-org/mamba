@@ -45,7 +45,7 @@ extern "C"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-
+#include "mamba/core/fsutil.hpp"
 
 namespace mamba
 {
@@ -69,16 +69,6 @@ namespace mamba
     {
         auto status = fs::symlink_status(path);
         return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
-    }
-
-    bool is_writable(const fs::path& path) noexcept
-    {
-        static constexpr auto writable_flags
-            = fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write;
-        std::error_code ec;
-        const auto status = fs::status(path, ec);
-        return !ec && status.type() != fs::file_type::not_found
-               && (status.permissions() & writable_flags) != fs::perms::none;
     }
 
     std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix)
@@ -1169,7 +1159,7 @@ namespace mamba
         try
         {
             // Don't even log if the file/directory isn't writable by someone or doesnt exists.
-            if (is_writable(path))
+            if (path::is_writable(path))
             {
                 auto ptr = std::make_unique<LockFile>(path);
                 return ptr;

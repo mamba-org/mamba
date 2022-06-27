@@ -7,13 +7,14 @@
 #ifndef MAMBA_CORE_FS_UTIL
 #define MAMBA_CORE_FS_UTIL
 
-#include "environment.hpp"
-#include "mamba_fs.hpp"
-#include "output.hpp"
-#include "util.hpp"
-
 #include <string>
 #include <system_error>
+
+#include "mamba/core/environment.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {
@@ -89,35 +90,45 @@ namespace mamba
             }
         }
 
-        inline bool is_writable(const fs::path& path)
+        inline bool is_writable(const fs::path& path) noexcept
         {
-            if (fs::is_directory(path.parent_path()))
-            {
-                bool path_existed = lexists(path);
-                std::ofstream test;
-#if _WIN32
-                test.open(path.wstring(), std::ios_base::out | std::ios_base::app);
-#else
-                test.open(path, std::ios_base::out | std::ios_base::app);
-#endif
+            static constexpr auto writable_flags
+                = fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write;
+            std::error_code ec;
+            const auto status = fs::status(path, ec);
 
-                if (!test.good())
-                    LOG_INFO << "File is not writable at " << path;
+            const bool should_be_writable
+                = !ec && status.type() != fs::file_type::not_found
+                  && (status.permissions() & writable_flags) != fs::perms::none;
 
-                bool is_writable = test.is_open();
-                if (!path_existed)
+            // If it should not be writable, stop there.
+            if (!should_be_writable)
+                return false;
+
+            // If it should be, check that it's true by creating or editing a file.
+            const bool is_directory = fs::is_directory(path, ec);
+            if (ec)
+                return false;
+
+            const auto test_file_path = is_directory ? path / ".mamba-touch-check" : path;
+            const auto _ = on_scope_exit(
+                [&]
                 {
-                    test.close();
-                    fs::remove(path);
-                }
-                return is_writable;
-            }
-            else
-            {
-                throw std::runtime_error("Cannot check file path at " + path.string()
-                                         + " for accessibility.");
-            }
+                    if (is_directory)
+                    {
+                        std::error_code ec;
+                        fs::remove(test_file_path, ec);
+                    }
+                });
+#if _WIN32
+            std::ofstream test_file{ test_file_path.wstring(),
+                                     std::ios_base::out | std::ios_base::app };
+#else
+            std::ofstream test_file{ test_file_path, std::ios_base::out | std::ios_base::app };
+#endif
+            return test_file.is_open();
         }
+
     }  // namespace path
 }  // namespace mamba
 

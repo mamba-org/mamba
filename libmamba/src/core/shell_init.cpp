@@ -70,8 +70,7 @@ namespace mamba
 
 #ifdef _WIN32
     void init_cmd_exe_registry(const std::wstring& reg_path,
-                               const fs::path& conda_prefix,
-                               bool reverse)
+                               const fs::path& conda_prefix)
     {
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         std::wstring prev_value;
@@ -87,48 +86,41 @@ namespace mamba
         std::wstring hook_string = std::wstring(L"\"")
                                    + (conda_prefix / "condabin" / "mamba_hook.bat").wstring()
                                    + std::wstring(L"\"");
-        if (reverse)
+        std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
+        std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
+                               std::regex_constants::icase);
+        std::wstring replaced_value = std::regex_replace(
+            prev_value, hook_regex, replace_str, std::regex_constants::format_first_only);
+
+        std::wstring new_value = replaced_value;
+
+        if (replaced_value.find(replace_str) == new_value.npos)
         {
-            // Not implemented yet
+            if (!new_value.empty())
+            {
+                new_value += L" & " + hook_string;
+            }
+            else
+            {
+                new_value = hook_string;
+            }
         }
         else
         {
-            std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
-            std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
-                                   std::regex_constants::icase);
-            std::wstring replaced_value = std::regex_replace(
-                prev_value, hook_regex, replace_str, std::regex_constants::format_first_only);
+            replace_all(new_value, replace_str, hook_string);
+        }
 
-            std::wstring new_value = replaced_value;
-
-            if (replaced_value.find(replace_str) == new_value.npos)
-            {
-                if (!new_value.empty())
-                {
-                    new_value += L" & " + hook_string;
-                }
-                else
-                {
-                    new_value = hook_string;
-                }
-            }
-            else
-            {
-                replace_all(new_value, replace_str, hook_string);
-            }
-
-            if (new_value != prev_value)
-            {
-                std::cout << "Adding to cmd.exe AUTORUN: " << termcolor::green;
-                std::wcout << new_value;
-                std::cout << termcolor::reset << std::endl;
-                key.SetStringValue(L"AutoRun", new_value);
-            }
-            else
-            {
-                std::cout << termcolor::green << "cmd.exe already initialized." << termcolor::reset
-                          << std::endl;
-            }
+        if (new_value != prev_value)
+        {
+            std::cout << "Adding to cmd.exe AUTORUN: " << termcolor::green;
+            std::wcout << new_value;
+            std::cout << termcolor::reset << std::endl;
+            key.SetStringValue(L"AutoRun", new_value);
+        }
+        else
+        {
+            std::cout << termcolor::green << "cmd.exe already initialized." << termcolor::reset
+                      << std::endl;
         }
     }
 #endif
@@ -289,7 +281,7 @@ namespace mamba
         return content.str();
     }
 
-    bool modify_rc_file(const fs::path& file_path,
+    void modify_rc_file(const fs::path& file_path,
                         const fs::path& conda_prefix,
                         const std::string& shell,
                         const fs::path& mamba_exe)
@@ -325,6 +317,11 @@ namespace mamba
                           << termcolor::colorize << termcolor::green << conda_init_content
                           << termcolor::reset;
 
+        if (Context::instance().dry_run)
+        {
+            return;
+        }
+
         std::string result
             = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, conda_init_content);
 
@@ -338,7 +335,6 @@ namespace mamba
             std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
             rc_file << result;
         }
-        return true;
     }
 
     std::string get_hook_contents(const std::string& shell)
@@ -510,7 +506,7 @@ namespace mamba
         return out.str();
     }
 
-    bool init_powershell(const fs::path& profile_path, const fs::path& conda_prefix, bool reverse)
+    void init_powershell(const fs::path& profile_path, const fs::path& conda_prefix)
     {
         // NB: the user may not have created a profile. We need to check
         //     if the file exists first.
@@ -525,51 +521,45 @@ namespace mamba
         bool found_mamba_initialize
             = profile_content.find("#region mamba initialize") != profile_content.npos;
 
-        if (reverse)
+        // Find what content we need to add.
+        Console::stream() << "Adding (or replacing) the following in your " << profile_path
+                          << " file\n"
+                          << termcolor::colorize << termcolor::green << conda_init_content
+                          << termcolor::reset;
+
+        if (Context::instance().dry_run)
         {
-            profile_content = std::regex_replace(profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, "");
+            return;
+        }
+
+        if (found_mamba_initialize)
+        {
+            profile_content = std::regex_replace(
+                profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
+        }
+
+        if (profile_content == profile_original_content && found_mamba_initialize)
+        {
+            return;
+        }
+
+        if (!fs::exists(profile_path.parent_path()))
+        {
+            fs::create_directories(profile_path.parent_path());
+        }
+
+        if (!found_mamba_initialize)
+        {
+            std::ofstream out
+                = open_ofstream(profile_path, std::ios::app | std::ios::binary);
+            out << std::endl << conda_init_content;
         }
         else
         {
-            // Find what content we need to add.
-            Console::stream() << "Adding (or replacing) the following in your " << profile_path
-                              << " file\n"
-                              << termcolor::colorize << termcolor::green << conda_init_content
-                              << termcolor::reset;
-
-            if (found_mamba_initialize)
-            {
-                profile_content = std::regex_replace(
-                    profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
-            }
+            std::ofstream out
+                = open_ofstream(profile_path, std::ios::out | std::ios::binary);
+            out << profile_content;
         }
-
-        if (profile_content != profile_original_content || !found_mamba_initialize)
-        {
-            if (!Context::instance().dry_run)
-            {
-                if (!fs::exists(profile_path.parent_path()))
-                {
-                    fs::create_directories(profile_path.parent_path());
-                }
-
-                if (!found_mamba_initialize)
-                {
-                    std::ofstream out
-                        = open_ofstream(profile_path, std::ios::app | std::ios::binary);
-                    out << std::endl << conda_init_content;
-                }
-                else
-                {
-                    std::ofstream out
-                        = open_ofstream(profile_path, std::ios::out | std::ios::binary);
-                    out << profile_content;
-                }
-
-                return true;
-            }
-        }
-        return false;
     }
 
     void init_shell(const std::string& shell, const fs::path& conda_prefix)
@@ -602,7 +592,7 @@ namespace mamba
 #ifndef _WIN32
             throw std::runtime_error("CMD.EXE can only be initialized on Windows.");
 #else
-            init_cmd_exe_registry(L"Software\\Microsoft\\Command Processor", conda_prefix, false);
+            init_cmd_exe_registry(L"Software\\Microsoft\\Command Processor", conda_prefix);
 #endif
         }
         else if (shell == "powershell")
@@ -653,7 +643,7 @@ namespace mamba
                         pwsh_profiles.insert(profile_path);
                         Console::stream()
                             << "Init " << exe << " profile at '" << profile_path << "'";
-                        init_powershell(profile_path, conda_prefix, false);
+                        init_powershell(profile_path, conda_prefix);
                     }
                 }
             }

@@ -114,11 +114,14 @@ namespace mamba
                 return false;
 
             // If it should be, check that it's true by creating or editing a file.
-            const bool is_directory = fs::exists(path) && fs::is_directory(path, ec); // fs::is_directory fails if path does not exist
+            const bool is_directory
+                = fs::exists(path)
+                  && fs::is_directory(path, ec);  // fs::is_directory fails if path does not exist
             if (ec)
                 return false;
 
-            const auto test_file_path = is_directory ? path / ".mamba-is-writable-check-delete-me" : path;
+            const auto test_file_path
+                = is_directory ? path / ".mamba-is-writable-check-delete-me" : path;
             const auto _ = on_scope_exit(
                 [&]
                 {

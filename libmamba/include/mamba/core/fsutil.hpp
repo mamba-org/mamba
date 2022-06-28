@@ -110,7 +110,7 @@ namespace mamba
             if (ec)
                 return false;
 
-            const auto test_file_path = is_directory ? path / ".mamba-touch-check" : path;
+            const auto test_file_path = is_directory ? path / ".mamba-is-writable-check-delete-me" : path;
             const auto _ = on_scope_exit(
                 [&]
                 {

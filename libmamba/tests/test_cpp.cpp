@@ -344,24 +344,6 @@ namespace mamba
         }
     }
 
-    TEST(fsutil, is_writable)
-    {
-        if (on_linux)
-        {
-            EXPECT_TRUE(path::is_writable("/tmp/test.txt"));
-            EXPECT_TRUE(path::is_writable(env::expand_user("~/hello.txt")));
-            // if (env::is_admin())
-            // {
-            //     EXPECT_TRUE(path::is_writable("/opt/test.txt"));
-            // }
-            // else
-            // {
-            //     EXPECT_FALSE(path::is_writable("/opt/test.txt"));
-            // }
-            EXPECT_THROW(path::is_writable("/tmp/this/path/doesnt/exist"), std::runtime_error);
-        }
-    }
-
     TEST(link, replace_long_shebang)
     {
         if (!on_win)

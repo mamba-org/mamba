@@ -109,12 +109,37 @@ namespace mamba
     {
         const auto test_dir_path = fs::temp_directory_path() / "libmamba" / "writable_tests";
         fs::create_directories(test_dir_path);
-        on_scope_exit _{ [&] { fs::remove_all(test_dir_path); } };
+        on_scope_exit _{ [&] {
+            fs::permissions(test_dir_path, fs::perms::all );
+            fs::remove_all(test_dir_path);
+        } };
 
         EXPECT_TRUE(path::is_writable(test_dir_path));
         fs::permissions(test_dir_path, fs::perms::none);
         EXPECT_FALSE(path::is_writable(test_dir_path));
-        fs::permissions(test_dir_path, fs::perms::owner_write | fs::perms::owner_read);
+        fs::permissions(test_dir_path, fs::perms::all );
         EXPECT_TRUE(path::is_writable(test_dir_path));
+
+        EXPECT_TRUE(path::is_writable(test_dir_path / "non-existing-writable-test-delete-me.txt"));
+        EXPECT_TRUE(path::is_writable(env::expand_user("~/.libmamba-non-existing-writable-test-delete-me.txt")));
+
+        {
+            const auto existing_file_path = test_dir_path / "existing-writable-test-delete-me.txt";
+            {
+#ifdef _WIN32
+                std::ofstream temp_file { existing_file_path.wstring() };
+#else
+                std::ofstream temp_file { existing_file_path };
+#endif
+                ASSERT_TRUE(temp_file.is_open());
+                temp_file << "delete me" << std::endl;
+            }
+            EXPECT_TRUE(path::is_writable(existing_file_path));
+            fs::permissions(existing_file_path, fs::perms::none);
+            EXPECT_FALSE(path::is_writable(existing_file_path));
+            fs::permissions(existing_file_path, fs::perms::all );
+            EXPECT_TRUE(path::is_writable(existing_file_path));
+        }
+
     }
 }

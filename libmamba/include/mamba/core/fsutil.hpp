@@ -90,12 +90,20 @@ namespace mamba
             }
         }
 
+        // Returns `true` only if the provided path is either:
+        // - a file we are able to open for writing;
+        // - a directory we are able to create a file in for writing;
+        // - a file name that does not exist but the parent directory in the path exists and we
+        //   are able to create a file with that name in that directory for writing.
+        // Returns `false` otherwise.
         inline bool is_writable(const fs::path& path) noexcept
         {
+            const auto& path_to_write_in = fs::exists(path) ? path : path.parent_path();
+
             static constexpr auto writable_flags
                 = fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write;
             std::error_code ec;
-            const auto status = fs::status(path, ec);
+            const auto status = fs::status(path_to_write_in, ec);
 
             const bool should_be_writable
                 = !ec && status.type() != fs::file_type::not_found
@@ -106,7 +114,7 @@ namespace mamba
                 return false;
 
             // If it should be, check that it's true by creating or editing a file.
-            const bool is_directory = fs::is_directory(path, ec);
+            const bool is_directory = fs::exists(path) && fs::is_directory(path, ec); // fs::is_directory fails if path does not exist
             if (ec)
                 return false;
 

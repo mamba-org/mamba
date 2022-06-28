@@ -1805,7 +1805,8 @@ namespace mamba
         }
         catch (const std::exception& ex)
         {
-            LOG_ERROR << fmt::format("Error in file {}, skipping: {}", std::string(file), ex.what());
+            LOG_ERROR << fmt::format(
+                "Error in file {}, skipping: {}", std::string(file), ex.what());
         }
         return config;
     }

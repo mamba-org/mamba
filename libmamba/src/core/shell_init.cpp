@@ -69,8 +69,7 @@ namespace mamba
     }
 
 #ifdef _WIN32
-    void init_cmd_exe_registry(const std::wstring& reg_path,
-                               const fs::path& conda_prefix)
+    void init_cmd_exe_registry(const std::wstring& reg_path, const fs::path& conda_prefix)
     {
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         std::wstring prev_value;
@@ -87,8 +86,7 @@ namespace mamba
                                    + (conda_prefix / "condabin" / "mamba_hook.bat").wstring()
                                    + std::wstring(L"\"");
         std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
-        std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
-                               std::regex_constants::icase);
+        std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
         std::wstring replaced_value = std::regex_replace(
             prev_value, hook_regex, replace_str, std::regex_constants::format_first_only);
 
@@ -550,14 +548,12 @@ namespace mamba
 
         if (!found_mamba_initialize)
         {
-            std::ofstream out
-                = open_ofstream(profile_path, std::ios::app | std::ios::binary);
+            std::ofstream out = open_ofstream(profile_path, std::ios::app | std::ios::binary);
             out << std::endl << conda_init_content;
         }
         else
         {
-            std::ofstream out
-                = open_ofstream(profile_path, std::ios::out | std::ios::binary);
+            std::ofstream out = open_ofstream(profile_path, std::ios::out | std::ios::binary);
             out << profile_content;
         }
     }

@@ -1803,9 +1803,10 @@ namespace mamba
             std::string s = strStream.str();
             config = YAML::Load(expandvars(s));
         }
-        catch (...)
+        catch (const std::exception& ex)
         {
-            LOG_ERROR << "Error in file " << file << " (Skipped)";
+            LOG_ERROR << fmt::format(
+                "Error in file {}, skipping: {}", std::string(file), ex.what());
         }
         return config;
     }

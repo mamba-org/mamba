@@ -12,7 +12,8 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-
+#include <future>
+#include <algorithm>
 
 namespace mamba
 {
@@ -67,10 +68,14 @@ namespace mamba
             if (!is_open)
                 return;
 
-            std::scoped_lock lock{ threads_mutex };
+            std::scoped_lock lock{ wait_futures_mutex };
             if (is_open)  // Double check necessary for correctness
             {
-                threads.emplace_back(std::forward<Task>(task), std::forward<Args>(args)...);
+                auto ft = std::async(std::launch::async,
+                                     std::forward<Task>(task),
+                                     std::forward<Args>(args)...)
+                              .share();
+                wait_futures.emplace_back([ft = std::move(ft)] { ft.wait(); });
             }
         }
 
@@ -109,10 +114,19 @@ namespace mamba
 
             invoke_close_handlers();
 
-            std::scoped_lock lock{ threads_mutex };
-            for (auto&& t : threads)
-                t.join();
-            threads.clear();
+            {
+                std::scoped_lock lock{ wait_futures_mutex };
+                for (auto&& wait_future_func : wait_futures)
+                    wait_future_func();
+                wait_futures.clear();
+            }
+
+            {
+                std::scoped_lock lock{ threads_mutex };
+                for (auto&& t : threads)
+                    t.join();
+                threads.clear();
+            }
         }
 
         using on_close_handler = std::function<void()>;
@@ -131,6 +145,11 @@ namespace mamba
 
     private:
         std::atomic<bool> is_open{ true };
+
+        std::vector<std::function<void()>> wait_futures;
+        std::recursive_mutex
+            wait_futures_mutex;  // TODO: replace by synchronized_value once available
+
         std::vector<std::thread> threads;
         std::recursive_mutex threads_mutex;  // TODO: replace by synchronized_value once available
 

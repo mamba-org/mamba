@@ -29,7 +29,7 @@
 #include "env_lockfile.hpp"
 #include "mamba/api/install.hpp"
 
-#include "powerloader/download_target.hpp"
+#include <powerloader/download_target.hpp>
 
 extern "C"
 {

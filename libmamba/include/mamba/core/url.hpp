@@ -7,7 +7,7 @@
 #ifndef MAMBA_CORE_URL_HPP
 #define MAMBA_CORE_URL_HPP
 
-#include "powerloader/url.hpp"
+#include <powerloader/url.hpp>
 
 #include <limits>
 #include <stdexcept>

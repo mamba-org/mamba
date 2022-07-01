@@ -66,6 +66,7 @@ namespace decompress
 
 namespace mamba
 {
+    using namespace std::placeholders;
     namespace detail
     {
         nlohmann::json read_mod_and_etag(const fs::u8path& file)
@@ -225,7 +226,14 @@ namespace mamba
     {
         if (m_target != nullptr)
         {
-            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+            // m_target->cbdata = this;
+            m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
+            // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+        }
+        if (m_progress_bar && m_target)
+        {
+            // m_target->progress_callback = this->progress_callback;
+            m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
         }
     }
 
@@ -252,11 +260,26 @@ namespace mamba
 
         if (m_target != nullptr)
         {
-            m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
+            // m_target->cbdata = this;
+            m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
+            if (m_progress_bar)
+            {
+                m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
+            }
+
+            // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         }
         if (rhs.m_target != nullptr)
         {
-            rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
+            m_target->end_callback = std::bind(&MSubdirData::end_callback, &rhs, _1, _2);
+
+            if (rhs.m_progress_bar)
+            {
+                m_target->progress_callback = std::bind(&MSubdirData::progress_callback, &rhs, _1, _2);
+            }
+
+            // m_target->cbdata = &rhs;
+            // rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
         }
         return *this;
     }
@@ -452,8 +475,8 @@ namespace mamba
 
         fs::u8path json_file, solv_file;
 
-        if (m_target->http_status == 304)
-        {
+        // if (m_target->http_status == 304)
+        // {
         //     // cache still valid
         //     LOG_INFO << "Cache is still valid";
         //     json_file = m_expired_cache_path / "cache" / m_json_fn;
@@ -526,13 +549,13 @@ namespace mamba
         //         r.elapsed.deactivate();
         //     }
 
-            m_json_cache_valid = true;
-            m_loaded = true;
-            m_temp_file.reset(nullptr);
-            return true;
-        }
-        else
-        {
+            // m_json_cache_valid = true;
+            // m_loaded = true;
+            // m_temp_file.reset(nullptr);
+            // return true;
+        // }
+        // else
+        // {
         // if (m_writable_pkgs_dir.empty())
         //     m_json_cache_valid = true;
         //     m_loaded = true;
@@ -541,14 +564,14 @@ namespace mamba
         // }
         // else
         // {
-            if (writable_cache_path.empty())
-            {
-                LOG_ERROR << "Could not find any writable cache directory for repodata file";
-                throw std::runtime_error("Non-writable cache error.");
-            }
+        //     if (writable_cache_path.empty())
+        //     {
+        //         LOG_ERROR << "Could not find any writable cache directory for repodata file";
+        //         throw std::runtime_error("Non-writable cache error.");
+        //     }
         // }
 
-        LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
+        LOG_INFO << "Finalized transfer of '" << m_repodata_url << "'";
 
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
@@ -560,7 +583,7 @@ namespace mamba
         // m_mod_etag["_mod"] = m_target->mod;
         // m_mod_etag["_cache_control"] = m_target->cache_control;
 
-        LOG_DEBUG << "Opening '" << json_file.string() << "'";
+        LOG_INFO << "Opening '" << json_file.string() << "'";
         path::touch(json_file, true);
         std::ofstream final_file = open_ofstream(json_file);
 
@@ -632,20 +655,42 @@ namespace mamba
         return result;
     }
 
+    int MSubdirData::progress_callback(curl_off_t done, curl_off_t total)
+    {
+        this->m_progress_bar.set_progress(done, total);
+        std::cout << done << " of " << total << std::endl;
+        return 0;
+    }
+
+    powerloader::CbReturnCode MSubdirData::end_callback(powerloader::TransferStatus status, const std::string& msg)
+    {
+        if (status == powerloader::TransferStatus::kSUCCESSFUL)
+        {
+            spdlog::warn("Transfer successful... {}", msg);
+            std::cout << this->m_target->effective_url << std::endl;
+            spdlog::warn("Transfer successful... {}", this->m_target->effective_url);
+            this->finalize_transfer();
+        }
+        return powerloader::CbReturnCode::kOK;
+    }
+
     void MSubdirData::create_target(nlohmann::json& mod_etag)
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
+        std::cout << "Tempfile path: " << m_temp_file->path() << std::endl;
+        std::cout << "REPODATA URL " << m_repodata_url << std::endl;
         m_target = std::make_shared<powerloader::DownloadTarget>(m_repodata_url, "", m_temp_file->path());
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
             // m_target->set_progress_bar(m_progress_bar);
-            m_target->progress_callback = [this](curl_off_t done, curl_off_t total) -> int
-            {
-                this->m_progress_bar.set_progress(done, total);
-                return 0;
-            };
+            m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
+            // m_target->progress_callback = [this](curl_off_t done, curl_off_t total) -> int
+            // {
+            //     // this->m_progress_bar.set_progress(done, total);
+            //     // std::cout << done << " of " << total << std::endl;
+            // };
         }
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved
@@ -654,19 +699,15 @@ namespace mamba
         //     m_target->set_ignore_failure(true);
         // }
 
-        auto x = [](powerloader::TransferStatus status, const std::string& msg, void* clientp) -> powerloader::CbReturnCode
-        {
-            auto* self = (MSubdirData*)clientp;
-            spdlog::warn("Status {} -- msg: {}", (int) status, msg);
-            if (status == powerloader::TransferStatus::kSUCCESSFUL)
-            {
-                self->finalize_transfer();
-            }
-            return powerloader::CbReturnCode::kOK;
-        };
+        // std::cout << "THIS: " << this << std::endl;
 
-        m_target->endcb = x;
-        m_target->cbdata = this;
+        // auto x = [this](powerloader::TransferStatus status, const std::string& msg) -> powerloader::CbReturnCode
+        // {
+        //     this-end_callback()
+        // };
+
+        m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
+        // m_target->cbdata = this;
 
         // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         // m_target->set_mod_etag_headers(mod_etag);

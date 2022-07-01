@@ -43,6 +43,8 @@ namespace mamba
 
         void file_specs_hook(std::vector<std::string>& file_specs);
 
+        void channels_hook(std::vector<std::string>& channels);
+
         bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
 
         struct other_pkg_mgr_spec

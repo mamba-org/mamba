@@ -20,8 +20,8 @@
 #include "mamba/core/util_scope.hpp"
 
 
-#include "powerloader/downloader.hpp"
-#include "termcolor/termcolor.hpp"
+#include <powerloader/downloader.hpp>
+#include <termcolor/termcolor.hpp>
 
 extern "C"
 {
@@ -315,13 +315,13 @@ namespace mamba
         //     m_download_bar.mark_as_completed();
         // }
 
-        if (m_target->http_status >= 400)
-        {
-            LOG_ERROR << "Failed to download package from " << m_url << " (status "
-                      << m_target->http_status << ")";
-            m_validation_result = VALIDATION_RESULT::UNDEFINED;
-            return false;
-        }
+        // if (m_target->http_status >= 400)
+        // {
+        //     LOG_ERROR << "Failed to download package from " << m_url << " (status "
+        //               << m_target->http_status << ")";
+        //     m_validation_result = VALIDATION_RESULT::UNDEFINED;
+        //     return false;
+        // }
 
         LOG_INFO << "Download finished, validating '" << m_tarball_path.string() << "'";
         MainExecutor::instance().schedule(&PackageDownloadExtractTarget::validate_extract, this);
@@ -405,25 +405,21 @@ namespace mamba
                 m_tarball_path = m_cache_path / m_filename;
                 m_target = std::make_shared<powerloader::DownloadTarget>(m_url, "", m_tarball_path);
 
-                // typedef CbReturnCode (*EndCb)(TransferStatus status, const std::string& msg, void* clientp);
-
-                // m_target.endcb = &PackageDownloadExtractTarget::finalize_callback;
-                auto x = [](powerloader::TransferStatus status, const std::string& msg, void* clientp) -> powerloader::CbReturnCode
+                auto x = [this](powerloader::TransferStatus status, const std::string& msg) -> powerloader::CbReturnCode
                 {
-                    auto* self = (PackageDownloadExtractTarget*)clientp;
                     spdlog::warn("Status {} -- msg: {}", (int) status, msg);
                     if (status == powerloader::TransferStatus::kSUCCESSFUL)
                     {
-                        self->finalize_callback();
+                        this->finalize_callback();
                     }
                     return powerloader::CbReturnCode::kOK;
                 };
+
                 m_target->expected_size = m_expected_size;
                 m_target->checksums.push_back(
                     powerloader::Checksum{powerloader::ChecksumType::kSHA256, m_sha256});
 
-                m_target->endcb = x;
-                m_target->cbdata = this;
+                m_target->end_callback = x;
                 // m_target->set_expected_size(m_expected_size);
 
                 if (m_has_progress_bars)
@@ -1130,7 +1126,8 @@ namespace mamba
     bool MTransaction::fetch_extract_packages()
     {
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
-        powerloader::Downloader multi_dl;
+        powerloader::Context plctx;
+        powerloader::Downloader multi_dl(plctx);
 
         auto& pbar_manager
             = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated);

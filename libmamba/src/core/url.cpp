@@ -13,11 +13,10 @@
 
 namespace mamba
 {
-
-    bool has_scheme(const std::string& url)
-    {
-        return std::regex_search(url, Context::instance().scheme_regex);
-    }
+    // bool has_scheme(const std::string& url)
+    // {
+    //     return std::regex_search(url, Context::instance().scheme_regex);
+    // }
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {

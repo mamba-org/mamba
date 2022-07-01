@@ -28,7 +28,7 @@
 #include "transaction_context.hpp"
 #include "env_lockfile.hpp"
 
-#include "powerloader/download_target.hpp"
+#include <powerloader/download_target.hpp>
 
 extern "C"
 {

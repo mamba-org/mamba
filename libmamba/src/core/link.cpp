@@ -139,7 +139,8 @@ namespace mamba
 #endif
         if (fs::exists(script_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_path, m_context->target_prefix).string());
+            m_clobber_warnings.push_back(
+                fs::relative(script_path, m_context->target_prefix).string());
             fs::remove(script_path);
         }
         std::ofstream out_file = open_ofstream(script_path);
@@ -225,16 +226,16 @@ namespace mamba
 #endif
     }
 
-    void create_application_entry_point(const fs::path& source_full_path,
-                                        const fs::path& target_full_path,
-                                        const fs::path& python_full_path)
+    void LinkPackage::create_application_entry_point(const fs::path& source_full_path,
+                                                     const fs::path& target_full_path,
+                                                     const fs::path& python_full_path)
     {
         // source_full_path: where the entry point file points to
         // target_full_path: the location of the new entry point file being created
-        // if (fs::exists(target_full_path))
-        // {
-        //     m_clobber_warnings.push_back(target_full_path.string());
-        // }
+        if (fs::exists(target_full_path))
+        {
+            m_clobber_warnings.push_back(target_full_path.string());
+        }
 
         if (!fs::is_directory(target_full_path.parent_path()))
         {
@@ -1048,7 +1049,9 @@ namespace mamba
 
         if (!m_clobber_warnings.empty())
         {
-            LOG_WARNING << "[" << f_name << "] The following files were already present in the environment:\n- " << join("\n- ", m_clobber_warnings);
+            LOG_WARNING << "[" << f_name
+                        << "] The following files were already present in the environment:\n- "
+                        << join("\n- ", m_clobber_warnings);
         }
 
         return true;

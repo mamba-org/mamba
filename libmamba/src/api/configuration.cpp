@@ -355,6 +355,9 @@ namespace mamba
             if (val)
             {
                 s.replace(match[0].first, match[0].second, val.value());
+                // It turns out to be unsafe to modify the string during
+                // sregex_iterator iteration. Start a new search by recursing.
+                return expandvars(s);
             }
         }
         return s;

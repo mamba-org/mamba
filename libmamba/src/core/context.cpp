@@ -222,14 +222,15 @@ namespace mamba
                         if (pass)
                         {
                             info.value = concat(user, ":", pass.value());
-                            LOG_INFO << "Found credentials for user " << user << " for host" << host
-                                     << " in ~/.mamba/auth/authentication.json";
+                            LOG_INFO << "Found credentials for user " << user << " for host "
+                                     << host << " in ~/.mamba/auth/authentication.json";
                         }
                         else
                         {
-                            LOG_ERROR << "Found credentials for user " << user << " for host"
-                                      << host << " in ~/.mamba/auth/authentication.json"
-                                      << "but could not decode base64 password" << std::endl;
+                            LOG_ERROR
+                                << "Found credentials for user " << user << " for host " << host
+                                << " in ~/.mamba/auth/authentication.json but could not decode base64 password"
+                                << std::endl;
                         }
                     }
                     m_authentication_info[host] = info;

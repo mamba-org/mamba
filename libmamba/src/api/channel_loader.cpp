@@ -46,6 +46,7 @@ namespace mamba
             // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
             // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
             std::pair<std::string, std::string> result;
+
             auto parts = rsplit(fn, "-", 2);
 
             if (parts.size() < 2)
@@ -54,6 +55,10 @@ namespace mamba
             }
 
             result.first = parts[0];
+
+            // if we have fn that looks like `conda-forge/osx-arm64/_r-mutex` we need to add a
+            // `zzz_` because on OCI registries, image names cannot start with underscore.
+            replace_all(result.first, "/_", "/zzz_");
 
             std::string tag;
             if (parts.size() > 2)
@@ -66,10 +71,13 @@ namespace mamba
                 tag = parts[1];
             }
 
-            // replace_all(tag, "_", "-");
+            // we need to replace some special characters in tags as they are not allowed on OCI registries
+            replace_all(tag, "!", "__e__");
+            replace_all(tag, "+", "__p__");
+            replace_all(tag, "=", "__eq__");
+
             result.second = tag;
 
-            spdlog::info("Splitting {} to name: {} tag: {}", fn, result.first, result.second);
             return result;
         }
     }

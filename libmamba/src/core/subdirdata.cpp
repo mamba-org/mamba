@@ -659,8 +659,10 @@ namespace mamba
 
     int MSubdirData::progress_callback(curl_off_t done, curl_off_t total)
     {
-        this->m_progress_bar.set_progress(done, total);
-        // std::cout << done << " of " << total << std::endl;
+        if (m_progress_bar)
+        {
+            m_progress_bar.set_progress(done, total);
+        }
         return 0;
     }
 
@@ -669,9 +671,6 @@ namespace mamba
     {
         if (status == powerloader::TransferStatus::kSUCCESSFUL)
         {
-            spdlog::warn("Transfer successful... {}", msg);
-            std::cout << this->m_target->effective_url << std::endl;
-            spdlog::warn("Transfer successful... {}", this->m_target->effective_url);
             this->finalize_transfer();
         }
         return powerloader::CbReturnCode::kOK;
@@ -681,8 +680,6 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        std::cout << "Tempfile path: " << m_temp_file->path() << std::endl;
-        std::cout << "REPODATA URL " << m_repodata_url << std::endl;
 
         // m_repodata_url(concat(url, "/", repodata_fn))
         // m_name(join_url(channel.canonical_name(), platform))
@@ -690,8 +687,6 @@ namespace mamba
         if (starts_with(m_repodata_url, "https://conda.anaconda.org/"))
         {
             std::string target_url = m_repodata_url.substr(27);
-            std::cout << "Target URL: " << target_url
-                      << " && channel: " << p_channel->canonical_name() << std::endl;
             m_target = std::make_shared<powerloader::DownloadTarget>(
                 target_url, p_channel->canonical_name(), m_temp_file->path());
         }
@@ -701,17 +696,11 @@ namespace mamba
                 m_repodata_url, "", m_temp_file->path());
         }
 
-
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
             // m_target->set_progress_bar(m_progress_bar);
             m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
-            // m_target->progress_callback = [this](curl_off_t done, curl_off_t total) -> int
-            // {
-            //     // this->m_progress_bar.set_progress(done, total);
-            //     // std::cout << done << " of " << total << std::endl;
-            // };
         }
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved

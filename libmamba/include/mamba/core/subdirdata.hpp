@@ -93,7 +93,8 @@ namespace mamba
         fs::path m_expired_cache_path;
         fs::path m_writable_pkgs_dir;
 
-        powerloader::CbReturnCode end_callback(powerloader::TransferStatus status, const std::string& msg);
+        powerloader::CbReturnCode end_callback(powerloader::TransferStatus status,
+                                               const std::string& msg);
         int progress_callback(curl_off_t done, curl_off_t total);
         ProgressProxy m_progress_bar;
 

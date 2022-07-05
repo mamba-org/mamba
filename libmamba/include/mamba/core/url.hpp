@@ -38,12 +38,12 @@
 
 namespace mamba
 {
+    using powerloader::decode_url;
+    using powerloader::encode_url;
     using powerloader::has_scheme;
     using powerloader::is_path;
     using powerloader::path_to_url;
     using powerloader::unc_url;
-    using powerloader::encode_url;
-    using powerloader::decode_url;
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 

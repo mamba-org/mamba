@@ -270,7 +270,7 @@ namespace mamba
         LOG_INFO << "Extracting " << file << " to " << destination;
         extraction_guard g(destination);
 
-        auto prev_path = fs::current_path();
+        // auto prev_path = fs::current_path();
         if (!fs::exists(destination))
         {
             fs::create_directories(destination);
@@ -364,7 +364,7 @@ namespace mamba
         archive_write_close(ext);
         archive_write_free(ext);
 
-        fs::current_path(prev_path);
+        // fs::current_path(prev_path);
     }
 
     void extract_conda(const fs::path& file,

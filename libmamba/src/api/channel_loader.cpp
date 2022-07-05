@@ -6,6 +6,7 @@
 #include "mamba/core/subdirdata.hpp"
 
 #include <powerloader/downloader.hpp>
+#include <powerloader/oci.hpp>
 
 namespace mamba
 {
@@ -37,6 +38,42 @@ namespace mamba
         }
     }
 
+
+    namespace oci_detail
+    {
+        std::pair<std::string, std::string> oci_fn_split_tag(const std::string& fn)
+        {
+            // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
+            // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
+            std::pair<std::string, std::string> result;
+            auto parts = rsplit(fn, "-", 2);
+
+            if (parts.size() < 2)
+            {
+                spdlog::error("Could not split filename into enough parts");
+            }
+
+            result.first = parts[0];
+
+            std::string tag;
+            if (parts.size() > 2)
+            {
+                std::string last_part = parts[2].substr(0, parts[2].find_first_of("."));
+                tag = fmt::format("{}-{}", parts[1], last_part);
+            }
+            else
+            {
+                tag = parts[1];
+            }
+
+            // replace_all(tag, "_", "-");
+            result.second = tag;
+
+            spdlog::info("Splitting {} to name: {} tag: {}", fn, result.first, result.second);
+            return result;
+        }
+    }
+
     expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
                                                            MultiPackageCache& package_caches,
                                                            int is_retry)
@@ -48,8 +85,38 @@ namespace mamba
         std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
-        powerloader::Context plctx;
-        powerloader::Downloader multi_dl(plctx);
+
+        if (ctx.plcontext.mirror_map.size() == 0)
+        {
+            for (auto& [mname, mirrors] : ctx.mirrors)
+            {
+                for (auto& m : mirrors)
+                {
+                    if (starts_with(m, "http"))
+                    {
+                        auto plm = std::make_shared<powerloader::Mirror>(ctx.plcontext, m);
+                        ctx.plcontext.mirror_map[mname].push_back(plm);
+                    }
+                    else if (starts_with(m, "oci://"))
+                    {
+                        std::string username = env::get("GHA_USER").value_or("");
+                        std::string password = env::get("GHA_PAT").value_or("");
+                        auto plm = std::make_shared<powerloader::OCIMirror>(ctx.plcontext,
+                                                                            "https://ghcr.io",
+                                                                            "channel-mirrors",
+                                                                            "pull",
+                                                                            username,
+                                                                            password);
+                        plm->set_fn_tag_split_function(oci_detail::oci_fn_split_tag);
+
+                        ctx.plcontext.mirror_map[mname].push_back(plm);
+                    }
+                }
+            }
+        }
+
+        ctx.plcontext.set_verbosity(ctx.verbosity);
+        powerloader::Downloader multi_dl(ctx.plcontext);
 
         std::vector<std::pair<int, int>> priorities;
         int max_prio = static_cast<int>(channel_urls.size());

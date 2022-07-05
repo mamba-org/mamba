@@ -11,6 +11,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/version.hpp"
+#include "powerloader/context.hpp"
 
 #include <map>
 #include <string>
@@ -251,6 +252,9 @@ namespace mamba
 
         const void debug_print();
         void dump_backtrace_no_guards();
+
+        powerloader::Context plcontext;
+        std::map<std::string, std::vector<std::string>> mirrors;
 
     protected:
         Context();

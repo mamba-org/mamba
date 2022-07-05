@@ -1095,6 +1095,16 @@ namespace mamba
                         See also 'channel_priority'.)"))
                    .set_post_merge_hook(detail::channels_hook));
 
+        insert(Configurable("mirrors", &ctx.mirrors)
+                   .group("Channels")
+                   .set_rc_configurable()
+                   // .set_env_var_names({ "CONDA_CHANNELS" })
+                   .description("Define the list of channels")
+                   // .needs({ "file_specs" })
+                   .long_description(unindent(R"(
+                        The list of channels where the packages will be searched for.
+                        See also 'channel_priority'.)")));
+
         insert(Configurable("channel_alias", &ctx.channel_alias)
                    .group("Channels")
                    .set_rc_configurable()

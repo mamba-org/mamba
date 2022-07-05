@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
 #include "nlohmann/json.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
@@ -414,11 +415,13 @@ namespace mamba
         }
 
         for (auto& c : m_caches)
+        {
             if (c.has_valid_extracted_dir(s))
             {
                 m_cached_extracted_dirs[pkg] = c.path();
                 return c.path();
             }
+        }
 
         if (return_empty)
             return fs::u8path();

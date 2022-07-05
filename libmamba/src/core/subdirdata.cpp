@@ -264,7 +264,8 @@ namespace mamba
             m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
             if (m_progress_bar)
             {
-                m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
+                m_target->progress_callback
+                    = std::bind(&MSubdirData::progress_callback, this, _1, _2);
             }
 
             // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
@@ -275,7 +276,8 @@ namespace mamba
 
             if (rhs.m_progress_bar)
             {
-                m_target->progress_callback = std::bind(&MSubdirData::progress_callback, &rhs, _1, _2);
+                m_target->progress_callback
+                    = std::bind(&MSubdirData::progress_callback, &rhs, _1, _2);
             }
 
             // m_target->cbdata = &rhs;
@@ -464,7 +466,7 @@ namespace mamba
         // if (m_target->http_status == 0 || m_target->http_status == 200
         //     || m_target->http_status == 304)
         // {
-            m_download_complete = true;
+        m_download_complete = true;
         // }
         // else
         // {
@@ -486,24 +488,24 @@ namespace mamba
         //     auto json_age = check_cache(json_file, now);
         //     auto solv_age = check_cache(solv_file, now);
 
-            // if (path::is_writable(json_file)
-            //     && (!fs::exists(solv_file) || path::is_writable(solv_file)))
-            // {
-            //     LOG_DEBUG << "Refreshing cache files ages";
-            //     m_valid_cache_path = m_expired_cache_path;
-            // }
-            // else
-            // {
-            //     if (m_writable_pkgs_dir.empty())
-            //     {
-            //         LOG_ERROR << "Could not find any writable cache directory for repodata file";
-            //         throw std::runtime_error("Non-writable cache error.");
-            //     }
+        // if (path::is_writable(json_file)
+        //     && (!fs::exists(solv_file) || path::is_writable(solv_file)))
+        // {
+        //     LOG_DEBUG << "Refreshing cache files ages";
+        //     m_valid_cache_path = m_expired_cache_path;
+        // }
+        // else
+        // {
+        //     if (m_writable_pkgs_dir.empty())
+        //     {
+        //         LOG_ERROR << "Could not find any writable cache directory for repodata file";
+        //         throw std::runtime_error("Non-writable cache error.");
+        //     }
 
-            //     LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
-            //               << "' to '" << m_writable_pkgs_dir.string() << "'";
-            //     fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
-            //     auto lock = LockFile(writable_cache_dir);
+        //     LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
+        //               << "' to '" << m_writable_pkgs_dir.string() << "'";
+        //     fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+        //     auto lock = LockFile(writable_cache_dir);
 
         //         auto copied_json_file = writable_cache_dir / m_json_fn;
         //         if (fs::exists(copied_json_file))
@@ -520,8 +522,8 @@ namespace mamba
         //             solv_file = copied_solv_file;
         //         }
 
-            //     m_valid_cache_path = m_writable_pkgs_dir;
-            // }
+        //     m_valid_cache_path = m_writable_pkgs_dir;
+        // }
         //     {
         //         LOG_TRACE << "Refreshing '" << json_file.string() << "'";
         //         auto lock = LockFile(json_file);
@@ -549,10 +551,10 @@ namespace mamba
         //         r.elapsed.deactivate();
         //     }
 
-            // m_json_cache_valid = true;
-            // m_loaded = true;
-            // m_temp_file.reset(nullptr);
-            // return true;
+        // m_json_cache_valid = true;
+        // m_loaded = true;
+        // m_temp_file.reset(nullptr);
+        // return true;
         // }
         // else
         // {
@@ -658,11 +660,12 @@ namespace mamba
     int MSubdirData::progress_callback(curl_off_t done, curl_off_t total)
     {
         this->m_progress_bar.set_progress(done, total);
-        std::cout << done << " of " << total << std::endl;
+        // std::cout << done << " of " << total << std::endl;
         return 0;
     }
 
-    powerloader::CbReturnCode MSubdirData::end_callback(powerloader::TransferStatus status, const std::string& msg)
+    powerloader::CbReturnCode MSubdirData::end_callback(powerloader::TransferStatus status,
+                                                        const std::string& msg)
     {
         if (status == powerloader::TransferStatus::kSUCCESSFUL)
         {
@@ -680,7 +683,25 @@ namespace mamba
         m_temp_file = std::make_unique<TemporaryFile>();
         std::cout << "Tempfile path: " << m_temp_file->path() << std::endl;
         std::cout << "REPODATA URL " << m_repodata_url << std::endl;
-        m_target = std::make_shared<powerloader::DownloadTarget>(m_repodata_url, "", m_temp_file->path());
+
+        // m_repodata_url(concat(url, "/", repodata_fn))
+        // m_name(join_url(channel.canonical_name(), platform))
+
+        if (starts_with(m_repodata_url, "https://conda.anaconda.org/"))
+        {
+            std::string target_url = m_repodata_url.substr(27);
+            std::cout << "Target URL: " << target_url
+                      << " && channel: " << p_channel->canonical_name() << std::endl;
+            m_target = std::make_shared<powerloader::DownloadTarget>(
+                target_url, p_channel->canonical_name(), m_temp_file->path());
+        }
+        else
+        {
+            m_target = std::make_shared<powerloader::DownloadTarget>(
+                m_repodata_url, "", m_temp_file->path());
+        }
+
+
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
@@ -701,7 +722,8 @@ namespace mamba
 
         // std::cout << "THIS: " << this << std::endl;
 
-        // auto x = [this](powerloader::TransferStatus status, const std::string& msg) -> powerloader::CbReturnCode
+        // auto x = [this](powerloader::TransferStatus status, const std::string& msg) ->
+        // powerloader::CbReturnCode
         // {
         //     this-end_callback()
         // };

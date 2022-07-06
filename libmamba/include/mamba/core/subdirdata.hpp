@@ -24,6 +24,7 @@
 #include "mamba/core/util.hpp"
 
 #include <powerloader/download_target.hpp>
+#include <powerloader/downloader.hpp>
 
 
 namespace decompress
@@ -68,7 +69,7 @@ namespace mamba
         const std::string& name() const;
 
         std::shared_ptr<powerloader::DownloadTarget> target();
-        bool finalize_transfer();
+        bool finalize_transfer(const powerloader::Response& response);
 
         expected_t<MRepo&> create_repo(MPool& pool);
 
@@ -94,7 +95,7 @@ namespace mamba
         fs::u8path m_writable_pkgs_dir;
 
         powerloader::CbReturnCode end_callback(powerloader::TransferStatus status,
-                                               const std::string& msg);
+                                               const powerloader::Response& msg);
         int progress_callback(curl_off_t done, curl_off_t total);
         ProgressProxy m_progress_bar;
 
@@ -109,6 +110,8 @@ namespace mamba
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
     };
+
+    void download_with_progressbars(powerloader::Downloader& multi_downloader);
 
     // Contrary to conda original function, this one expects a full url
     // (that is channel url + / + repodata_fn). It is not the

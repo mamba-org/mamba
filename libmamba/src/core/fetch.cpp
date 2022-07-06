@@ -497,20 +497,20 @@ namespace mamba
 
     std::function<void(ProgressBarRepr&)> DownloadTarget::download_repr()
     {
-        return [&](ProgressBarRepr& r) -> void
+        return [](ProgressBarRepr& r) -> void
         {
             r.current.set_value(
-                fmt::format("{:>7}", to_human_readable_filesize(m_progress_bar.current(), 1)));
+                fmt::format("{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1)));
 
             std::string total_str;
-            if (!m_progress_bar.total()
-                || (m_progress_bar.total() == std::numeric_limits<std::size_t>::max()))
+            if (!r.progress_bar().total()
+                || (r.progress_bar().total() == std::numeric_limits<std::size_t>::max()))
                 total_str = "??.?MB";
             else
-                total_str = to_human_readable_filesize(m_progress_bar.total(), 1);
+                total_str = to_human_readable_filesize(r.progress_bar().total(), 1);
             r.total.set_value(fmt::format("{:>7}", total_str));
 
-            auto speed = m_progress_bar.speed();
+            auto speed = r.progress_bar().speed();
             r.speed.set_value(
                 fmt::format("@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
 

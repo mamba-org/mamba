@@ -178,7 +178,7 @@ namespace mamba
 
     std::function<void(ProgressBarRepr&)> PackageDownloadExtractTarget::extract_repr()
     {
-        return [&](ProgressBarRepr& r) -> void
+        return [](ProgressBarRepr& r) -> void
         {
             if (r.progress_bar().started())
                 r.postfix.set_value("Extracting");
@@ -189,7 +189,7 @@ namespace mamba
 
     std::function<void(ProgressProxy&)> PackageDownloadExtractTarget::extract_progress_callback()
     {
-        return [&](ProgressProxy& bar) -> void
+        return [](ProgressProxy& bar) -> void
         {
             if (bar.started())
                 bar.set_progress(0, 1);
@@ -422,7 +422,7 @@ namespace mamba
                 }
 
                 auto x = [this](powerloader::TransferStatus status,
-                                const std::string& msg) -> powerloader::CbReturnCode
+                                const powerloader::Response& response) -> powerloader::CbReturnCode
                 {
                     if (status == powerloader::TransferStatus::kSUCCESSFUL)
                     {
@@ -1195,9 +1195,9 @@ namespace mamba
             auto* dl_bar = aggregated_pbar_manager.aggregated_bar("Download");
             if (dl_bar)
                 dl_bar->set_repr_hook(
-                    [=](ProgressBarRepr& repr) -> void
+                    [](ProgressBarRepr& repr) -> void
                     {
-                        auto active_tasks = dl_bar->active_tasks().size();
+                        auto active_tasks = repr.progress_bar().active_tasks().size();
                         if (active_tasks == 0)
                         {
                             repr.prefix.set_value(fmt::format("{:<16}", "Downloading"));
@@ -1208,20 +1208,20 @@ namespace mamba
                             repr.prefix.set_value(fmt::format(
                                 "{:<11} {:>4}", "Downloading", fmt::format("({})", active_tasks)));
                             repr.postfix.set_value(
-                                fmt::format("{:<25}", dl_bar->last_active_task()));
+                                fmt::format("{:<25}", repr.progress_bar().last_active_task()));
                         }
                         repr.current.set_value(
-                            fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1)));
+                            fmt::format("{:>7}", to_human_readable_filesize(repr.progress_bar().current(), 1)));
                         repr.separator.set_value("/");
 
                         std::string total_str;
-                        if (dl_bar->total() == std::numeric_limits<std::size_t>::max())
+                        if (repr.progress_bar().total() == std::numeric_limits<std::size_t>::max())
                             total_str = "??.?MB";
                         else
-                            total_str = to_human_readable_filesize(dl_bar->total(), 1);
+                            total_str = to_human_readable_filesize(repr.progress_bar().total(), 1);
                         repr.total.set_value(fmt::format("{:>7}", total_str));
 
-                        auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
+                        auto speed = repr.progress_bar().avg_speed(std::chrono::milliseconds(500));
                         repr.speed.set_value(
                             speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1))
                                   : "");

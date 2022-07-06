@@ -13,6 +13,7 @@
 
 #include "progress_bar_impl.hpp"
 #include <stdexcept>
+#include "mamba/core/thread_utils.hpp"
 
 namespace decompress
 {
@@ -262,7 +263,7 @@ namespace mamba
         {
             // m_target->cbdata = this;
             m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
-            if (m_progress_bar)
+            if (m_target->progress_callback)
             {
                 m_target->progress_callback
                     = std::bind(&MSubdirData::progress_callback, this, _1, _2);
@@ -274,9 +275,9 @@ namespace mamba
         {
             m_target->end_callback = std::bind(&MSubdirData::end_callback, &rhs, _1, _2);
 
-            if (rhs.m_progress_bar)
+            if (rhs.m_target->progress_callback)
             {
-                m_target->progress_callback
+                rhs.m_target->progress_callback
                     = std::bind(&MSubdirData::progress_callback, &rhs, _1, _2);
             }
 
@@ -444,136 +445,130 @@ namespace mamba
         return m_name;
     }
 
-    bool MSubdirData::finalize_transfer()
+    bool MSubdirData::finalize_transfer(const powerloader::Response& response)
     {
-        // if (m_target->result != 0 || m_target->http_status >= 400)
-        // {
-        //     LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-        //              << ") for '" << m_repodata_url << "'";
+        // m_target->result != 0 ||
+        if (response.http_status >= 400)
+        {
+            LOG_INFO << "Unable to retrieve repodata (response: " << response.http_status
+                     << ") for '" << m_repodata_url << "'";
 
-        //     if (m_progress_bar)
-        //     {
-        //         m_progress_bar.set_postfix(std::to_string(m_target->http_status) + " failed");
-        //         m_progress_bar.set_full();
-        //         m_progress_bar.mark_as_completed();
-        //     }
-        //     m_loaded = false;
-        //     return false;
-        // }
+            if (m_progress_bar)
+            {
+                m_progress_bar.set_postfix(std::to_string(response.http_status) + " failed");
+                m_progress_bar.set_full();
+                m_progress_bar.mark_as_completed();
+            }
+            m_loaded = false;
+            return false;
+        }
 
-        // LOG_DEBUG << "HTTP response code: " << m_target->http_status;
-        // // Note HTTP status == 0 for files
-        // if (m_target->http_status == 0 || m_target->http_status == 200
-        //     || m_target->http_status == 304)
-        // {
-        m_download_complete = true;
-        // }
-        // else
-        // {
-        //     LOG_WARNING << "HTTP response code indicates error, retrying.";
-        //     throw std::runtime_error("Unhandled HTTP code: "
-        //                              + std::to_string(m_target->http_status));
-        // }
+        LOG_DEBUG << "HTTP response code: " << response.http_status;
+        // Note HTTP status == 0 for files
+        if (response.http_status == 0 || response.http_status == 200
+            || response.http_status == 304)
+        {
+            m_download_complete = true;
+        }
+        else
+        {
+            LOG_WARNING << "HTTP response code indicates error, retrying.";
+            throw std::runtime_error("Unhandled HTTP code: "
+                                     + std::to_string(response.http_status));
+        }
 
         fs::u8path json_file, solv_file;
 
-        // if (m_target->http_status == 304)
-        // {
-        //     // cache still valid
-        //     LOG_INFO << "Cache is still valid";
-        //     json_file = m_expired_cache_path / "cache" / m_json_fn;
-        //     solv_file = m_expired_cache_path / "cache" / m_solv_fn;
+        if (response.http_status == 304)
+        {
+            // cache still valid
+            LOG_INFO << "Cache is still valid";
+            json_file = m_expired_cache_path / "cache" / m_json_fn;
+            solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-        //     auto now = fs::file_time_type::clock::now();
-        //     auto json_age = check_cache(json_file, now);
-        //     auto solv_age = check_cache(solv_file, now);
+            auto now = fs::file_time_type::clock::now();
+            auto json_age = check_cache(json_file, now);
+            auto solv_age = check_cache(solv_file, now);
 
-        // if (path::is_writable(json_file)
-        //     && (!fs::exists(solv_file) || path::is_writable(solv_file)))
-        // {
-        //     LOG_DEBUG << "Refreshing cache files ages";
-        //     m_valid_cache_path = m_expired_cache_path;
-        // }
-        // else
-        // {
-        //     if (m_writable_pkgs_dir.empty())
-        //     {
-        //         LOG_ERROR << "Could not find any writable cache directory for repodata file";
-        //         throw std::runtime_error("Non-writable cache error.");
-        //     }
+            if (path::is_writable(json_file)
+                && (!fs::exists(solv_file) || path::is_writable(solv_file)))
+            {
+                LOG_DEBUG << "Refreshing cache files ages";
+                m_valid_cache_path = m_expired_cache_path;
+            }
+            else
+            {
+                if (m_writable_pkgs_dir.empty())
+                {
+                    LOG_ERROR << "Could not find any writable cache directory for repodata file";
+                    throw std::runtime_error("Non-writable cache error.");
+                }
 
-        //     LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
-        //               << "' to '" << m_writable_pkgs_dir.string() << "'";
-        //     fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
-        //     auto lock = LockFile(writable_cache_dir);
+                LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
+                          << "' to '" << m_writable_pkgs_dir.string() << "'";
+                fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+                auto lock = LockFile(writable_cache_dir);
 
-        //         auto copied_json_file = writable_cache_dir / m_json_fn;
-        //         if (fs::exists(copied_json_file))
-        //             fs::remove(copied_json_file);
-        //         fs::copy(json_file, copied_json_file);
-        //         json_file = copied_json_file;
+                auto copied_json_file = writable_cache_dir / m_json_fn;
+                if (fs::exists(copied_json_file))
+                    fs::remove(copied_json_file);
+                fs::copy(json_file, copied_json_file);
+                json_file = copied_json_file;
 
-        //         if (fs::exists(solv_file))
-        //         {
-        //             auto copied_solv_file = writable_cache_dir / m_solv_fn;
-        //             if (fs::exists(copied_solv_file))
-        //                 fs::remove(copied_solv_file);
-        //             fs::copy(solv_file, copied_solv_file);
-        //             solv_file = copied_solv_file;
-        //         }
+                if (fs::exists(solv_file))
+                {
+                    auto copied_solv_file = writable_cache_dir / m_solv_fn;
+                    if (fs::exists(copied_solv_file))
+                        fs::remove(copied_solv_file);
+                    fs::copy(solv_file, copied_solv_file);
+                    solv_file = copied_solv_file;
+                }
 
-        //     m_valid_cache_path = m_writable_pkgs_dir;
-        // }
-        //     {
-        //         LOG_TRACE << "Refreshing '" << json_file.string() << "'";
-        //         auto lock = LockFile(json_file);
-        //         fs::last_write_time(json_file, now);
-        //     }
-        //     if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
-        //     {
-        //         LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
-        //         auto lock = LockFile(solv_file);
-        //         fs::last_write_time(solv_file, now);
-        //         m_solv_cache_valid = true;
-        //     }
+                m_valid_cache_path = m_writable_pkgs_dir;
+            }
 
-        //     if (m_progress_bar)
-        //     {
-        //         auto& r = m_progress_bar.repr();
-        //         r.postfix.set_format("{:>20}", 20);
-        //         r.prefix.set_format("{:<50}", 50);
+            {
+                LOG_TRACE << "Refreshing '" << json_file.string() << "'";
+                auto lock = LockFile(json_file);
+                fs::last_write_time(json_file, now);
+            }
+            if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
+            {
+                LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
+                auto lock = LockFile(solv_file);
+                fs::last_write_time(solv_file, now);
+                m_solv_cache_valid = true;
+            }
 
-        //         m_progress_bar.set_postfix("No change");
-        //         m_progress_bar.mark_as_completed();
+            if (m_progress_bar)
+            {
+                auto& r = m_progress_bar.repr();
+                r.postfix.set_format("{:>20}", 20);
+                r.prefix.set_format("{:<50}", 50);
 
-        //         r.total.deactivate();
-        //         r.speed.deactivate();
-        //         r.elapsed.deactivate();
-        //     }
+                m_progress_bar.set_postfix("No change");
+                m_progress_bar.mark_as_completed();
 
-        // m_json_cache_valid = true;
-        // m_loaded = true;
-        // m_temp_file.reset(nullptr);
-        // return true;
-        // }
-        // else
-        // {
-        // if (m_writable_pkgs_dir.empty())
-        //     m_json_cache_valid = true;
-        //     m_loaded = true;
-        //     m_temp_file.reset(nullptr);
-        //     return true;
-        // }
-        // else
-        // {
-        //     if (writable_cache_path.empty())
-        //     {
-        //         LOG_ERROR << "Could not find any writable cache directory for repodata file";
-        //         throw std::runtime_error("Non-writable cache error.");
-        //     }
-        // }
+                r.total.deactivate();
+                r.speed.deactivate();
+                r.elapsed.deactivate();
+            }
 
-        LOG_INFO << "Finalized transfer of '" << m_repodata_url << "'";
+            m_json_cache_valid = true;
+            m_loaded = true;
+            m_temp_file.reset(nullptr);
+            return true;
+        }
+        else
+        {
+            if (m_writable_pkgs_dir.empty())
+            {
+                LOG_ERROR << "Could not find any writable cache directory for repodata file";
+                throw std::runtime_error("Non-writable cache error.");
+            }
+        }
+
+        LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
 
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
@@ -581,11 +576,15 @@ namespace mamba
 
         m_mod_etag.clear();
         m_mod_etag["_url"] = m_repodata_url;
-        // m_mod_etag["_etag"] = m_target->etag;
-        // m_mod_etag["_mod"] = m_target->mod;
-        // m_mod_etag["_cache_control"] = m_target->cache_control;
+        m_mod_etag["_etag"] = response.get_header("etag").value_or("");
+        m_mod_etag["_mod"] = response.get_header("last-modified").value_or("");
+        m_mod_etag["_cache_control"] = response.get_header("cache-control").value_or("");
 
-        LOG_INFO << "Opening '" << json_file.string() << "'";
+        LOG_DEBUG << "ETag: " << response.get_header("etag").value_or("") << 
+                       ", Last-Modified: " << response.get_header("last-modified").value_or("") << 
+                       ", Cache-Control: " << response.get_header("cache-control").value_or("");
+
+        LOG_DEBUG << "Opening '" << json_file.string() << "'";
         path::touch(json_file, true);
         std::ofstream final_file = open_ofstream(json_file);
 
@@ -659,19 +658,60 @@ namespace mamba
 
     int MSubdirData::progress_callback(curl_off_t done, curl_off_t total)
     {
-        if (m_progress_bar)
-        {
-            m_progress_bar.set_progress(done, total);
-        }
+        auto now = std::chrono::steady_clock::now();
+        // if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
+        //     return 0;
+        // else
+        //     target->set_progress_throttle_time(now);
+        if (!total) // && !target->expected_size())
+            m_progress_bar.activate_spinner();
+        else
+            m_progress_bar.deactivate_spinner();
+
+        if (!total) // && target->expected_size())
+            m_progress_bar.update_current(done);
+        else
+            m_progress_bar.update_progress(done, total);
+
+        m_progress_bar.set_speed(40);
+
+        // if (m_progress_bar)
+        // {
+        //     m_progress_bar.set_progress(total, done);
+        // }
         return 0;
     }
 
+    void download_with_progressbars(powerloader::Downloader& multi_downloader)
+    {
+        auto& ctx = Context::instance();
+
+        auto& pbar_manager = Console::instance().progress_bar_manager();
+        interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
+
+        // be sure the progress bar manager was not already started
+        // it would mean this code is part of a larger process using progress bars
+        bool pbar_manager_started = pbar_manager.started();
+        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        {
+            pbar_manager.start();
+            pbar_manager.watch_print();
+        }
+        multi_downloader.download();
+
+        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        {
+            pbar_manager.terminate();
+            pbar_manager.clear_progress_bars();
+        }
+    }
+
     powerloader::CbReturnCode MSubdirData::end_callback(powerloader::TransferStatus status,
-                                                        const std::string& msg)
+                                                        const powerloader::Response& response)
     {
         if (status == powerloader::TransferStatus::kSUCCESSFUL)
         {
-            this->finalize_transfer();
+            this->finalize_transfer(response);
         }
         return powerloader::CbReturnCode::kOK;
     }
@@ -680,9 +720,6 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-
-        // m_repodata_url(concat(url, "/", repodata_fn))
-        // m_name(join_url(channel.canonical_name(), platform))
 
         if (starts_with(m_repodata_url, "https://conda.anaconda.org/"))
         {
@@ -698,8 +735,30 @@ namespace mamba
 
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
-            m_progress_bar = Console::instance().add_progress_bar(m_name);
             // m_target->set_progress_bar(m_progress_bar);
+            m_progress_bar = Console::instance().add_progress_bar(m_name);
+            auto download_repr = [](ProgressBarRepr& r) -> void
+            {
+                r.current.set_value(
+                    fmt::format("{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1)));
+
+                std::string total_str;
+                if (!r.progress_bar().total()
+                    || (r.progress_bar().total() == std::numeric_limits<std::size_t>::max()))
+                    total_str = "??.?MB";
+                else
+                    total_str = to_human_readable_filesize(r.progress_bar().total(), 1);
+                r.total.set_value(fmt::format("{:>7}", total_str));
+
+                auto speed = r.progress_bar().speed();
+                r.speed.set_value(
+                    fmt::format("@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
+
+                r.separator.set_value("/");
+            };
+
+            m_progress_bar.set_repr_hook(download_repr);
+
             m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
         }
         // if we get something _other_ than the noarch, we DO NOT throw if the file
@@ -709,18 +768,8 @@ namespace mamba
         //     m_target->set_ignore_failure(true);
         // }
 
-        // std::cout << "THIS: " << this << std::endl;
-
-        // auto x = [this](powerloader::TransferStatus status, const std::string& msg) ->
-        // powerloader::CbReturnCode
-        // {
-        //     this-end_callback()
-        // };
-
         m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
-        // m_target->cbdata = this;
 
-        // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         // m_target->set_mod_etag_headers(mod_etag);
     }
 

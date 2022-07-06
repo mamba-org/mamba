@@ -489,7 +489,7 @@ namespace mamba
     {
     }
 
-    const ProgressBar& ProgressBarRepr::progress_bar() const
+    ProgressBar& ProgressBarRepr::progress_bar()
     {
         return *p_progress_bar;
     }

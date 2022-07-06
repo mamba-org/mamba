@@ -170,7 +170,8 @@ namespace mamba
             try
             {
                 // multi_dl.download(MAMBA_DOWNLOAD_FAILFAST);
-                multi_dl.download();
+                // multi_dl.download();
+                download_with_progressbars(multi_dl);
             }
             catch (const std::runtime_error& e)
             {

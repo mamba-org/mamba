@@ -205,6 +205,7 @@ namespace mamba
 
     ProgressProxy& ProgressProxy::print(std::ostream& stream, std::size_t width, bool with_endl)
     {
+        // std::cout << "Printing progress bar ... " << std::endl;
         p_bar->print(stream, width, with_endl);
         return *this;
     }

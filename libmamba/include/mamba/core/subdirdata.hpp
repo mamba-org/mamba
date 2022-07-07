@@ -96,7 +96,7 @@ namespace mamba
 
         powerloader::CbReturnCode end_callback(powerloader::TransferStatus status,
                                                const powerloader::Response& msg);
-        int progress_callback(curl_off_t done, curl_off_t total);
+        int progress_callback(curl_off_t total, curl_off_t done);
         ProgressProxy m_progress_bar;
 
         bool m_loaded;

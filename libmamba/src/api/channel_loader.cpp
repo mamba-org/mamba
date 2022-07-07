@@ -44,7 +44,7 @@ namespace mamba
         std::pair<std::string, std::string> oci_fn_split_tag(const std::string& fn)
         {
             if (ends_with(fn, ".json"))
-                return {fn, "latest"};
+                return { fn, "latest" };
             // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
             // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
             std::pair<std::string, std::string> result;
@@ -73,7 +73,8 @@ namespace mamba
                 tag = parts[1];
             }
 
-            // we need to replace some special characters in tags as they are not allowed on OCI registries
+            // we need to replace some special characters in tags as they are not allowed on OCI
+            // registries
             replace_all(tag, "!", "__e__");
             replace_all(tag, "+", "__p__");
             replace_all(tag, "=", "__eq__");

@@ -27,17 +27,14 @@ python "${reposerver}" -d "${repo}" --auth none & PID=$!
 mamba create -y -q -n "$(make-name)" --override-channels -c http://localhost:8000/ test-package --json
 kill -TERM $PID
 
-export TESTPWD="user:test"
-python "${reposerver}" -d "${repo}" --auth basic & PID=$!
+python "${reposerver}" -d "${repo}" --auth basic --user user --password test & PID=$!
 mamba create -y -q -n "$(make-name)" --override-channels -c http://user:test@localhost:8000/ test-package --json
 kill -TERM $PID
 
-export TESTPWD="user@email.com:test"
-python "${reposerver}" -d "${repo}" --auth basic & PID=$!
+python "${reposerver}" -d "${repo}" --auth basic --user user@email.com --password test & PID=$!
 mamba create -y -q -n "$(make-name)" --override-channels -c http://user@email.com:test@localhost:8000/ test-package --json
 kill -TERM $PID
 
-unset TESTPWD
 python "${reposerver}" -d "${repo}" --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
 mamba create -y -q -n "$(make-name)" --override-channels -c http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012 test-package --json
 kill -TERM $PID
@@ -51,10 +48,9 @@ if [[ "$(uname -s)" == "Linux" ]]; then
 	kill -TERM $PID
 fi
 
-export TESTPWD=":test"
-python "${reposerver}" -d "${repo}" --auth basic --port 8005 & PID=$!
-python "${reposerver}" -d "${repo}" --auth basic --port 8006 & PID2=$!
-python "${reposerver}" -d "${repo}" --auth basic --port 8007 & PID3=$!
+python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8005 & PID=$!
+python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8006 & PID2=$!
+python "${reposerver}" -d "${repo}" --auth basic --user '' --password test --port 8007 & PID3=$!
 mamba create -y -q -n "$(make-name)" --override-channels -c http://:test@localhost:8005/ -c http://:test@localhost:8006/ -c http://:test@localhost:8007/ test-package --json
 kill -TERM $PID
 kill -TERM $PID2

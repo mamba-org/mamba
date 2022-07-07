@@ -450,8 +450,8 @@ namespace mamba
         // m_target->result != 0 ||
         if (response.http_status >= 400)
         {
-            LOG_INFO << "Unable to retrieve repodata (response: " << response.http_status
-                     << ") for '" << m_repodata_url << "'";
+            LOG_WARNING << "Unable to retrieve repodata (response: " << response.http_status
+                        << ") for '" << m_repodata_url << "'";
 
             if (m_progress_bar)
             {
@@ -463,10 +463,10 @@ namespace mamba
             return false;
         }
 
-        LOG_DEBUG << "HTTP response code: " << response.http_status;
+        LOG_INFO << "HTTP response code: " << response.http_status;
+
         // Note HTTP status == 0 for files
-        if (response.http_status == 0 || response.http_status == 200
-            || response.http_status == 304)
+        if (response.http_status == 0 || response.http_status == 200 || response.http_status == 304)
         {
             m_download_complete = true;
         }
@@ -580,9 +580,9 @@ namespace mamba
         m_mod_etag["_mod"] = response.get_header("last-modified").value_or("");
         m_mod_etag["_cache_control"] = response.get_header("cache-control").value_or("");
 
-        LOG_DEBUG << "ETag: " << response.get_header("etag").value_or("") << 
-                       ", Last-Modified: " << response.get_header("last-modified").value_or("") << 
-                       ", Cache-Control: " << response.get_header("cache-control").value_or("");
+        LOG_DEBUG << "ETag: " << response.get_header("etag").value_or("")
+                  << ", Last-Modified: " << response.get_header("last-modified").value_or("")
+                  << ", Cache-Control: " << response.get_header("cache-control").value_or("");
 
         LOG_DEBUG << "Opening '" << json_file.string() << "'";
         path::touch(json_file, true);
@@ -656,19 +656,19 @@ namespace mamba
         return result;
     }
 
-    int MSubdirData::progress_callback(curl_off_t done, curl_off_t total)
+    int MSubdirData::progress_callback(curl_off_t total, curl_off_t done)
     {
         auto now = std::chrono::steady_clock::now();
         // if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
         //     return 0;
         // else
         //     target->set_progress_throttle_time(now);
-        if (!total) // && !target->expected_size())
+        if (!total)  // && !target->expected_size())
             m_progress_bar.activate_spinner();
         else
             m_progress_bar.deactivate_spinner();
 
-        if (!total) // && target->expected_size())
+        if (!total)  // && target->expected_size())
             m_progress_bar.update_current(done);
         else
             m_progress_bar.update_progress(done, total);
@@ -733,14 +733,21 @@ namespace mamba
                 m_repodata_url, "", m_temp_file->path());
         }
 
+        powerloader::CacheControl cache_control_values;
+        cache_control_values.last_modified = mod_etag.value("_mod", "");
+        cache_control_values.etag = mod_etag.value("_etag", "");
+        cache_control_values.cache_control = mod_etag.value("_cache_control", "");
+
+        m_target->set_cache_options(cache_control_values);
+
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             // m_target->set_progress_bar(m_progress_bar);
             m_progress_bar = Console::instance().add_progress_bar(m_name);
             auto download_repr = [](ProgressBarRepr& r) -> void
             {
-                r.current.set_value(
-                    fmt::format("{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1)));
+                r.current.set_value(fmt::format(
+                    "{:>7}", to_human_readable_filesize(r.progress_bar().current(), 1)));
 
                 std::string total_str;
                 if (!r.progress_bar().total()
@@ -751,8 +758,8 @@ namespace mamba
                 r.total.set_value(fmt::format("{:>7}", total_str));
 
                 auto speed = r.progress_bar().speed();
-                r.speed.set_value(
-                    fmt::format("@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
+                r.speed.set_value(fmt::format(
+                    "@ {:>7}/s", speed ? to_human_readable_filesize(speed, 1) : "??.?MB"));
 
                 r.separator.set_value("/");
             };

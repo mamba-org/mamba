@@ -50,3 +50,13 @@ mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://:test@localh
 kill -TERM $PID
 kill -TERM $PID2
 kill -TERM $PID3
+
+readonly channel_a="${__DIR__}/channel_a/"
+readonly channel_b="${__DIR__}/channel_b/"
+python "${reposerver}" \
+	-d "${repo}" -n defaults --token private-token -- \
+	-d "${channel_a}" -n channel_a --user user@email.com --password test -- \
+	-d "${channel_b}" -n channel_b --auth none & PID=$!
+mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/defaults/t/private-token test-package --json
+mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user@email.com:test@localhost:8000/channel_a _r-mutex --json
+kill -TERM $PID

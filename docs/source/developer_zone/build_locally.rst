@@ -149,6 +149,7 @@ Build ``libmambapy``
 The Python bindings of ``libmamba``, ``libmambapy`` can be built by using the ``BUILD_LIBMAMBAPY`` ``cmake`` option.
 
 You can either rely on ``libmamba`` package already installed in your environment and run:
+
 .. code:: bash
 
     mkdir -p build

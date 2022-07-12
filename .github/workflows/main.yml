@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
@@ -102,7 +102,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
@@ -163,7 +163,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
@@ -265,7 +265,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
@@ -308,7 +308,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
@@ -399,7 +399,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
@@ -446,7 +446,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
@@ -509,7 +509,7 @@ jobs:
           tar -xvf umamba.tar
 
       - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: wolfv/provision-with-micromamba@extra_channels
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env

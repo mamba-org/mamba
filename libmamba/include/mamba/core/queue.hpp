@@ -43,6 +43,26 @@ namespace mamba
             queue_push2(p_queue, id1, id2);
         }
 
+        int count()
+        {
+            return p_queue->count;
+        }
+
+        void clear()
+        {
+            queue_empty(p_queue);
+        }
+
+        Id& operator[](int idx)
+        {
+            return p_queue->elements[idx];
+        }
+
+        const Id& operator[](int idx) const
+        {
+            return p_queue->elements[idx];
+        }
+
         Id* begin()
         {
             return &p_queue->elements[0];

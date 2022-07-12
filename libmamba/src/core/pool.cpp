@@ -16,6 +16,7 @@ extern "C"
 #include "mamba/core/context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/queue.hpp"
 
 namespace mamba
 {
@@ -85,9 +86,8 @@ namespace mamba
     {
         MQueue job, solvables;
         job.push(SOLVER_SOLVABLE_PROVIDES, matchspec);
-
         selection_solvables(m_pool, job, solvables);
-        return solvables.as_vector();
+        return solvables.as<std::vector>();
     }
 
     Id MPool::matchspec2id(const std::string& ms)

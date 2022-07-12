@@ -22,64 +22,6 @@ namespace spdlog
 
 namespace mamba
 {
-    class MQueue
-    {
-    public:
-        MQueue()
-            : p_queue(new Queue)
-        {
-            queue_init(p_queue);
-        }
-
-        ~MQueue()
-        {
-            queue_free(p_queue);
-        }
-
-        void push(Id id)
-        {
-            queue_push(p_queue, id);
-        }
-
-        void push(Id id1, Id id2)
-        {
-            queue_push2(p_queue, id1, id2);
-        }
-
-        Id* begin()
-        {
-            return &p_queue->elements[0];
-        }
-
-        Id* end()
-        {
-            return &p_queue->elements[p_queue->count];
-        }
-
-        const Id* begin() const
-        {
-            return &p_queue->elements[0];
-        }
-
-        const Id* end() const
-        {
-            return &p_queue->elements[p_queue->count];
-        }
-
-        operator Queue*()
-        {
-            return p_queue;
-        }
-
-        std::vector<Id> as_vector()
-        {
-            return std::vector<Id>(begin(), end());
-        }
-
-    private:
-        Queue* p_queue;
-    };
-
     class MPool
     {
     public:

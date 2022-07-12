@@ -18,6 +18,7 @@ extern "C"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/queue.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
 
@@ -45,19 +46,17 @@ namespace mamba
 
             while (req != 0)
             {
-                Queue job, rec_solvables;
-                queue_init(&rec_solvables);
-                queue_init(&job);
+                MQueue job, rec_solvables;
                 // the following prints the requested version
-                queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, req);
-                selection_solvables(pool, &job, &rec_solvables);
+                job.push(SOLVER_SOLVABLE_PROVIDES, req);
+                selection_solvables(pool, job, rec_solvables);
 
-                if (rec_solvables.count != 0)
+                if (rec_solvables.count() != 0)
                 {
                     Solvable* rs = nullptr;
-                    for (int i = 0; i < rec_solvables.count; i++)
+                    for (auto& el : rec_solvables)
                     {
-                        rs = pool_id2solvable(pool, rec_solvables.elements[i]);
+                        rs = pool_id2solvable(pool, el);
                         if (rs->name == req)
                         {
                             break;
@@ -92,7 +91,6 @@ namespace mamba
                         dep_graph.add_edge(parent, it->second);
                     }
                 }
-                queue_free(&rec_solvables);
                 ++reqp;
                 req = *reqp;
             }
@@ -108,17 +106,16 @@ namespace mamba
         {
             auto* pool = s->repo->pool;
             // figure out who requires `s`
-            Queue solvables;
-            queue_init(&solvables);
+            MQueue solvables;
 
-            pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, &solvables, -1);
+            pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables, -1);
 
-            if (solvables.count != 0)
+            if (solvables.count() != 0)
             {
                 Solvable* rs;
-                for (int i = 0; i < solvables.count; i++)
+                for (auto& el : solvables)
                 {
-                    rs = pool_id2solvable(pool, solvables.elements[i]);
+                    rs = pool_id2solvable(pool, el);
                     auto it = visited.find(rs);
                     if (it == visited.end())
                     {
@@ -132,7 +129,6 @@ namespace mamba
                         dep_graph.add_edge(parent, it->second);
                     }
                 }
-                queue_free(&solvables);
             }
         }
     }
@@ -202,26 +198,24 @@ namespace mamba
 
     query_result Query::find(const std::string& query) const
     {
-        Queue job, solvables;
-        queue_init(&job);
-        queue_init(&solvables);
+        MQueue job, solvables;
 
         Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
         if (id)
         {
-            queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+            job.push(SOLVER_SOLVABLE_PROVIDES, id);
         }
         else
         {
             throw std::runtime_error("Could not generate query for " + query);
         }
 
-        selection_solvables(m_pool.get(), &job, &solvables);
+        selection_solvables(m_pool.get(), job, solvables);
         query_result::dependency_graph g;
 
         Pool* pool = m_pool.get();
-        std::sort(solvables.elements,
-                  solvables.elements + solvables.count,
+        std::sort(solvables.begin(),
+                  solvables.end(),
                   [pool](Id a, Id b)
                   {
                       Solvable* sa;
@@ -231,28 +225,23 @@ namespace mamba
                       return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
                   });
 
-        for (int i = 0; i < solvables.count; i++)
+        for (auto& el : solvables)
         {
-            Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+            Solvable* s = pool_id2solvable(m_pool.get(), el);
             g.add_node(PackageInfo(s));
         }
-
-        queue_free(&job);
-        queue_free(&solvables);
 
         return query_result(QueryType::kSEARCH, query, std::move(g));
     }
 
     query_result Query::whoneeds(const std::string& query, bool tree) const
     {
-        Queue job, solvables;
-        queue_init(&job);
-        queue_init(&solvables);
+        MQueue job, solvables;
 
         Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
         if (id)
         {
-            queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+            job.push(SOLVER_SOLVABLE_PROVIDES, id);
         }
         else
         {
@@ -263,10 +252,10 @@ namespace mamba
 
         if (tree)
         {
-            selection_solvables(m_pool.get(), &job, &solvables);
-            if (solvables.count > 0)
+            selection_solvables(m_pool.get(), job, solvables);
+            if (solvables.count() > 0)
             {
-                Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
+                Solvable* latest = pool_id2solvable(m_pool.get(), solvables[0]);
                 const auto node_id = g.add_node(PackageInfo(latest));
                 std::map<Solvable*, size_t> visited = { { latest, node_id } };
                 reverse_walk_graph(g, node_id, latest, visited);
@@ -274,10 +263,10 @@ namespace mamba
         }
         else
         {
-            pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, &solvables, -1);
-            for (int i = 0; i < solvables.count; i++)
+            pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, solvables, -1);
+            for (auto& el : solvables)
             {
-                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                Solvable* s = pool_id2solvable(m_pool.get(), el);
                 g.add_node(PackageInfo(s));
             }
         }
@@ -286,14 +275,12 @@ namespace mamba
 
     query_result Query::depends(const std::string& query, bool tree) const
     {
-        Queue job, solvables;
-        queue_init(&job);
-        queue_init(&solvables);
+        MQueue job, solvables;
 
         Id id = pool_conda_matchspec(m_pool.get(), query.c_str());
         if (id)
         {
-            queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+            job.push(SOLVER_SOLVABLE_PROVIDES, id);
         }
         else
         {
@@ -301,16 +288,16 @@ namespace mamba
         }
 
         query_result::dependency_graph g;
-        selection_solvables(m_pool.get(), &job, &solvables);
+        selection_solvables(m_pool.get(), job, solvables);
 
         int depth = tree ? -1 : 1;
 
-        auto find_latest = [&](Queue& solvables) -> Solvable*
+        auto find_latest = [&](MQueue& solvables) -> Solvable*
         {
-            Solvable* latest = pool_id2solvable(m_pool.get(), solvables.elements[0]);
-            for (int i = 1; i < solvables.count; ++i)
+            Solvable* latest = pool_id2solvable(m_pool.get(), solvables[0]);
+            for (int i = 1; i < solvables.count(); ++i)
             {
-                Solvable* s = pool_id2solvable(m_pool.get(), solvables.elements[i]);
+                Solvable* s = pool_id2solvable(m_pool.get(), solvables[i]);
                 if (pool_evrcmp(m_pool.get(), s->evr, latest->evr, 0) > 0)
                 {
                     latest = s;
@@ -319,7 +306,7 @@ namespace mamba
             return latest;
         };
 
-        if (solvables.count > 0)
+        if (solvables.count() != 0)
         {
             Solvable* latest = find_latest(solvables);
             const auto node_id = g.add_node(PackageInfo(latest));
@@ -327,9 +314,6 @@ namespace mamba
             std::map<std::string, size_t> not_found;
             walk_graph(g, node_id, latest, visited, not_found, depth);
         }
-
-        queue_free(&job);
-        queue_free(&solvables);
 
         return query_result(QueryType::kDEPENDS, query, std::move(g));
     }

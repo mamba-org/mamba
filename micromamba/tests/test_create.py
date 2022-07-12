@@ -543,6 +543,42 @@ class TestCreate:
                 assert l["url"].startswith(f"{ca}/conda-forge/")
                 assert l["version"].startswith("0.22.")
 
+    def test_channel_nodefaults(self):
+        f_name = random_string() + ".yaml"
+        rc_file = os.path.join(TestCreate.spec_files_location, f_name)
+
+        content = [
+            "channels:",
+            "  - rc",
+        ]
+        with open(rc_file, "w") as f:
+            f.write("\n".join(content))
+
+        f_name = random_string() + ".yaml"
+        spec_file = os.path.join(TestCreate.spec_files_location, f_name)
+        contents = [
+            "channels:",
+            "  - yaml",
+            "  - nodefaults",
+            "dependencies:",
+            "  - xframe",
+        ]
+        with open(spec_file, "w") as f:
+            f.write("\n".join(contents))
+
+        res = create(
+            "-n",
+            TestCreate.env_name,
+            "-f",
+            spec_file,
+            "--print-config-only",
+            f"--rc-file={rc_file}",
+            default_channel=False,
+            no_rc=False,
+        )
+
+        assert res["channels"] == ["yaml"]
+
     def test_set_platform(self, existing_cache):
         # test a dummy platform/arch
         create("-n", TestCreate.env_name, "--platform", "ptf-128")

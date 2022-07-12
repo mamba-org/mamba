@@ -719,17 +719,17 @@ namespace mamba
         void channels_hook(std::vector<std::string>& channels)
         {
             auto& config = Configuration::instance();
+            auto& config_channels = config.at("channels");
+            std::vector<std::string> cli_channels;
 
-            if (find(channels.begin(), channels.end(), "nodefaults") != channels.end())
+            if (config_channels.cli_configured())
             {
-                if (config.at("channels").cli_configured())
+                cli_channels = config_channels.cli_value<std::vector<std::string>>();
+                auto it = find(cli_channels.begin(), cli_channels.end(), "nodefaults");
+                if (it != cli_channels.end())
                 {
-                    channels = config.at("channels").cli_value<std::vector<std::string>>();
-                    channels.erase(find(channels.begin(), channels.end(), "nodefaults"));
-                }
-                else
-                {
-                    channels.clear();
+                    cli_channels.erase(it);
+                    channels = cli_channels;
                 }
             }
         }

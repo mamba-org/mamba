@@ -420,7 +420,7 @@ namespace mamba
                         = std::make_shared<powerloader::DownloadTarget>(m_url, "", m_tarball_path);
                 }
 
-                auto x = [this](powerloader::TransferStatus status,
+                auto end_callback = [this](powerloader::TransferStatus status,
                                 const powerloader::Response& response) -> powerloader::CbReturnCode
                 {
                     if (status == powerloader::TransferStatus::kSUCCESSFUL)
@@ -430,22 +430,21 @@ namespace mamba
                     return powerloader::CbReturnCode::kOK;
                 };
 
-                m_target->expected_size = m_expected_size;
-                m_target->checksums.push_back(
-                    powerloader::Checksum{ powerloader::ChecksumType::kSHA256, m_sha256 });
+                m_target->set_expected_size(m_expected_size);
+                m_target->add_checksum({ powerloader::ChecksumType::kSHA256, m_sha256 });
 
-                m_target->end_callback = x;
+                m_target->set_end_callback(end_callback);
                 // m_target->set_expected_size(m_expected_size);
 
                 if (m_has_progress_bars)
                 {
                     m_download_bar = Console::instance().add_progress_bar(m_name, m_expected_size);
 
-                    m_target->progress_callback = [this](curl_off_t total, curl_off_t done) -> int
+                    m_target->set_progress_callback([this](curl_off_t total, curl_off_t done) -> int
                     {
                         this->m_download_bar.set_progress(done, total);
                         return 0;
-                    };
+                    });
 
                     // m_target->set_progress_bar(m_download_bar);
                     Console::instance().progress_bar_manager().add_label("Download",

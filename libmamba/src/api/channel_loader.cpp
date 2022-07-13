@@ -6,7 +6,7 @@
 #include "mamba/core/subdirdata.hpp"
 
 #include <powerloader/downloader.hpp>
-#include <powerloader/oci.hpp>
+#include <powerloader/mirrors/oci.hpp>
 
 namespace mamba
 {

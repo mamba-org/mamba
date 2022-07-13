@@ -5,6 +5,7 @@
 #include "mamba/core/channel.hpp"
 
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/create.hpp"
 #include "mamba/api/remove.hpp"
 
 
@@ -39,6 +40,10 @@ set_env_command(CLI::App* com)
     auto* list_subcom = com->add_subcommand("list", "List known environments");
     init_general_options(list_subcom);
     init_prefix_options(list_subcom);
+
+    auto* create_subcom = com->add_subcommand(
+        "create", "Create new environment (compatibility alias for 'micromamba create')");
+    init_install_options(create_subcom);
 
     static bool explicit_format;
     static bool no_md5;
@@ -166,6 +171,8 @@ set_env_command(CLI::App* com)
     auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
     init_general_options(remove_subcom);
     init_prefix_options(remove_subcom);
+
+    create_subcom->callback([&]() { create(); });
 
     remove_subcom->callback(
         []()

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .helpers import create, get_umamba, random_string, remove
+from .helpers import get_umamba, random_string
 
 
 class Dumper(yaml.Dumper):
@@ -154,17 +154,20 @@ class TestConfigSources:
         )
         assert srcs == expected_srcs
 
-    def test_config_expand_user(self, tmp_home):
-        filename = "somefile.yml"
-        rc_path = tmp_home / filename
-        with open(rc_path, "w") as f:
-            f.write("override_channels_enabled: true")
-
-        rc_path_short = f"~/{filename}"
-        res = config("sources", "--rc-file", rc_path_short)
+    @pytest.mark.parametrize(
+        "rc_file",
+        [("home", "somefile.yml")],
+        indirect=True,
+    )
+    @pytest.mark.parametrize(
+        "rc_file_args", ({"override_channels_enabled": True},), indirect=True
+    )
+    def test_config_expand_user(self, rc_file):
+        rc_file_short = str(rc_file).replace(os.path.expanduser("~"), "~")
+        res = config("sources", "--rc-file", rc_file)
         assert (
             res.strip().splitlines()
-            == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
+            == f"Configuration files (by precedence order):\n{rc_file_short}".splitlines()
         )
 
 
@@ -198,7 +201,7 @@ class TestConfigList:
             config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()[
                 :-4
             ]
-            == f"# channels\n#   Define the list of channels\nchannels:\n"
+            == "# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
 
@@ -209,7 +212,7 @@ class TestConfigList:
             config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()[
                 :-4
             ]
-            == f"# channels\n#   The list of channels where the packages will be searched for.\n"
+            == "# channels\n#   The list of channels where the packages will be searched for.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
 
@@ -278,7 +281,7 @@ class TestConfigList:
             os.environ["MAMBA_OFFLINE"] = "false"
             assert (
                 config("list", "offline", "--no-rc", "-s").splitlines()
-                == f"offline: false  # 'MAMBA_OFFLINE'".splitlines()
+                == "offline: false  # 'MAMBA_OFFLINE'".splitlines()
             )
             assert (
                 config("list", "offline", f"--rc-file={rc_file}", "-s").splitlines()

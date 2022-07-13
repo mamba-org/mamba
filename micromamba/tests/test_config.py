@@ -1,4 +1,3 @@
-import json
 import os
 import platform
 import shutil
@@ -10,6 +9,16 @@ import pytest
 import yaml
 
 from .helpers import create, get_umamba, random_string, remove
+
+
+class Dumper(yaml.Dumper):
+    """A YAML dumper to properly indent lists.
+
+    https://github.com/yaml/pyyaml/issues/234#issuecomment-765894586
+    """
+
+    def increase_indent(self, flow=False, *args, **kwargs):
+        return super().increase_indent(flow=flow, indentless=False)
 
 
 def config(*args):
@@ -24,171 +33,135 @@ def config(*args):
 
 
 @pytest.fixture
-def rc_file_path(tmpdir_factory):
-    return Path(tmpdir_factory.mktemp("umamba").join("config.yaml"))
+def rc_file_args(request):
+    """Parametrizable fixture to choose content of rc file as a dict."""
+    return getattr(request, "param", {})
 
 
 @pytest.fixture
-def rc_file_args(rc_file_path):
-    rc_file_path.write_text("channels:\n  - channel1\n  - channel2\n")
-    return ["--rc-file", rc_file_path]
+def rc_file_text(rc_file_args):
+    """The content of the rc_file."""
+    return yaml.dump(rc_file_args, Dumper=Dumper)
+
+
+@pytest.fixture
+def rc_file(request, rc_file_text, tmp_home, tmp_root_prefix, tmp_prefix, tmp_path):
+    """Parametrizable fixture to create an rc file at the desired location.
+
+    The file is created in an isolated folder and set as the prefix, root prefix, or
+    home folder.
+    """
+    if hasattr(request, "param"):
+        where, rc_filename = request.param
+        if where == "home":
+            rc_file = tmp_home / rc_filename
+        elif where == "root_prefix":
+            rc_file = tmp_root_prefix / rc_filename
+        elif where == "prefix":
+            rc_file = tmp_prefix / rc_filename
+        elif where == "absolute":
+            rc_file = Path(rc_filename)
+        else:
+            raise ValueError("Bad rc file location")
+        if rc_file.suffix == ".d":
+            rc_file = rc_file / "test.yaml"
+    else:
+        rc_file = tmp_path / "umamba/config.yaml"
+
+    rc_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(rc_file, "w+") as f:
+        f.write(rc_file_text)
+
+    return rc_file
 
 
 class TestConfig:
-    def test_empty(self):
+    def test_config_empty(self, tmp_home):
         assert "Configuration of micromamba" in config()
 
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
-    def test_quiet(self, quiet_flag):
+    def test_config_quiet(self, quiet_flag, tmp_home):
         assert config(quiet_flag) == ""
 
 
 class TestConfigSources:
-
-    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
-    cache = os.path.join(current_root_prefix, "pkgs")
-
-    env_name = random_string()
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
-    prefix = os.path.join(root_prefix, "envs", env_name)
-
-    home_dir = os.path.expanduser("~")
-    rc_files = [
-        # "/etc/conda/.condarc",
-        # "/etc/conda/condarc",
-        # "/etc/conda/condarc.d/",
-        # "/etc/conda/.mambarc",
-        # "/var/lib/conda/.condarc",
-        # "/var/lib/conda/condarc",
-        # "/var/lib/conda/condarc.d/",
-        # "/var/lib/conda/.mambarc",
-        os.path.join(root_prefix, ".condarc"),
-        os.path.join(root_prefix, "condarc"),
-        os.path.join(root_prefix, "condarc.d"),
-        os.path.join(root_prefix, ".mambarc"),
-        os.path.join(home_dir, ".conda", ".condarc"),
-        os.path.join(home_dir, ".conda", "condarc"),
-        os.path.join(home_dir, ".conda", "condarc.d"),
-        os.path.join(home_dir, ".condarc"),
-        os.path.join(home_dir, ".mambarc"),
-        os.path.join(prefix, ".condarc"),
-        os.path.join(prefix, "condarc"),
-        os.path.join(prefix, "condarc.d"),
-        os.path.join(prefix, ".mambarc"),
-    ]
-
-    @classmethod
-    def setup_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigSources.root_prefix
-        os.environ["CONDA_PREFIX"] = TestConfigSources.prefix
-
-        os.makedirs(TestConfigSources.root_prefix, exist_ok=False)
-        create(
-            "-n",
-            TestConfigSources.env_name,
-            "--json",
-            "--offline",
-            no_dry_run=True,
-        )
-
-    @classmethod
-    def teardown_class(cls):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigSources.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestConfigSources.current_prefix
-        shutil.rmtree(TestConfigSources.root_prefix)
+    @pytest.mark.parametrize(
+        "rc_file", (("home", "dummy.yaml"), ("home", ".mambarc")), indirect=True
+    )
+    @pytest.mark.parametrize(
+        "rc_file_args", ({"override_channels_enabled": True},), indirect=True
+    )
+    @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
+    @pytest.mark.parametrize("norc", [False, True])
+    def test_config_sources(self, rc_file, quiet_flag, norc):
+        if norc:
+            with pytest.raises(subprocess.CalledProcessError):
+                config("sources", quiet_flag, "--rc-file", rc_file, "--no-rc")
+        else:
+            res = config("sources", quiet_flag, "--rc-file", rc_file)
+            rc_file_short = str(rc_file).replace(os.path.expanduser("~"), "~")
+            assert res.strip().splitlines() == (
+                f"Configuration files (by precedence order):\n{rc_file_short}".splitlines()
+            )
 
     @pytest.mark.parametrize("quiet_flag", ["-q", "--quiet"])
-    @pytest.mark.parametrize("rc_file", ["", "dummy.yaml", ".mambarc"])
     @pytest.mark.parametrize("norc", [False, True])
-    def test_sources(self, quiet_flag, rc_file, norc):
-        if rc_file:
-            rc_path = os.path.join(TestConfigSources.prefix, rc_file)
-            with open(rc_path, "w") as f:
-                f.write("override_channels_enabled: true")
-
-            if norc:
-                with pytest.raises(subprocess.CalledProcessError):
-                    config("sources", quiet_flag, "--rc-file", rc_path, "--no-rc")
-            else:
-                res = config("sources", quiet_flag, "--rc-file", rc_path)
-                rc_path_short = rc_path.replace(os.path.expanduser("~"), "~")
-                assert (
-                    res.strip().splitlines()
-                    == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
-                )
+    def test_config_sources_empty(self, tmp_prefix, quiet_flag, norc):
+        if norc:
+            res = config("sources", quiet_flag, "--no-rc")
+            assert res.strip() == "Configuration files disabled by --no-rc flag"
         else:
-            if norc:
-                res = config("sources", quiet_flag, "--no-rc")
-                assert res.strip() == "Configuration files disabled by --no-rc flag"
-            else:
-                res = config("sources", quiet_flag)
-                assert res.startswith("Configuration files (by precedence order):")
+            res = config("sources", quiet_flag)
+            assert res.startswith("Configuration files (by precedence order):")
 
     # TODO: test OS specific sources
     # TODO: test system located sources?
-    @pytest.mark.parametrize("rc_file", rc_files)
-    def test_rc_file(self, rc_file):
-        tmpfiles = []
-        for file in TestConfigSources.rc_files:
-            folder, f = file.rsplit(os.path.sep, 1)
-
-            if not Path(folder).exists():
-                os.makedirs(folder, exist_ok=True)
-
-            if file.endswith(".d") and Path(file).exists() and Path(file).is_dir():
-                file = os.path.join(file, "test.yaml")
-
-            if Path(file).exists() and Path(file).is_file():
-                tmp_file = os.path.join(folder, "tmp_" + f)
-                if Path(tmp_file).exists():
-                    if Path(tmp_file).is_dir():
-                        shutil.rmtree(tmp_file)
-                    else:
-                        os.remove(tmp_file)
-
-                os.rename(file, tmp_file)
-                tmpfiles.append((file, tmp_file))
-
-        if rc_file.endswith(".d"):
-            os.makedirs(rc_file, exist_ok=True)
-            rc_file = os.path.join(rc_file, "test.yaml")
-
-        with open(os.path.expanduser(rc_file), "w") as f:
-            f.write("override_channels_enabled: true")
-
-        srcs = (
-            config(
-                "sources",
-                "-n",
-                TestConfigSources.env_name,
-            )
-            .strip()
-            .splitlines()
-        )
-        short_name = rc_file.replace(os.path.expanduser("~"), "~")
+    @pytest.mark.parametrize(
+        "rc_file",
+        (
+            # "/etc/conda/.condarc",
+            # "/etc/conda/condarc",
+            # "/etc/conda/condarc.d/",
+            # "/etc/conda/.mambarc",
+            # "/var/lib/conda/.condarc",
+            # "/var/lib/conda/condarc",
+            # "/var/lib/conda/condarc.d/",
+            # "/var/lib/conda/.mambarc",
+            ("home", ".conda/.condarc"),
+            ("home", ".conda/condarc"),
+            ("home", ".conda/condarc.d"),
+            ("home", ".condarc"),
+            ("home", ".mambarc"),
+            ("root_prefix", ".condarc"),
+            ("root_prefix", "condarc"),
+            ("root_prefix", "condarc.d"),
+            ("root_prefix", ".mambarc"),
+            ("prefix", ".condarc"),
+            ("prefix", "condarc"),
+            ("prefix", "condarc.d"),
+            ("prefix", ".mambarc"),
+        ),
+        indirect=True,
+    )
+    @pytest.mark.parametrize(
+        "rc_file_args", ({"override_channels_enabled": True},), indirect=True
+    )
+    def test_config_rc_file(self, rc_file, env_name):
+        srcs = config("sources", "-n", env_name).strip().splitlines()
+        short_name = str(rc_file).replace(os.path.expanduser("~"), "~")
         expected_srcs = (
             f"Configuration files (by precedence order):\n{short_name}".splitlines()
         )
         assert srcs == expected_srcs
 
-        if rc_file.endswith(".d"):
-            shutil.rmtree(rc_file)
-        else:
-            os.remove(rc_file)
-
-        for (file, tmp_file) in tmpfiles:
-            os.rename(tmp_file, file)
-
-    def test_expand_user(self):
-        rc_path = os.path.join(TestConfigSources.root_prefix, random_string() + ".yml")
-        rc_path_short = rc_path.replace(os.path.expanduser("~"), "~")
-
-        os.makedirs(TestConfigSources.root_prefix, exist_ok=True)
+    def test_config_expand_user(self, tmp_home):
+        filename = "somefile.yml"
+        rc_path = tmp_home / filename
         with open(rc_path, "w") as f:
             f.write("override_channels_enabled: true")
 
-        res = config("sources", "--rc-file", f"{rc_path_short}")
+        rc_path_short = f"~/{filename}"
+        res = config("sources", "--rc-file", rc_path_short)
         assert (
             res.strip().splitlines()
             == f"Configuration files (by precedence order):\n{rc_path_short}".splitlines()
@@ -196,42 +169,53 @@ class TestConfigSources:
 
 
 class TestConfigList:
-    def test_list_with_rc(self, rc_file_args):
+    @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
+    def test_list_with_rc(self, rc_file, rc_file_text):
         assert (
-            config("list", "--no-env", *rc_file_args).splitlines()[:-1]
-            == "channels:\n  - channel1\n  - channel2\n".splitlines()
+            config("list", "--no-env", "--rc-file", rc_file).splitlines()[:-1]
+            == rc_file_text.splitlines()
         )
 
     def test_list_without_rc(self):
         assert config("list", "--no-env", "--no-rc").splitlines()[:-1] == []
 
     @pytest.mark.parametrize("source_flag", ["--sources", "-s"])
-    def test_list_with_sources(self, rc_file_args, source_flag):
+    @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
+    def test_list_with_sources(self, rc_file, source_flag):
         home_folder = os.path.expanduser("~")
-        src = f"  # '{str(rc_file_args[-1]).replace(home_folder, '~')}'"
+        src = f"  # '{str(rc_file).replace(home_folder, '~')}'"
         assert (
-            config("list", "--no-env", *rc_file_args, source_flag).splitlines()[:-1]
+            config("list", "--no-env", "--rc-file", rc_file, source_flag).splitlines()[
+                :-1
+            ]
             == f"channels:\n  - channel1{src}\n  - channel2{src}\n".splitlines()
         )
 
     @pytest.mark.parametrize("desc_flag", ["--descriptions", "-d"])
-    def test_list_with_descriptions(self, rc_file_args, desc_flag):
+    @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
+    def test_list_with_descriptions(self, rc_file, desc_flag):
         assert (
-            config("list", "--no-env", *rc_file_args, desc_flag).splitlines()[:-4]
+            config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()[
+                :-4
+            ]
             == f"# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
 
     @pytest.mark.parametrize("desc_flag", ["--long-descriptions", "-l"])
-    def test_list_with_long_descriptions(self, rc_file_args, desc_flag):
+    @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
+    def test_list_with_long_descriptions(self, rc_file, desc_flag):
         assert (
-            config("list", "--no-env", *rc_file_args, desc_flag).splitlines()[:-4]
+            config("list", "--no-env", "--rc-file", rc_file, desc_flag).splitlines()[
+                :-4
+            ]
             == f"# channels\n#   The list of channels where the packages will be searched for.\n"
             "#   See also 'channel_priority'.\nchannels:\n  - channel1\n  - channel2\n".splitlines()
         )
 
     @pytest.mark.parametrize("group_flag", ["--groups", "-g"])
-    def test_list_with_groups(self, rc_file_args, group_flag):
+    @pytest.mark.parametrize("rc_file_args", ({"channels": ["channel1", "channel2"]},))
+    def test_list_with_groups(self, rc_file, group_flag):
         group = (
             "# ######################################################\n"
             "# #               Channels Configuration               #\n"
@@ -239,9 +223,9 @@ class TestConfigList:
         )
 
         assert (
-            config("list", "--no-env", *rc_file_args, "-d", group_flag).splitlines()[
-                :-8
-            ]
+            config(
+                "list", "--no-env", "--rc-file", rc_file, "-d", group_flag
+            ).splitlines()[:-8]
             == f"{group}# channels\n#   Define the list of channels\nchannels:\n"
             "  - channel1\n  - channel2\n".splitlines()
         )
@@ -337,87 +321,28 @@ class TestConfigList:
 
 # TODO: instead of "Key is not present in file" => "Key " + key + "is not present in file"
 class TestConfigModifiers:
-    root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
-
-    # vars --file
-    home_rc_path = os.path.join(root_prefix, ".dummyrc")
-
-    # vars for --env
-    current_root_prefix = os.environ["MAMBA_ROOT_PREFIX"]
-    current_prefix = os.environ["CONDA_PREFIX"]
-    cache = os.path.join(current_root_prefix, "pkgs")
-
-    env_name = random_string()
-    prefix = os.path.join(root_prefix, "envs", env_name)
-    other_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
-
-    spec_files_location = os.path.expanduser(
-        os.path.join("~", "mamba_spec_files_test_" + random_string())
-    )
-
-    @classmethod
-    def setup(cls):
-        # setup for --env
-        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigModifiers.root_prefix
-        os.environ["CONDA_PREFIX"] = TestConfigModifiers.prefix
-
-        # speed-up the tests
-        os.environ["CONDA_PKGS_DIRS"] = TestConfigModifiers.cache
-
-        os.makedirs(TestConfigModifiers.spec_files_location, exist_ok=True)
-
-        # setup for --file
-        os.mkdir(TestConfigModifiers.root_prefix)
-        with open(TestConfigModifiers.home_rc_path, "a"):
-            os.utime(TestConfigModifiers.home_rc_path)
-
-    @classmethod
-    def teardown(cls):
-        # teardown for --env
-        os.environ["MAMBA_ROOT_PREFIX"] = TestConfigModifiers.root_prefix
-        os.environ["CONDA_PREFIX"] = TestConfigModifiers.prefix
-
-        for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
-            if v in os.environ:
-                os.environ.pop(v)
-
-        if Path(TestConfigModifiers.root_prefix).exists():
-            shutil.rmtree(TestConfigModifiers.root_prefix)
-        if Path(TestConfigModifiers.other_prefix).exists():
-            shutil.rmtree(TestConfigModifiers.other_prefix)
-
-        # teardown for --file
-        if os.path.exists(TestConfigModifiers.home_rc_path):
-            os.remove(TestConfigModifiers.home_rc_path)
-
-    def test_file_set_single_input(self):
-        config("set", "json", "true", "--file", TestConfigModifiers.home_rc_path)
+    def test_file_set_single_input(self, rc_file):
+        config("set", "json", "true", "--file", rc_file)
         assert (
-            config(
-                "get", "json", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "json", "--file", rc_file).splitlines()
             == "json: true".splitlines()
         )
 
-    def test_file_set_change_key_value(self):
-        config("set", "json", "true", "--file", TestConfigModifiers.home_rc_path)
-        config("set", "json", "false", "--file", TestConfigModifiers.home_rc_path)
+    def test_file_set_change_key_value(self, rc_file):
+        config("set", "json", "true", "--file", rc_file)
+        config("set", "json", "false", "--file", rc_file)
         assert (
-            config(
-                "get", "json", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "json", "--file", rc_file).splitlines()
             == "json: false".splitlines()
         )
 
-    def test_file_set_invalit_input(self):
+    def test_file_set_invalit_input(self, rc_file):
         assert (
-            config(
-                "set", "$%#@abc", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("set", "$%#@abc", "--file", rc_file).splitlines()
             == "Key is invalid or more than one key was received".splitlines()
         )
 
-    def test_file_set_multiple_inputs(self):
+    def test_file_set_multiple_inputs(self, rc_file):
         assert (
             config(
                 "set",
@@ -426,83 +351,69 @@ class TestConfigModifiers:
                 "clean_tarballs",
                 "true",
                 "--file",
-                TestConfigModifiers.home_rc_path,
+                rc_file,
             ).splitlines()
             == "Key is invalid or more than one key was received".splitlines()
         )
 
-    def test_file_remove_single_input(self):
-        config("set", "json", "true", "--file", TestConfigModifiers.home_rc_path)
-        assert (
-            config(
-                "remove-key", "json", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
-            == []
-        )
+    def test_file_remove_single_input(self, rc_file):
+        config("set", "json", "true", "--file", rc_file)
+        assert config("remove-key", "json", "--file", rc_file).splitlines() == []
 
-    def test_file_remove_non_existent_key(self):
+    def test_file_remove_non_existent_key(self, rc_file):
         assert (
-            config(
-                "remove-key", "json", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("remove-key", "json", "--file", rc_file).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_file_remove_invalid_key(self):
+    def test_file_remove_invalid_key(self, rc_file):
         assert (
-            config(
-                "remove-key", "^&*&^def", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("remove-key", "^&*&^def", "--file", rc_file).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_file_remove_vector(self):
-        config(
-            "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
-        )
-        config("remove-key", "channels", "--file", TestConfigModifiers.home_rc_path)
+    def test_file_remove_vector(self, rc_file):
+        config("append", "channels", "flowers", "--file", rc_file)
+        config("remove-key", "channels", "--file", rc_file)
         assert (
-            config(
-                "get", "channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "channels", "--file", rc_file).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_file_remove_vector_value(self):
-        config(
-            "append", "channels", "totoro", "--file", TestConfigModifiers.home_rc_path
-        )
-        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
-        config(
-            "remove", "channels", "totoro", "--file", TestConfigModifiers.home_rc_path
-        )
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels:", "  - haku"]
+    def test_file_remove_vector_value(self, rc_file):
+        # Backward test compatibility: when an empty file exists, the formatting is different
+        rc_file.unlink()
+        config("append", "channels", "totoro", "--file", rc_file)
+        config("append", "channels", "haku", "--file", rc_file)
+        config("remove", "channels", "totoro", "--file", rc_file)
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "channels:",
+            "  - haku",
+        ]
 
     # TODO: This behavior should be fixed "channels: []"
-    def test_file_remove_vector_all_values(self):
-        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
-        config("remove", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["Key is not present in file"]
+    def test_file_remove_vector_all_values(self, rc_file):
+        config("append", "channels", "haku", "--file", rc_file)
+        config("remove", "channels", "haku", "--file", rc_file)
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "Key is not present in file"
+        ]
 
-    def test_file_remove_vector_nonexistent_value(self):
-        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+    def test_file_remove_vector_nonexistent_value(self, rc_file):
+        config("append", "channels", "haku", "--file", rc_file)
         assert (
             config(
                 "remove",
                 "channels",
                 "chihiro",
                 "--file",
-                TestConfigModifiers.home_rc_path,
+                rc_file,
             ).splitlines()
             == "Key is not present in file".splitlines()
         )
 
-    def test_file_remove_vector_multiple_values(self):
-        config("append", "channels", "haku", "--file", TestConfigModifiers.home_rc_path)
+    def test_file_remove_vector_multiple_values(self, rc_file):
+        config("append", "channels", "haku", "--file", rc_file)
         assert (
             config(
                 "remove",
@@ -510,21 +421,22 @@ class TestConfigModifiers:
                 "haku",
                 "chihiro",
                 "--file",
-                TestConfigModifiers.home_rc_path,
+                rc_file,
             ).splitlines()
             == "Only one value can be removed at a time".splitlines()
         )
 
-    def test_file_append_single_input(self):
-        config(
-            "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
-        )
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels:", "  - flowers"]
+    def test_file_append_single_input(self, rc_file):
+        # Backward test compatibility: when an empty file exists, the formatting is different
+        rc_file.unlink()
+        config("append", "channels", "flowers", "--file", rc_file)
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "channels:",
+            "  - flowers",
+        ]
 
-    def test_file_append_multiple_inputs(self):
-        with open(TestConfigModifiers.home_rc_path, "w") as f:
+    def test_file_append_multiple_inputs(self, rc_file):
+        with open(rc_file, "w") as f:
             f.write("channels:\n  - foo")
 
         config(
@@ -532,17 +444,15 @@ class TestConfigModifiers:
             "channels",
             "condesc,mambesc",
             "--file",
-            TestConfigModifiers.home_rc_path,
+            rc_file,
         )
         assert (
-            config(
-                "get", "channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "channels", "--file", rc_file).splitlines()
             == "channels:\n  - foo\n  - condesc\n  - mambesc".splitlines()
         )
 
-    def test_file_append_multiple_keys(self):
-        with open(TestConfigModifiers.home_rc_path, "w") as f:
+    def test_file_append_multiple_keys(self, rc_file):
+        with open(rc_file, "w") as f:
             f.write("channels:\n  - foo\ndefault_channels:\n  - bar")
 
         config(
@@ -552,30 +462,26 @@ class TestConfigModifiers:
             "default_channels",
             "condescd,mambescd",
             "--file",
-            TestConfigModifiers.home_rc_path,
+            rc_file,
         )
         assert (
-            config(
-                "get", "channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "channels", "--file", rc_file).splitlines()
             == "channels:\n  - foo\n  - condesc\n  - mambesc".splitlines()
         )
         assert (
-            config(
-                "get", "default_channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "default_channels", "--file", rc_file).splitlines()
             == "default_channels:\n  - bar\n  - condescd\n  - mambescd".splitlines()
         )
 
-    def test_file_append_invalid_input(self):
+    def test_file_append_invalid_input(self, rc_file):
         with pytest.raises(subprocess.CalledProcessError):
-            config("append", "--file", TestConfigModifiers.home_rc_path)
+            config("append", "--file", rc_file)
 
         with pytest.raises(subprocess.CalledProcessError):
-            config("append", "@#A321", "--file", TestConfigModifiers.home_rc_path)
+            config("append", "@#A321", "--file", rc_file)
 
         with pytest.raises(subprocess.CalledProcessError):
-            config("append", "json", "true", "--file", TestConfigModifiers.home_rc_path)
+            config("append", "json", "true", "--file", rc_file)
 
         with pytest.raises(subprocess.CalledProcessError):
             config(
@@ -585,19 +491,20 @@ class TestConfigModifiers:
                 "json",
                 "true",
                 "--file",
-                TestConfigModifiers.home_rc_path,
+                rc_file,
             )
 
-    def test_file_prepend_single_input(self):
-        config(
-            "prepend", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
-        )
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels:", "  - flowers"]
+    def test_file_prepend_single_input(self, rc_file):
+        # Backward test compatibility: when an empty file exists, the formatting is different
+        rc_file.unlink()
+        config("prepend", "channels", "flowers", "--file", rc_file)
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "channels:",
+            "  - flowers",
+        ]
 
-    def test_file_prepend_multiple_inputs(self):
-        with open(TestConfigModifiers.home_rc_path, "w") as f:
+    def test_file_prepend_multiple_inputs(self, rc_file):
+        with open(rc_file, "w") as f:
             f.write("channels:\n  - foo")
 
         config(
@@ -605,17 +512,15 @@ class TestConfigModifiers:
             "channels",
             "condesc,mambesc",
             "--file",
-            TestConfigModifiers.home_rc_path,
+            rc_file,
         )
         assert (
-            config(
-                "get", "channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "channels", "--file", rc_file).splitlines()
             == "channels:\n  - condesc\n  - mambesc\n  - foo".splitlines()
         )
 
-    def test_file_prepend_multiple_keys(self):
-        with open(TestConfigModifiers.home_rc_path, "w") as f:
+    def test_file_prepend_multiple_keys(self, rc_file):
+        with open(rc_file, "w") as f:
             f.write("channels:\n  - foo\ndefault_channels:\n  - bar")
 
         config(
@@ -625,32 +530,26 @@ class TestConfigModifiers:
             "default_channels",
             "condescd,mambescd",
             "--file",
-            TestConfigModifiers.home_rc_path,
+            rc_file,
         )
         assert (
-            config(
-                "get", "channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "channels", "--file", rc_file).splitlines()
             == "channels:\n  - condesc\n  - mambesc\n  - foo".splitlines()
         )
         assert (
-            config(
-                "get", "default_channels", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "default_channels", "--file", rc_file).splitlines()
             == "default_channels:\n  - condescd\n  - mambescd\n  - bar".splitlines()
         )
 
-    def test_file_prepend_invalid_input(self):
+    def test_file_prepend_invalid_input(self, rc_file):
         with pytest.raises(subprocess.CalledProcessError):
-            config("prepend", "--file", TestConfigModifiers.home_rc_path)
+            config("prepend", "--file", rc_file)
 
         with pytest.raises(subprocess.CalledProcessError):
-            config("prepend", "@#A321", "--file", TestConfigModifiers.home_rc_path)
+            config("prepend", "@#A321", "--file", rc_file)
 
         with pytest.raises(subprocess.CalledProcessError):
-            config(
-                "prepend", "json", "true", "--file", TestConfigModifiers.home_rc_path
-            )
+            config("prepend", "json", "true", "--file", rc_file)
 
         with pytest.raises(subprocess.CalledProcessError):
             config(
@@ -660,68 +559,60 @@ class TestConfigModifiers:
                 "json",
                 "true",
                 "--file",
-                TestConfigModifiers.home_rc_path,
+                rc_file,
             )
 
-    def test_file_append_and_prepend_inputs(self):
-        config(
-            "append", "channels", "flowers", "--file", TestConfigModifiers.home_rc_path
-        )
-        config(
-            "prepend", "channels", "powers", "--file", TestConfigModifiers.home_rc_path
-        )
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels:", "  - powers", "  - flowers"]
+    def test_file_append_and_prepend_inputs(self, rc_file):
+        # Backward test compatibility: when an empty file exists, the formatting is different
+        rc_file.unlink()
+        config("append", "channels", "flowers", "--file", rc_file)
+        config("prepend", "channels", "powers", "--file", rc_file)
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "channels:",
+            "  - powers",
+            "  - flowers",
+        ]
 
-    def test_file_set_and_append_inputs(self):
-        config(
-            "set", "experimental", "true", "--file", TestConfigModifiers.home_rc_path
-        )
-        config(
-            "append", "channels", "gandalf", "--file", TestConfigModifiers.home_rc_path
-        )
-        config(
-            "append", "channels", "legolas", "--file", TestConfigModifiers.home_rc_path
-        )
+    def test_file_set_and_append_inputs(self, rc_file):
+        # Backward test compatibility: when an empty file exists, the formatting is different
+        rc_file.unlink()
+        config("set", "experimental", "true", "--file", rc_file)
+        config("append", "channels", "gandalf", "--file", rc_file)
+        config("append", "channels", "legolas", "--file", rc_file)
         assert (
-            config(
-                "get", "experimental", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "experimental", "--file", rc_file).splitlines()
             == "experimental: true".splitlines()
         )
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels:", "  - gandalf", "  - legolas"]
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "channels:",
+            "  - gandalf",
+            "  - legolas",
+        ]
 
-    def test_file_set_and_prepend_inputs(self):
-        config(
-            "set", "experimental", "false", "--file", TestConfigModifiers.home_rc_path
-        )
-        config(
-            "prepend", "channels", "zelda", "--file", TestConfigModifiers.home_rc_path
-        )
-        config(
-            "prepend", "channels", "link", "--file", TestConfigModifiers.home_rc_path
-        )
+    def test_file_set_and_prepend_inputs(self, rc_file):
+        # Backward test compatibility: when an empty file exists, the formatting is different
+        rc_file.unlink()
+        config("set", "experimental", "false", "--file", rc_file)
+        config("prepend", "channels", "zelda", "--file", rc_file)
+        config("prepend", "channels", "link", "--file", rc_file)
         assert (
-            config(
-                "get", "experimental", "--file", TestConfigModifiers.home_rc_path
-            ).splitlines()
+            config("get", "experimental", "--file", rc_file).splitlines()
             == "experimental: false".splitlines()
         )
-        assert config(
-            "get", "channels", "--file", TestConfigModifiers.home_rc_path
-        ).splitlines() == ["channels:", "  - link", "  - zelda"]
+        assert config("get", "channels", "--file", rc_file).splitlines() == [
+            "channels:",
+            "  - link",
+            "  - zelda",
+        ]
 
-    def test_flag_env_set(self):
+    def test_flag_env_set(self, rc_file):
         config("set", "experimental", "false", "--env")
         assert (
             config("get", "experimental", "--env").splitlines()
             == "experimental: false".splitlines()
         )
 
-    def test_flag_env_file_remove_vector(self):
+    def test_flag_env_file_remove_vector(self, rc_file):
         config("prepend", "channels", "thinga-madjiga", "--env")
         config("remove-key", "channels", "--env")
         assert (
@@ -729,7 +620,7 @@ class TestConfigModifiers:
             == "Key is not present in file".splitlines()
         )
 
-    def test_flag_env_file_set_and_append_inputs(self):
+    def test_flag_env_file_set_and_append_inputs(self, rc_file):
         config("set", "local_repodata_ttl", "2", "--env")
         config("append", "channels", "finn", "--env")
         config("append", "channels", "jake", "--env")
@@ -755,9 +646,7 @@ class TestConfigExpandVars:
         return cls._roundtrip(rc_file_path, f"{attr}: {config_expr}")[attr]
 
     @pytest.mark.parametrize("yaml_quote", ["", '"'])
-    def test_expandvars_conda(
-        self, monkeypatch, tmpdir_factory, rc_file_path, yaml_quote
-    ):
+    def test_expandvars_conda(self, monkeypatch, tmpdir_factory, rc_file, yaml_quote):
         """
         Environment variables should be expanded in settings that have expandvars=True.
 
@@ -767,7 +656,7 @@ class TestConfigExpandVars:
         def _expandvars(attr, config_expr, env_value):
             config_expr = config_expr.replace("'", yaml_quote)
             monkeypatch.setenv("TEST_VAR", env_value)
-            return self._roundtrip_attr(rc_file_path, attr, config_expr)
+            return self._roundtrip_attr(rc_file, attr, config_expr)
 
         ssl_verify = _expandvars("ssl_verify", "${TEST_VAR}", "yes")
         assert ssl_verify
@@ -864,13 +753,13 @@ class TestConfigExpandVars:
         ],
     )
     @pytest.mark.parametrize("yaml_quote", ["", '"', "'"])
-    def test_expandvars_cpython(self, monkeypatch, rc_file_path, inp, outp, yaml_quote):
+    def test_expandvars_cpython(self, monkeypatch, rc_file, inp, outp, yaml_quote):
         """Tests copied from CPython."""
         monkeypatch.setenv("foo", "bar", True)
         monkeypatch.setenv("{foo", "baz1", True)
         monkeypatch.setenv("{foo}", "baz2", True)
         assert outp == self._roundtrip_attr(
-            rc_file_path, "channel_alias", yaml_quote + inp + yaml_quote
+            rc_file, "channel_alias", yaml_quote + inp + yaml_quote
         )
 
     @pytest.mark.parametrize(
@@ -886,18 +775,16 @@ class TestConfigExpandVars:
             ("x\ny", ["${x y}"]),
         ],
     )
-    def test_envsubst_yaml_mixup(self, monkeypatch, rc_file_path, inp, outp):
-        assert self._roundtrip_attr(rc_file_path, "channels", f'["${{{inp}}}"]') == outp
+    def test_envsubst_yaml_mixup(self, monkeypatch, rc_file, inp, outp):
+        assert self._roundtrip_attr(rc_file, "channels", f'["${{{inp}}}"]') == outp
 
-    def test_envsubst_empty_var(self, monkeypatch, rc_file_path):
+    def test_envsubst_empty_var(self, monkeypatch, rc_file):
         monkeypatch.setenv("foo", "", True)
         # Windows does not support empty environment variables
         expected = "${foo}" if platform.system() == "Windows" else ""
-        assert (
-            self._roundtrip_attr(rc_file_path, "channel_alias", "'${foo}'") == expected
-        )
+        assert self._roundtrip_attr(rc_file, "channel_alias", "'${foo}'") == expected
 
-    def test_envsubst_windows_problem(self, monkeypatch, rc_file_path):
+    def test_envsubst_windows_problem(self, monkeypatch, rc_file):
         # Real-world problematic .condarc file
         condarc = textwrap.dedent(
             """
@@ -921,7 +808,7 @@ class TestConfigExpandVars:
         monkeypatch.setenv(
             "CONDA_CHANNEL_UPLOAD_PASSWORD", "pppppppppppppppppppp", True
         )
-        out = self._roundtrip(rc_file_path, condarc)
+        out = self._roundtrip(rc_file, condarc)
         assert (
             out["channel_alias"]
             == "https://xxxxxxxxxxxxxxxxxxxx.com/t/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk/get"

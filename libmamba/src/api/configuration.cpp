@@ -532,13 +532,20 @@ namespace mamba
                     LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
                 }
 
-                if (fs::exists(prefix) && !fs::is_empty(prefix))
+                if (fs::exists(prefix))
                 {
-                    if (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
-                          || fs::exists(prefix / "envs")))
+                    if (fs::is_directory(prefix))
                     {
+                        if (!fs::is_empty(prefix) && (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
+                                  || fs::exists(prefix / "envs"))))
+                        {
+                            LOG_ERROR << "Could not use default 'root_prefix': " << prefix.string();
+                            LOG_ERROR << "Directory exists, is not empty and not a conda prefix.";
+                            exit(1);
+                        }
+                    } else {
                         LOG_ERROR << "Could not use default 'root_prefix': " << prefix.string();
-                        LOG_ERROR << "Directory exists, is not empty and not a conda prefix.";
+                        LOG_ERROR << "File is not a directory.";
                         exit(1);
                     }
                 }

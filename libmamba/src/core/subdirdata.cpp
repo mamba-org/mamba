@@ -228,13 +228,13 @@ namespace mamba
         if (m_target != nullptr)
         {
             // m_target->cbdata = this;
-            m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
+            m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
             // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         }
         if (m_progress_bar && m_target)
         {
             // m_target->progress_callback = this->progress_callback;
-            m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
+            m_target->set_progress_callback(std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
     }
 
@@ -262,23 +262,21 @@ namespace mamba
         if (m_target != nullptr)
         {
             // m_target->cbdata = this;
-            m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
-            if (m_target->progress_callback)
+            m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
+            if (m_target->progress_callback())
             {
-                m_target->progress_callback
-                    = std::bind(&MSubdirData::progress_callback, this, _1, _2);
+                m_target->set_progress_callback(std::bind(&MSubdirData::progress_callback, this, _1, _2));
             }
 
             // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         }
         if (rhs.m_target != nullptr)
         {
-            m_target->end_callback = std::bind(&MSubdirData::end_callback, &rhs, _1, _2);
+            m_target->set_end_callback(std::bind(&MSubdirData::end_callback, &rhs, _1, _2));
 
-            if (rhs.m_target->progress_callback)
+            if (rhs.m_target->progress_callback())
             {
-                rhs.m_target->progress_callback
-                    = std::bind(&MSubdirData::progress_callback, &rhs, _1, _2);
+                rhs.m_target->set_progress_callback(std::bind(&MSubdirData::progress_callback, &rhs, _1, _2));
             }
 
             // m_target->cbdata = &rhs;
@@ -766,7 +764,7 @@ namespace mamba
 
             m_progress_bar.set_repr_hook(download_repr);
 
-            m_target->progress_callback = std::bind(&MSubdirData::progress_callback, this, _1, _2);
+            m_target->set_progress_callback(std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
         // if we get something _other_ than the noarch, we DO NOT throw if the file
         // can't be retrieved
@@ -775,7 +773,7 @@ namespace mamba
         //     m_target->set_ignore_failure(true);
         // }
 
-        m_target->end_callback = std::bind(&MSubdirData::end_callback, this, _1, _2);
+        m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
 
         // m_target->set_mod_etag_headers(mod_etag);
     }

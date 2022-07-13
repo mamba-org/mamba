@@ -150,7 +150,14 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
     return res.decode()
 
 
-def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes=True):
+def create(
+    *args,
+    default_channel=True,
+    no_rc=True,
+    no_dry_run=False,
+    always_yes=True,
+    create_cmd="create",
+):
     umamba = get_umamba()
     cmd = [umamba] + create_cmd.split() + [arg for arg in args if arg]
 

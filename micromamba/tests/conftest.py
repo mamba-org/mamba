@@ -16,13 +16,18 @@ def env_name(N: int = 10) -> str:
 @pytest.fixture
 def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
     """Change the home directory to a tmp folder for the duration of a test."""
-    old_home = os.environ.get("HOME")
-    new_home = tmp_path / "home"
-    new_home.mkdir(parents=True, exist_ok=True)
-    if old_home is not None:
-        os.environ["HOME"] = str(new_home)
+    # Try multiple combination for Unix/Windows
+    home_envs = [k for k in ("HOME", "USERPROFILE") if k in os.environ]
+    old_homes = {name: os.environ[name] for name in home_envs}
+
+    if len(home_envs) > 0:
+        new_home = tmp_path / "home"
+        new_home.mkdir(parents=True, exist_ok=True)
+        for env in home_envs:
+            os.environ[env] = str(new_home)
         yield new_home
-        os.environ["HOME"] = old_home
+        for env, home in old_homes.items():
+            os.environ[env] = home
     else:
         yield pathlib.Path.home()
 

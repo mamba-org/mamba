@@ -13,6 +13,7 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
+#include <stdexcept>
 
 namespace mamba
 {
@@ -307,8 +308,7 @@ namespace mamba
 
         if (all_solvables.size() != 0 && matching_solvables.size() == 0)
         {
-            LOG_ERROR << "No package can be installed for pin: " << pin;
-            exit(1);
+            throw std::runtime_error(fmt::format("No package can be installed for pin: {}", pin));
         }
         m_pinned_specs.push_back(ms);
 

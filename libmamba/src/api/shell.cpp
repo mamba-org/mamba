@@ -140,7 +140,7 @@ namespace mamba
         {
             if (!enable_long_paths_support(true))
             {
-                exit(1);
+                throw std::runtime_error("Error enabling Windows long-path support");
             }
         }
 #endif

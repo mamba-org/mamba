@@ -112,8 +112,10 @@ Note: Micromamba is currently experimental and it's advised to use micromamba in
 Download and unzip the executable (from the official conda-forge package):
 
 ```sh
-# Also available for win-64, osx-64, and osx-arm64.
+# Also available for osx-64 and osx-arm64.
 curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+# For win-64
+curl -Ls https://micro.mamba.pm/api/micromamba/win-64/latest | tar -xvj Library/bin/micromamba.exe
 ```
 
 We can use `./micromamba shell init ... ` to initialize a shell (`.bashrc`) and a new root environment in `~/micromamba`:

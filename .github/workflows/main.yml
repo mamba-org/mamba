@@ -284,8 +284,8 @@ jobs:
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja
           sccache --show-stats

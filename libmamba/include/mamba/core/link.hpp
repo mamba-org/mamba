@@ -64,10 +64,14 @@ namespace mamba
         std::vector<fs::path> compile_pyc_files(const std::vector<fs::path>& py_files);
         auto create_python_entry_point(const fs::path& path,
                                        const python_entry_point_parsed& entry_point);
+        void create_application_entry_point(const fs::path& source_full_path,
+                                            const fs::path& target_full_path,
+                                            const fs::path& python_full_path);
 
         PackageInfo m_pkg_info;
         fs::path m_cache_path;
         fs::path m_source;
+        std::vector<std::string> m_clobber_warnings;
         TransactionContext* m_context;
     };
 

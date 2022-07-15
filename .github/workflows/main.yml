@@ -41,6 +41,10 @@ jobs:
                    -GNinja
           ninja
           sccache --show-stats
+      - name: Cleanup
+        shell: bash -l {0}
+        if: always()
+        run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
@@ -83,6 +87,7 @@ jobs:
           sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -141,6 +146,7 @@ jobs:
           pytest micromamba/tests/ -v -s
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -239,11 +245,12 @@ jobs:
             ./generate_gpg_keys.sh
             pip install securesystemslib
           fi
-          pip install git+https://github.com/conda/conda-content-trust.git@master
+          pip install git+https://github.com/conda/conda-content-trust.git@main
 
           ./testserver.sh
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -284,6 +291,7 @@ jobs:
           sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -374,6 +382,7 @@ jobs:
           fi
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -420,6 +429,7 @@ jobs:
           sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -473,6 +483,7 @@ jobs:
           path: umamba.tar
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -535,6 +546,7 @@ jobs:
 
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs

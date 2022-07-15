@@ -3,6 +3,7 @@ import os
 import platform
 import shutil
 import subprocess
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -745,10 +746,13 @@ class TestConfigModifiers:
 
 class TestConfigExpandVars:
     @staticmethod
-    def _roundtrip(rc_file_path, attr, config_expr):
-        rc_file_path.write_text(f"{attr}: {config_expr}")
-        conf = config("list", "--json", "--no-env", "--rc-file", rc_file_path)
-        return conf[attr]
+    def _roundtrip(rc_file_path, rc_contents):
+        rc_file_path.write_text(rc_contents)
+        return config("list", "--json", "--no-env", "--rc-file", rc_file_path)
+
+    @classmethod
+    def _roundtrip_attr(cls, rc_file_path, attr, config_expr):
+        return cls._roundtrip(rc_file_path, f"{attr}: {config_expr}")[attr]
 
     @pytest.mark.parametrize("yaml_quote", ["", '"'])
     def test_expandvars_conda(
@@ -763,7 +767,7 @@ class TestConfigExpandVars:
         def _expandvars(attr, config_expr, env_value):
             config_expr = config_expr.replace("'", yaml_quote)
             monkeypatch.setenv("TEST_VAR", env_value)
-            return self._roundtrip(rc_file_path, attr, config_expr)
+            return self._roundtrip_attr(rc_file_path, attr, config_expr)
 
         ssl_verify = _expandvars("ssl_verify", "${TEST_VAR}", "yes")
         assert ssl_verify
@@ -865,7 +869,7 @@ class TestConfigExpandVars:
         monkeypatch.setenv("foo", "bar", True)
         monkeypatch.setenv("{foo", "baz1", True)
         monkeypatch.setenv("{foo}", "baz2", True)
-        assert outp == self._roundtrip(
+        assert outp == self._roundtrip_attr(
             rc_file_path, "channel_alias", yaml_quote + inp + yaml_quote
         )
 
@@ -883,10 +887,45 @@ class TestConfigExpandVars:
         ],
     )
     def test_envsubst_yaml_mixup(self, monkeypatch, rc_file_path, inp, outp):
-        assert self._roundtrip(rc_file_path, "channels", f'["${{{inp}}}"]') == outp
+        assert self._roundtrip_attr(rc_file_path, "channels", f'["${{{inp}}}"]') == outp
 
     def test_envsubst_empty_var(self, monkeypatch, rc_file_path):
         monkeypatch.setenv("foo", "", True)
         # Windows does not support empty environment variables
         expected = "${foo}" if platform.system() == "Windows" else ""
-        assert self._roundtrip(rc_file_path, "channel_alias", "'${foo}'") == expected
+        assert (
+            self._roundtrip_attr(rc_file_path, "channel_alias", "'${foo}'") == expected
+        )
+
+    def test_envsubst_windows_problem(self, monkeypatch, rc_file_path):
+        # Real-world problematic .condarc file
+        condarc = textwrap.dedent(
+            """
+            channel_alias: https://xxxxxxxxxxxxxxxxxxxx.com/t/${CONDA_API_KEY}/get
+
+            channels:
+              - xxxxxxxxxxx
+              - yyyyyyyyyyyy
+              - conda-forge
+
+            custom_channels:
+              yyyyyyyyyyyy: https://${CONDA_CHANNEL_UPLOAD_USER}:${CONDA_CHANNEL_UPLOAD_PASSWORD}@xxxxxxxxxxxxxxx.com
+
+            custom_multichannels:
+              conda-forge:
+                - https://conda.anaconda.org/conda-forge
+            """
+        )
+        monkeypatch.setenv("CONDA_API_KEY", "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk", True)
+        monkeypatch.setenv("CONDA_CHANNEL_UPLOAD_USER", "uuuuuuuuu", True)
+        monkeypatch.setenv(
+            "CONDA_CHANNEL_UPLOAD_PASSWORD", "pppppppppppppppppppp", True
+        )
+        out = self._roundtrip(rc_file_path, condarc)
+        assert (
+            out["channel_alias"]
+            == "https://xxxxxxxxxxxxxxxxxxxx.com/t/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk/get"
+        )
+        assert out["custom_channels"] == {
+            "yyyyyyyyyyyy": "https://uuuuuuuuu:pppppppppppppppppppp@xxxxxxxxxxxxxxx.com"
+        }

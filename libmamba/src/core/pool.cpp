@@ -7,6 +7,8 @@
 extern "C"
 {
 #include <solv/pool.h>
+#include <solv/solver.h>
+#include <solv/selection.h>
 }
 
 #include "spdlog/spdlog.h"
@@ -14,6 +16,7 @@ extern "C"
 #include "mamba/core/context.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/queue.hpp"
 
 namespace mamba
 {
@@ -77,6 +80,22 @@ namespace mamba
     MPool::operator Pool*()
     {
         return m_pool;
+    }
+
+    std::vector<Id> MPool::select_solvables(Id matchspec)
+    {
+        MQueue job, solvables;
+        job.push(SOLVER_SOLVABLE_PROVIDES, matchspec);
+        selection_solvables(m_pool, job, solvables);
+        return solvables.as<std::vector>();
+    }
+
+    Id MPool::matchspec2id(const std::string& ms)
+    {
+        Id id = pool_conda_matchspec(m_pool, ms.c_str());
+        if (!id)
+            throw std::runtime_error("libsolv error: could not create matchspec from string");
+        return id;
     }
 
     MRepo& MPool::add_repo(MRepo&& repo)

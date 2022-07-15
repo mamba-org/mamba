@@ -45,7 +45,7 @@ extern "C"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-
+#include "mamba/core/fsutil.hpp"
 
 namespace mamba
 {
@@ -1158,8 +1158,12 @@ namespace mamba
     {
         try
         {
-            auto ptr = std::make_unique<LockFile>(path);
-            return ptr;
+            // Don't even log if the file/directory isn't writable by someone or doesnt exists.
+            if (path::is_writable(path))
+            {
+                auto ptr = std::make_unique<LockFile>(path);
+                return ptr;
+            }
         }
         catch (...)
         {

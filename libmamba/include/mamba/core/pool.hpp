@@ -36,6 +36,9 @@ namespace mamba
         void set_debuglevel();
         void create_whatprovides();
 
+        std::vector<Id> select_solvables(Id id);
+        Id matchspec2id(const std::string& ms);
+
         operator Pool*();
 
         MRepo& add_repo(MRepo&& repo);

@@ -37,7 +37,7 @@ def get_fingerprint(gpg_output: str) -> str:
 KeySet = Dict[str, List[Dict[str, str]]]
 
 
-def normalize_keys(self, keys: KeySet) -> KeySet:
+def normalize_keys(keys: KeySet) -> KeySet:
     out = {}
     for ik, iv in keys.items():
         out[ik] = []

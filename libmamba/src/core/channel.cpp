@@ -384,7 +384,7 @@ namespace mamba
             auto& ctx = Context::instance();
 
             auto chan = ChannelBuilder::from_value(value);
-            auto token_base = concat_scheme_url(chan.scheme(), chan.location());
+            auto token_base = chan.base_url();
             if (!chan.token())
             {
                 auto it = ctx.authentication_info().find(token_base);

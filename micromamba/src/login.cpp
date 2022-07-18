@@ -33,13 +33,26 @@ get_token_base(const std::string& host)
 {
     mamba::URLHandler url_handler(host);
 
-    std::string token_base = mamba::concat(
-        (url_handler.scheme().empty() ? "https" : url_handler.scheme()), "://", url_handler.host());
+    std::string maybe_colon_and_port{};
     if (!url_handler.port().empty())
     {
-        token_base.append(":");
-        token_base.append(url_handler.port());
+        maybe_colon_and_port.push_back(':');
+        maybe_colon_and_port.append(url_handler.port());
     }
+    // Removing the trailing slashes to keep authentication file backward compatible with
+    // the version without path/channel part of the token.
+    std::string maybe_path = url_handler.path();
+    while ((!maybe_path.empty()) && (maybe_path.back() == '/'))
+    {
+        maybe_path.pop_back();
+    }
+
+    std::string token_base
+        = mamba::concat((url_handler.scheme().empty() ? "https" : url_handler.scheme()),
+                        "://",
+                        url_handler.host(),
+                        maybe_colon_and_port,
+                        maybe_path);
     return token_base;
 }
 

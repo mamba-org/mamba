@@ -141,7 +141,7 @@ PYBIND11_MODULE(bindings, m)
         .def("execute", &MTransaction::execute);
 
     py::class_<MSolver>(m, "Solver")
-        .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
+        .def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_constraint", &MSolver::add_constraint)

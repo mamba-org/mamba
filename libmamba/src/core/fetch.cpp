@@ -260,6 +260,13 @@ namespace mamba
             curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
         }
 
+        const char* proxy = proxy_match(url);
+        if (proxy)
+        {
+            curl_easy_setopt(handle, CURLOPT_PROXY, proxy);
+            LOG_INFO << "Proxy set" << std::endl;
+        }
+
         std::string& ssl_verify = Context::instance().ssl_verify;
         if (ssl_verify.size())
         {
@@ -267,11 +274,20 @@ namespace mamba
             {
                 curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L);
                 curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 0L);
+                if (proxy)
+                {
+                    curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYPEER, 0L);
+                    curl_easy_setopt(handle, CURLOPT_PROXY_SSL_VERIFYHOST, 0L);
+                }
             }
             else if (ssl_verify == "<system>")
             {
 #ifdef LIBMAMBA_STATIC_DEPS
                 curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+                if (proxy)
+                {
+                    curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, nullptr);
+                }
 #endif
             }
             else
@@ -283,6 +299,10 @@ namespace mamba
                 else
                 {
                     curl_easy_setopt(handle, CURLOPT_CAINFO, ssl_verify.c_str());
+                    if (proxy)
+                    {
+                        curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, ssl_verify.c_str());
+                    }
                 }
             }
         }

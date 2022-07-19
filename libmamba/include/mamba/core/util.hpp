@@ -366,6 +366,8 @@ namespace mamba
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
+    const char* proxy_match(const std::string& url);
+
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

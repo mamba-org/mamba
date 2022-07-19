@@ -1509,4 +1509,34 @@ namespace mamba
         return std::string((const char*) output.data());
     }
 
+    const char* proxy_match(const std::string& url)
+    {
+        auto& proxies = Context::instance().proxy_servers;
+        if (proxies.empty())
+        {
+            return nullptr;
+        }
+
+        std::size_t max_match = 0;
+        const char* match;
+        for (auto& [scheme, proxy] : proxies)
+        {
+            LOG_INFO << proxy << std::endl;
+            if (starts_with(url, scheme))
+            {
+                auto match_size = scheme.size();
+                if (match_size > max_match)
+                {
+                    match = proxy.c_str();
+                    max_match = match_size;
+                }
+            }
+        }
+        if (max_match != 0)
+        {
+            return match;
+        }
+        return nullptr;
+    }
+
 }  // namespace mamba

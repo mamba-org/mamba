@@ -23,6 +23,7 @@
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/url.hpp"
 
 namespace mamba
 {
@@ -1171,6 +1172,17 @@ namespace mamba
                         a directory with cert files, or a cert file..)"))
                    .needs({ "cacert_path", "offline" })
                    .set_post_merge_hook(detail::ssl_verify_hook));
+
+        insert(Configurable("proxy_servers", &ctx.proxy_servers)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "HTTP_PROXY", "HTTPS_PROXY" })
+                   .description("Use a proxy server for network connections")
+                   .long_description(unindent(R"(
+                        'proxy_servers' should be a dictionary where the key is either in the form of
+                        scheme://hostname or just a scheme for which the proxy server should be used and
+                        the value is the url of the proxy server, optionally with username and password
+                        in the form of scheme://username:password@hostname.)")));
 
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)

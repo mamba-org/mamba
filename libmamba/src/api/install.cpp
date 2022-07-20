@@ -716,5 +716,23 @@ namespace mamba
                 }
             }
         }
+
+        void channels_hook(std::vector<std::string>& channels)
+        {
+            auto& config = Configuration::instance();
+            auto& config_channels = config.at("channels");
+            std::vector<std::string> cli_channels;
+
+            if (config_channels.cli_configured())
+            {
+                cli_channels = config_channels.cli_value<std::vector<std::string>>();
+                auto it = find(cli_channels.begin(), cli_channels.end(), "nodefaults");
+                if (it != cli_channels.end())
+                {
+                    cli_channels.erase(it);
+                    channels = cli_channels;
+                }
+            }
+        }
     }  // detail
 }  // mamba

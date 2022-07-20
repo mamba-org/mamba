@@ -6,6 +6,7 @@
 
 #include <reproc/reproc.h>
 #include <reproc++/run.hpp>
+#include <stdexcept>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
@@ -371,8 +372,8 @@ namespace mamba
         }
         if (!fs::exists(ctx.target_prefix) && create_env == false)
         {
-            LOG_ERROR << "Prefix does not exist at: " << ctx.target_prefix;
-            exit(1);
+            throw std::runtime_error(
+                fmt::format("Prefix does not exist at: {}", ctx.target_prefix.string()));
         }
 
         MultiPackageCache package_caches(ctx.pkgs_dirs);

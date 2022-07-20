@@ -19,6 +19,7 @@
 #include "termcolor/termcolor.hpp"
 
 #include <reproc++/run.hpp>
+#include <stdexcept>
 
 #ifdef _WIN32
 #include "WinReg.hpp"
@@ -169,11 +170,8 @@ namespace mamba
         }
         catch (...)
         {
-            std::cout
-                << termcolor::red
-                << "ERROR: Could not find bash, or use cygpath to convert Windows path to Unix."
-                << termcolor::reset << std::endl;
-            exit(1);
+            throw std::runtime_error(
+                "Could not find bash, or use cygpath to convert Windows path to Unix.");
         }
     }
 

@@ -12,6 +12,7 @@
 #include "mamba/core/util.hpp"
 
 #include "progress_bar_impl.hpp"
+#include <stdexcept>
 
 namespace decompress
 {
@@ -558,8 +559,7 @@ namespace mamba
 
         if (!final_file.is_open())
         {
-            LOG_ERROR << "Could not open file '" << json_file.string() << "'";
-            exit(1);
+            throw std::runtime_error(fmt::format("Could not open file '{}'", json_file.string()));
         }
 
         if (ends_with(m_repodata_url, ".bz2"))
@@ -587,10 +587,9 @@ namespace mamba
 
         if (!temp_file)
         {
-            LOG_ERROR << "Could not write out repodata file '" << json_file
-                      << "': " << strerror(errno);
             fs::remove(json_file);
-            exit(1);
+            throw std::runtime_error(fmt::format(
+                "Could not write out repodata file '{}': {}", json_file.string(), strerror(errno)));
         }
 
         if (m_progress_bar)

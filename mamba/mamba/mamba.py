@@ -853,24 +853,18 @@ def _wrapped_main(*args, **kwargs):
     if len(args) == 1:
         args = args + ("-h",)
 
-    argv = list(args)
+    args = list(args)
 
-    if "--mamba-experimental" in argv:
+    if "--mamba-experimental" in args:
         global use_mamba_experimental
         use_mamba_experimental = True
-        argv.remove("--mamba-experimental")
+        args.remove("--mamba-experimental")
 
-    print_banner = True
-    if "--no-banner" in argv:
-        print_banner = False
-        argv.remove("--no-banner")
-    elif "MAMBA_NO_BANNER" in os.environ:
-        print_banner = False
-
-    if "list" in argv:
-        print_banner = False
-
-    args = argv
+    if "--no-banner" in args:
+        args.remove("--no-banner")
+        found_no_banner = True
+    else:
+        found_no_banner = False
 
     p = generate_parser()
     configure_clean_locks(p._subparsers._group_actions[0])
@@ -879,8 +873,13 @@ def _wrapped_main(*args, **kwargs):
 
     context.__init__(argparse_args=args)
     context.__initialized__ = True
-    if print_banner and not (context.quiet or context.json):
-        print(banner)
+
+    if (
+        not found_no_banner
+        and os.isatty(sys.stdout.fileno())
+        and not ("MAMBA_NO_BANNER" in os.environ or "list" in args or "run" in args)
+    ):
+        print(banner, file=sys.stderr)
 
     init_loggers(context)
 
@@ -928,10 +927,11 @@ def main(*args, **kwargs):
         try:
             exit_code = _wrapped_main(*args, **kwargs)
         except api.MambaNativeException as e:
-            print(e)
+            print(e, file=sys.stderr)
         except MambaException as e:
-            print(e)
+            print(e, file=sys.stderr)
         except Exception as e:
+            print(e, file=sys.stderr)
             raise e
         return exit_code
 

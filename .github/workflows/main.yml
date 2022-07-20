@@ -143,7 +143,7 @@ jobs:
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/micromamba
           micromamba activate build_env
-          pytest micromamba/tests/ -v -s
+          pytest -v --capture=tee-sys micromamba/tests/
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -208,7 +208,7 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba activate build_env
-          pytest mamba/tests
+          pytest -v --capture=tee-sys mamba/tests
       - name: run mamba create/update tests
         shell: bash -l {0}
         run: |
@@ -353,7 +353,7 @@ jobs:
           pip install ./mamba[test] --no-deps
       - name: run mamba tests suite
         shell: bash -l {0}
-        run: pytest mamba/tests
+        run: pytest -v --capture=tee-sys mamba/tests
       - name: Run create command
         shell: bash -l {0}
         run: mamba create -n test_env xtensor -c conda-forge -y
@@ -525,7 +525,7 @@ jobs:
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
-          pytest micromamba/tests/ -v -s
+          pytest -v --capture=tee-sys micromamba/tests/
 
       # - name: micromamba python based tests
       #   shell: cmd /C call {0}
@@ -535,7 +535,7 @@ jobs:
       #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
       #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
       #
-      #     pytest micromamba/tests/test_shell.py -v -s
+      #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
 
       # - name: micromamba python based tests
       #   shell: bash -l -eo pipefail {0}
@@ -544,7 +544,7 @@ jobs:
       #     export MAMBA_ROOT_PREFIX=~/mambaroot
       #     export MAMBA_TEST_SHELL_TYPE=bash
       #
-      #     pytest micromamba/tests/test_shell.py -v -s
+      #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
 
       - name: Cleanup
         shell: bash -l {0}

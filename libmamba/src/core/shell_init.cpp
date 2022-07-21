@@ -347,7 +347,7 @@ namespace mamba
         return content.str();
     }
 
-    bool modify_rc_file(const fs::path& file_path,
+    void modify_rc_file(const fs::path& file_path,
                         const fs::path& conda_prefix,
                         const std::string& shell,
                         const fs::path& mamba_exe)
@@ -383,6 +383,11 @@ namespace mamba
                           << termcolor::colorize << termcolor::green << conda_init_content
                           << termcolor::reset;
 
+        if (Context::instance().dry_run)
+        {
+            return;
+        }
+
         std::string result
             = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, conda_init_content);
 
@@ -396,7 +401,6 @@ namespace mamba
             std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
             rc_file << result;
         }
-        return true;
     }
 
     void reset_rc_file(const fs::path& file_path,
@@ -431,6 +435,11 @@ namespace mamba
         }
 
         std::string result = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, "");
+
+        if (Context::instance().dry_run)
+        {
+            return;
+        }
 
         std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
         rc_file << result;
@@ -536,6 +545,11 @@ namespace mamba
 
     void deinit_root_prefix_cmdexe(const fs::path& root_prefix)
     {
+        if (Context::instance().dry_run)
+        {
+            return;
+        }
+
         auto micromamba_bat = root_prefix / "condabin" / "micromamba.bat";
         auto _mamba_activate_bat = root_prefix / "condabin" / "_mamba_activate.bat";
         auto condabin_activate_bat = root_prefix / "condabin" / "activate.bat";
@@ -644,6 +658,11 @@ namespace mamba
 
     void deinit_root_prefix(const std::string& shell, const fs::path& root_prefix)
     {
+        if (Context::instance().dry_run)
+        {
+            return;
+        }
+
         Context::instance().root_prefix = root_prefix;
 
         if (shell == "zsh" || shell == "bash" || shell == "posix")
@@ -708,7 +727,7 @@ namespace mamba
         return out.str();
     }
 
-    bool init_powershell(const fs::path& profile_path, const fs::path& conda_prefix)
+    void init_powershell(const fs::path& profile_path, const fs::path& conda_prefix)
     {
         // NB: the user may not have created a profile. We need to check
         //     if the file exists first.
@@ -741,13 +760,13 @@ namespace mamba
         LOG_DEBUG << "Original profile content:\n" << profile_original_content;
         LOG_DEBUG << "Profile content:\n" << profile_content;
 
+        if (Context::instance().dry_run)
+        {
+            return;
+        }
+
         if (profile_content != profile_original_content || !found_mamba_initialize)
         {
-            if (Context::instance().dry_run)
-            {
-                return false;
-            }
-
             if (!fs::exists(profile_path.parent_path()))
             {
                 fs::create_directories(profile_path.parent_path());
@@ -765,17 +784,17 @@ namespace mamba
                 out << profile_content;
             }
 
-            return true;
+            return;
         }
-        return false;
+        return;
     }
 
-    bool deinit_powershell(const fs::path& profile_path, const fs::path& conda_prefix)
+    void deinit_powershell(const fs::path& profile_path, const fs::path& conda_prefix)
     {
         if (!fs::exists(profile_path))
         {
             LOG_INFO << "No existing PowerShell profile at " << profile_path << ".";
-            return true;
+            return;
         }
 
         std::string profile_content = read_contents(profile_path);
@@ -789,31 +808,29 @@ namespace mamba
         profile_content = std::regex_replace(profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, "");
         LOG_DEBUG << "Profile content:\n" << profile_content;
 
-        if (!Context::instance().dry_run)
+        if (Context::instance().dry_run)
         {
-            if (strip(profile_content).empty())
-            {
-                fs::remove(profile_path);
-                LOG_INFO << "Removed " << profile_path << " file because it's empty.";
-
-                // remove parent folder if it's empty
-                fs::path parent_path = profile_path.parent_path();
-                if (fs::is_empty(parent_path))
-                {
-                    fs::remove(parent_path);
-                    LOG_INFO << "Removed " << parent_path << " folder because it's empty.";
-                }
-            }
-            else
-            {
-                std::ofstream out = open_ofstream(profile_path, std::ios::out | std::ios::binary);
-                out << profile_content;
-            }
-
-            return true;
+            return;
         }
 
-        return false;
+        if (strip(profile_content).empty())
+        {
+            fs::remove(profile_path);
+            LOG_INFO << "Removed " << profile_path << " file because it's empty.";
+
+            // remove parent folder if it's empty
+            fs::path parent_path = profile_path.parent_path();
+            if (fs::is_empty(parent_path))
+            {
+                fs::remove(parent_path);
+                LOG_INFO << "Removed " << parent_path << " folder because it's empty.";
+            }
+        }
+        else
+        {
+            std::ofstream out = open_ofstream(profile_path, std::ios::out | std::ios::binary);
+            out << profile_content;
+        }
     }
 
     std::string find_powershell_paths(const std::string& exe)

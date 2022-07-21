@@ -43,6 +43,8 @@ namespace mamba
 
         void file_specs_hook(std::vector<std::string>& file_specs);
 
+        void channels_hook(std::vector<std::string>& channels);
+
         bool download_explicit(const std::vector<PackageInfo>& pkgs, MultiPackageCache& pkg_caches);
 
         struct other_pkg_mgr_spec
@@ -80,12 +82,12 @@ namespace YAML
     template <>
     struct convert<mamba::detail::other_pkg_mgr_spec>
     {
-        static Node encode(const mamba::detail::other_pkg_mgr_spec& rhs)
+        static Node encode(const mamba::detail::other_pkg_mgr_spec& /*rhs*/)
         {
             return Node();
         }
 
-        static bool decode(const Node& node, mamba::detail::other_pkg_mgr_spec& rhs)
+        static bool decode(const Node& /*node*/, mamba::detail::other_pkg_mgr_spec& /*rhs*/)
         {
             return true;
         }

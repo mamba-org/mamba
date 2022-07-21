@@ -7,12 +7,14 @@
 #ifndef MAMBA_CORE_FS_UTIL
 #define MAMBA_CORE_FS_UTIL
 
-#include "environment.hpp"
-#include "mamba_fs.hpp"
-#include "util.hpp"
-
 #include <string>
 #include <system_error>
+
+#include "mamba/core/environment.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_scope.hpp"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {
@@ -70,8 +72,17 @@ namespace mamba
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream ostream = open_ofstream(path, std::ios::out);
-                if (ostream.fail())
+                std::ofstream outfile;
+#if _WIN32
+                outfile.open(path.wstring(), std::ios::out);
+#else
+                outfile.open(path, std::ios::out);
+#endif
+
+                if (!outfile.good())
+                    LOG_INFO << "Could not touch file at " << path;
+
+                if (outfile.fail())
                     throw fs::filesystem_error("File creation failed",
                                                std::make_error_code(std::errc::permission_denied));
 
@@ -79,26 +90,56 @@ namespace mamba
             }
         }
 
-        inline bool is_writable(const fs::path& path)
+        // Returns `true` only if the provided path is either:
+        // - a file we are able to open for writing;
+        // - a directory we are able to create a file in for writing;
+        // - a file name that does not exist but the parent directory in the path exists and we
+        //   are able to create a file with that name in that directory for writing.
+        // Returns `false` otherwise.
+        inline bool is_writable(const fs::path& path) noexcept
         {
-            if (fs::is_directory(path.parent_path()))
-            {
-                bool path_existed = lexists(path);
-                std::ofstream test = open_ofstream(path, std::ios_base::out | std::ios_base::app);
-                bool is_writable = test.is_open();
-                if (!path_existed)
+            const auto& path_to_write_in = fs::exists(path) ? path : path.parent_path();
+
+            static constexpr auto writable_flags
+                = fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write;
+            std::error_code ec;
+            const auto status = fs::status(path_to_write_in, ec);
+
+            const bool should_be_writable
+                = !ec && status.type() != fs::file_type::not_found
+                  && (status.permissions() & writable_flags) != fs::perms::none;
+
+            // If it should not be writable, stop there.
+            if (!should_be_writable)
+                return false;
+
+            // If it should be, check that it's true by creating or editing a file.
+            const bool is_directory
+                = fs::exists(path)
+                  && fs::is_directory(path, ec);  // fs::is_directory fails if path does not exist
+            if (ec)
+                return false;
+
+            const auto test_file_path
+                = is_directory ? path / ".mamba-is-writable-check-delete-me" : path;
+            const auto _ = on_scope_exit(
+                [&]
                 {
-                    test.close();
-                    fs::remove(path);
-                }
-                return is_writable;
-            }
-            else
-            {
-                throw std::runtime_error("Cannot check file path at " + path.string()
-                                         + " for accessibility.");
-            }
+                    if (is_directory)
+                    {
+                        std::error_code ec;
+                        fs::remove(test_file_path, ec);
+                    }
+                });
+#if _WIN32
+            std::ofstream test_file{ test_file_path.wstring(),
+                                     std::ios_base::out | std::ios_base::app };
+#else
+            std::ofstream test_file{ test_file_path, std::ios_base::out | std::ios_base::app };
+#endif
+            return test_file.is_open();
         }
+
     }  // namespace path
 }  // namespace mamba
 

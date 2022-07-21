@@ -6,6 +6,7 @@
 
 #include <reproc/reproc.h>
 #include <reproc++/run.hpp>
+#include <stdexcept>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
@@ -371,8 +372,8 @@ namespace mamba
         }
         if (!fs::exists(ctx.target_prefix) && create_env == false)
         {
-            LOG_ERROR << "Prefix does not exist at: " << ctx.target_prefix;
-            exit(1);
+            throw std::runtime_error(
+                fmt::format("Prefix does not exist at: {}", ctx.target_prefix.string()));
         }
 
         MultiPackageCache package_caches(ctx.pkgs_dirs);
@@ -712,6 +713,24 @@ namespace mamba
                             specs.set_cli_value(f_specs);
                         }
                     }
+                }
+            }
+        }
+
+        void channels_hook(std::vector<std::string>& channels)
+        {
+            auto& config = Configuration::instance();
+            auto& config_channels = config.at("channels");
+            std::vector<std::string> cli_channels;
+
+            if (config_channels.cli_configured())
+            {
+                cli_channels = config_channels.cli_value<std::vector<std::string>>();
+                auto it = find(cli_channels.begin(), cli_channels.end(), "nodefaults");
+                if (it != cli_channels.end())
+                {
+                    cli_channels.erase(it);
+                    channels = cli_channels;
                 }
             }
         }

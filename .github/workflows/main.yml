@@ -41,6 +41,10 @@ jobs:
                    -GNinja
           ninja
           sccache --show-stats
+      - name: Cleanup
+        shell: bash -l {0}
+        if: always()
+        run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
 
@@ -83,6 +87,7 @@ jobs:
           sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -128,11 +133,11 @@ jobs:
         shell: bash -l -eo pipefail {0}
         run: |
           sudo apt-get install zsh xonsh fish -y
-      - name: install fish in mac
+      - name: install xonsh and fish in mac
         if: matrix.os == 'macos-latest'
         shell: bash -l -eo pipefail {0}
         run: |
-          brew install fish
+          brew install fish xonsh
       - name: micromamba python based tests
         shell: bash -l -eo pipefail {0}
         run: |
@@ -141,6 +146,7 @@ jobs:
           pytest micromamba/tests/ -v -s
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -152,7 +158,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.8"]
+        python_version: ["3.8"]
 
     steps:
       - uses: actions/checkout@v3
@@ -163,7 +169,9 @@ jobs:
           environment-name: build_env
           cache-env: true
           micromamba-version: "0.23.0"
-          extra-specs: conda-build
+          extra-specs: |
+            conda-build
+            python=${{ matrix.python_version }}
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -239,11 +247,12 @@ jobs:
             ./generate_gpg_keys.sh
             pip install securesystemslib
           fi
-          pip install git+https://github.com/conda/conda-content-trust.git@master
+          pip install git+https://github.com/conda/conda-content-trust.git@main
 
           ./testserver.sh
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -277,13 +286,14 @@ jobs:
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja
           sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -374,6 +384,7 @@ jobs:
           fi
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -420,6 +431,7 @@ jobs:
           sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -473,6 +485,7 @@ jobs:
           path: umamba.tar
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
@@ -535,6 +548,7 @@ jobs:
 
       - name: Cleanup
         shell: bash -l {0}
+        if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs

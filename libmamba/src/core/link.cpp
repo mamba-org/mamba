@@ -139,9 +139,8 @@ namespace mamba
 #endif
         if (fs::exists(script_path))
         {
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << "$CONDA_PREFIX/"
-                      << fs::relative(script_path, m_context->target_prefix).string() << std::endl;
+            m_clobber_warnings.push_back(
+                fs::relative(script_path, m_context->target_prefix).string());
             fs::remove(script_path);
         }
         std::ofstream out_file = open_ofstream(script_path);
@@ -174,8 +173,7 @@ namespace mamba
 
         if (fs::exists(m_context->target_prefix / script_exe))
         {
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << "$CONDA_PREFIX/" << script_exe.string() << std::endl;
+            m_clobber_warnings.push_back(fs::relative(script_exe.string()).string());
             fs::remove(m_context->target_prefix / script_exe);
         }
 
@@ -228,16 +226,15 @@ namespace mamba
 #endif
     }
 
-    void create_application_entry_point(const fs::path& source_full_path,
-                                        const fs::path& target_full_path,
-                                        const fs::path& python_full_path)
+    void LinkPackage::create_application_entry_point(const fs::path& source_full_path,
+                                                     const fs::path& target_full_path,
+                                                     const fs::path& python_full_path)
     {
         // source_full_path: where the entry point file points to
         // target_full_path: the location of the new entry point file being created
         if (fs::exists(target_full_path))
         {
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << target_full_path.string() << std::endl;
+            m_clobber_warnings.push_back(target_full_path.string());
         }
 
         if (!fs::is_directory(target_full_path.parent_path()))
@@ -575,9 +572,7 @@ namespace mamba
         if (fs::exists(dst))
         {
             // Sometimes we might want to raise here ...
-            std::cerr << termcolor::yellow << "Clobberwarning: " << termcolor::reset
-                      << "$CONDA_PREFIX/" << rel_dst.string() << std::endl;
-            LOG_WARNING << "Clobberwarning: $CONDA_PREFIX/" << rel_dst.string();
+            m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
             return std::make_tuple(validate::sha256sum(dst), rel_dst);
 #endif
@@ -605,15 +600,18 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
                 replace_all(buffer, path_data.prefix_placeholder, new_prefix);
 
-                // we need to check the first line for a shebang and replace it if it's too long
-                if (!on_win && buffer[0] == '#' && buffer[1] == '!')
+                if constexpr (!on_win)  // only on non-windows platforms
                 {
-                    std::size_t end_of_line = buffer.find_first_of('\n');
-                    std::string first_line = buffer.substr(0, end_of_line);
-                    if (first_line.size() > 127)
+                    // we need to check the first line for a shebang and replace it if it's too long
+                    if (buffer[0] == '#' && buffer[1] == '!')
                     {
-                        std::string new_shebang = replace_long_shebang(first_line);
-                        buffer.replace(0, end_of_line, new_shebang);
+                        std::size_t end_of_line = buffer.find_first_of('\n');
+                        std::string first_line = buffer.substr(0, end_of_line);
+                        if (first_line.size() > 127)
+                        {
+                            std::string new_shebang = replace_long_shebang(first_line);
+                            buffer.replace(0, end_of_line, new_shebang);
+                        }
                     }
                 }
             }
@@ -1048,6 +1046,13 @@ namespace mamba
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
         std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
+
+        if (!m_clobber_warnings.empty())
+        {
+            LOG_WARNING << "[" << f_name
+                        << "] The following files were already present in the environment:\n- "
+                        << join("\n- ", m_clobber_warnings);
+        }
 
         return true;
     }

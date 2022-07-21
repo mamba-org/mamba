@@ -12,6 +12,7 @@
 #include "mamba/core/util.hpp"
 
 #include "progress_bar_impl.hpp"
+#include <stdexcept>
 
 namespace decompress
 {
@@ -297,7 +298,9 @@ namespace mamba
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
-        for (const auto& cache_path : caches.paths())
+        const auto cache_paths = without_duplicates(caches.paths());
+
+        for (const auto& cache_path : cache_paths)
         {
             auto json_file = cache_path / "cache" / m_json_fn;
             auto solv_file = cache_path / "cache" / m_solv_fn;
@@ -330,7 +333,8 @@ namespace mamba
 
                     auto cache_age_seconds
                         = std::chrono::duration_cast<std::chrono::seconds>(cache_age).count();
-                    if ((max_age > cache_age_seconds || Context::instance().offline))
+                    if ((max_age > cache_age_seconds || Context::instance().offline
+                         || Context::instance().use_index_cache))
                     {
                         // valid json cache found
                         if (!m_loaded)
@@ -555,8 +559,7 @@ namespace mamba
 
         if (!final_file.is_open())
         {
-            LOG_ERROR << "Could not open file '" << json_file.string() << "'";
-            exit(1);
+            throw std::runtime_error(fmt::format("Could not open file '{}'", json_file.string()));
         }
 
         if (ends_with(m_repodata_url, ".bz2"))
@@ -584,10 +587,9 @@ namespace mamba
 
         if (!temp_file)
         {
-            LOG_ERROR << "Could not write out repodata file '" << json_file
-                      << "': " << strerror(errno);
             fs::remove(json_file);
-            exit(1);
+            throw std::runtime_error(fmt::format(
+                "Could not write out repodata file '{}': {}", json_file.string(), strerror(errno)));
         }
 
         if (m_progress_bar)

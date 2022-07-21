@@ -289,7 +289,7 @@ namespace mamba
     }
 
     int curl_debug_callback(
-        CURL* handle, curl_infotype type, char* data, size_t size, void* userptr)
+        CURL* /* handle */, curl_infotype type, char* data, size_t size, void* userptr)
     {
         auto* logger = (spdlog::logger*) (userptr);
         auto log = Console::hide_secrets(std::string_view(data, size));
@@ -574,7 +574,7 @@ namespace mamba
         return m_expected_size;
     }
 
-    static size_t discard(char* ptr, size_t size, size_t nmemb, void*)
+    static size_t discard(char*, size_t size, size_t nmemb, void*)
     {
         return size * nmemb;
     }
@@ -787,7 +787,7 @@ namespace mamba
         int msgs_in_queue;
         CURLMsg* msg;
 
-        while ((msg = curl_multi_info_read(m_handle, &msgs_in_queue)))
+        while ((msg = curl_multi_info_read(m_handle, &msgs_in_queue)) != nullptr)
         {
             // TODO maybe refactor so that `msg` is passed to current target?
             DownloadTarget* current_target = nullptr;

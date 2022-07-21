@@ -2,8 +2,6 @@
 
 #include "progress_bar_impl.hpp"
 
-#include "spdlog/fmt/bundled/format.h"
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -1429,7 +1427,7 @@ namespace mamba
      *********************/
 
     HiddenProgressBar::HiddenProgressBar(const std::string& prefix,
-                                         AggregatedBarManager* manager,
+                                         AggregatedBarManager* /*manager*/,
                                          std::size_t total,
                                          int width)
         : ProgressBar(prefix, total, width)
@@ -1759,7 +1757,7 @@ namespace mamba
         return active_count;
     }
 
-    void AggregatedBarManager::update_download_bar(std::size_t current_diff)
+    void AggregatedBarManager::update_download_bar(std::size_t /*current_diff*/)
     {
     }
 

@@ -355,6 +355,9 @@ namespace mamba
             if (val)
             {
                 s.replace(match[0].first, match[0].second, val.value());
+                // It turns out to be unsafe to modify the string during
+                // sregex_iterator iteration. Start a new search by recursing.
+                return expandvars(s);
             }
         }
         return s;
@@ -529,14 +532,24 @@ namespace mamba
                     LOG_WARNING << "'root_prefix' set with default value: " << prefix.string();
                 }
 
-                if (fs::exists(prefix) && !fs::is_empty(prefix))
+                if (fs::exists(prefix))
                 {
-                    if (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
-                          || fs::exists(prefix / "envs")))
+                    if (fs::is_directory(prefix))
                     {
-                        LOG_ERROR << "Could not use default 'root_prefix': " << prefix.string();
-                        LOG_ERROR << "Directory exists, is not empty and not a conda prefix.";
-                        exit(1);
+                        if (!fs::is_empty(prefix)
+                            && (!(fs::exists(prefix / "pkgs") || fs::exists(prefix / "conda-meta")
+                                  || fs::exists(prefix / "envs"))))
+                        {
+                            throw std::runtime_error(fmt::format(
+                                "Could not use default 'root_prefix': {}: Directory exists, is not empty and not a conda prefix.",
+                                prefix.string()));
+                        }
+                    }
+                    else
+                    {
+                        throw std::runtime_error(fmt::format(
+                            "Could not use default 'root_prefix': {}: File is not a directory.",
+                            prefix.string()));
                     }
                 }
 
@@ -1079,7 +1092,8 @@ namespace mamba
                    .needs({ "file_specs" })
                    .long_description(unindent(R"(
                         The list of channels where the packages will be searched for.
-                        See also 'channel_priority'.)")));
+                        See also 'channel_priority'.)"))
+                   .set_post_merge_hook(detail::channels_hook));
 
         insert(Configurable("channel_alias", &ctx.channel_alias)
                    .group("Channels")
@@ -1580,7 +1594,7 @@ namespace mamba
         auto& ctx = Context::instance();
 
         std::vector<fs::path> system;
-        if (on_mac || on_linux)
+        if constexpr (on_mac || on_linux)
         {
             system = { "/etc/conda/.condarc",       "/etc/conda/condarc",
                        "/etc/conda/condarc.d/",     "/etc/conda/.mambarc",
@@ -1784,7 +1798,7 @@ namespace mamba
         {
             return m_config.at(name);
         }
-        catch (const std::out_of_range& e)
+        catch (const std::out_of_range& /*e*/)
         {
             LOG_ERROR << "Configurable '" << name << "' does not exists";
             throw std::runtime_error("ConfigurationError");
@@ -1803,9 +1817,10 @@ namespace mamba
             std::string s = strStream.str();
             config = YAML::Load(expandvars(s));
         }
-        catch (...)
+        catch (const std::exception& ex)
         {
-            LOG_ERROR << "Error in file " << file << " (Skipped)";
+            LOG_ERROR << fmt::format(
+                "Error in file {}, skipping: {}", std::string(file), ex.what());
         }
         return config;
     }

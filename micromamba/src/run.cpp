@@ -2,8 +2,12 @@
 #include <exception>
 #include <thread>
 
-#include "spdlog/fmt/fmt.h"
+#include "spdlog/spdlog.h"
+#ifdef SPDLOG_FMT_EXTERNAL
+#include "fmt/color.h"
+#else
 #include "spdlog/fmt/bundled/color.h"
+#endif
 
 #include <reproc++/run.hpp>
 #include "common_options.hpp"
@@ -292,7 +296,7 @@ set_ps_command(CLI::App* subcom)
                 kill(pid, SIGTERM);
             };
 #else
-            auto stop_process = [](const std::string& name, PID pid)
+            auto stop_process = [](const std::string& /*name*/, PID /*pid*/)
             { LOG_ERROR << "Process stopping not yet implemented on Windows."; };
 #endif
             for (auto& p : procs)

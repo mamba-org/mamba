@@ -487,7 +487,7 @@ namespace mamba
             catch (const YAML::Exception& e)
             {
                 LOG_ERROR << "Bad conversion of configurable '" << this->m_name << "' from source '"
-                          << source << "'";
+                          << source << "' : " << e.what();
             }
         }
 
@@ -532,7 +532,7 @@ namespace mamba
             catch (const YAML::Exception& e)
             {
                 LOG_ERROR << "Bad conversion of configurable '" << this->m_name << "' with value '"
-                          << value << "'";
+                          << value << "' : " << e.what();
                 throw e;
             }
         }
@@ -643,7 +643,8 @@ namespace mamba
                         {
                             LOG_ERROR << "Bad conversion of configurable '" << this->m_name
                                       << "' from environment variable '" << env_var
-                                      << "' with value '" << env_var_value.value() << "'";
+                                      << "' with value '" << env_var_value.value()
+                                      << "' : " << e.what();
                             throw e;
                         }
                     }

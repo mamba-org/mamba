@@ -49,14 +49,22 @@ namespace mamba
                         const std::string& shell,
                         const fs::path& mamba_exe);
 
+    void reset_rc_file(const fs::path& file_path,
+                       const std::string& shell,
+                       const fs::path& mamba_exe);
+
     // we need this function during linking...
     void init_root_prefix_cmdexe(const fs::path& root_prefix);
+    void deinit_root_prefix_cmdexe(const fs::path& root_prefix);
     void init_root_prefix(const std::string& shell, const fs::path& root_prefix);
+    void deinit_root_prefix(const std::string& shell, const fs::path& root_prefix);
 
     std::string powershell_contents(const fs::path& conda_prefix);
-    void init_powershell(const fs::path& profile_path, const fs::path& conda_prefix);
+    bool init_powershell(const fs::path& profile_path, const fs::path& conda_prefix);
+    bool deinit_powershell(const fs::path& profile_path, const fs::path& conda_prefix);
 
     void init_shell(const std::string& shell, const fs::path& conda_prefix);
+    void deinit_shell(const std::string& shell, const fs::path& conda_prefix);
 }
 
 #endif

@@ -2,7 +2,7 @@ include/mamba/core/version.hpp
 .DS_Store
 .cache
 
-*build
+*build*
 __cache__/
 .ipynb_checkpoints/
 *.cppimporthash

@@ -335,7 +335,7 @@ namespace validate
                 generate_role_secrets(int count)
                 {
                     std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
-                        secrets;
+                        role_secrets;
 
                     unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
                     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
@@ -345,9 +345,9 @@ namespace validate
                         generate_ed25519_keypair(pk, sk.data());
                         auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
 
-                        secrets.insert({ pk_hex, sk });
+                        role_secrets.insert({ pk_hex, sk });
                     }
-                    return secrets;
+                    return role_secrets;
                 }
             };
 
@@ -1514,7 +1514,7 @@ namespace validate
                 generate_role_secrets(int count)
                 {
                     std::map<std::string, std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES>>
-                        secrets;
+                        role_secrets;
 
                     unsigned char pk[MAMBA_ED25519_KEYSIZE_BYTES];
                     std::array<unsigned char, MAMBA_ED25519_KEYSIZE_BYTES> sk;
@@ -1524,9 +1524,9 @@ namespace validate
                         generate_ed25519_keypair(pk, sk.data());
 
                         auto pk_hex = ::mamba::hex_string(pk, MAMBA_ED25519_KEYSIZE_BYTES);
-                        secrets.insert({ pk_hex, sk });
+                        role_secrets.insert({ pk_hex, sk });
                     }
-                    return secrets;
+                    return role_secrets;
                 }
             };
 

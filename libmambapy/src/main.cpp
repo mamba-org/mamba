@@ -66,7 +66,11 @@ PYBIND11_MODULE(bindings, m)
     py::class_<MPool>(m, "Pool")
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)
-        .def("create_whatprovides", &MPool::create_whatprovides);
+        .def("create_whatprovides", &MPool::create_whatprovides)
+        .def("select_solvables", &MPool::select_solvables)
+        .def("matchspec2id", &MPool::matchspec2id)
+        .def("id2pkginfo",
+             [](MPool& self, Id id) { return PackageInfo(pool_id2solvable(self, id)); });
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<std::vector<fs::path>>())
@@ -137,7 +141,7 @@ PYBIND11_MODULE(bindings, m)
         .def("execute", &MTransaction::execute);
 
     py::class_<MSolver>(m, "Solver")
-        .def(py::init<MPool&, std::vector<std::pair<int, int>>>())
+        .def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_constraint", &MSolver::add_constraint)

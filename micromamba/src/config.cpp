@@ -24,7 +24,7 @@ is_valid_rc_key(const std::string& key)
     {
         return config.config().at(key).rc_configurable();
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range& /*e*/)
     {
         return false;
     }
@@ -39,7 +39,7 @@ is_valid_rc_sequence(const std::string& key, const std::string& value)
         auto& c = config.config().at(key);
         return c.is_valid_serialization(value) && c.rc_configurable() && c.is_sequence();
     }
-    catch (const std::out_of_range& e)
+    catch (const std::out_of_range& /*e*/)
     {
         return false;
     }

@@ -96,6 +96,15 @@ namespace mamba
 
             init_shell(shell_type, shell_prefix);
         }
+        else if (action == "deinit")
+        {
+            if (prefix.empty() || prefix == "base")
+                shell_prefix = ctx.root_prefix;
+            else
+                shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
+
+            deinit_shell(shell_type, shell_prefix);
+        }
         else if (action == "hook")
         {
             // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?

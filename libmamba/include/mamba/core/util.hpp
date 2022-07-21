@@ -161,6 +161,7 @@ namespace mamba
     }
 
     constexpr const char* WHITESPACES(" \r\n\t\f\v");
+    constexpr const wchar_t* WHITESPACES_WSTR(L" \r\n\t\f\v");
 
     bool starts_with(const std::string_view& str, const std::string_view& prefix);
     bool ends_with(const std::string_view& str, const std::string_view& suffix);
@@ -179,7 +180,22 @@ namespace mamba
 
     bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix);
 
+    template <class CharType>
+    inline std::basic_string_view<CharType> strip(const std::basic_string_view<CharType>& input,
+                                                  const std::basic_string_view<CharType>& chars)
+    {
+        size_t start = input.find_first_not_of(chars);
+        if (start == std::basic_string<CharType>::npos)
+        {
+            return std::basic_string_view<CharType>();
+        }
+        size_t stop = input.find_last_not_of(chars) + 1;
+        size_t length = stop - start;
+        return length == 0 ? std::basic_string_view<CharType>() : input.substr(start, length);
+    }
+
     std::string_view strip(const std::string_view& input);
+    std::wstring_view strip(const std::wstring_view& input);
     std::string_view lstrip(const std::string_view& input);
     std::string_view rstrip(const std::string_view& input);
 
@@ -187,9 +203,41 @@ namespace mamba
     std::string_view lstrip(const std::string_view& input, const std::string_view& chars);
     std::string_view rstrip(const std::string_view& input, const std::string_view& chars);
 
-    std::vector<std::string> split(const std::string_view& input,
-                                   const std::string_view& sep,
-                                   std::size_t max_split = SIZE_MAX);
+    template <class CharType>
+    inline std::vector<std::basic_string<CharType>> split(
+        const std::basic_string_view<CharType>& input,
+        const std::basic_string_view<CharType>& sep,
+        std::size_t max_split = SIZE_MAX)
+    {
+        std::vector<std::basic_string<CharType>> result;
+        std::size_t i = 0, j = 0, len = input.size(), n = sep.size();
+
+        while (i + n <= len)
+        {
+            if (input[i] == sep[0] && input.substr(i, n) == sep)
+            {
+                if (max_split-- <= 0)
+                    break;
+                result.emplace_back(input.substr(j, i - j));
+                i = j = i + n;
+            }
+            else
+            {
+                i++;
+            }
+        }
+        result.emplace_back(input.substr(j, len - j));
+        return result;
+    }
+
+    // unfortunately, c++ doesn't support templating function s. t. strip(std::string, std::string)
+    // works, so this is a workaround that fixes it
+    inline std::vector<std::string> split(const std::string_view& input,
+                                          const std::string_view& sep,
+                                          std::size_t max_split = SIZE_MAX)
+    {
+        return split<char>(input, sep, max_split);
+    }
 
     std::vector<std::string> rsplit(const std::string_view& input,
                                     const std::string_view& sep,
@@ -207,16 +255,15 @@ namespace mamba
                && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
     }
 
-
-    template <class S>
-    inline std::string join(const char* j, const S& container)
+    template <class S, class CharType>
+    inline std::basic_string<CharType> join(const CharType* sep, const S& container)
     {
         if (container.empty())
-            return "";
-        std::string result = container[0];
+            return std::basic_string<CharType>();
+        std::basic_string<CharType> result = container[0];
         for (std::size_t i = 1; i < container.size(); ++i)
         {
-            result += j;
+            result += sep;
             result += container[i];
         }
         return result;

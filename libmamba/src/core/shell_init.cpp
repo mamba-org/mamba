@@ -435,7 +435,7 @@ namespace mamba
         }
 
         std::string result = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, "");
-        
+
         if (Context::instance().dry_run)
         {
             return;
@@ -691,7 +691,7 @@ namespace mamba
         }
         else if (shell == "cmd.exe")
         {
-              deinit_root_prefix_cmdexe(root_prefix);
+            deinit_root_prefix_cmdexe(root_prefix);
         }
         else if (shell == "powershell")
         {
@@ -767,7 +767,6 @@ namespace mamba
 
         if (profile_content != profile_original_content || !found_mamba_initialize)
         {
-
             if (!fs::exists(profile_path.parent_path()))
             {
                 fs::create_directories(profile_path.parent_path());

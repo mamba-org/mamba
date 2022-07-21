@@ -795,7 +795,7 @@ namespace mamba
         if (!fs::exists(profile_path))
         {
             LOG_INFO << "No existing PowerShell profile at " << profile_path << ".";
-            return true;
+            return;
         }
 
         std::string profile_content = read_contents(profile_path);
@@ -811,7 +811,7 @@ namespace mamba
 
         if (Context::instance().dry_run)
         {
-            return false;
+            return;
         }
 
         if (strip(profile_content).empty())
@@ -832,8 +832,6 @@ namespace mamba
             std::ofstream out = open_ofstream(profile_path, std::ios::out | std::ios::binary);
             out << profile_content;
         }
-
-        return true;
     }
 
     std::string find_powershell_paths(const std::string& exe)

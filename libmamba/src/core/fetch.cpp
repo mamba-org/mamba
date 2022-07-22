@@ -264,7 +264,7 @@ namespace mamba
         if (proxy)
         {
             curl_easy_setopt(handle, CURLOPT_PROXY, proxy);
-            LOG_INFO << "Proxy set" << std::endl;
+            LOG_INFO << "Using Proxy " << proxy;
         }
 
         std::string& ssl_verify = Context::instance().ssl_verify;

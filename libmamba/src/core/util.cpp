@@ -1521,7 +1521,6 @@ namespace mamba
         const char* match;
         for (auto& [scheme, proxy] : proxies)
         {
-            LOG_INFO << proxy << std::endl;
             if (starts_with(url, scheme))
             {
                 auto match_size = scheme.size();

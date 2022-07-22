@@ -50,7 +50,7 @@ jobs:
     - name: run docs linter
       uses: ammaraskar/sphinx-action@master
       with:
-        build-command: "python docs/API-gen.py"
+        build-command: "python docs/api_gen.py"
         docs-folder: "docs/"
     - run: |
         git add docs/source/user_guide/commands_micromamba

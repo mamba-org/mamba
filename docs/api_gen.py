@@ -1,10 +1,11 @@
+import sys
 import subprocess
 
 
-def generate_string_docs(commands_list):
+def generate_string_docs(commands_list, micromamba_cmd):
     for c in commands_list:
 
-        out = subprocess.check_output(["micromamba", c, "--help"])
+        out = subprocess.check_output([micromamba_cmd, c, "--help"])
 
         opts = out.decode("utf-8")
 
@@ -74,7 +75,7 @@ if __name__ == "__main__":
         "repoquery",
     ]
 
-    generate_string_docs(commands_list)
+    generate_string_docs(commands_list, micromamba_cmd=sys.argv[1] if len(sys.argv) > 1 else "micromamba")
 
     # Generate sub-files for config command
     with open("./source/user_guide/commands_micromamba/config.rst", "a") as f:

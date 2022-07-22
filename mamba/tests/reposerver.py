@@ -18,11 +18,6 @@ try:
 except ImportError:
     conda_content_trust_available = False
 
-if os.environ.get("TESTPWD"):
-    default_user, default_password = os.environ.get("TESTPWD").split(":")
-else:
-    default_user, default_password = None, None
-
 parser = argparse.ArgumentParser(description="Start a simple conda package server.")
 parser.add_argument("-p", "--port", type=int, default=8000, help="Port to use.")
 parser.add_argument(
@@ -53,13 +48,13 @@ parser.add_argument(
 parser.add_argument(
     "--user",
     type=str,
-    default=default_user,
+    default=None,
     help="Use token as API Key",
 )
 parser.add_argument(
     "--password",
     type=str,
-    default=default_password,
+    default=None,
     help="Use token as API Key",
 )
 args = parser.parse_args()

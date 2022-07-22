@@ -14,6 +14,7 @@
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/queue.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_scope.hpp"
@@ -474,31 +475,29 @@ namespace mamba
         pool.create_whatprovides();
 
         // Just add the packages we want to remove directly to the transaction
-        Queue q, job, decision;
-        queue_init(&q);
-        queue_init(&job);
-        queue_init(&decision);
+        MQueue q, job, decision;
 
         std::vector<std::string> not_found;
         for (auto& s : specs_to_remove)
         {
-            queue_empty(&job);
-            queue_empty(&q);
+            job.clear();
+            q.clear();
+
             Id id = pool_conda_matchspec((Pool*) pool, s.conda_build_form().c_str());
             if (id)
             {
-                queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+                job.push(SOLVER_SOLVABLE_PROVIDES, id);
             }
-            selection_solvables((Pool*) pool, &job, &q);
+            selection_solvables(pool, job, q);
 
-            if (q.count == 0)
+            if (q.count() == 0)
             {
                 not_found.push_back("\n - " + s.str());
             }
-            for (std::size_t i = 0; i < size_t(q.count); i++)
+            for (auto& el : q)
             {
                 // To remove, these have to be negative
-                queue_push(&decision, -q.elements[i]);
+                decision.push(-el);
             }
         }
 
@@ -508,8 +507,8 @@ namespace mamba
             throw std::runtime_error("Could not find packages to remove:" + join("", not_found));
         }
 
-        selection_solvables((Pool*) pool, &job, &q);
-        bool remove_success = size_t(q.count) >= specs_to_remove.size();
+        selection_solvables(pool, job, q);
+        bool remove_success = size_t(q.count()) >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
         Solvable* solvable;
@@ -517,12 +516,10 @@ namespace mamba
         // find repo __explicit_specs__ and install all packages from it
         FOR_REPO_SOLVABLES(mrepo.repo(), pkg_id, solvable)
         {
-            queue_push(&decision, pkg_id);
+            decision.push(pkg_id);
         }
 
-        queue_free(&job);
-
-        m_transaction = transaction_create_decisionq((Pool*) pool, &decision, nullptr);
+        m_transaction = transaction_create_decisionq(pool, decision, nullptr);
         init();
 
         m_history_entry = History::UserRequest::prefilled();
@@ -538,9 +535,6 @@ namespace mamba
             Console::instance().json_down("actions");
             Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
         }
-        queue_free(&q);
-        queue_free(&decision);
-        queue_free(&job);
 
         m_transaction_context = TransactionContext(
             Context::instance().target_prefix, find_python_version(), specs_to_install);

@@ -211,23 +211,28 @@ namespace mamba
                     {
                         info.type = AuthenticationType::kCondaToken;
                         info.value = el["token"].get<std::string>();
+                        LOG_INFO << "Found token for host " << host
+                                 << " in ~/.mamba/auth/authentication.json";
                     }
                     else if (type == "BasicHTTPAuthentication")
                     {
                         info.type = AuthenticationType::kBasicHTTPAuthentication;
+                        auto const& user = el.value("user", "");
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
                         {
-                            info.value = concat(el.value("user", ""), ":", pass.value());
+                            info.value = concat(user, ":", pass.value());
+                            LOG_INFO << "Found credentials for user " << user << " for host "
+                                     << host << " in ~/.mamba/auth/authentication.json";
                         }
                         else
                         {
-                            LOG_ERROR << "Could not decode base64 password" << std::endl;
+                            LOG_ERROR
+                                << "Found credentials for user " << user << " for host " << host
+                                << " in ~/.mamba/auth/authentication.json but could not decode base64 password"
+                                << std::endl;
                         }
                     }
-                    LOG_INFO << "Found token or password for " << host
-                             << " in ~/.mamba/auth/authentication.json file " << info.value;
-
                     m_authentication_info[host] = info;
                 }
             }

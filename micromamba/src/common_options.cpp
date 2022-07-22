@@ -170,7 +170,7 @@ init_channel_parser(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& channels = config.at("channels");
-    channels.set_post_merge_hook(channels_hook).needs({ "override_channels" });
+    channels.needs({ "override_channels" });
     subcom
         ->add_option("-c,--channel", channels.get_cli_config<string_list>(), channels.description())
         ->type_size(1)
@@ -225,29 +225,11 @@ init_channel_parser(CLI::App* subcom)
 }
 
 void
-channels_hook(std::vector<std::string>& channels)
-{
-    auto& config = Configuration::instance();
-    bool override_channels = config.at("override_channels").value<bool>();
-
-    if (override_channels)
-    {
-        if (config.at("channels").cli_configured())
-        {
-            channels = config.at("channels").cli_value<std::vector<std::string>>();
-        }
-        else
-        {
-            channels.clear();
-        }
-    }
-}
-
-void
 override_channels_hook(bool& value)
 {
     auto& config = Configuration::instance();
     auto& override_channels = config.at("override_channels");
+    auto& channels = config.at("channels");
     bool override_channels_enabled = config.at("override_channels_enabled").value<bool>();
 
     if (!override_channels_enabled && override_channels.configured())
@@ -255,6 +237,17 @@ override_channels_hook(bool& value)
         LOG_WARNING
             << "'override_channels' disabled by 'override_channels_enabled' set to 'false' (skipped)";
         value = false;
+    }
+
+    if (value)
+    {
+        std::vector<std::string> updated_channels;
+        if (channels.cli_configured())
+        {
+            updated_channels = channels.cli_value<std::vector<std::string>>();
+        }
+        updated_channels.emplace_back("nodefaults");
+        channels.set_cli_value(updated_channels);
     }
 }
 

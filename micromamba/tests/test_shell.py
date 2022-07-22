@@ -94,7 +94,7 @@ class TestShell:
                 raise (e)
 
         def custom_shell(shell):
-            umamba = get_umamba(cwd=os.getcwd())
+            umamba = get_umamba()
             f_name = os.path.join(
                 TestShell.root_prefix, "shell_script_" + random_string()
             )
@@ -201,7 +201,7 @@ class TestShell:
             assert f"export CONDA_PROMPT_MODIFIER='({n}) '" in res
 
     def test_activate_target_prefix_checks(self):
-        """Shell operations have their own 'shel_prefix' Configurable
+        """Shell operations have their own 'shell_prefix' Configurable
         and doesn't use 'target_prefix'."""
 
         res = shell("activate", "-p", TestShell.root_prefix, "--print-config-only")

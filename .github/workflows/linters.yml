@@ -78,7 +78,7 @@ jobs:
     - name: run docs linter
       uses: ammaraskar/sphinx-action@master
       with:
-        build-command: "python api_gen.py"
+        build-command: "python api_gen.py ./micromamba"
         docs-folder: "docs/"
     - run: |
         git add docs/source/user_guide/commands_micromamba

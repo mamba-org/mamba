@@ -384,19 +384,25 @@ namespace mamba
             auto& ctx = Context::instance();
 
             auto chan = ChannelBuilder::from_value(value);
-            auto token_base = chan.base_url();
             if (!chan.token())
             {
-                auto it = ctx.authentication_info().find(token_base);
-                if (it != ctx.authentication_info().end()
-                    && it->second.type == AuthenticationType::kCondaToken)
+                auto const& with_channel = chan.base_url();
+                auto const& without_channel = concat_scheme_url(chan.scheme(), chan.location());
+                for (auto const& auth : { with_channel, without_channel })
                 {
-                    chan.m_token = it->second.value;
-                }
-                else if (it != ctx.authentication_info().end()
-                         && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
-                {
-                    chan.m_auth = it->second.value;
+                    auto it = ctx.authentication_info().find(auth);
+                    if (it != ctx.authentication_info().end()
+                        && it->second.type == AuthenticationType::kCondaToken)
+                    {
+                        chan.m_token = it->second.value;
+                        break;
+                    }
+                    else if (it != ctx.authentication_info().end()
+                             && it->second.type == AuthenticationType::kBasicHTTPAuthentication)
+                    {
+                        chan.m_auth = it->second.value;
+                        break;
+                    }
                 }
             }
             res = get_cache().insert(std::make_pair(value, std::move(chan))).first;

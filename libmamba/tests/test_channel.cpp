@@ -469,6 +469,20 @@ namespace mamba
                   std::vector<std::string>{ { "https://conda.anaconda.org/conda-forge/noarch" } });
     }
 
+    TEST(Channel, add_multiple_tokens)
+    {
+        auto& ctx = Context::instance();
+        ctx.authentication_info()["https://conda.anaconda.org"]
+            = AuthenticationInfo{ AuthenticationType::kCondaToken, "base-token" };
+        ctx.authentication_info()["https://conda.anaconda.org/conda-forge"]
+            = AuthenticationInfo{ AuthenticationType::kCondaToken, "channel-token" };
+
+        ChannelBuilder::clear_cache();
+
+        const auto& chan = make_channel("conda-forge[noarch]");
+        EXPECT_EQ(chan.token(), "channel-token");
+    }
+
     TEST(Channel, fix_win_file_path)
     {
         if (platform == "win-64")

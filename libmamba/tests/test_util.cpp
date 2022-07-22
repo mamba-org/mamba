@@ -4,6 +4,7 @@
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/context.hpp"
 
 
 namespace mamba
@@ -101,5 +102,20 @@ namespace mamba
                 EXPECT_EQ(r, x.value());
             }
         }
+    }
+
+    TEST(utils, proxy_match)
+    {
+        Context::instance().proxy_servers = { { "http", "foo" },
+                                              { "https", "bar" },
+                                              { "https://example.net", "foobar" },
+                                              { "https://example.net:8080", "baz" } };
+
+        EXPECT_EQ(proxy_match("http://example.com/channel"), std::string("foo"));
+        EXPECT_EQ(proxy_match("http:/example.net/channel"), std::string("foo"));
+        EXPECT_EQ(proxy_match("https://example.com/channel"), std::string("bar"));
+        EXPECT_EQ(proxy_match("https:/example.com:8080/channel"), std::string("bar"));
+        EXPECT_EQ(proxy_match("https://example.net/channel"), std::string("foobar"));
+        EXPECT_EQ(proxy_match("https://example.net:8080/channel"), std::string("baz"));
     }
 }

@@ -28,7 +28,7 @@ namespace mamba
     namespace
     {
         std::map<std::string, std::string> other_pkg_mgr_install_instructions
-            = { { "pip", "pip install -r {0} --no-input" } };
+            = { { "pip", "python -m pip install -r {0} --no-input" } };
     }
 
     bool reproc_killed(int status)

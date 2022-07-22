@@ -1176,7 +1176,6 @@ namespace mamba
         insert(Configurable("proxy_servers", &ctx.proxy_servers)
                    .group("Network")
                    .set_rc_configurable()
-                   .set_env_var_names({ "HTTP_PROXY", "HTTPS_PROXY" })
                    .description("Use a proxy server for network connections")
                    .long_description(unindent(R"(
                         'proxy_servers' should be a dictionary where the key is either in the form of

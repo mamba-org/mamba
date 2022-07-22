@@ -9,7 +9,7 @@ on:
      - master
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -42,3 +42,14 @@ jobs:
       shell: pwsh
       run: |
         pre-commit run --all-files --verbose --show-diff-on-failure
+
+  lint_docs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: run docs linter
+      uses: ammaraskar/sphinx-action@master
+      build-command: "python docs/API-gen.py"
+      docs-folder: "docs/"
+    - run: |
+        git add docs/source/user_guide/commands_micromamba
+        git diff --name-status master | python docs/linter.py

@@ -47,6 +47,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: create build environment
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: ./micromamba/environment-dev.yml
+        environment-name: build_env
+        cache-env: true
+        micromamba-version: "0.23.0"
+    - uses: hendrikmuhs/ccache-action@main
+      with:
+        variant: sccache
+        key: ${{ github.job }}-${{ matrix.os }}
+        restore-keys: |
+          libmamba_static-${{ matrix.os }}
+    - name: build micromamba
+      shell: bash -l {0}
+      run: |
+        micromamba activate build_env
+        mkdir build
+        cd build
+        cmake .. -DBUILD_MICROMAMBA=ON \
+                 -DBUILD_LIBMAMBA=ON \
+                 -DBUILD_SHARED=ON \
+                 -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                 -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                 -GNinja
+        ninja
+        sccache --show-stats
+        cp build/micromamba/micromamba docs/
     - name: run docs linter
       uses: ammaraskar/sphinx-action@master
       with:

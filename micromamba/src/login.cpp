@@ -117,7 +117,10 @@ set_login_command(CLI::App* subcom)
     subcom->add_option("-t,--token", token, "Token for the account");
     subcom->add_flag("--password-stdin", pass_stdin, "Read password from stdin");
     subcom->add_flag("--token-stdin", token_stdin, "Read token from stdin");
-    subcom->add_option("host", host, "Host for the account");
+    subcom->add_option("host",
+                       host,
+                       "Host for the account. The scheme (e.g. https://) is ignored\n"
+                       "but not the port (optional) nor the channel (optional).");
 
     subcom->callback(
         []()

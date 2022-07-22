@@ -153,11 +153,11 @@ namespace mamba
                                               { "https://example.net", "foobar" },
                                               { "https://example.net:8080", "baz" } };
 
-        EXPECT_EQ(proxy_match("http://example.com/channel"), std::string("foo"));
-        EXPECT_EQ(proxy_match("http:/example.net/channel"), std::string("foo"));
-        EXPECT_EQ(proxy_match("https://example.com/channel"), std::string("bar"));
-        EXPECT_EQ(proxy_match("https:/example.com:8080/channel"), std::string("bar"));
-        EXPECT_EQ(proxy_match("https://example.net/channel"), std::string("foobar"));
-        EXPECT_EQ(proxy_match("https://example.net:8080/channel"), std::string("baz"));
+        EXPECT_STREQ(proxy_match("http://example.com/channel"), "foo");
+        EXPECT_STREQ(proxy_match("http:/example.net/channel"), "foo");
+        EXPECT_STREQ(proxy_match("https://example.com/channel"), "bar");
+        EXPECT_STREQ(proxy_match("https:/example.com:8080/channel"), "bar");
+        EXPECT_STREQ(proxy_match("https://example.net/channel"), "foobar");
+        EXPECT_STREQ(proxy_match("https://example.net:8080/channel"), "baz");
     }
 }

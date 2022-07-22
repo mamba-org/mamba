@@ -4,8 +4,10 @@ import glob
 import os
 import re
 import shutil
+import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from typing import Dict, List
 
 try:
     import conda_content_trust.authentication as cct_authentication
@@ -18,53 +20,40 @@ try:
 except ImportError:
     conda_content_trust_available = False
 
-parser = argparse.ArgumentParser(description="Start a simple conda package server.")
-parser.add_argument("-p", "--port", type=int, default=8000, help="Port to use.")
-parser.add_argument(
-    "-d",
-    "--directory",
-    type=str,
-    default=os.getcwd(),
-    help="Root directory for serving.",
-)
-parser.add_argument(
-    "-a",
-    "--auth",
-    default=None,
-    type=str,
-    help="auth method (none, basic, or token)",
-)
-parser.add_argument(
-    "--sign",
-    action="store_true",
-    help="Sign repodata (note: run generate_gpg_keys.sh before)",
-)
-parser.add_argument(
-    "--token",
-    type=str,
-    default=None,
-    help="Use token as API Key",
-)
-parser.add_argument(
-    "--user",
-    type=str,
-    default=None,
-    help="Use token as API Key",
-)
-parser.add_argument(
-    "--password",
-    type=str,
-    default=None,
-    help="Use token as API Key",
-)
-args = parser.parse_args()
+
+def fatal_error(message: str) -> None:
+    """Print error and exit."""
+    print(message, file=sys.stderr)
+    exit(1)
 
 
-def get_fingerprint(gpg_output):
+def get_fingerprint(gpg_output: str) -> str:
     lines = gpg_output.splitlines()
     fpline = lines[1].strip()
     fpline = fpline.replace(" ", "")
     return fpline
+
+
+KeySet = Dict[str, List[Dict[str, str]]]
+
+
+def normalize_keys(keys: KeySet) -> KeySet:
+    out = {}
+    for ik, iv in keys.items():
+        out[ik] = []
+        for el in iv:
+            if isinstance(el, str):
+                el = el.lower()
+                keyval = cct_root_signing.fetch_keyval_from_gpg(el)
+                res = {"fingerprint": el, "public": keyval}
+            elif isinstance(el, dict):
+                res = {
+                    "private": el["private"].lower(),
+                    "public": el["public"].lower(),
+                }
+            out[ik].append(res)
+
+    return out
 
 
 class RepoSigner:
@@ -85,23 +74,25 @@ class RepoSigner:
         ],
     }
 
-    def normalize_keys(self, keys):
-        out = {}
-        for ik, iv in keys.items():
-            out[ik] = []
-            for el in iv:
-                if isinstance(el, str):
-                    el = el.lower()
-                    keyval = cct_root_signing.fetch_keyval_from_gpg(el)
-                    res = {"fingerprint": el, "public": keyval}
-                elif isinstance(el, dict):
-                    res = {
-                        "private": el["private"].lower(),
-                        "public": el["public"].lower(),
-                    }
-                out[ik].append(res)
+    def __init__(self, in_folder: str) -> None:
+        self.in_folder = Path(in_folder).resolve()
+        self.folder = self.in_folder.parent / (str(self.in_folder.name) + "_signed")
+        self.keys["root"] = [
+            get_fingerprint(os.environ["KEY1"]),
+            get_fingerprint(os.environ["KEY2"]),
+        ]
+        self.keys = normalize_keys(self.keys)
 
-        return out
+    def make_signed_repo(self) -> Path:
+        print("[reposigner] Using keys:", self.keys)
+        print("[reposigner] Using folder:", self.folder)
+
+        self.folder.mkdir(exist_ok=True)
+        self.create_root(self.keys)
+        self.create_key_mgr(self.keys)
+        for f in glob.glob(str(self.in_folder / "**" / "repodata.json")):
+            self.sign_repodata(Path(f), self.keys)
+        return self.folder
 
     def create_root(self, keys):
         root_keys = keys["root"]
@@ -204,82 +195,74 @@ class RepoSigner:
         cct_signing.sign_all_in_repodata(str(final_fn), pkg_mgr_key)
         print(f"[reposigner] Signed {final_fn}")
 
-    def __init__(self, in_folder=args.directory):
 
-        self.keys["root"] = [
-            get_fingerprint(os.environ["KEY1"]),
-            get_fingerprint(os.environ["KEY2"]),
-        ]
+class ChannelHandler(SimpleHTTPRequestHandler):
 
-        self.in_folder = Path(in_folder).resolve()
-        self.folder = self.in_folder.parent / (str(self.in_folder.name) + "_signed")
+    url_pattern = re.compile(r"^/(?:t/[^/]+/)?([^/]+)")
 
-        if not self.folder.exists():
-            os.mkdir(self.folder)
+    def do_GET(self) -> None:
+        # First extract channel name
+        channel_name = None
+        if tuple(channels.keys()) != (None,):
+            match = self.url_pattern.match(self.path)
+            if match:
+                channel_name = match.group(1)
+                # Strip channel for file server
+                start, end = match.span(1)
+                self.path = self.path[:start] + self.path[end:]
 
-        self.keys = self.normalize_keys(self.keys)
-        print("[reposigner] Using keys:", self.keys)
+        # Then dispatch to appropriate auth method
+        if channel_name in channels:
+            channel = channels[channel_name]
+            self.directory = channel["directory"]
+            auth = channel["auth"]
+            if auth == "none":
+                return SimpleHTTPRequestHandler.do_GET(self)
+            elif auth == "basic":
+                server_key = base64.b64encode(
+                    bytes(f"{channel['user']}:{channel['password']}", "utf-8")
+                ).decode("ascii")
+                return self.basic_do_GET(server_key=server_key)
+            elif auth == "token":
+                return self.token_do_GET(server_token=channel["token"])
 
-        print("[reposigner] Using folder:", self.folder)
+        self.send_response(404)
 
-        self.create_root(self.keys)
-        self.create_key_mgr(self.keys)
-        for f in glob.glob(str(self.in_folder / "**" / "repodata.json")):
-            self.sign_repodata(Path(f), self.keys)
-
-
-class BasicAuthHandler(SimpleHTTPRequestHandler):
-    """Main class to present webpages and authentication."""
-
-    user = args.user
-    password = args.password
-    key = base64.b64encode(bytes(f"{args.user}:{args.password}", "utf-8")).decode(
-        "ascii"
-    )
-
-    def do_HEAD(self):
+    def basic_do_HEAD(self) -> None:
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
 
-    def do_AUTHHEAD(self):
+    def basic_do_AUTHHEAD(self) -> None:
         self.send_response(401)
         self.send_header("WWW-Authenticate", 'Basic realm="Test"')
         self.send_header("Content-type", "text/html")
         self.end_headers()
 
-    def do_GET(self):
-        """Present frontpage with user authentication."""
+    def basic_do_GET(self, server_key: str) -> None:
+        """Present frontpage with basic user authentication."""
         auth_header = self.headers.get("Authorization", "")
 
         if not auth_header:
-            self.do_AUTHHEAD()
+            self.basic_do_AUTHHEAD()
             self.wfile.write(b"no auth header received")
-            pass
-        elif auth_header == "Basic " + self.key:
+        elif auth_header == "Basic " + server_key:
             SimpleHTTPRequestHandler.do_GET(self)
-            pass
         else:
-            self.do_AUTHHEAD()
+            self.basic_do_AUTHHEAD()
             self.wfile.write(auth_header.encode("ascii"))
             self.wfile.write(b"not authenticated")
-            pass
 
-
-class CondaTokenHandler(SimpleHTTPRequestHandler):
-    """Main class to present webpages and authentication."""
-
-    api_key = args.token
     token_pattern = re.compile("^/t/([^/]+?)/")
 
-    def do_GET(self):
+    def token_do_GET(self, server_token: str) -> None:
         """Present frontpage with user authentication."""
         match = self.token_pattern.search(self.path)
         if match:
             prefix_length = len(match.group(0)) - 1
             new_path = self.path[prefix_length:]
-            found_api_key = match.group(1)
-            if found_api_key == self.api_key:
+            found_token = match.group(1)
+            if found_token == server_token:
                 self.path = new_path
                 return SimpleHTTPRequestHandler.do_GET(self)
 
@@ -289,25 +272,93 @@ class CondaTokenHandler(SimpleHTTPRequestHandler):
         self.wfile.write(b"no valid api key received")
 
 
-if args.sign:
-    if not conda_content_trust_available:
-        print("Conda content trust not installed!")
-        exit(1)
-    signer = RepoSigner()
-    os.chdir(signer.folder)
-else:
-    os.chdir(args.directory)
+global_parser = argparse.ArgumentParser(
+    description="Start a multi-channel conda package server."
+)
+global_parser.add_argument("-p", "--port", type=int, default=8000, help="Port to use.")
 
-if args.auth == "none":
-    handler = SimpleHTTPRequestHandler
-elif args.auth == "basic" or (args.user and args.password):
-    handler = BasicAuthHandler
-elif args.auth == "token" or args.token:
-    handler = CondaTokenHandler
+channel_parser = argparse.ArgumentParser(
+    description="Start a simple conda package server."
+)
+channel_parser.add_argument(
+    "-d",
+    "--directory",
+    type=str,
+    default=os.getcwd(),
+    help="Root directory for serving.",
+)
+channel_parser.add_argument(
+    "-n",
+    "--name",
+    type=str,
+    default=None,
+    help="Unique name of the channel used in URL",
+)
+channel_parser.add_argument(
+    "-a",
+    "--auth",
+    default=None,
+    type=str,
+    help="auth method (none, basic, or token)",
+)
+channel_parser.add_argument(
+    "--sign",
+    action="store_true",
+    help="Sign repodata (note: run generate_gpg_keys.sh before)",
+)
+channel_parser.add_argument(
+    "--token",
+    type=str,
+    default=None,
+    help="Use token as API Key",
+)
+channel_parser.add_argument(
+    "--user",
+    type=str,
+    default=None,
+    help="Use token as API Key",
+)
+channel_parser.add_argument(
+    "--password",
+    type=str,
+    default=None,
+    help="Use token as API Key",
+)
 
+
+# Gobal args can be given anywhere with the first set of args for backward compatibility.
+args, argv_remaining = global_parser.parse_known_args()
 PORT = args.port
 
-server = HTTPServer(("", PORT), handler)
+# Iteratively parse arguments in sets.
+# Each argument set, separated by -- in the CLI is for a channel.
+# Credits: @hpaulj on SO https://stackoverflow.com/a/26271421
+channels = {}
+while argv_remaining:
+    args, argv_remaining = channel_parser.parse_known_args(argv_remaining)
+    # Drop leading -- to move to next argument set
+    argv_remaining = argv_remaining[1:]
+    # Consolidation
+    if not args.auth:
+        if args.user and args.password:
+            args.auth = "basic"
+        elif args.token:
+            args.auth = "token"
+        else:
+            args.auth = "none"
+    if args.sign:
+        if not conda_content_trust_available:
+            fatal_error("Conda content trust not installed!")
+        args.directory = RepoSigner(args.directory).make_signed_repo()
+
+    channels[args.name] = vars(args)
+
+# Unamed channel in multi-channel case would clash URLs but we want to allow
+# a single unamed channel for backward compatibility.
+if (len(channels) > 1) and (None in channels):
+    fatal_error("Cannot use empty channel name when using multiple channels")
+
+server = HTTPServer(("", PORT), ChannelHandler)
 print("Server started at localhost:" + str(PORT))
 try:
     server.serve_forever()

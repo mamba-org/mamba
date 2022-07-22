@@ -20,19 +20,25 @@ Quickstarts
   $ micromamba --help
 
   Subcommands:
-    activate                    Activate a conda / micromamba environment
-    deactivate                  Deactivate a conda / micromamba environment
     shell                       Generate shell init scripts
     create                      Create new environment
     install                     Install packages in active environment
     update                      Update packages in active environment
+    repoquery                   Find and analyze packages in active environment or channels
     remove                      Remove packages from active environment
     list                        List packages in active environment
+    package                     Extract a package or bundle files into an archive
+    clean                       Clean package cache
     config                      Configuration of micromamba
     info                        Information about micromamba
-    clean                       Clean package cache
     constructor                 Commands to support using micromamba in constructor
     env                         List environments
+    activate                    Activate an environment
+    run                         Run an executable in an environment
+    ps                          Show, inspect or kill running processes
+    auth                        Login or logout of a given host
+    search                      Find packages in active environment or channels
+
 
 To activate an environment just call ``micromamba activate /path/to/env`` or, when it's a named environment in your :ref:`root prefix<root-prefix>`, then you can also use ``micromamba activate myenv``.
 

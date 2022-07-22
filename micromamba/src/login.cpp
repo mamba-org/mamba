@@ -33,14 +33,20 @@ get_token_base(const std::string& host)
 {
     mamba::URLHandler url_handler(host);
 
-    std::string token_base = mamba::concat(
-        (url_handler.scheme().empty() ? "https" : url_handler.scheme()), "://", url_handler.host());
+    std::string maybe_colon_and_port{};
     if (!url_handler.port().empty())
     {
-        token_base.append(":");
-        token_base.append(url_handler.port());
+        maybe_colon_and_port.push_back(':');
+        maybe_colon_and_port.append(url_handler.port());
     }
-    return token_base;
+    // Removing the trailing slashes
+    std::string maybe_path = url_handler.path();
+    while ((!maybe_path.empty()) && (maybe_path.back() == '/'))
+    {
+        maybe_path.pop_back();
+    }
+
+    return mamba::concat(url_handler.host(), maybe_colon_and_port, maybe_path);
 }
 
 void
@@ -64,7 +70,6 @@ set_logout_command(CLI::App* subcom)
                     fs::remove(auth_file);
                 return 0;
             }
-            auto token_base = get_token_base(host);
 
             nlohmann::json auth_info;
 
@@ -76,7 +81,8 @@ set_logout_command(CLI::App* subcom)
                     fi >> auth_info;
                 }
 
-                auto it = auth_info.find(host);
+                auto token_base = get_token_base(host);
+                auto it = auth_info.find(token_base);
                 if (it != auth_info.end())
                 {
                     auth_info.erase(it);
@@ -111,7 +117,10 @@ set_login_command(CLI::App* subcom)
     subcom->add_option("-t,--token", token, "Token for the account");
     subcom->add_flag("--password-stdin", pass_stdin, "Read password from stdin");
     subcom->add_flag("--token-stdin", token_stdin, "Read token from stdin");
-    subcom->add_option("host", host, "Host for the account");
+    subcom->add_option("host",
+                       host,
+                       "Host for the account. The scheme (e.g. https://) is ignored\n"
+                       "but not the port (optional) nor the channel (optional).");
 
     subcom->callback(
         []()

@@ -455,7 +455,7 @@ namespace mamba
     TEST(Channel, add_token)
     {
         auto& ctx = Context::instance();
-        ctx.authentication_info()["https://conda.anaconda.org"]
+        ctx.authentication_info()["conda.anaconda.org"]
             = AuthenticationInfo{ AuthenticationType::kCondaToken, "my-12345-token" };
 
         ChannelBuilder::clear_cache();
@@ -467,6 +467,20 @@ namespace mamba
                       { "https://conda.anaconda.org/t/my-12345-token/conda-forge/noarch" } });
         EXPECT_EQ(chan.urls(false),
                   std::vector<std::string>{ { "https://conda.anaconda.org/conda-forge/noarch" } });
+    }
+
+    TEST(Channel, add_multiple_tokens)
+    {
+        auto& ctx = Context::instance();
+        ctx.authentication_info()["conda.anaconda.org"]
+            = AuthenticationInfo{ AuthenticationType::kCondaToken, "base-token" };
+        ctx.authentication_info()["conda.anaconda.org/conda-forge"]
+            = AuthenticationInfo{ AuthenticationType::kCondaToken, "channel-token" };
+
+        ChannelBuilder::clear_cache();
+
+        const auto& chan = make_channel("conda-forge[noarch]");
+        EXPECT_EQ(chan.token(), "channel-token");
     }
 
     TEST(Channel, fix_win_file_path)

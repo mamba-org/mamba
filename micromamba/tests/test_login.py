@@ -1,9 +1,5 @@
 import base64
 import json
-import os
-import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -11,54 +7,50 @@ import pytest
 from xprocess import ProcessStarter
 
 from .helpers import create as umamba_create
-from .helpers import get_env, get_umamba, login, logout, random_string
+from .helpers import login, logout, random_string
 
 here = Path(__file__).absolute()
 pyserver = here.parent.parent.parent / "mamba" / "tests" / "reposerver.py"
-channel_directory = here.parent.parent.parent / "mamba" / "tests" / "channel_a"
+base_channel_directory = here.parent.parent.parent / "mamba" / "tests"
+channel_a_directory = base_channel_directory / "channel_a"
+channel_b_directory = base_channel_directory / "channel_b"
+channel_r_directory = base_channel_directory / "repo"
 print(pyserver)
 
 assert pyserver.exists()
 
 
 @pytest.fixture
-def auth_file(auth_file_content=None):
-    loc = Path.home() / ".mamba" / "auth" / "authentication.json"
-    loc_exists = False
-    if loc.exists():
-        loc_exists = True
-        loc_backup = loc.rename(loc.with_suffix(".bkup"))
-
-    if auth_file_content:
-        if isinstance(auth_file_content, dict):
-            loc.write_text(json.dumps(auth_file_content))
-        else:
-            loc.write_text(auth_file_content)
-
-    yield loc
-
-    if loc_exists:
-        loc.unlink()
-        loc_backup.rename(loc)
-    else:
-        loc.unlink()
+def auth_file(tmp_home):
+    return tmp_home / ".mamba/auth/authentication.json"
 
 
-def reposerver(
+def reposerver_multi(
     xprocess,
-    auth,
+    channels,
     port=1234,
-    token=None,
-    user=None,
-    password=None,
-    channel_directory=channel_directory,
 ):
-    computed_args = [sys.executable, "-u", pyserver, "--auth", auth, "--port", port]
-    computed_args += ["--directory", channel_directory]
-    if token:
-        computed_args += ["--token", token]
-    elif user and password:
-        computed_args += ["--user", user, "--password", password]
+    computed_args = [sys.executable, "-u", pyserver, "--port", port]
+    for channel in channels:
+        computed_args += [
+            "--directory",
+            channel.get("directory", channel_a_directory),
+        ]
+        if "name" in channel:
+            computed_args += ["--name", channel["name"]]
+        auth = channel["auth"]
+        if auth == "token":
+            computed_args += ["--token", channel["token"]]
+        elif auth == "basic":
+            computed_args += [
+                "--user",
+                channel["user"],
+                "--password",
+                channel["password"],
+            ]
+        else:
+            raise ValueError("Wrong authentication method")
+        computed_args += ["--"]
 
     class Starter(ProcessStarter):
         # startup pattern
@@ -68,11 +60,10 @@ def reposerver(
         args = computed_args
 
     # ensure process is running and return its logfile
-    logfile = xprocess.ensure("reposerver", Starter)
+    xprocess.ensure("reposerver", Starter)
 
-    conn = (
-        f"http://localhost:{port}"  # create a connection or url/port info to the server
-    )
+    # create a connection or url/port info to the server
+    conn = f"http://localhost:{port}"
 
     yield conn
 
@@ -80,14 +71,23 @@ def reposerver(
     xprocess.getinfo("reposerver").terminate()
 
 
+def reposerver_single(xprocess, port=1234, **kwargs):
+    yield from reposerver_multi(channels=[kwargs], xprocess=xprocess, port=port)
+
+
 @pytest.fixture
 def token_server(token, xprocess):
-    yield from reposerver(xprocess, "token", token=token)
+    yield from reposerver_single(xprocess, auth="token", token=token)
 
 
 @pytest.fixture
 def basic_auth_server(user, password, xprocess):
-    yield from reposerver(xprocess, "basic", user=user, password=password)
+    yield from reposerver_single(xprocess, auth="basic", user=user, password=password)
+
+
+@pytest.fixture
+def multi_server(xprocess, channels):
+    yield from reposerver_multi(xprocess, channels=channels)
 
 
 def create(*in_args, folder=None, root=None, override_channels=True):
@@ -111,22 +111,44 @@ def create(*in_args, folder=None, root=None, override_channels=True):
     )
 
 
-def test_login_logout(auth_file):
-    login("https://myserver.com:1234", "--token", "mytoken")
-    login("https://myserver2.com:1234", "--token", "othertoken")
+def remove_url_scheme(url: str) -> str:
+    return url.removeprefix("https://").removeprefix("http://").removeprefix("file://")
+
+
+@pytest.mark.parametrize(
+    "login_1,token_1",
+    [
+        ("https://myserver.com:1234", "mytoken"),
+        ("http://myserver.com", "4320nksdf"),
+        ("myserver.com:1234", "AD9sd55"),
+    ],
+)
+@pytest.mark.parametrize(
+    "login_2, token_2",
+    [
+        ("https://myserver2.com:1234", "othertoken"),
+        ("myserver.com:999", "hfijwr4"),
+        ("myserver2.com/channel", "453"),
+    ],
+)
+def test_login_logout(auth_file, login_1, token_1, login_2, token_2):
+    login(login_1, "--token", token_1)
+    login(login_2, "--token", token_2)
 
     with open(auth_file) as fi:
         data = json.load(fi)
 
-    assert data["https://myserver.com:1234"]["token"] == "mytoken"
-    assert data["https://myserver2.com:1234"]["token"] == "othertoken"
+    for login_, token in [(login_1, token_1), (login_2, token_2)]:
+        login_id = remove_url_scheme(login_)
+        assert login_id in data
+        assert data[login_id]["token"] == token
 
-    logout("https://myserver.com:1234")
+    logout(login_1)
 
     with open(auth_file) as fi:
         data = json.load(fi)
 
-    assert "https://myserver.com:1234" not in data
+    assert remove_url_scheme(login_1) not in data
 
 
 @pytest.mark.parametrize("token", ["crazytoken1234"])
@@ -134,8 +156,10 @@ def test_token(auth_file, token, token_server):
     login(token_server, "--token", token)
     with open(auth_file) as fi:
         data = json.load(fi)
-    assert token_server in data
-    assert data[token_server]["token"] == token
+
+    token_server_id = remove_url_scheme(token_server)
+    assert token_server_id in data
+    assert data[token_server_id]["token"] == token
 
     res = create("-c", token_server, "testpkg", "--json")
     pkg = res["actions"]["FETCH"][0]
@@ -147,8 +171,10 @@ def test_basic_auth(auth_file, user, password, basic_auth_server):
     login(basic_auth_server, "--username", user, "--password", password)
     with open(auth_file) as fi:
         data = json.load(fi)
-    assert basic_auth_server in data
-    assert data[basic_auth_server]["password"] == base64.b64encode(
+
+    basic_auth_server_id = remove_url_scheme(basic_auth_server)
+    assert basic_auth_server_id in data
+    assert data[basic_auth_server_id]["password"] == base64.b64encode(
         password.encode("utf-8")
     ).decode("utf-8")
 
@@ -185,7 +211,7 @@ def test_basic_auth_explicit_txt(
     env_file.write_text(env_file_content.format(server=basic_auth_server))
     env_folder = tmp_path / "env"
     root_folder = tmp_path / "root"
-    res = create("-f", str(env_file), folder=env_folder, root=root_folder)
+    create("-f", str(env_file), folder=env_folder, root=root_folder)
 
     assert (env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists()
 
@@ -200,7 +226,7 @@ def test_basic_auth_explicit_yaml(
     env_file.write_text(env_yaml_content.format(server=basic_auth_server))
     env_folder = tmp_path / "env"
     root_folder = tmp_path / "root"
-    res = create(
+    create(
         "-f",
         str(env_file),
         folder=env_folder,
@@ -219,6 +245,55 @@ def test_token_explicit(auth_file, token, token_server, tmp_path):
     env_file.write_text(env_file_content.format(server=token_server))
     env_folder = tmp_path / "env"
     root_folder = tmp_path / "root"
-    res = create("-f", str(env_file), folder=env_folder, root=root_folder)
+    create("-f", str(env_file), folder=env_folder, root=root_folder)
 
     assert (env_folder / "conda-meta" / "_r-mutex-1.0.1-anacondar_1.json").exists()
+
+
+@pytest.mark.parametrize(
+    "channels",
+    [
+        [
+            {
+                "directory": channel_r_directory,
+                "name": "defaults",
+                "auth": "token",
+                "token": "randomverystrongtoken",
+            },
+            {
+                "directory": channel_a_directory,
+                "name": "channel_a",
+                "auth": "basic",
+                "user": "testuser",
+                "password": "xyzpass",
+            },
+        ]
+    ],
+)
+def test_login_multi_channels(auth_file, channels, multi_server):
+    channel_1, channel_2 = channels
+    for chan in channels:
+        chan_url = f"{multi_server}/{chan['name']}"
+        if chan["auth"] == "token":
+            login(chan_url, "--token", chan["token"])
+        elif chan["auth"] == "basic":
+            login(
+                chan_url,
+                "--username",
+                chan["user"],
+                "--password",
+                chan["password"],
+            )
+        else:
+            raise ValueError(f"Invalid auth method: {chan['auth']}")
+
+    with open(auth_file) as fi:
+        data = json.load(fi)
+
+    channel_1_url = f"{multi_server}/{channel_1['name']}"
+    assert remove_url_scheme(channel_1_url) in data
+    channel_2_url = f"{multi_server}/{channel_2['name']}"
+    assert remove_url_scheme(channel_2_url) in data
+
+    create("-c", channel_1_url, "test-package", override_channels=True)
+    create("-c", channel_2_url, "_r-mutex", override_channels=True)

@@ -39,21 +39,14 @@ get_token_base(const std::string& host)
         maybe_colon_and_port.push_back(':');
         maybe_colon_and_port.append(url_handler.port());
     }
-    // Removing the trailing slashes to keep authentication file backward compatible with
-    // the version without path/channel part of the token.
+    // Removing the trailing slashes
     std::string maybe_path = url_handler.path();
     while ((!maybe_path.empty()) && (maybe_path.back() == '/'))
     {
         maybe_path.pop_back();
     }
 
-    std::string token_base
-        = mamba::concat((url_handler.scheme().empty() ? "https" : url_handler.scheme()),
-                        "://",
-                        url_handler.host(),
-                        maybe_colon_and_port,
-                        maybe_path);
-    return token_base;
+    return mamba::concat(url_handler.host(), maybe_colon_and_port, maybe_path);
 }
 
 void
@@ -77,7 +70,6 @@ set_logout_command(CLI::App* subcom)
                     fs::remove(auth_file);
                 return 0;
             }
-            auto token_base = get_token_base(host);
 
             nlohmann::json auth_info;
 
@@ -89,7 +81,8 @@ set_logout_command(CLI::App* subcom)
                     fi >> auth_info;
                 }
 
-                auto it = auth_info.find(host);
+                auto token_base = get_token_base(host);
+                auto it = auth_info.find(token_base);
                 if (it != auth_info.end())
                 {
                     auth_info.erase(it);

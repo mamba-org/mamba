@@ -386,8 +386,9 @@ namespace mamba
             auto chan = ChannelBuilder::from_value(value);
             if (!chan.token())
             {
-                auto const& with_channel = chan.base_url();
-                auto const& without_channel = concat_scheme_url(chan.scheme(), chan.location());
+                auto const& with_channel
+                    = join_url(chan.location(), chan.name() == UNKNOWN_CHANNEL ? "" : chan.name());
+                auto const& without_channel = chan.location();
                 for (auto const& auth : { with_channel, without_channel })
                 {
                     auto it = ctx.authentication_info().find(auth);

@@ -455,7 +455,7 @@ namespace mamba
     TEST(Channel, add_token)
     {
         auto& ctx = Context::instance();
-        ctx.authentication_info()["https://conda.anaconda.org"]
+        ctx.authentication_info()["conda.anaconda.org"]
             = AuthenticationInfo{ AuthenticationType::kCondaToken, "my-12345-token" };
 
         ChannelBuilder::clear_cache();
@@ -472,9 +472,9 @@ namespace mamba
     TEST(Channel, add_multiple_tokens)
     {
         auto& ctx = Context::instance();
-        ctx.authentication_info()["https://conda.anaconda.org"]
+        ctx.authentication_info()["conda.anaconda.org"]
             = AuthenticationInfo{ AuthenticationType::kCondaToken, "base-token" };
-        ctx.authentication_info()["https://conda.anaconda.org/conda-forge"]
+        ctx.authentication_info()["conda.anaconda.org/conda-forge"]
             = AuthenticationInfo{ AuthenticationType::kCondaToken, "channel-token" };
 
         ChannelBuilder::clear_cache();

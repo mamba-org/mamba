@@ -111,22 +111,44 @@ def create(*in_args, folder=None, root=None, override_channels=True):
     )
 
 
-def test_login_logout(auth_file):
-    login("https://myserver.com:1234", "--token", "mytoken")
-    login("https://myserver2.com:1234", "--token", "othertoken")
+def remove_url_scheme(url: str) -> str:
+    return url.removeprefix("https://").removeprefix("http://").removeprefix("file://")
+
+
+@pytest.mark.parametrize(
+    "login_1,token_1",
+    [
+        ("https://myserver.com:1234", "mytoken"),
+        ("http://myserver.com", "4320nksdf"),
+        ("myserver.com:1234", "AD9sd55"),
+    ],
+)
+@pytest.mark.parametrize(
+    "login_2, token_2",
+    [
+        ("https://myserver2.com:1234", "othertoken"),
+        ("myserver.com:999", "hfijwr4"),
+        ("myserver2.com/channel", "453"),
+    ],
+)
+def test_login_logout(auth_file, login_1, token_1, login_2, token_2):
+    login(login_1, "--token", token_1)
+    login(login_2, "--token", token_2)
 
     with open(auth_file) as fi:
         data = json.load(fi)
 
-    assert data["https://myserver.com:1234"]["token"] == "mytoken"
-    assert data["https://myserver2.com:1234"]["token"] == "othertoken"
+    for login_, token in [(login_1, token_1), (login_2, token_2)]:
+        login_id = remove_url_scheme(login_)
+        assert login_id in data
+        assert data[login_id]["token"] == token
 
-    logout("https://myserver.com:1234")
+    logout(login_1)
 
     with open(auth_file) as fi:
         data = json.load(fi)
 
-    assert "https://myserver.com:1234" not in data
+    assert remove_url_scheme(login_1) not in data
 
 
 @pytest.mark.parametrize("token", ["crazytoken1234"])
@@ -134,8 +156,10 @@ def test_token(auth_file, token, token_server):
     login(token_server, "--token", token)
     with open(auth_file) as fi:
         data = json.load(fi)
-    assert token_server in data
-    assert data[token_server]["token"] == token
+
+    token_server_id = remove_url_scheme(token_server)
+    assert token_server_id in data
+    assert data[token_server_id]["token"] == token
 
     res = create("-c", token_server, "testpkg", "--json")
     pkg = res["actions"]["FETCH"][0]
@@ -147,8 +171,10 @@ def test_basic_auth(auth_file, user, password, basic_auth_server):
     login(basic_auth_server, "--username", user, "--password", password)
     with open(auth_file) as fi:
         data = json.load(fi)
-    assert basic_auth_server in data
-    assert data[basic_auth_server]["password"] == base64.b64encode(
+
+    basic_auth_server_id = remove_url_scheme(basic_auth_server)
+    assert basic_auth_server_id in data
+    assert data[basic_auth_server_id]["password"] == base64.b64encode(
         password.encode("utf-8")
     ).decode("utf-8")
 
@@ -245,24 +271,29 @@ def test_token_explicit(auth_file, token, token_server, tmp_path):
     ],
 )
 def test_login_multi_channels(auth_file, channels, multi_server):
-    channel_d = channels[0]
-    channel_d_url = f"{multi_server}/{channel_d['name']}"
-    login(channel_d_url, "--token", channel_d["token"])
-
-    channel_a = channels[1]
-    channel_a_url = f"{multi_server}/{channel_a['name']}"
-    login(
-        channel_a_url,
-        "--username",
-        channel_a["user"],
-        "--password",
-        channel_a["password"],
-    )
+    channel_1, channel_2 = channels
+    for chan in channels:
+        chan_url = f"{multi_server}/{chan['name']}"
+        if chan["auth"] == "token":
+            login(chan_url, "--token", chan["token"])
+        elif chan["auth"] == "basic":
+            login(
+                chan_url,
+                "--username",
+                chan["user"],
+                "--password",
+                chan["password"],
+            )
+        else:
+            raise ValueError(f"Invalid auth method: {chan['auth']}")
 
     with open(auth_file) as fi:
         data = json.load(fi)
-    assert channel_d_url in data
-    assert channel_a_url in data
 
-    create("-c", channel_d_url, "test-package", override_channels=True)
-    create("-c", channel_a_url, "_r-mutex", override_channels=True)
+    channel_1_url = f"{multi_server}/{channel_1['name']}"
+    assert remove_url_scheme(channel_1_url) in data
+    channel_2_url = f"{multi_server}/{channel_2['name']}"
+    assert remove_url_scheme(channel_2_url) in data
+
+    create("-c", channel_1_url, "test-package", override_channels=True)
+    create("-c", channel_2_url, "_r-mutex", override_channels=True)

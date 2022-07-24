@@ -74,6 +74,7 @@ jobs:
                  -GNinja
         ninja
         sccache --show-stats
+        cd ..
         cp build/micromamba/micromamba docs/
     - name: run docs linter
       uses: ammaraskar/sphinx-action@master

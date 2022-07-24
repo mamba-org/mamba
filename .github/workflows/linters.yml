@@ -68,7 +68,8 @@ jobs:
         cd build
         cmake .. -DBUILD_MICROMAMBA=ON \
                  -DBUILD_LIBMAMBA=ON \
-                 -DBUILD_SHARED=ON \
+                 -DBUILD_STATIC=ON \
+                 -DMICROMAMBA_LINKAGE=STATIC \
                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                  -GNinja

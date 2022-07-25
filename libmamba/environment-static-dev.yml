@@ -22,3 +22,8 @@ dependencies:
   - cxx-compiler
   - cmake
   - ninja
+  - nlohmann_json
+  - cpp-filesystem >=1.5.8
+  - termcolor-cpp
+  - cli11 >=2.2
+  - spdlog

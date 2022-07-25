@@ -558,7 +558,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]  # Windows: missing yaml-cpp-static
     steps:
       - uses: actions/checkout@v3
       - name: create build environment
@@ -590,3 +590,7 @@ jobs:
           ninja
           sccache --show-stats
           micromamba/micromamba --version
+      - uses: actions/upload-artifact@v3
+        with:
+          name: micromamba_binary
+          path: build/micromamba/micromamba

@@ -18,3 +18,13 @@ dependencies:
   - reproc-cpp-static
   - openssl 1.1.1*
   - libopenssl-static 1.1.1*
+
+  - cxx-compiler
+  - cmake
+  - ninja
+  - nlohmann_json
+  - cpp-filesystem >=1.5.8
+  - cpp-expected
+  - termcolor-cpp
+  - cli11 >=2.2
+  - spdlog

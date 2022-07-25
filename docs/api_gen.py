@@ -58,6 +58,8 @@ def generate_string_docs(commands_list, micromamba_cmd):
 
 if __name__ == "__main__":
 
+    micromamba_cmd = sys.argv[1] if len(sys.argv) > 1 else "micromamba"
+
     commands_list = [
         "activate",
         "deactivate",
@@ -75,7 +77,7 @@ if __name__ == "__main__":
         "repoquery",
     ]
 
-    generate_string_docs(commands_list, micromamba_cmd=sys.argv[1] if len(sys.argv) > 1 else "micromamba")
+    generate_string_docs(commands_list, micromamba_cmd)
 
     # Generate sub-files for config command
     with open("./source/user_guide/commands_micromamba/config.rst", "a") as f:
@@ -103,4 +105,4 @@ if __name__ == "__main__":
         "config/set",
     ]
 
-    generate_string_docs(config_commands_list)
+    generate_string_docs(config_commands_list, micromamba_cmd)

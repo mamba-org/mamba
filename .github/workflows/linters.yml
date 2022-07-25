@@ -53,12 +53,38 @@ jobs:
     - name: create build environment
       uses: mamba-org/provision-with-micromamba@main
       with:
-        environment-file: docs/environment.yml
+        environment-file: ./libmamba/environment-static-dev.yml
+        environment-name: build_env
         cache-env: true
+        micromamba-version: "0.23.0"
+    - uses: hendrikmuhs/ccache-action@main
+      with:
+        variant: sccache
+        key: ${{ github.job }}-${{ matrix.os }}
+        restore-keys: |
+          libmamba_static-${{ matrix.os }}
+    - name: build micromamba
+      shell: bash -l {0}
+      run: |
+        micromamba activate build_env
+        mkdir build
+        cd build
+        cmake .. -DBUILD_LIBMAMBA=ON \
+                 -DBUILD_STATIC_DEPS=ON \
+                 -DBUILD_STATIC=ON \
+                 -DBUILD_MICROMAMBA=ON \
+                 -DMICROMAMBA_STATIC_DEPS=ON \
+                 -DMICROMAMBA_LINKAGE=FULL_STATIC \
+                 -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                 -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                 -GNinja
+        ninja
+        sccache --show-stats
+        cd ..
     - name: run docs linter
       run: |
         cd docs
-        python api_gen.py
+        python api_gen.py ../build/micromamba/micromamba
         make html
         git add source/user_guide/commands_micromamba
         git diff --name-status origin/master | python linter.py

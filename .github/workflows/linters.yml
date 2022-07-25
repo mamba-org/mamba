@@ -50,7 +50,7 @@ jobs:
     - name: create build environment
       uses: mamba-org/provision-with-micromamba@main
       with:
-        environment-file: ./micromamba/environment-dev.yml
+        environment-file: ./micromamba/environment-static-dev.yml
         environment-name: build_env
         cache-env: true
         micromamba-version: "0.23.0"
@@ -68,8 +68,9 @@ jobs:
         cd build
         cmake .. -DBUILD_MICROMAMBA=ON \
                  -DBUILD_LIBMAMBA=ON \
+                 -DMICROMAMBA_STATIC_DEPS=ON \
                  -DBUILD_STATIC=ON \
-                 -DMICROMAMBA_LINKAGE=STATIC \
+                 -DMICROMAMBA_LINKAGE=FULL_STATIC \
                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                  -GNinja

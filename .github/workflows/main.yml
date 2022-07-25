@@ -592,5 +592,5 @@ jobs:
           micromamba/micromamba --version
       - uses: actions/upload-artifact@v3
         with:
-          name: micromamba_binary
+          name: micromamba_fully_static_binary
           path: build/micromamba/micromamba

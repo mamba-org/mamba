@@ -358,8 +358,12 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<PackageInfo>(m, "PackageInfo")
         .def(py::init<Solvable*>())
-        .def(py::init<const std::string&>())
-        .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
+        .def(py::init<const std::string&>(), py::arg("name"))
+        .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
+             py::arg("name"),
+             py::arg("version"),
+             py::arg("build_string"),
+             py::arg("build_number"))
         .def_readwrite("name", &PackageInfo::name)
         .def_readwrite("version", &PackageInfo::version)
         .def_readwrite("build_string", &PackageInfo::build_string)

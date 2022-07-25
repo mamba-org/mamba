@@ -50,7 +50,7 @@ jobs:
     - name: create build environment
       uses: mamba-org/provision-with-micromamba@main
       with:
-        environment-file: ./micromamba/environment-static-dev.yml
+        environment-file: ./libmamba/environment-static-dev.yml
         environment-name: build_env
         cache-env: true
         micromamba-version: "0.23.0"

@@ -61,5 +61,5 @@ jobs:
         python api_gen.py
         make html
         git add source/user_guide/commands_micromamba
-        git diff --name-status master | python linter.py
+        git diff --name-status origin/master | python linter.py
       shell: bash -el {0}

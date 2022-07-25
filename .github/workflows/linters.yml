@@ -50,7 +50,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: create build environment
+    - name: create mamba build environment
       uses: mamba-org/provision-with-micromamba@main
       with:
         environment-file: ./libmamba/environment-static-dev.yml
@@ -81,6 +81,13 @@ jobs:
         ninja
         sccache --show-stats
         cd ..
+    - name: create docs build environment
+      uses: mamba-org/provision-with-micromamba@main
+      with:
+        environment-file: docs/environment.yml
+        environment-name: docs_env
+        cache-env: true
+        micromamba-version: "0.23.0"
     - name: run docs linter
       run: |
         cd docs

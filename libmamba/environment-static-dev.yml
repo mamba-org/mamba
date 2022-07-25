@@ -24,6 +24,7 @@ dependencies:
   - ninja
   - nlohmann_json
   - cpp-filesystem >=1.5.8
+  - cpp-expected
   - termcolor-cpp
   - cli11 >=2.2
   - spdlog

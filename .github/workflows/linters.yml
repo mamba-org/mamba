@@ -52,6 +52,7 @@ jobs:
       uses: mamba-org/provision-with-micromamba@main
       with:
         environment-file: docs/environment.yml
+        cache-env: true
     - name: run docs linter
       run: |
         cd docs

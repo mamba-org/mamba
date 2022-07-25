@@ -5,3 +5,4 @@ dependencies:
   - myst-parser
   - sphinx
   - sphinx-book-theme
+  - sphinxcontrib-mermaid

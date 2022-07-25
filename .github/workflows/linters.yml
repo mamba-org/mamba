@@ -66,10 +66,11 @@ jobs:
         micromamba activate build_env
         mkdir build
         cd build
-        cmake .. -DBUILD_MICROMAMBA=ON \
-                 -DBUILD_LIBMAMBA=ON \
-                 -DMICROMAMBA_STATIC_DEPS=ON \
+        cmake .. -DBUILD_LIBMAMBA=ON \
+                 -DBUILD_STATIC_DEPS=ON \
                  -DBUILD_STATIC=ON \
+                 -DBUILD_MICROMAMBA=ON \
+                 -DMICROMAMBA_STATIC_DEPS=ON \
                  -DMICROMAMBA_LINKAGE=FULL_STATIC \
                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \

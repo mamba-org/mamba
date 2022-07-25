@@ -49,7 +49,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        depth: 0
+        fetch-depth: 0
     - name: create build environment
       uses: mamba-org/provision-with-micromamba@main
       with:

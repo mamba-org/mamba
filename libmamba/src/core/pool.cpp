@@ -98,6 +98,15 @@ namespace mamba
         return id;
     }
 
+    std::optional<PackageInfo> MPool::id2pkginfo(Id id)
+    {
+        if (id == 0 || id >= m_pool->nsolvables)
+        {
+            return std::nullopt;
+        }
+        return pool_id2solvable(m_pool, id);
+    }
+
     MRepo& MPool::add_repo(MRepo&& repo)
     {
         m_repo_list.push_back(std::move(repo));

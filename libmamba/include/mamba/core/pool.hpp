@@ -8,7 +8,9 @@
 #define MAMBA_CORE_POOL_HPP
 
 #include <list>
+#include <optional>
 #include "repo.hpp"
+#include "package_info.hpp"
 
 extern "C"
 {
@@ -38,6 +40,8 @@ namespace mamba
 
         std::vector<Id> select_solvables(Id id);
         Id matchspec2id(const std::string& ms);
+
+        std::optional<PackageInfo> id2pkginfo(Id id);
 
         operator Pool*();
 

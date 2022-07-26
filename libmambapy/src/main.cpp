@@ -67,10 +67,9 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
-        .def("select_solvables", &MPool::select_solvables)
-        .def("matchspec2id", &MPool::matchspec2id)
-        .def("id2pkginfo",
-             [](MPool& self, Id id) { return PackageInfo(pool_id2solvable(self, id)); });
+        .def("select_solvables", &MPool::select_solvables, py::arg("id"))
+        .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
+        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<std::vector<fs::path>>())
@@ -155,10 +154,10 @@ PYBIND11_MODULE(bindings, m)
         .def("solve", &MSolver::solve);
 
     py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readonly("target_id", &MSolverProblem::target_id)
-        .def_readonly("source_id", &MSolverProblem::source_id)
-        .def_readonly("dep_id", &MSolverProblem::dep_id)
-        .def_readonly("type", &MSolverProblem::type)
+        .def_readwrite("target_id", &MSolverProblem::target_id)
+        .def_readwrite("source_id", &MSolverProblem::source_id)
+        .def_readwrite("dep_id", &MSolverProblem::dep_id)
+        .def_readwrite("type", &MSolverProblem::type)
         .def("__str__", &MSolverProblem::to_string)
         .def("target", &MSolverProblem::target)
         .def("source", &MSolverProblem::source)
@@ -358,8 +357,12 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<PackageInfo>(m, "PackageInfo")
         .def(py::init<Solvable*>())
-        .def(py::init<const std::string&>())
-        .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>())
+        .def(py::init<const std::string&>(), py::arg("name"))
+        .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
+             py::arg("name"),
+             py::arg("version"),
+             py::arg("build_string"),
+             py::arg("build_number"))
         .def_readwrite("name", &PackageInfo::name)
         .def_readwrite("version", &PackageInfo::version)
         .def_readwrite("build_string", &PackageInfo::build_string)

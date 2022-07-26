@@ -35,6 +35,7 @@ extern "C"
 #include <iomanip>
 #include <mutex>
 #include <condition_variable>
+#include <optional>
 #include <openssl/evp.h>
 
 #include "mamba/core/environment.hpp"
@@ -1487,16 +1488,16 @@ namespace mamba
         return std::string((const char*) output.data());
     }
 
-    const char* proxy_match(const std::string& url)
+    std::optional<std::string> proxy_match(const std::string& url)
     {
         auto& proxies = Context::instance().proxy_servers;
         if (proxies.empty())
         {
-            return nullptr;
+            return std::nullopt;
         }
 
         std::size_t max_match = 0;
-        const char* match;
+        std::string match;
         for (auto& [scheme, proxy] : proxies)
         {
             if (starts_with(url, scheme))
@@ -1504,7 +1505,7 @@ namespace mamba
                 auto match_size = scheme.size();
                 if (match_size > max_match)
                 {
-                    match = proxy.c_str();
+                    match = proxy;
                     max_match = match_size;
                 }
             }
@@ -1513,7 +1514,7 @@ namespace mamba
         {
             return match;
         }
-        return nullptr;
+        return std::nullopt;
     }
 
 }  // namespace mamba

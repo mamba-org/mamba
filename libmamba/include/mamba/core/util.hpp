@@ -413,7 +413,7 @@ namespace mamba
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
-    const char* proxy_match(const std::string& url);
+    std::optional<std::string> proxy_match(const std::string& url);
 
 }  // namespace mamba
 

@@ -260,11 +260,11 @@ namespace mamba
             curl_easy_setopt(handle, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NO_REVOKE);
         }
 
-        const char* proxy = proxy_match(url);
+        std::optional<std::string> proxy = proxy_match(url);
         if (proxy)
         {
-            curl_easy_setopt(handle, CURLOPT_PROXY, proxy);
-            LOG_INFO << "Using Proxy " << proxy;
+            curl_easy_setopt(handle, CURLOPT_PROXY, proxy->c_str());
+            LOG_INFO << "Using Proxy " << *proxy;
         }
 
         std::string& ssl_verify = Context::instance().ssl_verify;

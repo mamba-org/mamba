@@ -1,3 +1,28 @@
+libmamba 0.25.0 (July 26, 2022)
+===============================
+
+Bug fixes:
+
+- Make lockfiles less noisy (thanks @Klaim) #1750
+- Make clobber warnings less noisy #1764
+- Do not ever log password in plain text (thanks @AntoinePrv) #1776
+
+Enhancements:
+
+- Add safe id2pkginfo (thanks @AntoinePrv) #1822
+- add handling of different tokens for channels on same host (thanks @AntoinePrv) #1784
+- better test isolation (thanks @AntoinePrv) #1791
+- Add nodefaults handling to libmamba (thanks @AdrianFreundQC) #1773
+- Add utilities for better error reporting and refactor Queue #1789
+- Do not modify string during sregex iteration (thanks @jonashaag) #1768
+- Better error message for invalid `.condarc` file (thanks @jonashaag) #1765
+- Tweak is_writable() (thanks @Klaim) #1750
+- Allow for external fmt library (thanks @gdolle) #1732
+- Remove error message when `touch` fails #1747
+- Log the exception that caused configuration parsing failure (thanks @johnhany97) #1755
+- Fix MSVC warnings (thanks @Klaim) #1721
+- Test improvements (thanks @AntoinePrv) #1777, #1778
+
 libmamba 0.24.0 (June 01, 2022)
 ===============================
 

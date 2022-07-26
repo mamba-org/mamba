@@ -1,3 +1,23 @@
+micromamba 0.25.0 (July 26, 2022)
+=================================
+
+Bug fixes:
+
+- fix pip execution in environments with spaces (thanks @chaubold) #1815
+- Fix `shell init --dry-run` (thanks @jonashaag) #1767
+- Change exit(1) to throw exceptions instead (thanks @jonashaag) #1792
+
+Enhancements:
+
+- add handling of different tokens for channels on same host (thanks @AntoinePrv) #1784
+- better test isolation (thanks @AntoinePrv) #1791
+- Add deinit shell command (thanks @pavelzw) #1781
+- Add nodefaults handling to libmamba (thanks @AdrianFreundQC) #1773
+- Fix micromamba Windows download instructions (thanks @jonashaag) #1793
+- Better error message if root prefix is not a directory #1792
+- Make `--use-index-cache` option work (thanks @AdrianFreundQC) #1762
+- Test improvements (thanks @AntoinePrv) #1777, #1778
+
 micromamba 0.24.0 (June 01, 2022)
 =================================
 

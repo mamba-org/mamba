@@ -67,10 +67,9 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<>())
         .def("set_debuglevel", &MPool::set_debuglevel)
         .def("create_whatprovides", &MPool::create_whatprovides)
-        .def("select_solvables", &MPool::select_solvables)
-        .def("matchspec2id", &MPool::matchspec2id)
-        .def("id2pkginfo",
-             [](MPool& self, Id id) { return PackageInfo(pool_id2solvable(self, id)); });
+        .def("select_solvables", &MPool::select_solvables, py::arg("id"))
+        .def("matchspec2id", &MPool::matchspec2id, py::arg("ms"))
+        .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
         .def(py::init<std::vector<fs::path>>())

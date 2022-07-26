@@ -1,3 +1,18 @@
+mamba 0.25.0 (July 26, 2022)
+============================
+
+Bug fixes:
+
+- keep Pool alive for the lifetime of the solver (thanks @AntoinePrv) #1804
+- print banner to stderr and do not print banner with `mamba run` (thanks @jonashaag) #1810
+
+Enhancements:
+
+- better test isolation (thanks @AntoinePrv) #1791
+- Add nodefaults handling to libmamba (thanks @AdrianFreundQC) #1773
+- Make `--use-index-cache` option work (thanks @AdrianFreundQC) #1762
+- Test improvements (thanks @AntoinePrv) #1777, #1778
+
 mamba 0.24.0 (June 01, 2022)
 ============================
 

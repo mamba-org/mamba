@@ -1,3 +1,17 @@
+libmambapy 0.25.0 (July 26, 2022)
+=================================
+
+
+Enhancements:
+
+- Add missing SOLVER_RULE_PKG_CONSTRAINS ruleinfo in libmambapy bindings (thanks @syslaila) #1823
+- Add safe id2pkginfo (thanks @AntoinePrv) #1822
+- Change PackageInfo value mutability and add named arguments (thanks @AntoinePrv) #1822
+- better test isolation (thanks @AntoinePrv) #1791
+- Add nodefaults handling to libmamba (thanks @AdrianFreundQC) #1773
+- Add utilities for better error reporting and refactor Queue #1789
+- Test improvements (thanks @AntoinePrv) #1777, #1778
+
 libmambapy 0.24.0 (June 01, 2022)
 =================================
 

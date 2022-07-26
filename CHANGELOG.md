@@ -1,3 +1,41 @@
+2022.07.26
+==========
+
+Releases: libmamba 0.25.0, libmambapy 0.25.0, mamba 0.25.0, micromamba 0.25.0
+
+Bug fixes:
+- [micromamba] fix pip execution in environments with spaces (thanks @chaubold) #1815
+- [mamba] keep Pool alive for the lifetime of the solver (thanks @AntoinePrv) #1804
+- [micromamba] Fix `shell init --dry-run` (thanks @jonashaag) #1767
+- [mamba] print banner to stderr and do not print banner with `mamba run` (thanks @jonashaag) #1810
+- [micromamba] Change exit(1) to throw exceptions instead (thanks @jonashaag) #1792
+- [libmamba] Make lockfiles less noisy (thanks @Klaim) #1750
+- [libmamba] Make clobber warnings less noisy #1764
+- [libmamba] Do not ever log password in plain text (thanks @AntoinePrv) #1776
+
+Enhancements:
+- [libmambapy] Add missing SOLVER_RULE_PKG_CONSTRAINS ruleinfo in libmambapy bindings (thanks @syslaila) #1823
+- [libmamba, libmambapy] Add safe id2pkginfo (thanks @AntoinePrv) #1822
+- [libmambapy] Change PackageInfo value mutability and add named arguments (thanks @AntoinePrv) #1822
+- [libmamba, micromamba] add handling of different tokens for channels on same host (thanks @AntoinePrv) #1784
+- [all] better test isolation (thanks @AntoinePrv) #1791
+- [micromamba] Add deinit shell command (thanks @pavelzw) #1781
+- [all] Add nodefaults handling to libmamba (thanks @AdrianFreundQC) #1773
+- [micromamba] Fix micromamba Windows download instructions (thanks @jonashaag) #1793
+- [libmamba, libmambapy] Add utilities for better error reporting and refactor Queue #1789
+- [micromamba] Better error message if root prefix is not a directory #1792
+- [libmamba] Do not modify string during sregex iteration (thanks @jonashaag) #1768
+- [libmamba] Better error message for invalid `.condarc` file (thanks @jonashaag) #1765
+- [libmamba] Tweak is_writable() (thanks @Klaim) #1750
+- [libmamba] Allow for external fmt library (thanks @gdolle) #1732
+- [libmamba] Remove error message when `touch` fails #1747
+- [libmamba] Log the exception that caused configuration parsing failure (thanks @johnhany97) #1755
+- [mamba, micromamba] Make `--use-index-cache` option work (thanks @AdrianFreundQC) #1762
+- [micromaba] Do not truncate channel url in `micromamba env export` (thanks @nstinus) #1733
+- [libmamba] Fix MSVC warnings (thanks @Klaim) #1721
+- [all] Test improvements (thanks @AntoinePrv) #1777, #1778
+
+
 2022.05.31
 ==========
 

@@ -81,22 +81,11 @@ namespace mamba
             if (env_path)
             {
                 std::string path = env_path.value();
-                auto parts = mamba::split(path, pathsep());
-                for (auto& p : parts)
-                {
-                    if (!fs::exists(p) || !fs::is_directory(p))
-                    {
-                        continue;
-                    }
-                    for (const auto& entry : fs::directory_iterator(p))
-                    {
-                        if (entry.path().filename() == exe)
-                        {
-                            return entry.path();
-                        }
-                    }
-                }
+                const auto parts = mamba::split(path, pathsep());
+                const std::vector<fs::path> search_paths(parts.begin(), parts.end());
+                return which(exe, search_paths);
             }
+
 
 #ifndef _WIN32
             if (override_path == "")
@@ -111,6 +100,37 @@ namespace mamba
                 }
             }
 #endif
+
+            return "";  // empty path
+        }
+
+        fs::path which(const std::string& exe, const std::vector<fs::path>& search_paths)
+        {
+            for (auto& p : search_paths)
+            {
+                if (!fs::exists(p) || !fs::is_directory(p))
+                {
+                    continue;
+                }
+
+#ifdef _WIN32
+                const auto exe_with_extension = exe + ".exe";
+#endif
+                for (const auto& entry : fs::directory_iterator(p))
+                {
+                    const auto filename = entry.path().filename();
+                    if (filename == exe
+
+#ifdef _WIN32
+                        || filename == exe_with_extension
+#endif
+                    )
+                    {
+                        return entry.path();
+                    }
+                }
+            }
+
 
             return "";  // empty path
         }

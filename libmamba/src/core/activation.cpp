@@ -172,7 +172,7 @@ namespace mamba
         }
     }
 
-    std::vector<fs::path> Activator::get_path_dirs(const fs::path& prefix)
+    std::vector<fs::path> get_path_dirs(const fs::path& prefix)
     {
         if (on_win)
         {

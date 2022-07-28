@@ -63,7 +63,6 @@ namespace mamba
                                         const std::string& conda_default_env,
                                         int old_conda_shlvl);
 
-        std::vector<fs::path> get_path_dirs(const fs::path& prefix);
         std::vector<fs::path> get_clean_dirs();
 
         std::string add_prefix_to_path(const fs::path& prefix, int old_conda_shlvl);
@@ -181,6 +180,10 @@ namespace mamba
         std::string hook_postamble() override;
         fs::path hook_source_path() override;
     };
+
+
+    std::vector<fs::path> get_path_dirs(const fs::path& prefix);
+
 }  // namespace mamba
 
 #endif

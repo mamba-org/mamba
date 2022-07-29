@@ -1,3 +1,10 @@
+micromamba 0.25.1 (July 29, 2022)
+=================================
+
+Bug fixes:
+
+- fix issue where pip installation was broken on Windows @Klaim #1828
+
 micromamba 0.25.0 (July 26, 2022)
 =================================
 

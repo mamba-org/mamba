@@ -427,6 +427,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         PUBLIC
             $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}>
             $<INSTALL_INTERFACE:include>
+        PRIVATE
+            $ENV{CONDA_PREFIX}/include
     )
 
     if (WIN32)

@@ -50,6 +50,7 @@ namespace mamba
         void unset(const std::string& key);
 
         fs::path which(const std::string& exe, const std::string& override_path = "");
+        fs::path which(const std::string& exe, const std::vector<fs::path>& search_paths);
         std::map<std::string, std::string> copy();
         std::string platform();
         fs::path home_directory();

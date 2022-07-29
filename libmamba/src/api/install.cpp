@@ -20,6 +20,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/core/env_lockfile.hpp"
+#include "mamba/core/activation.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -27,8 +28,25 @@ namespace mamba
 {
     namespace
     {
-        std::map<std::string, std::string> other_pkg_mgr_install_instructions
-            = { { "pip", "python -m pip install -r {0} --no-input" } };
+        tl::expected<std::string, std::runtime_error> get_other_pkg_mgr_install_instructions(
+            const std::string& name, const std::string& target_prefix)
+        {
+            const auto get_python_path
+                = [&] { return env::which("python", get_path_dirs(target_prefix)).u8string(); };
+
+            const std::unordered_map<std::string, std::string> other_pkg_mgr_install_instructions{
+                { "pip",
+                  fmt::format("{} {}", get_python_path(), "-m pip install -r {0} --no-input") }
+            };
+
+            auto found_it = other_pkg_mgr_install_instructions.find(name);
+            if (found_it != other_pkg_mgr_install_instructions.end())
+                return found_it->second;
+            else
+                return tl::unexpected(std::runtime_error(
+                    fmt::format("no install instruction found for package manager '{}'", name)));
+        }
+
     }
 
     bool reproc_killed(int status)
@@ -70,7 +88,17 @@ namespace mamba
         const auto& deps = other_spec.deps;
         const auto& cwd = other_spec.cwd;
 
-        std::string install_instructions = other_pkg_mgr_install_instructions[pkg_mgr];
+        const auto& ctx = Context::instance();
+
+        std::string install_instructions = [&]
+        {
+            const auto maybe_instructions
+                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix);
+            if (maybe_instructions)
+                return maybe_instructions.value();
+            else
+                throw maybe_instructions.error();
+        }();
 
         TemporaryFile specs;
         std::ofstream specs_f = open_ofstream(specs.path());
@@ -80,12 +108,7 @@ namespace mamba
 
         replace_all(install_instructions, "{0}", specs.path());
 
-        const auto& ctx = Context::instance();
-
         std::vector<std::string> install_args = split(install_instructions, " ");
-
-        install_args[0]
-            = (ctx.target_prefix / get_bin_directory_short_path() / install_args[0]).string();
         auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_args);
 
         reproc::options options;

@@ -197,6 +197,7 @@ namespace mamba
         bool no_env = false;
 
         std::size_t lock_timeout = 0;
+        bool disable_lockfile = false;
 
         bool compile_pyc = true;
 

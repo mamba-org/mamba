@@ -95,7 +95,7 @@ class TestRun:
                 tmp_env["HOME"] = tmpdir
                 with subprocess.Popen(cmd, env=tmp_env) as proc:
                     # give enough time for lockfiles to be created
-                    time.sleep(0.2)
+                    time.sleep(0.1)
                     poll = proc.poll()
                     assert poll is None, f"micromamba run failed {' '.join(cmd)}"
                     files = [x for x in Path(tmpdir).rglob("*") if x.suffix == ".json"]

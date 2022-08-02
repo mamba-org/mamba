@@ -1372,6 +1372,16 @@ namespace mamba
                         LockFile timeout for blocking mode when waiting for another process
                         to release the path. Default is 0 (no timeout))")));
 
+        insert(Configurable("disable_lockfile", &ctx.disable_lockfile)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Dont use a lockfile")
+                   .long_description(unindent(R"(
+                        Don't create a lockfile when running mamba commands. Use with caution!
+                        -- Some filesystems don't support File Locking and locks don't always
+                        make sense - like when on an HPC.  Default is False (use a lockfile)")));
+
         insert(Configurable("compile_pyc", &ctx.compile_pyc)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()

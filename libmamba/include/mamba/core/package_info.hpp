@@ -67,6 +67,13 @@ namespace mamba
         std::string extra_metadata;
         std::set<std::string> defaulted_keys;
     };
+
+    inline bool operator==(const PackageInfo& package_info_a, const PackageInfo& package_info_b)
+     {
+        return package_info_a.name == package_info_b.name 
+            && package_info_a.version == package_info_b.version
+            && package_info_a.build_string == package_info_b.build_string;
+    }
 }  // namespace mamba
 
 #endif

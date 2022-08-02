@@ -19,6 +19,9 @@ tmp/
 mamba.egg-info/
 *.orig
 
+libmambapy/get_user_friendly_errors.py
+libmambapy/mamba_ddag_creation.py
+
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles

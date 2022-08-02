@@ -1,13 +1,16 @@
 import os
+from pathlib import Path
 import random
 import shutil
 import string
 import subprocess
 from sys import platform
+import time
+from tempfile import TemporaryDirectory
 
 import pytest
 
-from .helpers import create, random_string, umamba_run
+from .helpers import create, random_string, umamba_run, get_umamba
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (
@@ -78,6 +81,27 @@ class TestRun:
         res = umamba_run(option_flag, *make_label_flags(), simple_short_program())
         print(res)
         assert len(res) > 0
+
+    @pytest.mark.skipif(platform == "win32", reason="win32 does not support lockfiles")
+    def test_lock_no_lock(self):
+        tmp_env = os.environ.copy()
+        umamba = get_umamba() 
+        run_cmd = ["sleep", "1"]
+        for expected_num_lockfiles, add_no_lock_flag in [(1, False), (0, True)]:
+            cmd = [umamba, "run"] + (["--no-lock"] if add_no_lock_flag else []) + run_cmd
+            with TemporaryDirectory() as tmpdir:
+                files = list(Path(tmpdir).rglob("*"))
+                assert len(files) == 0
+                tmp_env["HOME"] = tmpdir
+                with subprocess.Popen(cmd, env=tmp_env) as proc:
+                    # give enough time for lockfiles to be created
+                    time.sleep(0.1)
+                    poll = proc.poll()
+                    assert poll is None, f"micromamba run failed {' '.join(cmd)}"
+                    files = [x for x in Path(tmpdir).rglob("*") if x.suffix == ".json"]
+                    assert len(files) == expected_num_lockfiles
+                    proc.kill()
+
 
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
     def test_shell_io_routing(self):

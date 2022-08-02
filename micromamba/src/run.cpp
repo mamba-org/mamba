@@ -351,6 +351,11 @@ set_run_command(CLI::App* subcom)
         "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible.");
 #endif
 
+    static bool no_lock = false;
+    subcom->add_flag(
+        "--no-lock", no_lock,
+        "Don't create a lockfile when running command.  Use with caution - can be useful with HPCs or with older filesystems");
+
     subcom->prefix_command();
 
     static reproc::process proc;
@@ -451,7 +456,7 @@ set_run_command(CLI::App* subcom)
 #ifndef _WIN32
                 // Lock the process directory to read and write in it until we are ready to launch
                 // the child process.
-                auto proc_dir_lock = lock_proc_dir();
+                auto proc_dir_lock = no_lock ? std::unique_ptr<LockFile>{} : lock_proc_dir();
 
                 const std::string process_name = [&]
                 {
@@ -481,9 +486,7 @@ set_run_command(CLI::App* subcom)
 
                 // Writes the process file then unlock the directory. Deletes the process file once
                 // exit is called (in the destructor).
-                ScopedProcFile scoped_proc_file{ process_name,
-                                                 raw_command,
-                                                 std::move(proc_dir_lock) };
+                std::unique_ptr<ScopedProcFile> scoped_proc_file = no_lock ? std::unique_ptr<ScopedProcFile>{} : std::make_unique<ScopedProcFile>(process_name, raw_command, std::move(proc_dir_lock));
 #endif
                 PID pid;
                 std::error_code ec;

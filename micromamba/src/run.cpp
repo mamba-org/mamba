@@ -353,7 +353,8 @@ set_run_command(CLI::App* subcom)
 
     static bool no_lock = false;
     subcom->add_flag(
-        "--no-lock", no_lock,
+        "--no-lock",
+        no_lock,
         "Don't create a lockfile when running command.  Use with caution - can be useful with HPCs or with older filesystems");
 
     subcom->prefix_command();
@@ -486,7 +487,10 @@ set_run_command(CLI::App* subcom)
 
                 // Writes the process file then unlock the directory. Deletes the process file once
                 // exit is called (in the destructor).
-                std::unique_ptr<ScopedProcFile> scoped_proc_file = no_lock ? std::unique_ptr<ScopedProcFile>{} : std::make_unique<ScopedProcFile>(process_name, raw_command, std::move(proc_dir_lock));
+                std::unique_ptr<ScopedProcFile> scoped_proc_file
+                    = no_lock ? std::unique_ptr<ScopedProcFile>{}
+                              : std::make_unique<ScopedProcFile>(
+                                  process_name, raw_command, std::move(proc_dir_lock));
 #endif
                 PID pid;
                 std::error_code ec;

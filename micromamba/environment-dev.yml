@@ -6,6 +6,7 @@ dependencies:
   - cmake
   - ninja
   - nlohmann_json
+  - mitmproxy
   - libsolv >=0.7.18
   - libarchive
   - libsodium
@@ -19,6 +20,7 @@ dependencies:
   - termcolor-cpp
   - cli11 >=2.2
   - pytest
+  - pytest-asyncio
   - pytest-lazy-fixture
   - pytest-xprocess
   - pyyaml

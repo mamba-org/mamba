@@ -17,7 +17,8 @@ set_package_command(CLI::App* subcom)
     static std::string infile, dest;
     static int compression_level = -1;
 
-    auto extract_subcom = subcom->add_subcommand("extract");
+    auto extract_subcom
+        = subcom->add_subcommand("extract", "Extract an archive to a destination folder");
     extract_subcom->add_option("archive", infile, "Archive to extract");
     extract_subcom->add_option("dest", dest, "Destination folder");
     extract_subcom->callback(
@@ -28,7 +29,8 @@ set_package_command(CLI::App* subcom)
             extract(fs::absolute(infile), fs::absolute(dest));
         });
 
-    auto compress_subcom = subcom->add_subcommand("compress");
+    auto compress_subcom = subcom->add_subcommand(
+        "compress", "Compress a folder to a `.tar.bz2` or a `.conda` file");
     compress_subcom->add_option("folder", infile, "Folder to compress");
     compress_subcom->add_option("dest", dest, "Destination (e.g. myfile-3.1-0.tar.bz2 or .conda)");
     compress_subcom->add_option(
@@ -48,7 +50,8 @@ set_package_command(CLI::App* subcom)
             create_package(fs::absolute(infile), fs::absolute(dest), compression_level);
         });
 
-    auto transmute_subcom = subcom->add_subcommand("transmute");
+    auto transmute_subcom
+        = subcom->add_subcommand("transmute", "Convert a `.tar.bz2` file to `.conda` a package");
     transmute_subcom->add_option("infile", infile, "Folder to compress");
     transmute_subcom->add_option(
         "-c,--compression-level",

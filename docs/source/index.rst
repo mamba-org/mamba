@@ -35,7 +35,9 @@ You can try Mamba now by visiting the :ref:`installation page<installation>`!
    user_guide/concepts
    user_guide/mamba
    user_guide/micromamba
+   user_guide/command_reference_micromamba
    user_guide/configuration
+   user_guide/glossary
    user_guide/pitfalls
 
 .. toctree::

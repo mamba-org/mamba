@@ -155,7 +155,7 @@ You can either rely on ``libmamba`` package already installed in your environmen
     mkdir -p build
     cd build
     cmake .. \
-        -DBUILD_LIBMAMBAPY=ON
+    –-DBUILD_LIBMAMBAPY=ON
     make
 
 or rebuild ``libmamba`` in the same time:
@@ -202,6 +202,7 @@ Build ``mamba``
 You need to build and install ``libmambapy``, which is a dependency of ``mamba``, then install ``mamba``:
 
 .. code::
+
     pip install -e ./mamba/ --no-deps
 
 .. note::
@@ -314,7 +315,7 @@ or with ``libmamba``:
     mkdir -p build
     cd build
     cmake .. \
-        -DBUILD_LIBMAMBA=ON \
+        -DBUILD_LIBMAMBA=ON \..
         -DBUILD_STATIC_DEPS=ON \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=FULL_STATIC
@@ -328,3 +329,18 @@ You should be able to run the Python-based test suite:
 .. code::
 
     pytest ./micromamba/tests/
+
+Building the docs
+=================
+
+Mamba docs uses sphinx. The following packages need to be installed in your environment:
+
+.. code::
+
+    mamba install sphinx sphinx-book-theme myst-parser
+
+To build the docs go to ``.../mamba/docs`` and run:
+
+.. code::
+
+    make html

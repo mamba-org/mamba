@@ -5,3 +5,5 @@ dependencies:
   - myst-parser
   - sphinx
   - sphinx-book-theme
+  - sphinxcontrib-mermaid
+  - six # todo bug in sphinx feedstock?

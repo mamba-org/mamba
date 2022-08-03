@@ -600,7 +600,6 @@ PYBIND11_MODULE(bindings, m)
         .value("SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP",
                SolverRuleinfo::SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP)
         .value("SOLVER_RULE_PKG_REQUIRES", SolverRuleinfo::SOLVER_RULE_PKG_REQUIRES)
-        .value("SOLVER_RULE_PKG_CONSTRAINS", SolverRuleinfo::SOLVER_RULE_PKG_CONSTRAINS)
         .value("SOLVER_RULE_PKG_SELF_CONFLICT", SolverRuleinfo::SOLVER_RULE_PKG_SELF_CONFLICT)
         .value("SOLVER_RULE_PKG_CONFLICTS", SolverRuleinfo::SOLVER_RULE_PKG_CONFLICTS)
         .value("SOLVER_RULE_PKG_SAME_NAME", SolverRuleinfo::SOLVER_RULE_PKG_SAME_NAME)
@@ -609,6 +608,8 @@ PYBIND11_MODULE(bindings, m)
                SolverRuleinfo::SOLVER_RULE_PKG_IMPLICIT_OBSOLETES)
         .value("SOLVER_RULE_PKG_INSTALLED_OBSOLETES",
                SolverRuleinfo::SOLVER_RULE_PKG_INSTALLED_OBSOLETES)
+        .value("SOLVER_RULE_PKG_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_PKG_RECOMMENDS)
+        .value("SOLVER_RULE_PKG_CONSTRAINS", SolverRuleinfo::SOLVER_RULE_PKG_CONSTRAINS)
         .value("SOLVER_RULE_UPDATE", SolverRuleinfo::SOLVER_RULE_UPDATE)
         .value("SOLVER_RULE_FEATURE", SolverRuleinfo::SOLVER_RULE_FEATURE)
         .value("SOLVER_RULE_JOB", SolverRuleinfo::SOLVER_RULE_JOB)
@@ -621,7 +622,13 @@ PYBIND11_MODULE(bindings, m)
         .value("SOLVER_RULE_DISTUPGRADE", SolverRuleinfo::SOLVER_RULE_DISTUPGRADE)
         .value("SOLVER_RULE_INFARCH", SolverRuleinfo::SOLVER_RULE_INFARCH)
         .value("SOLVER_RULE_CHOICE", SolverRuleinfo::SOLVER_RULE_CHOICE)
-        .value("SOLVER_RULE_LEARNT", SolverRuleinfo::SOLVER_RULE_LEARNT);
+        .value("SOLVER_RULE_LEARNT", SolverRuleinfo::SOLVER_RULE_LEARNT)
+        .value("SOLVER_RULE_BEST", SolverRuleinfo::SOLVER_RULE_BEST)
+        .value("SOLVER_RULE_YUMOBS", SolverRuleinfo::SOLVER_RULE_YUMOBS)
+        .value("SOLVER_RULE_RECOMMENDS", SolverRuleinfo::SOLVER_RULE_RECOMMENDS)
+        .value("SOLVER_RULE_BLACK", SolverRuleinfo::SOLVER_RULE_BLACK)
+        .value("SOLVER_RULE_STRICT_REPO_PRIORITY",
+               SolverRuleinfo::SOLVER_RULE_STRICT_REPO_PRIORITY);
 
     // INSTALL FLAGS
     m.attr("MAMBA_NO_DEPS") = MAMBA_NO_DEPS;

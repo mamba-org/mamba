@@ -504,7 +504,7 @@ namespace mamba
 
                 LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
                           << "' to '" << m_writable_pkgs_dir.string() << "'";
-                fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+                fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
                 auto lock = LockFile(writable_cache_dir);
 
                 auto copied_json_file = writable_cache_dir / m_json_fn;

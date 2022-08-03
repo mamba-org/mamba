@@ -34,6 +34,7 @@ namespace mamba
         using edge_list = std::vector<std::pair<node_id, edge_info>>;
         using adjacency_list = std::vector<edge_list>;
         using cycle_list = std::vector<node_list>;
+        using node_path = std::unordered_map<node_id, edge_list>;
 
         const node_list& get_node_list() const;
         const node& get_node(node_id id) const;
@@ -50,12 +51,16 @@ namespace mamba
         template <class Y>
         bool update_edge_if_present(node_id from, node_id to, Y&& info);
 
+        node_path get_parents_to_leaves() const;
+
     private:
         template <class V>
         node_id add_node_impl(V&& value);
+        edge_list get_leaves(std::pair<node_id, edge_info> edge) const; 
 
         node_list m_node_list;
         adjacency_list m_adjacency_list;
+        std::vector<int> m_levels;
     };
 
     /************************
@@ -103,6 +108,7 @@ namespace mamba
     inline void MGraph<T, U>::add_edge(node_id from, node_id to, edge_info info)
     {
         m_adjacency_list[from].push_back(std::make_pair(to, info));
+        ++m_levels[to];
     }
 
 
@@ -112,6 +118,7 @@ namespace mamba
     {
         m_node_list.push_back(std::forward<V>(value));
         m_adjacency_list.push_back(edge_list());
+        m_levels.push_back(0);
         return m_node_list.size() - 1u;
     }
 
@@ -138,6 +145,53 @@ namespace mamba
         }
         return false;
     }
+
+    template <class T, class U>
+    inline auto MGraph<T, U>::get_parents_to_leaves() const -> node_path
+    {
+        //TODO - sanity check should only be a root
+        std::vector<std::pair<node_id, edge_info>> roots;
+        for (node_id i = 0; i < m_levels.size(); ++i)
+        {
+            if (m_levels[i] == 0)
+            {
+                for (const auto& edge : get_edge_list(i))
+                {
+                    roots.push_back(edge);
+                }
+            }
+        }
+        
+        node_path roots_to_leaves;
+        for (const auto& root : roots) 
+        {   
+            roots_to_leaves[root.first].push_back(root);
+            edge_list edges = get_leaves(root);
+            roots_to_leaves[root.first].insert(roots_to_leaves[root.first].end(), edges.begin(), edges.end());
+        }
+        return roots_to_leaves;
+    }
+
+    template <class T, class U>
+    inline auto MGraph<T, U>::get_leaves(std::pair<node_id, edge_info> edge) const -> edge_list 
+    {   
+        node_id id = edge.first;
+        edge_list edges = get_edge_list(id);
+        std::vector<std::pair<node_id, edge_info>> leaf_edges;
+        if (edges.size() == 0)
+        {
+            leaf_edges.push_back(edge);
+            return leaf_edges;
+        }
+
+        for (const auto& edge : edges)
+        {
+            edge_list leaves = get_leaves(edge);
+            leaf_edges.insert(leaf_edges.end(), leaves.begin(), leaves.end());
+        }
+        return leaf_edges;
+    }
+
 
 }  // namespace mamba
 

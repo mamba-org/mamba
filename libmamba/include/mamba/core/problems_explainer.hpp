@@ -34,8 +34,10 @@ namespace mamba
 
         std::optional<PackageInfo> m_package_info;
         std::optional<std::string> m_dep;
-        bool is_invalid_dep();
+        bool m_is_root;
 
+        bool is_invalid_dep() const;
+        bool is_root() const;
         bool operator==(const MNode& node) const;
 
         struct HashFunction
@@ -64,11 +66,13 @@ namespace mamba
     public:
         std::string m_pkg_name;
         std::vector<std::string> m_pkg_versions;
-
+        bool m_is_root;
+        
         MGroupNode(const MNode& node);
         MGroupNode();
 
         void add(const MNode& node);
+        bool is_root() const;
     };
     
     class MGroupEdgeInfo
@@ -111,6 +115,11 @@ namespace mamba
         std::optional<std::string> get_package_name(node_id id);
 
         std::string explain_conflicts();
+
+        std::string get_top_level_error() const;
+
+        std::string explain(const std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>& node_to_edge) const;
+        std::string explain(const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>& node_to_edge_to_req) const;
         
     };
 
@@ -121,6 +130,11 @@ namespace mamba
             seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
+    }
+
+    inline std::string join(std::vector<std::string> const &vec)
+    {
+        return "[" +  std::accumulate(vec.begin(), vec.end(), std::string(",")) + "]";
     }
 }  // namespace mamba
 

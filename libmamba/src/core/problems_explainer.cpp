@@ -216,15 +216,7 @@ namespace mamba
 
         create_merged_graph();
 
-
-        std::stringstream sstr;
-        return sstr.str();
-
-        // combine information from the union trees
-        //std::unordered_map<MNodeGroup, std::vector<MEdgeGroup>> new_adj_list;
-        //create_graph(new_adj_list);
-        //traverse graph from leaves -> get <leaf -> parent> & print
-        //get_parents & print
+        return get_top_level_error();
     }
 
     std::optional<std::string> MProblemsExplainer::get_package_name(node_id id) {

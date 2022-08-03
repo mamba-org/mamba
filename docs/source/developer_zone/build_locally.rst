@@ -292,7 +292,7 @@ Fully statically linked
 
 .. code::
 
-    micromamba install --name <env_name> --file ./micromamba/environment-static-dev.yml
+    micromamba install --name <env_name> --file ./libmamba/environment-static-dev.yml
 
 It will install the development version of dependencies, including static libraries.
 

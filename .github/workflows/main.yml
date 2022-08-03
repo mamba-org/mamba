@@ -564,10 +564,12 @@ jobs:
       - name: create build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: ./libmamba/environment-static-dev.yml
+          environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
           micromamba-version: "0.23.0"
+      - name: create build environment
+        run: micromamba install -y -n build_env -f ./libmamba/environment-static-dev.yml
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

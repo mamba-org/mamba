@@ -17,7 +17,6 @@ namespace mamba
     template <class T>
     inline void Info<T>::add(T a)
     {
-        std::cout << "values push" << a;
         m_values.push_back(a);
     }
 
@@ -59,12 +58,9 @@ namespace mamba
         for (const auto& root_to_leaves : g.get_parents_to_leaves())
         {
             EXPECT_TRUE(expected_value.find(root_to_leaves.first) != expected_value.end());
-            std::cout << "for root " << root_to_leaves.first;
-            //EXPECT_TRUE(root_to_leaves.second.size() == expected_value[root_to_leaves.first].size());
+            EXPECT_TRUE(root_to_leaves.second.size() == expected_value[root_to_leaves.first].size());
             for(size_t i = 0; i < root_to_leaves.second.size(); ++i )
             {
-                std::cout << "leaf (" << root_to_leaves.second[i].first << " " << root_to_leaves.second[i].second << ")";
-
                 EXPECT_TRUE(root_to_leaves.second[i].first == expected_value[root_to_leaves.first][i].first);
                 EXPECT_TRUE(root_to_leaves.second[i].second == expected_value[root_to_leaves.first][i].second);
             }
@@ -103,11 +99,6 @@ namespace mamba
         std::vector<std::pair<size_t, Info<std::string>>> root_edges = g.get_edge_list(root);
         std::vector<std::string> a_edges{"a*", "a 1.0.0", "aaa*"};
         std::vector<std::string> b_edges{"b*"};
-        for (const auto& v : root_edges[0].second.m_values
-        )
-        {
-            std::cout << "\n" << v << " ";
-        }
         EXPECT_TRUE(root_edges[0].second.m_values == a_edges);
         EXPECT_TRUE(root_edges[1].second.m_values == b_edges);
 

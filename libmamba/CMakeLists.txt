@@ -399,6 +399,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
         find_package(tl-expected REQUIRED)
+        # find_package(powerloader REQUIRED) FIXME
 
         set(LIBMAMBA_LIBRARIES_DEPS
             ${LIBSOLV_LIBRARIES}
@@ -410,9 +411,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             reproc++
             reproc
             tl::expected
-            powerloader
-            zck
-            spdlog
+            libpowerloader # TODO: get it through find_package
         )
 
         target_link_libraries(${target_name} PUBLIC
@@ -427,8 +426,14 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         PUBLIC
             $<BUILD_INTERFACE:${LIBMAMBA_INCLUDE_DIR}>
             $<INSTALL_INTERFACE:include>
-        PRIVATE
-            $ENV{CONDA_PREFIX}/include
+        PUBLIC # FIXME: THIS IS A HACK
+            $ENV{CONDA_PREFIX}/include  # TODO: replace by find_package
+    )
+
+    target_link_directories(    # TODO: replace by find_package
+        ${target_name}
+        PUBLIC # FIXME: THIS IS A HACK
+            $ENV{CONDA_PREFIX}/lib
     )
 
     if (WIN32)

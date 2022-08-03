@@ -88,6 +88,8 @@ else ()
     target_link_libraries(micromamba PRIVATE libmamba)
 endif ()
 
+target_link_libraries(micromamba PRIVATE libpowerloader) # TODO: get it through find_package
+
 set_property(TARGET micromamba PROPERTY CXX_STANDARD 17)
 
 install(TARGETS micromamba)

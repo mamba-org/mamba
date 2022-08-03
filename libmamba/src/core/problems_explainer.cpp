@@ -67,9 +67,14 @@ namespace mamba
         m_deps.push_back(edge.m_dep);
     }
 
-   MGroupEdgeInfo::MGroupEdgeInfo(const MEdgeInfo& edge)
+    MGroupEdgeInfo::MGroupEdgeInfo(const MEdgeInfo& edge)
     {
         m_deps.push_back(edge.m_dep);
+    }
+
+    bool MGroupEdgeInfo::operator==(const MGroupEdgeInfo& edge) 
+    {
+        return m_deps == edge.m_deps;
     }
 
     MProblemsExplainer::MProblemsExplainer(MPool* pool, const std::vector<MSolverProblem>& problems) 

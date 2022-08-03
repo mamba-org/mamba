@@ -83,6 +83,7 @@ namespace mamba
         MGroupEdgeInfo(const MEdgeInfo& dep);
 
         void add(MEdgeInfo dep);
+        bool operator==(const MGroupEdgeInfo& edge);
     };
 
     class MProblemsExplainer

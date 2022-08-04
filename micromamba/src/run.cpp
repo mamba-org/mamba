@@ -319,7 +319,6 @@ set_ps_command(CLI::App* subcom)
 void
 set_run_command(CLI::App* subcom)
 {
-    init_general_options(subcom);
     init_prefix_options(subcom);
 
     static std::string streams;

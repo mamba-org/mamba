@@ -17,7 +17,6 @@
 #include "problems_graph.hpp"
 #include "package_info.hpp"
 #include "pool.hpp"
-#include "pool_wrapper.hpp"
 
 extern "C"
 {
@@ -95,7 +94,7 @@ namespace mamba
         using node_id = initial_conflict_graph::node_id;
         using group_node_id = merged_conflict_graph::node_id;
 
-        MProblemsExplainer(IMPool* pool_wrapper, const std::vector<MSolverProblem>& problems);
+        MProblemsExplainer(IMPool* pool, const std::vector<MSolverProblem>& problems);
         MProblemsExplainer();
 
         void add_conflict_edge(MNode from_node, MNode to_node, std::string info, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited);

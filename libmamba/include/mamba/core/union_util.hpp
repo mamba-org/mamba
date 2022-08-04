@@ -67,4 +67,4 @@ namespace mamba
 
 } // namespace mamba
 
-#endif  // INCLUDE_GRAPH_UTIL_HPP
+#endif  // MAMBA_CORE_UNION_UTIL_HPP

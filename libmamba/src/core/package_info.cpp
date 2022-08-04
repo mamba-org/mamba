@@ -369,5 +369,4 @@ namespace mamba
         // TODO channel contains subdir right now?!
         return concat(channel, "::", name, "-", version, "-", build_string);
     }
-
 }  // namespace mamba

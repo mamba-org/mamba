@@ -17,6 +17,7 @@ class TestProxy:
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
+    mitm_exe = shutil.which("mitmproxy")
     mitm_confdir = os.path.join(root_prefix, "mitmproxy")
     mitm_dump_path = os.path.join(root_prefix, "dump.json")
 
@@ -43,7 +44,7 @@ class TestProxy:
         script = Path(__file__).parent / "dump_proxy_connections.py"
         self.proxy_process = subprocess.Popen(
             [
-                "mitmdump",
+                TestProxy.mitm_exe,
                 "--listen-port",
                 str(port),
                 "-s",

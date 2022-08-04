@@ -17,6 +17,7 @@
 #include "problems_graph.hpp"
 #include "package_info.hpp"
 #include "pool.hpp"
+#include "pool_wrapper.hpp"
 
 extern "C"
 {
@@ -94,11 +95,16 @@ namespace mamba
         using node_id = initial_conflict_graph::node_id;
         using group_node_id = merged_conflict_graph::node_id;
 
-        MProblemsExplainer(MPool* pool, const std::vector<MSolverProblem>& problems);
+        MProblemsExplainer(IMPool* pool_wrapper, const std::vector<MSolverProblem>& problems);
+        MProblemsExplainer();
+
+        void add_conflict_edge(MNode from_node, MNode to_node, std::string info, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited);
+        node_id get_or_create_node(MNode mnode, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited);
+        void add_solvables_to_conflicts(node_id source_node, node_id target_node);
+        std::string explain_conflicts();
 
     private:
-        Solver* solver;
-        MPool* m_pool;
+        IMPool* m_pool;
         Union<node_id> m_union;
 
         initial_conflict_graph m_initial_conflict_graph;
@@ -107,15 +113,11 @@ namespace mamba
         
         void create_initial_graph(const std::vector<MSolverProblem>& problems);
         void add_problem_to_graph(const MSolverProblem& problem, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited);
-        void add_conflict_edge(MNode from_node, MNode to_node, std::string info, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited);
-        node_id get_or_create_node(MNode mnode, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited);
 
         std::unordered_map<node_id, group_node_id> create_merged_nodes();
         void create_merged_graph();
 
         std::optional<std::string> get_package_name(node_id id);
-
-        std::string explain_conflicts();
 
         std::string get_top_level_error() const;
 

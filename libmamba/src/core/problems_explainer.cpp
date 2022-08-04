@@ -77,8 +77,11 @@ namespace mamba
         return m_deps == edge.m_deps;
     }
 
-    MProblemsExplainer::MProblemsExplainer(MPool* pool, const std::vector<MSolverProblem>& problems) 
+    MProblemsExplainer::MProblemsExplainer() {}
+
+    MProblemsExplainer::MProblemsExplainer(IMPool* pool, const std::vector<MSolverProblem>& problems) 
     : m_pool(pool)
+
     {
         create_initial_graph(problems);
     }
@@ -118,8 +121,7 @@ namespace mamba
                 // source_id -> <ignore> -> target_id
                 node_id source_node = get_or_create_node(MNode(problem.source().value()), visited);
                 node_id target_node = get_or_create_node(MNode(problem.target().value()), visited);
-                solvables_to_conflicts[source_node].insert(target_node);
-                solvables_to_conflicts[target_node].insert(source_node);
+                add_solvables_to_conflicts(source_node, target_node);
             }
             case SOLVER_RULE_UNKNOWN:
             case SOLVER_RULE_PKG:
@@ -145,6 +147,12 @@ namespace mamba
             case SOLVER_RULE_STRICT_REPO_PRIORITY:
                 LOG_WARNING << "Problem type not implemented: " << problem.type;
         }
+    }
+
+    void MProblemsExplainer::add_solvables_to_conflicts(node_id source_node, node_id target_node)
+    {
+        solvables_to_conflicts[source_node].insert(target_node);
+        solvables_to_conflicts[target_node].insert(source_node);
     }
 
     void MProblemsExplainer::add_conflict_edge(MNode from_node, MNode to_node, std::string info, std::unordered_map<MNode, node_id, MNode::HashFunction>& visited) 

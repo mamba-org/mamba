@@ -24,7 +24,28 @@ namespace spdlog
 
 namespace mamba
 {
-    class MPool
+
+    class IMPool
+    {
+    public:
+
+        virtual ~IMPool() = 0;
+        
+        virtual void set_debuglevel() = 0;
+        virtual void create_whatprovides() = 0;
+
+        virtual std::vector<Id> select_solvables(Id id) = 0;
+        virtual Id matchspec2id(const std::string& ms) = 0;
+
+        virtual std::optional<PackageInfo> id2pkginfo(Id id) = 0;
+
+        virtual operator Pool*() = 0;
+
+        virtual MRepo& add_repo(MRepo&& repo) = 0;
+        virtual void remove_repo(Id repo_id) = 0;
+    };
+
+    class MPool : public IMPool
     {
     public:
         MPool();
@@ -35,18 +56,18 @@ namespace mamba
         MPool(MPool&&) = delete;
         MPool& operator=(MPool&&) = delete;
 
-        void set_debuglevel();
-        void create_whatprovides();
+        void set_debuglevel() override;
+        void create_whatprovides() override;
 
-        std::vector<Id> select_solvables(Id id);
-        Id matchspec2id(const std::string& ms);
+        std::vector<Id> select_solvables(Id id) override;
+        Id matchspec2id(const std::string& ms) override;
 
-        std::optional<PackageInfo> id2pkginfo(Id id);
+        std::optional<PackageInfo> id2pkginfo(Id id) override;
 
-        operator Pool*();
+        operator Pool*() override;
 
-        MRepo& add_repo(MRepo&& repo);
-        void remove_repo(Id repo_id);
+        MRepo& add_repo(MRepo&& repo) override;
+        void remove_repo(Id repo_id) override;
 
     private:
         std::pair<spdlog::logger*, std::string> m_debug_logger;

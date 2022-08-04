@@ -20,6 +20,7 @@
 #include <time.h>
 #include <vector>
 #include <chrono>
+#include <optional>
 
 #if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
 #include <iomanip>

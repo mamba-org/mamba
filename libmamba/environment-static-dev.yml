@@ -3,8 +3,11 @@ channels:
   - conda-forge
 dependencies:
   - yaml-cpp-static
-  - libcurl=7.82.0=*_0
-  - libcurl-static=7.82.0 *_0
+  # we pin an older curl build for darwin-ssl support
+  - libcurl         # sel(linux)
+  - libcurl-static  # sel(linux)
+  - libcurl 7.76.1 *_0           # sel(osx)
+  - libcurl-static  7.76.1 *_0   # sel(osx)
   - xz-static
   - libssh2-static
   - libarchive=3.3

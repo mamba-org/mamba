@@ -1,16 +1,13 @@
 import os
-from pathlib import Path
 import random
 import shutil
 import string
 import subprocess
 from sys import platform
-import time
-from tempfile import TemporaryDirectory
 
 import pytest
 
-from .helpers import create, random_string, umamba_run, get_umamba
+from .helpers import create, random_string, umamba_run
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
 possible_characters_for_process_names = (

@@ -48,7 +48,8 @@ namespace mamba
             {
                 spdlog::set_level(spdlog::level::info);
             }
-            void TearDown() override {
+            void TearDown() override
+            {
                 mamba::Context::instance().disable_lockfile = false;
             }
         };

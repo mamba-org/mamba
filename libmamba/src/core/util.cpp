@@ -752,7 +752,8 @@ namespace mamba
         , m_timeout(timeout)
         , m_locked(false)
     {
-        if (Context::instance().disable_lockfile) return;
+        if (Context::instance().disable_lockfile)
+            return;
         std::error_code ec;
         if (!fs::exists(path, ec))
         {
@@ -817,7 +818,8 @@ namespace mamba
 
     LockFile::~LockFile()
     {
-        if (Context::instance().disable_lockfile) return;
+        if (Context::instance().disable_lockfile)
+            return;
         LOG_DEBUG << "Unlocking '" << m_path.string() << "'";
         unlock();
     }

@@ -81,7 +81,7 @@ class TestProxy:
 
         self.start_proxy(unused_tcp_port, options)
 
-        cmd = ["bash"]
+        cmd = ["xtensor"]
         f_name = random_string() + ".yaml"
         rc_file = os.path.join(TestProxy.prefix, f_name)
 

@@ -11,188 +11,118 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <unordered_set>
+#include <unordered_map>
 
-#include "match_spec.hpp"
-#include "union_util.hpp"
+#include "property_graph.hpp"
+#include "mamba/core/package_info.hpp"
+#include "pool.hpp"
+#include "solver.hpp"
 
-extern "C"
-{
-#include "solv/queue.h"
-#include "solv/solver.h"
-}
 
 namespace mamba
 {
-    template <class T, class U>
-    class MGraph
+    class MNode
     {
     public:
-        using node = T;
-        using node_id = size_t;
-        using node_list = std::vector<node>;
-        using edge_info = U;
-        using edge_list = std::vector<std::pair<node_id, edge_info>>;
-        using adjacency_list = std::vector<edge_list>;
-        using cycle_list = std::vector<node_list>;
-        using node_path = std::unordered_map<node_id, edge_list>;
+        MNode(PackageInfo package_info);
+        MNode(std::string dep);
 
-        const node_list& get_node_list() const;
-        const node& get_node(node_id id) const;
-        const adjacency_list& get_adj_list() const;
-        const edge_list& get_edge_list(node_id id) const;
+        std::optional<PackageInfo> m_package_info;
+        std::optional<std::string> m_dep;
+        bool m_is_root;
 
-        node_id add_node(const node& value);
-        node_id add_node(node&& value);
-        void add_edge(node_id from, node_id to, edge_info info);
+        bool is_invalid_dep() const;
+        bool is_root() const;
+        bool operator==(const MNode& node) const;
 
-        template <class V>
-        void update_node(node_id id, V&& value);
-
-        template <class Y>
-        bool update_edge_if_present(node_id from, node_id to, Y&& info);
-
-        node_path get_parents_to_leaves() const;
-
-    private:
-        template <class V>
-        node_id add_node_impl(V&& value);
-        edge_list get_leaves(const std::pair<node_id, edge_info>& edge) const;
-
-        node_list m_node_list;
-        adjacency_list m_adjacency_list;
-        std::vector<int> m_levels;
+        struct HashFunction
+        {
+            size_t operator()(const MNode& node) const
+            {
+                //TODO is this correct ?
+                if (node.m_package_info.has_value()) {
+                    return std::hash<std::string>()(node.m_package_info.value().sha256);
+                }
+                return std::hash<std::string>()(node.m_dep.value());
+            }
+        };
     };
 
-    /************************
-     * graph implementation *
-     ************************/
-
-    template <class T, class U>
-    inline auto MGraph<T, U>::get_adj_list() const -> const adjacency_list&
+    class MEdgeInfo
     {
-        return m_adjacency_list;
-    }
+    public:
+        std::string m_dep;
 
-    template <class T, class U>
-    inline auto MGraph<T, U>::get_node_list() const -> const node_list&
+        MEdgeInfo(std::string dep);
+    };
+
+    class MGroupNode
     {
-        return m_node_list;
-    }
+    public:
+        std::string m_pkg_name;
+        std::vector<std::string> m_pkg_versions;
+        bool m_is_root;
 
-    template <class T, class U>
-    inline auto MGraph<T, U>::get_node(node_id id) const -> const node&
+        MGroupNode(const MNode& node);
+        MGroupNode();
+
+        void add(const MNode& node);
+        bool is_root() const;
+    };
+
+    class MGroupEdgeInfo
     {
-        return m_node_list[id];
-    }
+    public:
+        std::vector<std::string> m_deps;
 
+        MGroupEdgeInfo(const MEdgeInfo& dep);
 
-    template <class T, class U>
-    inline auto MGraph<T, U>::get_edge_list(node_id id) const -> const edge_list&
+        void add(MEdgeInfo dep);
+        bool operator==(const MGroupEdgeInfo& edge);
+    };
+
+    class MProblemsGraphs
     {
-        return m_adjacency_list[id];
-    }
+    public: 
+        using initial_conflict_graph = MPropertyGraph<MNode, MEdgeInfo>;
+        using merged_conflict_graph = MPropertyGraph<MGroupNode, MGroupEdgeInfo>;
+        using node_id = initial_conflict_graph::node_id;
+        using group_node_id = merged_conflict_graph::node_id;
+        
+        MProblemsGraphs(int a);
+        MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems);
+    
+        void add_conflict_edge(MNode from_node, MNode to_node, std::string info);
+        node_id get_or_create_node(MNode mnode);
+        void add_solvables_to_conflicts(node_id source_node, node_id target_node);
+        const Union<node_id>& create_unions();
+        void create_merged_graph();
+    private:
+        MPool m_pool;
+        Union<node_id> m_union;
 
-    template <class T, class U>
-    inline auto MGraph<T, U>::add_node(const node& value) -> node_id
+        initial_conflict_graph m_initial_conflict_graph;
+        merged_conflict_graph m_merged_conflict_graph;
+        std::unordered_map<node_id, std::unordered_set<node_id>> solvables_to_conflicts;
+        std::unordered_map<MNode, node_id, MNode::HashFunction> m_node_to_id;;
+
+        void create_initial_graph(MPool* pool, const std::vector<MSolverProblem>& problems);
+        void add_problem_to_graph(MPool* pool, const MSolverProblem& problem);
+
+        std::unordered_map<node_id, group_node_id> create_merged_nodes();
+        std::optional<std::string> get_package_name(node_id id);
+    };
+
+    inline std::size_t hash_vec(const std::unordered_set<MProblemsGraphs::node_id>& vec) noexcept
     {
-        return add_node_impl(value);
-    }
-
-    template <class T, class U>
-    inline auto MGraph<T, U>::add_node(node&& value) -> node_id
-    {
-        return add_node_impl(std::move(value));
-    }
-
-    template <class T, class U>
-    inline void MGraph<T, U>::add_edge(node_id from, node_id to, edge_info info)
-    {
-        m_adjacency_list[from].push_back(std::make_pair(to, info));
-        ++m_levels[to];
-    }
-
-
-    template <class T, class U>
-    template <class V>
-    inline auto MGraph<T, U>::add_node_impl(V&& value) -> node_id
-    {
-        m_node_list.push_back(std::forward<V>(value));
-        m_adjacency_list.push_back(edge_list());
-        m_levels.push_back(0);
-        return m_node_list.size() - 1u;
-    }
-
-
-    template <class T, class U>
-    template <class V>
-    inline void MGraph<T, U>::update_node(node_id id, V&& value)
-    {
-        m_node_list[id].add(value);
-    }
-
-    template <class T, class U>
-    template <class Y>
-    inline bool MGraph<T, U>::update_edge_if_present(node_id from, node_id to, Y&& value)
-    {
-        std::vector<std::pair<node_id, edge_info>>& edge_list = m_adjacency_list[from];
-        for (auto it = edge_list.begin(); it != edge_list.end(); ++it)
-        {
-            if (it->first == to)
-            {
-                it->second.add(value);
-                return true;
-            }
+        std::size_t seed = vec.size();
+        for(auto& i : vec) {
+            seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
-        return false;
+        return seed;
     }
 
-    template <class T, class U>
-    inline auto MGraph<T, U>::get_parents_to_leaves() const -> node_path
-    {
-        //TODO - sanity check should only be a root
-        std::vector<std::pair<node_id, edge_info>> roots;
-        for (node_id i = 0; i < m_levels.size(); ++i)
-        {
-            if (m_levels[i] == 0)
-            {
-                for (const auto& edge : get_edge_list(i))
-                {
-                    roots.push_back(edge);
-                }
-            }
-        }
+}
 
-        node_path roots_to_leaves;
-        for (const auto& root : roots)
-        {
-            roots_to_leaves[root.first].push_back(root);
-            edge_list edges = get_leaves(root);
-            roots_to_leaves[root.first].insert(roots_to_leaves[root.first].end(), edges.begin(), edges.end());
-        }
-        return roots_to_leaves;
-    }
-
-    template <class T, class U>
-    inline auto MGraph<T, U>::get_leaves(const std::pair<node_id, edge_info>& edge) const -> edge_list
-    {
-        node_id id = edge.first;
-        edge_list edges = get_edge_list(id);
-        std::vector<std::pair<node_id, edge_info>> leaf_edges;
-        if (edges.size() == 0)
-        {
-            leaf_edges.push_back(edge);
-            return leaf_edges;
-        }
-
-        for (const auto& edge : edges)
-        {
-            edge_list leaves = get_leaves(edge);
-            leaf_edges.insert(leaf_edges.end(), leaves.begin(), leaves.end());
-        }
-        return leaf_edges;
-    }
-
-
-}  // namespace mamba
-
-#endif  // MAMBA_PROBLEMS_GRAPH_HPP
+#endif //MAMBA_PROBLEMS_GRAPH_HPP

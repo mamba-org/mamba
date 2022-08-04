@@ -10,6 +10,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 namespace mamba
 {

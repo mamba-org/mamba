@@ -13,6 +13,7 @@ set(TEST_SRCS
     test_env_file_reading.cpp
     test_environments_manager.cpp
     test_graph.cpp
+    test_property_graph.cpp
     test_problems_graph.cpp
     test_problems_explainer.cpp
     history_test/test_history.cpp

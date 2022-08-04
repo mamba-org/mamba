@@ -82,30 +82,6 @@ class TestRun:
         print(res)
         assert len(res) > 0
 
-    @pytest.mark.skipif(platform == "win32", reason="win32 does not support lockfiles")
-    def test_lock_no_lock(self):
-        tmp_env = os.environ.copy()
-        umamba = get_umamba()
-        run_cmd = [umamba, "run", "sleep", "1"]
-        for expected_num_lockfiles, disable_lockfile in [(1, False), (0, True)]:
-            with TemporaryDirectory() as tmpdir:
-                if disable_lockfile:
-                    mambarc = Path(tmpdir) / ".mambarc"
-                    with open(mambarc, "w") as fh:
-                        fh.write("disable_lockfile: true")
-                files = list((Path(tmpdir)/".mamba").rglob("*"))
-                assert len(files) == 0
-                tmp_env["HOME"] = tmpdir
-                with subprocess.Popen(run_cmd, env=tmp_env) as proc:
-                    # give enough time for lockfiles to be created
-                    time.sleep(0.1)
-                    poll = proc.poll()
-                    assert poll is None, f"micromamba run failed {' '.join(run_cmd)}"
-                    files = [x for x in (Path(tmpdir)/".mamba").rglob("*") if x.suffix == ".json"]
-                    assert len(files) == expected_num_lockfiles
-                    proc.kill()
-                    assert poll is None, f"micromamba run failed {' '.join(run_cmd)}"
-
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
     def test_shell_io_routing(self):
         test_script_file_name = "test_run.sh"

@@ -2,6 +2,7 @@
 
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/context.hpp"
 
 #include <reproc++/run.hpp>
 #include "spdlog/spdlog.h"
@@ -47,7 +48,19 @@ namespace mamba
             {
                 spdlog::set_level(spdlog::level::info);
             }
+            void TearDown() override {
+                mamba::Context::instance().disable_lockfile = false;
+            }
         };
+
+        TEST_F(LockDirTest, disable_locking)
+        {
+            {
+                mamba::Context::instance().disable_lockfile = true;
+                auto lock = LockFile(tempdir_path);
+                EXPECT_FALSE(fs::exists(lock.lockfile_path()));
+            }
+        }
 
         TEST_F(LockDirTest, same_pid)
         {

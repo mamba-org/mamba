@@ -12,11 +12,11 @@
 #include <vector>
 
 namespace mamba
-{   
+{
     template<class T>
     class Union
     {
-    public: 
+    public:
         std::unordered_map<T, T> parent;
         std::unordered_map<T, T> rank;
 
@@ -28,27 +28,27 @@ namespace mamba
 
 
     template<class T>
-    inline void Union<T>::add(T node) 
+    inline void Union<T>::add(T node)
     {
         parent[node] = node;
         rank[node] = node;
     }
 
     template<class T>
-    inline void Union<T>::connect(T node_u, T node_v) 
+    inline void Union<T>::connect(T node_u, T node_v)
     {
         node_u=root(node_u);
         node_v=root(node_v);
-        if(node_u == node_v) 
+        if(node_u == node_v)
         {
             return;
         }
         if(rank[node_u] < rank[node_v])
-        {   
+        {
             std::swap(node_u, node_v);
         }
         parent[node_v] = node_u;
-        if(rank[node_u] == rank[node_v]) 
+        if(rank[node_u] == rank[node_v])
         {
             rank[node_u]++;
         }
@@ -57,11 +57,11 @@ namespace mamba
     template<class T>
     inline auto Union<T>::root(T node) -> const T
     {
-        if(node == parent[node]) 
+        if(node == parent[node])
         {
             return node;
         }
-        
+
         return parent[node] = root(parent[node]);
     }
 

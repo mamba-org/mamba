@@ -56,8 +56,7 @@ namespace mamba
     private:
         template <class V>
         node_id add_node_impl(V&& value);
-        edge_list get_leaves(const std::pair<node_id, edge_info>&
-         edge) const; 
+        edge_list get_leaves(const std::pair<node_id, edge_info>& edge) const;
 
         node_list m_node_list;
         adjacency_list m_adjacency_list;
@@ -134,11 +133,11 @@ namespace mamba
     template <class T, class U>
     template <class Y>
     inline bool MGraph<T, U>::update_edge_if_present(node_id from, node_id to, Y&& value)
-    {   
+    {
         std::vector<std::pair<node_id, edge_info>>& edge_list = m_adjacency_list[from];
-        for (auto it = edge_list.begin(); it != edge_list.end(); ++it) 
+        for (auto it = edge_list.begin(); it != edge_list.end(); ++it)
         {
-            if (it->first == to) 
+            if (it->first == to)
             {
                 it->second.add(value);
                 return true;
@@ -162,10 +161,10 @@ namespace mamba
                 }
             }
         }
-        
+
         node_path roots_to_leaves;
-        for (const auto& root : roots) 
-        {   
+        for (const auto& root : roots)
+        {
             roots_to_leaves[root.first].push_back(root);
             edge_list edges = get_leaves(root);
             roots_to_leaves[root.first].insert(roots_to_leaves[root.first].end(), edges.begin(), edges.end());
@@ -174,8 +173,8 @@ namespace mamba
     }
 
     template <class T, class U>
-    inline auto MGraph<T, U>::get_leaves(const std::pair<node_id, edge_info>& edge) const -> edge_list 
-    {   
+    inline auto MGraph<T, U>::get_leaves(const std::pair<node_id, edge_info>& edge) const -> edge_list
+    {
         node_id id = edge.first;
         edge_list edges = get_edge_list(id);
         std::vector<std::pair<node_id, edge_info>> leaf_edges;

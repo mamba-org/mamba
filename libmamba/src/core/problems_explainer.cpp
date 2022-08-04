@@ -199,11 +199,11 @@ namespace mamba
             node_to_neigh[solvable_to_conflict.first].insert(solvable_to_conflict.second.begin(), solvable_to_conflict.second.end());
             m_union.add(solvable_to_conflict.first);
         }
-        
+
         // we go through the list of conflicts and make sure that we can merge the information
-        for (const auto& hash_to_nodes : hashes_to_nodes) 
-        { 
-            for (node_id i = 0; i < hash_to_nodes.second.size(); ++i) 
+        for (const auto& hash_to_nodes : hashes_to_nodes)
+        {
+            for (node_id i = 0; i < hash_to_nodes.second.size(); ++i)
             {
                 std::optional<std::string> maybe_package_name_i = get_package_name(i);
                 if (!maybe_package_name_i.has_value()) 

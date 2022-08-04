@@ -44,7 +44,7 @@ namespace mamba
         struct HashFunction
         {
             size_t operator()(const MNode& node) const
-            {   
+            {
                 //TODO is this correct ?
                 if (node.m_package_info.has_value()) {
                     return std::hash<std::string>()(node.m_package_info.value().sha256);
@@ -62,25 +62,25 @@ namespace mamba
         MEdgeInfo(std::string dep);
     };
 
-    class MGroupNode 
+    class MGroupNode
     {
     public:
         std::string m_pkg_name;
         std::vector<std::string> m_pkg_versions;
         bool m_is_root;
-        
+
         MGroupNode(const MNode& node);
         MGroupNode();
 
         void add(const MNode& node);
         bool is_root() const;
     };
-    
+
     class MGroupEdgeInfo
     {
     public:
         std::vector<std::string> m_deps;
-        
+
         MGroupEdgeInfo(const MEdgeInfo& dep);
 
         void add(MEdgeInfo dep);

@@ -161,6 +161,9 @@ namespace mamba
                        std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
+            // Uncomment if we don't want to create json lockfiles
+            // if (Context::instance().disable_lockfile)
+            //     return;
             assert(proc_dir_lock);  // Lock must be hold for the duraction of this constructor.
 
             const auto open_mode = std::ios::binary | std::ios::trunc | std::ios::out;

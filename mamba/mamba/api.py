@@ -29,8 +29,7 @@ class MambaSolver:
     def replace_installed(self, prefix):
         prefix_data = libmambapy.PrefixData(prefix)
         vp = libmambapy.get_virtual_packages()
-        prefix_data.add_virtual_packages(vp)
-        prefix_data.load()
+        prefix_data.add_packages(vp)
         repo = libmambapy.Repo(self.pool, prefix_data)
         repo.set_installed()
 

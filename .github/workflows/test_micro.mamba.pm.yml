@@ -28,9 +28,8 @@ jobs:
         run: |
           # TODO: Update install.sh script for Windows
           if [ ${{ matrix.os }} = windows-latest ]; then
-            echo $PATH
             curl -Ls https://micro.mamba.pm/api/micromamba/win-64/latest \
-              | bunzip2 | tar xOf - Library/bin/micromamba.exe > ~/.local/bin/micromamba
+              | bunzip2 | tar xOf - Library/bin/micromamba.exe > ~/bin
           else
             curl http://micro.mamba.pm/install.sh | ${{ matrix.shell }}
           fi

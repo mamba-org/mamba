@@ -641,3 +641,18 @@ class TestCreate:
         create(*cmd)
         assert (site_packages / pyc_fn).exists()
         assert pyc_fn.name in six_meta
+
+    test_env_requires_pip_install_path = os.path.join(
+        Path(__file__).parent.resolve(), "env-requires-pip-install.yaml"
+    )
+    
+    def test_requires_pip_install(self):
+        prefix = Path(TestCreate.prefix)
+        cmd = ["-p", f"{prefix}", "-f", self.test_env_requires_pip_install_path]
+        create(*cmd)
+
+    def test_requires_pip_install_prefix_spaces(self):
+        prefix = Path(f"{TestCreate.prefix} with space")
+        cmd = ["-p", f"{prefix}", "-f", self.test_env_requires_pip_install_path]
+        create(*cmd)
+

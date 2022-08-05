@@ -40,7 +40,38 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 micromamba
 ==========
 
-``micromamba`` is completely statically linked, which allows you to drop it in some place and just execute it.
+``micromamba`` is a tiny version of the ``mamba`` package manager.
+It is a pure C++ package with a separate command line interface.
+It is very tiny, does not need a ``base`` environment and does not come with a default version of Python.
+It is completely statically linked, which allows you to drop it in some place and just execute it.
+It can be used to bootstrap environments (as an alternative to miniconda).
+
+Note: ``micromamba`` is currently experimental and it's advised to use it in containers & CI only.
+
+.. _umamba-install-automatic-installation:
+
+Automatic installation
+**********************
+
+If you are using macOS or Linux, there is a simple way of installing ``micromamba``.
+Simply execute the installation script in your preferred shell.
+
+For Linux, the default shell is ``bash``:
+
+.. code:: bash
+
+   curl micro.mamba.pm/install.sh | bash
+
+For macOS, the default shell is ``zsh``:
+
+.. code:: zsh
+
+   curl micro.mamba.pm/install.sh | zsh
+
+.. _umamba-install-manual-installation:
+
+Manual installation
+*******************
 
 Download and unzip the executable (from the official conda-forge package):
 
@@ -61,6 +92,7 @@ The following magic URL always returns the latest available version of micromamb
 
 .. note::
   Additional builds are available for linux-aarch64 (ARM64) and linux-ppc64le. Just modify ``linux-64`` in the URL above to match the desired architecture.
+  You can find the available builds on `anaconda.org <https://anaconda.org/conda-forge/micromamba/files>`_.
 
 After extraction is completed, we can use the micromamba binary.
 
@@ -91,8 +123,8 @@ Now you can activate the base environment and install new packages, or create ot
   micromamba activate  # this activates the base environment
   micromamba install python=3.6 jupyter -c conda-forge
   # or
-  micromamba create -n new_prefix xtensor -c conda-forge
-  micromamba activate new_prefix
+  micromamba create -n env_name xtensor -c conda-forge
+  micromamba activate env_name
 
 .. _umamba-install-osx:
 
@@ -101,10 +133,25 @@ OS X
 
 ``micromamba`` has OS X support as well. Instructions are largely the same as :ref:`linux<umamba-install-linux>`:
 
+You need to download a different `micromamba` binary depending if you are using an Apple Silicon or an Intel Mac.
+
+Apple Silicon:
+
+.. code::
+
+  curl -Ls https://micro.mamba.pm/api/micromamba/osx-arm64/latest | tar -xvj bin/micromamba
+  mv bin/micromamba ./micromamba
+
+Intel:
+
 .. code:: bash
 
   curl -Ls https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xvj bin/micromamba
   mv bin/micromamba ./micromamba
+
+The rest of the installation is the same for both Apple Silicon and Intel.
+
+.. code::
 
   # directly execute the hook
   eval "$(./bin/micromamba shell hook -s posix)"
@@ -171,3 +218,13 @@ The completion is now available in any new shell opened or in the current shell 
 .. code::
 
   micromamba activate <TAB><TAB>
+
+
+.. _umamba-install-api:
+
+API
+===
+
+We should soon figure out an automated process to use the latest version of micromamba.
+We can use the anaconda api: https://api.anaconda.org/release/conda-forge/micromamba/latest to find all the latest packages,
+we just need to select the one for the right platform.

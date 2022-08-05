@@ -101,43 +101,7 @@ With the `--tree` (or `-t`) flag, you can get the same information in a tree.
 
 ## micromamba
 
-`micromamba` is a tiny version of the `mamba` package manager.
-It is a pure C++ package with a separate command line interface.
-It is very tiny, does not need a `base` environment and does not come with a default version of Python.
-It is completely statically linked, which allows you to drop it in some place and just execute it.
-It can be used to bootstrap environments (as an alternative to miniconda).
-
-Note: Micromamba is currently experimental and it's advised to use micromamba in containers & CI only.
-
-Download and unzip the executable (from the official conda-forge package):
-
-```sh
-# Also available for osx-64 and osx-arm64.
-curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-# For win-64
-curl -Ls https://micro.mamba.pm/api/micromamba/win-64/latest | tar -xvj Library/bin/micromamba.exe
-```
-
-We can use `./micromamba shell init ... ` to initialize a shell (`.bashrc`) and a new root environment in `~/micromamba`:
-
-```sh
-./bin/micromamba shell init -s bash -p ~/micromamba
-source ~/.bashrc
-```
-
-Now you can activate the base environment and install new packages, or create other environments.
-
-Note: currently the `-c` arguments have to come at the end of the command line.
-
-```sh
-micromamba activate
-micromamba install python=3.10 jupyter -c conda-forge
-# or
-micromamba create -p /some/new/prefix xtensor -c conda-forge
-micromamba activate /some/new/prefix
-```
-
-For more instructions (including OS X) check out https://gist.github.com/wolfv/fe1ea521979973ab1d016d95a589dcde
+A guide on how to install `micromamba` can be found in the [official documentation](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
 
 ### Development installation
 

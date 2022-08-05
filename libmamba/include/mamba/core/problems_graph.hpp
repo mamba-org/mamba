@@ -371,8 +371,9 @@ namespace mamba
                     {
                         continue;
                     }
-                    if (node_to_neigh[id_i] == node_to_neigh[id_j]
-                        &&  maybe_package_name_i == maybe_package_name_j
+                    // TODO cleanup
+                    if (maybe_package_name_i == maybe_package_name_j
+                        &&  node_to_neigh[id_i] == node_to_neigh[id_j]
                         && m_initial_conflict_graph.get_rev_edge_list(id_i) 
                             == m_initial_conflict_graph.get_rev_edge_list(id_j))
                     {

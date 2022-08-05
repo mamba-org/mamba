@@ -3,10 +3,15 @@ name: Test micro.mamba.pm
 on:
   schedule:
     - cron: '0 10 * * *'
+  pull_request: null
 
 permissions:
   contents: read
   issues: write
+
+defaults:
+  run:
+    shell: bash -el {0}
 
 jobs:
   test_micro_mamba_pm:
@@ -15,31 +20,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        shell: [bash, zsh]
     steps:
-      - shell: bash
+      - name: Install Micromamba (${{ matrix.os }}, ${{ matrix.shell }})
         run: |
-          set -eux
-          function platform_name {
-            uname="$(echo "$(uname -a)" | tr "[:upper:]" "[:lower:]")"
-            if [[ "$uname" =~ darwin.+arm64 ]]; then echo osx-arm64
-            elif [[ "$uname" =~ darwin.+x86_64 ]]; then echo osx-64
-            elif [[ "$uname" =~ linux.+arm64 ]]; then echo linux-aarch64
-            elif [[ "$uname" =~ linux.+x86_64 ]]; then echo linux-64
-            elif [[ "$uname" =~ win ]] || [[ "$uname" =~ mingw ]]; then echo win-64
-            fi
-          }
-          function binary_name {
-            if [[ $(platform_name) =~ win ]]; then
-              echo Library/bin/micromamba.exe
-            else
-              echo bin/micromamba
-            fi
-          }
-          curl -Ls https://micro.mamba.pm/api/micromamba/$(platform_name)/latest | bunzip2 | tar xOf - $(binary_name) > m
-          chmod +x m
-          ./m info
+           # TODO: Update install.sh script for Windows
+          if [ ${{ matrix.os }} = windows-latest ]; then
+            curl -Ls https://micro.mamba.pm/api/micromamba/win-64/latest \
+              | bunzip2 | tar xOf - Library/bin/micromamba.exe > ~/.local/bin/micromamba
+          else
+            http://micro.mamba.pm/install.sh | ${{ matrix.shell }}
+          fi
+      - name: Test Micromamba
+        run: micromamba info
       - uses: dblock/create-a-github-issue@2c9fa0d32c24d651281c37d21e5b49e333500fe8
-        if: failure()
+        #if: failure()
+        if: false
         with:
           filename: .github/workflows/test_issue.md
           update_existing: true

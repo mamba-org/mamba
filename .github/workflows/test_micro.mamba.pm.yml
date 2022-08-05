@@ -5,6 +5,10 @@ on:
     - cron: '0 10 * * *'
   pull_request: null
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   issues: write
@@ -26,8 +30,6 @@ jobs:
     steps:
       - name: Install Micromamba (${{ matrix.os }}, ${{ matrix.shell }})
         run: |
-          # TODO: Fix script to work in ~
-          cd /tmp
           # TODO: Update install.sh script for Windows
           if [ ${{ matrix.os }} = windows-latest ]; then
             mkdir -p ~/bin
@@ -37,7 +39,7 @@ jobs:
             curl http://micro.mamba.pm/install.sh | ${{ matrix.shell }}
           fi
       - name: Test Micromamba
-        run: micromamba info
+        run: ${{ matrix.shell }} -elc "micromamba --version"
       - uses: dblock/create-a-github-issue@2c9fa0d32c24d651281c37d21e5b49e333500fe8
         #if: failure()
         if: false

@@ -29,89 +29,45 @@ Mamba is a reimplementation of the conda package manager in C++.
 - libsolv for much faster dependency solving, a state of the art library used in the RPM package manager of Red Hat, Fedora and OpenSUSE
 - core parts of mamba are implemented in C++ for maximum efficiency
 
-At the same time, mamba utilize the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
+At the same time, mamba utilizes the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
 
 Mamba is part of a bigger ecosystem to make scientific packaging more sustainable. You can read our [announcement blog post](https://medium.com/@QuantStack/open-software-packaging-for-science-61cecee7fc23).
 The ecosystem also consists of `quetz`, an open source conda package server and `boa`, a fast conda package builder.
 
-### Installation
+## Installation
 
-It's advised to install mamba from conda-forge. If you already have conda, install mamba into the base environment:
+A guide on how to install Mamba and Micromamba can be found in the [official documentation](https://mamba.readthedocs.io/en/latest/installation.html).
 
-```
-conda install mamba -n base -c conda-forge
-```
+## Additional features in Mamba and Micromamba
 
-otherwise it's best to start with [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
-If you want to experiment with the latest software, you can also try micromamba (more below).
+Mamba and Micromamba come with features on top of stock conda.
 
-Another alternative (if you want/need to avoid Anaconda entirely) is to use [Mambaforge](https://github.com/conda-forge/miniforge#mambaforge) via the [Miniforge](https://github.com/conda-forge/miniforge) distribution.
+### `repoquery`
 
-### Installing conda packages with `mamba`
+To efficiently query repositories and query package dependencies you can use `mamba repoquery` or `micromamba repoquery`.
+See the (repoquery documentation)[https://mamba.readthedocs.io/en/latest/user_guide/mamba.html#repoquery] for details.
 
-Now you are ready to install packages with
+### Installing lock files
 
-```bash
-mamba install xtensor-r -c conda-forge
-```
+TODO
 
-for example.
-
-### Additional features
-
-Mamba comes with features on top of stock conda.
-To efficiently query repositories and query package dependencies you can use `mamba repoquery`.
-
-Here are some examples:
-
-`mamba repoquery search xtensor` will show you all available xtensor packages. You can also specify more constraints on this search query, for example `mamba repoquery search "xtensor>=0.18"`
-
-`mamba repoquery depends xtensor` will show you a tree view of the dependencies of xtensor.
-
-```
-$ mamba repoquery depends --tree xtensor
-
-xtensor == 0.21.5
-  ├─ libgcc-ng [>=7.3.0]
-  │ ├─ _libgcc_mutex [0.1 conda_forge]
-  │ └─ _openmp_mutex [>=4.5]
-  │   ├─ _libgcc_mutex already visited
-  │   └─ libgomp [>=7.3.0]
-  │     └─ _libgcc_mutex already visited
-  ├─ libstdcxx-ng [>=7.3.0]
-  └─ xtl [>=0.6.9,<0.7]
-    ├─ libgcc-ng already visited
-    └─ libstdcxx-ng already visited
-```
-
-And you can ask for the inverse, which packages depend on some other package (e.g. `ipython`) using `whoneeds`.
-
-```
-$ mamba repoquery whoneeds ipython
-
- Name            Version Build          Channel
-──────────────────────────────────────────────────
- ipykernel       5.2.1   py37h43977f1_0 installed
- ipywidgets      7.5.1   py_0           installed
- jupyter_console 6.1.0   py_1           installed
-
-```
-
-With the `--tree` (or `-t`) flag, you can get the same information in a tree.
+### More features?
 
 ## micromamba
 
-A guide on how to install `micromamba` can be found in the [official documentation](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+micromamba is a small, pure-C++ reimplementation of Mamba/Conda. It strives to be a full replacement for Mamba and Conda. As such, it doesn't use any Conda code (in fact it doesn't require Python at all).
 
-### Development installation
+See the (documentation on Micromamba)[https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html] for details.
+
+## Development installation
 
 Please refer to the instructions given by the [official documentation](https://mamba.readthedocs.io/en/latest/developer_zone/build_locally.html#).
 
-### Support us
+## Support us
 
 For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
-### License
+## License
 
 We use a shared copyright model that enables all contributors to maintain the copyright on their contributions.
 

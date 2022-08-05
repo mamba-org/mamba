@@ -23,13 +23,14 @@
 #include "mamba/core/solver.hpp"
 
 namespace mamba
-{
+{   
+
     class MNode
     {
     public:
         MNode(const PackageInfo& package_info);
         MNode(std::string dep);
-
+        MNode();
         
         std::optional<PackageInfo> m_package_info;
         std::optional<std::string> m_dep;
@@ -37,6 +38,7 @@ namespace mamba
 
         bool is_invalid_dep() const;
         bool is_root() const;
+        std::string get_name() const;
         bool operator==(const MNode& node) const;
 
         struct HashFunction
@@ -47,7 +49,11 @@ namespace mamba
                 if (node.m_package_info.has_value()) {
                     return std::hash<std::string>()(node.m_package_info.value().sha256);
                 }
-                return std::hash<std::string>()(node.m_dep.value());
+                else if (node.m_dep.has_value()) {
+                    return std::hash<std::string>()(node.m_dep.value());
+                }
+                //assume it is a root
+                return 0;
             }
         };
     };
@@ -72,8 +78,11 @@ namespace mamba
         MGroupNode();
 
         void add(const MNode& node);
+        std::string get_name() const;
         bool is_root() const;
         bool is_invalid_dep() const;
+
+        //friend std::ostream& operator<<(std::ostream& os, const MGroupNode& edge);
     };
 
     class MGroupEdgeInfo
@@ -85,6 +94,8 @@ namespace mamba
 
         void add(MEdgeInfo dep);
         bool operator==(const MGroupEdgeInfo& edge);
+
+        //friend std::ostream& operator<<(std::ostream& os, const MGroupEdgeInfo& edge);
     };
 
     class MProblemsGraphs
@@ -131,13 +142,26 @@ namespace mamba
         return seed;
     }
 
-    // TODO move to cpp. Linking problems? 
+    inline std::string join_str(const std::vector<MProblemsGraphs::node_id>& v)
+    {
+        std::stringstream ss;
+        std::copy(v.begin(), v.end(), std::ostream_iterator<MProblemsGraphs::node_id>(ss, ", "));
+        return ss.str();
+    }
+
+    // TODO move to cpp - Linking problems during tests
     inline MNode::MNode(const PackageInfo& package_info) : m_package_info(package_info), m_dep(std::nullopt), m_is_root(false) { }
     
     inline MNode::MNode(std::string dep) : m_package_info(std::nullopt), m_dep(dep), m_is_root(false) { }
+    
+    inline MNode::MNode(): m_package_info(std::nullopt), m_dep(std::nullopt), m_is_root(true) { }
 
     inline bool MNode::operator== (const MNode& other) const 
     { 
+        if (is_root() && other.is_root())
+        {
+            return true;
+        }
         if (m_package_info.has_value() && other.m_package_info.has_value())
         {
             return m_package_info.value() == other.m_package_info.value();
@@ -159,6 +183,20 @@ namespace mamba
         return m_is_root;
     }
 
+    inline std::string MNode::get_name() const
+    {
+        if(is_root())
+        {
+            return "root";
+        }
+        else if (m_package_info.has_value())
+        {
+            return m_package_info.value().name
+            ;
+        }
+        return m_dep.has_value() ? m_dep.value() : "invalid";
+    }
+
     inline MEdgeInfo::MEdgeInfo(std::string dep) : m_dep(dep) { }
 
     /************************
@@ -177,6 +215,19 @@ namespace mamba
         {
             m_dep = node.m_dep;
         }
+    }
+
+    inline std::string MGroupNode::get_name() const
+    {
+        if(is_root())
+        {
+            return "root";
+        }
+        else if (m_pkg_name.has_value())
+        {
+            return m_pkg_name.value();
+        }
+        return m_dep.has_value() ? m_dep.value() : "invalid";
     }
 
     inline bool MGroupNode::is_root() const
@@ -251,13 +302,20 @@ namespace mamba
         {
             case SOLVER_RULE_PKG_REQUIRES:          // source_id -> dep_id -> target_id
             case SOLVER_RULE_PKG_CONSTRAINS:        // source_id -> dep_id -> <conflict - to - be ignored>
-            case SOLVER_RULE_JOB:                   //entry point for our solver
+            case SOLVER_RULE_JOB: //entry point for our solver
             { 
                 std::vector<Id> target_ids = pool->select_solvables(problem.dep_id);
                 for (const auto& target_id : target_ids) 
                 {
                     PackageInfo target = PackageInfo(pool_id2solvable(*pool, target_id));
-                    add_conflict_edge(MNode(problem.source().value()), MNode(target), problem.dep().value());
+                    if (problem.source().has_value())
+                    {
+                        add_conflict_edge(MNode(problem.source().value()), MNode(target), problem.dep().value());
+                    }
+                    else
+                    {
+                        add_conflict_edge(MNode(), MNode(target), problem.dep().value());
+                    }
                 }
             }
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
@@ -363,6 +421,7 @@ namespace mamba
                 {
                     continue;
                 }
+                std::cerr << "trying " << id_i << " " << maybe_package_name_i.value() << std::endl;
                 for (size_t j = i+1; j < hash_to_nodes.second.size(); ++j) 
                 {
                     node_id id_j = hash_to_nodes.second[j];
@@ -371,7 +430,12 @@ namespace mamba
                     {
                         continue;
                     }
-                    // TODO cleanup
+                    std::cerr << "\t with " << id_j << " " << maybe_package_name_j.value() << std::endl;
+                    std::cerr << "\t]\t rev_ edge: "
+                         << join_str(m_initial_conflict_graph.get_rev_edge_list(id_i)) << " and " <<  
+                            join_str
+                            (m_initial_conflict_graph.get_rev_edge_list(id_j)) << std::endl;
+
                     if (maybe_package_name_i == maybe_package_name_j
                         &&  node_to_neigh[id_i] == node_to_neigh[id_j]
                         && m_initial_conflict_graph.get_rev_edge_list(id_i) 
@@ -399,16 +463,18 @@ namespace mamba
 
     inline void MProblemsGraphs::create_merged_graph() 
     {
-        std::unordered_map<node_id, group_node_id> node_id_to_group_id = create_merged_nodes();
+        std::unordered_map<node_id, group_node_id> root_to_group_id = create_merged_nodes();
         for (node_id from_node_id = 0; from_node_id < m_initial_conflict_graph.get_node_list().size(); ++from_node_id) 
         {
-            group_node_id from_node_group_id = node_id_to_group_id[from_node_id];
+            node_id from_node_root = m_union.root(from_node_id);
+            group_node_id from_node_group_id = root_to_group_id[from_node_root];
             for (const auto& edge : m_initial_conflict_graph.get_edge_list(from_node_id))
             {
                 node_id to_node_id = edge.first; 
-                group_node_id to_node_group_id = node_id_to_group_id[to_node_id];
+                node_id to_node_root = m_union.root(to_node_id);
+                group_node_id to_node_group_id = root_to_group_id[to_node_root];
                 MEdgeInfo edgeInfo = edge.second;
-                if (m_union.root(from_node_id) != m_union.root(to_node_id)) 
+                if (from_node_root != to_node_root) 
                 {
                     bool found = m_merged_conflict_graph.update_edge_if_present(from_node_group_id, to_node_group_id, edgeInfo);
                     if (!found) 
@@ -423,17 +489,17 @@ namespace mamba
 
 
     inline std::unordered_map<MProblemsGraphs::node_id, MProblemsGraphs::group_node_id> MProblemsGraphs::create_merged_nodes() {
-        std::unordered_map<node_id, group_node_id> node_id_to_group_id;
+        std::unordered_map<node_id, group_node_id> root_to_group_id;
         std::unordered_map<node_id, node_id> parents = m_union.parent;
-        auto key_selector = [](auto pair){return pair.first;};
         std::vector<node_id> keys(parents.size());
+        auto key_selector = [](auto pair){return pair.first;};
         std::transform(parents.begin(), parents.end(), keys.begin(), key_selector);
         // go through each one of them and set the information to its info & its kids 
         for (const auto& id : keys) {
             MNode node = m_initial_conflict_graph.get_node(id);
-            node_id parent = m_union.root(id);
-            auto it = node_id_to_group_id.find(parent);
-            if (it != node_id_to_group_id.end()) 
+            node_id root = m_union.root(id);
+            auto it = root_to_group_id.find(root);
+            if (it != root_to_group_id.end()) 
             {
                 m_merged_conflict_graph.update_node(it->second, node);
             } 
@@ -441,10 +507,15 @@ namespace mamba
             {
                 MGroupNode group_node(node);
                 group_node_id new_id = m_merged_conflict_graph.add_node(group_node);
-                node_id_to_group_id[id] = new_id;
+                /*std::cerr << "Created new group node " << std::to_string(new_id) 
+                    << " " <<  node.m_package_info.value().name
+                    << " " << node.m_package_info.value().version
+
+                     << std::endl;*/
+                root_to_group_id[id] = new_id;
             }
         }
-        return node_id_to_group_id;
+        return root_to_group_id;
     }
 
 
@@ -456,22 +527,22 @@ namespace mamba
         return ss.str();
     }
 
-    //TODO move logic to node impl 
-    inline std::ostream& operator<<(std::ostream &strm, const MGroupNode &node) {
+    inline std::ostream& operator<<(std::ostream& strm, const MGroupNode& node) {
         if (node.m_pkg_name.has_value())
         {
-            return strm << "MGroupNode(" << node.m_pkg_name.value() <<
-         "[" +  join(node.m_pkg_versions, std::string(",")) + "] )";
+            return strm << "package " << node.m_pkg_name.value() 
+                << " versions [" 
+                << join(node.m_pkg_versions, std::string(",")) + "]";
         } 
         else
         {
-            return strm << "MGroupNode(" << node.m_dep.value() << ")";
+            return strm << "No packages matching " 
+                << node.m_dep.value() << " could be found in the provided channels";
         }
     }
 
-    inline std::ostream& operator<<(std::ostream &strm, const MGroupEdgeInfo &edge) {
-        return strm << "MGroupEdgeInfo(" <<
-         "[" +  join(edge.m_deps, std::string(",")) + "] )";
+    inline std::ostream& operator<<(std::ostream& strm, const MGroupEdgeInfo& edge) {
+        return strm << join(edge.m_deps, std::string(","));
     }
 }
 

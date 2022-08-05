@@ -36,7 +36,7 @@ The ecosystem also consists of `quetz`, an open source conda package server and 
 
 ## Installation
 
-A guide on how to install Mamba and Micromamba can be found in the [official documentation](https://mamba.readthedocs.io/en/latest/installation.html).
+Please refer to the [Mamba and Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation.html) in the documentation.
 
 ## Additional features in Mamba and Micromamba
 
@@ -45,7 +45,7 @@ Mamba and Micromamba come with features on top of stock conda.
 ### `repoquery`
 
 To efficiently query repositories and query package dependencies you can use `mamba repoquery` or `micromamba repoquery`.
-See the (repoquery documentation)[https://mamba.readthedocs.io/en/latest/user_guide/mamba.html#repoquery] for details.
+See the [repoquery documentation](https://mamba.readthedocs.io/en/latest/user_guide/mamba.html#repoquery) for details.
 
 ### Installing lock files
 
@@ -57,7 +57,7 @@ TODO
 
 micromamba is a small, pure-C++ reimplementation of Mamba/Conda. It strives to be a full replacement for Mamba and Conda. As such, it doesn't use any Conda code (in fact it doesn't require Python at all).
 
-See the (documentation on Micromamba)[https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html] for details.
+See the [documentation on Micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for details.
 
 ## Development installation
 

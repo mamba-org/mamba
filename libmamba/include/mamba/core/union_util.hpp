@@ -40,7 +40,6 @@ namespace mamba
     template<class T>
     inline void Union<T>::connect(T node_u, T node_v)
     {
-        LOG_INFO << node_u << " " << node_v;
         T u=root(node_u);
         T v=root(node_v);
         if(u == v)
@@ -51,7 +50,6 @@ namespace mamba
         {
             std::swap(node_u, node_v);
         }
-        LOG_INFO << "parent of " << node_v << " is " << node_u;
         parent[node_v] = node_u;
         if(rank[node_u] == rank[node_v])
         {

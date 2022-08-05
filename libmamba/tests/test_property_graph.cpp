@@ -55,6 +55,7 @@ namespace mamba
             {node_one , std::vector<std::pair<size_t, std::string>>{std::make_pair(node_one, "one"), std::make_pair(node_four, "d"), std::make_pair(node_four, "c")}},
             {node_five , std::vector<std::pair<size_t, std::string>>{std::make_pair(node_five, "five"), std::make_pair(node_seven, "f")}}
         };
+        // TODO cleanup comparison
         for (const auto& root_to_leaves : g.get_parents_to_leaves())
         {
             EXPECT_TRUE(expected_value.find(root_to_leaves.first) != expected_value.end());

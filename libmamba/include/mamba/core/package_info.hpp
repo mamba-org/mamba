@@ -68,6 +68,7 @@ namespace mamba
         std::set<std::string> defaulted_keys;
     };
 
+    //TODO rm or change this!
     inline bool operator==(const PackageInfo& package_info_a, const PackageInfo& package_info_b)
      {
         return package_info_a.name == package_info_b.name 

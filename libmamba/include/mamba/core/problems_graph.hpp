@@ -43,7 +43,7 @@ namespace mamba
         {
             size_t operator()(const MNode& node) const
             {
-                //TODO is this correct ?
+                //TODO broken change this!
                 if (node.m_package_info.has_value()) {
                     return std::hash<std::string>()(node.m_package_info.value().sha256);
                 }
@@ -105,6 +105,7 @@ namespace mamba
         void create_unions();
         void create_merged_graph();
 
+        // TODO these are private
         Union<node_id> m_union;
         initial_conflict_graph m_initial_conflict_graph;
         merged_conflict_graph m_merged_conflict_graph;
@@ -130,6 +131,7 @@ namespace mamba
         return seed;
     }
 
+    // TODO move to cpp. Linking problems? 
     inline MNode::MNode(const PackageInfo& package_info) : m_package_info(package_info), m_dep(std::nullopt), m_is_root(false) { }
     
     inline MNode::MNode(std::string dep) : m_package_info(std::nullopt), m_dep(dep), m_is_root(false) { }
@@ -369,17 +371,15 @@ namespace mamba
                     {
                         continue;
                     }
-                    //std::cerr  << "trying " << id_i << " " << id_j << std::endl;
                     if (node_to_neigh[id_i] == node_to_neigh[id_j]
                         &&  maybe_package_name_i == maybe_package_name_j
                         && m_initial_conflict_graph.get_rev_edge_list(id_i) 
                             == m_initial_conflict_graph.get_rev_edge_list(id_j))
-                        // making sure that we only merge packages with the same name
-                        // they need to have the same successors & same parents
                     {
                         std::cerr << "connected " << id_i << "(" 
                             << maybe_package_name_i.value() << ") " 
-                            << id_j << "(" << maybe_package_name_j.value() << ")"<< std::endl;
+                            << id_j << "(" << maybe_package_name_j.value()
+                             << ")"<< std::endl;
                         m_union.connect(id_i, id_j);
                     }
                 }
@@ -455,6 +455,7 @@ namespace mamba
         return ss.str();
     }
 
+    //TODO move logic to node impl 
     inline std::ostream& operator<<(std::ostream &strm, const MGroupNode &node) {
         if (node.m_pkg_name.has_value())
         {

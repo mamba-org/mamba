@@ -16,6 +16,7 @@
 
 namespace mamba
 {
+    //TODO move this to actual graph_util
     template <class T, class U>
     class MPropertyGraph
     {
@@ -47,6 +48,7 @@ namespace mamba
         template <class Y>
         bool update_edge_if_present(node_id from, node_id to, Y&& info);
 
+        // TODO from node -> we shouldn't know about root
         node_path get_parents_to_leaves() const;
 
     private:

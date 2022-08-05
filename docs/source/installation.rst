@@ -101,10 +101,25 @@ OS X
 
 ``micromamba`` has OS X support as well. Instructions are largely the same as :ref:`linux<umamba-install-linux>`:
 
+You need to download a different `micromamba` binary depending if you are using an Apple Silicon or an Intel Mac.
+
+Apple Silicon:
+
+.. code::
+
+  curl -Ls https://micro.mamba.pm/api/micromamba/osx-arm64/latest | tar -xvj bin/micromamba
+  mv bin/micromamba ./micromamba
+
+Intel:
+
 .. code:: bash
 
   curl -Ls https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xvj bin/micromamba
   mv bin/micromamba ./micromamba
+
+The rest of the installation is the same for both Apple Silicon and Intel.
+
+.. code::
 
   # directly execute the hook
   eval "$(./bin/micromamba shell hook -s posix)"

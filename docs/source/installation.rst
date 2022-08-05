@@ -42,6 +42,31 @@ micromamba
 
 ``micromamba`` is completely statically linked, which allows you to drop it in some place and just execute it.
 
+.. _umamba-install-automatic-installation:
+
+Automatic installation
+**********************
+
+If you are using macOS or Linux, there is a simple way of installing ``micromamba``.
+Simply execute the installation script in your preferred shell.
+
+For Linux, the default shell is ``bash``:
+
+.. code:: bash
+
+   curl micro.mamba.pm/install.sh | bash
+
+For macOS, the default shell is ``zsh``:
+
+.. code:: zsh
+
+   curl micro.mamba.pm/install.sh | zsh
+
+.. _umamba-install-manual-installation:
+
+Manual installation
+*******************
+
 Download and unzip the executable (from the official conda-forge package):
 
 .. _umamba-install-linux:

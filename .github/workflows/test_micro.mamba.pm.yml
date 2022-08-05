@@ -29,7 +29,7 @@ jobs:
             curl -Ls https://micro.mamba.pm/api/micromamba/win-64/latest \
               | bunzip2 | tar xOf - Library/bin/micromamba.exe > ~/.local/bin/micromamba
           else
-            http://micro.mamba.pm/install.sh | ${{ matrix.shell }}
+            curl http://micro.mamba.pm/install.sh | ${{ matrix.shell }}
           fi
       - name: Test Micromamba
         run: micromamba info

@@ -3,7 +3,6 @@ name: Test micro.mamba.pm
 on:
   schedule:
     - cron: '0 10 * * *'
-  pull_request: null
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

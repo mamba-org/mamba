@@ -24,8 +24,10 @@ namespace mamba
         using node_id = size_t;
         using node_list = std::vector<node>;
         using edge_info = U;
+        using neighs = std::vector<node_id>;
         using edge_list = std::vector<std::pair<node_id, edge_info>>;
         using adjacency_list = std::vector<edge_list>;
+        using rev_adjacency_list = std::vector<neighs>;
         using cycle_list = std::vector<node_list>;
         using node_path = std::unordered_map<node_id, edge_list>;
 
@@ -33,6 +35,7 @@ namespace mamba
         const node& get_node(node_id id) const;
         const adjacency_list& get_adj_list() const;
         const edge_list& get_edge_list(node_id id) const;
+        const neighs& get_rev_edge_list(node_id id) const;
 
         node_id add_node(const node& value);
         node_id add_node(node&& value);
@@ -53,6 +56,7 @@ namespace mamba
 
         node_list m_node_list;
         adjacency_list m_adjacency_list;
+        rev_adjacency_list m_rev_adjacency_list;
         std::vector<int> m_levels;
     };
 
@@ -86,6 +90,12 @@ namespace mamba
     }
 
     template <class T, class U>
+    inline auto MPropertyGraph<T, U>::get_rev_edge_list(node_id id) const -> const neighs&
+    {
+        return m_rev_adjacency_list[id];
+    }
+
+    template <class T, class U>
     inline auto MPropertyGraph<T, U>::add_node(const node& value) -> node_id
     {
         return add_node_impl(value);
@@ -101,6 +111,7 @@ namespace mamba
     inline void MPropertyGraph<T, U>::add_edge(node_id from, node_id to, edge_info info)
     {
         m_adjacency_list[from].push_back(std::make_pair(to, info));
+        m_rev_adjacency_list[to].push_back(from);
         ++m_levels[to];
     }
 
@@ -111,6 +122,7 @@ namespace mamba
     {
         m_node_list.push_back(std::forward<V>(value));
         m_adjacency_list.push_back(edge_list());
+        m_rev_adjacency_list.push_back(neighs());
         m_levels.push_back(0);
         return m_node_list.size() - 1u;
     }

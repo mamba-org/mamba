@@ -13,18 +13,10 @@
 #include <vector>
 #include <optional>
 #include <unordered_set>
+#include <numeric>
 
-#include "solver.hpp"
 #include "property_graph.hpp"
 #include "problems_graph.hpp"
-#include "mamba/core/package_info.hpp"
-#include "pool.hpp"
-
-extern "C"
-{
-#include "solv/queue.h"
-#include "solv/solver.h"
-}
 
 namespace mamba
 {

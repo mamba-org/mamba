@@ -141,10 +141,9 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pool.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
+    #${LIBMAMBA_SOURCE_DIR}/core/problems_explainer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/problems_graph.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/problems_explainer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
@@ -161,6 +160,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/virtual_packages.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/problems_graph.cpp
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -204,13 +204,10 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/package_paths.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_explainer.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/property_graph.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/union_util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
+    #${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_explainer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/queue.hpp
@@ -221,6 +218,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/union_util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
@@ -231,6 +229,8 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/property_graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp

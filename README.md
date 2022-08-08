@@ -23,7 +23,7 @@
 [![Join the Gitter Chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mamba-org/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![docs](https://readthedocs.org/projects/mamba/badge/?version=latest&style=flat)](https://mamba.readthedocs.io/en/latest)
 
-Mamba is a reimplementation of the conda package manager in C++.
+`mamba` is a reimplementation of the conda package manager in C++.
 
 - parallel downloading of repository data and package files using multi-threading
 - libsolv for much faster dependency solving, a state of the art library used in the RPM package manager of Red Hat, Fedora and OpenSUSE

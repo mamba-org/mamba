@@ -177,10 +177,6 @@ namespace mamba
         // join the list back into a string
         std::wstring new_value = join(L" & ", autorun_list);
 
-        std::cout << "Setting cmd.exe AUTORUN to: " << termcolor::green;
-        std::wcout << new_value;
-        std::cout << termcolor::reset << std::endl;
-
         // set modified registry key
         if (new_value != prev_value)
         {

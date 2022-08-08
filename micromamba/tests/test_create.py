@@ -25,8 +25,9 @@ test_env_requires_pip_install_path_with_whitespaces = os.path.join(
 
 test_envs = [
     test_env_requires_pip_install_path,
-    test_env_requires_pip_install_path_with_whitespaces
+    test_env_requires_pip_install_path_with_whitespaces,
 ]
+
 
 class TestCreate:
 

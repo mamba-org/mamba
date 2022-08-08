@@ -129,7 +129,6 @@ namespace mamba
     {
         m_node_list.push_back(std::forward<V>(value));
         m_adjacency_list.push_back(edge_list());
-        //m_rev_adjacency_list.push_back(neighs());
         m_levels.push_back(0);
         return m_node_list.size() - 1u;
     }

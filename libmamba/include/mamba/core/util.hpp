@@ -20,6 +20,7 @@
 #include <time.h>
 #include <vector>
 #include <chrono>
+#include <unordered_set>
 
 #if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
 #include <iomanip>
@@ -411,6 +412,32 @@ namespace mamba
     inline bool is_yaml_file_name(const std::string_view filename)
     {
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
+    }
+
+    template <class T>
+    inline std::size_t hash(const std::unordered_set<T>& vec) noexcept
+    {
+        std::size_t seed = vec.size();
+        for(auto& i : vec) {
+            seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+
+    inline std::string join(const std::vector<size_t>& collection)
+    {
+        std::stringstream ss;
+        std::copy(collection.begin(), collection.end(), std::ostream_iterator<size_t>(
+            ss, ", "));
+        return ss.str();
+    }
+
+    inline std::string join(const std::unordered_set<std::string>& collection)
+    {
+        std::stringstream ss;
+        std::copy(collection.begin(), collection.end(), std::ostream_iterator<std::string>(
+            ss, ", "));
+        return ss.str();
     }
 
 }  // namespace mamba

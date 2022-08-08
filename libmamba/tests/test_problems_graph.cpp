@@ -3,6 +3,7 @@
 #include "mamba/core/problems_explainer.hpp"
 #include "mamba/core/problems_graph.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/solver.hpp"
 
 namespace mamba
 {
@@ -30,6 +31,7 @@ namespace mamba
         MNode menu20(PackageInfo("menu", "2.0.0", "abcde", 0));
         MNode menu21(PackageInfo("menu", "2.0.1", "abcde", 0));
         MNode menu22(PackageInfo("menu", "2.0.2", "abcde", 0));
+        MNode nonExistent("non-existent >= 2.0.0", SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP);
         std::vector<MNode> nodes
         {
             root,
@@ -42,7 +44,8 @@ namespace mamba
             menu14,
             menu20,
             menu21,
-            menu22
+            menu22,
+            nonExistent
         };
     
         MProblemsGraphs g;
@@ -64,7 +67,8 @@ namespace mamba
     
         g.add_conflict_edge(menu14, intl1, "intl 1.*");
         g.add_conflict_edge(menu14, pyicons1, "pyicons 1.*");
-        
+        g.add_conflict_edge(menu14, nonExistent, "non-existent >=2.0.0");
+
         std::vector<MNode> menu2_same_kids{menu20, menu21, menu22}; 
         for (const auto& menu : menu2_same_kids)
         {
@@ -86,7 +90,7 @@ namespace mamba
 
         g.create_merged_graph();
     
-        MProblemsExplainer exp(g.m_merged_conflict_graph);
+        MProblemsExplainer exp(g.m_merged_conflict_graph, g.group_solvables_to_conflicts);
         std::cerr<< exp.explain() << std::endl;
     }
 }

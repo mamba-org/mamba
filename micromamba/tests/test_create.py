@@ -653,5 +653,5 @@ class TestCreate:
 
     def test_requires_pip_install_prefix_spaces(self):
         prefix = Path(f"{TestCreate.prefix} with space")
-        cmd = ["-p", f"{prefix}", "-f", self.test_env_requires_pip_install_path]
+        cmd = ["-p", prefix, "-f", self.test_env_requires_pip_install_path]
         create(*cmd)

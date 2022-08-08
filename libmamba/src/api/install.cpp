@@ -28,15 +28,17 @@ namespace mamba
 {
     namespace
     {
-        tl::expected<std::string, std::runtime_error> get_other_pkg_mgr_install_instructions(
-            const std::string& name, const std::string& target_prefix)
+        using command_args = std::vector<std::string>;
+
+        tl::expected<command_args, std::runtime_error> get_other_pkg_mgr_install_instructions(
+            const std::string& name, const std::string& target_prefix, fs::path spec_file)
         {
             const auto get_python_path
                 = [&] { return env::which("python", get_path_dirs(target_prefix)).u8string(); };
 
-            const std::unordered_map<std::string, std::string> other_pkg_mgr_install_instructions{
+            const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
-                  fmt::format("{} {}", get_python_path(), "-m pip install -r {0} --no-input") }
+                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } }
             };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);
@@ -90,26 +92,25 @@ namespace mamba
 
         const auto& ctx = Context::instance();
 
-        std::string install_instructions = [&]
+        TemporaryFile specs;
+        {
+            std::ofstream specs_f = open_ofstream(specs.path());
+            for (auto& d : deps)
+                specs_f << d.c_str() << '\n';
+        }
+
+        command_args install_instructions = [&]
         {
             const auto maybe_instructions
-                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix);
+                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix, specs.path());
             if (maybe_instructions)
                 return maybe_instructions.value();
             else
                 throw maybe_instructions.error();
         }();
 
-        TemporaryFile specs;
-        std::ofstream specs_f = open_ofstream(specs.path());
-        for (auto& d : deps)
-            specs_f << d.c_str() << '\n';
-        specs_f.close();
-
-        replace_all(install_instructions, "{0}", specs.path());
-
-        std::vector<std::string> install_args = split(install_instructions, " ");
-        auto [wrapped_command, tmpfile] = prepare_wrapped_call(ctx.target_prefix, install_args);
+        auto [wrapped_command, tmpfile]
+            = prepare_wrapped_call(ctx.target_prefix, install_instructions);
 
         reproc::options options;
         options.redirect.parent = true;
@@ -118,7 +119,7 @@ namespace mamba
         Console::stream() << "\n"
                           << termcolor::cyan << "Installing " << pkg_mgr
                           << " packages: " << join(", ", deps) << termcolor::reset;
-        LOG_INFO << "Calling: " << join(" ", install_args);
+        LOG_INFO << "Calling: " << join(" ", install_instructions);
 
         auto [status, ec] = reproc::run(wrapped_command, options);
         assert_reproc_success(options, status, ec);

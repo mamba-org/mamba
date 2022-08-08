@@ -27,20 +27,20 @@ Mamba is a reimplementation of the conda package manager in C++.
 
 - parallel downloading of repository data and package files using multi-threading
 - libsolv for much faster dependency solving, a state of the art library used in the RPM package manager of Red Hat, Fedora and OpenSUSE
-- core parts of mamba are implemented in C++ for maximum efficiency
+- core parts of `mamba` are implemented in C++ for maximum efficiency
 
-At the same time, mamba utilizes the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
+At the same time, `mamba` utilizes the same command line parser, package installation and deinstallation code and transaction verification routines as `conda` to stay as compatible as possible.
 
 Mamba is part of a bigger ecosystem to make scientific packaging more sustainable. You can read our [announcement blog post](https://medium.com/@QuantStack/open-software-packaging-for-science-61cecee7fc23).
-The ecosystem also consists of `quetz`, an open source conda package server and `boa`, a fast conda package builder.
+The ecosystem also consists of `quetz`, an open source `conda` package server and `boa`, a fast `conda` package builder.
 
 ## Installation
 
-Please refer to the [Mamba and Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation.html) in the documentation.
+Please refer to the [`mamba` and `micromamba` installation guide](https://mamba.readthedocs.io/en/latest/installation.html) in the documentation.
 
 ## Additional features in Mamba and Micromamba
 
-Mamba and Micromamba come with features on top of stock conda.
+`mamba` and `micromamba` come with features on top of stock `conda`.
 
 ### `repoquery`
 
@@ -55,9 +55,9 @@ TODO
 
 ## micromamba
 
-micromamba is a small, pure-C++ reimplementation of Mamba/Conda. It strives to be a full replacement for Mamba and Conda. As such, it doesn't use any Conda code (in fact it doesn't require Python at all).
+`micromamba` is a small, pure-C++ reimplementation of `mamba`/`conda`. It strives to be a full replacement for `mamba` and `conda`. As such, it doesn't use any `conda` code (in fact it doesn't require Python at all).
 
-See the [documentation on Micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for details.
+See the [documentation on `micromamba`](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for details.
 
 ## Development installation
 
@@ -65,7 +65,7 @@ Please refer to the instructions given by the [official documentation](https://m
 
 ## Support us
 
-For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
+For questions, you can also join us on the [QuantStack Chat](https://gitter.im/QuantStack/Lobby) or on the [Conda channel](https://gitter.im/conda/conda) (note that this project is not officially affiliated with `conda` or Anaconda Inc.).
 
 ## License
 

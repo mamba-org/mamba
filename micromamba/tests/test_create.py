@@ -13,6 +13,20 @@ from .helpers import *
 
 source_dir_path = os.path.dirname(os.path.realpath(__file__))
 
+this_source_file_dir_path = Path(__file__).parent.resolve()
+
+test_env_requires_pip_install_path = os.path.join(
+    this_source_file_dir_path, "env-requires-pip-install.yaml"
+)
+
+test_env_requires_pip_install_path_with_whitespaces = os.path.join(
+    this_source_file_dir_path, "env-requires-pip-install-with-spaces.yaml"
+)
+
+test_envs = [
+    test_env_requires_pip_install_path,
+    test_env_requires_pip_install_path_with_whitespaces
+]
 
 class TestCreate:
 
@@ -642,16 +656,14 @@ class TestCreate:
         assert (site_packages / pyc_fn).exists()
         assert pyc_fn.name in six_meta
 
-    test_env_requires_pip_install_path = os.path.join(
-        Path(__file__).parent.resolve(), "env-requires-pip-install.yaml"
-    )
-
-    def test_requires_pip_install(self):
+    @pytest.mark.parametrize("env_file", test_envs)
+    def test_requires_pip_install(self, env_file):
         prefix = Path(TestCreate.prefix)
-        cmd = ["-p", prefix, "-f", self.test_env_requires_pip_install_path]
+        cmd = ["-p", f"{prefix}", "-f", env_file]
         create(*cmd)
 
-    def test_requires_pip_install_prefix_spaces(self):
+    @pytest.mark.parametrize("env_file", test_envs)
+    def test_requires_pip_install_prefix_spaces(self, env_file):
         prefix = Path(f"{TestCreate.prefix} with space")
-        cmd = ["-p", prefix, "-f", self.test_env_requires_pip_install_path]
+        cmd = ["-p", f"{prefix}", "-f", env_file]
         create(*cmd)

@@ -149,6 +149,7 @@ PYBIND11_MODULE(bindings, m)
         .def("set_postsolve_flags", &MSolver::set_postsolve_flags)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
+        .def("explain_problems", &MSolver::explain_problems)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
         .def("all_problems_structured", &MSolver::all_problems_structured)
         .def("solve", &MSolver::solve);

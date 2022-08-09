@@ -418,7 +418,8 @@ namespace mamba
     inline std::size_t hash(const std::unordered_set<T>& vec) noexcept
     {
         std::size_t seed = vec.size();
-        for(auto& i : vec) {
+        for (auto& i : vec)
+        {
             seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
@@ -427,16 +428,15 @@ namespace mamba
     inline std::string join(const std::vector<size_t>& collection)
     {
         std::stringstream ss;
-        std::copy(collection.begin(), collection.end(), std::ostream_iterator<size_t>(
-            ss, ", "));
+        std::copy(collection.begin(), collection.end(), std::ostream_iterator<size_t>(ss, ", "));
         return ss.str();
     }
 
     inline std::string join(const std::unordered_set<std::string>& collection)
     {
         std::stringstream ss;
-        std::copy(collection.begin(), collection.end(), std::ostream_iterator<std::string>(
-            ss, ", "));
+        std::copy(
+            collection.begin(), collection.end(), std::ostream_iterator<std::string>(ss, ", "));
         return ss.str();
     }
 

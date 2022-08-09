@@ -17,7 +17,7 @@
 
 namespace mamba
 {
-    //TODO move this to actual graph_util
+    // TODO move this to actual graph_util
     template <class T, class U>
     class MPropertyGraph
     {
@@ -116,7 +116,7 @@ namespace mamba
         m_adjacency_list[from].push_back(std::make_pair(to, info));
         if (m_rev_adjacency_list.size() <= to)
         {
-            m_rev_adjacency_list.resize(to+1);
+            m_rev_adjacency_list.resize(to + 1);
         }
         m_rev_adjacency_list[to].push_back(from);
         std::cerr << "rev " << to << " " << from << std::endl;
@@ -140,7 +140,7 @@ namespace mamba
     inline void MPropertyGraph<T, U>::update_node(node_id id, V&& value)
     {
         std::cerr << "Updating node " << id << " with " << value << std::endl;
-        
+
         m_node_list[id].add(value);
     }
 
@@ -153,7 +153,8 @@ namespace mamba
         {
             if (it->first == to)
             {
-                std::cerr << "Updating " << from << "to " << it-> first << " with " <<  value << std::endl;
+                std::cerr << "Updating " << from << "to " << it->first << " with " << value
+                          << std::endl;
                 it->second.add(value);
                 return true;
             }
@@ -164,7 +165,7 @@ namespace mamba
     template <class T, class U>
     inline auto MPropertyGraph<T, U>::get_parents_to_leaves() const -> node_path
     {
-        //TODO - sanity check should only be a root
+        // TODO - sanity check should only be a root
         std::vector<std::pair<node_id, edge_info>> roots;
         for (node_id i = 0; i < m_levels.size(); ++i)
         {
@@ -182,13 +183,15 @@ namespace mamba
         {
             roots_to_leaves[root.first].push_back(root);
             edge_list edges = get_leaves(root);
-            roots_to_leaves[root.first].insert(roots_to_leaves[root.first].end(), edges.begin(), edges.end());
+            roots_to_leaves[root.first].insert(
+                roots_to_leaves[root.first].end(), edges.begin(), edges.end());
         }
         return roots_to_leaves;
     }
 
     template <class T, class U>
-    inline auto MPropertyGraph<T, U>::get_leaves(const std::pair<node_id, edge_info>& edge) const -> edge_list
+    inline auto MPropertyGraph<T, U>::get_leaves(const std::pair<node_id, edge_info>& edge) const
+        -> edge_list
     {
         node_id id = edge.first;
         edge_list edges = get_edge_list(id);

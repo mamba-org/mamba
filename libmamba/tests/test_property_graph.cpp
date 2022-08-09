@@ -27,7 +27,9 @@ namespace mamba
     }
 
     template <class T>
-    inline Info<T>::Info() { }
+    inline Info<T>::Info()
+    {
+    }
 
     TEST(problems_graph, test_leaves_to_roots)
     {
@@ -51,19 +53,27 @@ namespace mamba
         g.add_edge(node_five, node_six, "e");
         g.add_edge(node_six, node_seven, "f");
 
-        std::unordered_map<size_t, std::vector<std::pair<size_t, std::string>>> expected_value {
-            {node_one , std::vector<std::pair<size_t, std::string>>{std::make_pair(node_one, "one"), std::make_pair(node_four, "d"), std::make_pair(node_four, "c")}},
-            {node_five , std::vector<std::pair<size_t, std::string>>{std::make_pair(node_five, "five"), std::make_pair(node_seven, "f")}}
+        std::unordered_map<size_t, std::vector<std::pair<size_t, std::string>>> expected_value{
+            { node_one,
+              std::vector<std::pair<size_t, std::string>>{ std::make_pair(node_one, "one"),
+                                                           std::make_pair(node_four, "d"),
+                                                           std::make_pair(node_four, "c") } },
+            { node_five,
+              std::vector<std::pair<size_t, std::string>>{ std::make_pair(node_five, "five"),
+                                                           std::make_pair(node_seven, "f") } }
         };
         // TODO cleanup comparison
         for (const auto& root_to_leaves : g.get_parents_to_leaves())
         {
             EXPECT_TRUE(expected_value.find(root_to_leaves.first) != expected_value.end());
-            EXPECT_TRUE(root_to_leaves.second.size() == expected_value[root_to_leaves.first].size());
-            for(size_t i = 0; i < root_to_leaves.second.size(); ++i )
+            EXPECT_TRUE(root_to_leaves.second.size()
+                        == expected_value[root_to_leaves.first].size());
+            for (size_t i = 0; i < root_to_leaves.second.size(); ++i)
             {
-                EXPECT_TRUE(root_to_leaves.second[i].first == expected_value[root_to_leaves.first][i].first);
-                EXPECT_TRUE(root_to_leaves.second[i].second == expected_value[root_to_leaves.first][i].second);
+                EXPECT_TRUE(root_to_leaves.second[i].first
+                            == expected_value[root_to_leaves.first][i].first);
+                EXPECT_TRUE(root_to_leaves.second[i].second
+                            == expected_value[root_to_leaves.first][i].second);
             }
         }
     }
@@ -85,23 +95,22 @@ namespace mamba
         g.update_node<std::string>(a, "aa");
         g.update_node<std::string>(a, "aaa");
         g.update_node<std::string>(d, "dd");
-        
-        std::vector<std::string> a_values {"a", "aa", "aaa"};
+
+        std::vector<std::string> a_values{ "a", "aa", "aaa" };
 
         EXPECT_TRUE(g.get_node(a).m_values == a_values);
-        
-        std::vector<std::string> d_values {"d", "dd"};
-        EXPECT_TRUE(g.get_node(d).m_values== d_values);
+
+        std::vector<std::string> d_values{ "d", "dd" };
+        EXPECT_TRUE(g.get_node(d).m_values == d_values);
 
         EXPECT_TRUE(g.update_edge_if_present<std::string>(root, a, "a 1.0.0"));
         EXPECT_FALSE(g.update_edge_if_present<std::string>(root, d, "invalid*"));
         EXPECT_TRUE(g.update_edge_if_present<std::string>(root, a, "aaa*"));
 
         std::vector<std::pair<size_t, Info<std::string>>> root_edges = g.get_edge_list(root);
-        std::vector<std::string> a_edges{"a*", "a 1.0.0", "aaa*"};
-        std::vector<std::string> b_edges{"b*"};
+        std::vector<std::string> a_edges{ "a*", "a 1.0.0", "aaa*" };
+        std::vector<std::string> b_edges{ "b*" };
         EXPECT_TRUE(root_edges[0].second.m_values == a_edges);
         EXPECT_TRUE(root_edges[1].second.m_values == b_edges);
-
     }
 }

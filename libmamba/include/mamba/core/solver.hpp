@@ -52,6 +52,7 @@ namespace mamba
         bool is_solved() const;
         bool solve();
         std::string problems_to_str() const;
+        std::string explain_problems();
         std::vector<std::string> all_problems() const;
         std::vector<MSolverProblem> all_problems_structured() const;
         std::string all_problems_to_str() const;

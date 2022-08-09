@@ -16,7 +16,7 @@
 
 namespace mamba
 {
-    template<class T>
+    template <class T>
     class Union
     {
     public:
@@ -30,37 +30,37 @@ namespace mamba
     };
 
 
-    template<class T>
+    template <class T>
     inline void Union<T>::add(T node)
     {
         parent[node] = node;
         rank[node] = node;
     }
 
-    template<class T>
+    template <class T>
     inline void Union<T>::connect(T node_u, T node_v)
     {
-        T u=root(node_u);
-        T v=root(node_v);
-        if(u == v)
+        T u = root(node_u);
+        T v = root(node_v);
+        if (u == v)
         {
             return;
         }
-        if(rank[node_u] < rank[node_v])
+        if (rank[node_u] < rank[node_v])
         {
             std::swap(node_u, node_v);
         }
         parent[node_v] = node_u;
-        if(rank[node_u] == rank[node_v])
+        if (rank[node_u] == rank[node_v])
         {
             rank[node_u]++;
         }
     }
 
-    template<class T>
+    template <class T>
     inline auto Union<T>::root(T node) -> const T
     {
-        if(node == parent[node])
+        if (node == parent[node])
         {
             return node;
         }
@@ -68,6 +68,6 @@ namespace mamba
         return parent[node] = root(parent[node]);
     }
 
-} // namespace mamba
+}  // namespace mamba
 
 #endif  // MAMBA_CORE_UNION_UTIL_HPP

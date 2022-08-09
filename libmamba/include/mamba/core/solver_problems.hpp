@@ -21,7 +21,7 @@ extern "C"
 }
 
 namespace mamba
-{   
+{
     class MSolverProblem
     {
     public:

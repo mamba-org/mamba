@@ -28,42 +28,48 @@ namespace mamba
     public:
         using node_id = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_id;
         using node_path = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_path;
-        
+
         MProblemsExplainer(MPool* pool);
         MProblemsExplainer(const MProblemsGraphs& problems_graphs);
-        
+
         std::string explain(const std::vector<MSolverProblem>& problems);
-        
+
     private:
         MProblemsGraphs m_problems_graph;
         std::unordered_map<node_id, std::unordered_set<node_id>> m_group_solvables_to_conflicts;
-        std::unordered_map<std::string, std::unordered_map<size_t, std::unordered_set<std::string>>> conflicts_to_roots;
+        std::unordered_map<std::string, std::unordered_map<size_t, std::unordered_set<std::string>>>
+            conflicts_to_roots;
 
         std::string explain_problem(const std::pair<MGroupNode, MGroupEdgeInfo>& node) const;
         std::string explain(const std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>& edges) const;
-        std::string explain(const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>& node_to_edge_to_req) const;
+        std::string explain(const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>&
+                                node_to_edge_to_req) const;
     };
 
-    inline
-    MProblemsExplainer::MProblemsExplainer(MPool* pool) 
-        : m_problems_graph(MProblemsGraphs(pool)) { }
+    inline MProblemsExplainer::MProblemsExplainer(MPool* pool)
+        : m_problems_graph(MProblemsGraphs(pool))
+    {
+    }
 
-    inline 
-    MProblemsExplainer::MProblemsExplainer(const MProblemsGraphs& graph) 
-        : m_problems_graph(graph) { }
+    inline MProblemsExplainer::MProblemsExplainer(const MProblemsGraphs& graph)
+        : m_problems_graph(graph)
+    {
+    }
 
-    inline 
-    std::string MProblemsExplainer::explain(const std::vector<MSolverProblem>& problems)
+    inline std::string MProblemsExplainer::explain(const std::vector<MSolverProblem>& problems)
     {
         auto m_graph = m_problems_graph.create_graph(problems);
         auto group_conflicts = m_problems_graph.get_groups_conflicts();
         node_path path = m_graph.get_parents_to_leaves();
-        //group_id => group_id: m_graph.group_solvables_to_conflicts;
+        // group_id => group_id: m_graph.group_solvables_to_conflicts;
         std::stringstream sstr;
 
-        std::unordered_map<std::string, std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>> bluf_problems_packages;
-        std::unordered_map<std::string, std::vector<std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>>> conflict_to_root_info;
-        for (const auto& entry : path) 
+        std::unordered_map<std::string, std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>>
+            bluf_problems_packages;
+        std::unordered_map<std::string,
+                           std::vector<std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>>>
+            conflict_to_root_info;
+        for (const auto& entry : path)
         {
             MGroupNode root_node = m_graph.get_node(entry.first);
             // currently the vector only contains the root as a first entry & all the leaves
@@ -73,20 +79,20 @@ namespace mamba
             {
                 MGroupNode conflict_node = m_graph.get_node(it->first);
                 auto conflict_name = conflict_node.get_name();
-                conflict_to_root_info[conflict_name].push_back(std::make_tuple(root_node, root_edge_info, it->second));
+                conflict_to_root_info[conflict_name].push_back(
+                    std::make_tuple(root_node, root_edge_info, it->second));
                 auto itc = m_group_solvables_to_conflicts.find(it->first);
                 if (itc != m_group_solvables_to_conflicts.end())
                 {
                     auto value = hash(itc->second);
-                    //TODO check again here the hash is correct
-                    conflicts_to_roots[conflict_name][value].insert(
-                        root_edge_info.m_deps.begin(), 
-                        root_edge_info.m_deps.end()
-                    );
-                } 
-                else 
+                    // TODO check again here the hash is correct
+                    conflicts_to_roots[conflict_name][value].insert(root_edge_info.m_deps.begin(),
+                                                                    root_edge_info.m_deps.end());
+                }
+                else
                 {
-                    bluf_problems_packages[conflict_name].emplace_back(conflict_node, root_edge_info);
+                    bluf_problems_packages[conflict_name].emplace_back(conflict_node,
+                                                                       root_edge_info);
                 }
             }
         }
@@ -97,10 +103,11 @@ namespace mamba
             sstr << "Requested packages ";
             for (const auto& hash_to_deps : entry.second)
             {
-                sstr << "["  << join(hash_to_deps.second) << ",] ";
+                sstr << "[" << join(hash_to_deps.second) << ",] ";
             }
             sstr << std::endl;
-            sstr << "\tare incompatible because they depend on different versions of "<< conflict_name << std::endl;
+            sstr << "\tare incompatible because they depend on different versions of "
+                 << conflict_name << std::endl;
             for (const auto& entry : conflict_to_root_info[conflict_name])
             {
                 std::string str_node = explain(entry);
@@ -108,11 +115,10 @@ namespace mamba
             }
         }
 
-        for (const auto& entry: bluf_problems_packages)
+        for (const auto& entry : bluf_problems_packages)
         {
-            sstr << "Requested packages " 
-                << explain(entry.second) << std::endl
-                << "\tcannot be installed because they depend on " << std::endl;
+            sstr << "Requested packages " << explain(entry.second) << std::endl
+                 << "\tcannot be installed because they depend on " << std::endl;
             for (const auto& node_edge_problem : entry.second)
             {
                 sstr << "\t\t " << explain_problem(node_edge_problem);
@@ -121,8 +127,9 @@ namespace mamba
         return sstr.str();
     }
 
-    inline std::string  MProblemsExplainer::explain_problem(const std::pair<MGroupNode, MGroupEdgeInfo>& node_edge) const
-    {   
+    inline std::string MProblemsExplainer::explain_problem(
+        const std::pair<MGroupNode, MGroupEdgeInfo>& node_edge) const
+    {
         auto& node = node_edge.first;
         std::stringstream ss;
         if (!node.m_problem_type.has_value())
@@ -131,7 +138,7 @@ namespace mamba
             return ss.str();
         }
         switch (node.m_problem_type.value())
-        {   
+        {
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
@@ -155,26 +162,28 @@ namespace mamba
                 break;
         }
         return ss.str();
-        
     }
 
-    inline std::string MProblemsExplainer::explain(const std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>& requested_packages) const
+    inline std::string MProblemsExplainer::explain(
+        const std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>& requested_packages) const
     {
         std::stringstream sstr;
-        for (const auto& requested_package: requested_packages)
+        for (const auto& requested_package : requested_packages)
         {
             sstr << requested_package.second;
         }
         return sstr.str();
     }
 
-    inline std::string MProblemsExplainer::explain(const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>& node_to_edge_to_req) const
+    inline std::string MProblemsExplainer::explain(
+        const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>& node_to_edge_to_req) const
     {
         std::stringstream sstr;
         MGroupNode group_node = std::get<0>(node_to_edge_to_req);
         MGroupEdgeInfo group_node_edge = std::get<1>(node_to_edge_to_req);
         MGroupEdgeInfo conflict_edge = std::get<2>(node_to_edge_to_req);
-        sstr << group_node_edge << " versions: [" << join(group_node.m_pkg_versions) << "] depend on " << conflict_edge;
+        sstr << group_node_edge << " versions: [" << join(group_node.m_pkg_versions)
+             << "] depend on " << conflict_edge;
         return sstr.str();
     }
 }  // namespace mamba

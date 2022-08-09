@@ -489,6 +489,7 @@ namespace mamba
         if (!success)
         {
             Console::stream() << solver.problems_to_str();
+            Console::stream() << solver.explain_problems();
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;

@@ -56,7 +56,6 @@ namespace mamba
     {
         if (source_id == 0 || source_id >= solver->pool->nsolvables)
             return std::nullopt;
-        ;
         return pool_id2solvable(solver->pool, source_id);
     }
 

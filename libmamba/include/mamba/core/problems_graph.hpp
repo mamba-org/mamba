@@ -53,7 +53,7 @@ namespace mamba
             {
                 if (node.m_package_info.has_value())
                 {
-                    return std::hash<std::string>()(node.m_package_info.value().sha256);
+                    return PackageInfoHash()(node.m_package_info.value());
                 }
                 else if (node.m_dep.has_value())
                 {
@@ -88,7 +88,6 @@ namespace mamba
         void add(const MNode& node);
         std::string get_name() const;
         bool is_root() const;
-        // friend std::ostream& operator<<(std::ostream& os, const MGroupNode& edge);
     };
 
     class MGroupEdgeInfo
@@ -100,8 +99,6 @@ namespace mamba
 
         void add(MEdgeInfo dep);
         bool operator==(const MGroupEdgeInfo& edge);
-
-        // friend std::ostream& operator<<(std::ostream& os, const MGroupEdgeInfo& edge);
     };
 
     class MProblemsGraphs
@@ -114,6 +111,7 @@ namespace mamba
         using conflicts_node_ids = std::unordered_map<node_id, std::unordered_set<node_id>>;
         using conflicts_group_ids
             = std::unordered_map<group_node_id, std::unordered_set<group_node_id>>;
+        
         MProblemsGraphs();
         MProblemsGraphs(MPool* pool);
         MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems);

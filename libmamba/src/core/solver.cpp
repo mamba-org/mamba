@@ -409,7 +409,7 @@ namespace mamba
     }
 
     std::string MSolver::explain_problems()
-    {   
+    {
         std::vector<MSolverProblem> problems = all_problems_structured();
         auto final_graph = m_problems_solver.create_graph(problems);
         auto group_conflicts = m_problems_solver.get_groups_conflicts();

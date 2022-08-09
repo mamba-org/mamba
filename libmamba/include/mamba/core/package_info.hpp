@@ -94,7 +94,7 @@ namespace mamba
                && package_info_a.defaulted_keys == package_info_b.defaulted_keys;
     }
 
-    struct HashFunction
+    struct PackageInfoHash
     {
         size_t operator()(const PackageInfo& package_info) const
         {

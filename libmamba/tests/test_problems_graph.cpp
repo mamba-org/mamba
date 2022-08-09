@@ -78,9 +78,10 @@ namespace mamba
             = expect_same_union_only(g.m_union, std::vector{ visited[intl2], visited[intl3] });
         EXPECT_TRUE(union1 != union2 && union1 != union3 && union2 != union3);
 
-        g.create_merged_graph();
+        auto merged_graph = g.create_merged_graph();
+        auto groups = g.get_groups_conflicts();
 
-        // MProblemsExplainer exp(g);
-        // std::cerr<< exp.explain() << std::endl;
+        MProblemsExplainer explainer(merged_graph, groups);
+        std::cerr << explainer.explain() << std::endl;
     }
 }

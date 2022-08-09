@@ -51,7 +51,6 @@ namespace mamba
         {
             size_t operator()(const MNode& node) const
             {
-                // TODO broken change this!
                 if (node.m_package_info.has_value())
                 {
                     return std::hash<std::string>()(node.m_package_info.value().sha256);
@@ -60,7 +59,7 @@ namespace mamba
                 {
                     return std::hash<std::string>()(node.m_dep.value());
                 }
-                // assume it is a root
+                // root
                 return 0;
             }
         };

@@ -15,9 +15,11 @@ extern "C"
 #include <solv/solvable.h>
 }
 
+#include "util.hpp"
 #include <string>
 #include <vector>
 #include <set>
+
 
 #include "nlohmann/json.hpp"
 
@@ -68,13 +70,60 @@ namespace mamba
         std::set<std::string> defaulted_keys;
     };
 
-    // TODO rm or change this!
     inline bool operator==(const PackageInfo& package_info_a, const PackageInfo& package_info_b)
     {
         return package_info_a.name == package_info_b.name
                && package_info_a.version == package_info_b.version
-               && package_info_a.build_string == package_info_b.build_string;
+               && package_info_a.build_string == package_info_b.build_string
+               && package_info_a.noarch == package_info_b.noarch
+               && package_info_a.build_number == package_info_b.build_number
+               && package_info_a.channel == package_info_b.channel
+               && package_info_a.url == package_info_b.url
+               && package_info_a.subdir == package_info_b.subdir
+               && package_info_a.fn == package_info_b.fn
+               && package_info_a.license == package_info_b.license
+               && package_info_a.size == package_info_b.size
+               && package_info_a.timestamp == package_info_b.timestamp
+               && package_info_a.md5 == package_info_b.md5
+               && package_info_a.sha256 == package_info_b.sha256
+               && package_info_a.track_features == package_info_b.track_features
+               && package_info_a.depends == package_info_b.depends
+               && package_info_a.constrains == package_info_b.constrains
+               && package_info_a.signatures == package_info_b.signatures
+               && package_info_a.extra_metadata == package_info_b.extra_metadata
+               && package_info_a.defaulted_keys == package_info_b.defaulted_keys;
     }
+
+    struct HashFunction
+    {
+        size_t operator()(const PackageInfo& package_info) const
+        {
+            std::vector<std::string> entries{
+                package_info.name,   package_info.version, package_info.build_string,
+                package_info.noarch, package_info.channel, package_info.url,
+                package_info.md5,    package_info.sha256,  package_info.subdir,
+            };
+            std::vector<size_t> v = to_size_t(entries);
+            v.push_back(std::hash<size_t>{}(package_info.build_number));
+
+            size_t depends_hash = hash<size_t>(to_size_t(package_info.depends));
+            size_t constrains_hash = hash<size_t>(to_size_t(package_info.constrains));
+            v.push_back(depends_hash);
+            v.push_back(constrains_hash);
+
+            return std::hash<std::string>{}(package_info.subdir);
+        }
+
+        std::vector<size_t> to_size_t(const std::vector<std::string>& entries) const
+        {
+            std::vector<size_t> v;
+            std::transform(entries.begin(),
+                           entries.end(),
+                           std::back_inserter(v),
+                           [](auto entry) { return std::hash<std::string>{}(entry); });
+            return v;
+        }
+    };
 }  // namespace mamba
 
 #endif

@@ -415,6 +415,17 @@ namespace mamba
     }
 
     template <class T>
+    inline std::size_t hash(const std::vector<T>& vec) noexcept
+    {
+        std::size_t seed = vec.size();
+        for (auto& i : vec)
+        {
+            seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+
+    template <class T>
     inline std::size_t hash(const std::unordered_set<T>& vec) noexcept
     {
         std::size_t seed = vec.size();

@@ -22,7 +22,7 @@ namespace mamba
         , m_is_solved(false)
         , m_solver(nullptr)
         , m_pool(pool)
-        , m_problems_explainer(MProblemsExplainer(&pool))
+        , m_problems_solver(MProblemsGraphs(&pool))
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
@@ -407,9 +407,14 @@ namespace mamba
         queue_free(&problem_rules);
         return res;
     }
+
     std::string MSolver::explain_problems()
-    {
-        return m_problems_explainer.explain(all_problems_structured());
+    {   
+        std::vector<MSolverProblem> problems = all_problems_structured();
+        auto final_graph = m_problems_solver.create_graph(problems);
+        auto group_conflicts = m_problems_solver.get_groups_conflicts();
+        MProblemsExplainer explainer(final_graph, group_conflicts);
+        return explainer.explain();
     }
 
     std::string MSolver::all_problems_to_str() const

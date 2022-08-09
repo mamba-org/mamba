@@ -14,6 +14,7 @@
 
 #include "match_spec.hpp"
 #include "solver_problems.hpp"
+#include "problems_graph.hpp"
 #include "problems_explainer.hpp"
 
 extern "C"
@@ -81,7 +82,7 @@ namespace mamba
         Solver* m_solver;
         Pool* m_pool;
         Queue m_jobs;
-        MProblemsExplainer m_problems_explainer;
+        MProblemsGraphs m_problems_solver;
     };
 }  // namespace mamba
 

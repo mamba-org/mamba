@@ -26,63 +26,54 @@ namespace mamba
     class MProblemsExplainer
     {
     public:
+        using graph = MPropertyGraph<MGroupNode, MGroupEdgeInfo>;
         using node_id = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_id;
         using node_path = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_path;
+        using node_edge = std::pair<MGroupNode, MGroupEdgeInfo>;
+        using node_edge_edge = std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>;
+        using adj_list = std::unordered_map<node_id, std::unordered_set<node_id>>;
 
-        MProblemsExplainer(MPool* pool);
-        MProblemsExplainer(const MProblemsGraphs& problems_graphs);
-
-        std::string explain(const std::vector<MSolverProblem>& problems);
+        MProblemsExplainer(const graph& g, const adj_list& adj);
+        std::string explain();
 
     private:
-        MProblemsGraphs m_problems_graph;
-        std::unordered_map<node_id, std::unordered_set<node_id>> m_group_solvables_to_conflicts;
-        std::unordered_map<std::string, std::unordered_map<size_t, std::unordered_set<std::string>>>
-            conflicts_to_roots;
+        graph m_problems_graph;
+        adj_list m_conflicts_adj_list;
 
-        std::string explain_problem(const std::pair<MGroupNode, MGroupEdgeInfo>& node) const;
-        std::string explain(const std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>& edges) const;
-        std::string explain(const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>&
-                                node_to_edge_to_req) const;
+        std::string explain_problem(const MGroupNode& node) const;
+        std::string explain(const std::vector<node_edge>& edges) const;
+        std::string explain(const node_edge_edge& node_to_edge_to_req) const;
     };
 
-    inline MProblemsExplainer::MProblemsExplainer(MPool* pool)
-        : m_problems_graph(MProblemsGraphs(pool))
+    inline MProblemsExplainer::MProblemsExplainer(const MProblemsExplainer::graph& g,
+                                                  const MProblemsExplainer::adj_list& adj)
+        : m_problems_graph(g)
+        , m_conflicts_adj_list(adj)
     {
     }
 
-    inline MProblemsExplainer::MProblemsExplainer(const MProblemsGraphs& graph)
-        : m_problems_graph(graph)
+    inline std::string MProblemsExplainer::explain()
     {
-    }
+        node_path path = m_problems_graph.get_parents_to_leaves();
 
-    inline std::string MProblemsExplainer::explain(const std::vector<MSolverProblem>& problems)
-    {
-        auto m_graph = m_problems_graph.create_graph(problems);
-        auto group_conflicts = m_problems_graph.get_groups_conflicts();
-        node_path path = m_graph.get_parents_to_leaves();
-        // group_id => group_id: m_graph.group_solvables_to_conflicts;
-        std::stringstream sstr;
-
-        std::unordered_map<std::string, std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>>
-            bluf_problems_packages;
-        std::unordered_map<std::string,
-                           std::vector<std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>>>
-            conflict_to_root_info;
+        std::unordered_map<std::string, std::vector<node_edge>> bluf_problems_packages;
+        std::unordered_map<std::string, std::vector<node_edge_edge>> conflict_to_root_info;
+        std::unordered_map<std::string, std::unordered_map<size_t, std::unordered_set<std::string>>>
+            conflicts_to_roots;
         for (const auto& entry : path)
         {
-            MGroupNode root_node = m_graph.get_node(entry.first);
+            MGroupNode root_node = m_problems_graph.get_node(entry.first);
             // currently the vector only contains the root as a first entry & all the leaves
             const auto& root_info = entry.second[0];
             const auto& root_edge_info = root_info.second;
             for (auto it = entry.second.begin() + 1; it != entry.second.end(); it++)
             {
-                MGroupNode conflict_node = m_graph.get_node(it->first);
+                MGroupNode conflict_node = m_problems_graph.get_node(it->first);
                 auto conflict_name = conflict_node.get_name();
                 conflict_to_root_info[conflict_name].push_back(
                     std::make_tuple(root_node, root_edge_info, it->second));
-                auto itc = m_group_solvables_to_conflicts.find(it->first);
-                if (itc != m_group_solvables_to_conflicts.end())
+                auto itc = m_conflicts_adj_list.find(it->first);
+                if (itc != m_conflicts_adj_list.end())
                 {
                     auto value = hash(itc->second);
                     // TODO check again here the hash is correct
@@ -97,6 +88,7 @@ namespace mamba
             }
         }
 
+        std::stringstream sstr;
         for (const auto& entry : conflicts_to_roots)
         {
             const std::string conflict_name = entry.first;
@@ -121,16 +113,14 @@ namespace mamba
                  << "\tcannot be installed because they depend on " << std::endl;
             for (const auto& node_edge_problem : entry.second)
             {
-                sstr << "\t\t " << explain_problem(node_edge_problem);
+                sstr << "\t\t " << explain_problem(node_edge_problem.first);
             }
         }
         return sstr.str();
     }
 
-    inline std::string MProblemsExplainer::explain_problem(
-        const std::pair<MGroupNode, MGroupEdgeInfo>& node_edge) const
+    inline std::string MProblemsExplainer::explain_problem(const MGroupNode& node) const
     {
-        auto& node = node_edge.first;
         std::stringstream ss;
         if (!node.m_problem_type.has_value())
         {
@@ -165,7 +155,7 @@ namespace mamba
     }
 
     inline std::string MProblemsExplainer::explain(
-        const std::vector<std::pair<MGroupNode, MGroupEdgeInfo>>& requested_packages) const
+        const std::vector<node_edge>& requested_packages) const
     {
         std::stringstream sstr;
         for (const auto& requested_package : requested_packages)
@@ -175,8 +165,7 @@ namespace mamba
         return sstr.str();
     }
 
-    inline std::string MProblemsExplainer::explain(
-        const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>& node_to_edge_to_req) const
+    inline std::string MProblemsExplainer::explain(const node_edge_edge& node_to_edge_to_req) const
     {
         std::stringstream sstr;
         MGroupNode group_node = std::get<0>(node_to_edge_to_req);

@@ -372,6 +372,7 @@ namespace mamba
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
+        LOG_INFO << m_problems_explainer.explain(all_problems_structured());
         success = solver_problem_count(m_solver) == 0;
         Console::instance().json_write({ { "success", success } });
         return success;

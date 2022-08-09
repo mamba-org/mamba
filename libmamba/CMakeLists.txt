@@ -274,37 +274,37 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         if (UNIX)
 
             set(REQUIRED_STATIC_DEPS
-                libcurl.so
-                libssh2.so
+                libcurl.a
+                libssh2.a
 
-                libgssapi_krb5.so
-                libkrb5.so
-                libk5crypto.so
-                libkrb5support.so
-                libcom_err.so
+                libgssapi_krb5.a
+                libkrb5.a
+                libk5crypto.a
+                libkrb5support.a
+                libcom_err.a
 
-                libssl.so
-                libcrypto.so
+                libssl.a
+                libcrypto.a
 
                 libarchive.a
 
-                libiconv.so
-                libbz2.so
-                liblz4.so
-                libzstd.so
+                libiconv.a
+                libbz2.a
+                liblz4.a
+                libzstd.a
                 libz.a
-                liblzma.so
+                liblzma.a
                 liblzo2.a
 
-                libsolv.so
-                libsolvext.so
+                libsolv.a
+                libsolvext.a
 
-                libnghttp2.so
+                libnghttp2.a
 
-                libyaml-cpp.so
+                libyaml-cpp.a
 
-                libreproc++.so
-                libreproc.so
+                libreproc++.a
+                libreproc.a
             )
 
             set(STATIC_DEPS "")

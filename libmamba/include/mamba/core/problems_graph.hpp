@@ -111,7 +111,7 @@ namespace mamba
         using conflicts_node_ids = std::unordered_map<node_id, std::unordered_set<node_id>>;
         using conflicts_group_ids
             = std::unordered_map<group_node_id, std::unordered_set<group_node_id>>;
-        
+
         MProblemsGraphs();
         MProblemsGraphs(MPool* pool);
         MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems);

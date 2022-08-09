@@ -1,0 +1,6 @@
+name: brokentestenv
+channels:
+    - conda-forge
+dependencies:
+    - python=2.7
+    - pytorch

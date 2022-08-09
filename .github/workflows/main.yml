@@ -357,6 +357,9 @@ jobs:
       - name: Run create command
         shell: bash -l {0}
         run: mamba create -n test_env xtensor -c conda-forge -y
+      - name: Run env create command for broken env
+        shell: bash -l {0}
+        run: mamba env create -f mamba/tests/test_broken_env.yml
       - name: Run env create command
         shell: bash -l {0}
         run: mamba env create -f mamba/tests/test_env.yml

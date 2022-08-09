@@ -17,11 +17,16 @@
 #include <functional>
 #include <iostream>
 
+#include "mamba/core/solver_problems.hpp"
 #include "mamba/core/property_graph.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/core/util.hpp"
+
+extern "C"
+{
+#include "solv/solver.h"
+}
 
 namespace mamba
 {   
@@ -98,38 +103,42 @@ namespace mamba
     };
 
     class MProblemsGraphs
-
     {
     public: 
         using initial_conflict_graph = MPropertyGraph<MNode, MEdgeInfo>;
         using merged_conflict_graph = MPropertyGraph<MGroupNode, MGroupEdgeInfo>;
         using node_id = initial_conflict_graph::node_id;
         using group_node_id = merged_conflict_graph::node_id;
-        
+        using conflicts_node_ids = std::unordered_map<node_id, std::unordered_set<node_id>>;
+        using conflicts_group_ids = std::unordered_map<group_node_id, std::unordered_set<group_node_id>>;
         MProblemsGraphs();
+        MProblemsGraphs(MPool* pool);
         MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems);
     
+        merged_conflict_graph create_graph(const std::vector<MSolverProblem>& problems);
+        
         void add_conflict_edge(MNode from_node, MNode to_node, std::string info);
         node_id get_or_create_node(MNode mnode);
         void add_solvables_to_conflicts(node_id source_node, node_id target_node);
         void create_unions();
-        void create_merged_graph();
 
-        // TODO these are private
+        const conflicts_group_ids& get_groups_conflicts();
+        merged_conflict_graph create_merged_graph();
+        
         Union<node_id> m_union;
         initial_conflict_graph m_initial_conflict_graph;
         merged_conflict_graph m_merged_conflict_graph;
 
-        std::unordered_map<node_id, std::unordered_set<node_id>> solvables_to_conflicts;
-        std::unordered_map<group_node_id, std::unordered_set<group_node_id>> group_solvables_to_conflicts;
+        conflicts_node_ids solvables_to_conflicts;
+        conflicts_group_ids group_solvables_to_conflicts;
     
     private:
-        MPool m_pool;
+        MPool* m_pool;
 
         std::unordered_map<MNode, node_id, MNode::HashFunction> m_node_to_id;
-
-        void create_initial_graph(MPool* pool, const std::vector<MSolverProblem>& problems);
-        void add_problem_to_graph(MPool* pool, const MSolverProblem& problem);
+    
+        void create_initial_graph(const std::vector<MSolverProblem>& problems);
+        void add_problem_to_graph(const MSolverProblem& problem);
 
         std::unordered_map<node_id, group_node_id> create_merged_nodes();
         std::optional<std::string> get_package_name(node_id id);
@@ -270,24 +279,31 @@ namespace mamba
     *************************/
 
 
+    inline MProblemsGraphs::MProblemsGraphs(MPool* pool) : m_pool(pool) {}
+
     inline MProblemsGraphs::MProblemsGraphs() {}
 
     inline MProblemsGraphs::MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems) 
     {
-        create_initial_graph(pool, problems);
-        create_unions();
-        create_merged_graph();
+        create_graph(problems);
     }
 
-    inline void MProblemsGraphs::create_initial_graph(MPool* pool, const std::vector<MSolverProblem>& problems) 
+    inline MProblemsGraphs::merged_conflict_graph MProblemsGraphs::create_graph(const std::vector<MSolverProblem>& problems)
+    {
+        create_initial_graph(problems);
+        create_unions();
+        return create_merged_graph();
+    }
+
+    inline void MProblemsGraphs::create_initial_graph(const std::vector<MSolverProblem>& problems) 
     {
         for (const auto& problem : problems) 
         {
-            add_problem_to_graph(pool, problem);
+            add_problem_to_graph(problem);
         }
     }
 
-    inline void MProblemsGraphs::add_problem_to_graph(MPool* pool, const MSolverProblem& problem) 
+    inline void MProblemsGraphs::add_problem_to_graph(const MSolverProblem& problem) 
     {
         switch (problem.type) 
         {
@@ -296,10 +312,10 @@ namespace mamba
             case SOLVER_RULE_JOB:                   //entry point for our solver
             case SOLVER_RULE_PKG: 
             { 
-                std::vector<Id> target_ids = pool->select_solvables(problem.dep_id);
+                std::vector<Id> target_ids = m_pool->select_solvables(problem.dep_id);
                 for (const auto& target_id : target_ids) 
                 {
-                    PackageInfo target = PackageInfo(pool_id2solvable(*pool, target_id));
+                    PackageInfo target = PackageInfo(pool_id2solvable(*m_pool, target_id));
                     if (problem.source().has_value())
                     {
                         add_conflict_edge(MNode(problem.source().value()), MNode(target), problem.dep().value());
@@ -477,7 +493,7 @@ namespace mamba
         return std::nullopt;
     }
 
-    inline void MProblemsGraphs::create_merged_graph() 
+    inline MProblemsGraphs::merged_conflict_graph MProblemsGraphs::create_merged_graph() 
     {
         std::unordered_map<node_id, group_node_id> root_to_group_id = create_merged_nodes();
         for (node_id from_node_id = 0; from_node_id < m_initial_conflict_graph.get_node_list().size(); ++from_node_id) 
@@ -501,6 +517,12 @@ namespace mamba
                 }
             }
         }
+        return m_merged_conflict_graph;
+    }
+
+    inline auto MProblemsGraphs::get_groups_conflicts() -> const conflicts_group_ids&
+    {
+        return group_solvables_to_conflicts;
     }
 
     inline std::unordered_map<MProblemsGraphs::node_id, MProblemsGraphs::group_node_id> MProblemsGraphs::create_merged_nodes() {

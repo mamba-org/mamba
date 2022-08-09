@@ -16,28 +16,26 @@
 #include <unordered_map>
 #include <numeric>
 
-#include "property_graph.hpp"
 #include "problems_graph.hpp"
+#include "property_graph.hpp"
 #include "util.hpp"
+#include "pool.hpp"
 
 namespace mamba
 {
-    class MGroupNode;
-    class MGroupEdgeInfo;
-    
     class MProblemsExplainer
     {
     public:
-        using problems_graph = MPropertyGraph<MGroupNode, MGroupEdgeInfo>;
         using node_id = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_id;
-        using pkg_dep = std::pair<MGroupNode, MGroupEdgeInfo>;
-        MProblemsExplainer(const problems_graph& problemGraph, 
-            std::unordered_map<node_id, std::unordered_set<node_id>> m_group_solvables_to_conflicts);
+        using node_path = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_path;
         
-        std::string explain();
-
+        MProblemsExplainer(MPool* pool);
+        MProblemsExplainer(const MProblemsGraphs& problems_graphs);
+        
+        std::string explain(const std::vector<MSolverProblem>& problems);
+        
     private:
-        MPropertyGraph<MGroupNode, MGroupEdgeInfo> m_graph;
+        MProblemsGraphs m_problems_graph;
         std::unordered_map<node_id, std::unordered_set<node_id>> m_group_solvables_to_conflicts;
         std::unordered_map<std::string, std::unordered_map<size_t, std::unordered_set<std::string>>> conflicts_to_roots;
 
@@ -46,15 +44,20 @@ namespace mamba
         std::string explain(const std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>& node_to_edge_to_req) const;
     };
 
-    inline 
-    MProblemsExplainer::MProblemsExplainer(const problems_graph& graph, 
-    std::unordered_map<node_id, std::unordered_set<node_id>> group_solvables_to_conflicts) 
-        : m_graph(graph)
-        , m_group_solvables_to_conflicts(group_solvables_to_conflicts) { }
+    inline
+    MProblemsExplainer::MProblemsExplainer(MPool* pool) 
+        : m_problems_graph(MProblemsGraphs(pool)) { }
 
-    inline std::string MProblemsExplainer::explain()
+    inline 
+    MProblemsExplainer::MProblemsExplainer(const MProblemsGraphs& graph) 
+        : m_problems_graph(graph) { }
+
+    inline 
+    std::string MProblemsExplainer::explain(const std::vector<MSolverProblem>& problems)
     {
-        std::unordered_map<node_id, std::vector<std::pair<node_id, MGroupEdgeInfo>>> path = m_graph.get_parents_to_leaves();
+        auto m_graph = m_problems_graph.create_graph(problems);
+        auto group_conflicts = m_problems_graph.get_groups_conflicts();
+        node_path path = m_graph.get_parents_to_leaves();
         //group_id => group_id: m_graph.group_solvables_to_conflicts;
         std::stringstream sstr;
 

@@ -13,6 +13,8 @@
 #include <optional>
 
 #include "match_spec.hpp"
+#include "solver_problems.hpp"
+#include "problems_explainer.hpp"
 
 extern "C"
 {
@@ -28,23 +30,6 @@ namespace mamba
 {
     class MPool;
     class PackageInfo;
-
-    class MSolverProblem
-    {
-    public:
-        SolverRuleinfo type;
-        Id source_id;
-        Id target_id;
-        Id dep_id;
-
-        Solver* solver;
-
-        std::string to_string() const;
-
-        std::optional<PackageInfo> target() const;
-        std::optional<PackageInfo> source() const;
-        std::optional<std::string> dep() const;
-    };
 
     class MSolver
     {
@@ -95,6 +80,7 @@ namespace mamba
         Solver* m_solver;
         Pool* m_pool;
         Queue m_jobs;
+        MProblemsExplainer m_problems_explainer;
     };
 }  // namespace mamba
 

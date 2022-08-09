@@ -141,7 +141,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pool.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
-    #${LIBMAMBA_SOURCE_DIR}/core/problems_explainer.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/problems_explainer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
@@ -151,6 +151,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/solver_problems.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/transaction.cpp
@@ -207,13 +208,14 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pool.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
-    #${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_explainer.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_explainer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/queue.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver_problems.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp

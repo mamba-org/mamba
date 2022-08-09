@@ -90,7 +90,7 @@ namespace mamba
 
         g.create_merged_graph();
     
-        MProblemsExplainer exp(g.m_merged_conflict_graph, g.group_solvables_to_conflicts);
-        std::cerr<< exp.explain() << std::endl;
+        //MProblemsExplainer exp(g);
+        //std::cerr<< exp.explain() << std::endl;
     }
 }

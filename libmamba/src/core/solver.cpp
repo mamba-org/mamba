@@ -17,39 +17,12 @@
 
 namespace mamba
 {
-    std::string MSolverProblem::to_string() const
-    {
-        return solver_problemruleinfo2str(
-            solver, (SolverRuleinfo) type, source_id, target_id, dep_id);
-    }
-
-    std::optional<PackageInfo> MSolverProblem::target() const
-    {
-        if (target_id == 0 || target_id >= solver->pool->nsolvables)
-            return std::nullopt;
-        return pool_id2solvable(solver->pool, target_id);
-    }
-
-    std::optional<PackageInfo> MSolverProblem::source() const
-    {
-        if (source_id == 0 || source_id >= solver->pool->nsolvables)
-            return std::nullopt;
-        ;
-        return pool_id2solvable(solver->pool, source_id);
-    }
-
-    std::optional<std::string> MSolverProblem::dep() const
-    {
-        if (!dep_id)
-            return std::nullopt;
-        return pool_dep2str(solver->pool, dep_id);
-    }
-
     MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
         : m_flags(flags)
         , m_is_solved(false)
         , m_solver(nullptr)
         , m_pool(pool)
+        , m_problems_explainer(MProblemsExplainer(&pool))
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);

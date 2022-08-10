@@ -166,4 +166,96 @@ namespace mamba
     }
 #endif
 
+    TEST(filesystem, remove_readonly_file)
+    {
+        const auto tmp_dir = fs::temp_directory_path() / "mamba-fs-delete-me";
+        // NOTE: the following will FAIL if the test doesnt pass (it relies on the tested function)
+        mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });  // Cleanup if not debugging.
+        fs::create_directories(tmp_dir);
+
+        const auto readonly_file_path = tmp_dir / "fs-readonly-file";
+        {
+            std::ofstream readonly_file{ readonly_file_path.std_path(),
+                                         readonly_file.binary | readonly_file.trunc };
+            readonly_file << "delete me" << std::endl;
+        }
+
+        // set to read-only
+        fs::permissions(readonly_file_path,
+                        fs::perms::owner_read | fs::perms::group_read,
+                        fs::perm_options::replace);
+        EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
+                  fs::perms::none);
+        EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::group_write),
+                  fs::perms::none);
+
+        // removing should still work.
+        EXPECT_TRUE(fs::exists(readonly_file_path));
+        fs::remove(readonly_file_path);
+        EXPECT_FALSE(fs::exists(readonly_file_path));
+    }
+
+    TEST(filesystem, remove_all_readonly_files)
+    {
+        const auto tmp_dir = fs::temp_directory_path() / "mamba-fs-delete-me";
+        // NOTE: the following will FAIL if the test doesnt pass (it relies on the tested function)
+        mamba::on_scope_exit _([&] { fs::remove_all(tmp_dir); });  // Cleanup if not debugging.
+        fs::create_directories(tmp_dir);
+
+        static constexpr int file_count_per_directory = 3;
+        static constexpr int subdir_count_per_directory = 3;
+        static constexpr int tree_depth = 3;
+
+        const auto create_readonly_files = [](const fs::u8path& dir_path)
+        {
+            assert(fs::is_directory(dir_path));
+            for (int file_idx = 0; file_idx < file_count_per_directory; ++file_idx)
+            {
+                const auto readonly_file_path
+                    = dir_path / fmt::format("readonly-file-{}", file_idx);
+                {
+                    std::ofstream readonly_file{ readonly_file_path.std_path(),
+                                                 readonly_file.binary | readonly_file.trunc };
+                    readonly_file << "delete me" << std::endl;
+                }
+
+                // set to read-only
+                fs::permissions(readonly_file_path,
+                                fs::perms::owner_read | fs::perms::group_read,
+                                fs::perm_options::replace);
+                EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
+                          fs::perms::none);
+                EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::group_write),
+                          fs::perms::none);
+            }
+        };
+
+        const auto create_subdirs = [&](const std::vector<fs::u8path>& dirs)
+        {
+            auto subdirs = dirs;
+            for (const auto& dir_path : dirs)
+                for (int subdir_idx = 0; subdir_idx < subdir_count_per_directory; ++subdir_idx)
+                {
+                    subdirs.push_back(dir_path / fmt::format("{}", subdir_idx));
+                }
+            return subdirs;
+        };
+
+        std::vector<fs::u8path> dirs{ tmp_dir };
+        for (int depth = 0; depth < tree_depth; ++depth)
+        {
+            dirs = create_subdirs(dirs);
+        }
+
+        for (const auto& dir_path : dirs)
+        {
+            fs::create_directories(dir_path);
+            create_readonly_files(dir_path);
+        }
+
+        EXPECT_TRUE(fs::exists(tmp_dir));
+        fs::remove_all(tmp_dir);
+        EXPECT_FALSE(fs::exists(tmp_dir));
+    }
+
 }

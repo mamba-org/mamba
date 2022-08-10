@@ -31,20 +31,14 @@ namespace mamba
         using command_args = std::vector<std::string>;
 
         tl::expected<command_args, std::runtime_error> get_other_pkg_mgr_install_instructions(
-            const std::string& name, const std::string& target_prefix, fs::path spec_file)
+            const std::string& name, const std::string& target_prefix, const fs::u8path& spec_file)
         {
             const auto get_python_path
                 = [&] { return env::which("python", get_path_dirs(target_prefix)).string(); };
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
-                  { get_python_path(),
-                    "-m",
-                    "pip",
-                    "install",
-                    "-r",
-                    spec_file.string(),
-                    "--no-input" } }
+                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } }
             };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);

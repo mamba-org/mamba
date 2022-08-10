@@ -298,7 +298,7 @@ namespace mamba
             return "";
         }
 
-        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)-.*");
+        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
         std::smatch m;
 
         if (std::regex_search(out, m, re))
@@ -310,6 +310,8 @@ namespace mamba
                 return linux_version.str();
             }
         }
+
+        LOG_DEBUG << "Could not parse linux version";
 
         return "";
     }

@@ -15,6 +15,16 @@ namespace mamba
     };
 
     template <class T>
+    inline std::ostream& operator<<(std::ostream& strm, const Info<T>& node)
+    {
+        for (const auto& v : node.m_values)
+        {
+            strm << v << " ";
+        }
+        return strm << std::endl;
+    }
+
+    template <class T>
     inline void Info<T>::add(T a)
     {
         m_values.push_back(a);

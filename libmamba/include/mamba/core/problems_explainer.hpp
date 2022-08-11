@@ -60,21 +60,35 @@ namespace mamba
         std::unordered_map<std::string, std::vector<node_edge_edge>> conflict_to_root_info;
         std::unordered_map<std::string, std::unordered_map<size_t, std::unordered_set<std::string>>>
             conflicts_to_roots;
+        std::cerr << "Conflicts groups" << std::endl;
+        for (const auto& conflict : m_conflicts_adj_list)
+        {
+            std::cerr << conflict.first 
+            << " --> [";
+            for (const auto& entry : conflict.second)
+            {
+                std::cerr << entry << " ";
+            }
+            std::cerr << "]" << std::endl;
+        }
         for (const auto& entry : path)
         {
             MGroupNode root_node = m_problems_graph.get_node(entry.first);
             // currently the vector only contains the root as a first entry & all the leaves
             const auto& root_info = entry.second[0];
             const auto& root_edge_info = root_info.second;
+            std::cerr << "Root node" << root_info.first << " " << root_info.second << std::endl;
             for (auto it = entry.second.begin() + 1; it != entry.second.end(); it++)
             {
                 MGroupNode conflict_node = m_problems_graph.get_node(it->first);
                 auto conflict_name = conflict_node.get_name();
                 conflict_to_root_info[conflict_name].push_back(
                     std::make_tuple(root_node, root_edge_info, it->second));
+                std::cerr << "conflict node" << conflict_node << std::endl;
                 auto itc = m_conflicts_adj_list.find(it->first);
                 if (itc != m_conflicts_adj_list.end())
                 {
+                    std::cerr << "Is a conflicts leaf" << std::endl;
                     auto value = hash(itc->second);
                     // TODO check again here the hash is correct
                     conflicts_to_roots[conflict_name][value].insert(root_edge_info.m_deps.begin(),
@@ -122,47 +136,58 @@ namespace mamba
     inline std::string MProblemsExplainer::explain_problem(const MGroupNode& node) const
     {
         std::stringstream ss;
-        if (!node.m_problem_type.has_value())
+        if (!node.m_problem_type)
         {
             ss << node << " which is problematic";
             return ss.str();
         }
+        std::string package_name = node.get_name();
         switch (node.m_problem_type.value())
         {
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
-                ss << node << " which can't be found in the configured channels";
+                ss << package_name << " which can't be found in the configured channels";
+                break;
             case SOLVER_RULE_BEST:
-                ss << node << " that can not be installed";
+                ss << package_name << " that can not be installed";
+                break;
             case SOLVER_RULE_BLACK:
-                ss << node << " that can only be installed by a direct request";
+                ss << package_name << " that can only be installed by a direct request";
+                break;
             case SOLVER_RULE_DISTUPGRADE:
-                ss << node << " that does not belong to a distupgrade repository";
+                ss << package_name << " that does not belong to a distupgrade repository";
+                break;
             case SOLVER_RULE_INFARCH:
-                ss << node << " that has an inferior architecture";
+                ss << package_name << " that has an inferior architecture";
+                break;
             case SOLVER_RULE_UPDATE:
             case SOLVER_RULE_PKG_NOT_INSTALLABLE:
-                ss << node << " that is disabled/has incompatible arch/is not installable";
+                ss << package_name << " that is disabled/has incompatible arch/is not installable";
+                break;
             case SOLVER_RULE_STRICT_REPO_PRIORITY:
-                ss << node << " that is excluded by strict repo priority";
+                ss << package_name << " that is excluded by strict repo priority";
+                break;
             default:
-                LOG_WARNING << "Shouldn't be here";
-                ss << node << " which is problematic";
+                LOG_WARNING << "Shouldn't be here" << node.m_problem_type.value()
+                 << " " << node << std::endl;
+                ss << package_name << " which is problematic";
                 break;
         }
+        ss << std::endl;
         return ss.str();
     }
 
     inline std::string MProblemsExplainer::explain(
         const std::vector<node_edge>& requested_packages) const
     {
-        std::stringstream sstr;
+        std::unordered_set<std::string> packages;
         for (const auto& requested_package : requested_packages)
         {
-            sstr << requested_package.second;
+            packages.insert(requested_package.second.m_deps.begin(),
+                requested_package.second.m_deps.end());
         }
-        return sstr.str();
+        return join(packages);
     }
 
     inline std::string MProblemsExplainer::explain(const node_edge_edge& node_to_edge_to_req) const

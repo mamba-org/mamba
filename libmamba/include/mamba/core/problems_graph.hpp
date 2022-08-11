@@ -51,11 +51,11 @@ namespace mamba
         {
             size_t operator()(const MNode& node) const
             {
-                if (node.m_package_info.has_value())
+                if (node.m_package_info)
                 {
                     return PackageInfoHash()(node.m_package_info.value());
                 }
-                else if (node.m_dep.has_value())
+                else if (node.m_dep)
                 {
                     return std::hash<std::string>()(node.m_dep.value());
                 }
@@ -147,21 +147,59 @@ namespace mamba
 
     inline std::ostream& operator<<(std::ostream& strm, const MGroupNode& node)
     {
-        if (node.m_pkg_name.has_value())
+        if (node.m_pkg_name)
         {
             return strm << "package " << node.m_pkg_name.value() << " versions ["
                         << join(node.m_pkg_versions) + "]";
         }
-        else
+        else if (node.m_dep)
         {
             return strm << "No packages matching " << node.m_dep.value()
                         << " could be found in the provided channels";
+        } 
+        else if (node.is_root())
+        {
+            return strm << "root";
         }
+        return strm << "invalid";
     }
 
     inline std::ostream& operator<<(std::ostream& strm, const MGroupEdgeInfo& edge)
     {
         return strm << join(edge.m_deps);
+    }
+
+    inline std::string get_value_or(const std::optional<PackageInfo>& pkg_info)
+    {
+        if (pkg_info)
+        {
+            return pkg_info.value().str(); 
+        }
+        else
+        {
+            return "(null)";
+        }
+    }
+
+    template <typename T>
+    inline bool
+     has_values(const MSolverProblem& problem, 
+        std::initializer_list<std::optional<T>> args)
+    {
+        for (const auto& e : args
+        )
+        {
+            if (!e)
+            {
+                LOG_WARNING << "Unexpected empty optionals for problem " 
+                        << problem.to_string()
+                        << "source: " << get_value_or(problem.source())
+                        << "target: " << get_value_or(problem.target())
+                        << "dep: " << problem.dep().value_or("(null)") << std::endl;
+                return false;
+            }
+        }
+        return true;
     }
 }
 

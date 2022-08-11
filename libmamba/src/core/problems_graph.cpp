@@ -34,19 +34,8 @@ namespace mamba
 
     bool MNode::operator==(const MNode& other) const
     {
-        if (is_root() && other.is_root())
-        {
-            return true;
-        }
-        if (m_package_info.has_value() && other.m_package_info.has_value())
-        {
-            return m_package_info.value() == other.m_package_info.value();
-        }
-        if (m_dep.has_value() && other.m_dep.has_value())
-        {
-            return m_dep.value() == other.m_dep.value();
-        }
-        return false;
+        return m_package_info == other.m_package_info && m_dep == other.m_dep
+               && m_problem_type == other.m_problem_type && m_is_root == other.m_is_root;
     }
 
     bool MNode::is_root() const
@@ -61,12 +50,12 @@ namespace mamba
         {
             return "root";
         }
-        else if (m_package_info.has_value())
+        else if (m_package_info)
         {
             return m_package_info.value().name;
         }
         // TODO: throw invalid exception
-        return m_dep.has_value() ? m_dep.value() : "invalid";
+        return m_dep ? m_dep.value() : "invalid";
     }
 
     MEdgeInfo::MEdgeInfo(std::string dep)
@@ -80,7 +69,7 @@ namespace mamba
 
     void MGroupNode::add(const MNode& node)
     {
-        if (node.m_package_info.has_value())
+        if (node.m_package_info)
         {
             m_pkg_versions.insert(node.m_package_info.value().version);
         }
@@ -95,11 +84,11 @@ namespace mamba
         {
             return "root";
         }
-        else if (m_pkg_name.has_value())
+        else if (m_pkg_name)
         {
             return m_pkg_name.value();
         }
-        return m_dep.has_value() ? m_dep.value() : "invalid";
+        return m_dep ? m_dep.value() : "invalid";
     }
 
     bool MGroupNode::is_root() const
@@ -112,10 +101,14 @@ namespace mamba
         , m_dep(node.m_dep)
         , m_problem_type(node.m_problem_type)
     {
-        if (node.m_package_info.has_value())
+        if (node.m_package_info)
         {
             m_pkg_name = std::optional<std::string>(node.m_package_info.value().name);
             m_pkg_versions.insert(node.m_package_info.value().version);
+        }
+        else
+        {
+            m_pkg_name = std::nullopt;
         }
     }
 
@@ -178,24 +171,60 @@ namespace mamba
     {
         for (const auto& problem : problems)
         {
+            std::cerr << problem.to_string() << std::endl;
+        }
+        std::cerr << "----" << std::endl;
+        for (const auto& problem : problems)
+        {
             add_problem_to_graph(problem);
         }
     }
 
     void MProblemsGraphs::add_problem_to_graph(const MSolverProblem& problem)
     {
+        std::cerr << problem.to_string() << std::endl;
+        std::cerr << problem.type << " " << get_value_or(problem.source()) << " "
+                  << get_value_or(problem.target()) << " " << problem.dep().value_or("None")
+                  << std::endl;
         switch (problem.type)
         {
-            case SOLVER_RULE_PKG_REQUIRES:    // source_id -> dep_id -> target_id
-            case SOLVER_RULE_PKG_CONSTRAINS:  // source_id -> dep_id -> <conflict - to - be ignored>
-            case SOLVER_RULE_JOB:             // entry point for our solver
+            case SOLVER_RULE_PKG_CONSTRAINS:  // source_id -> dep_id -> <conflict>
+            {
+                if (!has_values(problem, { problem.source(), problem.target() })
+                    || !has_values(problem, { problem.dep() }))
+                {
+                    break;
+                }
+                auto source = MNode(problem.source().value());
+                std::vector<Id> constrained_ids = m_pool->select_solvables(problem.dep_id);
+                for (const auto& constraint_id : constrained_ids)
+                {
+                    PackageInfo constraint_pkg
+                        = PackageInfo(pool_id2solvable(*m_pool, constraint_id));
+                    // std::cerr << "target = " << constraint_pkg.str() << " " << problem.dep() <<
+                    // std::endl;
+                    add_conflict_edge(source, MNode(constraint_pkg), problem.dep().value());
+                }
+                node_id source_id = get_or_create_node(source);
+                node_id target_id = get_or_create_node(MNode(problem.target().value()));
+                add_solvables_to_conflicts(source_id, target_id);
+                break;
+            }
+            case SOLVER_RULE_PKG_REQUIRES:  // source_id -> dep_id -> target_id
+            case SOLVER_RULE_JOB:           // entry point for our solver
             case SOLVER_RULE_PKG:
             {
+                if (!has_values(problem, { problem.dep() }))
+                {
+                    break;
+                }
                 std::vector<Id> target_ids = m_pool->select_solvables(problem.dep_id);
                 for (const auto& target_id : target_ids)
                 {
                     PackageInfo target = PackageInfo(pool_id2solvable(*m_pool, target_id));
-                    if (problem.source().has_value())
+                    // std::cerr << "target = " << target.str() << " " << problem.dep() <<
+                    // std::endl;
+                    if (problem.source())
                     {
                         add_conflict_edge(
                             MNode(problem.source().value()), MNode(target), problem.dep().value());
@@ -205,24 +234,36 @@ namespace mamba
                         add_conflict_edge(MNode(), MNode(target), problem.dep().value());
                     }
                 }
+                break;
             }
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
             {
+                if (!has_values(problem, { problem.source() })
+                    || !has_values(problem, { problem.dep() }))
+                {
+                    break;
+                }
                 // source_id -> <invalid_dep> -> None
                 add_conflict_edge(MNode(problem.source().value()),
                                   MNode(problem.dep().value(), problem.type),
                                   problem.dep().value());
+                break;
             }
             case SOLVER_RULE_PKG_CONFLICTS:
             case SOLVER_RULE_PKG_SAME_NAME:
             {
+                if (!has_values(problem, { problem.source(), problem.target() }))
+                {
+                    break;
+                }
                 // source_id -> <ignore> -> target_id
                 node_id source_node = get_or_create_node(MNode(problem.source().value()));
                 node_id target_node = get_or_create_node(MNode(problem.target().value()));
                 // TODO: optimisation - we might not need this bidirectional
                 add_solvables_to_conflicts(source_node, target_node);
+                break;
             }
             case SOLVER_RULE_BEST:
             case SOLVER_RULE_BLACK:
@@ -232,14 +273,11 @@ namespace mamba
             case SOLVER_RULE_STRICT_REPO_PRIORITY:
             case SOLVER_RULE_UPDATE:
             {
-                if (problem.source().has_value())
+                if (!has_values(problem, { problem.source() }))
                 {
-                    get_or_create_node(MNode(problem.source().value(), problem.type));
+                    break;
                 }
-                else
-                {
-                    LOG_WARNING << "No value provided for source " << problem.type;
-                }
+                get_or_create_node(MNode(problem.source().value(), problem.type));
                 break;
             }
             case SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM:
@@ -332,24 +370,25 @@ namespace mamba
             {
                 node_id id_i = hash_to_nodes.second[i];
                 std::optional<std::string> maybe_package_name_i = get_package_name(id_i);
-                if (!maybe_package_name_i.has_value())
+                if (!maybe_package_name_i)
                 {
                     continue;
                 }
-                std::cerr << "trying " << id_i << " " << maybe_package_name_i.value() << std::endl;
+                // std::cerr << "trying " << id_i << " " << maybe_package_name_i.value() <<
+                // std::endl;
                 for (size_t j = i + 1; j < hash_to_nodes.second.size(); ++j)
                 {
                     node_id id_j = hash_to_nodes.second[j];
                     std::optional<std::string> maybe_package_name_j = get_package_name(id_j);
-                    if (!maybe_package_name_j.has_value())
+                    if (!maybe_package_name_j)
                     {
                         continue;
                     }
 
                     /*std::cerr << "\t with " << id_j << " " << maybe_package_name_j.value() <<
                     std::endl; std::cerr << "\t]\t rev_ edge: "
-                         << join_str(m_initial_conflict_graph.get_rev_edge_list(id_i)) << " and " <<
-                            join_str
+                         << join(m_initial_conflict_graph.get_rev_edge_list(id_i)) << " and " <<
+                            join
                             (m_initial_conflict_graph.get_rev_edge_list(id_j)) << std::endl;
                     */
                     if (maybe_package_name_i == maybe_package_name_j
@@ -357,9 +396,9 @@ namespace mamba
                         && m_initial_conflict_graph.get_rev_edge_list(id_i)
                                == m_initial_conflict_graph.get_rev_edge_list(id_j))
                     {
-                        std::cerr << "connected " << id_i << "(" << maybe_package_name_i.value()
+                        /*std::cerr << "connected " << id_i << "(" << maybe_package_name_i.value()
                                   << ") " << id_j << "(" << maybe_package_name_j.value() << ")"
-                                  << std::endl;
+                                  << std::endl;*/
                         m_union.connect(id_i, id_j);
                     }
                 }
@@ -369,10 +408,10 @@ namespace mamba
 
     std::optional<std::string> MProblemsGraphs::get_package_name(MProblemsGraphs::node_id id)
     {
-        auto maybe_package_info = m_initial_conflict_graph.get_node(id).m_package_info;
-        if (maybe_package_info.has_value())
+        auto node = m_initial_conflict_graph.get_node(id);
+        if (node.m_package_info)
         {
-            return maybe_package_info.value().name;
+            return node.m_package_info.value().name;
         }
         return std::nullopt;
     }
@@ -435,11 +474,6 @@ namespace mamba
             {
                 MGroupNode group_node(node);
                 root_to_group_id[id] = m_merged_conflict_graph.add_node(group_node);
-                /*std::cerr << "Created new group node " << std::to_string(new_id)
-                    << " " <<  node.m_package_info.value().name
-                    << " " << node.m_package_info.value().version
-
-                     << std::endl;*/
             }
         }
 
@@ -451,6 +485,7 @@ namespace mamba
             {
                 auto conflict_id = root_to_group_id[m_union.root(conflict)];
                 group_solvables_to_conflicts[id].insert(conflict_id);
+                group_solvables_to_conflicts[conflict_id].insert(id);
             }
         }
         return root_to_group_id;

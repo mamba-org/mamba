@@ -16,7 +16,6 @@ jobs:
   libmamba_static:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -44,7 +43,8 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja
           ninja
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -56,7 +56,6 @@ jobs:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -88,7 +87,8 @@ jobs:
                    -GNinja
           ninja testing_libmamba_lock
           ninja test
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -100,7 +100,6 @@ jobs:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -131,7 +130,8 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja
           ninja
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: install zsh, xonsh and fish in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
@@ -159,7 +159,6 @@ jobs:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         python_version: ["3.8"]
@@ -201,8 +200,13 @@ jobs:
                    -GNinja
           ninja
           ninja install
-          pip install -e ../libmambapy/ --no-deps
-          sccache --show-stats
+      - name: install libmambapy
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          pip install -e ./libmambapy/ --no-deps
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -264,7 +268,6 @@ jobs:
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
 
@@ -294,7 +297,8 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -306,7 +310,6 @@ jobs:
     needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -348,8 +351,13 @@ jobs:
                    -GNinja
           ninja
           ninja install
-          pip install -e ..\libmambapy\ --no-deps
-          sccache --show-stats
+      - name: install libmambapy
+        shell: cmd /C call {0}
+        run: |
+          call micromamba activate build_env
+          pip install -e .\libmambapy\ --no-deps
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -397,7 +405,6 @@ jobs:
     needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -432,7 +439,8 @@ jobs:
                    -GNinja
           ninja install
           ninja test
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -444,7 +452,6 @@ jobs:
     needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -479,8 +486,13 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
           ninja install
-          sccache --show-stats
-          .\micromamba\micromamba.exe --help
+      - name: check that micromamba runs
+        shell: cmd /C call {0}
+        run: |
+          call micromamba activate build_env
+          .\build\micromamba\micromamba.exe --help
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: tar micromamba artifact
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe
       - uses: actions/upload-artifact@v2
@@ -498,7 +510,6 @@ jobs:
     needs: [umamba_tests_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -560,7 +571,6 @@ jobs:
   micromamba_full_static:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]  # Windows: missing yaml-cpp-static
     steps:
@@ -594,8 +604,13 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja
           ninja
-          sccache --show-stats
-          micromamba/micromamba --version
+      - name: check that micromamba runs
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          build/micromamba/micromamba --version
+      - name: build cache statistics
+        run: sccache --show-stats
       - uses: actions/upload-artifact@v3
         with:
           name: micromamba_fully_static_binary

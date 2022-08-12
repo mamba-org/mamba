@@ -312,7 +312,11 @@ namespace mamba
             prefix = "/home/user/env";
             EXPECT_EQ(env_name(prefix), "/home/user/env");
 
+// Workaround MSVC treating warning C4102 as an error in old version of MSVC,
+// here triggered by GTest's macro implementation.
+#if defined(_MSC_VER) && _MSC_VER > 1920
             EXPECT_THROW(locate_prefix_by_name("test"), std::runtime_error);
+#endif
             // TODO implement tests for locate_prefix_by_name
         }
     }

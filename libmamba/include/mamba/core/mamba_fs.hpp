@@ -1208,6 +1208,20 @@ namespace fs
     template <typename... OtherArgs>
     bool remove(const u8path& path, OtherArgs&&... args)
     {
+#if defined(WIN32) && _MSC_VER < 1930  // Workaround https://github.com/microsoft/STL/issues/1511
+        std::error_code errc;
+        const auto file_status = std::filesystem::status(path, errc);
+        if (!errc
+            && (file_status.permissions() & std::filesystem::perms::owner_read)
+                   != std::filesystem::perms::none
+            && (file_status.permissions() & std::filesystem::perms::owner_write)
+                   == std::filesystem::perms::none)
+        {
+            // The target file is read-only, we need to change that to fix the
+            // VS bug.
+            fs::permissions(path, fs::perms::owner_write, fs::perm_options::add);
+        }
+#endif
         return std::filesystem::remove(path, std::forward<OtherArgs>(args)...);
     }
 
@@ -1216,7 +1230,33 @@ namespace fs
     template <typename... OtherArgs>
     uintmax_t remove_all(const u8path& path, OtherArgs&&... args)
     {
+#if defined(WIN32) && _MSC_VER < 1930  // Workaround https://github.com/microsoft/STL/issues/1511
+        if (!fs::exists(path))
+            return 0;
+
+        uintmax_t counter = 0;
+        for (const auto& entry : fs::recursive_directory_iterator(path, args...))
+        {
+            if (fs::is_directory(entry.path()))  // Skip directories, we'll delete them later.
+                continue;
+
+            if (fs::remove(entry.path(), args...))
+            {
+                ++counter;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Now remove all the directories resting.
+        counter += std::filesystem::remove_all(path, args...);
+
+        return counter;
+#else
         return std::filesystem::remove_all(path, std::forward<OtherArgs>(args)...);
+#endif
     }
 
     // void rename(const path& from, const path& to);

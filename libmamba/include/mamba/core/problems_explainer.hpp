@@ -150,7 +150,7 @@ namespace mamba
                 ss << package_name << " which cannot be found in the configured channels";
                 break;
             case SOLVER_RULE_BEST:
-                ss << package_name << " that can not be installed";
+                ss << package_name << " that cannot be installed";
                 break;
             case SOLVER_RULE_BLACK:
                 ss << package_name << " that can only be installed by a direct request";

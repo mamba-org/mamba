@@ -170,7 +170,7 @@ namespace mamba
                 break;
             default:
                 LOG_WARNING << "Unknown problem type " << node.m_problem_type.value()
-                 << " " << node << std::endl;
+                 << " on node " << node;
                 ss << package_name << " which is problematic";
                 break;
         }

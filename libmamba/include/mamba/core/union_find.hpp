@@ -4,24 +4,25 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_UNION_UTIL_HPP
-#define MAMBA_CORE_UNION_UTIL_HPP
+#ifndef MAMBA_CORE_UNION_FIND_HPP
+#define MAMBA_CORE_UNION_FIND_HPP
 
 #include <map>
 #include <utility>
 #include <vector>
 #include <unordered_map>
+
 #include "mamba/core/output.hpp"
 
 
 namespace mamba
 {
     template <class T>
-    class Union
+    class UnionFind
     {
     public:
         std::unordered_map<T, T> parent;
-        std::unordered_map<T, T> rank;
+        std::unordered_map<T, int> rank;
 
         void add(T node);
         void connect(T node_u, T node_v);
@@ -31,14 +32,14 @@ namespace mamba
 
 
     template <class T>
-    inline void Union<T>::add(T node)
+    inline void UnionFind<T>::add(T node)
     {
         parent[node] = node;
-        rank[node] = node;
+        rank[node] = 0;
     }
 
     template <class T>
-    inline void Union<T>::connect(T node_u, T node_v)
+    inline void UnionFind<T>::connect(T node_u, T node_v)
     {
         T u = root(node_u);
         T v = root(node_v);
@@ -58,7 +59,7 @@ namespace mamba
     }
 
     template <class T>
-    inline auto Union<T>::root(T node) -> const T
+    inline auto UnionFind<T>::root(T node) -> const T
     {
         if (node == parent[node])
         {
@@ -70,4 +71,4 @@ namespace mamba
 
 }  // namespace mamba
 
-#endif  // MAMBA_CORE_UNION_UTIL_HPP
+#endif  // MAMBA_CORE_UNION_FIND_HPP

@@ -19,6 +19,7 @@
 #include <string_view>
 #include <time.h>
 #include <vector>
+#include <set>
 #include <chrono>
 #include <unordered_set>
 
@@ -415,10 +416,10 @@ namespace mamba
     }
 
     template <class T>
-    inline std::size_t hash(const std::vector<T>& vec) noexcept
+    inline std::size_t hash(const std::set<T>& s) noexcept
     {
-        std::size_t seed = vec.size();
-        for (auto& i : vec)
+        std::size_t seed = s.size();
+        for (auto& i : s)
         {
             seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
@@ -426,14 +427,10 @@ namespace mamba
     }
 
     template <class T>
-    inline std::size_t hash(const std::unordered_set<T>& vec) noexcept
+    inline std::size_t hash(const std::vector<T>& vec) noexcept
     {
-        std::size_t seed = vec.size();
-        for (auto& i : vec)
-        {
-            seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
-        return seed;
+        std::set<T> s(vec.begin(), vec.end());
+        return hash(s);
     }
 
     inline std::string join(const std::vector<size_t>& collection)
@@ -443,11 +440,13 @@ namespace mamba
         return ss.str();
     }
 
-    inline std::string join(const std::unordered_set<std::string>& collection)
+    inline std::string join(const std::unordered_set<std::string>& collection,
+                            std::string delimiter = ", ")
     {
         std::stringstream ss;
-        std::copy(
-            collection.begin(), collection.end(), std::ostream_iterator<std::string>(ss, ", "));
+        std::copy(collection.begin(),
+                  collection.end(),
+                  std::ostream_iterator<std::string>(ss, delimiter.c_str()));
         return ss.str();
     }
 

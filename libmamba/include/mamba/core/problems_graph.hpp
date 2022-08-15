@@ -43,8 +43,10 @@ namespace mamba
         std::optional<SolverRuleinfo> m_problem_type;
         bool m_is_root;
 
-        bool is_root() const;
         std::string get_name() const;
+        bool is_root() const;
+        bool is_conflict() const;
+
         bool operator==(const MNode& node) const;
 
         struct HashFunction
@@ -88,6 +90,7 @@ namespace mamba
         void add(const MNode& node);
         std::string get_name() const;
         bool is_root() const;
+        bool is_conflict() const;
     };
 
     class MGroupEdgeInfo
@@ -108,9 +111,8 @@ namespace mamba
         using merged_conflict_graph = MPropertyGraph<MGroupNode, MGroupEdgeInfo>;
         using node_id = initial_conflict_graph::node_id;
         using group_node_id = merged_conflict_graph::node_id;
-        using conflicts_node_ids = std::unordered_map<node_id, std::unordered_set<node_id>>;
-        using conflicts_group_ids
-            = std::unordered_map<group_node_id, std::unordered_set<group_node_id>>;
+        using conflicts_node_ids = std::unordered_map<node_id, std::set<node_id>>;
+        using conflicts_group_ids = std::unordered_map<group_node_id, std::set<group_node_id>>;
 
         MProblemsGraphs();
         MProblemsGraphs(MPool* pool);
@@ -126,7 +128,7 @@ namespace mamba
         const conflicts_group_ids& get_groups_conflicts();
         merged_conflict_graph create_merged_graph();
 
-        Union<node_id> m_union;
+        UnionFind<node_id> m_union;
         initial_conflict_graph m_initial_conflict_graph;
         merged_conflict_graph m_merged_conflict_graph;
 
@@ -156,7 +158,7 @@ namespace mamba
         {
             return strm << "No packages matching " << node.m_dep.value()
                         << " could be found in the provided channels";
-        } 
+        }
         else if (node.is_root())
         {
             return strm << "root";
@@ -173,7 +175,7 @@ namespace mamba
     {
         if (pkg_info)
         {
-            return pkg_info.value().str(); 
+            return pkg_info.value().str();
         }
         else
         {
@@ -182,20 +184,17 @@ namespace mamba
     }
 
     template <typename T>
-    inline bool
-     has_values(const MSolverProblem& problem, 
-        std::initializer_list<std::optional<T>> args)
+    inline bool has_values(const MSolverProblem& problem,
+                           std::initializer_list<std::optional<T>> args)
     {
-        for (const auto& e : args
-        )
+        for (const auto& e : args)
         {
             if (!e)
             {
-                LOG_WARNING << "Unexpected empty optionals for problem " 
-                        << problem.to_string()
-                        << "source: " << get_value_or(problem.source())
-                        << "target: " << get_value_or(problem.target())
-                        << "dep: " << problem.dep().value_or("(null)") << std::endl;
+                LOG_WARNING << "Unexpected empty optionals for problem " << problem.to_string()
+                            << "source: " << get_value_or(problem.source())
+                            << "target: " << get_value_or(problem.target())
+                            << "dep: " << problem.dep().value_or("(null)") << std::endl;
                 return false;
             }
         }

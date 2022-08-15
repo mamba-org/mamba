@@ -15,12 +15,11 @@ extern "C"
 #include <solv/solvable.h>
 }
 
-#include "util.hpp"
 #include <string>
 #include <vector>
 #include <set>
 
-
+#include "mamba/core/util.hpp"
 #include "nlohmann/json.hpp"
 
 namespace mamba
@@ -93,6 +92,7 @@ namespace mamba
                && package_info_a.extra_metadata == package_info_b.extra_metadata
                && package_info_a.defaulted_keys == package_info_b.defaulted_keys;
     }
+
 
     struct PackageInfoHash
     {

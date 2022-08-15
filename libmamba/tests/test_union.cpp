@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
-#include "mamba/core/union_util.hpp"
+#include "mamba/core/union_find.hpp"
 
 namespace mamba
 {
-    Union<int> build_union()
+    UnionFind<int> build_union()
     {
-        Union<int> u;
+        UnionFind<int> u;
         u.add(0);
         u.add(1);
         u.add(2);

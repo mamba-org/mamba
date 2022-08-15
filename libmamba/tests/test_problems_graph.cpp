@@ -8,7 +8,7 @@
 namespace mamba
 {
     using node_id = MProblemsGraphs::node_id;
-    size_t expect_same_union_only(Union<node_id> u, std::vector<size_t> elements)
+    size_t expect_same_union_only(UnionFind<node_id> u, std::vector<size_t> elements)
     {
         size_t first_root = u.root(elements[0]);
         for (auto it = elements.begin() + 1; it != elements.end(); ++it)

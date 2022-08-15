@@ -13,7 +13,7 @@
 #include <optional>
 #include <iostream>
 
-#include "union_util.hpp"
+#include "mamba/core/union_find.hpp"
 
 namespace mamba
 {
@@ -26,7 +26,9 @@ namespace mamba
         using node_id = size_t;
         using node_list = std::vector<node>;
         using edge_info = U;
-        using neighs = std::vector<node_id>;
+        // they need to be sorted, otherwise we might not merge all
+        // TODO change this afterwards
+        using neighs = std::set<node_id>;
         using edge_list = std::vector<std::pair<node_id, edge_info>>;
         using adjacency_list = std::vector<edge_list>;
         using rev_adjacency_list = std::vector<neighs>;
@@ -118,8 +120,8 @@ namespace mamba
         {
             m_rev_adjacency_list.resize(to + 1);
         }
-        m_rev_adjacency_list[to].push_back(from);
-        //std::cerr << "rev " << to << " " << from << std::endl;
+        m_rev_adjacency_list[to].insert(from);
+        // std::cerr << "rev " << to << " " << from << std::endl;
         ++m_levels[to];
     }
 
@@ -128,7 +130,7 @@ namespace mamba
     template <class V>
     inline auto MPropertyGraph<T, U>::add_node_impl(V&& value) -> node_id
     {
-        //std::cerr << "Adding new node with " << value << std::endl;
+        // std::cerr << "Adding new node with " << value << std::endl;
         m_node_list.push_back(std::forward<V>(value));
         m_adjacency_list.push_back(edge_list());
         m_levels.push_back(0);
@@ -140,7 +142,7 @@ namespace mamba
     template <class V>
     inline void MPropertyGraph<T, U>::update_node(node_id id, V&& value)
     {
-        //std::cerr << "Updating node " << id << " with " << value << std::endl;
+        // std::cerr << "Updating node " << id << " with " << value << std::endl;
 
         m_node_list[id].add(value);
     }
@@ -154,7 +156,8 @@ namespace mamba
         {
             if (it->first == to)
             {
-                //std::cerr << "Updating " << from << "to " << it->first << " with " << value << std::endl;
+                // std::cerr << "Updating " << from << "to " << it->first << " with " << value <<
+                // std::endl;
                 it->second.add(value);
                 return true;
             }

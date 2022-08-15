@@ -147,7 +147,7 @@ namespace mamba
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
-                ss << package_name << " which can't be found in the configured channels";
+                ss << package_name << " which cannot be found in the configured channels";
                 break;
             case SOLVER_RULE_BEST:
                 ss << package_name << " that can not be installed";

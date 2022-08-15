@@ -138,7 +138,7 @@ namespace mamba
         std::stringstream ss;
         if (!node.m_problem_type)
         {
-            ss << node << " which is problematic";
+            ss << node << " which cannot be installed for an unknown reason";
             return ss.str();
         }
         std::string package_name = node.get_name();

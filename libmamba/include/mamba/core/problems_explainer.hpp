@@ -169,7 +169,7 @@ namespace mamba
                 ss << package_name << " that is excluded by strict repo priority";
                 break;
             default:
-                LOG_WARNING << "Shouldn't be here" << node.m_problem_type.value()
+                LOG_WARNING << "Unknown problem type " << node.m_problem_type.value()
                  << " " << node << std::endl;
                 ss << package_name << " which is problematic";
                 break;

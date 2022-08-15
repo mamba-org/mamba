@@ -23,7 +23,8 @@ namespace mamba
         node_path path = m_problems_graph.get_parents_to_leaves();
 
         std::unordered_map<std::string, std::vector<node_edge>> bluf_problems_packages;
-        std::unordered_map<std::string, std::vector<node_edge_edge>> conflict_to_root_info;
+        std::unordered_map<std::string, std::unordered_map<std::string, std::vector<node_edge>>>
+            conflict_to_root_info;
 
         for (const auto& entry : path)
         {
@@ -36,8 +37,8 @@ namespace mamba
             {
                 MGroupNode conflict_node = m_problems_graph.get_node(it->first);
                 auto conflict_name = conflict_node.get_name();
-                conflict_to_root_info[conflict_name].push_back(
-                    std::make_tuple(root_node, root_edge_info, it->second));
+                conflict_to_root_info[conflict_name][join(it->second.m_deps, ", ")].push_back(
+                    std::make_pair(root_node, root_edge_info));
                 std::cerr << "conflict node" << conflict_node << std::endl;
                 bluf_problems_packages[conflict_name].push_back(
                     std::make_pair(conflict_node, root_edge_info));
@@ -62,9 +63,12 @@ namespace mamba
             {
                 sstr << " different versions of " << conflict_name << std::endl;
                 std::unordered_set<std::string> conflicts;
-                for (const auto& info : conflict_to_root_info[conflict_name])
+                for (const auto& conflict_deps_to_root_info : conflict_to_root_info[conflict_name])
                 {
-                    conflicts.insert(explain(info));
+                    for (const auto& root_infos : conflict_deps_to_root_info.second)
+                    {
+                        conflicts.insert(explain(root_infos, conflict_deps_to_root_info.first));
+                    }
                 }
                 // TODO delimiter new line
                 sstr << join(conflicts, "\t\t\n") << std::endl;
@@ -126,17 +130,17 @@ namespace mamba
     std::string MProblemsExplainer::explain(
         const std::unordered_set<std::string>& requested_packages) const
     {
-        return join(requested_packages);
+        return join(requested_packages, ",");
     }
 
-    std::string MProblemsExplainer::explain(const node_edge_edge& node_to_edge_to_req) const
+    std::string MProblemsExplainer::explain(const node_edge& node_to_edge,
+                                            std::string conflict_dep) const
     {
         std::stringstream sstr;
-        MGroupNode group_node = std::get<0>(node_to_edge_to_req);
-        MGroupEdgeInfo group_node_edge = std::get<1>(node_to_edge_to_req);
-        MGroupEdgeInfo conflict_edge = std::get<2>(node_to_edge_to_req);
-        sstr << group_node_edge << " versions: [" << join(group_node.m_pkg_versions)
-             << "] depend on " << conflict_edge;
+        MGroupNode group_node = node_to_edge.first;
+        MGroupEdgeInfo group_node_edge = node_to_edge.second;
+        sstr << group_node_edge << " versions: [" << join(group_node.m_pkg_versions, ", ")
+             << "] depend on " << conflict_dep;
         return sstr.str();
     }
 }

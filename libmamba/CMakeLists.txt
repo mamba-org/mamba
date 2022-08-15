@@ -220,7 +220,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/transaction_context.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/union_util.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/union_find.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/url.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp

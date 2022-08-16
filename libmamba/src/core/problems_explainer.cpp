@@ -37,10 +37,8 @@ namespace mamba
             {
                 MGroupNode conflict_node = m_problems_graph.get_node(it->first);
                 auto conflict_name = conflict_node.get_name();
-
                 conflict_to_root_info[conflict_name][join(it->second.m_deps, ", ")].push_back(
                     std::make_pair(root_node, root_edge_info));
-                std::cerr << "conflict node" << conflict_node << std::endl;
                 bluf_problems_packages[conflict_name].push_back(
                     std::make_pair(conflict_node, root_edge_info));
             }
@@ -58,11 +56,10 @@ namespace mamba
                 s.insert(conflict_to_dep.second.m_deps.begin(),
                          conflict_to_dep.second.m_deps.end());
             }
-            sstr << "Requested packages " << explain(s) << std::endl
-                 << "\tcannot be installed because they depend on";
+            sstr << "Requested packages " << explain(s) << " cannot be installed because ";
             if (conflict_node.is_conflict())
             {
-                sstr << " different versions of " << conflict_name << std::endl;
+                sstr << "of different versions of " << conflict_name << std::endl;
                 std::unordered_set<std::string> conflicts;
                 for (const auto& conflict_deps_to_root_info : conflict_to_root_info[conflict_name])
                 {
@@ -70,13 +67,17 @@ namespace mamba
                         roots_to_versions;
                     for (const auto& root_info : conflict_deps_to_root_info.second)
                     {
+                        if (conflict_node.get_name() == root_info.first.get_name())
+                        {
+                            continue;
+                        }
                         roots_to_versions[join(root_info.second.m_deps)].insert(
                             join(root_info.first.m_pkg_versions));
                     }
                     for (const auto& root_to_version : roots_to_versions)
                     {
                         conflicts.insert(root_to_version.first + " versions ["
-                                         + join(root_to_version.second) + "]" + "\t\t\n depend on "
+                                         + join(root_to_version.second) + "]" + "\n\tdepend on "
                                          + conflict_deps_to_root_info.first);
                     }
                 }
@@ -84,7 +85,8 @@ namespace mamba
             }
             else
             {
-                sstr << "\t " << explain_problem(conflict_node) << std::endl;
+                sstr << "they depend on ";
+                sstr << "\n\t" << explain_problem(conflict_node) << std::endl;
             }
         }
         return sstr.str();

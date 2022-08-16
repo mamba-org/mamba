@@ -12,13 +12,7 @@
 
 #include "nlohmann/json.hpp"
 
-#ifdef SPDLOG_FMT_EXTERNAL
-#include "fmt/core.h"
-#include "fmt/format.h"
-#else
-#include "spdlog/fmt/bundled/core.h"
-#include "spdlog/fmt/bundled/format.h"
-#endif
+#include <spdlog/fmt/fmt.h>
 
 #include <array>
 #include <limits>
@@ -443,6 +437,18 @@ namespace mamba
 
     inline std::string join(const std::unordered_set<std::string>& collection,
                             std::string delimiter = ", ")
+    {
+        /*std::stringstream ss;
+        std::copy(collection.begin(),
+                  collection.end(),
+                  std::ostream_iterator<std::string>(ss, delimiter.c_str()));
+        return ss.str();
+        */
+        std::vector<std::string> elems(collection.begin(), collection.end());
+        return fmt::format("{}", fmt::join(elems, delimiter));
+    }
+
+    inline std::string join(const std::set<std::string>& collection, std::string delimiter = ", ")
     {
         /*std::stringstream ss;
         std::copy(collection.begin(),

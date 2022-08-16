@@ -37,6 +37,7 @@ namespace mamba
             {
                 MGroupNode conflict_node = m_problems_graph.get_node(it->first);
                 auto conflict_name = conflict_node.get_name();
+
                 conflict_to_root_info[conflict_name][join(it->second.m_deps, ", ")].push_back(
                     std::make_pair(root_node, root_edge_info));
                 std::cerr << "conflict node" << conflict_node << std::endl;
@@ -65,13 +66,21 @@ namespace mamba
                 std::unordered_set<std::string> conflicts;
                 for (const auto& conflict_deps_to_root_info : conflict_to_root_info[conflict_name])
                 {
-                    for (const auto& root_infos : conflict_deps_to_root_info.second)
+                    std::unordered_map<std::string, std::unordered_set<std::string>>
+                        roots_to_versions;
+                    for (const auto& root_info : conflict_deps_to_root_info.second)
                     {
-                        conflicts.insert(explain(root_infos, conflict_deps_to_root_info.first));
+                        roots_to_versions[join(root_info.second.m_deps)].insert(
+                            join(root_info.first.m_pkg_versions));
+                    }
+                    for (const auto& root_to_version : roots_to_versions)
+                    {
+                        conflicts.insert(root_to_version.first + " versions ["
+                                         + join(root_to_version.second) + "]" + "\t\t\n depend on "
+                                         + conflict_deps_to_root_info.first);
                     }
                 }
-                // TODO delimiter new line
-                sstr << join(conflicts, "\t\t\n") << std::endl;
+                sstr << join(conflicts, "\n") << std::endl;
             }
             else
             {
@@ -133,14 +142,13 @@ namespace mamba
         return join(requested_packages, ",");
     }
 
-    std::string MProblemsExplainer::explain(const node_edge& node_to_edge,
-                                            std::string conflict_dep) const
+    std::string MProblemsExplainer::explain(const node_edge& node_to_edge) const
     {
         std::stringstream sstr;
         MGroupNode group_node = node_to_edge.first;
         MGroupEdgeInfo group_node_edge = node_to_edge.second;
-        sstr << group_node_edge << " versions: [" << join(group_node.m_pkg_versions, ", ")
-             << "] depend on " << conflict_dep;
+        sstr << group_node_edge << " versions: [" << join(group_node.m_pkg_versions, ", ") << "]"
+             << std::endl;
         return sstr.str();
     }
 }

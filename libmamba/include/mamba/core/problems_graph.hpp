@@ -96,7 +96,7 @@ namespace mamba
     class MGroupEdgeInfo
     {
     public:
-        std::unordered_set<std::string> m_deps;
+        std::set<std::string> m_deps;
 
         MGroupEdgeInfo(const MEdgeInfo& dep);
 

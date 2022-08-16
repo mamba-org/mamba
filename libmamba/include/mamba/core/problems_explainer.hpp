@@ -42,7 +42,7 @@ namespace mamba
 
         std::string explain_problem(const MGroupNode& node) const;
         std::string explain(const std::unordered_set<std::string>& deps) const;
-        std::string explain(const node_edge& node_to_edge, std::string conflict_dep) const;
+        std::string explain(const node_edge& node_to_edge) const;
     };
 }  // namespace mamba
 

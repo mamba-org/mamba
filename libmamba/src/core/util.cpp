@@ -59,21 +59,21 @@ namespace mamba
     // ln -s abcdef emptylink
     // fs::exists(emptylink) == false
     // lexists(emptylink) == true
-    bool lexists(const fs::path& path, std::error_code& ec)
+    bool lexists(const fs::u8path& path, std::error_code& ec)
     {
         auto status = fs::symlink_status(path, ec);
         return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
     }
 
-    bool lexists(const fs::path& path)
+    bool lexists(const fs::u8path& path)
     {
         auto status = fs::symlink_status(path);
         return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
     }
 
-    std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix)
+    std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix)
     {
-        std::vector<fs::path> result;
+        std::vector<fs::u8path> result;
         if (fs::exists(dir) && fs::is_directory(dir))
         {
             for (const auto& entry : fs::directory_iterator(dir))
@@ -98,7 +98,7 @@ namespace mamba
     }
 
     // TODO expand variables, ~ and make absolute
-    bool paths_equal(const fs::path& lhs, const fs::path& rhs)
+    bool paths_equal(const fs::u8path& lhs, const fs::u8path& rhs)
     {
         return lhs == rhs;
     }
@@ -112,7 +112,7 @@ namespace mamba
         success = (pth != nullptr);
         template_path = pth;
 #else
-        std::string template_path = fs::temp_directory_path() / "mambadXXXXXX";
+        const std::string template_path = (fs::temp_directory_path() / "mambadXXXXXX").string();
         // include \0 terminator
         auto err [[maybe_unused]]
         = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
@@ -137,12 +137,12 @@ namespace mamba
         }
     }
 
-    fs::path& TemporaryDirectory::path()
+    const fs::u8path& TemporaryDirectory::path() const
     {
         return m_path;
     }
 
-    TemporaryDirectory::operator fs::path()
+    TemporaryDirectory::operator fs::u8path()
     {
         return m_path;
     }
@@ -152,7 +152,7 @@ namespace mamba
         static std::mutex file_creation_mutex;
 
         bool success = false;
-        fs::path temp_path = fs::temp_directory_path(), final_path;
+        fs::u8path temp_path = fs::temp_directory_path(), final_path;
 
         std::lock_guard<std::mutex> file_creation_lock(file_creation_mutex);
 
@@ -191,12 +191,12 @@ namespace mamba
         }
     }
 
-    fs::path& TemporaryFile::path()
+    fs::u8path& TemporaryFile::path()
     {
         return m_path;
     }
 
-    TemporaryFile::operator fs::path()
+    TemporaryFile::operator fs::u8path()
     {
         return m_path;
     }
@@ -353,13 +353,10 @@ namespace mamba
         return string_transform(input, std::tolower);
     }
 
-    std::string read_contents(const fs::path& file_path, std::ios::openmode mode)
+    std::string read_contents(const fs::u8path& file_path, std::ios::openmode mode)
     {
-#ifdef _WIN32
-        std::ifstream in(file_path.wstring(), std::ios::in | mode);
-#else
-        std::ifstream in(file_path, std::ios::in | mode);
-#endif
+        std::ifstream in(file_path.std_path(), std::ios::in | mode);
+
         if (in)
         {
             std::string contents;
@@ -377,9 +374,9 @@ namespace mamba
         }
     }
 
-    std::vector<std::string> read_lines(const fs::path& file_path)
+    std::vector<std::string> read_lines(const fs::u8path& file_path)
     {
-        std::fstream file_stream(file_path, std::ios_base::in | std::ios_base::binary);
+        std::fstream file_stream(file_path.std_path(), std::ios_base::in | std::ios_base::binary);
         if (file_stream.fail())
         {
             throw std::system_error(
@@ -425,7 +422,7 @@ namespace mamba
         }
     }
 
-    fs::path strip_package_extension(const std::string& file)
+    fs::u8path strip_package_extension(const std::string& file)
     {
         std::string name, extension;
         split_package_extension(file, name, extension);
@@ -554,19 +551,19 @@ namespace mamba
         }
     }
 
-    std::size_t clean_trash_files(const fs::path& prefix, bool deep_clean)
+    std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean)
     {
         std::size_t deleted_files = 0;
         std::size_t remainig_trash = 0;
         std::error_code ec;
-        std::vector<fs::path> remaining_files;
+        std::vector<fs::u8path> remaining_files;
         auto trash_txt = prefix / "conda-meta" / "mamba_trash.txt";
         if (!deep_clean && fs::exists(trash_txt))
         {
             auto all_files = read_lines(trash_txt);
             for (auto& f : all_files)
             {
-                fs::path full_path = prefix / f;
+                fs::u8path full_path = prefix / f;
                 LOG_INFO << "Trash: removing " << full_path;
                 if (!fs::exists(full_path) || fs::remove(full_path, ec))
                 {
@@ -585,7 +582,7 @@ namespace mamba
         if (deep_clean)
         {
             // recursive iterate over all files and delete `.mamba_trash` files
-            std::vector<fs::path> f_to_rm;
+            std::vector<fs::u8path> f_to_rm;
             for (auto& p : fs::recursive_directory_iterator(prefix))
             {
                 if (p.path().extension() == ".mamba_trash")
@@ -628,7 +625,7 @@ namespace mamba
         return deleted_files;
     }
 
-    std::size_t remove_or_rename(const fs::path& path)
+    std::size_t remove_or_rename(const fs::u8path& path)
     {
         std::error_code ec;
         std::size_t result = 0;
@@ -658,7 +655,7 @@ namespace mamba
             {
                 LOG_INFO << "Caught a filesystem error for '" << path.string()
                          << "':" << ec.message() << " (File in use?)";
-                fs::path trash_file = path;
+                fs::u8path trash_file = path;
                 std::size_t fcounter = 0;
 
                 trash_file.replace_extension(
@@ -747,7 +744,7 @@ namespace mamba
         return prepend(p.c_str(), start, newline);
     }
 
-    LockFile::LockFile(const fs::path& path, const std::chrono::seconds& timeout)
+    LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
         : m_path(path)
         , m_timeout(timeout)
         , m_locked(false)
@@ -774,7 +771,7 @@ namespace mamba
 #ifdef _WIN32
         m_fd = _wopen(m_lock.wstring().c_str(), O_RDWR | O_CREAT, 0666);
 #else
-        m_fd = open(m_lock.c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = open(m_lock.string().c_str(), O_RDWR | O_CREAT, 0666);
 #endif
         if (m_fd <= 0)
         {
@@ -809,7 +806,7 @@ namespace mamba
         }
     }
 
-    LockFile::LockFile(const fs::path& path)
+    LockFile::LockFile(const fs::u8path& path)
         : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
     {
     }
@@ -905,7 +902,7 @@ namespace mamba
     }
 
 #ifdef _WIN32
-    bool LockFile::is_locked(const fs::path& path)
+    bool LockFile::is_locked(const fs::u8path& path)
     {
         // Windows locks are isolated between file descriptor
         // We can then test if locked by opening a new one
@@ -1118,17 +1115,17 @@ namespace mamba
         return lock(m_pid, false);
     }
 
-    fs::path LockFile::path() const
+    fs::u8path LockFile::path() const
     {
         return m_path;
     }
 
-    fs::path LockFile::lockfile_path() const
+    fs::u8path LockFile::lockfile_path() const
     {
         return m_lock;
     }
 
-    std::unique_ptr<LockFile> LockFile::try_lock(const fs::path& path) noexcept
+    std::unique_ptr<LockFile> LockFile::try_lock(const fs::u8path& path) noexcept
     {
         try
         {
@@ -1210,10 +1207,12 @@ namespace mamba
         std::string cmd_exe = env::get("COMSPEC").value_or("");
         if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = fs::path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe";
+            cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe")
+                          .string();
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = fs::path(env::get("windir").value_or("")) / "System32" / "cmd.exe";
+                cmd_exe = (fs::u8path(env::get("windir").value_or("")) / "System32" / "cmd.exe")
+                              .string();
             }
             if (!fs::is_regular_file(cmd_exe))
             {
@@ -1228,14 +1227,10 @@ namespace mamba
         return true;
     }
 
-    std::ofstream open_ofstream(const fs::path& path, std::ios::openmode mode)
+    std::ofstream open_ofstream(const fs::u8path& path, std::ios::openmode mode)
     {
-        std::ofstream outfile;
-#if _WIN32
-        outfile.open(path.wstring(), mode);
-#else
-        outfile.open(path, mode);
-#endif
+        std::ofstream outfile(path.std_path(), mode);
+
         if (!outfile.good())
         {
             LOG_ERROR << "Error opening for writing " << path << ": " << strerror(errno);
@@ -1244,14 +1239,9 @@ namespace mamba
         return outfile;
     }
 
-    std::ifstream open_ifstream(const fs::path& path, std::ios::openmode mode)
+    std::ifstream open_ifstream(const fs::u8path& path, std::ios::openmode mode)
     {
-        std::ifstream infile;
-#if _WIN32
-        infile.open(path.wstring(), mode);
-#else
-        infile.open(path, mode);
-#endif
+        std::ifstream infile(path.std_path(), mode);
         if (!infile.good())
         {
             LOG_ERROR << "Error opening for reading " << path << ": " << strerror(errno);
@@ -1261,14 +1251,14 @@ namespace mamba
     }
 
 
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
-                                             const fs::path& prefix,
+    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
+                                             const fs::u8path& prefix,
                                              bool dev_mode,
                                              bool debug_wrapper_scripts,
                                              const std::vector<std::string>& arguments)
     {
         // todo add abspath here
-        fs::path tmp_prefix = prefix / ".tmp";
+        fs::u8path tmp_prefix = prefix / ".tmp";
 
 #ifdef _WIN32
         ensure_comspec_set();
@@ -1281,12 +1271,13 @@ namespace mamba
 
         if (dev_mode)
         {
-            conda_bat = fs::path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat";
+            conda_bat
+                = (fs::u8path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
         }
         else
         {
-            conda_bat
-                = env::get("CONDA_BAT").value_or(fs::absolute(root_prefix) / "condabin" / bat_name);
+            conda_bat = env::get("CONDA_BAT")
+                            .value_or((fs::absolute(root_prefix) / "condabin" / bat_name).string());
         }
         if (!fs::exists(conda_bat) && Context::instance().is_micromamba)
         {
@@ -1413,7 +1404,7 @@ namespace mamba
     }
 
     std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::path& prefix, const std::vector<std::string>& cmd)
+        const fs::u8path& prefix, const std::vector<std::string>& cmd)
     {
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
@@ -1431,12 +1422,12 @@ namespace mamba
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
 
-            command_args = { comspec.value(), "/D", "/C", script_file->path() };
+            command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
         }
         else
         {
             // shell_path = 'sh' if 'bsd' in sys.platform else 'bash'
-            fs::path shell_path = env::which("bash");
+            fs::u8path shell_path = env::which("bash");
             if (shell_path.empty())
             {
                 shell_path = env::which("sh");
@@ -1449,8 +1440,8 @@ namespace mamba
 
             script_file = wrap_call(
                 Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
-            command_args.push_back(shell_path);
-            command_args.push_back(script_file->path());
+            command_args.push_back(shell_path.string());
+            command_args.push_back(script_file->path().string());
         }
         return std::make_tuple(command_args, std::move(script_file));
     }

@@ -20,7 +20,7 @@ init_rc_options(CLI::App* subcom)
     auto& rc_files = config.at("rc_files");
     subcom
         ->add_option(
-            "--rc-file", rc_files.get_cli_config<std::vector<fs::path>>(), rc_files.description())
+            "--rc-file", rc_files.get_cli_config<std::vector<fs::u8path>>(), rc_files.description())
         ->group(cli_group);
 
     auto& no_rc = config.at("no_rc");
@@ -110,11 +110,11 @@ init_prefix_options(CLI::App* subcom)
     std::string cli_group = "Prefix options";
 
     auto& root = config.at("root_prefix");
-    subcom->add_option("-r,--root-prefix", root.get_cli_config<fs::path>(), root.description())
+    subcom->add_option("-r,--root-prefix", root.get_cli_config<fs::u8path>(), root.description())
         ->group(cli_group);
 
     auto& prefix = config.at("target_prefix");
-    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::path>(), prefix.description())
+    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description())
         ->group(cli_group);
 
     auto& name = config.at("env_name");

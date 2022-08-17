@@ -12,7 +12,7 @@
 using namespace mamba;  // NOLINT(build/namespaces)
 
 std::string
-get_env_name(const fs::path& px)
+get_env_name(const fs::u8path& px)
 {
     const auto& ctx = Context::instance();
     auto& ed = ctx.envs_dirs[0];
@@ -138,8 +138,12 @@ set_env_command(CLI::App* com)
             if (ctx.json)
             {
                 nlohmann::json res;
-                auto pfxs = env_manager.list_all_known_prefixes();
-                std::vector<std::string> envs(pfxs.begin(), pfxs.end());
+                const auto pfxs = env_manager.list_all_known_prefixes();
+                std::vector<std::string> envs(pfxs.size());
+                std::transform(pfxs.begin(),
+                               pfxs.end(),
+                               envs.begin(),
+                               [](const fs::u8path& path) { return path.string(); });
                 res["envs"] = envs;
                 std::cout << res.dump(4) << std::endl;
                 return;

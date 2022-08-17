@@ -42,7 +42,7 @@ namespace mamba
 
         Console::stream() << "Collect information..";
 
-        std::vector<fs::path> envs;
+        std::vector<fs::u8path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs);
         if (!ctx.dry_run && (clean_index || clean_all))
@@ -156,7 +156,7 @@ namespace mamba
 
         auto collect_tarballs = [&]()
         {
-            std::vector<fs::path> res;
+            std::vector<fs::u8path> res;
             std::size_t total_size = 0;
             std::vector<printers::FormattedString> header = { "Package file", "Size" };
             mamba::printers::Table t(header);
@@ -170,7 +170,7 @@ namespace mamba
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
-                    std::string fname = p.path().filename();
+                    std::string fname = p.path().filename().string();
                     if (!p.is_directory()
                         && (ends_with(p.path().string(), ".tar.bz2")
                             || ends_with(p.path().string(), ".conda")))
@@ -230,7 +230,7 @@ namespace mamba
 
         auto collect_package_folders = [&]()
         {
-            std::vector<fs::path> res;
+            std::vector<fs::u8path> res;
             std::size_t total_size = 0;
             std::vector<printers::FormattedString> header = { "Package folder", "Size" };
             mamba::printers::Table t(header);
@@ -244,10 +244,10 @@ namespace mamba
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
-                    std::string fname = p.path().filename();
                     if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
                     {
-                        if (installed_pkgs.find(p.path().filename()) != installed_pkgs.end())
+                        if (installed_pkgs.find(p.path().filename().string())
+                            != installed_pkgs.end())
                         {
                             // do not remove installed packages
                             continue;

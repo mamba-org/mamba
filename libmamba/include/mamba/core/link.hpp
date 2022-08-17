@@ -33,7 +33,7 @@ namespace mamba
     {
     public:
         UnlinkPackage(const PackageInfo& pkg_info,
-                      const fs::path& cache_path,
+                      const fs::u8path& cache_path,
                       TransactionContext* context);
 
         bool execute();
@@ -43,7 +43,7 @@ namespace mamba
         bool unlink_path(const nlohmann::json& path_data);
 
         PackageInfo m_pkg_info;
-        fs::path m_cache_path;
+        fs::u8path m_cache_path;
         std::string m_specifier;
         TransactionContext* m_context;
     };
@@ -52,7 +52,7 @@ namespace mamba
     {
     public:
         LinkPackage(const PackageInfo& pkg_info,
-                    const fs::path& cache_path,
+                    const fs::u8path& cache_path,
                     TransactionContext* context);
 
         bool execute();
@@ -61,16 +61,16 @@ namespace mamba
     private:
         std::tuple<std::string, std::string> link_path(const PathData& path_data,
                                                        bool noarch_python);
-        std::vector<fs::path> compile_pyc_files(const std::vector<fs::path>& py_files);
-        auto create_python_entry_point(const fs::path& path,
+        std::vector<fs::u8path> compile_pyc_files(const std::vector<fs::u8path>& py_files);
+        auto create_python_entry_point(const fs::u8path& path,
                                        const python_entry_point_parsed& entry_point);
-        void create_application_entry_point(const fs::path& source_full_path,
-                                            const fs::path& target_full_path,
-                                            const fs::path& python_full_path);
+        void create_application_entry_point(const fs::u8path& source_full_path,
+                                            const fs::u8path& target_full_path,
+                                            const fs::u8path& python_full_path);
 
         PackageInfo m_pkg_info;
-        fs::path m_cache_path;
-        fs::path m_source;
+        fs::u8path m_cache_path;
+        fs::u8path m_source;
         std::vector<std::string> m_clobber_warnings;
         TransactionContext* m_context;
     };

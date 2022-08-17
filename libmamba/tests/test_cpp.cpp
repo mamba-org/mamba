@@ -16,7 +16,7 @@ namespace mamba
     // {
     //     Context::instance().verbosity = 3;
     //     PackageInfo pkg("wheel", "0.34.2", "py_1", 1);
-    //     fs::path prefix = "C:\\Users\\wolfv\\miniconda3\\";
+    //     fs::u8path prefix = "C:\\Users\\wolfv\\miniconda3\\";
     //     TransactionContext tc(prefix, "3.8.x");
     //     // try {
     //         UnlinkPackage up(pkg, &tc);
@@ -149,7 +149,7 @@ namespace mamba
             EXPECT_EQ(ms.version, "0.1");
             EXPECT_EQ(ms.build, "conda_forge");
 #ifdef _WIN32
-            std::string driveletter = fs::absolute(fs::path("/")).string().substr(0, 1);
+            std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
             EXPECT_EQ(
                 ms.url,
                 std::string("file://") + driveletter
@@ -300,7 +300,7 @@ namespace mamba
             auto& ctx = Context::instance();
             ctx.root_prefix = "/home/user/micromamba/";
             ctx.envs_dirs = { ctx.root_prefix / "envs" };
-            fs::path prefix = "/home/user/micromamba/envs/testprefix";
+            fs::u8path prefix = "/home/user/micromamba/envs/testprefix";
 
             EXPECT_EQ(env_name(prefix), "testprefix");
             prefix = "/home/user/micromamba/envs/a.txt";
@@ -334,8 +334,8 @@ namespace mamba
 
     TEST(fsutil, expand_user)
     {
-        fs::path pbefore = "/tmp/test/xyz.txt";
-        fs::path p = env::expand_user(pbefore);
+        fs::u8path pbefore = "/tmp/test/xyz.txt";
+        fs::u8path p = env::expand_user(pbefore);
         EXPECT_EQ(p, pbefore);
     }
 
@@ -492,12 +492,12 @@ namespace mamba
     namespace detail
     {
         // read the header that contains json like {"_mod": "...", ...}
-        nlohmann::json read_mod_and_etag(const fs::path& file);
+        nlohmann::json read_mod_and_etag(const fs::u8path& file);
     }
 
     TEST(subdirdata, parse_mod_etag)
     {
-        fs::path cache_folder = fs::path("repodata_json_cache");
+        fs::u8path cache_folder = fs::u8path("repodata_json_cache");
         auto j = detail::read_mod_and_etag(cache_folder / "test_1.json");
         EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(

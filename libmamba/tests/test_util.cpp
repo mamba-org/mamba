@@ -69,24 +69,24 @@ namespace mamba
         EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
         EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
 
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something-lock.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something-lock.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yml" }.string()));
 
         EXPECT_FALSE(is_yaml_file_name("something"));
         EXPECT_FALSE(is_yaml_file_name("something-lock"));
         EXPECT_FALSE(is_yaml_file_name("/some/dir/something"));
         EXPECT_FALSE(is_yaml_file_name("../../some/dir/something"));
 
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something-lock" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "/some/dir/something" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "../../some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "something-lock" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "/some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "../../some/dir/something" }.string()));
     }
 
     TEST(utils, encode_decode_base64)
@@ -128,11 +128,7 @@ namespace mamba
         {
             const auto existing_file_path = test_dir_path / "existing-writable-test-delete-me.txt";
             {
-#ifdef _WIN32
-                std::ofstream temp_file{ existing_file_path.wstring() };
-#else
-                std::ofstream temp_file{ existing_file_path };
-#endif
+                std::ofstream temp_file{ existing_file_path.std_path() };
                 ASSERT_TRUE(temp_file.is_open());
                 temp_file << "delete me" << std::endl;
             }

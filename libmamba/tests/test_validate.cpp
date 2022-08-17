@@ -209,23 +209,23 @@ namespace validate
                     sign_root();
                 }
 
-                fs::path trusted_root_file(const json& j)
+                fs::u8path trusted_root_file(const json& j)
                 {
-                    fs::path p = channel_dir->path() / "root.json";
+                    fs::u8path p = channel_dir->path() / "root.json";
 
-                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                     out_file << j;
                     out_file.close();
 
                     return p;
                 }
 
-                fs::path trusted_root_file_raw_key()
+                fs::u8path trusted_root_file_raw_key()
                 {
                     return trusted_root_file(root1_json);
                 }
 
-                fs::path trusted_root_file_pgp()
+                fs::u8path trusted_root_file_pgp()
                 {
                     return trusted_root_file(root1_pgp_json);
                 }
@@ -245,10 +245,10 @@ namespace validate
                     return new_root.patch(sig_patch);
                 }
 
-                fs::path create_root_update(const fs::path& name, const json& patch = json())
+                fs::u8path create_root_update(const fs::u8path& name, const json& patch = json())
                 {
-                    fs::path p = channel_dir->path() / name;
-                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    fs::u8path p = channel_dir->path() / name;
+                    std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                     out_file << create_root_update_json(patch);
                     out_file.close();
                     return p;
@@ -282,7 +282,7 @@ namespace validate
                     root1_json["signed"]["expiration"] = timestamp(utc_time_now() + 3600);
                     root1_json["signatures"] = sign_root_meta(root1_json["signed"]);
 
-                    std::ifstream i(root1_pgp);
+                    std::ifstream i(root1_pgp.std_path());
                     i >> root1_pgp_json;
                 }
 
@@ -324,7 +324,7 @@ namespace validate
                 }
 
             protected:
-                fs::path root1_pgp = "validation_data/1.sv0.6.root.json";
+                fs::u8path root1_pgp = "validation_data/1.sv0.6.root.json";
                 json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
@@ -403,9 +403,9 @@ namespace validate
 
             TEST_F(RootImplT_v06, ctor_wrong_filename_spec_version)
             {
-                fs::path p = channel_dir->path() / "2.sv1.root.json";
+                fs::u8path p = channel_dir->path() / "2.sv1.root.json";
 
-                std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                 out_file << root1_json;
                 out_file.close();
 
@@ -915,12 +915,12 @@ namespace validate
                     return update_key_mgr.patch(sig_patch);
                 }
 
-                fs::path write_key_mgr_file(const json& j,
-                                            const std::string& filename = "key_mgr.json")
+                fs::u8path write_key_mgr_file(const json& j,
+                                              const std::string& filename = "key_mgr.json")
                 {
-                    fs::path p = channel_dir->path() / filename;
+                    fs::u8path p = channel_dir->path() / filename;
 
-                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                     out_file << j;
                     out_file.close();
 
@@ -1041,7 +1041,7 @@ namespace validate
                 EXPECT_EQ(key_mgr.version(), 1);
 
 
-                EXPECT_THROW(root.create_key_mgr(fs::path("not_existing")), role_file_error);
+                EXPECT_THROW(root.create_key_mgr(fs::u8path("not_existing")), role_file_error);
 
                 EXPECT_THROW(root.create_key_mgr(write_key_mgr_file(key_mgr_json, "wrong.json")),
                              role_file_error);
@@ -1169,12 +1169,12 @@ namespace validate
                     return update_pkg_mgr.patch(sig_patch);
                 }
 
-                fs::path write_pkg_mgr_file(const json& j,
-                                            const std::string& filename = "pkg_mgr.json")
+                fs::u8path write_pkg_mgr_file(const json& j,
+                                              const std::string& filename = "pkg_mgr.json")
                 {
-                    fs::path p = channel_dir->path() / filename;
+                    fs::u8path p = channel_dir->path() / filename;
 
-                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                     out_file << j;
                     out_file.close();
 
@@ -1292,7 +1292,7 @@ namespace validate
                     : PkgMgrT_v06()
                 {
                     m_repo_base_url = "file://" + channel_dir->path().string();
-                    m_ref_path = channel_dir->path();
+                    m_ref_path = channel_dir->path().string();
 
                     write_role(root1_json, channel_dir->path() / "root.json");
 
@@ -1315,11 +1315,12 @@ namespace validate
             protected:
                 std::string m_ref_path, m_repo_base_url;
 
-                void write_role(const json& j, const fs::path& p)
+                void write_role(const json& j, const fs::u8path& p)
                 {
-                    fs::path expanded_p = env::expand_user(p);
+                    fs::u8path expanded_p = env::expand_user(p);
                     path::touch(expanded_p, true);
-                    std::ofstream out_file(expanded_p, std::ofstream::out | std::ofstream::trunc);
+                    std::ofstream out_file(expanded_p.std_path(),
+                                           std::ofstream::out | std::ofstream::trunc);
                     out_file << j.dump(2);
                     out_file.close();
                 }
@@ -1416,22 +1417,22 @@ namespace validate
                     sign_root();
                 }
 
-                fs::path trusted_root_file()
+                fs::u8path trusted_root_file()
                 {
-                    fs::path p = channel_dir->path() / "root.json";
+                    fs::u8path p = channel_dir->path() / "root.json";
 
-                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                     out_file << root1_json;
                     out_file.close();
 
                     return p;
                 }
 
-                fs::path create_root_update(const fs::path& name, const json& patch = json())
+                fs::u8path create_root_update(const fs::u8path& name, const json& patch = json())
                 {
-                    fs::path p = channel_dir->path() / name;
+                    fs::u8path p = channel_dir->path() / name;
 
-                    std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                    std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
 
                     json new_root = root1_json;
 
@@ -1462,7 +1463,7 @@ namespace validate
 
                 void sign_root()
                 {
-                    std::ifstream i(root1);
+                    std::ifstream i(root1.std_path());
                     i >> root1_json;
 
                     std::map<std::string, RoleKeys> all_roles;
@@ -1503,7 +1504,7 @@ namespace validate
                 }
 
             protected:
-                fs::path root1 = "validation_data/root.json";
+                fs::u8path root1 = "validation_data/root.json";
                 json root1_json;
 
                 std::unique_ptr<TemporaryDirectory> channel_dir;
@@ -1570,9 +1571,9 @@ namespace validate
 
             TEST_F(RootImplT_v1, ctor_wrong_filename_spec_version)
             {
-                fs::path p = channel_dir->path() / "2.sv0.6.root.json";
+                fs::u8path p = channel_dir->path() / "2.sv0.6.root.json";
 
-                std::ofstream out_file(p, std::ofstream::out | std::ofstream::trunc);
+                std::ofstream out_file(p.std_path(), std::ofstream::out | std::ofstream::trunc);
                 out_file << root1_json;
                 out_file.close();
 

@@ -27,7 +27,7 @@ namespace mamba
     class extraction_guard
     {
     public:
-        explicit extraction_guard(const fs::path& file)
+        explicit extraction_guard(const fs::u8path& file)
             : m_file(file)
         {
         }
@@ -54,7 +54,7 @@ namespace mamba
         extraction_guard& operator=(extraction_guard&&) = delete;
 
     private:
-        const fs::path& m_file;
+        const fs::u8path& m_file;
     };
 
     static int copy_data(archive* ar, archive* aw)
@@ -85,8 +85,8 @@ namespace mamba
     }
 
     // Bundle up all files in directory and create destination archive
-    void create_archive(const fs::path& directory,
-                        const fs::path& destination,
+    void create_archive(const fs::u8path& directory,
+                        const fs::u8path& destination,
                         compression_algorithm ca,
                         int compression_level,
                         bool (*filter)(const std::string&))
@@ -96,7 +96,7 @@ namespace mamba
 
         extraction_guard g(destination);
 
-        fs::path abs_out_path = fs::absolute(destination);
+        fs::u8path abs_out_path = fs::absolute(destination);
         a = archive_write_new();
         if (ca == compression_algorithm::bzip2)
         {
@@ -133,7 +133,7 @@ namespace mamba
             archive_write_set_options(a, comp_level.c_str());
         }
 
-        archive_write_open_filename(a, abs_out_path.c_str());
+        archive_write_open_filename(a, abs_out_path.string().c_str());
 
         auto prev_path = fs::current_path();
         if (!fs::exists(directory))
@@ -229,9 +229,11 @@ namespace mamba
     }
 
     // note the info folder must have already been created!
-    void create_package(const fs::path& directory, const fs::path& out_file, int compression_level)
+    void create_package(const fs::u8path& directory,
+                        const fs::u8path& out_file,
+                        int compression_level)
     {
-        fs::path out_file_abs = fs::absolute(out_file);
+        fs::u8path out_file_abs = fs::absolute(out_file);
         if (ends_with(out_file.string(), ".tar.bz2"))
         {
             create_archive(directory,
@@ -256,7 +258,8 @@ namespace mamba
 
             nlohmann::json pkg_metadata;
             pkg_metadata["conda_pkg_format_version"] = 2;
-            std::ofstream metadata_file(tdir.path() / "metadata.json");
+            const auto metadata_file_path = tdir.path() / "metadata.json";
+            std::ofstream metadata_file(metadata_file_path.std_path());
             metadata_file << pkg_metadata;
             metadata_file.close();
 
@@ -265,7 +268,7 @@ namespace mamba
         }
     }
 
-    void extract_archive(const fs::path& file, const fs::path& destination)
+    void extract_archive(const fs::u8path& file, const fs::u8path& destination)
     {
         LOG_INFO << "Extracting " << file << " to " << destination;
         extraction_guard g(destination);
@@ -302,12 +305,12 @@ namespace mamba
         archive_write_disk_set_standard_lookup(ext);
 
         auto lock = LockFile::try_lock(file);
-        r = archive_read_open_filename(a, file.c_str(), 10240);
+        r = archive_read_open_filename(a, file.string().c_str(), 10240);
 
         if (r != ARCHIVE_OK)
         {
             LOG_ERROR << "Error opening archive: " << archive_error_string(a);
-            throw std::runtime_error(std::string(file) + ": Could not open archive for reading.");
+            throw std::runtime_error(file.string() + " : Could not open archive for reading.");
         }
 
         for (;;)
@@ -367,8 +370,8 @@ namespace mamba
         fs::current_path(prev_path);
     }
 
-    void extract_conda(const fs::path& file,
-                       const fs::path& dest_dir,
+    void extract_conda(const fs::u8path& file,
+                       const fs::u8path& dest_dir,
                        const std::vector<std::string>& parts)
     {
         TemporaryDirectory tdir;
@@ -379,7 +382,8 @@ namespace mamba
         auto metadata_path = tdir.path() / "metadata.json";
         if (fs::exists(metadata_path) && fs::file_size(metadata_path) != 0)
         {
-            std::ifstream condafile_meta(tdir.path() / "metadata.json");
+            const auto condafile_path = tdir.path() / "metadata.json";
+            std::ifstream condafile_meta(condafile_path.std_path());
             nlohmann::json j;
             condafile_meta >> j;
 
@@ -395,12 +399,12 @@ namespace mamba
         for (auto& part : parts)
         {
             std::stringstream ss;
-            ss << part << "-" << fn.c_str() << ".tar.zst";
+            ss << part << "-" << fn.string() << ".tar.zst";
             extract_archive(tdir.path() / ss.str(), dest_dir);
         }
     }
 
-    static fs::path extract_dest_dir(const fs::path& file)
+    static fs::u8path extract_dest_dir(const fs::u8path& file)
     {
         if (ends_with(file.string(), ".tar.bz2"))
         {
@@ -414,7 +418,7 @@ namespace mamba
         throw std::runtime_error("Unknown package format.");
     }
 
-    void extract(const fs::path& file, const fs::path& dest)
+    void extract(const fs::u8path& file, const fs::u8path& dest)
     {
         static std::mutex extract_mutex;
         std::lock_guard<std::mutex> lock(extract_mutex);
@@ -430,23 +434,25 @@ namespace mamba
         }
     }
 
-    fs::path extract(const fs::path& file)
+    fs::u8path extract(const fs::u8path& file)
     {
-        fs::path dest_dir = extract_dest_dir(file);
+        fs::u8path dest_dir = extract_dest_dir(file);
         extract(file, dest_dir);
         return dest_dir;
     }
 
-    void extract_subproc(const fs::path& file, const fs::path& dest)
+    void extract_subproc(const fs::u8path& file, const fs::u8path& dest)
     {
         std::vector<std::string> args;
         if (Context::instance().is_micromamba)
         {
-            args = { get_self_exe_path(), "package", "extract", file, dest };
+            args = {
+                get_self_exe_path().string(), "package", "extract", file.string(), dest.string()
+            };
         }
         else
         {
-            args = { "mamba-package", "extract", file, dest };
+            args = { "mamba-package", "extract", file.string(), dest.string() };
         }
 
         std::string out, err;
@@ -463,7 +469,7 @@ namespace mamba
         }
     }
 
-    bool transmute(const fs::path& pkg_file, const fs::path& target, int compression_level)
+    bool transmute(const fs::u8path& pkg_file, const fs::u8path& target, int compression_level)
     {
         TemporaryDirectory extract_dir;
 
@@ -484,7 +490,7 @@ namespace mamba
         return true;
     }
 
-    bool validate(const fs::path& pkg_folder)
+    bool validate(const fs::u8path& pkg_folder)
     {
         auto safety_checks = Context::instance().safety_checks;
         if (safety_checks == VerificationLevel::kDisabled)
@@ -501,7 +507,7 @@ namespace mamba
             auto paths_data = read_paths(pkg_folder);
             for (auto& p : paths_data)
             {
-                fs::path full_path = pkg_folder / p.path;
+                fs::u8path full_path = pkg_folder / p.path;
                 // "exists" follows symlink so if the symlink doesn't link to existing target it
                 // will return false. There is such symlink in _openmp_mutex package. So if the file
                 // is a symlink we don't want to follow the symlink. The "paths_data" should include

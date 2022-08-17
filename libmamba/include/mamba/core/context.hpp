@@ -105,8 +105,8 @@ namespace mamba
 
     class Logger;
 
-    std::string env_name(const fs::path& prefix);
-    fs::path locate_prefix_by_name(const std::string& name);
+    std::string env_name(const fs::u8path& prefix);
+    fs::u8path locate_prefix_by_name(const std::string& name);
 
     // Context singleton class
     class Context
@@ -120,14 +120,14 @@ namespace mamba
         bool experimental = false;
         bool debug = false;
 
-        fs::path target_prefix;
-        fs::path root_prefix;
-        fs::path conda_prefix;
+        fs::u8path target_prefix;
+        fs::u8path root_prefix;
+        fs::u8path conda_prefix;
 
         // TODO check writable and add other potential dirs
-        std::vector<fs::path> envs_dirs;
-        std::vector<fs::path> pkgs_dirs;
-        std::optional<fs::path> env_lockfile;
+        std::vector<fs::u8path> envs_dirs;
+        std::vector<fs::u8path> pkgs_dirs;
+        std::optional<fs::u8path> env_lockfile;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
@@ -223,7 +223,7 @@ namespace mamba
 
         std::string channel_alias = "https://conda.anaconda.org";
         std::map<std::string, AuthenticationInfo>& authentication_info();
-        std::vector<fs::path> token_locations{ "~/.continuum/anaconda-client/tokens" };
+        std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 
         bool override_channels_enabled = true;
 

@@ -55,7 +55,7 @@ namespace mamba
         MSubdirData& operator=(MSubdirData&&);
 
         // TODO return seconds as double
-        fs::file_time_type::duration check_cache(const fs::path& cache_file,
+        fs::file_time_type::duration check_cache(const fs::u8path& cache_file,
                                                  const fs::file_time_type::clock::time_point& ref);
         bool loaded() const;
 
@@ -87,9 +87,9 @@ namespace mamba
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;
 
-        fs::path m_valid_cache_path;
-        fs::path m_expired_cache_path;
-        fs::path m_writable_pkgs_dir;
+        fs::u8path m_valid_cache_path;
+        fs::u8path m_expired_cache_path;
+        fs::u8path m_writable_pkgs_dir;
 
         ProgressProxy m_progress_bar;
 
@@ -111,7 +111,7 @@ namespace mamba
     // concatenate base url and repodata depending on repodata value
     // and old behavior support.
     std::string cache_fn_url(const std::string& url);
-    std::string create_cache_dir(const fs::path& cache_path);
+    std::string create_cache_dir(const fs::u8path& cache_path);
 
 }  // namespace mamba
 

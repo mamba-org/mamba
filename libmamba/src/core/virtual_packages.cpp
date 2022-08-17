@@ -77,7 +77,7 @@ namespace mamba
 
                 for (auto& p : paths)
                 {
-                    if (fs::exists(fs::path(p) / "nvcuda.dll"))
+                    if (fs::exists(fs::u8path(p) / "nvcuda.dll"))
                     {
                         may_exist = true;
                         break;
@@ -92,7 +92,7 @@ namespace mamba
                         if (starts_with(p.path().filename().string(), "nv")
                             && fs::exists(p.path() / "nvidia-smi.exe"))
                         {
-                            std::string f = p.path() / "nvidia-smi.exe";
+                            std::string f = (p.path() / "nvidia-smi.exe").string();
                             LOG_DEBUG << "Found nvidia-smi in: " << f;
                             std::vector<std::string> command = { f, "--query", "-u", "-x" };
                             auto [_ /*cmd_status*/, cmd_ec]

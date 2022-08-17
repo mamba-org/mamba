@@ -78,7 +78,7 @@ namespace mamba
 
     namespace detail
     {
-        void store_platform_config(const fs::path& prefix, const std::string& platform)
+        void store_platform_config(const fs::u8path& prefix, const std::string& platform)
         {
             if (!fs::exists(prefix))
                 fs::create_directories(prefix);

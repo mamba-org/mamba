@@ -14,7 +14,7 @@
 
 namespace mamba
 {
-    PackageCacheData::PackageCacheData(const fs::path& path)
+    PackageCacheData::PackageCacheData(const fs::u8path& path)
         : m_path(path)
     {
     }
@@ -50,7 +50,7 @@ namespace mamba
         return m_writable;
     }
 
-    fs::path PackageCacheData::path() const
+    fs::u8path PackageCacheData::path() const
     {
         return m_path;
     }
@@ -63,7 +63,7 @@ namespace mamba
 
     void PackageCacheData::check_writable()
     {
-        fs::path magic_file = m_path / PACKAGE_CACHE_MAGIC_FILE;
+        fs::u8path magic_file = m_path / PACKAGE_CACHE_MAGIC_FILE;
         LOG_DEBUG << "Checking if '" << m_path.string() << "' is writable";
 
         std::error_code ec;
@@ -118,7 +118,7 @@ namespace mamba
         bool valid = false;
         if (fs::exists(m_path / s.fn))
         {
-            fs::path tarball_path = m_path / s.fn;
+            fs::u8path tarball_path = m_path / s.fn;
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
             valid = s.size == 0 || validate::file_size(tarball_path, s.size);
@@ -172,7 +172,7 @@ namespace mamba
         }
 
         auto pkg_name = strip_package_extension(s.fn);
-        fs::path extracted_dir = m_path / pkg_name;
+        fs::u8path extracted_dir = m_path / pkg_name;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
                   << pkg_name.string() << "'";
 
@@ -183,7 +183,7 @@ namespace mamba
             {
                 try
                 {
-                    std::ifstream repodata_record_f(repodata_record_path);
+                    std::ifstream repodata_record_f(repodata_record_path.std_path());
                     nlohmann::json repodata_record;
                     repodata_record_f >> repodata_record;
 
@@ -323,7 +323,7 @@ namespace mamba
         return valid;
     }
 
-    MultiPackageCache::MultiPackageCache(const std::vector<fs::path>& cache_paths)
+    MultiPackageCache::MultiPackageCache(const std::vector<fs::u8path>& cache_paths)
     {
         m_caches.reserve(cache_paths.size());
         for (auto& c : cache_paths)
@@ -369,16 +369,16 @@ namespace mamba
         return res;
     }
 
-    fs::path MultiPackageCache::first_writable_path()
+    fs::u8path MultiPackageCache::first_writable_path()
     {
         for (auto& pc : m_caches)
             if (pc.is_writable() == Writable::WRITABLE)
                 return pc.path();
 
-        return fs::path();
+        return fs::u8path();
     }
 
-    fs::path MultiPackageCache::get_tarball_path(const PackageInfo& s, bool return_empty)
+    fs::u8path MultiPackageCache::get_tarball_path(const PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());
         const auto cache_iter(m_cached_tarballs.find(pkg));
@@ -395,7 +395,7 @@ namespace mamba
             }
 
         if (return_empty)
-            return fs::path();
+            return fs::u8path();
         else
         {
             LOG_ERROR << "Cannot find tarball cache for '" << s.fn << "'";
@@ -404,7 +404,7 @@ namespace mamba
     }
 
 
-    fs::path MultiPackageCache::get_extracted_dir_path(const PackageInfo& s, bool return_empty)
+    fs::u8path MultiPackageCache::get_extracted_dir_path(const PackageInfo& s, bool return_empty)
     {
         const std::string pkg(s.str());
         const auto cache_iter(m_cached_extracted_dirs.find(pkg));
@@ -421,7 +421,7 @@ namespace mamba
             }
 
         if (return_empty)
-            return fs::path();
+            return fs::u8path();
         else
         {
             LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.fn << "'";
@@ -429,9 +429,9 @@ namespace mamba
         }
     }
 
-    std::vector<fs::path> MultiPackageCache::paths() const
+    std::vector<fs::u8path> MultiPackageCache::paths() const
     {
-        std::vector<fs::path> paths;
+        std::vector<fs::u8path> paths;
         for (auto& c : m_caches)
             paths.push_back(c.path());
 

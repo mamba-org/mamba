@@ -35,30 +35,30 @@ namespace mamba
     }
 
     // supply short python version, e.g. 2.7, 3.5...
-    fs::path get_python_short_path(const std::string& python_version [[maybe_unused]])
+    fs::u8path get_python_short_path(const std::string& python_version [[maybe_unused]])
     {
 #ifdef _WIN32
         return "python.exe";
 #else
-        return fs::path("bin") / concat("python", python_version);
+        return fs::u8path("bin") / concat("python", python_version);
 #endif
     }
 
-    fs::path get_python_site_packages_short_path(const std::string& python_version)
+    fs::u8path get_python_site_packages_short_path(const std::string& python_version)
     {
         if (python_version.size() == 0)
         {
-            return fs::path();
+            return fs::u8path();
         }
 
 #ifdef _WIN32
-        return fs::path("Lib") / "site-packages";
+        return fs::u8path("Lib") / "site-packages";
 #else
-        return fs::path("lib") / concat("python", python_version) / "site-packages";
+        return fs::u8path("lib") / concat("python", python_version) / "site-packages";
 #endif
     }
 
-    fs::path get_bin_directory_short_path()
+    fs::u8path get_bin_directory_short_path()
     {
 #ifdef _WIN32
         return "Scripts";
@@ -67,8 +67,8 @@ namespace mamba
 #endif
     }
 
-    fs::path get_python_noarch_target_path(const std::string& source_short_path,
-                                           const fs::path& target_site_packages_short_path)
+    fs::u8path get_python_noarch_target_path(const std::string& source_short_path,
+                                             const fs::u8path& target_site_packages_short_path)
     {
         if (starts_with(source_short_path, "site-packages/"))
         {
@@ -92,7 +92,7 @@ namespace mamba
         compile_pyc = Context::instance().compile_pyc;
     }
 
-    TransactionContext::TransactionContext(const fs::path& target_prefix,
+    TransactionContext::TransactionContext(const fs::u8path& target_prefix,
                                            const std::pair<std::string, std::string>& py_versions,
                                            const std::vector<MatchSpec>& requested_specs)
         : has_python(py_versions.first.size() != 0)
@@ -166,9 +166,9 @@ namespace mamba
 #ifndef _WIN32
         std::signal(SIGPIPE, SIG_IGN);
 #endif
-
+        const auto complete_python_path = target_prefix / python_path;
         std::vector<std::string> command
-            = { target_prefix / python_path, "-Wi", "-m", "compileall", "-q", "-l", "-i", "-" };
+            = { complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-" };
 
         auto py_ver_split = split(python_version, ".");
 
@@ -183,7 +183,7 @@ namespace mamba
                 compileall_f.close();
 
                 command = {
-                    target_prefix / python_path, "-Wi", "-u", m_pyc_compileall->path().c_str()
+                    complete_python_path.string(), "-Wi", "-u", m_pyc_compileall->path().string()
                 };
             }
         }
@@ -219,7 +219,7 @@ namespace mamba
         options.redirect.out.type = reproc::redirect::pipe;
         options.redirect.err.type = reproc::redirect::pipe;
 
-        std::string cwd = target_prefix;
+        const std::string cwd = target_prefix.string();
         options.working_directory = cwd.c_str();
 
         auto [wrapped_command, script_file] = prepare_wrapped_call(target_prefix, command);
@@ -239,7 +239,7 @@ namespace mamba
         return true;
     }
 
-    bool TransactionContext::try_pyc_compilation(const std::vector<fs::path>& py_files)
+    bool TransactionContext::try_pyc_compilation(const std::vector<fs::u8path>& py_files)
     {
         static std::mutex pyc_compilation_mutex;
         std::lock_guard<std::mutex> lock(pyc_compilation_mutex);

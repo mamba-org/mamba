@@ -31,10 +31,10 @@ namespace mamba
         using command_args = std::vector<std::string>;
 
         tl::expected<command_args, std::runtime_error> get_other_pkg_mgr_install_instructions(
-            const std::string& name, const std::string& target_prefix, fs::path spec_file)
+            const std::string& name, const std::string& target_prefix, const fs::u8path& spec_file)
         {
             const auto get_python_path
-                = [&] { return env::which("python", get_path_dirs(target_prefix)).u8string(); };
+                = [&] { return env::which("python", get_path_dirs(target_prefix)).string(); };
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
@@ -101,8 +101,8 @@ namespace mamba
 
         command_args install_instructions = [&]
         {
-            const auto maybe_instructions
-                = get_other_pkg_mgr_install_instructions(pkg_mgr, ctx.target_prefix, specs.path());
+            const auto maybe_instructions = get_other_pkg_mgr_install_instructions(
+                pkg_mgr, ctx.target_prefix.string(), specs.path());
             if (maybe_instructions)
                 return maybe_instructions.value();
             else
@@ -178,7 +178,7 @@ namespace mamba
             return truthy_values()[expr];
         }
 
-        yaml_file_contents read_yaml_file(fs::path yaml_file)
+        yaml_file_contents read_yaml_file(fs::u8path yaml_file)
         {
             auto file = fs::weakly_canonical(env::expand_user(yaml_file));
             if (!fs::exists(file))
@@ -191,7 +191,7 @@ namespace mamba
             YAML::Node f;
             try
             {
-                f = YAML::LoadFile(file);
+                f = YAML::LoadFile(file.string());
             }
             catch (YAML::Exception& e)
             {
@@ -245,7 +245,7 @@ namespace mamba
                             result.others_pkg_mgrs_specs.push_back(
                                 { "pip",
                                   map_el.second.as<std::vector<std::string>>(),
-                                  fs::absolute(yaml_file.parent_path()) });
+                                  fs::absolute(yaml_file.parent_path()).string() });
                             has_pip_deps = true;
                         }
                     }
@@ -549,7 +549,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            fs::path pkgs_dirs(Context::instance().root_prefix / "pkgs");
+            fs::u8path pkgs_dirs(Context::instance().root_prefix / "pkgs");
             MultiPackageCache pkg_caches({ pkgs_dirs });
 
             auto transaction = create_transaction(pool, pkg_caches);
@@ -578,7 +578,7 @@ namespace mamba
             create_env);
     }
 
-    void install_lockfile_specs(const fs::path& lockfile, bool create_env)
+    void install_lockfile_specs(const fs::u8path& lockfile, bool create_env)
     {
         detail::install_explicit_with_transaction(
             [&](auto& pool, auto& pkg_caches)
@@ -588,16 +588,18 @@ namespace mamba
 
     namespace detail
     {
-        void create_empty_target(const fs::path& prefix)
+        void create_empty_target(const fs::u8path& prefix)
         {
             detail::create_target_directory(prefix);
 
-            Console::instance().print(join(
-                "", std::vector<std::string>({ "Empty environment created at prefix: ", prefix })));
+            Console::instance().print(
+                join("",
+                     std::vector<std::string>(
+                         { "Empty environment created at prefix: ", prefix.string() })));
             Console::instance().json_write({ { "success", true } });
         }
 
-        void create_target_directory(const fs::path prefix)
+        void create_target_directory(const fs::u8path prefix)
         {
             path::touch(prefix / "conda-meta" / "history", true);
         }

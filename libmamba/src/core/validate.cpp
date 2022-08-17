@@ -141,7 +141,7 @@ namespace validate
     {
     }
 
-    std::string sha256sum(const fs::path& path)
+    std::string sha256sum(const fs::u8path& path)
     {
         unsigned char hash[MAMBA_SHA256_SIZE_BYTES];
         EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
@@ -167,7 +167,7 @@ namespace validate
         return ::mamba::hex_string(hash, MAMBA_SHA256_SIZE_BYTES);
     }
 
-    std::string md5sum(const fs::path& path)
+    std::string md5sum(const fs::u8path& path)
     {
         unsigned char hash[MAMBA_MD5_SIZE_BYTES];
 
@@ -194,17 +194,17 @@ namespace validate
         return ::mamba::hex_string(hash, MAMBA_MD5_SIZE_BYTES);
     }
 
-    bool sha256(const fs::path& path, const std::string& validation)
+    bool sha256(const fs::u8path& path, const std::string& validation)
     {
         return sha256sum(path) == validation;
     }
 
-    bool md5(const fs::path& path, const std::string& validation)
+    bool md5(const fs::u8path& path, const std::string& validation)
     {
         return md5sum(path) == validation;
     }
 
-    bool file_size(const fs::path& path, std::uintmax_t validation)
+    bool file_size(const fs::u8path& path, std::uintmax_t validation)
     {
         return fs::file_size(path) == validation;
     }
@@ -594,7 +594,7 @@ namespace validate
         }
     }
 
-    bool SpecBase::is_compatible(const fs::path& p) const
+    bool SpecBase::is_compatible(const fs::u8path& p) const
     {
         std::regex name_re;
         std::smatch matches;
@@ -615,7 +615,7 @@ namespace validate
             }
             else
             {
-                std::ifstream i(p);
+                std::ifstream i(p.std_path());
                 json j;
                 i >> j;
                 return is_compatible(j);
@@ -864,7 +864,7 @@ namespace validate
         m_expires = expires;
     }
 
-    json RoleBase::read_json_file(const fs::path& p, bool update) const
+    json RoleBase::read_json_file(const fs::u8path& p, bool update) const
     {
         if (!fs::exists(p))
         {
@@ -969,7 +969,7 @@ namespace validate
             }
         }
 
-        std::ifstream i(p);
+        std::ifstream i(p.std_path());
         json j;
         i >> j;
 
@@ -1046,13 +1046,13 @@ namespace validate
     {
     }
 
-    std::vector<fs::path> RootRole::possible_update_files()
+    std::vector<fs::u8path> RootRole::possible_update_files()
     {
         auto new_v = std::to_string(version() + 1);
         auto compat_spec = spec_impl()->compatible_prefix();
         auto upgrade_spec = spec_impl()->upgrade_prefix();
 
-        std::vector<fs::path> files;
+        std::vector<fs::u8path> files;
         // upgrade first
         for (auto& s : upgrade_spec)
         {
@@ -1068,7 +1068,7 @@ namespace validate
         return files;
     }
 
-    std::unique_ptr<RootRole> RootRole::update(fs::path path)
+    std::unique_ptr<RootRole> RootRole::update(fs::u8path path)
     {
         auto j = read_json_file(path, true);
         return update(j);
@@ -1076,7 +1076,7 @@ namespace validate
 
     // `create_update` currently catch a possible spec version update by testing
     // and extracting spec version from JSON. It could be done upstream (in
-    // `update(fs::path)`) if we decide to specify the spec version in the file name.
+    // `update(fs::u8path)`) if we decide to specify the spec version in the file name.
     // The filename would take the form VERSION_NUMBER.SPECVERSION.FILENAME.EXT
     // To disambiguate version and spec version: 1.sv0.6.root.json or 1.sv1.root.json
     std::unique_ptr<RootRole> RootRole::update(json j)
@@ -1139,7 +1139,7 @@ namespace validate
             load_from_json(j);
         }
 
-        RootImpl::RootImpl(const fs::path& path)
+        RootImpl::RootImpl(const fs::u8path& path)
             : RootRole(std::make_shared<SpecImpl>())
         {
             auto j = read_json_file(path);
@@ -1209,7 +1209,7 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& /*url*/, const fs::path& /*cache_path*/) const
+            const std::string& /*url*/, const fs::u8path& /*cache_path*/) const
         {
             std::unique_ptr<RepoIndexChecker> ptr;
             return ptr;
@@ -1315,7 +1315,7 @@ namespace validate
             return m_timestamp;
         }
 
-        RootImpl::RootImpl(const fs::path& path)
+        RootImpl::RootImpl(const fs::u8path& path)
             : RootRole(std::make_shared<SpecImpl>())
         {
             auto j = read_json_file(path);
@@ -1423,9 +1423,9 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> RootImpl::build_index_checker(
-            const std::string& base_url, const fs::path& cache_path) const
+            const std::string& base_url, const fs::u8path& cache_path) const
         {
-            fs::path metadata_path = cache_path / "key_mgr.json";
+            fs::u8path metadata_path = cache_path / "key_mgr.json";
 
             auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
             auto tmp_metadata_path = tmp_dir->path() / "key_mgr.json";
@@ -1433,7 +1433,7 @@ namespace validate
             mamba::URLHandler url(base_url + "/key_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                "key_mgr.json", url.url(), tmp_metadata_path);
+                "key_mgr.json", url.url(), tmp_metadata_path.string());
 
             if (dl_target->resource_exists())
             {
@@ -1477,7 +1477,7 @@ namespace validate
             throw fetching_error();
         }
 
-        KeyMgrRole RootImpl::create_key_mgr(const fs::path& p) const
+        KeyMgrRole RootImpl::create_key_mgr(const fs::u8path& p) const
         {
             return KeyMgrRole(p, all_keys()["key_mgr"], spec_impl());
         }
@@ -1526,7 +1526,7 @@ namespace validate
             role.check_defined_roles();
         }
 
-        KeyMgrRole::KeyMgrRole(const fs::path& p,
+        KeyMgrRole::KeyMgrRole(const fs::u8path& p,
                                const RoleFullKeys& keys,
                                const std::shared_ptr<SpecBase> spec)
             : RoleBase("key_mgr", spec)
@@ -1566,7 +1566,7 @@ namespace validate
             return m_keys;
         }
 
-        PkgMgrRole KeyMgrRole::create_pkg_mgr(const fs::path& p) const
+        PkgMgrRole KeyMgrRole::create_pkg_mgr(const fs::u8path& p) const
         {
             return PkgMgrRole(p, all_keys()["pkg_mgr"], spec_impl());
         }
@@ -1577,9 +1577,9 @@ namespace validate
         }
 
         std::unique_ptr<RepoIndexChecker> KeyMgrRole::build_index_checker(
-            const std::string& base_url, const fs::path& cache_path) const
+            const std::string& base_url, const fs::u8path& cache_path) const
         {
-            fs::path metadata_path = cache_path / "pkg_mgr.json";
+            fs::u8path metadata_path = cache_path / "pkg_mgr.json";
 
             auto tmp_dir = std::make_unique<mamba::TemporaryDirectory>();
             auto tmp_metadata_path = tmp_dir->path() / "pkg_mgr.json";
@@ -1587,7 +1587,7 @@ namespace validate
             mamba::URLHandler url(base_url + "/pkg_mgr.json");
 
             auto dl_target = std::make_unique<mamba::DownloadTarget>(
-                "pkg_mgr.json", url.url(), tmp_metadata_path);
+                "pkg_mgr.json", url.url(), tmp_metadata_path.string());
 
             if (dl_target->resource_exists())
             {
@@ -1707,7 +1707,7 @@ namespace validate
         {
         }
 
-        PkgMgrRole::PkgMgrRole(const fs::path& p,
+        PkgMgrRole::PkgMgrRole(const fs::u8path& p,
                                const RoleFullKeys& keys,
                                const std::shared_ptr<SpecBase> spec)
             : RoleBase("pkg_mgr", spec)
@@ -1867,7 +1867,7 @@ namespace validate
             }
         }
 
-        void PkgMgrRole::verify_index(const fs::path& p) const
+        void PkgMgrRole::verify_index(const fs::u8path& p) const
         {
             if (!fs::exists(p))
             {
@@ -1875,7 +1875,7 @@ namespace validate
                 throw index_error();
             }
 
-            std::ifstream i(p);
+            std::ifstream i(p.std_path());
             json j;
             i >> j;
 
@@ -1977,13 +1977,13 @@ namespace validate
     }
 
     RepoChecker::RepoChecker(const std::string& base_url,
-                             const fs::path& ref_path,
-                             const fs::path& cache_path)
+                             const fs::u8path& ref_path,
+                             const fs::u8path& cache_path)
         : m_base_url(base_url)
         , m_ref_path(ref_path)
         , m_cache_path(cache_path){};
 
-    const fs::path& RepoChecker::cache_path()
+    const fs::u8path& RepoChecker::cache_path()
     {
         return m_cache_path;
     }
@@ -2010,7 +2010,7 @@ namespace validate
         p_index_checker->verify_index(j);
     }
 
-    void RepoChecker::verify_index(const fs::path& p) const
+    void RepoChecker::verify_index(const fs::u8path& p) const
     {
         p_index_checker->verify_index(p);
     }
@@ -2025,12 +2025,12 @@ namespace validate
         return m_root_version;
     }
 
-    fs::path RepoChecker::ref_root()
+    fs::u8path RepoChecker::ref_root()
     {
         return m_ref_path / "root.json";
     }
 
-    fs::path RepoChecker::cached_root()
+    fs::u8path RepoChecker::cached_root()
     {
         if (cache_path().empty())
         {
@@ -2042,7 +2042,7 @@ namespace validate
         }
     }
 
-    void RepoChecker::persist_file(const fs::path& file_path)
+    void RepoChecker::persist_file(const fs::u8path& file_path)
     {
         if (fs::exists(cached_root()))
             fs::remove(cached_root());
@@ -2050,7 +2050,7 @@ namespace validate
             fs::copy(file_path, cached_root());
     }
 
-    fs::path RepoChecker::initial_trusted_root()
+    fs::u8path RepoChecker::initial_trusted_root()
     {
         if (fs::exists(cached_root()))
         {
@@ -2106,7 +2106,7 @@ namespace validate
         LOG_DEBUG << "Starting updates of 'root' metadata";
         do
         {
-            fs::path tmp_file_path;
+            fs::u8path tmp_file_path;
 
             // Update from the most recent spec supported by this client
             for (auto& f : update_files)
@@ -2114,8 +2114,8 @@ namespace validate
                 auto url = mamba::concat(m_base_url, "/", f.string());
                 tmp_file_path = tmp_dir_path / f;
 
-                auto dl_target
-                    = std::make_unique<mamba::DownloadTarget>(f.string(), url, tmp_file_path);
+                auto dl_target = std::make_unique<mamba::DownloadTarget>(
+                    f.string(), url, tmp_file_path.string());
 
                 if (dl_target->resource_exists())
                 {

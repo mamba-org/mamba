@@ -11,9 +11,9 @@
 
 
 void
-construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball);
+construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball);
 
 void
-read_binary_from_stdin_and_write_to_file(fs::path& filename);
+read_binary_from_stdin_and_write_to_file(fs::u8path& filename);
 
 #endif

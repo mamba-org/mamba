@@ -17,7 +17,7 @@ namespace mamba
 {
     std::string python_pin(const PrefixData& prefix_data, const std::vector<std::string>& specs);
 
-    std::vector<std::string> file_pins(const fs::path& file);
+    std::vector<std::string> file_pins(const fs::u8path& file);
 }
 
 #endif

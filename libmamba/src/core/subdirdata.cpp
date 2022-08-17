@@ -68,7 +68,7 @@ namespace mamba
 {
     namespace detail
     {
-        nlohmann::json read_mod_and_etag(const fs::path& file)
+        nlohmann::json read_mod_and_etag(const fs::u8path& file)
         {
             // parse json at the beginning of the stream such as
             // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
@@ -262,7 +262,7 @@ namespace mamba
     }
 
     fs::file_time_type::duration MSubdirData::check_cache(
-        const fs::path& cache_file, const fs::file_time_type::clock::time_point& ref)
+        const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref)
     {
         try
         {
@@ -400,11 +400,11 @@ namespace mamba
         // TODO invalidate solv cache on version updates!!
         if (m_json_cache_valid && m_solv_cache_valid)
         {
-            return m_valid_cache_path / "cache" / m_solv_fn;
+            return (m_valid_cache_path / "cache" / m_solv_fn).string();
         }
         else if (m_json_cache_valid)
         {
-            return m_valid_cache_path / "cache" / m_json_fn;
+            return (m_valid_cache_path / "cache" / m_json_fn).string();
         }
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
@@ -450,7 +450,7 @@ namespace mamba
                                      + std::to_string(m_target->http_status));
         }
 
-        fs::path json_file, solv_file;
+        fs::u8path json_file, solv_file;
 
         if (m_target->http_status == 304)
         {
@@ -479,7 +479,7 @@ namespace mamba
 
                 LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
                           << "' to '" << m_writable_pkgs_dir.string() << "'";
-                fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+                fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
                 auto lock = LockFile(writable_cache_dir);
 
                 auto copied_json_file = writable_cache_dir / m_json_fn;
@@ -543,7 +543,7 @@ namespace mamba
 
         LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
 
-        fs::path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
+        fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
         auto lock = LockFile(writable_cache_dir);
 
@@ -615,7 +615,8 @@ namespace mamba
     {
         LOG_INFO << "Decompressing metadata";
         auto json_temp_file = std::make_unique<TemporaryFile>();
-        bool result = decompress::raw(m_temp_file->path(), json_temp_file->path());
+        bool result
+            = decompress::raw(m_temp_file->path().string(), json_temp_file->path().string());
         if (!result)
         {
             LOG_WARNING << "Could not decompress " << m_temp_file->path();
@@ -628,7 +629,8 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        m_target = std::make_unique<DownloadTarget>(m_name, m_repodata_url, m_temp_file->path());
+        m_target = std::make_unique<DownloadTarget>(
+            m_name, m_repodata_url, m_temp_file->path().string());
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);
@@ -659,14 +661,14 @@ namespace mamba
         return cache_name_from_url(url) + ".json";
     }
 
-    std::string create_cache_dir(const fs::path& cache_path)
+    std::string create_cache_dir(const fs::u8path& cache_path)
     {
-        std::string cache_dir = cache_path / "cache";
+        const auto cache_dir = cache_path / "cache";
         fs::create_directories(cache_dir);
 #ifndef _WIN32
-        ::chmod(cache_dir.c_str(), 02775);
+        ::chmod(cache_dir.string().c_str(), 02775);
 #endif
-        return cache_dir;
+        return cache_dir.string();
     }
 
     expected_t<MRepo&> MSubdirData::create_repo(MPool& pool)

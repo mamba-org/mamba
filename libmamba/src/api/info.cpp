@@ -125,7 +125,8 @@ namespace mamba
             items.push_back({ "env location", location });
 
             // items.insert( { "shell level", { 1 } });
-            items.push_back({ "user config files", { env::home_directory() / ".mambarc" } });
+            items.push_back(
+                { "user config files", { (env::home_directory() / ".mambarc").string() } });
 
             Configuration& config = Configuration::instance();
             std::vector<std::string> sources;

@@ -87,8 +87,8 @@ namespace mamba
             std::vector<std::string> pins;
 
             auto tempfile = std::make_unique<TemporaryFile>("pinned", "");
-            std::string path = tempfile->path();
-            std::ofstream out_file(path);
+            const auto path = tempfile->path();
+            std::ofstream out_file(path.std_path());
             out_file << "numpy=1.13\njupyterlab=3";
             out_file.close();
 
@@ -97,7 +97,7 @@ namespace mamba
             EXPECT_EQ(pins[0], "numpy=1.13");
             EXPECT_EQ(pins[1], "jupyterlab=3");
 
-            out_file.open(path, std::ofstream::out | std::ofstream::trunc);
+            out_file.open(path.std_path(), std::ofstream::out | std::ofstream::trunc);
             out_file << "numpy=1.13\npython=3.7.5";
             out_file.close();
 

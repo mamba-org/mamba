@@ -45,14 +45,14 @@ is_valid_rc_sequence(const std::string& key, const std::string& value)
     }
 }
 
-fs::path
+fs::u8path
 get_system_path()
 {
-    return (on_mac || on_linux) ? fs::path("/etc/conda/.condarc")
-                                : fs::path("C:\\ProgramData\\conda\\.condarc");
+    return (on_mac || on_linux) ? fs::u8path("/etc/conda/.condarc")
+                                : fs::u8path("C:\\ProgramData\\conda\\.condarc");
 }
 
-fs::path
+fs::u8path
 compute_config_path(bool touch_if_not_exists)
 {
     auto& config = Configuration::instance();
@@ -62,15 +62,15 @@ compute_config_path(bool touch_if_not_exists)
     auto& env_path = config.at("config_set_env_path");
     auto& system_path = config.at("config_set_system_path");
 
-    fs::path rc_source = env::expand_user(env::home_directory() / ".condarc");
+    fs::u8path rc_source = env::expand_user(env::home_directory() / ".condarc");
 
     if (file_path.configured())
     {
-        rc_source = env::expand_user(file_path.value<fs::path>()).string();
+        rc_source = env::expand_user(file_path.value<fs::u8path>()).string();
     }
     else if (env_path.configured())
     {
-        rc_source = fs::path(ctx.target_prefix / ".condarc");
+        rc_source = fs::u8path(ctx.target_prefix / ".condarc");
     }
     else if (system_path.configured())
     {
@@ -193,11 +193,11 @@ set_config_path_command(CLI::App* subcom)
         = subcom->add_flag("--env", env_path.get_cli_config<bool>(), env_path.description())
               ->excludes(system_flag);
 
-    auto& file_path = config.insert(Configurable("config_set_file_path", fs::path())
+    auto& file_path = config.insert(Configurable("config_set_file_path", fs::u8path())
                                         .group("cli")
                                         .description("Set configuration on system's rc file"),
                                     true);
-    subcom->add_option("--file", file_path.get_cli_config<fs::path>(), file_path.description())
+    subcom->add_option("--file", file_path.get_cli_config<fs::u8path>(), file_path.description())
         ->excludes(system_flag)
         ->excludes(env_flag);
 }
@@ -285,7 +285,7 @@ set_sequence_to_rc(const SequenceAddType& opt)
     auto specs = config.at("config_set_sequence_spec")
                      .value<std::vector<std::pair<std::string, std::string>>>();
 
-    fs::path rc_source = compute_config_path(true);
+    fs::u8path rc_source = compute_config_path(true);
 
     YAML::Node node = YAML::LoadFile(rc_source.string());
     for (auto& pair : specs)
@@ -337,11 +337,11 @@ set_config_remove_key_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(false);
+            const fs::u8path rc_source = compute_config_path(false);
 
             bool key_removed = false;
             // convert rc file to YAML::Node
-            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             // look for key to remove in file
             for (auto v : rc_YAML)
@@ -396,7 +396,7 @@ set_config_remove_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(false);
+            const fs::u8path rc_source = compute_config_path(false);
             bool key_removed = false;
 
             const string_list& rvm = remove_vec_map.value<string_list>();
@@ -410,7 +410,7 @@ set_config_remove_command(CLI::App* subcom)
             }
 
             // convert rc file to YAML::Node
-            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             // look for key to remove in file
             for (auto v : rc_YAML)
@@ -476,9 +476,9 @@ set_config_set_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(true);
+            const fs::u8path rc_source = compute_config_path(true);
 
-            YAML::Node rc_YAML = YAML::LoadFile(rc_source);
+            YAML::Node rc_YAML = YAML::LoadFile(rc_source.string());
 
             const string_list& sv = set_value.value<string_list>();
             if (is_valid_rc_key(sv.at(0)) && sv.size() < 3)
@@ -523,7 +523,7 @@ set_config_get_command(CLI::App* subcom)
                            | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
             config.load();
 
-            fs::path rc_source = compute_config_path(false);
+            fs::u8path rc_source = compute_config_path(false);
 
             bool value_found = false;
 

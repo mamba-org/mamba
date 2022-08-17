@@ -32,7 +32,7 @@ namespace mamba
 
     MRepo::MRepo(MPool& pool,
                  const std::string& /*name*/,
-                 const fs::path& index,
+                 const fs::u8path& index,
                  const RepoMetadata& metadata,
                  const Channel& channel)
         : m_metadata(metadata)
@@ -236,7 +236,7 @@ namespace mamba
         return m_repo->nsolvables;
     }
 
-    const fs::path& MRepo::index_file()
+    const fs::u8path& MRepo::index_file()
     {
         return m_json_file;
     }
@@ -278,7 +278,7 @@ namespace mamba
 
     MRepo& MRepo::create(MPool& pool,
                          const std::string& name,
-                         const fs::path& filename,
+                         const fs::u8path& filename,
                          const RepoMetadata& meta,
                          const Channel& channel)
     {
@@ -295,11 +295,11 @@ namespace mamba
         return pool.add_repo(MRepo(pool, name, uris));
     }
 
-    bool MRepo::read_file(const fs::path& filename)
+    bool MRepo::read_file(const fs::u8path& filename)
     {
         bool is_solv = filename.extension() == ".solv";
 
-        fs::path filename_wo_extension;
+        fs::u8path filename_wo_extension;
         if (is_solv)
         {
             m_solv_file = filename;
@@ -322,7 +322,7 @@ namespace mamba
 #ifdef _WIN32
             auto fp = _wfopen(m_solv_file.wstring().c_str(), L"rb");
 #else
-            auto fp = fopen(m_solv_file.c_str(), "rb");
+            auto fp = fopen(m_solv_file.string().c_str(), "rb");
 #endif
             if (!fp)
             {
@@ -398,7 +398,7 @@ namespace mamba
 #ifdef _WIN32
         auto fp = _wfopen(m_json_file.wstring().c_str(), L"r");
 #else
-        auto fp = fopen(m_json_file.c_str(), "r");
+        auto fp = fopen(m_json_file.string().c_str(), "r");
 #endif
         if (!fp)
         {
@@ -456,7 +456,7 @@ namespace mamba
 #ifdef _WIN32
         auto solv_f = _wfopen(m_solv_file.wstring().c_str(), L"wb");
 #else
-        auto solv_f = fopen(m_solv_file.c_str(), "wb");
+        auto solv_f = fopen(m_solv_file.string().c_str(), "wb");
 #endif
         if (!solv_f)
         {

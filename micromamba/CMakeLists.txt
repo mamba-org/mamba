@@ -21,6 +21,7 @@ set(MICROMAMBA_LINKAGE "DYNAMIC" CACHE STRING "micromamba linkage against librar
 # ============
 
 set(MICROMAMBA_SRCS
+    longpath.manifest
     ${CMAKE_CURRENT_SOURCE_DIR}/src/activate.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/clean.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/config.cpp

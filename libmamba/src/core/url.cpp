@@ -79,7 +79,7 @@ namespace mamba
             return path;
         }
 
-        fs::path tmp_path = fs::path(path);
+        fs::u8path tmp_path = fs::u8path(path);
         std::string abs_path = fs::absolute(tmp_path).string();
 
         // TODO: handle percent encoding

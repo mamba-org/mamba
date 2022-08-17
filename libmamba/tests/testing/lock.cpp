@@ -12,14 +12,14 @@
 #endif
 
 bool
-is_locked(const fs::path& path)
+is_locked(const fs::u8path& path)
 {
 #ifdef _WIN32
     return mamba::LockFile::is_locked(path);
 #else
     // From another process than the lockfile one, we can open/close
     // a new file descriptor without risk to clear locks
-    int fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
+    int fd = open(path.string().c_str(), O_RDWR | O_CREAT, 0666);
     bool is_locked = mamba::LockFile::is_locked(fd);
     close(fd);
     return is_locked;
@@ -30,7 +30,7 @@ int
 main(int argc, char** argv)
 {
     CLI::App app{};
-    fs::path path;
+    fs::u8path path;
     int timeout = 1;
 
     CLI::App* lock_com = app.add_subcommand("lock", "Lock a path");

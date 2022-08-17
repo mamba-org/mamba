@@ -96,7 +96,7 @@ namespace mamba
         }
     }
 
-    const fs::path& proc_dir()
+    const fs::u8path& proc_dir()
     {
         static auto path = env::home_directory() / ".mamba" / "proc";
         return path;
@@ -127,7 +127,7 @@ namespace mamba
             if (file_location.extension() != ".json")
                 continue;
 
-            std::ifstream pid_file{ file_location, open_mode };
+            std::ifstream pid_file{ file_location.std_path(), open_mode };
             if (!pid_file.is_open())
             {
                 LOG_WARNING << fmt::format("failed to open {}", file_location.string());
@@ -135,7 +135,7 @@ namespace mamba
             }
 
             auto running_processes_info = nlohmann::json::parse(pid_file);
-            running_processes_info["pid"] = file_location.filename().replace_extension();
+            running_processes_info["pid"] = file_location.filename().replace_extension().string();
             if (!filter || filter(running_processes_info))
                 all_processes_info.push_back(running_processes_info);
         }
@@ -153,7 +153,7 @@ namespace mamba
 
     class ScopedProcFile
     {
-        const fs::path location;
+        const fs::u8path location;
 
     public:
         ScopedProcFile(const std::string& name,
@@ -164,7 +164,7 @@ namespace mamba
             assert(proc_dir_lock);  // Lock must be hold for the duraction of this constructor.
 
             const auto open_mode = std::ios::binary | std::ios::trunc | std::ios::out;
-            std::ofstream pid_file{ location, open_mode };
+            std::ofstream pid_file(location.std_path(), open_mode);
             if (!pid_file.is_open())
             {
                 throw std::runtime_error(
@@ -174,7 +174,7 @@ namespace mamba
             nlohmann::json file_json;
             file_json["name"] = name;
             file_json["command"] = command;
-            file_json["prefix"] = Context::instance().target_prefix;
+            file_json["prefix"] = Context::instance().target_prefix.string();
             // TODO: add other info here if necessary
             pid_file << file_json;
         }

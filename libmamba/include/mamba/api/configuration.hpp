@@ -376,10 +376,10 @@ namespace mamba
         using grouped_config_type = std::pair<std::string, std::vector<Configurable*>>;
         std::vector<grouped_config_type> get_grouped_config();
 
-        std::vector<fs::path> sources();
-        std::vector<fs::path> valid_sources();
+        std::vector<fs::u8path> sources();
+        std::vector<fs::u8path> valid_sources();
 
-        void set_rc_values(std::vector<fs::path> possible_rc_paths, const RCConfigLevel& level);
+        void set_rc_values(std::vector<fs::u8path> possible_rc_paths, const RCConfigLevel& level);
 
         void load();
 
@@ -427,16 +427,16 @@ namespace mamba
                                      const std::string& name,
                                      std::vector<std::string>&);
 
-        static YAML::Node load_rc_file(const fs::path& file);
+        static YAML::Node load_rc_file(const fs::u8path& file);
 
-        static std::vector<fs::path> compute_default_rc_sources(const RCConfigLevel& level);
+        static std::vector<fs::u8path> compute_default_rc_sources(const RCConfigLevel& level);
 
-        std::vector<fs::path> get_existing_rc_sources(
-            const std::vector<fs::path>& possible_rc_paths);
+        std::vector<fs::u8path> get_existing_rc_sources(
+            const std::vector<fs::u8path>& possible_rc_paths);
 
-        std::vector<fs::path> m_sources;
-        std::vector<fs::path> m_valid_sources;
-        std::map<fs::path, YAML::Node> m_rc_yaml_nodes_cache;
+        std::vector<fs::u8path> m_sources;
+        std::vector<fs::u8path> m_valid_sources;
+        std::map<fs::u8path, YAML::Node> m_rc_yaml_nodes_cache;
 
         bool m_load_lock = false;
 
@@ -567,6 +567,25 @@ namespace mamba
         void ConfigurableImpl<T>::dump_json(nlohmann::json& node, const std::string& name) const
         {
             node[name] = m_value;
+        }
+
+        template <>
+        inline void ConfigurableImpl<fs::u8path>::dump_json(nlohmann::json& node,
+                                                            const std::string& name) const
+        {
+            node[name] = m_value.string();
+        }
+
+        template <>
+        inline void ConfigurableImpl<std::vector<fs::u8path>>::dump_json(
+            nlohmann::json& node, const std::string& name) const
+        {
+            std::vector<std::string> values(m_value.size());
+            std::transform(m_value.begin(),
+                           m_value.end(),
+                           values.begin(),
+                           [](const auto& value) { return value.string(); });
+            node[name] = values;
         }
 
         template <class T>

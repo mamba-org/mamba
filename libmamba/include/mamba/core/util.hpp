@@ -9,6 +9,7 @@
 
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/util_string.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -47,16 +48,16 @@ namespace mamba
 
     bool is_package_file(const std::string_view& fn);
 
-    bool lexists(const fs::path& p);
-    bool lexists(const fs::path& p, std::error_code& ec);
-    std::vector<fs::path> filter_dir(const fs::path& dir, const std::string& suffix);
-    bool paths_equal(const fs::path& lhs, const fs::path& rhs);
+    bool lexists(const fs::u8path& p);
+    bool lexists(const fs::u8path& p, std::error_code& ec);
+    std::vector<fs::u8path> filter_dir(const fs::u8path& dir, const std::string& suffix);
+    bool paths_equal(const fs::u8path& lhs, const fs::u8path& rhs);
 
-    std::string read_contents(const fs::path& path,
+    std::string read_contents(const fs::u8path& path,
                               std::ios::openmode mode = std::ios::in | std::ios::binary);
-    std::vector<std::string> read_lines(const fs::path& path);
+    std::vector<std::string> read_lines(const fs::u8path& path);
 
-    inline void make_executable(const fs::path& p)
+    inline void make_executable(const fs::u8path& p)
     {
         fs::permissions(p,
                         fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
@@ -73,11 +74,11 @@ namespace mamba
         TemporaryDirectory& operator=(const TemporaryDirectory&) = delete;
         TemporaryDirectory& operator=(TemporaryDirectory&&) = default;
 
-        fs::path& path();
-        operator fs::path();
+        const fs::u8path& path() const;
+        operator fs::u8path();
 
     private:
-        fs::path m_path;
+        fs::u8path m_path;
     };
 
     class TemporaryFile
@@ -90,11 +91,11 @@ namespace mamba
         TemporaryFile& operator=(const TemporaryFile&) = delete;
         TemporaryFile& operator=(TemporaryFile&&) = default;
 
-        fs::path& path();
-        operator fs::path();
+        fs::u8path& path();
+        operator fs::u8path();
 
     private:
-        fs::path m_path;
+        fs::u8path m_path;
     };
 
     const std::size_t MAMBA_LOCK_POS = 21;
@@ -102,23 +103,23 @@ namespace mamba
     class LockFile
     {
     public:
-        LockFile(const fs::path& path);
-        LockFile(const fs::path& path, const std::chrono::seconds& timeout);
+        LockFile(const fs::u8path& path);
+        LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
         ~LockFile();
 
         LockFile(const LockFile&) = delete;
         LockFile& operator=(const LockFile&) = delete;
         LockFile& operator=(LockFile&&) = default;
 
-        static std::unique_ptr<LockFile> try_lock(const fs::path& path) noexcept;
+        static std::unique_ptr<LockFile> try_lock(const fs::u8path& path) noexcept;
 
         int fd() const;
-        fs::path path() const;
-        fs::path lockfile_path() const;
+        fs::u8path path() const;
+        fs::u8path lockfile_path() const;
 
 #ifdef _WIN32
         // Using file descriptor on Windows may cause false negative
-        static bool is_locked(const fs::path& path);
+        static bool is_locked(const fs::u8path& path);
 #else
         // Opening a new file descriptor on Unix would clear locks
         static bool is_locked(int fd);
@@ -126,8 +127,8 @@ namespace mamba
         static int read_pid(int fd);
 
     private:
-        fs::path m_path;
-        fs::path m_lock;
+        fs::u8path m_path;
+        fs::u8path m_lock;
         std::chrono::seconds m_timeout;
         int m_fd = -1;
         bool m_locked;
@@ -151,102 +152,11 @@ namespace mamba
         bool unlock();
     };
 
-    /*************************
-     * utils for std::string *
-     *************************/
-
-    inline const char* check_char(const char* ptr)
-    {
-        return ptr ? ptr : "";
-    }
-
-    constexpr const char* WHITESPACES(" \r\n\t\f\v");
-    constexpr const wchar_t* WHITESPACES_WSTR(L" \r\n\t\f\v");
-
-    bool starts_with(const std::string_view& str, const std::string_view& prefix);
-    bool ends_with(const std::string_view& str, const std::string_view& suffix);
-    bool contains(const std::string_view& str, const std::string_view& sub_str);
-
-    // TODO: add concepts here, or at least some contraints
-    template <typename T, typename AssociativeContainer>
-    auto contains(const AssociativeContainer& values, const T& value_to_find)
-        -> decltype(values.find(value_to_find)
-                    != values.end())  // this should make invalid usage SFINAE
-    {
-        return values.find(value_to_find) != values.end();
-    }
-
-    bool any_starts_with(const std::vector<std::string_view>& str, const std::string_view& prefix);
-
-    bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix);
-
-    template <class CharType>
-    inline std::basic_string_view<CharType> strip(const std::basic_string_view<CharType>& input,
-                                                  const std::basic_string_view<CharType>& chars)
-    {
-        size_t start = input.find_first_not_of(chars);
-        if (start == std::basic_string<CharType>::npos)
-        {
-            return std::basic_string_view<CharType>();
-        }
-        size_t stop = input.find_last_not_of(chars) + 1;
-        size_t length = stop - start;
-        return length == 0 ? std::basic_string_view<CharType>() : input.substr(start, length);
-    }
-
-    std::string_view strip(const std::string_view& input);
-    std::wstring_view strip(const std::wstring_view& input);
-    std::string_view lstrip(const std::string_view& input);
-    std::string_view rstrip(const std::string_view& input);
-
-    std::string_view strip(const std::string_view& input, const std::string_view& chars);
-    std::string_view lstrip(const std::string_view& input, const std::string_view& chars);
-    std::string_view rstrip(const std::string_view& input, const std::string_view& chars);
-
-    template <class CharType>
-    inline std::vector<std::basic_string<CharType>> split(
-        const std::basic_string_view<CharType>& input,
-        const std::basic_string_view<CharType>& sep,
-        std::size_t max_split = SIZE_MAX)
-    {
-        std::vector<std::basic_string<CharType>> result;
-        std::size_t i = 0, j = 0, len = input.size(), n = sep.size();
-
-        while (i + n <= len)
-        {
-            if (input[i] == sep[0] && input.substr(i, n) == sep)
-            {
-                if (max_split-- <= 0)
-                    break;
-                result.emplace_back(input.substr(j, i - j));
-                i = j = i + n;
-            }
-            else
-            {
-                i++;
-            }
-        }
-        result.emplace_back(input.substr(j, len - j));
-        return result;
-    }
-
-    // unfortunately, c++ doesn't support templating function s. t. strip(std::string, std::string)
-    // works, so this is a workaround that fixes it
-    inline std::vector<std::string> split(const std::string_view& input,
-                                          const std::string_view& sep,
-                                          std::size_t max_split = SIZE_MAX)
-    {
-        return split<char>(input, sep, max_split);
-    }
-
-    std::vector<std::string> rsplit(const std::string_view& input,
-                                    const std::string_view& sep,
-                                    std::size_t max_split = SIZE_MAX);
 
     void split_package_extension(const std::string& file,
                                  std::string& name,
                                  std::string& extension);
-    fs::path strip_package_extension(const std::string& file);
+    fs::u8path strip_package_extension(const std::string& file);
 
     template <class T>
     inline bool vector_is_prefix(const std::vector<T>& prefix, const std::vector<T>& vec)
@@ -255,106 +165,9 @@ namespace mamba
                && prefix.end() == std::mismatch(prefix.begin(), prefix.end(), vec.begin()).first;
     }
 
-    template <class S, class CharType>
-    inline std::basic_string<CharType> join(const CharType* sep, const S& container)
-    {
-        if (container.empty())
-            return std::basic_string<CharType>();
-        std::basic_string<CharType> result = container[0];
-        for (std::size_t i = 1; i < container.size(); ++i)
-        {
-            result += sep;
-            result += container[i];
-        }
-        return result;
-    }
-
-    void replace_all(std::string& data, const std::string& search, const std::string& replace);
-
-    void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace);
-
-    template <typename T>
-    auto without_duplicates(std::vector<T> values)
-    {
-        const auto end_it = std::unique(values.begin(), values.end());
-        values.erase(end_it, values.end());
-        return values;
-    }
-
-    // Note: this function only works for non-unicode!
-    std::string to_upper(const std::string_view& input);
-    std::string to_lower(const std::string_view& input);
-
     tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input);
     tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input);
 
-    namespace concat_impl
-    {
-        template <class T>
-        inline void concat_foreach(std::string& result, const T& rhs)
-        {
-            result += rhs;
-        }
-
-        template <class T, class... Rest>
-        inline void concat_foreach(std::string& result, const T& rhs, const Rest&... rest)
-        {
-            result += rhs;
-            concat_foreach(result, rest...);
-        }
-
-        struct sizer
-        {
-            inline sizer(const char* s)
-                : size(strlen(s))
-            {
-            }
-
-            inline sizer(const char)
-                : size(1)
-            {
-            }
-
-            template <class T>
-            inline sizer(T& s)
-                : size(s.size())
-            {
-            }
-
-            std::size_t size;
-        };
-    }  // namespace concat_impl
-
-    template <typename... Args>
-    inline std::string concat(const Args&... args)
-    {
-        size_t len = 0;
-        for (auto s : std::initializer_list<concat_impl::sizer>{ args... })
-            len += s.size;
-
-        std::string result;
-        result.reserve(len);
-        concat_impl::concat_foreach(result, args...);
-        return result;
-    }
-
-    template <class B>
-    inline std::string hex_string(const B& buffer, std::size_t size)
-    {
-        std::ostringstream oss;
-        oss << std::hex;
-        for (std::size_t i = 0; i < size; ++i)
-        {
-            oss << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i]);
-        }
-        return oss.str();
-    }
-
-    template <class B>
-    inline std::string hex_string(const B& buffer)
-    {
-        return hex_string(buffer, buffer.size());
-    }
 
     // get the value corresponding to a key in a JSON object and assign it to target
     // if the key is not found, assign default_value to target
@@ -370,8 +183,8 @@ namespace mamba
     std::string quote_for_shell(const std::vector<std::string>& arguments,
                                 const std::string& shell = "");
 
-    std::size_t clean_trash_files(const fs::path& prefix, bool deep_clean);
-    std::size_t remove_or_rename(const fs::path& path);
+    std::size_t clean_trash_files(const fs::u8path& prefix, bool deep_clean);
+    std::size_t remove_or_rename(const fs::u8path& path);
 
     // Unindent a string literal
     std::string unindent(const char* p);
@@ -390,21 +203,21 @@ namespace mamba
 
     std::time_t parse_utc_timestamp(const std::string& timestamp);
 
-    std::ofstream open_ofstream(const fs::path& path,
+    std::ofstream open_ofstream(const fs::u8path& path,
                                 std::ios::openmode mode = std::ios::out | std::ios::binary);
 
-    std::ifstream open_ifstream(const fs::path& path,
+    std::ifstream open_ifstream(const fs::u8path& path,
                                 std::ios::openmode mode = std::ios::in | std::ios::binary);
 
     bool ensure_comspec_set();
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::path& root_prefix,
-                                             const fs::path& prefix,
+    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
+                                             const fs::u8path& prefix,
                                              bool dev_mode,
                                              bool debug_wrapper_scripts,
                                              const std::vector<std::string>& arguments);
 
     std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::path& prefix, const std::vector<std::string>& cmd);
+        const fs::u8path& prefix, const std::vector<std::string>& cmd);
 
     /// Returns `true` if the filename matches names of files which should be interpreted as YAML.
     /// NOTE: this does not check if the file exists.

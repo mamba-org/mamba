@@ -11,22 +11,45 @@
 
 namespace mamba
 {
-    MProblemsExplainer::MProblemsExplainer(const MProblemsExplainer::graph& g,
-                                           const MProblemsExplainer::adj_list& adj)
+    MProblemsExplainer::MProblemsExplainer(const MProblemsExplainer::graph& g)
         : m_problems_graph(g)
-        , m_conflicts_adj_list(adj)
     {
     }
 
     std::string MProblemsExplainer::explain()
     {
-        node_path path = m_problems_graph.get_parents_to_leaves();
+        std::vector<node_id> roots = m_problems_graph.get_roots();
+        // TODO we have 1 root from installed
+        //& we have multiple roots (in case of UPDATE rules)
+        node_path roots_to_paths;
+        for (const auto& root : roots)
+        {
+            node_path nodes_to_paths = m_problems_graph.get_paths_from(root);
+            for (const auto& node_to_path : nodes_to_paths)
+            {
+                roots_to_paths[node_to_path.first].insert(roots_to_paths[node_to_path.first].end(),
+                                                          node_to_path.second.begin(),
+                                                          node_to_path.second.end());
+            }
+        }
+        /*if (roots.size() > 1)
+        {
+
+            LOG_CRITICAL << "Unexpected!!!!" << std::endl;
+            for (const auto& root : roots)
+            {
+                std::cout << root << " " <<  m_problems_graph.get_node(root) <<
+                std::endl;
+            }
+        }*/
+        std::cerr << "=====\n";
+        // node_path path = m_problems_graph.get_paths_from(roots[0]);
 
         std::unordered_map<std::string, std::vector<node_edge>> bluf_problems_packages;
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<node_edge>>>
             conflict_to_root_info;
 
-        for (const auto& entry : path)
+        for (const auto& entry : roots_to_paths)
         {
             MGroupNode root_node = m_problems_graph.get_node(entry.first);
             // currently the vector only contains the root as a first entry & all the leaves
@@ -50,13 +73,13 @@ namespace mamba
             auto conflict_name = entry.first;
             auto conflict_node = entry.second[0].first;  // only the first required
             std::vector<node_edge> conflict_to_root_deps = entry.second;
-            std::unordered_set<std::string> s;
+            std::unordered_set<std::string> requested;
             for (const auto& conflict_to_dep : conflict_to_root_deps)
             {
-                s.insert(conflict_to_dep.second.m_deps.begin(),
-                         conflict_to_dep.second.m_deps.end());
+                requested.insert(conflict_to_dep.second.m_deps.begin(),
+                                 conflict_to_dep.second.m_deps.end());
             }
-            sstr << "Requested packages " << explain(s) << " cannot be installed because ";
+            sstr << "Requested packages " << explain(requested) << " cannot be installed because ";
             if (conflict_node.is_conflict())
             {
                 sstr << "of different versions of " << conflict_name << std::endl;
@@ -97,7 +120,6 @@ namespace mamba
         std::stringstream ss;
         if (!node.m_problem_type)
         {
-            // TODO - raise exception - shouldn;t get here
             ss << node << " which is problematic";
             return ss.str();
         }
@@ -107,7 +129,7 @@ namespace mamba
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
-                ss << package_name << " which can't be found in the configured channels";
+                ss << package_name << " which does not exist in the configured channels";
                 break;
             case SOLVER_RULE_BEST:
                 ss << package_name << " that can not be installed";
@@ -129,8 +151,8 @@ namespace mamba
                 ss << package_name << " that is excluded by strict repo priority";
                 break;
             default:
-                LOG_WARNING << "Shouldn't be here" << node.m_problem_type.value() << " " << node
-                            << std::endl;
+                LOG_WARNING << "Default message for problem type" << node.m_problem_type.value()
+                            << " " << node << std::endl;
                 ss << package_name << " which is problematic";
                 break;
         }

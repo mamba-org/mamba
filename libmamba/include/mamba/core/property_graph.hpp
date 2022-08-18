@@ -25,6 +25,7 @@ namespace mamba
         using node = T;
         using node_id = size_t;
         using node_list = std::vector<node>;
+        using list = std::vector<node_id>;
         using edge_info = U;
         // they need to be sorted, otherwise we might not merge all
         // TODO change this afterwards
@@ -51,7 +52,9 @@ namespace mamba
         template <class Y>
         bool update_edge_if_present(node_id from, node_id to, Y&& info);
 
-        // TODO from node -> we shouldn't know about root
+        list get_roots() const;
+        node_path get_paths_from(node_id id) const;
+
         node_path get_parents_to_leaves() const;
 
     private:
@@ -101,6 +104,20 @@ namespace mamba
     }
 
     template <class T, class U>
+    inline auto MPropertyGraph<T, U>::get_roots() const -> list
+    {
+        list roots;
+        for (node_id i = 0; i < m_levels.size(); ++i)
+        {
+            if (m_levels[i] == 0)
+            {
+                roots.push_back(i);
+            }
+        }
+        return roots;
+    }
+
+    template <class T, class U>
     inline auto MPropertyGraph<T, U>::add_node(const node& value) -> node_id
     {
         return add_node_impl(value);
@@ -143,7 +160,6 @@ namespace mamba
     inline void MPropertyGraph<T, U>::update_node(node_id id, V&& value)
     {
         // std::cerr << "Updating node " << id << " with " << value << std::endl;
-
         m_node_list[id].add(value);
     }
 
@@ -163,6 +179,45 @@ namespace mamba
             }
         }
         return false;
+    }
+
+    template <class T, class U>
+    inline auto MPropertyGraph<T, U>::get_paths_from(node_id id) const -> node_path
+    {
+        node_path paths_to_leaves;
+        edge_list edges = get_edge_list(id);
+        for (const auto& edge : edges)
+        {
+            std::cout << edge.first << " " << edge.second << std::endl;
+            edge_list leaves = get_leaves(edge);
+            // TODO: remove this -> we should not add it here
+            paths_to_leaves[edge.first].push_back(edge);
+            // TODO maybe we go to the same end result => unordered_set
+            paths_to_leaves[edge.first].insert(
+                paths_to_leaves[edge.first].end(), leaves.begin(), leaves.end());
+        }
+        return paths_to_leaves;
+    }
+
+    template <class T, class U>
+    inline auto MPropertyGraph<T, U>::get_leaves(
+        const std::pair<node_id, edge_info>& node_edge) const -> edge_list
+    {
+        node_id id = node_edge.first;
+        edge_list edges = get_edge_list(id);
+        edge_list path;
+        if (edges.size() == 0)
+        {
+            path.push_back(node_edge);
+            return path;
+        }
+
+        for (const auto& edge : edges)
+        {
+            edge_list leaves = get_leaves(edge);
+            path.insert(path.end(), leaves.begin(), leaves.end());
+        }
+        return path;
     }
 
     template <class T, class U>
@@ -190,27 +245,6 @@ namespace mamba
                 roots_to_leaves[root.first].end(), edges.begin(), edges.end());
         }
         return roots_to_leaves;
-    }
-
-    template <class T, class U>
-    inline auto MPropertyGraph<T, U>::get_leaves(const std::pair<node_id, edge_info>& edge) const
-        -> edge_list
-    {
-        node_id id = edge.first;
-        edge_list edges = get_edge_list(id);
-        std::vector<std::pair<node_id, edge_info>> leaf_edges;
-        if (edges.size() == 0)
-        {
-            leaf_edges.push_back(edge);
-            return leaf_edges;
-        }
-
-        for (const auto& edge : edges)
-        {
-            edge_list leaves = get_leaves(edge);
-            leaf_edges.insert(leaf_edges.end(), leaves.begin(), leaves.end());
-        }
-        return leaf_edges;
     }
 
 

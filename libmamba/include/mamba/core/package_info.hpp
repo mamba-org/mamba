@@ -106,12 +106,12 @@ namespace mamba
             std::vector<size_t> v = to_size_t(entries);
             v.push_back(std::hash<size_t>{}(package_info.build_number));
 
-            size_t depends_hash = hash<size_t>(to_size_t(package_info.depends));
-            size_t constrains_hash = hash<size_t>(to_size_t(package_info.constrains));
+            size_t depends_hash = hash(to_size_t(package_info.depends));
+            size_t constrains_hash = hash(to_size_t(package_info.constrains));
             v.push_back(depends_hash);
             v.push_back(constrains_hash);
 
-            return std::hash<std::string>{}(package_info.subdir);
+            return hash(v);
         }
 
         std::vector<size_t> to_size_t(const std::vector<std::string>& entries) const

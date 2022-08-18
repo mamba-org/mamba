@@ -81,7 +81,7 @@ namespace mamba
         auto merged_graph = g.create_merged_graph();
         auto groups = g.get_groups_conflicts();
 
-        MProblemsExplainer explainer(merged_graph, groups);
+        MProblemsExplainer explainer(merged_graph);
         std::cerr << explainer.explain() << std::endl;
     }
 }

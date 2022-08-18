@@ -21,6 +21,8 @@ namespace mamba
     class UnionFind
     {
     public:
+        using unions_info = std::unordered_map<T, std::vector<T>>;
+
         std::unordered_map<T, T> parent;
         std::unordered_map<T, int> rank;
 
@@ -28,6 +30,7 @@ namespace mamba
         void connect(T node_u, T node_v);
 
         const T root(T node);
+        unions_info get_unions();
     };
 
 
@@ -47,16 +50,28 @@ namespace mamba
         {
             return;
         }
-        if (rank[node_u] < rank[node_v])
+        if (rank[u] < rank[v])
         {
-            std::swap(node_u, node_v);
+            std::swap(u, v);
         }
-        parent[node_v] = node_u;
-        if (rank[node_u] == rank[node_v])
+        parent[v] = u;
+        if (rank[u] == rank[v])
         {
-            rank[node_u]++;
+            rank[u]++;
         }
     }
+
+    template <class T>
+    inline auto UnionFind<T>::get_unions() -> unions_info
+    {
+        unions_info groups;
+        for (const auto& entry : parent)
+        {
+            groups[root(entry.first)].push_back(entry.first);
+        }
+        return groups;
+    }
+
 
     template <class T>
     inline auto UnionFind<T>::root(T node) -> const T

@@ -138,7 +138,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     success = solver.solve()
     if not success:
         print(solver.problems_to_str())
-        print(solver.explain_problems())
+        print(solver.explain_problems(specs))
         exit(1)
 
     package_cache = api.MultiPackageCache(context.pkgs_dirs)

@@ -91,6 +91,7 @@ namespace mamba
         std::string get_name() const;
         bool is_root() const;
         bool is_conflict() const;
+        bool requested() const;  // TODO maybe not needed
     };
 
     class MGroupEdgeInfo
@@ -116,9 +117,12 @@ namespace mamba
 
         MProblemsGraphs();
         MProblemsGraphs(MPool* pool);
-        MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems);
+        MProblemsGraphs(MPool* pool,
+                        const std::vector<MSolverProblem>& problems,
+                        const std::vector<std::string>& initial_specs);
 
-        merged_conflict_graph create_graph(const std::vector<MSolverProblem>& problems);
+        merged_conflict_graph create_graph(const std::vector<MSolverProblem>& problems,
+                                           const std::vector<std::string>& initial_specs);
 
         void add_conflict_edge(MNode from_node, MNode to_node, std::string info);
         node_id get_or_create_node(MNode mnode);
@@ -140,8 +144,10 @@ namespace mamba
 
         std::unordered_map<MNode, node_id, MNode::HashFunction> m_node_to_id;
 
-        void create_initial_graph(const std::vector<MSolverProblem>& problems);
-        void add_problem_to_graph(const MSolverProblem& problem);
+        void create_initial_graph(const std::vector<MSolverProblem>& problems,
+                                  const std::vector<std::string>& initial_specs);
+        void add_problem_to_graph(const MSolverProblem& problem,
+                                  const std::vector<std::string>& initial_specs);
 
         std::unordered_map<node_id, group_node_id> create_merged_nodes();
         std::optional<std::string> get_package_name(node_id id);
@@ -199,6 +205,18 @@ namespace mamba
             }
         }
         return true;
+    }
+
+    inline bool contains_any_substring(std::string str, const std::vector<std::string>& substrings)
+    {
+        for (const auto& substring : substrings)
+        {
+            if (str.find(substring) != std::string::npos)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

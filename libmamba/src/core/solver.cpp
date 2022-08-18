@@ -408,12 +408,11 @@ namespace mamba
         return res;
     }
 
-    std::string MSolver::explain_problems()
+    std::string MSolver::explain_problems(const std::vector<std::string>& initial_specs)
     {
         std::vector<MSolverProblem> problems = all_problems_structured();
-        auto final_graph = m_problems_solver.create_graph(problems);
-        auto group_conflicts = m_problems_solver.get_groups_conflicts();
-        MProblemsExplainer explainer(final_graph, group_conflicts);
+        auto final_graph = m_problems_solver.create_graph(problems, initial_specs);
+        MProblemsExplainer explainer(final_graph);
         return explainer.explain();
     }
 

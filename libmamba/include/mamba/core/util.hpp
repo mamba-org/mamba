@@ -417,8 +417,7 @@ namespace mamba
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
 
-    template <class T>
-    inline std::size_t hash(const std::set<T>& s) noexcept
+    inline std::size_t hash(const std::set<size_t>& s) noexcept
     {
         std::size_t seed = s.size();
         for (auto& i : s)
@@ -428,34 +427,21 @@ namespace mamba
         return seed;
     }
 
-    template <class T>
-    inline std::size_t hash(const std::vector<T>& vec) noexcept
+    inline std::size_t hash(const std::vector<size_t>& vec) noexcept
     {
-        std::set<T> s(vec.begin(), vec.end());
+        std::set<size_t> s(vec.begin(), vec.end());
         return hash(s);
     }
 
     inline std::string join(const std::unordered_set<std::string>& collection,
                             std::string delimiter = ", ")
     {
-        /*std::stringstream ss;
-        std::copy(collection.begin(),
-                  collection.end(),
-                  std::ostream_iterator<std::string>(ss, delimiter.c_str()));
-        return ss.str();
-        */
         std::vector<std::string> elems(collection.begin(), collection.end());
         return fmt::format("{}", fmt::join(elems, delimiter));
     }
 
     inline std::string join(const std::set<std::string>& collection, std::string delimiter = ", ")
     {
-        /*std::stringstream ss;
-        std::copy(collection.begin(),
-                  collection.end(),
-                  std::ostream_iterator<std::string>(ss, delimiter.c_str()));
-        return ss.str();
-        */
         std::vector<std::string> elems(collection.begin(), collection.end());
         return fmt::format("{}", fmt::join(elems, delimiter));
     }

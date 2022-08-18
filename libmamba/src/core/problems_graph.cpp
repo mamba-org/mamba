@@ -81,7 +81,8 @@ namespace mamba
     {
         if (node.m_package_info)
         {
-            m_pkg_versions.insert(node.m_package_info.value().version);
+            m_pkg_versions.insert(node.m_package_info.value().version + "-"
+                                  + node.m_package_info.value().build_string);
         }
         m_dep = node.m_dep;
         m_problem_type = node.m_problem_type;
@@ -117,6 +118,17 @@ namespace mamba
         return !m_problem_type;
     }
 
+    bool MGroupNode::requested() const
+    {
+        if (is_root() || !m_problem_type)
+        {
+            return false;
+        }
+
+        return m_problem_type.value() == SOLVER_RULE_JOB
+               || m_problem_type.value() == SOLVER_RULE_PKG;
+    }
+
     MGroupNode::MGroupNode(const MNode& node)
         : m_is_root(node.is_root())
         , m_dep(node.m_dep)
@@ -125,7 +137,8 @@ namespace mamba
         if (node.m_package_info)
         {
             m_pkg_name = std::optional<std::string>(node.m_package_info.value().name);
-            m_pkg_versions.insert(node.m_package_info.value().version);
+            m_pkg_versions.insert(node.m_package_info.value().version + "-"
+                                  + node.m_package_info.value().build_string);
         }
         else
         {
@@ -175,33 +188,42 @@ namespace mamba
     {
     }
 
-    MProblemsGraphs::MProblemsGraphs(MPool* pool, const std::vector<MSolverProblem>& problems)
+    MProblemsGraphs::MProblemsGraphs(MPool* pool,
+                                     const std::vector<MSolverProblem>& problems,
+                                     const std::vector<std::string>& initial_specs)
     {
-        create_graph(problems);
+        create_graph(problems, initial_specs);
     }
 
     MProblemsGraphs::merged_conflict_graph MProblemsGraphs::create_graph(
-        const std::vector<MSolverProblem>& problems)
+        const std::vector<MSolverProblem>& problems, const std::vector<std::string>& initial_specs)
     {
-        create_initial_graph(problems);
+        create_initial_graph(problems, initial_specs);
         create_unions();
         return create_merged_graph();
     }
 
-    void MProblemsGraphs::create_initial_graph(const std::vector<MSolverProblem>& problems)
+    void MProblemsGraphs::create_initial_graph(const std::vector<MSolverProblem>& problems,
+                                               const std::vector<std::string>& initial_specs)
     {
-        for (const auto& problem : problems)
+        std::vector<std::string> initial_spec_names;
+        for (const auto& initial_spec : initial_specs)
         {
-            std::cerr << problem.to_string() << std::endl;
+            initial_spec_names.push_back(MatchSpec(initial_spec).name);
         }
-        std::cerr << "----" << std::endl;
+        for (const auto& initial_spec : initial_spec_names)
+        {
+            std::cerr << initial_spec << std::endl;
+        }
+        std::cerr << "------" << std::endl;
         for (const auto& problem : problems)
         {
-            add_problem_to_graph(problem);
+            add_problem_to_graph(problem, initial_spec_names);
         }
     }
 
-    void MProblemsGraphs::add_problem_to_graph(const MSolverProblem& problem)
+    void MProblemsGraphs::add_problem_to_graph(const MSolverProblem& problem,
+                                               const std::vector<std::string>& initial_spec_names)
     {
         std::cerr << problem.to_string() << std::endl;
         std::cerr << problem.type << " " << get_value_or(problem.source()) << " "
@@ -232,10 +254,9 @@ namespace mamba
                 break;
             }
             case SOLVER_RULE_PKG_REQUIRES:  // source_id -> dep_id -> target_id
-            case SOLVER_RULE_JOB:           // entry point for our solver
-            case SOLVER_RULE_PKG:
             {
-                if (!has_values(problem, { problem.dep() }))
+                if (!has_values(problem, { problem.dep() })
+                    || !has_values(problem, { problem.source() }))
                 {
                     break;
                 }
@@ -243,17 +264,27 @@ namespace mamba
                 for (const auto& target_id : target_ids)
                 {
                     PackageInfo target = PackageInfo(pool_id2solvable(*m_pool, target_id));
-                    // std::cerr << "target = " << target.str() << " " << problem.dep() <<
-                    // std::endl;
-                    if (problem.source())
-                    {
-                        add_conflict_edge(
-                            MNode(problem.source().value()), MNode(target), problem.dep().value());
-                    }
-                    else
-                    {
-                        add_conflict_edge(MNode(), MNode(target), problem.dep().value());
-                    }
+                    add_conflict_edge(
+                        MNode(problem.source().value()), MNode(target), problem.dep().value());
+                }
+                break;
+            }
+            case SOLVER_RULE_JOB:  // entry point for our solver
+            case SOLVER_RULE_PKG:
+            {
+                if (!has_values(problem, { problem.dep() }))
+                {
+                    break;
+                }
+                if (!contains_any_substring(problem.dep().value(), initial_spec_names))
+                {
+                    break;
+                }
+                std::vector<Id> target_ids = m_pool->select_solvables(problem.dep_id);
+                for (const auto& target_id : target_ids)
+                {
+                    PackageInfo target = PackageInfo(pool_id2solvable(*m_pool, target_id));
+                    add_conflict_edge(MNode(), MNode(target), problem.dep().value());
                 }
                 break;
             }
@@ -282,8 +313,18 @@ namespace mamba
                 // source_id -> <ignore> -> target_id
                 node_id source_node = get_or_create_node(MNode(problem.source().value()));
                 node_id target_node = get_or_create_node(MNode(problem.target().value()));
-                // TODO: optimisation - we might not need this bidirectional
                 add_solvables_to_conflicts(source_node, target_node);
+                break;
+            }
+            case SOLVER_RULE_UPDATE:
+            {
+                if (!has_values(problem, { problem.source() }))
+                {
+                    break;
+                }
+                add_conflict_edge(MNode(),
+                                  MNode(problem.source().value(), problem.type),
+                                  "Already installed " + problem.source().value().str());
                 break;
             }
             case SOLVER_RULE_BEST:
@@ -292,7 +333,6 @@ namespace mamba
             case SOLVER_RULE_INFARCH:
             case SOLVER_RULE_PKG_NOT_INSTALLABLE:
             case SOLVER_RULE_STRICT_REPO_PRIORITY:
-            case SOLVER_RULE_UPDATE:
             {
                 if (!has_values(problem, { problem.source() }))
                 {
@@ -304,7 +344,6 @@ namespace mamba
             case SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM:
             {
                 // TODO ? dep ?
-
                 LOG_WARNING << "Problem type not implemented: " << problem.type;
                 break;
             }
@@ -370,14 +409,14 @@ namespace mamba
                            std::inserter(neighs, neighs.begin()),
                            [](auto& kv) { return kv.first; });
             node_to_neigh[i] = neighs;
-            hashes_to_nodes[hash<node_id>(neighs)].push_back(i);
+            hashes_to_nodes[hash(neighs)].push_back(i);
             m_union.add(i);
         }
 
         // need to also merge the leaves - the childrens will be the conflicts from same_name
         for (const auto& solvable_to_conflict : solvables_to_conflicts)
         {
-            hashes_to_nodes[hash<node_id>(solvable_to_conflict.second)].push_back(
+            hashes_to_nodes[hash(solvable_to_conflict.second)].push_back(
                 solvable_to_conflict.first);
             node_to_neigh[solvable_to_conflict.first].insert(solvable_to_conflict.second.begin(),
                                                              solvable_to_conflict.second.end());
@@ -396,8 +435,8 @@ namespace mamba
                 {
                     continue;
                 }
-                std::cerr << "trying " << id_i << " " << node_i.m_package_info.value().str()
-                          << std::endl;
+                // std::cerr << "trying " << id_i << " " << node_i.m_package_info.value().str() <<
+                // std::endl;
                 for (size_t j = i + 1; j < hash_to_nodes.second.size(); ++j)
                 {
                     node_id id_j = hash_to_nodes.second[j];
@@ -419,9 +458,10 @@ namespace mamba
                                == m_initial_conflict_graph.get_rev_edge_list(id_j))
                     {
                         auto node_j = m_initial_conflict_graph.get_node(id_j);
-                        std::cerr << "connected " << id_i << "("
+                        /*std::cerr << "connected " << id_i << "("
                                   << node_i.m_package_info.value().str() << ") " << id_j << "("
                                   << node_j.m_package_info.value().str() << ")" << std::endl;
+                        */
                         m_union.connect(id_i, id_j);
                     }
                 }
@@ -441,6 +481,17 @@ namespace mamba
 
     MProblemsGraphs::merged_conflict_graph MProblemsGraphs::create_merged_graph()
     {
+        auto unions = m_union.get_unions();
+        for (const auto& root_to_groups : unions)
+        {
+            std::cout << "For parent " << m_initial_conflict_graph.get_node(root_to_groups.first)
+                      << "(" << root_to_groups.first << ")" << std::endl;
+            for (const auto& node : root_to_groups.second)
+            {
+                std::cout << "\t" << m_initial_conflict_graph.get_node(node) << "(" << node << ")"
+                          << std::endl;
+            }
+        }
         std::unordered_map<node_id, group_node_id> root_to_group_id = create_merged_nodes();
         for (node_id from_node_id = 0;
              from_node_id < m_initial_conflict_graph.get_node_list().size();
@@ -450,20 +501,37 @@ namespace mamba
             group_node_id from_node_group_id = root_to_group_id[from_node_root];
             for (const auto& edge : m_initial_conflict_graph.get_edge_list(from_node_id))
             {
+                /*if (m_initial_conflict_graph.get_node(from_node_id).get_name() == "root")
+                {
+                    std::cerr << "trying " <<  " " << m_initial_conflict_graph.get_node(edge.first)
+                << std::endl;
+                }*/
                 node_id to_node_id = edge.first;
+                MEdgeInfo edgeInfo = edge.second;
                 node_id to_node_root = m_union.root(to_node_id);
                 group_node_id to_node_group_id = root_to_group_id[to_node_root];
-                MEdgeInfo edgeInfo = edge.second;
                 if (from_node_root != to_node_root)
                 {
                     bool found = m_merged_conflict_graph.update_edge_if_present(
                         from_node_group_id, to_node_group_id, edgeInfo);
                     if (!found)
                     {
+                        // std::cerr << "Created edge " << from_node_group_id <<  " " <<
+                        // m_merged_conflict_graph.get_node(from_node_group_id)
+                        //     <<  " TO " << to_node_group_id << " " <<
+                        //     m_merged_conflict_graph.get_node(to_node_group_id) << " edge info "
+                        //     << edgeInfo<< std::endl;
                         MGroupEdgeInfo group_edge(edgeInfo);
                         m_merged_conflict_graph.add_edge(
                             from_node_group_id, to_node_group_id, group_edge);
                     }
+                    /*else
+                    {
+                        std::cerr << "updated edge " << from_node_group_id <<  " " <<
+                    m_merged_conflict_graph.get_node(from_node_group_id)
+                            <<  " TO " << to_node_group_id << " " <<
+                    m_merged_conflict_graph.get_node(to_node_group_id) << std::endl;
+                    }*/
                 }
             }
         }
@@ -479,16 +547,13 @@ namespace mamba
     MProblemsGraphs::create_merged_nodes()
     {
         std::unordered_map<node_id, group_node_id> root_to_group_id;
-        std::unordered_map<node_id, node_id> parents = m_union.parent;
-        std::vector<node_id> keys(parents.size());
-        auto key_selector = [](auto pair) { return pair.first; };
-        std::transform(parents.begin(), parents.end(), keys.begin(), key_selector);
-        // go through each one of them and set the information to its info & its kids
-        for (const auto& id : keys)
+        size_t nodes_size = m_initial_conflict_graph.get_node_list().size();
+        for (node_id id = 0; id < nodes_size; ++id)
         {
             MNode node = m_initial_conflict_graph.get_node(id);
             node_id root = m_union.root(id);
             auto it = root_to_group_id.find(root);
+            // std::cout << "For " << id << " parent is " << root << std::endl;
             if (it != root_to_group_id.end())
             {
                 m_merged_conflict_graph.update_node(it->second, node);
@@ -496,7 +561,9 @@ namespace mamba
             else
             {
                 MGroupNode group_node(node);
-                root_to_group_id[id] = m_merged_conflict_graph.add_node(group_node);
+                root_to_group_id[root] = m_merged_conflict_graph.add_node(group_node);
+                std::cout << "Created merged node with id= " << root_to_group_id[root]
+                          << " value =" << node << std::endl;
             }
         }
 

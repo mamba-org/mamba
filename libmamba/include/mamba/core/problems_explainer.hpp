@@ -33,12 +33,11 @@ namespace mamba
         using node_edge_edge = std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>;
         using adj_list = std::unordered_map<node_id, std::set<node_id>>;
 
-        MProblemsExplainer(const graph& g, const adj_list& adj);
+        MProblemsExplainer(const graph& g);
         std::string explain();
 
     private:
         graph m_problems_graph;
-        adj_list m_conflicts_adj_list;
 
         std::string explain_problem(const MGroupNode& node) const;
         std::string explain(const std::unordered_set<std::string>& deps) const;

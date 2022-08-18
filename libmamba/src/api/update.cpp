@@ -29,6 +29,15 @@ namespace mamba
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
 
+        // add channels from specs
+        for (const auto& s : update_specs)
+        {
+            if (auto m = MatchSpec{ s }; !m.channel.empty())
+            {
+                ctx.channels.push_back(m.channel);
+            }
+        }
+
         int solver_flag = SOLVER_UPDATE;
 
         MPool pool;

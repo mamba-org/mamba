@@ -403,10 +403,9 @@ namespace mamba
         MultiPackageCache package_caches(ctx.pkgs_dirs);
 
         // add channels from specs
-        std::vector<mamba::MatchSpec> match_specs(specs.begin(), specs.end());
-        for (const auto& m : match_specs)
+        for (const auto& s : specs)
         {
-            if (!m.channel.empty())
+            if (auto m = MatchSpec{ s }; !m.channel.empty())
             {
                 ctx.channels.push_back(m.channel);
             }

@@ -128,12 +128,25 @@ Now you can activate the base environment and install new packages, or create ot
 
 .. _umamba-install-osx:
 
-OS X
-****
+macOS
+*****
+``micromamba`` has macOS support as well.
 
-``micromamba`` has OS X support as well. Instructions are largely the same as :ref:`linux<umamba-install-linux>`:
+brew
+^^^^
+If you have ``brew`` installed you can get ``micromamba`` as a cask with
 
-You need to download a different `micromamba` binary depending if you are using an Apple Silicon or an Intel Mac.
+.. code::
+
+ brew install --cask micromamba
+
+
+Manual
+^^^^^^
+
+Otherwise, you can use the download script; here, instructions are mostly the same as with :ref:`linux<umamba-install-linux>`.
+
+However, you need to download a different `micromamba`` binary depending if you are using an Apple Silicon or an Intel Mac.need to download a different `micromamba` binary depending if you are using an Apple Silicon or an Intel Mac.
 
 Apple Silicon:
 

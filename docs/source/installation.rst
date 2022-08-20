@@ -146,7 +146,7 @@ Manual
 
 Otherwise, you can use the download script; here, instructions are mostly the same as with :ref:`linux<umamba-install-linux>`.
 
-However, you need to download a different `micromamba`` binary depending if you are using an Apple Silicon or an Intel Mac.need to download a different `micromamba` binary depending if you are using an Apple Silicon or an Intel Mac.
+However, you need to download a different `micromamba`` binary depending if you are using an Apple Silicon or an Intel Mac.
 
 Apple Silicon:
 

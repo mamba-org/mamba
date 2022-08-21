@@ -71,12 +71,14 @@ Here are some examples:
     # you can also specify more constraints on this search query
     $ mamba repoquery search "xtensor>=0.18"
 
-    # will show you a tree view of the dependencies of xtensor.
+    # will show you a list of the dependencies of xtensor.
     $ mamba repoquery depends xtensor
+
+With the ``-t,--tree`` flag, you can get the same information in a tree.
 
 .. code::
 
-    $ mamba repoquery depends xtensor
+    $ mamba repoquery depends -t xtensor
 
     xtensor == 0.21.5
     ├─ libgcc-ng [>=7.3.0]
@@ -97,10 +99,30 @@ And you can ask for the inverse, which packages depend on some other package (e.
 
     $ mamba repoquery whoneeds ipython
 
-    Name            Version Build          Channel
-    ──────────────────────────────────────────────────
-    ipykernel       5.2.1   py37h43977f1_0 installed
-    ipywidgets      7.5.1   py_0           installed
-    jupyter_console 6.1.0   py_1           installed
+    Name            Version Build          Depends          Channel
+    -------------------------------------------------------------------
+    jupyter_console 6.4.3   pyhd3eb1b0_0   ipython          pkgs/main
+    ipykernel       6.9.1   py39haa95532_0 ipython >=7.23.1 pkgs/main
+    ipywidgets      7.6.5   pyhd3eb1b0_1   ipython >=4.0.0  pkgs/main
 
 With the ``-t,--tree`` flag, you can get the same information in a tree.
+
+.. code::
+
+    $ mamba repoquery whoneeds -t ipython
+
+    ipython[8.2.0]
+    ├─ jupyter_console[6.4.3]
+    │  └─ jupyter[1.0.0]
+    ├─ ipykernel[6.9.1]
+    │  ├─ notebook[6.4.8]
+    │  │  ├─ widgetsnbextension[3.5.2]
+    │  │  │  └─ ipywidgets[7.6.5]
+    │  │  │     └─ jupyter already visited
+    │  │  └─ jupyter already visited
+    │  ├─ jupyter_console already visited
+    │  ├─ ipywidgets already visited
+    │  ├─ jupyter already visited
+    │  └─ qtconsole[5.3.0]
+    │     └─ jupyter already visited
+    └─ ipywidgets already visited

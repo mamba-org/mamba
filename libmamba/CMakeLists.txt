@@ -162,6 +162,8 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/problems_graph.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/problems_graph_creator.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/problems_graph_merger.cpp
     # API (high-level)
     ${LIBMAMBA_SOURCE_DIR}/api/c_api.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/channel_loader.cpp
@@ -233,6 +235,8 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/invoke.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/property_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph_creator.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph_merger.hpp
     # API (high-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/c_api.h
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/channel_loader.hpp
@@ -274,37 +278,38 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         if (UNIX)
 
             set(REQUIRED_STATIC_DEPS
-                libcurl.a
-                libssh2.a
+                libcurl.so
+                libssh2.so
 
-                libgssapi_krb5.a
-                libkrb5.a
-                libk5crypto.a
-                libkrb5support.a
-                libcom_err.a
+                libgssapi_krb5.so
+                libkrb5.so
+                libk5crypto.so
+                libkrb5support.so
+                libcom_err.so
 
-                libssl.a
-                libcrypto.a
+                libssl.so
+                libcrypto.so
 
                 libarchive.a
 
                 libiconv.a
                 libbz2.a
-                liblz4.a
-                libzstd.a
+                liblz4.so
+                libzstd.so
                 libz.a
-                liblzma.a
+                liblzma.so
                 liblzo2.a
 
-                libsolv.a
-                libsolvext.a
+                libsolv.so
+                libsolvext.so
 
-                libnghttp2.a
+                libnghttp2.so
 
-                libyaml-cpp.a
+                libyaml-cpp.so
 
-                libreproc++.a
-                libreproc.a
+                libreproc++.so
+                libreproc.so
+                
             )
 
             set(STATIC_DEPS "")

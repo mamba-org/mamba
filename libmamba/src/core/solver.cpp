@@ -22,7 +22,7 @@ namespace mamba
         , m_is_solved(false)
         , m_solver(nullptr)
         , m_pool(pool)
-        , m_problems_solver(MProblemsGraphs(&pool))
+        , m_graph_creator(MProblemsGraphCreator(&pool))
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
@@ -411,8 +411,12 @@ namespace mamba
     std::string MSolver::explain_problems(const std::vector<std::string>& initial_specs)
     {
         std::vector<MSolverProblem> problems = all_problems_structured();
-        auto final_graph = m_problems_solver.create_graph(problems, initial_specs);
-        MProblemsExplainer explainer(final_graph);
+        auto initial_graph = m_graph_creator.create_graph_from_problems(problems, initial_specs);
+
+        MProblemsGraphMerger merger(initial_graph);
+        auto merged_graph = merger.create_merged_graph();
+
+        MProblemsExplainer explainer(merged_graph.get_graph());
         return explainer.explain();
     }
 

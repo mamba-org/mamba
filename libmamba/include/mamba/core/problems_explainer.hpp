@@ -21,6 +21,11 @@
 #include "util.hpp"
 #include "pool.hpp"
 
+extern "C"
+{
+#include "solv/solver.h"
+}
+
 namespace mamba
 {
     class MProblemsExplainer
@@ -31,7 +36,6 @@ namespace mamba
         using node_path = MPropertyGraph<MGroupNode, MGroupEdgeInfo>::node_path;
         using node_edge = std::pair<MGroupNode, MGroupEdgeInfo>;
         using node_edge_edge = std::tuple<MGroupNode, MGroupEdgeInfo, MGroupEdgeInfo>;
-        using adj_list = std::unordered_map<node_id, std::set<node_id>>;
 
         MProblemsExplainer(const graph& g);
         std::string explain();

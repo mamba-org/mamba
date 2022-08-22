@@ -32,18 +32,6 @@ namespace mamba
                                                           node_to_path.second.end());
             }
         }
-        /*if (roots.size() > 1)
-        {
-
-            LOG_CRITICAL << "Unexpected!!!!" << std::endl;
-            for (const auto& root : roots)
-            {
-                std::cout << root << " " <<  m_problems_graph.get_node(root) <<
-                std::endl;
-            }
-        }*/
-        std::cerr << "=====\n";
-        // node_path path = m_problems_graph.get_paths_from(roots[0]);
 
         std::unordered_map<std::string, std::vector<node_edge>> bluf_problems_packages;
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<node_edge>>>

@@ -12,6 +12,7 @@
 #include <vector>
 #include <optional>
 #include <iostream>
+#include <set>
 
 #include "mamba/core/union_find.hpp"
 
@@ -29,10 +30,10 @@ namespace mamba
         using edge_info = U;
         // they need to be sorted, otherwise we might not merge all
         // TODO change this afterwards
-        using neighs = std::set<node_id>;
+        using neigh_set = std::set<node_id>;
         using edge_list = std::vector<std::pair<node_id, edge_info>>;
         using adjacency_list = std::vector<edge_list>;
-        using rev_adjacency_list = std::vector<neighs>;
+        using rev_adjacency_list = std::vector<neigh_set>;
         using cycle_list = std::vector<node_list>;
         using node_path = std::unordered_map<node_id, edge_list>;
 
@@ -40,7 +41,7 @@ namespace mamba
         const node& get_node(node_id id) const;
         const adjacency_list& get_adj_list() const;
         const edge_list& get_edge_list(node_id id) const;
-        const neighs& get_rev_edge_list(node_id id) const;
+        const neigh_set& get_rev_edge_list(node_id id) const;
 
         node_id add_node(const node& value);
         node_id add_node(node&& value);
@@ -98,7 +99,7 @@ namespace mamba
     }
 
     template <class T, class U>
-    inline auto MPropertyGraph<T, U>::get_rev_edge_list(node_id id) const -> const neighs&
+    inline auto MPropertyGraph<T, U>::get_rev_edge_list(node_id id) const -> const neigh_set&
     {
         return m_rev_adjacency_list[id];
     }

@@ -429,8 +429,19 @@ namespace mamba
 
     inline std::size_t hash(const std::vector<size_t>& vec) noexcept
     {
-        std::set<size_t> s(vec.begin(), vec.end());
-        return hash(s);
+        std::set<size_t> sorted(vec.begin(), vec.end());
+        return hash(sorted);
+    }
+
+    inline std::size_t hash(const std::vector<std::string>& vec) noexcept
+    {
+        std::set<size_t> sorted;
+        for (const auto& str : vec)
+        {
+            sorted.insert(std::hash<std::string>{}(str));
+        }
+
+        return hash(sorted);
     }
 
     inline std::string join(const std::unordered_set<std::string>& collection,

@@ -2,6 +2,7 @@
 
 #include "mamba/core/problems_explainer.hpp"
 #include "mamba/core/problems_graph.hpp"
+#include "mamba/core/problems_merger.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/solver.hpp"
 
@@ -35,8 +36,8 @@ namespace mamba
         std::vector<MNode> nodes{ root,  pyicons1, pyicons2, intl1,  intl2,  intl3,
                                   intl5, menu14,   menu20,   menu21, menu22, nonExistent };
 
-        MProblemsGraphs g;
-        std::unordered_map<MNode, MProblemsGraphs::node_id, MNode::HashFunction> visited;
+        MProblemsGraph<MNode, MEdgeInfo> g;
+        std::unordered_map<MNode, MProblemsGraph::node_id, MNode::HashFunction> visited;
         for (const auto& node : nodes)
         {
             node_id id = g.get_or_create_node(node);
@@ -45,36 +46,40 @@ namespace mamba
                       << std::endl;
         }
 
-        g.add_conflict_edge(root, menu14, "menu*");
-        g.add_conflict_edge(root, menu20, "menu*");
-        g.add_conflict_edge(root, menu21, "menu*");
-        g.add_conflict_edge(root, menu22, "menu*");
-        g.add_conflict_edge(root, pyicons2, "pyicons 2.*");
-        g.add_conflict_edge(root, intl5, "intl 5.*");
+        g.add_edge(root, menu14, "menu*");
+        g.add_edge(root, menu20, "menu*");
+        g.add_edge(root, menu21, "menu*");
+        g.add_edge(root, menu22, "menu*");
+        g.add_edge(root, pyicons2, "pyicons 2.*");
+        g.add_edge(root, intl5, "intl 5.*");
 
-        g.add_conflict_edge(menu14, intl1, "intl 1.*");
-        g.add_conflict_edge(menu14, pyicons1, "pyicons 1.*");
-        g.add_conflict_edge(menu14, nonExistent, "non-existent >=2.0.0");
+        g.add_edge(menu14, intl1, "intl 1.*");
+        g.add_edge(menu14, pyicons1, "pyicons 1.*");
+        g.add_edge(menu14, nonExistent, "non-existent >=2.0.0");
 
         std::vector<MNode> menu2_same_kids{ menu20, menu21, menu22 };
         for (const auto& menu : menu2_same_kids)
         {
-            g.add_conflict_edge(menu, intl2, "intl 2.*");
-            g.add_conflict_edge(menu, intl3, "intl 3.*");
-            g.add_conflict_edge(menu, pyicons1, "pyicons 1.*");
+            g.add_edge(menu, intl2, "intl 2.*");
+            g.add_edge(menu, intl3, "intl 3.*");
+            g.add_edge(menu, pyicons1, "pyicons 1.*");
         }
 
-        g.add_solvables_to_conflicts(visited[pyicons1], visited[pyicons2]);
-        g.add_solvables_to_conflicts(visited[intl1], visited[intl5]);
-        g.add_solvables_to_conflicts(visited[intl2], visited[intl5]);
-        g.add_solvables_to_conflicts(visited[intl3], visited[intl5]);
+        g.add_conflicts(visited[pyicons1], visited[pyicons2]);
+        g.add_conflicts(visited[intl1], visited[intl5]);
+        g.add_conflicts(visited[intl2], visited[intl5]);
+        g.add_conflicts(visited[intl3], visited[intl5]);
 
-        g.create_unions();
-        MProblemsGraphs::node_id union1 = expect_same_union_only(
+        MProblemsGraphMerger merger(initial_graph);
+        auto merged_graph = merger.create_merged_graph();
+        merged_graph.get_conflicts();
+        
+        /*g.create_unions();
+        MProblemsGraph::node_id union1 = expect_same_union_only(
             g.m_union, std::vector{ visited[menu20], visited[menu21], visited[menu22] });
-        MProblemsGraphs::node_id union2
+        MProblemsGraph::node_id union2
             = expect_same_union_only(g.m_union, std::vector{ visited[menu14] });
-        MProblemsGraphs::node_id union3
+        MProblemsGraph::node_id union3
             = expect_same_union_only(g.m_union, std::vector{ visited[intl2], visited[intl3] });
         EXPECT_TRUE(union1 != union2 && union1 != union3 && union2 != union3);
 
@@ -82,6 +87,6 @@ namespace mamba
         auto groups = g.get_groups_conflicts();
 
         MProblemsExplainer explainer(merged_graph);
-        std::cerr << explainer.explain() << std::endl;
+        std::cerr << explainer.explain() << std::endl;*/
     }
 }

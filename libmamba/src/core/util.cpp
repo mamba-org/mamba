@@ -1021,10 +1021,10 @@ namespace mamba
 
         if (blocking)
         {
-            std::chrono::seconds timer(0);
-            bool has_timeout = m_timeout.count() > 0;
-
-            while (!has_timeout || (timer < m_timeout))
+            static constexpr auto default_timeout = std::chrono::seconds(30);
+            const auto timeout = m_timeout > std::chrono::seconds::zero() ? m_timeout : default_timeout;
+            const auto begin_time = std::chrono::system_clock::now();
+            while ((std::chrono::system_clock::now() - begin_time) < timeout)
             {
                 ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
                 if (ret == 0)
@@ -1033,7 +1033,7 @@ namespace mamba
                 timer += std::chrono::seconds(1);
             }
 
-            if (has_timeout && (timer >= m_timeout) && (ret == -1))
+            if (ret != 0)
                 errno = EINTR;
         }
         else

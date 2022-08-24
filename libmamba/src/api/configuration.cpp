@@ -1160,6 +1160,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Force use cached repodata"));
 
+	insert(Configurable("use_index_cache", &ctx.use_index_cache)
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Force use cached repodata"));
+
         insert(Configurable("ssl_no_revoke", &ctx.ssl_no_revoke)
                    .group("Network")
                    .set_rc_configurable()

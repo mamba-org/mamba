@@ -154,6 +154,13 @@ init_network_options(CLI::App* subcom)
                      local_repodata_ttl.description())
         ->group(cli_group);
 
+    auto& use_index_cache = config.at("use_index_cache");
+    subcom
+        ->add_option("--use-index-cache",
+                     use_index_cache.get_cli_config<bool>(),
+                     use_index_cache.description())
+        ->group(cli_group);
+
     auto& retry_clean_cache = config.at("retry_clean_cache");
     subcom
         ->add_flag("--retry-clean-cache",

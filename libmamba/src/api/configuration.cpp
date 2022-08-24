@@ -1376,7 +1376,7 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Dont use a lockfile")
+                   .description("Don't use a lockfile")
                    .long_description(unindent(R"(
                         Don't create a lockfile when running mamba commands. Use with caution!
                         -- Some filesystems don't support File Locking and locks don't always

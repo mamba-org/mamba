@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "graph_util.hpp"
-#include "package_info.hpp"
-#include "pool.hpp"
+#include "mamba/core/graph_util.hpp"
+#include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
 
 extern "C"
 {

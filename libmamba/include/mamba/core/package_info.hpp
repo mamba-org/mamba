@@ -41,6 +41,8 @@ namespace mamba
                     const std::string build_string,
                     std::size_t build_number);
 
+        bool operator==(PackageInfo const& other) const;
+
         nlohmann::json json_record() const;
         nlohmann::json json_signable() const;
         std::string str() const;
@@ -68,5 +70,14 @@ namespace mamba
         std::set<std::string> defaulted_keys;
     };
 }  // namespace mamba
+
+namespace std
+{
+    template <>
+    struct hash<mamba::PackageInfo>
+    {
+        std::size_t operator()(mamba::PackageInfo const&) const;
+    };
+}
 
 #endif

@@ -7,6 +7,7 @@
 #include <pybind11/iostream.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 
 #include "nlohmann/json.hpp"
 #include "spdlog/fmt/fmt.h"
@@ -364,6 +365,8 @@ PYBIND11_MODULE(bindings, m)
              py::arg("version"),
              py::arg("build_string"),
              py::arg("build_number"))
+        .def(hash(py::self))
+        .def(py::self == py::self)
         .def_readwrite("name", &PackageInfo::name)
         .def_readwrite("version", &PackageInfo::version)
         .def_readwrite("build_string", &PackageInfo::build_string)

@@ -273,6 +273,11 @@ namespace mamba
     {
     }
 
+    bool PackageInfo::operator==(PackageInfo const& other) const
+    {
+        return sha256 == other.sha256;
+    }
+
     nlohmann::json PackageInfo::json_record() const
     {
         nlohmann::json j;
@@ -370,3 +375,12 @@ namespace mamba
         return concat(channel, "::", name, "-", version, "-", build_string);
     }
 }  // namespace mamba
+
+namespace std
+{
+    std::size_t hash<mamba::PackageInfo>::operator()(mamba::PackageInfo const& p) const
+    {
+        using Hasher = std::hash<std::string>;
+        return Hasher{}(p.sha256);
+    }
+}

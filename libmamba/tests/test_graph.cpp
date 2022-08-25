@@ -4,9 +4,9 @@
 
 namespace mamba
 {
-    graph<int> build_graph()
+    DiGraph<int> build_graph()
     {
-        graph<int> g;
+        DiGraph<int> g;
         g.add_node(0);
         g.add_node(1);
         g.add_node(2);
@@ -26,9 +26,9 @@ namespace mamba
         return g;
     }
 
-    graph<int> build_cyclic_graph()
+    DiGraph<int> build_cyclic_graph()
     {
-        graph<int> g;
+        DiGraph<int> g;
         g.add_node(0);
         g.add_node(1);
         g.add_node(2);
@@ -86,20 +86,24 @@ namespace mamba
 
     TEST(graph, build)
     {
-        using node_list = graph<int>::node_list;
-        using edge_list = graph<int>::edge_list;
+        using node_list = DiGraph<int>::node_list;
+        using edge_list = DiGraph<int>::edge_list;
         auto g = build_graph();
         EXPECT_EQ(g.get_node_list(), node_list({ 0u, 1u, 2u, 3u, 4u, 5u, 6u }));
-        EXPECT_EQ(g.get_edge_list(0u), edge_list({ 1u, 2u }));
-        EXPECT_EQ(g.get_edge_list(1u), edge_list({ 3u, 4u }));
-        EXPECT_EQ(g.get_edge_list(2u), edge_list({ 3u, 5u }));
-        EXPECT_EQ(g.get_edge_list(3u), edge_list({ 6u }));
+        EXPECT_EQ(g.successors(0u), edge_list({ 1u, 2u }));
+        EXPECT_EQ(g.successors(1u), edge_list({ 3u, 4u }));
+        EXPECT_EQ(g.successors(2u), edge_list({ 3u, 5u }));
+        EXPECT_EQ(g.successors(3u), edge_list({ 6u }));
+        EXPECT_EQ(g.predecessors(0u), edge_list());
+        EXPECT_EQ(g.predecessors(1u), edge_list({ 0u }));
+        EXPECT_EQ(g.predecessors(2u), edge_list({ 0u }));
+        EXPECT_EQ(g.predecessors(3u), edge_list({ 1u, 2u }));
     }
 
     TEST(graph, depth_first_search)
     {
         auto g = build_graph();
-        test_visitor<graph<int>> vis;
+        test_visitor<DiGraph<int>> vis;
         g.depth_first_search(vis);
         EXPECT_TRUE(vis.get_back_edge_map().empty());
         EXPECT_EQ(vis.get_cross_edge_map().find(2u)->second, 3u);
@@ -108,7 +112,7 @@ namespace mamba
     TEST(graph, dfs_cyclic)
     {
         auto g = build_cyclic_graph();
-        test_visitor<graph<int>> vis;
+        test_visitor<DiGraph<int>> vis;
         g.depth_first_search(vis);
         EXPECT_EQ(vis.get_back_edge_map().find(2u)->second, 0u);
         EXPECT_TRUE(vis.get_cross_edge_map().empty());
@@ -116,8 +120,8 @@ namespace mamba
 
     TEST(graph, dfs_empty)
     {
-        graph<int> g;
-        test_visitor<graph<int>> vis;
+        DiGraph<int> g;
+        test_visitor<DiGraph<int>> vis;
         g.depth_first_search(vis);
         EXPECT_TRUE(vis.get_back_edge_map().empty());
         EXPECT_TRUE(vis.get_cross_edge_map().empty());

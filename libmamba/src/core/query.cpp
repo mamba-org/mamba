@@ -575,7 +575,7 @@ namespace mamba
 
         void start_edge(node_id from, node_id to, const graph_type& g)
         {
-            m_is_last = g.get_edge_list(from).back() == to;
+            m_is_last = g.successors(from).back() == to;
             if (m_is_last)
             {
                 m_last_stack.push(to);
@@ -634,8 +634,7 @@ namespace mamba
 
     std::ostream& query_result::tree(std::ostream& out) const
     {
-        bool use_graph
-            = !m_dep_graph.get_node_list().empty() && !m_dep_graph.get_edge_list(0).empty();
+        bool use_graph = !m_dep_graph.get_node_list().empty() && !m_dep_graph.successors(0).empty();
         if (use_graph)
         {
             graph_printer printer(out);
@@ -686,7 +685,7 @@ namespace mamba
 
         if (m_type != QueryType::kSEARCH && !m_pkg_view_list.empty())
         {
-            bool has_root = !m_dep_graph.get_edge_list(0).empty();
+            bool has_root = !m_dep_graph.successors(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
             j["result"]["graph_roots"].push_back(
                 has_root ? m_dep_graph.get_node_list()[0].json_record() : nlohmann::json(m_query));

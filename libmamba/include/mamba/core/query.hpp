@@ -67,7 +67,7 @@ namespace mamba
     class query_result
     {
     public:
-        using dependency_graph = graph<PackageInfo>;
+        using dependency_graph = DiGraph<PackageInfo>;
         using package_list = dependency_graph::node_list;
         using package_view_list = std::vector<package_list::const_iterator>;
 

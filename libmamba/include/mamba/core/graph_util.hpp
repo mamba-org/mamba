@@ -23,6 +23,8 @@ namespace mamba
         using edge_list = std::vector<node_id>;
         using adjacency_list = std::vector<edge_list>;
 
+        std::size_t number_of_nodes() const;
+
         const edge_list& successors(node_id id) const;
         const edge_list& predecessors(node_id id) const;
 
@@ -90,6 +92,12 @@ namespace mamba
     /************************
      * graph implementation *
      ************************/
+
+    template <class T>
+    inline auto DiGraph<T>::number_of_nodes() const -> std::size_t
+    {
+        return m_node_list.size();
+    }
 
     template <class T>
     inline auto DiGraph<T>::get_node_list() const -> const node_list&

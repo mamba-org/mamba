@@ -89,6 +89,7 @@ namespace mamba
         using node_list = DiGraph<int>::node_list;
         using edge_list = DiGraph<int>::edge_list;
         auto g = build_graph();
+        EXPECT_EQ(g.number_of_nodes(), 7ul);
         EXPECT_EQ(g.get_node_list(), node_list({ 0u, 1u, 2u, 3u, 4u, 5u, 6u }));
         EXPECT_EQ(g.successors(0u), edge_list({ 1u, 2u }));
         EXPECT_EQ(g.successors(1u), edge_list({ 3u, 4u }));

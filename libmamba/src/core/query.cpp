@@ -328,7 +328,7 @@ namespace mamba
         : m_type(type)
         , m_query(query)
         , m_dep_graph(std::move(dep_graph))
-        , m_pkg_view_list(m_dep_graph.get_node_list().size())
+        , m_pkg_view_list(m_dep_graph.number_of_nodes())
         , m_ordered_pkg_list()
     {
         reset_pkg_view_list();

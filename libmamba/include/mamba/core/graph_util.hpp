@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_GRAPH_UTIL_HPP
 #define MAMBA_CORE_GRAPH_UTIL_HPP
 
-#include <map>
 #include <utility>
 #include <vector>
 
@@ -88,53 +87,6 @@ namespace mamba
         void finish_edge(node_id, node_id, const G&)
         {
         }
-    };
-
-    template <class G>
-    class predecessor_recorder : private default_visitor<G>
-    {
-    public:
-        using base_type = default_visitor<G>;
-        using graph_type = typename base_type::graph_type;
-        using node_id = typename base_type::node_it;
-        using predecessor_map = std::map<node_id, node_id>;
-
-        using base_type::back_edge;
-        using base_type::finish_node;
-        using base_type::forward_or_cross_edge;
-        using base_type::start_edge;
-        using base_type::start_node;
-
-        void tree_edge(node_id from, node_id to, const G&);
-        void finish_edge(node_id id, const G&);
-
-        const predecessor_map& get_predecessors() const;
-
-    private:
-        predecessor_map m_pred;
-    };
-
-    template <class G, template <class> class V1, template <class> class V2>
-    class composite_visitor
-    {
-    public:
-        using graph_type = G;
-        using node_id = typename G::node_id;
-
-        composite_visitor(V1<G> v1, V2<G> v2);
-
-        void start_node(node_id, const G&);
-        void finish_node(node_id, const G&);
-
-        void start_edge(node_id, node_id, const G&);
-        void tree_edge(node_id, node_id, const G&);
-        void back_edge(node_id, node_id, const G&);
-        void forward_or_cross_edge(node_id, node_id, const G&);
-        void finish_edge(node_id, node_id, const G&);
-
-    private:
-        V1<G> m_v1;
-        V2<G> m_v2;
     };
 
     /************************
@@ -221,89 +173,6 @@ namespace mamba
         visitor.finish_node(node, *this);
     }
 
-    /***************************************
-     * predecessor_recorder implementation *
-     ***************************************/
-
-    template <class G>
-    inline void predecessor_recorder<G>::tree_edge(node_id from, node_id to, const G&)
-    {
-        m_pred[to] = from;
-    }
-
-    template <class G>
-    inline void predecessor_recorder<G>::finish_edge(node_id id, const G&)
-    {
-        m_pred.erase(id);
-    }
-
-    template <class G>
-    inline auto predecessor_recorder<G>::get_predecessors() const -> const predecessor_map&
-    {
-        return m_pred;
-    }
-
-    /************************************
-     * composite_visitor implementation *
-     ************************************/
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline composite_visitor<G, V1, V2>::composite_visitor(V1<G> v1, V2<G> v2)
-        : m_v1(v1)
-        , m_v2(v2)
-    {
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::start_node(node_id id, const G& g)
-    {
-        m_v1.start_node(id, g);
-        m_v2.start_node(id, g);
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::finish_node(node_id id, const G& g)
-    {
-        m_v1.finish_node(id, g);
-        m_v2.finish_node(id, g);
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::start_edge(node_id from, node_id to, const G& g)
-    {
-        m_v1.start_edge(from, to, g);
-        m_v2.start_edge(from, to, g);
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::tree_edge(node_id from, node_id to, const G& g)
-    {
-        m_v1.tree_edge(from, to, g);
-        m_v2.tree_edge(from, to, g);
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::back_edge(node_id from, node_id to, const G& g)
-    {
-        m_v1.back_edge(from, to, g);
-        m_v2.back_edge(from, to, g);
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::forward_or_cross_edge(node_id from,
-                                                                    node_id to,
-                                                                    const G& g)
-    {
-        m_v1.forward_or_cross_edge(from, to, g);
-        m_v2.forward_or_cross_edge(from, to, g);
-    }
-
-    template <class G, template <class> class V1, template <class> class V2>
-    inline void composite_visitor<G, V1, V2>::finish_edge(node_id from, node_id to, const G& g)
-    {
-        m_v1.finish_edge(from, to, g);
-        m_v2.finish_edge(from, to, g);
-    }
 }  // namespace mamba
 
 #endif  // INCLUDE_GRAPH_UTIL_HPP

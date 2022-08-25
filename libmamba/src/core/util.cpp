@@ -1136,7 +1136,7 @@ namespace mamba
     {
         try
         {
-            // Don't even log if the file/directory isn't writable by someone or doesnt exists.
+            // Don't even lock if the file/directory isn't writable by someone or doesnt exists.
             if (Context::instance().disable_lockfile || path::is_writable(path))
             {
                 auto ptr = std::make_unique<LockFile>(path);

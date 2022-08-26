@@ -24,16 +24,19 @@ namespace mamba
         using node_id_list = std::vector<node_id>;
         using adjacency_list = std::vector<node_id_list>;
 
-        std::size_t number_of_nodes() const;
-
-        const node_id_list& successors(node_id id) const;
-        const node_id_list& predecessors(node_id id) const;
-
-        const node_list& nodes() const;
-
         node_id add_node(const node_t& value);
         node_id add_node(node_t&& value);
         void add_edge(node_id from, node_id to);
+
+        std::size_t number_of_nodes() const;
+        const node_list& nodes() const;
+        const node_id_list& successors(node_id id) const;
+        const node_id_list& predecessors(node_id id) const;
+
+        template <typename UnaryFunc>
+        UnaryFunc for_each_leaf(UnaryFunc func) const;
+        template <typename UnaryFunc>
+        UnaryFunc for_each_root(UnaryFunc func) const;
 
         template <class V>
         void depth_first_search(V& visitor, node_id start = node_id(0)) const;
@@ -179,6 +182,36 @@ namespace mamba
     {
         m_successors[from].push_back(to);
         m_predecessors[to].push_back(from);
+    }
+
+    template <typename N, typename G>
+    template <typename UnaryFunc>
+    inline UnaryFunc DiGraphBase<N, G>::for_each_leaf(UnaryFunc func) const
+    {
+        auto const n_nodes = number_of_nodes();
+        for (node_id i = 0; i < n_nodes; ++i)
+        {
+            if (m_successors[i].size() == 0)
+            {
+                func(i);
+            }
+        }
+        return func;
+    }
+
+    template <typename N, typename G>
+    template <typename UnaryFunc>
+    inline UnaryFunc DiGraphBase<N, G>::for_each_root(UnaryFunc func) const
+    {
+        auto const n_nodes = number_of_nodes();
+        for (node_id i = 0; i < n_nodes; ++i)
+        {
+            if (m_predecessors[i].size() == 0)
+            {
+                func(i);
+            }
+        }
+        return func;
     }
 
     template <typename N, typename G>

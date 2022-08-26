@@ -125,6 +125,26 @@ namespace mamba
         EXPECT_EQ(g.edges(), edge_map({ { { n0, n1 }, "n0->n1" }, { { n1, n2 }, "n1->n2" } }));
     }
 
+    TEST(graph, for_each_leaf)
+    {
+        auto const g = build_graph();
+        using node_id = decltype(g)::node_id;
+        using node_id_list = decltype(g)::node_id_list;
+        auto leaves = node_id_list();
+        g.for_each_leaf([&leaves](node_id leaf) { leaves.push_back(leaf); });
+        EXPECT_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
+    }
+
+    TEST(graph, for_each_root)
+    {
+        auto const g = build_graph();
+        using node_id = decltype(g)::node_id;
+        using node_id_list = decltype(g)::node_id_list;
+        auto roots = node_id_list();
+        g.for_each_root([&roots](node_id root) { roots.push_back(root); });
+        EXPECT_EQ(roots, node_id_list({ 0ul }));
+    }
+
     TEST(graph, depth_first_search)
     {
         auto const g = build_graph();

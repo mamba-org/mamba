@@ -14,7 +14,7 @@
 namespace mamba
 {
     // Simplified implementation of a directed graph
-    template <typename Node, typename GraphCRTP>
+    template <typename Node, typename Derived>
     class DiGraphBase
     {
     public:
@@ -46,30 +46,30 @@ namespace mamba
         DiGraphBase& operator=(DiGraphBase&&) = default;
         ~DiGraphBase() = default;
 
-        GraphCRTP* crtp_cast()
+        Derived* derived_cast()
         {
-            return static_cast<GraphCRTP*>(this);
+            return static_cast<Derived*>(this);
         }
-        GraphCRTP const* crtp_cast() const
+        Derived const* derived_cast() const
         {
-            return static_cast<GraphCRTP const*>(this);
+            return static_cast<Derived const*>(this);
         }
 
     private:
-        enum class color
+        enum class visited
         {
-            white,
-            gray,
-            black
+            no,
+            ongoing,
+            yes
         };
 
-        using color_list = std::vector<color>;
+        using visited_list = std::vector<visited>;
 
         template <class V>
         node_id add_node_impl(V&& value);
 
         template <class V>
-        void depth_first_search_impl(V& visitor, node_id node, color_list& colors) const;
+        void depth_first_search_impl(V& visitor, node_id node, visited_list& status) const;
 
         node_list m_node_list;
         adjacency_list m_predecessors;
@@ -80,29 +80,29 @@ namespace mamba
     class default_visitor
     {
     public:
-        using graph_type = G;
-        using node_id = typename graph_type::node_id;
+        using graph_t = G;
+        using node_id = typename graph_t::node_id;
 
-        void start_node(node_id, const G&)
+        void start_node(node_id, const graph_t&)
         {
         }
-        void finish_node(node_id, const G&)
+        void finish_node(node_id, const graph_t&)
         {
         }
 
-        void start_edge(node_id, node_id, const G&)
+        void start_edge(node_id, node_id, const graph_t&)
         {
         }
-        void tree_edge(node_id, node_id, const G&)
+        void tree_edge(node_id, node_id, const graph_t&)
         {
         }
-        void back_edge(node_id, node_id, const G&)
+        void back_edge(node_id, node_id, const graph_t&)
         {
         }
-        void forward_or_cross_edge(node_id, node_id, const G&)
+        void forward_or_cross_edge(node_id, node_id, const graph_t&)
         {
         }
-        void finish_edge(node_id, node_id, const G&)
+        void finish_edge(node_id, node_id, const graph_t&)
         {
         }
     };
@@ -187,8 +187,8 @@ namespace mamba
     {
         if (!m_node_list.empty())
         {
-            color_list colors(m_node_list.size(), color::white);
-            depth_first_search_impl(visitor, node, colors);
+            visited_list status(m_node_list.size(), visited::no);
+            depth_first_search_impl(visitor, node, status);
         }
     }
 
@@ -206,30 +206,30 @@ namespace mamba
     template <class V>
     inline void DiGraphBase<N, G>::depth_first_search_impl(V& visitor,
                                                            node_id node,
-                                                           color_list& colors) const
+                                                           visited_list& status) const
     {
-        colors[node] = color::gray;
-        visitor.start_node(node, *crtp_cast());
+        status[node] = visited::ongoing;
+        visitor.start_node(node, *derived_cast());
         for (auto child : m_successors[node])
         {
-            visitor.start_edge(node, child, *crtp_cast());
-            if (colors[child] == color::white)
+            visitor.start_edge(node, child, *derived_cast());
+            if (status[child] == visited::no)
             {
-                visitor.tree_edge(node, child, *crtp_cast());
-                depth_first_search_impl(visitor, child, colors);
+                visitor.tree_edge(node, child, *derived_cast());
+                depth_first_search_impl(visitor, child, status);
             }
-            else if (colors[child] == color::gray)
+            else if (status[child] == visited::ongoing)
             {
-                visitor.back_edge(node, child, *crtp_cast());
+                visitor.back_edge(node, child, *derived_cast());
             }
             else
             {
-                visitor.forward_or_cross_edge(node, child, *crtp_cast());
+                visitor.forward_or_cross_edge(node, child, *derived_cast());
             }
-            visitor.finish_edge(node, child, *crtp_cast());
+            visitor.finish_edge(node, child, *derived_cast());
         }
-        colors[node] = color::black;
-        visitor.finish_node(node, *crtp_cast());
+        status[node] = visited::yes;
+        visitor.finish_node(node, *derived_cast());
     }
 
     /*********************************

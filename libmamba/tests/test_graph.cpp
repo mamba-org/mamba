@@ -172,6 +172,20 @@ namespace mamba
         EXPECT_EQ(g.edges(), edge_map({ { { n0, n1 }, "n0->n1" }, { { n1, n2 }, "n1->n2" } }));
     }
 
+    TEST(graph, has_node_edge)
+    {
+        auto const g = build_graph();
+        EXPECT_TRUE(g.has_node(1ul));
+        EXPECT_TRUE(g.has_node(4ul));
+        EXPECT_FALSE(g.has_node(g.number_of_nodes()));
+        EXPECT_TRUE(g.has_edge(1ul, 4ul));
+        EXPECT_FALSE(g.has_edge(4ul, 1ul));
+        EXPECT_TRUE(g.has_edge(0ul, 2ul));
+        EXPECT_FALSE(g.has_edge(0ul, 5ul));
+        EXPECT_FALSE(g.has_edge(0ul, g.number_of_nodes()));
+        EXPECT_FALSE(g.has_edge(g.number_of_nodes(), 1ul));
+    }
+
     TEST(graph, for_each_leaf)
     {
         auto const g = build_graph();

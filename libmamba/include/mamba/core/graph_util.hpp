@@ -79,6 +79,8 @@ namespace mamba
         node_list& nodes();
         const node_id_list& successors(node_id id) const;
         const node_id_list& predecessors(node_id id) const;
+        bool has_node(node_id id) const;
+        bool has_edge(node_id from, node_id to) const;
 
         template <typename UnaryFunc>
         UnaryFunc for_each_leaf(UnaryFunc func) const;
@@ -287,6 +289,18 @@ namespace mamba
     inline auto DiGraphBase<N, G>::predecessors(node_id id) const -> const node_id_list&
     {
         return m_predecessors[id];
+    }
+
+    template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::has_node(node_id id) const -> bool
+    {
+        return id < number_of_nodes();
+    }
+
+    template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::has_edge(node_id from, node_id to) const -> bool
+    {
+        return has_node(from) && successors(from).contains(to);
     }
 
     template <typename N, typename G>

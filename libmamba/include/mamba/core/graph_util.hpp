@@ -39,6 +39,13 @@ namespace mamba
         void depth_first_search(V& visitor, node_id start = node_id(0)) const;
 
     protected:
+        DiGraphBase() = default;
+        DiGraphBase(DiGraphBase const&) = default;
+        DiGraphBase(DiGraphBase&&) = default;
+        DiGraphBase& operator=(DiGraphBase const&) = default;
+        DiGraphBase& operator=(DiGraphBase&&) = default;
+        ~DiGraphBase() = default;
+
         GraphCRTP* crtp_cast()
         {
             return static_cast<GraphCRTP*>(this);

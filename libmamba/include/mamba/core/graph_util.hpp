@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <set>
 
 namespace mamba
 {
@@ -21,7 +22,7 @@ namespace mamba
         using node_t = Node;
         using node_id = std::size_t;
         using node_list = std::vector<node_t>;
-        using node_id_list = std::vector<node_id>;
+        using node_id_list = std::set<node_id>;
         using adjacency_list = std::vector<node_id_list>;
 
         node_id add_node(const node_t& value);
@@ -180,8 +181,8 @@ namespace mamba
     template <typename N, typename G>
     inline void DiGraphBase<N, G>::add_edge(node_id from, node_id to)
     {
-        m_successors[from].push_back(to);
-        m_predecessors[to].push_back(from);
+        m_successors[from].insert(to);
+        m_predecessors[to].insert(from);
     }
 
     template <typename N, typename G>

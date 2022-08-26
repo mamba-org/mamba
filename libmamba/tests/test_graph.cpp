@@ -131,7 +131,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto leaves = node_id_list();
-        g.for_each_leaf([&leaves](node_id leaf) { leaves.push_back(leaf); });
+        g.for_each_leaf([&leaves](node_id leaf) { leaves.insert(leaf); });
         EXPECT_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
     }
 
@@ -141,7 +141,7 @@ namespace mamba
         using node_id = decltype(g)::node_id;
         using node_id_list = decltype(g)::node_id_list;
         auto roots = node_id_list();
-        g.for_each_root([&roots](node_id root) { roots.push_back(root); });
+        g.for_each_root([&roots](node_id root) { roots.insert(root); });
         EXPECT_EQ(roots, node_id_list({ 0ul }));
     }
 

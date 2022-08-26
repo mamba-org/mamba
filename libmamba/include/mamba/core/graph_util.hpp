@@ -7,13 +7,55 @@
 #ifndef MAMBA_CORE_GRAPH_UTIL_HPP
 #define MAMBA_CORE_GRAPH_UTIL_HPP
 
+#include <algorithm>
 #include <utility>
 #include <vector>
 #include <map>
-#include <set>
 
 namespace mamba
 {
+
+    // A sorted vector behaving like a set.
+    template <typename... Args>
+    class vector_set : private std::vector<Args...>
+    {
+    public:
+        using Base = std::vector<Args...>;
+        using value_type = typename Base::value_type;
+
+        using Base::begin;
+        using Base::end;
+        using Base::rbegin;
+        using Base::rend;
+
+        using Base::cbegin;
+        using Base::cend;
+        using Base::crbegin;
+        using Base::crend;
+
+        using Base::clear;
+        using Base::empty;
+        using Base::size;
+
+        vector_set() = default;
+        vector_set(std::initializer_list<value_type> il);
+        template <typename InputIterator>
+        vector_set(InputIterator first, InputIterator last);
+
+        void insert(value_type&& value);
+        void insert(value_type const& value);
+
+    private:
+        template <typename U>
+        void insert_impl(U&& value);
+
+        template <typename... A>
+        friend bool operator==(vector_set<A...> const& lhs, vector_set<A...> const& rhs);
+    };
+
+    template <typename... Args>
+    bool operator==(vector_set<Args...> const& lhs, vector_set<Args...> const& rhs);
+
     // Simplified implementation of a directed graph
     template <typename Node, typename Derived>
     class DiGraphBase
@@ -22,7 +64,7 @@ namespace mamba
         using node_t = Node;
         using node_id = std::size_t;
         using node_list = std::vector<node_t>;
-        using node_id_list = std::set<node_id>;
+        using node_id_list = vector_set<node_id>;
         using adjacency_list = std::vector<node_id_list>;
 
         node_id add_node(const node_t& value);
@@ -138,6 +180,57 @@ namespace mamba
     {
     };
 
+    /*******************************
+     *  vector_set Implementation  *
+     *******************************/
+
+    template <typename... Args>
+    vector_set<Args...>::vector_set(std::initializer_list<value_type> il)
+        : Base(std::move(il))
+    {
+        std::sort(begin(), end());
+        Base::erase(std::unique(begin(), end()), end());
+    }
+
+    template <typename... Args>
+    template <typename InputIterator>
+    vector_set<Args...>::vector_set(InputIterator first, InputIterator last)
+        : Base(first, last)
+    {
+        std::sort(begin(), end());
+        Base::erase(std::unique(begin(), end()), end());
+    }
+
+    template <typename... Args>
+    void vector_set<Args...>::insert(value_type const& value)
+    {
+        return insert_impl(value);
+    }
+
+    template <typename... Args>
+    void vector_set<Args...>::insert(value_type&& value)
+    {
+        return insert_impl(std::move(value));
+    }
+
+    template <typename... Args>
+    template <typename U>
+    void vector_set<Args...>::insert_impl(U&& value)
+    {
+        auto it = std::lower_bound(begin(), end(), value);
+        if ((it == end()) || (*it != value))
+        {
+            Base::insert(it, std::forward<U>(value));
+        }
+    }
+
+    template <typename... Args>
+    bool operator==(vector_set<Args...> const& lhs, vector_set<Args...> const& rhs)
+    {
+        return static_cast<std::vector<Args...> const&>(lhs)
+               == static_cast<std::vector<Args...> const&>(rhs);
+    }
+
     /********************************
      *  DiGraphBase Implementation  *
      ********************************/
@@ -192,7 +285,7 @@ namespace mamba
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            if (m_successors[i].size() == 0)
+            if (m_successors[i].empty())
             {
                 func(i);
             }
@@ -207,7 +300,7 @@ namespace mamba
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            if (m_predecessors[i].size() == 0)
+            if (m_predecessors[i].empty())
             {
                 func(i);
             }

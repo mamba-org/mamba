@@ -4,6 +4,40 @@
 
 namespace mamba
 {
+
+    TEST(vector_set, constructor)
+    {
+        auto const s1 = vector_set<int>();
+        EXPECT_EQ(s1.size(), 0);
+        auto s2 = vector_set<int>({ 1, 2 });
+        EXPECT_EQ(s2.size(), 2);
+        auto const s3 = vector_set<int>{ s2 };
+        EXPECT_EQ(s3.size(), 2);
+        auto const s4 = vector_set<int>{ std::move(s2) };
+        EXPECT_EQ(s4.size(), 2);
+    }
+
+    TEST(vector_set, equality)
+    {
+        EXPECT_EQ(vector_set<int>(), vector_set<int>());
+        EXPECT_EQ(vector_set<int>({ 1, 2 }), vector_set<int>({ 1, 2 }));
+        EXPECT_EQ(vector_set<int>({ 1, 2 }), vector_set<int>({ 2, 1 }));
+        EXPECT_EQ(vector_set<int>({ 1, 2, 1 }), vector_set<int>({ 2, 2, 1 }));
+    }
+
+    TEST(vector_set, insertion)
+    {
+        auto s = vector_set<int>();
+        s.insert(33);
+        EXPECT_EQ(s, vector_set<int>({ 33 }));
+        s.insert(33);
+        EXPECT_EQ(s, vector_set<int>({ 33 }));
+        s.insert(22);
+        EXPECT_EQ(s, vector_set<int>({ 22, 33 }));
+        s.insert(33);
+        EXPECT_EQ(s, vector_set<int>({ 22, 33 }));
+    }
+
     DiGraph<double> build_graph()
     {
         DiGraph<double> g;

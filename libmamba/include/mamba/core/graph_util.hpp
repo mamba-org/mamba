@@ -21,7 +21,7 @@ namespace mamba
     {
     public:
         using Base = std::vector<Args...>;
-        using value_type = typename Base::value_type;
+        using typename Base::value_type;
 
         using Base::begin;
         using Base::end;
@@ -41,6 +41,8 @@ namespace mamba
         vector_set(std::initializer_list<value_type> il);
         template <typename InputIterator>
         vector_set(InputIterator first, InputIterator last);
+
+        bool contains(value_type const&) const;
 
         void insert(value_type&& value);
         void insert(value_type const& value);
@@ -185,7 +187,7 @@ namespace mamba
      *******************************/
 
     template <typename... Args>
-    vector_set<Args...>::vector_set(std::initializer_list<value_type> il)
+    inline vector_set<Args...>::vector_set(std::initializer_list<value_type> il)
         : Base(std::move(il))
     {
         std::sort(begin(), end());
@@ -194,7 +196,7 @@ namespace mamba
 
     template <typename... Args>
     template <typename InputIterator>
-    vector_set<Args...>::vector_set(InputIterator first, InputIterator last)
+    inline vector_set<Args...>::vector_set(InputIterator first, InputIterator last)
         : Base(first, last)
     {
         std::sort(begin(), end());
@@ -202,20 +204,26 @@ namespace mamba
     }
 
     template <typename... Args>
-    void vector_set<Args...>::insert(value_type const& value)
+    inline auto vector_set<Args...>::contains(value_type const& value) const -> bool
+    {
+        return std::binary_search(begin(), end(), value);
+    }
+
+    template <typename... Args>
+    inline void vector_set<Args...>::insert(value_type const& value)
     {
         return insert_impl(value);
     }
 
     template <typename... Args>
-    void vector_set<Args...>::insert(value_type&& value)
+    inline void vector_set<Args...>::insert(value_type&& value)
     {
         return insert_impl(std::move(value));
     }
 
     template <typename... Args>
     template <typename U>
-    void vector_set<Args...>::insert_impl(U&& value)
+    inline void vector_set<Args...>::insert_impl(U&& value)
     {
         auto it = std::lower_bound(begin(), end(), value);
         if ((it == end()) || (*it != value))
@@ -225,7 +233,7 @@ namespace mamba
     }
 
     template <typename... Args>
-    bool operator==(vector_set<Args...> const& lhs, vector_set<Args...> const& rhs)
+    inline bool operator==(vector_set<Args...> const& lhs, vector_set<Args...> const& rhs)
     {
         return static_cast<std::vector<Args...> const&>(lhs)
                == static_cast<std::vector<Args...> const&>(rhs);

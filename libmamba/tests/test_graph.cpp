@@ -31,11 +31,24 @@ namespace mamba
         s.insert(33);
         EXPECT_EQ(s, vector_set<int>({ 33 }));
         s.insert(33);
-        EXPECT_EQ(s, vector_set<int>({ 33 }));
+        s.insert(17);
+        EXPECT_EQ(s, vector_set<int>({ 17, 33 }));
         s.insert(22);
-        EXPECT_EQ(s, vector_set<int>({ 22, 33 }));
+        EXPECT_EQ(s, vector_set<int>({ 17, 22, 33 }));
         s.insert(33);
-        EXPECT_EQ(s, vector_set<int>({ 22, 33 }));
+        EXPECT_EQ(s, vector_set<int>({ 17, 22, 33 }));
+    }
+
+    TEST(vector_set, contains)
+    {
+        auto const s = vector_set<int>({ 1, 3, 4, 5 });
+        EXPECT_FALSE(s.contains(0));
+        EXPECT_TRUE(s.contains(1));
+        EXPECT_FALSE(s.contains(2));
+        EXPECT_TRUE(s.contains(3));
+        EXPECT_TRUE(s.contains(4));
+        EXPECT_TRUE(s.contains(5));
+        EXPECT_FALSE(s.contains(6));
     }
 
     DiGraph<double> build_graph()

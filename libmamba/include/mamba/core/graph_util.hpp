@@ -237,27 +237,27 @@ namespace mamba
      *********************************/
 
     template <typename N, typename E>
-    void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t const& data)
+    inline void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t const& data)
     {
         add_edge_impl(from, to, data);
     }
 
     template <typename N, typename E>
-    void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
+    inline void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
     {
         add_edge_impl(from, to, std::move(data));
     }
 
     template <typename N, typename E>
     template <typename T>
-    void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
+    inline void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
         Base::add_edge(from, to);
         m_edges[{ from, to }] = std::forward<T>(data);
     }
 
     template <typename N, typename E>
-    auto DiGraph<N, E>::edges() const -> const edge_map&
+    inline auto DiGraph<N, E>::edges() const -> const edge_map&
     {
         return m_edges;
     }

@@ -73,6 +73,7 @@ namespace mamba
         node_id add_node(node_t&& value);
         void add_edge(node_id from, node_id to);
 
+        bool empty() const;
         std::size_t number_of_nodes() const;
         const node_list& nodes() const;
         const node_id_list& successors(node_id id) const;
@@ -81,10 +82,14 @@ namespace mamba
         template <typename UnaryFunc>
         UnaryFunc for_each_leaf(UnaryFunc func) const;
         template <typename UnaryFunc>
+        UnaryFunc for_each_leaf_from(node_id source, UnaryFunc func) const;
+        template <typename UnaryFunc>
         UnaryFunc for_each_root(UnaryFunc func) const;
+        template <typename UnaryFunc>
+        UnaryFunc for_each_root_from(node_id source, UnaryFunc func) const;
 
         template <class V>
-        void depth_first_search(V& visitor, node_id start = node_id(0)) const;
+        void depth_first_search(V& visitor, node_id start = node_id(0), bool reverse = false) const;
 
     protected:
         DiGraphBase() = default;
@@ -117,7 +122,10 @@ namespace mamba
         node_id add_node_impl(V&& value);
 
         template <class V>
-        void depth_first_search_impl(V& visitor, node_id node, visited_list& status) const;
+        void depth_first_search_impl(V& visitor,
+                                     node_id node,
+                                     visited_list& status,
+                                     adjacency_list const& successors) const;
 
         node_list m_node_list;
         adjacency_list m_predecessors;
@@ -244,6 +252,12 @@ namespace mamba
      ********************************/
 
     template <typename N, typename G>
+    inline bool DiGraphBase<N, G>::empty() const
+    {
+        return number_of_nodes() == 0;
+    }
+
+    template <typename N, typename G>
     inline auto DiGraphBase<N, G>::number_of_nodes() const -> std::size_t
     {
         return m_node_list.size();
@@ -317,13 +331,67 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    template <class V>
-    inline void DiGraphBase<N, G>::depth_first_search(V& visitor, node_id node) const
+    template <typename UnaryFunc>
+    inline UnaryFunc DiGraphBase<N, G>::for_each_leaf_from(node_id source, UnaryFunc func) const
     {
-        if (!m_node_list.empty())
+        using graph_t = DiGraphBase<N, G>;
+        struct LeafVisitor : default_visitor<graph_t>
+        {
+            UnaryFunc& m_func;
+
+            LeafVisitor(UnaryFunc& func)
+                : m_func{ func }
+            {
+            }
+
+            void start_node(node_id n, graph_t const& g)
+            {
+                if (g.m_successors[n].size() == 0)
+                {
+                    m_func(n);
+                }
+            }
+        };
+        auto visitor = LeafVisitor(func);
+        depth_first_search(visitor, source);
+        return func;
+    }
+
+    template <typename N, typename G>
+    template <typename UnaryFunc>
+    inline UnaryFunc DiGraphBase<N, G>::for_each_root_from(node_id source, UnaryFunc func) const
+    {
+        using graph_t = DiGraphBase<N, G>;
+        struct RootVisitor : default_visitor<graph_t>
+        {
+            UnaryFunc& m_func;
+
+            RootVisitor(UnaryFunc& func)
+                : m_func{ func }
+            {
+            }
+
+            void start_node(node_id n, graph_t const& g)
+            {
+                if (g.m_predecessors[n].size() == 0)
+                {
+                    m_func(n);
+                }
+            }
+        };
+        auto visitor = RootVisitor(func);
+        depth_first_search(visitor, source, /*reverse*/ true);
+        return func;
+    }
+
+    template <typename N, typename G>
+    template <class V>
+    inline void DiGraphBase<N, G>::depth_first_search(V& visitor, node_id node, bool reverse) const
+    {
+        if (!empty())
         {
             visited_list status(m_node_list.size(), visited::no);
-            depth_first_search_impl(visitor, node, status);
+            depth_first_search_impl(visitor, node, status, reverse ? m_predecessors : m_successors);
         }
     }
 
@@ -341,17 +409,18 @@ namespace mamba
     template <class V>
     inline void DiGraphBase<N, G>::depth_first_search_impl(V& visitor,
                                                            node_id node,
-                                                           visited_list& status) const
+                                                           visited_list& status,
+                                                           adjacency_list const& successors) const
     {
         status[node] = visited::ongoing;
         visitor.start_node(node, *derived_cast());
-        for (auto child : m_successors[node])
+        for (auto child : successors[node])
         {
             visitor.start_edge(node, child, *derived_cast());
             if (status[child] == visited::no)
             {
                 visitor.tree_edge(node, child, *derived_cast());
-                depth_first_search_impl(visitor, child, status);
+                depth_first_search_impl(visitor, child, status, successors);
             }
             else if (status[child] == visited::ongoing)
             {

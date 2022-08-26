@@ -182,6 +182,16 @@ namespace mamba
         EXPECT_EQ(leaves, node_id_list({ 4ul, 5ul, 6ul }));
     }
 
+    TEST(graph, for_each_leaf_from)
+    {
+        auto const g = build_graph();
+        using node_id = decltype(g)::node_id;
+        using node_id_list = decltype(g)::node_id_list;
+        auto leaves = node_id_list();
+        g.for_each_leaf_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
+        EXPECT_EQ(leaves, node_id_list({ 5ul, 6ul }));
+    }
+
     TEST(graph, for_each_root)
     {
         auto const g = build_graph();
@@ -190,6 +200,16 @@ namespace mamba
         auto roots = node_id_list();
         g.for_each_root([&roots](node_id root) { roots.insert(root); });
         EXPECT_EQ(roots, node_id_list({ 0ul }));
+    }
+
+    TEST(graph, for_each_root_from)
+    {
+        auto const g = build_graph();
+        using node_id = decltype(g)::node_id;
+        using node_id_list = decltype(g)::node_id_list;
+        auto leaves = node_id_list();
+        g.for_each_root_from(2ul, [&leaves](node_id leaf) { leaves.insert(leaf); });
+        EXPECT_EQ(leaves, node_id_list({ 0ul }));
     }
 
     TEST(graph, depth_first_search)

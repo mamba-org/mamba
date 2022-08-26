@@ -84,21 +84,45 @@ namespace mamba
         edge_map m_cross_edges;
     };
 
-    TEST(graph, build)
+    TEST(graph, build_simple)
     {
         auto const g = build_graph();
         using node_list = decltype(g)::node_list;
-        using edge_list = decltype(g)::edge_list;
+        using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 7ul);
-        EXPECT_EQ(g.get_node_list(), node_list({ 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 }));
-        EXPECT_EQ(g.successors(0u), edge_list({ 1u, 2u }));
-        EXPECT_EQ(g.successors(1u), edge_list({ 3u, 4u }));
-        EXPECT_EQ(g.successors(2u), edge_list({ 3u, 5u }));
-        EXPECT_EQ(g.successors(3u), edge_list({ 6u }));
-        EXPECT_EQ(g.predecessors(0u), edge_list());
-        EXPECT_EQ(g.predecessors(1u), edge_list({ 0u }));
-        EXPECT_EQ(g.predecessors(2u), edge_list({ 0u }));
-        EXPECT_EQ(g.predecessors(3u), edge_list({ 1u, 2u }));
+        EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 }));
+        EXPECT_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
+        EXPECT_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
+        EXPECT_EQ(g.successors(2u), node_id_list({ 3u, 5u }));
+        EXPECT_EQ(g.successors(3u), node_id_list({ 6u }));
+        EXPECT_EQ(g.predecessors(0u), node_id_list());
+        EXPECT_EQ(g.predecessors(1u), node_id_list({ 0u }));
+        EXPECT_EQ(g.predecessors(2u), node_id_list({ 0u }));
+        EXPECT_EQ(g.predecessors(3u), node_id_list({ 1u, 2u }));
+    }
+
+    TEST(graph, build_edge_data)
+    {
+        auto g = DiGraph<double, const char*>{};
+        auto const n0 = g.add_node(0.5);
+        auto const n1 = g.add_node(1.5);
+        auto const n2 = g.add_node(2.5);
+        g.add_edge(n0, n1, "n0->n1");
+        g.add_edge(n1, n2, "n1->n2");
+
+        using node_list = decltype(g)::node_list;
+        using node_id_list = decltype(g)::node_id_list;
+        EXPECT_EQ(g.number_of_nodes(), 3ul);
+        EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5 }));
+        EXPECT_EQ(g.successors(n0), node_id_list({ n1 }));
+        EXPECT_EQ(g.successors(n1), node_id_list({ n2 }));
+        EXPECT_EQ(g.successors(n2), node_id_list());
+        EXPECT_EQ(g.predecessors(n0), node_id_list());
+        EXPECT_EQ(g.predecessors(n1), node_id_list({ n0 }));
+        EXPECT_EQ(g.predecessors(n2), node_id_list({ n1 }));
+
+        using edge_map = decltype(g)::edge_map;
+        EXPECT_EQ(g.edges(), edge_map({ { { n0, n1 }, "n0->n1" }, { { n1, n2 }, "n1->n2" } }));
     }
 
     TEST(graph, depth_first_search)

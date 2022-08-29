@@ -1,10 +1,10 @@
-.. _pitfalls:
+.. _troubleshooting:
 
-Common pitfalls
----------------
+Troubleshooting
+===============
 
-Using long paths on Windows
-===========================
+Windows long paths
+------------------
 
 Windows API historically supports paths up to 260 characters. While it's now possible to used longer ones, there are still limitations related to that.
 
@@ -44,3 +44,13 @@ Thus, the following cases will fail:
 - partially
 
   - pre-compilation of ``noarch`` packages, with no impact on capability to use the package but removing it will let artifacts (pycache) on the filesystem
+
+
+Hangs during install in QEMU
+----------------------------
+When using Mamba/Micromamba inside a QEMU guest, installing packages may sometimes hang forever due to an `issue with QEMU and glibc <https://gitlab.com/qemu-project/qemu/-/issues/285>`_. As a workaround, set ``G_SLICE=always-malloc`` in the QEMU guest, eg.::
+
+  export G_SLICE=always-malloc
+  mamba install ...
+
+See `#1611 <https://github.com/mamba-org/mamba/issues/1611>`_ for discussion.

@@ -16,11 +16,12 @@ namespace mamba
 {
 
     // A sorted vector behaving like a set.
-    template <typename... Args>
-    class vector_set : private std::vector<Args...>
+    template <typename T, typename Allocator = std::allocator<T>>
+    class vector_set : private std::vector<T, Allocator>
     {
     public:
-        using Base = std::vector<Args...>;
+        using Base = std::vector<T, Allocator>;
+        using typename Base::allocator_type;
         using typename Base::const_iterator;
         using typename Base::const_reverse_iterator;
         using typename Base::value_type;
@@ -35,9 +36,12 @@ namespace mamba
         using Base::size;
 
         vector_set() = default;
-        vector_set(std::initializer_list<value_type> il);
+        vector_set(std::initializer_list<value_type> il,
+                   allocator_type const& alloc = allocator_type());
         template <typename InputIterator>
-        vector_set(InputIterator first, InputIterator last);
+        vector_set(InputIterator first,
+                   InputIterator last,
+                   allocator_type const& alloc = Allocator());
         vector_set(vector_set const&) = default;
         vector_set(vector_set&&) = default;
 
@@ -45,25 +49,32 @@ namespace mamba
         vector_set& operator=(vector_set&&) = default;
 
         bool contains(value_type const&) const;
+        value_type const& front() const noexcept;
+        value_type const& back() const noexcept;
 
-        const_iterator begin() const;
-        const_iterator end() const;
-        const_reverse_iterator rbegin() const;
-        const_reverse_iterator rend() const;
+        const_iterator begin() const noexcept;
+        const_iterator end() const noexcept;
+        const_reverse_iterator rbegin() const noexcept;
+        const_reverse_iterator rend() const noexcept;
 
-        void insert(value_type&& value);
-        void insert(value_type const& value);
+        /** Insert an element in the set.
+         *
+         * Like std::vector and unlike std::set, inserting an element invalidates iterators.
+         */
+        std::pair<const_iterator, bool> insert(value_type&& value);
+        std::pair<const_iterator, bool> insert(value_type const& value);
 
     private:
         template <typename U>
-        void insert_impl(U&& value);
+        std::pair<const_iterator, bool> insert_impl(U&& value);
 
-        template <typename... A>
-        friend bool operator==(vector_set<A...> const& lhs, vector_set<A...> const& rhs);
+        template <typename T_, typename Allocator_>
+        friend bool operator==(vector_set<T_, Allocator_> const& lhs,
+                               vector_set<T_, Allocator_> const& rhs);
     };
 
-    template <typename... Args>
-    bool operator==(vector_set<Args...> const& lhs, vector_set<Args...> const& rhs);
+    template <typename T, typename Allocator>
+    bool operator==(vector_set<T, Allocator> const& lhs, vector_set<T, Allocator> const& rhs);
 
     // Simplified implementation of a directed graph
     template <typename Node, typename Derived>
@@ -209,81 +220,97 @@ namespace mamba
      *  vector_set Implementation  *
      *******************************/
 
-    template <typename... Args>
-    inline vector_set<Args...>::vector_set(std::initializer_list<value_type> il)
-        : Base(std::move(il))
+    template <typename T, typename A>
+    inline vector_set<T, A>::vector_set(std::initializer_list<value_type> il,
+                                        allocator_type const& alloc)
+        : Base(std::move(il), alloc)
     {
         std::sort(Base::begin(), Base::end());
         Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
     }
 
-    template <typename... Args>
+    template <typename T, typename A>
     template <typename InputIterator>
-    inline vector_set<Args...>::vector_set(InputIterator first, InputIterator last)
-        : Base(first, last)
+    inline vector_set<T, A>::vector_set(InputIterator first,
+                                        InputIterator last,
+                                        allocator_type const& alloc)
+        : Base(first, last, alloc)
     {
         std::sort(Base::begin(), Base::end());
         Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
     }
 
-    template <typename... Args>
-    inline auto vector_set<Args...>::contains(value_type const& value) const -> bool
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::contains(value_type const& value) const -> bool
     {
         return std::binary_search(begin(), end(), value);
     }
 
-    template <typename... Args>
-    inline auto vector_set<Args...>::begin() const -> const_iterator
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::front() const noexcept -> value_type const&
+    {
+        return Base::front();
+    }
+
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::back() const noexcept -> value_type const&
+    {
+        return Base::back();
+    }
+
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::begin() const noexcept -> const_iterator
     {
         return Base::begin();
     }
 
-    template <typename... Args>
-    inline auto vector_set<Args...>::end() const -> const_iterator
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::end() const noexcept -> const_iterator
     {
         return Base::end();
     }
 
-    template <typename... Args>
-    inline auto vector_set<Args...>::rbegin() const -> const_reverse_iterator
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::rbegin() const noexcept -> const_reverse_iterator
     {
         return Base::rbegin();
     }
 
-    template <typename... Args>
-    inline auto vector_set<Args...>::rend() const -> const_reverse_iterator
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::rend() const noexcept -> const_reverse_iterator
     {
         return Base::rend();
     }
 
-    template <typename... Args>
-    inline void vector_set<Args...>::insert(value_type const& value)
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::insert(value_type const& value) -> std::pair<const_iterator, bool>
     {
         return insert_impl(value);
     }
 
-    template <typename... Args>
-    inline void vector_set<Args...>::insert(value_type&& value)
+    template <typename T, typename A>
+    inline auto vector_set<T, A>::insert(value_type&& value) -> std::pair<const_iterator, bool>
     {
         return insert_impl(std::move(value));
     }
 
-    template <typename... Args>
+    template <typename T, typename A>
     template <typename U>
-    inline void vector_set<Args...>::insert_impl(U&& value)
+    inline auto vector_set<T, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
         auto it = std::lower_bound(begin(), end(), value);
         if ((it == end()) || (*it != value))
         {
             Base::insert(it, std::forward<U>(value));
         }
+        return { it, false };
     }
 
-    template <typename... Args>
-    inline bool operator==(vector_set<Args...> const& lhs, vector_set<Args...> const& rhs)
+    template <typename T, typename A>
+    inline bool operator==(vector_set<T, A> const& lhs, vector_set<T, A> const& rhs)
     {
-        return static_cast<std::vector<Args...> const&>(lhs)
-               == static_cast<std::vector<Args...> const&>(rhs);
+        return static_cast<std::vector<T, A> const&>(lhs)
+               == static_cast<std::vector<T, A> const&>(rhs);
     }
 
     /********************************

@@ -573,7 +573,7 @@ namespace mamba
 
         void start_edge(node_id from, node_id to, const graph_type& g)
         {
-            m_is_last = *(g.successors(from).rbegin()) == to;
+            m_is_last = g.successors(from).back() == to;
             if (m_is_last)
             {
                 m_last_stack.push(to);

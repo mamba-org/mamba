@@ -21,12 +21,9 @@ namespace mamba
     {
     public:
         using Base = std::vector<Args...>;
+        using typename Base::const_iterator;
+        using typename Base::const_reverse_iterator;
         using typename Base::value_type;
-
-        using Base::begin;
-        using Base::end;
-        using Base::rbegin;
-        using Base::rend;
 
         using Base::cbegin;
         using Base::cend;
@@ -48,6 +45,11 @@ namespace mamba
         vector_set& operator=(vector_set&&) = default;
 
         bool contains(value_type const&) const;
+
+        const_iterator begin() const;
+        const_iterator end() const;
+        const_reverse_iterator rbegin() const;
+        const_reverse_iterator rend() const;
 
         void insert(value_type&& value);
         void insert(value_type const& value);
@@ -211,8 +213,8 @@ namespace mamba
     inline vector_set<Args...>::vector_set(std::initializer_list<value_type> il)
         : Base(std::move(il))
     {
-        std::sort(begin(), end());
-        Base::erase(std::unique(begin(), end()), end());
+        std::sort(Base::begin(), Base::end());
+        Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
     }
 
     template <typename... Args>
@@ -220,14 +222,38 @@ namespace mamba
     inline vector_set<Args...>::vector_set(InputIterator first, InputIterator last)
         : Base(first, last)
     {
-        std::sort(begin(), end());
-        Base::erase(std::unique(begin(), end()), end());
+        std::sort(Base::begin(), Base::end());
+        Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
     }
 
     template <typename... Args>
     inline auto vector_set<Args...>::contains(value_type const& value) const -> bool
     {
         return std::binary_search(begin(), end(), value);
+    }
+
+    template <typename... Args>
+    inline auto vector_set<Args...>::begin() const -> const_iterator
+    {
+        return Base::begin();
+    }
+
+    template <typename... Args>
+    inline auto vector_set<Args...>::end() const -> const_iterator
+    {
+        return Base::end();
+    }
+
+    template <typename... Args>
+    inline auto vector_set<Args...>::rbegin() const -> const_reverse_iterator
+    {
+        return Base::rbegin();
+    }
+
+    template <typename... Args>
+    inline auto vector_set<Args...>::rend() const -> const_reverse_iterator
+    {
+        return Base::rend();
     }
 
     template <typename... Args>

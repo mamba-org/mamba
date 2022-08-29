@@ -107,13 +107,13 @@ namespace mamba
         DiGraphBase& operator=(DiGraphBase&&) = default;
         ~DiGraphBase() = default;
 
-        Derived* derived_cast()
+        Derived& derived_cast()
         {
-            return static_cast<Derived*>(this);
+            return static_cast<Derived&>(*this);
         }
-        Derived const* derived_cast() const
+        Derived const& derived_cast() const
         {
-            return static_cast<Derived const*>(this);
+            return static_cast<Derived const&>(*this);
         }
 
     private:
@@ -440,27 +440,27 @@ namespace mamba
                                                            adjacency_list const& successors) const
     {
         status[node] = visited::ongoing;
-        visitor.start_node(node, *derived_cast());
+        visitor.start_node(node, derived_cast());
         for (auto child : successors[node])
         {
-            visitor.start_edge(node, child, *derived_cast());
+            visitor.start_edge(node, child, derived_cast());
             if (status[child] == visited::no)
             {
-                visitor.tree_edge(node, child, *derived_cast());
+                visitor.tree_edge(node, child, derived_cast());
                 depth_first_search_impl(visitor, child, status, successors);
             }
             else if (status[child] == visited::ongoing)
             {
-                visitor.back_edge(node, child, *derived_cast());
+                visitor.back_edge(node, child, derived_cast());
             }
             else
             {
-                visitor.forward_or_cross_edge(node, child, *derived_cast());
+                visitor.forward_or_cross_edge(node, child, derived_cast());
             }
-            visitor.finish_edge(node, child, *derived_cast());
+            visitor.finish_edge(node, child, derived_cast());
         }
         status[node] = visited::yes;
-        visitor.finish_node(node, *derived_cast());
+        visitor.finish_node(node, derived_cast());
     }
 
     /*********************************

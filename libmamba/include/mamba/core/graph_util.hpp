@@ -81,7 +81,8 @@ namespace mamba
         bool empty() const;
         std::size_t number_of_nodes() const;
         const node_list& nodes() const;
-        node_list& nodes();
+        node_t const& node(node_id id) const;
+        node_t& node(node_id id);
         const node_id_list& successors(node_id id) const;
         const node_id_list& predecessors(node_id id) const;
         bool has_node(node_id id) const;
@@ -177,7 +178,7 @@ namespace mamba
     public:
         using Base = DiGraphBase<Node, DiGraph<Node, Edge>>;
         using edge_t = Edge;
-        using node_id = typename Base::node_id;
+        using typename Base::node_id;
         using edge_id = std::pair<node_id, node_id>;
         using edge_map = std::map<edge_id, edge_t>;
 
@@ -185,7 +186,10 @@ namespace mamba
         void add_edge(node_id from, node_id to, edge_t&& data);
 
         const edge_map& edges() const;
-        edge_map& edges();
+        edge_t const& edge(node_id from, node_id to) const;
+        edge_t const& edge(edge_id edge) const;
+        edge_t& edge(node_id from, node_id to);
+        edge_t& edge(edge_id edge);
 
     private:
         template <typename T>
@@ -279,9 +283,15 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::nodes() -> node_list&
+    inline auto DiGraphBase<N, G>::node(node_id id) const -> node_t const&
     {
-        return m_node_list;
+        return m_node_list[id];
+    }
+
+    template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::node(node_id id) -> node_t&
+    {
+        return m_node_list[id];
     }
 
     template <typename N, typename G>
@@ -494,9 +504,27 @@ namespace mamba
     }
 
     template <typename N, typename E>
-    inline auto DiGraph<N, E>::edges() -> edge_map&
+    inline auto DiGraph<N, E>::edge(edge_id edge) const -> edge_t const&
     {
-        return m_edges;
+        return m_edges[edge];
+    }
+
+    template <typename N, typename E>
+    inline auto DiGraph<N, E>::edge(node_id from, node_id to) const -> edge_t const&
+    {
+        return edge({ from, to });
+    }
+
+    template <typename N, typename E>
+    inline auto DiGraph<N, E>::edge(edge_id edge) -> edge_t&
+    {
+        return m_edges[edge];
+    }
+
+    template <typename N, typename E>
+    inline auto DiGraph<N, E>::edge(node_id from, node_id to) -> edge_t&
+    {
+        return edge({ from, to });
     }
 
 }  // namespace mamba

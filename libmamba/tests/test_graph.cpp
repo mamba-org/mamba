@@ -91,6 +91,17 @@ namespace mamba
         return g;
     }
 
+    DiGraph<double, const char*> build_edge_data_graph()
+    {
+        auto g = DiGraph<double, const char*>{};
+        auto const n0 = g.add_node(0.5);
+        auto const n1 = g.add_node(1.5);
+        auto const n2 = g.add_node(2.5);
+        g.add_edge(n0, n1, "n0->n1");
+        g.add_edge(n1, n2, "n1->n2");
+        return g;
+    }
+
     template <class G>
     class test_visitor : private default_visitor<G>
     {
@@ -150,26 +161,20 @@ namespace mamba
 
     TEST(graph, build_edge_data)
     {
-        auto g = DiGraph<double, const char*>{};
-        auto const n0 = g.add_node(0.5);
-        auto const n1 = g.add_node(1.5);
-        auto const n2 = g.add_node(2.5);
-        g.add_edge(n0, n1, "n0->n1");
-        g.add_edge(n1, n2, "n1->n2");
-
+        auto const g = build_edge_data_graph();
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 3ul);
         EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5 }));
-        EXPECT_EQ(g.successors(n0), node_id_list({ n1 }));
-        EXPECT_EQ(g.successors(n1), node_id_list({ n2 }));
-        EXPECT_EQ(g.successors(n2), node_id_list());
-        EXPECT_EQ(g.predecessors(n0), node_id_list());
-        EXPECT_EQ(g.predecessors(n1), node_id_list({ n0 }));
-        EXPECT_EQ(g.predecessors(n2), node_id_list({ n1 }));
+        EXPECT_EQ(g.successors(0ul), node_id_list({ 1ul }));
+        EXPECT_EQ(g.successors(1ul), node_id_list({ 2ul }));
+        EXPECT_EQ(g.successors(2ul), node_id_list());
+        EXPECT_EQ(g.predecessors(0ul), node_id_list());
+        EXPECT_EQ(g.predecessors(1ul), node_id_list({ 0ul }));
+        EXPECT_EQ(g.predecessors(2ul), node_id_list({ 1ul }));
 
         using edge_map = decltype(g)::edge_map;
-        EXPECT_EQ(g.edges(), edge_map({ { { n0, n1 }, "n0->n1" }, { { n1, n2 }, "n1->n2" } }));
+        EXPECT_EQ(g.edges(), edge_map({ { { 0ul, 1ul }, "n0->n1" }, { { 1ul, 2ul }, "n1->n2" } }));
     }
 
     TEST(graph, has_node_edge)
@@ -184,6 +189,21 @@ namespace mamba
         EXPECT_FALSE(g.has_edge(0ul, 5ul));
         EXPECT_FALSE(g.has_edge(0ul, g.number_of_nodes()));
         EXPECT_FALSE(g.has_edge(g.number_of_nodes(), 1ul));
+    }
+
+    TEST(graph, data_modifier)
+    {
+        auto g = build_edge_data_graph();
+
+        auto static constexpr new_node_val = -1.5;
+        EXPECT_NE(g.node(0ul), new_node_val);
+        g.node(0ul) = new_node_val;
+        EXPECT_EQ(g.node(0ul), new_node_val);
+
+        auto static constexpr new_edge_val = "data";
+        EXPECT_NE(g.edge(0ul, 1ul), new_edge_val);
+        g.edge(0ul, 1ul) = new_edge_val;
+        EXPECT_EQ(g.edge(0ul, 1ul), new_edge_val);
     }
 
     TEST(graph, for_each_leaf)

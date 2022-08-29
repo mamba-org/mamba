@@ -41,6 +41,11 @@ namespace mamba
         vector_set(std::initializer_list<value_type> il);
         template <typename InputIterator>
         vector_set(InputIterator first, InputIterator last);
+        vector_set(vector_set const&) = default;
+        vector_set(vector_set&&) = default;
+
+        vector_set& operator=(vector_set const&) = default;
+        vector_set& operator=(vector_set&&) = default;
 
         bool contains(value_type const&) const;
 

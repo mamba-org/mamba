@@ -497,7 +497,7 @@ jobs:
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe
       - uses: actions/upload-artifact@v2
         with:
-          name: micromamba_binary
+          name: _internal_micromamba_binary
           path: umamba.tar
       - name: Cleanup
         shell: bash -l {0}
@@ -518,7 +518,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v2
         with:
-          name: micromamba_binary
+          name: _internal_micromamba_binary
 
       - name: untar micromamba artifact
         shell: bash -l -eo pipefail {0}
@@ -613,5 +613,5 @@ jobs:
         run: sccache --show-stats
       - uses: actions/upload-artifact@v3
         with:
-          name: micromamba_fully_static_binary
+          name: Fully static binary (${{ matrix.os }})
           path: build/micromamba/micromamba

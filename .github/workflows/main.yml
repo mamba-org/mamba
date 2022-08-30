@@ -283,14 +283,18 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja
       - name: build cache statistics
         run: sccache --show-stats
@@ -333,8 +337,11 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBAPY=ON ^
                    -DBUILD_LIBMAMBA=ON ^
@@ -343,7 +350,9 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
       - name: install libmambapy
         shell: cmd /C call {0}
@@ -421,8 +430,11 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA_TESTS=ON ^
                    -DBUILD_LIBMAMBA=ON ^
@@ -430,7 +442,9 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja test
       - name: build cache statistics
         run: sccache --show-stats
@@ -467,8 +481,11 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_MICROMAMBA=ON ^
                    -DMICROMAMBA_LINKAGE=STATIC ^
@@ -477,6 +494,7 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
       - name: check that micromamba runs
         shell: cmd /C call {0}
@@ -536,10 +554,15 @@ jobs:
       # - name: micromamba python based tests
       #   shell: cmd /C call {0}
       #   run: |
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     set PYTHONIOENCODING=UTF-8
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #
       #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
 

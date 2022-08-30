@@ -26,7 +26,6 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -66,7 +65,6 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -110,7 +108,6 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -171,7 +168,6 @@ jobs:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
           extra-specs: |
             conda-build
             python=${{ matrix.python_version }}
@@ -278,7 +274,6 @@ jobs:
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -321,7 +316,6 @@ jobs:
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
           extra-specs: |
             conda-build
@@ -416,7 +410,6 @@ jobs:
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -463,7 +456,6 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -530,7 +522,6 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           extra-specs: menuinst
 
       - name: micromamba python based tests with pwsh
@@ -581,7 +572,6 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - name: create build environment
         run: micromamba install -y -n build_env -f ./libmamba/environment-static-dev.yml
       - uses: hendrikmuhs/ccache-action@main

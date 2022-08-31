@@ -440,7 +440,7 @@ class TestInstall:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     def test_python_pinning(self, existing_cache):
-        install("python=3.8", no_dry_run=True)
+        install("python=3.9", no_dry_run=True)
         res = install("setuptools=28.4.0", "--no-py-pin", "--json")
 
         keys = {"success", "prefix", "actions", "dry_run"}
@@ -449,11 +449,10 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"python", "python_abi"}
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_packages.issubset(link_packages)
+        assert {"python", "python_abi"}.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        assert expected_packages.issubset(unlink_packages)
+        assert {"python"}.issubset(unlink_packages)
 
         py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
         assert not py_pkg["version"].startswith("3.9")

@@ -61,6 +61,9 @@ jobs:
           path: build/micromamba/micromamba
 
   micromamba_full_static_win:
+    # Don't run this job branches because it is very slow
+    if: github.ref == 'refs/heads/master'
+
     # These build instructions are based on https://github.com/conda-forge/micromamba-feedstock
     runs-on: windows-2019
     steps:

@@ -449,11 +449,13 @@ class TestInstall:
         action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
-        expected_packages = {"python", "python_abi"}
+        expected_link_packages = (
+            {"python"} if os.name == "nt" else {"python", "python_abi"}
+        )
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        assert expected_packages.issubset(link_packages)
+        assert expected_link_packages.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
-        assert expected_packages.issubset(unlink_packages)
+        assert {"python"}.issubset(unlink_packages)
 
         py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
         assert not py_pkg["version"].startswith("3.9")

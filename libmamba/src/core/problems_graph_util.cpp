@@ -39,7 +39,10 @@ namespace mamba
         std::regex regexp("\\s*(\\w[\\w-]*)\\s*(.*)\\s*");
         std::smatch matches;
         bool matched = std::regex_search(dep, matches, regexp);
-        THROWIF(!matched || matches.size() != 2, "unable to parse dep");
+        if (!matched || matches.size() != 2)
+        {
+            throw std::runtime_error("unable to parse dep");
+        }
 
         name = matches[0].str();
         range = matches[1].str();

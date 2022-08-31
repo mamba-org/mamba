@@ -14,6 +14,7 @@
 #include <regex>
 #include <variant>
 #include <unordered_set>
+#include <sstream>
 
 #include "mamba/core/graph_util.hpp"
 #include "mamba/core/package_info.hpp"
@@ -22,24 +23,6 @@ extern "C"
 {
 #include "solv/solver.h"
 }
-
-#define THROWIF(condition, msg)                                                                    \
-    {                                                                                              \
-        \ 
-        if (!condition)                                                                            \
-        {                                                                                          \
-            std::ostringstream os;                                                                 \
-            os << msg;                                                                             \
-            throw std::runtime_error(os.str());                                                    \
-        }                                                                                          \
-    }
-
-#define THROW(msg)                                                                                 \
-    {                                                                                              \
-        std::ostringstream os;                                                                     \
-        os << msg;                                                                                 \
-        throw std::runtime_error(os.str());                                                        \
-    }
 
 namespace mamba
 {

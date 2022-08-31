@@ -17,8 +17,7 @@ namespace mamba
         m_root_id = m_problems_graph.graph().add_node(root_node);
     }
 
-    auto MProblemsGraphCreator::graph_from(const std::vector<MSolverProblem>& problems)
-        -> const graph_t&
+    auto MProblemsGraphCreator::graph_from(const problems_list& problems) -> const graph_t&
     {
         for (const auto& problem : problems)
         {
@@ -41,14 +40,7 @@ namespace mamba
                 }
                 auto source_node = MNode(NodeInfo::ResolvedPackage(problem.source().value()));
                 auto edge = MEdge(EdgeInfo::Constraint(DependencyInfo(problem.dep().value())));
-                std::vector<Id> constrained_ids = m_pool->select_solvables(problem.dep_id);
-                for (const auto& constraint_id : constrained_ids)
-                {
-                    PackageInfo constraint_pkg
-                        = PackageInfo(pool_id2solvable(*m_pool, constraint_id));
-                    auto dest_node = MNode(NodeInfo::ResolvedPackage(constraint_pkg));
-                    add_edge(problem.source_id, source_node, constraint_id, dest_node, edge);
-                }
+                add_expanded_deps_edges(problem.source_id, source_node, problem.dep_id, edge);
                 auto target_node = MNode(NodeInfo::ResolvedPackage(problem.target().value()));
                 add_conflicts(problem.source_id, source_node, problem.target_id, target_node);
                 break;
@@ -62,13 +54,7 @@ namespace mamba
                 }
                 auto source_node = MNode(NodeInfo::ResolvedPackage(problem.source().value()));
                 auto edge = MEdge(EdgeInfo::Require(DependencyInfo(problem.dep().value())));
-                std::vector<Id> required_ids = m_pool->select_solvables(problem.dep_id);
-                for (const auto& required_id : required_ids)
-                {
-                    PackageInfo required_pkg = PackageInfo(pool_id2solvable(*m_pool, required_id));
-                    auto dest_node = MNode(NodeInfo::ResolvedPackage(required_pkg));
-                    add_edge(problem.source_id, source_node, required_id, dest_node, edge);
-                }
+                add_expanded_deps_edges(problem.source_id, source_node, problem.dep_id, edge);
                 break;
             }
             case SOLVER_RULE_JOB:
@@ -79,10 +65,7 @@ namespace mamba
                     break;
                 }
                 // TODO check here that depId exists
-                /*if (!contains_any_substring(problem.dep().value(), initial_spec_names))
-                {
-                    break;
-                }*/
+                auto root_node = MNode(NodeInfo::Root());
                 auto edge = MEdge(EdgeInfo::Require(DependencyInfo(problem.dep().value())));
                 std::vector<Id> target_ids = m_pool->select_solvables(problem.dep_id);
                 for (const auto& target_id : target_ids)
@@ -213,6 +196,21 @@ namespace mamba
         else
         {
             return m_solv_id_to_node_id[id] = m_problems_graph.graph().add_node(node);
+        }
+    }
+
+
+    void MProblemsGraphCreator::add_expanded_deps_edges(Id source_id,
+                                                        const MNode& source_node,
+                                                        Id dep_id,
+                                                        const MEdge& edge)
+    {
+        std::vector<Id> expanded_ids = m_pool->select_solvables(dep_id);
+        for (const auto& expanded_id : expanded_ids)
+        {
+            PackageInfo pkg = PackageInfo(pool_id2solvable(*m_pool, expanded_id));
+            auto dest_node = MNode(NodeInfo::ResolvedPackage(pkg));
+            add_edge(source_id, source_node, expanded_id, dest_node, edge);
         }
     }
 }

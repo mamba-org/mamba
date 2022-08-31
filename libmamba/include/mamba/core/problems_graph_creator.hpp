@@ -33,10 +33,10 @@ namespace mamba
         using graph_t = MProblemsGraph<MNode, MEdge>;
         using node_id = MProblemsGraph<MNode, MEdge>::node_id;
         using solv_id_to_node_id = std::unordered_map<Id, node_id>;
-
+        using problems_list = std::vector<MSolverProblem>;
         MProblemsGraphCreator(MPool* pool);
 
-        const graph_t& graph_from(const std::vector<MSolverProblem>& problems);
+        const graph_t& graph_from(const problems_list& problems);
 
     private:
         MPool* m_pool;
@@ -51,6 +51,10 @@ namespace mamba
                       Id target_id,
                       const MNode& target_node,
                       const MEdge& edge);
+        void add_expanded_deps_edges(Id source_id,
+                                     const MNode& source_node,
+                                     Id dep_id,
+                                     const MEdge& edge);
         void add_conflicts(Id id1, const MNode& node1, Id id2, const MNode& node2);
         node_id get_update_or_create(Id source_id, const MNode& node);
     };

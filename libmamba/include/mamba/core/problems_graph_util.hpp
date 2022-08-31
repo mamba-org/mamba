@@ -70,32 +70,18 @@ namespace mamba
         std::string range;
     };
 
-    template <class... Ts>
-    struct overload : Ts...
-    {
-        using Ts::operator()...;
-    };
-    template <class... Ts>
-    overload(Ts...) -> overload<Ts...>;
-
     namespace NodeInfo
     {
         struct ResolvedPackage
         {
             PackageInfo m_package_info;
-            ResolvedPackage(PackageInfo const& package_info)
-                : m_package_info(package_info)
-            {
-            }
-        };  // add conflict info
+            ResolvedPackage(PackageInfo const& package_info);
+        };
 
         struct ProblematicPackage
         {
             std::string m_dep;
-            ProblematicPackage(std::string const& dep)
-                : m_dep(dep)
-            {
-            }
+            ProblematicPackage(std::string const& dep);
         };
         struct Root
         {
@@ -107,20 +93,22 @@ namespace mamba
         struct Require
         {
             DependencyInfo m_dep;
-            Require(DependencyInfo const& dep)
-                : m_dep(dep)
-            {
-            }
+            Require(DependencyInfo const& dep);
         };
         struct Constraint
         {
             DependencyInfo m_dep;
-            Constraint(DependencyInfo const& dep)
-                : m_dep(dep)
-            {
-            }
+            Constraint(DependencyInfo const& dep);
         };
     }
+
+    template <class... Ts>
+    struct overload : Ts...
+    {
+        using Ts::operator()...;
+    };
+    template <class... Ts>
+    overload(Ts...) -> overload<Ts...>;
 
     class MNode
     {

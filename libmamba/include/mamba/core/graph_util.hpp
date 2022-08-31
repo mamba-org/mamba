@@ -94,6 +94,7 @@ namespace mamba
         bool empty() const;
         std::size_t number_of_nodes() const;
         const node_list& nodes() const;
+        node_list& nodes();
         node_t const& node(node_id id) const;
         node_t& node(node_id id);
         const node_id_list& successors(node_id id) const;
@@ -336,6 +337,12 @@ namespace mamba
     }
 
     template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::nodes() -> node_list&
+    {
+        return m_node_list;
+    }
+
+    template <typename N, typename G>
     inline auto DiGraphBase<N, G>::node(node_id id) const -> node_t const&
     {
         return m_node_list[id];
@@ -547,7 +554,8 @@ namespace mamba
     inline void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
         Base::add_edge(from, to);
-        m_edges[{ from, to }] = std::forward<T>(data);
+        auto edge_id = std::make_pair(from, to);
+        m_edges.insert(std::make_pair(edge_id, std::forward<T>(data)));
     }
 
     template <typename N, typename E>

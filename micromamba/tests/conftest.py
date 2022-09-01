@@ -7,10 +7,17 @@ from typing import Generator
 import pytest
 
 
-@pytest.fixture
-def env_name(N: int = 10) -> str:
-    """Return Ten random characters."""
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
+def random_str(n: int = 10) -> str:
+    """Return random characters and digits."""
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
+
+
+@pytest.fixture(params=[random_str, "some ™∞¢3 spaces §∞©ƒ√≈ç", "long_prefix_" * 20])
+def tmp_env_name(request) -> str:
+    """Return the explicit or implicit parametrization."""
+    if callable(request.param):
+        return request.param()
+    return request.param
 
 
 @pytest.fixture
@@ -48,11 +55,11 @@ def tmp_root_prefix(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, Non
 
 @pytest.fixture
 def tmp_prefix(
-    tmp_root_prefix: pathlib.Path, env_name: str
+    tmp_root_prefix: pathlib.Path, tmp_env_name: str
 ) -> Generator[pathlib.Path, None, None]:
     """Change the conda prefix to a tmp folder for the duration of a test."""
     old_prefix = os.environ.get("CONDA_PREFIX")
-    new_prefix = tmp_root_prefix / "envs" / env_name
+    new_prefix = tmp_root_prefix / "envs" / tmp_env_name
     new_prefix.mkdir(parents=True, exist_ok=True)
     os.environ["CONDA_PREFIX"] = str(new_prefix)
     yield new_prefix

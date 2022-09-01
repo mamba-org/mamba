@@ -146,8 +146,8 @@ class TestConfigSources:
     @pytest.mark.parametrize(
         "rc_file_args", ({"override_channels_enabled": True},), indirect=True
     )
-    def test_config_rc_file(self, rc_file, env_name):
-        srcs = config("sources", "-n", env_name).strip().splitlines()
+    def test_config_rc_file(self, rc_file, tmp_env_name):
+        srcs = config("sources", "-n", tmp_env_name).strip().splitlines()
         short_name = str(rc_file).replace(os.path.expanduser("~"), "~")
         expected_srcs = (
             f"Configuration files (by precedence order):\n{short_name}".splitlines()

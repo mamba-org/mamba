@@ -27,7 +27,7 @@ If you are already a ``conda`` user, very good!
 
 To get ``mamba``, just install it *into the base environment* from the ``conda-forge`` channel:
 
-.. code::
+.. code:: bash
 
    conda install mamba -n base -c conda-forge
 
@@ -53,6 +53,18 @@ Note: ``micromamba`` is currently experimental and it's advised to use it in con
 Automatic installation
 **********************
 
+Homebrew
+^^^^^^^^
+
+On macOS, you can install `micromamba` from Homebrew:
+
+.. code:: bash
+
+   brew install --cask micromamba
+
+Install script
+^^^^^^^^^^^^^^
+
 If you are using macOS or Linux, there is a simple way of installing ``micromamba``.
 Simply execute the installation script in your preferred shell.
 
@@ -73,32 +85,36 @@ For macOS, the default shell is ``zsh``:
 Manual installation
 *******************
 
+.. _umamba-install-posix:
+
+Linux and macOS
+^^^^^^^^^^^^^^^
+
 Download and unzip the executable (from the official conda-forge package):
-
-.. _umamba-install-linux:
-
-Linux
-*****
 
 Ensure that basic utilities are installed. We need ``wget`` and ``tar`` with support for ``bzip2``.
 Also you need a glibc based system like Ubuntu, Fedora or Centos (Alpine Linux does not work natively).
 
 The following magic URL always returns the latest available version of micromamba, and the ``bin/micromamba`` part is automatically extracted using ``tar``.
 
-.. code:: sh
+.. code:: bash
 
-  wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-
-
-.. note::
-  Additional builds are available for linux-aarch64 (ARM64) and linux-ppc64le. Just modify ``linux-64`` in the URL above to match the desired architecture.
-  You can find the available builds on `anaconda.org <https://anaconda.org/conda-forge/micromamba/files>`_.
+  # Linux Intel (x86_64):
+  curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+  # Linux ARM64:
+  curl -Ls https://micro.mamba.pm/api/micromamba/linux-aarch64/latest | tar -xvj bin/micromamba
+  # Linux Power:
+  curl -Ls https://micro.mamba.pm/api/micromamba/linux-ppc64le/latest | tar -xvj bin/micromamba
+  # macOS Intel (x86_64):
+  curl -Ls https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xvj bin/micromamba
+  # macOS Silicon/M1 (ARM64):
+  curl -Ls https://micro.mamba.pm/api/micromamba/osx-arm64/latest | tar -xvj bin/micromamba
 
 After extraction is completed, we can use the micromamba binary.
 
 If you want to quickly use micromamba in an ad-hoc usecase, you can run
 
-.. code::
+.. code:: bash
 
   export MAMBA_ROOT_PREFIX=/some/prefix  # optional, defaults to ~/micromamba
   eval "$(./bin/micromamba shell hook -s posix)"
@@ -108,17 +124,21 @@ This shell hook modifies your shell variables to include the micromamba command.
 If you want to persist these changes, you can automatically write them to your ``.bashrc`` (or ``.zshrc``) by running ``./micromamba shell init ...``.
 This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where the packages and repodata cache will live.
 
-.. code::
+.. code:: sh
 
-  sh
+  # Linux/bash:
   ./bin/micromamba shell init -s bash -p ~/micromamba  # this writes to your .bashrc file
   # sourcing the bashrc file incorporates the changes into the running session.
   # better yet, restart your terminal!
   source ~/.bashrc
 
+  # macOS/zsh:
+  ./micromamba shell init -s zsh -p ~/micromamba
+  source ~/.zshrc
+
 Now you can activate the base environment and install new packages, or create other environments.
 
-.. code::
+.. code:: bash
 
   micromamba activate  # this activates the base environment
   micromamba install python=3.6 jupyter -c conda-forge
@@ -126,63 +146,13 @@ Now you can activate the base environment and install new packages, or create ot
   micromamba create -n env_name xtensor -c conda-forge
   micromamba activate env_name
 
-.. _umamba-install-osx:
-
-macOS
-*****
-``micromamba`` has macOS support as well.
-
-brew
-^^^^
-If you have ``brew`` installed you can get ``micromamba`` as a cask with
-
-.. code::
-
- brew install --cask micromamba
-
-
-Manual
-^^^^^^
-
-Otherwise, you can use the download script; here, instructions are mostly the same as with :ref:`linux<umamba-install-linux>`.
-
-However, you need to download a different `micromamba`` binary depending if you are using an Apple Silicon or an Intel Mac.
-
-Apple Silicon:
-
-.. code::
-
-  curl -Ls https://micro.mamba.pm/api/micromamba/osx-arm64/latest | tar -xvj bin/micromamba
-  mv bin/micromamba ./micromamba
-
-Intel:
-
-.. code:: bash
-
-  curl -Ls https://micro.mamba.pm/api/micromamba/osx-64/latest | tar -xvj bin/micromamba
-  mv bin/micromamba ./micromamba
-
-The rest of the installation is the same for both Apple Silicon and Intel.
-
-.. code::
-
-  # directly execute the hook
-  eval "$(./bin/micromamba shell hook -s posix)"
-
-  # ... or shell init
-  ./micromamba shell init -s zsh -p ~/micromamba
-  source ~/.zshrc
-  micromamba activate
-  micromamba install python=3.6 jupyter -c conda-forge
-
 .. _umamba-install-win:
 
 Windows
-*******
+^^^^^^^
 
 | ``micromamba`` also has Windows support! For Windows, we recommend powershell.
 | Below are the commands to get micromamba installed in ``PowerShell``.
-
 
 .. code:: powershell
 
@@ -205,6 +175,11 @@ Windows
   micromamba create -f ./test/env_win.yaml -y
   micromamba activate yourenv
 
+Nightly builds
+**************
+
+You can download fully statically linked builds for each commit to `master` on GitHub (scroll to the bottom of the "Summary" page):
+https://github.com/mamba-org/mamba/actions/workflows/static_build.yml?query=is%3Asuccess
 
 .. _shell_completion:
 
@@ -215,20 +190,20 @@ For now, only ``micromamba`` provides shell completion on ``bash`` and ``zsh``.
 
 To activate it, it's as simple as running:
 
-.. code::
+.. code:: bash
 
   micromamba shell completion
 
 The completion is now available in any new shell opened or in the current shell after sourcing the configuration file to take modifications into account.
 
-.. code::
+.. code:: sh
 
   source ~/.<shell>rc
 
 | Just hit ``<TAB><TAB>`` to get completion when typing your command.
 | For example the following command will help you to pick a named environment to activate:
 
-.. code::
+.. code:: bash
 
   micromamba activate <TAB><TAB>
 

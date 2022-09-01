@@ -99,7 +99,6 @@ namespace mamba
             case SOLVER_RULE_PKG:
             case SOLVER_RULE_UPDATE:
                 return std::nullopt;
-                ;
             case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
             case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:

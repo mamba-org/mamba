@@ -180,8 +180,8 @@ namespace mamba
                                               Id id2,
                                               const MNode& node2)
     {
-        auto node_id1 = get_update_or_create(id1, node1);
-        auto node_id2 = get_update_or_create(id2, node2);
+        node_id node_id1 = get_update_or_create(id1, node1);
+        node_id node_id2 = get_update_or_create(id2, node2);
         m_problems_graph.add_conflicts(node_id1, node_id2);
     }
 
@@ -190,7 +190,7 @@ namespace mamba
         auto it = m_solv_id_to_node_id.find(id);
         if (it != m_solv_id_to_node_id.end())
         {
-            m_problems_graph.graph().nodes()[it->second].maybe_update_metadata(node);
+            m_problems_graph.graph().node(it->second).maybe_update_metadata(node);
             return it->second;
         }
         else
@@ -198,7 +198,6 @@ namespace mamba
             return m_solv_id_to_node_id[id] = m_problems_graph.graph().add_node(node);
         }
     }
-
 
     void MProblemsGraphCreator::add_expanded_deps_edges(Id source_id,
                                                         const MNode& source_node,

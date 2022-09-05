@@ -395,6 +395,11 @@ namespace mamba
         {
             rc_content = read_contents(file_path, std::ios::in);
         }
+        else
+        {
+            // Ensure base directory of config file exists (in case it is under ~/.config)
+            fs::create_directories(file_path.parent_path());
+        }
 
         if (shell == "xonsh")
         {

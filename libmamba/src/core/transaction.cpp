@@ -421,8 +421,9 @@ namespace mamba
                         = std::make_shared<powerloader::DownloadTarget>(m_url, "", m_tarball_path);
                 }
 
-                auto end_callback = [this](powerloader::TransferStatus status,
-                                const powerloader::Response& response) -> powerloader::CbReturnCode
+                auto end_callback
+                    = [this](powerloader::TransferStatus status,
+                             const powerloader::Response& response) -> powerloader::CbReturnCode
                 {
                     if (status == powerloader::TransferStatus::kSUCCESSFUL)
                     {
@@ -441,11 +442,12 @@ namespace mamba
                 {
                     m_download_bar = Console::instance().add_progress_bar(m_name, m_expected_size);
 
-                    m_target->set_progress_callback([this](curl_off_t total, curl_off_t done) -> int
-                    {
-                        this->m_download_bar.set_progress(done, total);
-                        return 0;
-                    });
+                    m_target->set_progress_callback(
+                        [this](curl_off_t total, curl_off_t done) -> int
+                        {
+                            this->m_download_bar.set_progress(done, total);
+                            return 0;
+                        });
 
                     // m_target->set_progress_bar(m_download_bar);
                     Console::instance().progress_bar_manager().add_label("Download",

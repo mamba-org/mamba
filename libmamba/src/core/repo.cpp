@@ -153,8 +153,7 @@ namespace mamba
         static Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
 
         Id handle = repo_add_solvable(m_repo);
-        Solvable* s;
-        s = pool_id2solvable(pool, handle);
+        Solvable* s = pool_id2solvable(pool, handle);
         repodata_set_str(
             data, handle, SOLVABLE_BUILDVERSION, std::to_string(info.build_number).c_str());
         repodata_add_poolstr_array(data, handle, SOLVABLE_BUILDFLAVOR, info.build_string.c_str());

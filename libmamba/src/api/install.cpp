@@ -550,11 +550,13 @@ namespace mamba
 
             fs::u8path pkgs_dirs(Context::instance().root_prefix / "pkgs");
             MultiPackageCache pkg_caches({ pkgs_dirs });
-
-            auto transaction = create_transaction(pool, pkg_caches);
-
             prefix_data.add_packages(get_virtual_packages());
-            MRepo::create(pool, prefix_data);
+            MRepo::create(
+                pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables in the pool
+
+            // Note that the Transaction will gather the Solvables,
+            // so they must have been ready in the pool before this line
+            auto transaction = create_transaction(pool, pkg_caches);
 
             if (ctx.json)
                 transaction.log_json();

@@ -149,7 +149,7 @@ namespace validate
 
         std::ifstream infile = mamba::open_ifstream(path);
 
-        constexpr std::size_t BUFSIZE = 32768;
+        static constexpr std::size_t BUFSIZE = 32768;
         std::vector<char> buffer(BUFSIZE);
 
         while (infile)

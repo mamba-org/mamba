@@ -47,6 +47,11 @@ class TestCreate:
         os.path.join(source_dir_path, "test_env-lock.yaml")
     )
 
+    def test_env_lockfile_step_path(step_number):
+        return os.path.join(
+            source_dir_path, f"envlockfile-check-step-{step_number}-lock.yaml"
+        )
+
     @classmethod
     def setup_class(cls):
         assert os.path.exists(TestCreate.test_lockfile_path)
@@ -159,6 +164,25 @@ class TestCreate:
             package["name"] == "zlib" and package["version"] == "1.2.11"
             for package in packages
         )
+
+    def test_env_lockfile_different_install_after_create(self):
+        cmd_prefix = ["-p", TestCreate.prefix]
+        create_spec_file = (
+            os.path.join(TestCreate.spec_files_location, "env-create") + "-lock.yaml"
+        )
+        shutil.copyfile(TestCreate.test_env_lockfile_step_path(1), create_spec_file)
+        assert os.path.exists(create_spec_file)
+
+        install_spec_file = (
+            os.path.join(TestCreate.spec_files_location, "env-install") + "-lock.yaml"
+        )
+        shutil.copyfile(TestCreate.test_env_lockfile_step_path(2), install_spec_file)
+        assert os.path.exists(install_spec_file)
+
+        res = create(*cmd_prefix, "-f", create_spec_file, "-y", "--json")
+        assert res["success"] == True
+
+        install(*cmd_prefix, "-f", install_spec_file, "-y", "--json")  # Must not crash
 
     @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
     @pytest.mark.parametrize("target_is_root", (False, True))

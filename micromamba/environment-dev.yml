@@ -26,3 +26,4 @@ dependencies:
   - spdlog
   - sel(win): winreg
   - sel(win): pywin32
+  - powerloader

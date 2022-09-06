@@ -1,8 +1,5 @@
 import os
 import pathlib
-import random
-import shutil
-import string
 from typing import Generator
 
 import pytest
@@ -78,12 +75,9 @@ def tmp_clean_env(
     os.environ.update(saved_environ)
 
 
-def random_str(n: int = 10) -> str:
-    """Return random characters and digits."""
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
-
-
-@pytest.fixture(params=[random_str, "some ™∞¢3 spaces §∞©ƒ√≈ç", "long_prefix_" * 20])
+@pytest.fixture(
+    params=[helpers.random_string, "some ™∞¢3 spaces §∞©ƒ√≈ç", "long_prefix_" * 20]
+)
 def tmp_env_name(request) -> str:
     """Return the explicit or implicit parametrization."""
     if callable(request.param):

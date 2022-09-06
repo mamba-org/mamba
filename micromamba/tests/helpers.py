@@ -67,8 +67,9 @@ def get_umamba(cwd=os.getcwd()):
     return umamba
 
 
-def random_string(N=10):
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
+def random_string(n: int = 10) -> str:
+    """Return random characters and digits."""
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=n))
 
 
 def shell(*args, cwd=os.getcwd()):

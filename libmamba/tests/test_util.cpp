@@ -160,4 +160,15 @@ namespace mamba
         EXPECT_EQ(*proxy_match("https://example.net/channel"), "foobar");
         EXPECT_EQ(*proxy_match("https://example.net:8080/channel"), "baz");
     }
+
+    TEST(utils, redact_url)
+    {
+        EXPECT_EQ(redact_url("http://foo:bar@example.com/channel"),
+                  "http://foo:****@example.com/channel");
+        EXPECT_EQ(redact_url("http://example.com/channel"), "http://example.com/channel");
+        EXPECT_EQ(redact_url("http://foo@example.com/channel"), "http://foo@example.com/channel");
+        EXPECT_EQ(redact_url("foo:bar@example.com/channel"), "http://foo:****@example.com/channel");
+        EXPECT_EQ(redact_url("foo@example.com/channel"), "http://foo@example.com/channel");
+        EXPECT_EQ(redact_url("example.com/channel"), "http://example.com/channel");
+    }
 }

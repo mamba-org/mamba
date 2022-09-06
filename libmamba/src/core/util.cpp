@@ -37,6 +37,7 @@ extern "C"
 #include <condition_variable>
 #include <optional>
 #include <openssl/evp.h>
+#include <curl/curl.h>
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
@@ -1515,4 +1516,39 @@ namespace mamba
         return std::nullopt;
     }
 
+    std::string redact_url(const std::string& url)
+    {
+        CURLUcode rc;
+        CURLU* handle = curl_url();
+        char* password = nullptr;
+        char* new_url = nullptr;
+        std::string result;
+
+        if (curl_url_set(handle, CURLUPART_URL, url.c_str(), CURLU_GUESS_SCHEME) != CURLUE_OK)
+            goto err;
+
+        rc = curl_url_get(handle, CURLUPART_PASSWORD, &password, 0);
+        if (rc != CURLUE_NO_PASSWORD && rc != CURLUE_OK)
+            goto err;
+
+        if (rc == CURLUE_OK)
+        {
+            if (curl_url_set(handle, CURLUPART_PASSWORD, "****", 0) != CURLUE_OK)
+                goto err;
+        }
+
+        if (curl_url_get(handle, CURLUPART_URL, &new_url, 0) != CURLUE_OK)
+            goto err;
+
+        result = std::string(new_url);
+        curl_free(new_url);
+        curl_free(password);
+        curl_url_cleanup(handle);
+        return result;
+
+    err:
+        curl_free(password);
+        curl_url_cleanup(handle);
+        throw std::runtime_error("Parsing proxy url failed");
+    }
 }  // namespace mamba

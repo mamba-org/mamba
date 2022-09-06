@@ -8,37 +8,12 @@
 namespace mamba
 {
 
-    namespace NodeInfo
-    {
-        ResolvedPackage::ResolvedPackage(PackageInfo const& package_info)
-            : m_package_info(package_info)
-        {
-        }
-
-        ProblematicPackage::ProblematicPackage(std::string const& dep)
-            : m_dep(dep)
-        {
-        }
-    }
-
-    namespace EdgeInfo
-    {
-        Require::Require(DependencyInfo const& dep)
-            : m_dep(dep)
-        {
-        }
-
-        Constraint::Constraint(DependencyInfo const& dep)
-            : m_dep(dep)
-        {
-        }
-    }
 
     DependencyInfo::DependencyInfo(const std::string& dep)
     {
-        std::regex regexp("\\s*(\\w[\\w-]*)\\s*(.*)\\s*");
+        static std::regex const regexp("\\s*(\\w[\\w-]*)\\s*(.*)\\s*");
         std::smatch matches;
-        bool matched = std::regex_search(dep, matches, regexp);
+        bool const matched = std::regex_match(dep, matches, regexp);
         if (!matched || matches.size() != 2)
         {
             throw std::runtime_error("unable to parse dep");

@@ -72,6 +72,15 @@ class TestProxy:
     @pytest.mark.parametrize("with_auth", (True, False))
     @pytest.mark.parametrize("ssl_verify", (True, False))
     def test_install(self, unused_tcp_port, with_auth, ssl_verify):
+        """
+        This test makes sure micromamba follows the proxy settings in .condarc
+
+        It starts mitmproxy with the `dump_proxy_connections.py` script, which dumps all requested urls in a text file.
+        After that micromamba is used to install a package, while pointing it to that mitmproxy instance. Once
+        micromamba finished the proxy server is stopped and the urls micromamba requested are compared to the urls
+        mitmproxy intercepted, making sure that all the requests went through the proxy.
+        """
+
         if with_auth:
             proxy_options = ["--proxyauth", "foo:bar"]
             proxy_url = "http://foo:bar@localhost:{}".format(unused_tcp_port)

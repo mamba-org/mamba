@@ -47,7 +47,7 @@ class TestProxy:
                 TestProxy.mitm_exe,
                 "--listen-port",
                 str(port),
-                "-s",
+                "--scripts",
                 script,
                 "--set",
                 f"outfile={TestProxy.mitm_dump_path}",

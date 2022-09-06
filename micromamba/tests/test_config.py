@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .helpers import get_umamba, random_string
+from . import helpers
 
 
 class Dumper(yaml.Dumper):
@@ -22,9 +22,9 @@ class Dumper(yaml.Dumper):
 
 
 def config(*args):
-    umamba = get_umamba()
+    umamba = helpers.get_umamba()
     cmd = [umamba, "config"] + [arg for arg in args if arg]
-    res = subprocess.check_output(cmd)
+    res = helpers.subprocess_run(*cmd)
     if "--json" in args:
         j = yaml.load(res, yaml.FullLoader)
         return j
@@ -261,7 +261,9 @@ class TestConfigList:
         os.environ.pop("MAMBA_OFFLINE")
 
     def test_precedence(self):
-        rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", random_string()))
+        rc_dir = os.path.expanduser(
+            os.path.join("~", "test_mamba", helpers.random_string())
+        )
         os.makedirs(rc_dir, exist_ok=True)
         rc_file = os.path.join(rc_dir, ".mambarc")
         short_rc_file = rc_file.replace(os.path.expanduser("~"), "~")

@@ -73,13 +73,13 @@ class TestProxy:
     @pytest.mark.parametrize("ssl_verify", (True, False))
     def test_install(self, unused_tcp_port, with_auth, ssl_verify):
         if with_auth:
-            options = ["--proxyauth", "foo:bar"]
+            proxy_options = ["--proxyauth", "foo:bar"]
             proxy_url = "http://foo:bar@localhost:{}".format(unused_tcp_port)
         else:
-            options = []
+            proxy_options = []
             proxy_url = "http://localhost:{}".format(unused_tcp_port)
 
-        self.start_proxy(unused_tcp_port, options)
+        self.start_proxy(unused_tcp_port, proxy_options)
 
         cmd = ["xtensor"]
         f_name = random_string() + ".yaml"

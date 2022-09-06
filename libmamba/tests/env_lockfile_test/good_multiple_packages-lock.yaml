@@ -186,4 +186,28 @@ package:
   platform: win-64
   url: https://conda.anaconda.org/conda-forge/win-64/zlib-1.2.11-h8ffe710_1013.tar.bz2
   version: 1.2.11
+- dependencies:
+    anyio: '>=3.0.0,<4'
+  hash:
+    sha256: 26a18cbda5e6b651c964c12c88b36d9898481cd428ed6e063f5f29c418f73050
+  manager: pip
+  name: starlette
+  platform: linux-64
+  source: null
+  url: https://files.pythonhosted.org/packages/32/57/e9c68acc2845ee4ca66202d19856f6a3581cab2a885d25d490103270ffa2/starlette-0.17.1-py3-none-any.whl
+  version: 0.17.1
+  category: main
+- dependencies:
+    asgiref: '>=3.4.0'
+    click: '>=7.0'
+    h11: '>=0.8'
+  hash:
+    sha256: 19e2a0e96c9ac5581c01eb1a79a7d2f72bb479691acd2b8921fce48ed5b961a6
+  manager: pip
+  name: uvicorn
+  platform: linux-64
+  source: null
+  url: https://files.pythonhosted.org/packages/36/ab/c13847c53d0624ee5a2e19c9c8d19a8cea5f865b95d08b839fac375a9e83/uvicorn-0.17.6-py3-none-any.whl
+  version: 0.17.6
+  category: main
 version: 1

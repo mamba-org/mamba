@@ -38,7 +38,16 @@ namespace mamba
 
             const std::unordered_map<std::string, command_args> other_pkg_mgr_install_instructions{
                 { "pip",
-                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } }
+                  { get_python_path(), "-m", "pip", "install", "-r", spec_file, "--no-input" } },
+                { "pip --no-deps",
+                  { get_python_path(),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-deps",
+                    "-r",
+                    spec_file,
+                    "--no-input" } }
             };
 
             auto found_it = other_pkg_mgr_install_instructions.find(name);
@@ -554,9 +563,10 @@ namespace mamba
             MRepo::create(
                 pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables in the pool
 
+            std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,
             // so they must have been ready in the pool before this line
-            auto transaction = create_transaction(pool, pkg_caches);
+            auto transaction = create_transaction(pool, pkg_caches, others);
 
             if (ctx.json)
                 transaction.log_json();
@@ -567,6 +577,11 @@ namespace mamba
                     detail::create_target_directory(ctx.target_prefix);
 
                 transaction.execute(prefix_data);
+
+                for (auto other_spec : others)
+                {
+                    install_for_other_pkgmgr(other_spec);
+                }
             }
         }
     }
@@ -574,16 +589,18 @@ namespace mamba
     void install_explicit_specs(const std::vector<std::string>& specs, bool create_env)
     {
         detail::install_explicit_with_transaction(
-            [&](auto& pool, auto& pkg_caches)
-            { return create_explicit_transaction_from_urls(pool, specs, pkg_caches); },
+            [&](auto& pool, auto& pkg_caches, auto& others)
+            { return create_explicit_transaction_from_urls(pool, specs, pkg_caches, others); },
             create_env);
     }
 
     void install_lockfile_specs(const fs::u8path& lockfile, bool create_env)
     {
         detail::install_explicit_with_transaction(
-            [&](auto& pool, auto& pkg_caches)
-            { return create_explicit_transaction_from_lockfile(pool, lockfile, pkg_caches); },
+            [&](auto& pool, auto& pkg_caches, auto& others) {
+                return create_explicit_transaction_from_lockfile(
+                    pool, lockfile, pkg_caches, others);
+            },
             create_env);
     }
 

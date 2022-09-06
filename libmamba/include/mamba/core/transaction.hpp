@@ -27,6 +27,7 @@
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
 #include "env_lockfile.hpp"
+#include "mamba/api/install.hpp"
 
 extern "C"
 {
@@ -170,13 +171,17 @@ namespace mamba
         bool m_force_reinstall = false;
     };
 
-    MTransaction create_explicit_transaction_from_urls(MPool& pool,
-                                                       const std::vector<std::string>& urls,
-                                                       MultiPackageCache& package_caches);
+    MTransaction create_explicit_transaction_from_urls(
+        MPool& pool,
+        const std::vector<std::string>& urls,
+        MultiPackageCache& package_caches,
+        std::vector<detail::other_pkg_mgr_spec>& other_specs);
 
-    MTransaction create_explicit_transaction_from_lockfile(MPool& pool,
-                                                           const fs::u8path& env_lockfile_path,
-                                                           MultiPackageCache& package_caches);
+    MTransaction create_explicit_transaction_from_lockfile(
+        MPool& pool,
+        const fs::u8path& env_lockfile_path,
+        MultiPackageCache& package_caches,
+        std::vector<detail::other_pkg_mgr_spec>& other_specs);
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

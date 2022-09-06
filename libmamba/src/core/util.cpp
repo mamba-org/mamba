@@ -1496,21 +1496,19 @@ namespace mamba
             return std::nullopt;
         }
 
-        std::size_t max_match = 0;
         std::string match;
         for (auto& [scheme, proxy] : proxies)
         {
             if (starts_with(url, scheme))
             {
                 auto match_size = scheme.size();
-                if (match_size > max_match)
+                if (match_size > match.size())
                 {
                     match = proxy;
-                    max_match = match_size;
                 }
             }
         }
-        if (max_match != 0)
+        if (match.size() != 0)
         {
             return match;
         }

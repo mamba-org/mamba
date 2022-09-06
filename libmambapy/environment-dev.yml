@@ -21,3 +21,4 @@ dependencies:
   - pybind11
   - pytest
   - sel(win): winreg
+  - powerloader

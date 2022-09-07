@@ -47,6 +47,7 @@ extern "C"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/url.hpp"
 
 namespace mamba
 {
@@ -1490,28 +1491,40 @@ namespace mamba
 
     std::optional<std::string> proxy_match(const std::string& url)
     {
+        /* This is a reimplementation of requests.utils.select_proxy(), of the python requests
+        library used by conda */
         auto& proxies = Context::instance().proxy_servers;
         if (proxies.empty())
         {
             return std::nullopt;
         }
 
-        std::string match;
-        for (auto& [scheme, proxy] : proxies)
+        auto handler = URLHandler(url);
+        auto scheme = handler.scheme();
+        auto host = handler.host();
+        std::vector<std::string> options;
+
+        if (host.empty())
         {
-            if (starts_with(url, scheme))
+            options = {
+                scheme,
+                "all",
+            };
+        }
+        else
+        {
+            options = { scheme + "://" + host, scheme, "all://" + host, "all" };
+        }
+
+        for (auto& option : options)
+        {
+            auto proxy = proxies.find(option);
+            if (proxy != proxies.end())
             {
-                auto match_size = scheme.size();
-                if (match_size > match.size())
-                {
-                    match = proxy;
-                }
+                return proxy->second;
             }
         }
-        if (match.size() != 0)
-        {
-            return match;
-        }
+
         return std::nullopt;
     }
 

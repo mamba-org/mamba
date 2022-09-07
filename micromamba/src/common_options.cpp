@@ -402,4 +402,9 @@ init_install_options(CLI::App* subcom)
     subcom->add_flag("--no-deps", no_deps.get_cli_config<bool>(), no_deps.description());
     auto& only_deps = config.at("only_deps");
     subcom->add_flag("--only-deps", only_deps.get_cli_config<bool>(), only_deps.description());
+
+    auto& categories = config.at("categories");
+    subcom->add_option("--category",
+                       categories.get_cli_config<string_list>(),
+                       "Categories of package to install from environment lockfile");
 }

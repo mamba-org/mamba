@@ -359,7 +359,10 @@ namespace mamba
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
             LOG_DEBUG << "Lockfile: " << lockfile_path.string();
-            install_lockfile_specs(lockfile_path, false);
+            install_lockfile_specs(
+                lockfile_path,
+                Configuration::instance().at("categories").value<std::vector<std::string>>(),
+                false);
         }
         else if (!install_specs.empty())
         {
@@ -594,12 +597,15 @@ namespace mamba
             create_env);
     }
 
-    void install_lockfile_specs(const fs::u8path& lockfile, bool create_env)
+    void install_lockfile_specs(const fs::u8path& lockfile,
+                                const std::vector<std::string>& categories,
+                                bool create_env)
     {
         detail::install_explicit_with_transaction(
-            [&](auto& pool, auto& pkg_caches, auto& others) {
+            [&](auto& pool, auto& pkg_caches, auto& others)
+            {
                 return create_explicit_transaction_from_lockfile(
-                    pool, lockfile, pkg_caches, others);
+                    pool, lockfile, categories, pkg_caches, others);
             },
             create_env);
     }

@@ -180,6 +180,7 @@ namespace mamba
     MTransaction create_explicit_transaction_from_lockfile(
         MPool& pool,
         const fs::u8path& env_lockfile_path,
+        const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
         std::vector<detail::other_pkg_mgr_spec>& other_specs);
 }  // namespace mamba

@@ -1264,6 +1264,10 @@ namespace mamba
                    .group("Solver")
                    .description("Only install dependencies"));
 
+        insert(Configurable("categories", std::vector<std::string>({ "main" }))
+                   .group("Solver")
+                   .description("Package categories to consider"));
+
         insert(Configurable("retry_clean_cache", false)
                    .group("Solver")
                    .set_env_var_names()

@@ -182,11 +182,7 @@ namespace mamba
             copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
         }
 
-        if (contains(str, "://"))
-        {
-            copy = std::regex_replace(
-                copy, Context::instance().http_basicauth_regex, "://$1:*****@");
-        }
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
 
         return copy;
     }

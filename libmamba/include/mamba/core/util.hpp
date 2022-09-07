@@ -416,8 +416,6 @@ namespace mamba
 
     std::optional<std::string> proxy_match(const std::string& url);
 
-    std::string redact_url(const std::string& url);
-
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

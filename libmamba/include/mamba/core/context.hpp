@@ -187,6 +187,7 @@ namespace mamba
         int retry_backoff = 3;  // retry_timeout * retry_backoff
         int max_retries = 3;    // max number of retries
 
+        std::map<std::string, std::string> proxy_servers;
         // ssl verify can be either an empty string (regular SSL verification),
         // the string "<false>" to indicate no SSL verification, or a path to
         // a directory with cert files, or a cert file.
@@ -236,7 +237,7 @@ namespace mamba
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters
         const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        const std::regex http_basicauth_regex{ "://([^\\s]+):([^\\s]+)@" };
+        const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
         const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
 
         static Context& instance();

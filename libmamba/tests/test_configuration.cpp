@@ -642,6 +642,23 @@ namespace mamba
             load_test_config("cacert_path:\nssl_verify: true");  // reset ssl verify to default
         }
 
+        TEST_F(Configuration, proxy_servers)
+        {
+            std::string rc = unindent(R"(
+                proxy_servers:
+                    http: foo
+                    https: bar)");
+            load_test_config(rc);
+            auto& actual = config.at("proxy_servers").value<std::map<std::string, std::string>>();
+            std::map<std::string, std::string> expected = { { "http", "foo" }, { "https", "bar" } };
+            EXPECT_EQ(actual, expected);
+            EXPECT_EQ(ctx.proxy_servers, expected);
+
+            EXPECT_EQ(config.sources().size(), 1);
+            EXPECT_EQ(config.valid_sources().size(), 1);
+            EXPECT_EQ(config.dump(), "proxy_servers:\n  http: foo\n  https: bar");
+        }
+
         TEST_F(Configuration, platform)
         {
             EXPECT_EQ(ctx.platform, ctx.host_platform);

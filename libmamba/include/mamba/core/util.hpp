@@ -21,6 +21,7 @@
 #include <time.h>
 #include <vector>
 #include <chrono>
+#include <optional>
 
 #if defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
 #include <iomanip>
@@ -225,6 +226,8 @@ namespace mamba
     {
         return ends_with(filename, ".yml") || ends_with(filename, ".yaml");
     }
+
+    std::optional<std::string> proxy_match(const std::string& url);
 
 }  // namespace mamba
 

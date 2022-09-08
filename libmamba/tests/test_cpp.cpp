@@ -254,6 +254,12 @@ namespace mamba
         EXPECT_EQ(
             res,
             "http://root:*****@myweb.com/test.repo\nhttp://myweb.com/t/*****/test.repo http://myweb.com/t/*****/test.repo http://root:*****@myweb.com/test.repo");
+
+        res = Console::instance().hide_secrets("myweb.com/t/my-12345-token/test.repo");
+        EXPECT_EQ(res, "myweb.com/t/*****/test.repo");
+
+        res = Console::instance().hide_secrets("root:secretpassword@myweb.com/test.repo");
+        EXPECT_EQ(res, "root:*****@myweb.com/test.repo");
     }
 
 

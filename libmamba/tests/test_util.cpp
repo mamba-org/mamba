@@ -7,6 +7,8 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/context.hpp"
+
 
 namespace mamba
 {
@@ -138,5 +140,33 @@ namespace mamba
             fs::permissions(existing_file_path, fs::perms::all);
             EXPECT_TRUE(path::is_writable(existing_file_path));
         }
+    }
+
+    TEST(utils, proxy_match)
+    {
+        Context::instance().proxy_servers = { { "http", "foo" },
+                                              { "https", "bar" },
+                                              { "https://example.net", "foobar" },
+                                              { "all://example.net", "baz" },
+                                              { "all", "other" } };
+
+        EXPECT_EQ(*proxy_match("http://example.com/channel"), "foo");
+        EXPECT_EQ(*proxy_match("http://example.net/channel"), "foo");
+        EXPECT_EQ(*proxy_match("https://example.com/channel"), "bar");
+        EXPECT_EQ(*proxy_match("https://example.com:8080/channel"), "bar");
+        EXPECT_EQ(*proxy_match("https://example.net/channel"), "foobar");
+        EXPECT_EQ(*proxy_match("ftp://example.net/channel"), "baz");
+        EXPECT_EQ(*proxy_match("ftp://example.org"), "other");
+
+        Context::instance().proxy_servers = { { "http", "foo" },
+                                              { "https", "bar" },
+                                              { "https://example.net", "foobar" },
+                                              { "all://example.net", "baz" } };
+
+        EXPECT_FALSE(proxy_match("ftp://example.org").has_value());
+
+        Context::instance().proxy_servers = {};
+
+        EXPECT_FALSE(proxy_match("http://example.com/channel").has_value());
     }
 }

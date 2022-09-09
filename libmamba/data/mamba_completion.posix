@@ -1,5 +1,11 @@
 if [ -n "${ZSH_VERSION:+x}" ]; then
-  autoload -U +X compinit && compinit
+  if ! command -v compinit > /dev/null; then
+    autoload -U +X compinit && if [[ "${ZSH_DISABLE_COMPFIX-}" = true ]]; then
+      compinit -u
+    else
+      compinit
+    fi
+  fi
   autoload -U +X bashcompinit && bashcompinit
 
   _umamba_zsh_completions()

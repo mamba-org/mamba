@@ -14,6 +14,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/execution.hpp"
 
@@ -74,7 +75,7 @@ namespace mamba
         keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
         keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
-        if (on_ci || !termcolor::_internal::is_atty(std::cout))
+        if (on_ci || !is_atty(std::cout))
         {
             no_progress_bars = true;
         }

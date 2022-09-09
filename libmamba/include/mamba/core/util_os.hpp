@@ -7,8 +7,10 @@
 #ifndef MAMBA_CORE_UTIL_OS_HPP
 #define MAMBA_CORE_UTIL_OS_HPP
 
-#include "mamba/core/fsutil.hpp"
 #include <string>
+#include <ostream>
+
+#include "mamba/core/fsutil.hpp"
 
 namespace mamba
 {
@@ -41,6 +43,9 @@ namespace mamba
     std::string to_utf8(const wchar_t* w, size_t s);
     std::string to_utf8(const wchar_t* w);
 #endif
+
+    /* Test whether a given `std::ostream` object refers to a terminal. */
+    bool is_atty(const std::ostream& stream);
 
     struct ConsoleFeatures
     {

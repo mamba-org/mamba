@@ -1,5 +1,6 @@
 import os
 import pathlib
+import platform
 from typing import Generator
 
 import pytest
@@ -57,7 +58,8 @@ def tmp_clean_env(
     ) -> bool:
         if "condabin" in p:
             return False
-        if prefix is not None:
+        # On windows, PATH is also used for dyanamic libraries.
+        if (prefix is not None) and (platform.system() != "Windows"):
             p = str(pathlib.Path(p).expanduser().resolve())
             prefix = str(pathlib.Path(prefix).expanduser().resolve())
             return not p.startswith(prefix)

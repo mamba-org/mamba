@@ -365,6 +365,7 @@ class TestActivation:
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_shell_init_deinit_root_prefix_files(
         self,
+        tmp_home,
         tmp_root_prefix,
         tmp_path,
         interpreter,

@@ -28,7 +28,7 @@ namespace mamba
 
     TEST(env_lockfile, invalid_version_fails)
     {
-        const fs::path invalid_version_lockfile_path{ "env_lockfile_test/bad_version-lock.yaml" };
+        const fs::u8path invalid_version_lockfile_path{ "env_lockfile_test/bad_version-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(invalid_version_lockfile_path);
         ASSERT_FALSE(maybe_lockfile);
         const auto error = maybe_lockfile.error();
@@ -39,7 +39,7 @@ namespace mamba
 
     TEST(env_lockfile, valid_no_package_succeed)
     {
-        const fs::path lockfile_path{ "env_lockfile_test/good_no_package-lock.yaml" };
+        const fs::u8path lockfile_path{ "env_lockfile_test/good_no_package-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
         const auto lockfile = maybe_lockfile.value();
@@ -48,7 +48,7 @@ namespace mamba
 
     TEST(env_lockfile, invalid_package_fails)
     {
-        const fs::path lockfile_path{ "env_lockfile_test/bad_package-lock.yaml" };
+        const fs::u8path lockfile_path{ "env_lockfile_test/bad_package-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_FALSE(maybe_lockfile);
         const auto error = maybe_lockfile.error();
@@ -59,7 +59,7 @@ namespace mamba
 
     TEST(env_lockfile, valid_one_package_succeed)
     {
-        const fs::path lockfile_path{ "env_lockfile_test/good_one_package-lock.yaml" };
+        const fs::u8path lockfile_path{ "env_lockfile_test/good_one_package-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
         const auto lockfile = maybe_lockfile.value();
@@ -68,7 +68,7 @@ namespace mamba
 
     TEST(env_lockfile, valid_multiple_packages_succeed)
     {
-        const fs::path lockfile_path{ "env_lockfile_test/good_multiple_packages-lock.yaml" };
+        const fs::u8path lockfile_path{ "env_lockfile_test/good_multiple_packages-lock.yaml" };
         const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
         ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
         const auto lockfile = maybe_lockfile.value();
@@ -77,7 +77,7 @@ namespace mamba
 
     TEST(env_lockfile, get_specific_packages)
     {
-        const fs::path lockfile_path{ "env_lockfile_test/good_multiple_packages-lock.yaml" };
+        const fs::u8path lockfile_path{ "env_lockfile_test/good_multiple_packages-lock.yaml" };
         const auto lockfile = read_environment_lockfile(lockfile_path).value();
         EXPECT_TRUE(lockfile.get_packages_for("", "", "").empty());
         {
@@ -97,13 +97,14 @@ namespace mamba
         EXPECT_TRUE(is_env_lockfile_name("../../some/dir/something-lock.yaml"));
         EXPECT_TRUE(is_env_lockfile_name("../../some/dir/something-lock.yml"));
 
-        EXPECT_TRUE(is_env_lockfile_name(fs::path{ "something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_env_lockfile_name(fs::path{ "something-lock.yml" }.string()));
-        EXPECT_TRUE(is_env_lockfile_name(fs::path{ "/some/dir/something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_env_lockfile_name(fs::path{ "/some/dir/something-lock.yml" }.string()));
+        EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "something-lock.yaml" }.string()));
+        EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "something-lock.yml" }.string()));
+        EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yaml" }.string()));
+        EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yml" }.string()));
         EXPECT_TRUE(
-            is_env_lockfile_name(fs::path{ "../../some/dir/something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_env_lockfile_name(fs::path{ "../../some/dir/something-lock.yml" }.string()));
+            is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yaml" }.string()));
+        EXPECT_TRUE(
+            is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yml" }.string()));
 
         EXPECT_FALSE(is_env_lockfile_name("something"));
         EXPECT_FALSE(is_env_lockfile_name("something-lock"));
@@ -117,10 +118,10 @@ namespace mamba
         EXPECT_FALSE(is_env_lockfile_name("../../some/dir/something.yaml"));
         EXPECT_FALSE(is_env_lockfile_name("../../some/dir/something.yml"));
 
-        EXPECT_FALSE(is_env_lockfile_name(fs::path{ "something" }.string()));
-        EXPECT_FALSE(is_env_lockfile_name(fs::path{ "something-lock" }.string()));
-        EXPECT_FALSE(is_env_lockfile_name(fs::path{ "/some/dir/something" }.string()));
-        EXPECT_FALSE(is_env_lockfile_name(fs::path{ "../../some/dir/something" }.string()));
+        EXPECT_FALSE(is_env_lockfile_name(fs::u8path{ "something" }.string()));
+        EXPECT_FALSE(is_env_lockfile_name(fs::u8path{ "something-lock" }.string()));
+        EXPECT_FALSE(is_env_lockfile_name(fs::u8path{ "/some/dir/something" }.string()));
+        EXPECT_FALSE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something" }.string()));
     }
 
 }

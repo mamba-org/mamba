@@ -43,13 +43,13 @@ namespace mamba
         return py_pin;
     }
 
-    std::vector<std::string> file_pins(const fs::path& file)
+    std::vector<std::string> file_pins(const fs::u8path& file)
     {
         std::vector<std::string> pins;
 
         if (fs::exists(file) && !fs::is_directory(file))
         {
-            std::ifstream input_file(file);
+            std::ifstream input_file(file.std_path());
             std::string line;
             while (std::getline(input_file, line))
             {

@@ -62,9 +62,9 @@ namespace mamba
         bool no_link = false;
     };
 
-    std::map<std::string, PrefixFileParse> read_has_prefix(const fs::path& path);
-    std::set<std::string> read_no_link(const fs::path& info_dir);
-    std::vector<PathData> read_paths(const fs::path& directory);
+    std::map<std::string, PrefixFileParse> read_has_prefix(const fs::u8path& path);
+    std::set<std::string> read_no_link(const fs::u8path& info_dir);
+    std::vector<PathData> read_paths(const fs::u8path& directory);
 }  // namespace mamba
 
 #endif

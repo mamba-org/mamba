@@ -3,6 +3,6 @@
 
 namespace mamba
 {
-    void remove_menu_from_json(const fs::path& json_file, TransactionContext* context);
-    void create_menu_from_json(const fs::path& json_file, TransactionContext* context);
+    void remove_menu_from_json(const fs::u8path& json_file, TransactionContext* context);
+    void create_menu_from_json(const fs::u8path& json_file, TransactionContext* context);
 }

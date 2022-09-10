@@ -120,6 +120,7 @@ foreach(script ${SHELL_SCRIPTS})
 endforeach()
 
 set(LIBMAMBA_SOURCES
+    longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
@@ -220,6 +221,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_os.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_random.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_scope.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/util_string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/validate.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/virtual_packages.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp

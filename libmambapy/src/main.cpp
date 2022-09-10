@@ -9,6 +9,7 @@
 #include <pybind11/stl.h>
 
 #include "nlohmann/json.hpp"
+#include "spdlog/fmt/fmt.h"
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
@@ -49,15 +50,15 @@ PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
 
-    py::class_<fs::path>(m, "Path")
+    py::class_<fs::u8path>(m, "Path")
         .def(py::init<std::string>())
-        .def("__str__", [](fs::path& self) -> std::string { return self.string(); })
+        .def("__str__", [](fs::u8path& self) -> std::string { return self.string(); })
         .def("__repr__",
-             [](fs::path& self) -> std::string
-             { return std::string("fs::path[") + std::string(self) + "]"; });
-    py::implicitly_convertible<std::string, fs::path>();
+             [](fs::u8path& self) -> std::string
+             { return fmt::format("fs::u8path[{}]", self.string()); });
+    py::implicitly_convertible<std::string, fs::u8path>();
 
-    py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::path>());
+    py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::u8path>());
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
 
@@ -72,7 +73,7 @@ PYBIND11_MODULE(bindings, m)
         .def("id2pkginfo", &MPool::id2pkginfo, py::arg("id"));
 
     py::class_<MultiPackageCache>(m, "MultiPackageCache")
-        .def(py::init<std::vector<fs::path>>())
+        .def(py::init<std::vector<fs::u8path>>())
         .def("get_tarball_path", &MultiPackageCache::get_tarball_path)
         .def_property_readonly("first_writable_path", &MultiPackageCache::first_writable_path);
 
@@ -164,7 +165,7 @@ PYBIND11_MODULE(bindings, m)
         .def("dep", &MSolverProblem::dep);
 
     py::class_<History>(m, "History")
-        .def(py::init<const fs::path&>())
+        .def(py::init<const fs::u8path&>())
         .def("get_requested_specs_map", &History::get_requested_specs_map);
 
     py::class_<MatchSpec>(m, "MatchSpec")
@@ -315,6 +316,7 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("always_yes", &Context::always_yes)
         .def_readwrite("dry_run", &Context::dry_run)
         .def_readwrite("ssl_verify", &Context::ssl_verify)
+        .def_readwrite("proxy_servers", &Context::proxy_servers)
         .def_readwrite("max_retries", &Context::max_retries)
         .def_readwrite("retry_timeout", &Context::retry_timeout)
         .def_readwrite("retry_backoff", &Context::retry_backoff)
@@ -340,7 +342,7 @@ PYBIND11_MODULE(bindings, m)
 
     py::class_<PrefixData>(m, "PrefixData")
         .def(py::init(
-            [](const fs::path& prefix_path) -> PrefixData
+            [](const fs::u8path& prefix_path) -> PrefixData
             {
                 auto sres = PrefixData::create(prefix_path);
                 if (sres.has_value())

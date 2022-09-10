@@ -34,7 +34,7 @@ namespace mamba
         {
         protected:
             std::unique_ptr<TemporaryDirectory> p_tempdir;
-            fs::path tempdir_path;
+            fs::u8path tempdir_path;
 
             LockDirTest()
             {
@@ -101,7 +101,7 @@ namespace mamba
                 EXPECT_LOCKED(lock);
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path() };
+                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -119,7 +119,7 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempdir_path };
+                args = { lock_cli, "lock", "--timeout=1", tempdir_path.string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -140,10 +140,10 @@ namespace mamba
                 EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
             }
 
-            fs::path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
+            fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path };
+            args = { lock_cli, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
             reproc::run(
@@ -164,7 +164,7 @@ namespace mamba
         {
         protected:
             std::unique_ptr<TemporaryFile> p_tempfile;
-            fs::path tempfile_path;
+            fs::u8path tempfile_path;
 
             LockFileTest()
             {
@@ -218,7 +218,7 @@ namespace mamba
                 EXPECT_LOCKED(lock);
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path() };
+                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -236,7 +236,7 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempfile_path };
+                args = { lock_cli, "lock", "--timeout=1", tempfile_path.string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -257,10 +257,10 @@ namespace mamba
                 EXPECT_EQ(mamba::LockFile::read_pid(lock.fd()), pid);
             }
 
-            fs::path lock_path = tempfile_path.string() + ".lock";
+            fs::u8path lock_path = tempfile_path.string() + ".lock";
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path };
+            args = { lock_cli, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
             reproc::run(

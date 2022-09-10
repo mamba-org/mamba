@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "graph_util.hpp"
-#include "package_info.hpp"
-#include "pool.hpp"
+#include "mamba/core/graph_util.hpp"
+#include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
 
 extern "C"
 {
@@ -67,7 +67,7 @@ namespace mamba
     class query_result
     {
     public:
-        using dependency_graph = graph<PackageInfo>;
+        using dependency_graph = DiGraph<PackageInfo>;
         using package_list = dependency_graph::node_list;
         using package_view_list = std::vector<package_list::const_iterator>;
 

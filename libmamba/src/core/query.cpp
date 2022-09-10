@@ -328,7 +328,7 @@ namespace mamba
         : m_type(type)
         , m_query(query)
         , m_dep_graph(std::move(dep_graph))
-        , m_pkg_view_list(m_dep_graph.get_node_list().size())
+        , m_pkg_view_list(m_dep_graph.number_of_nodes())
         , m_ordered_pkg_list()
     {
         reset_pkg_view_list();
@@ -342,10 +342,8 @@ namespace mamba
         , m_ordered_pkg_list()
     {
         using std::swap;
-        auto offset_lbd = [&rhs, this](auto iter) {
-            return m_dep_graph.get_node_list().begin()
-                   + (iter - rhs.m_dep_graph.get_node_list().begin());
-        };
+        auto offset_lbd = [&rhs, this](auto iter)
+        { return m_dep_graph.nodes().begin() + (iter - rhs.m_dep_graph.nodes().begin()); };
 
         {
             package_view_list tmp(rhs.m_pkg_view_list.size());
@@ -553,7 +551,7 @@ namespace mamba
         void start_node(node_id node, const graph_type& g)
         {
             print_prefix(node);
-            m_out << get_package_repr(g.get_node_list()[node]) << '\n';
+            m_out << get_package_repr(g.nodes()[node]) << '\n';
             if (node == 0u)
             {
                 m_prefix_stack.push_back("  ");
@@ -575,7 +573,7 @@ namespace mamba
 
         void start_edge(node_id from, node_id to, const graph_type& g)
         {
-            m_is_last = g.get_edge_list(from).back() == to;
+            m_is_last = g.successors(from).back() == to;
             if (m_is_last)
             {
                 m_last_stack.push(to);
@@ -591,8 +589,7 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << concat("\033[2m", g.get_node_list()[to].name, " already visited", "\033[00m")
-                  << '\n';
+            m_out << concat("\033[2m", g.nodes()[to].name, " already visited", "\033[00m") << '\n';
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)
@@ -634,8 +631,7 @@ namespace mamba
 
     std::ostream& query_result::tree(std::ostream& out) const
     {
-        bool use_graph
-            = !m_dep_graph.get_node_list().empty() && !m_dep_graph.get_edge_list(0).empty();
+        bool use_graph = (m_dep_graph.number_of_nodes() > 0) && !m_dep_graph.successors(0).empty();
         if (use_graph)
         {
             graph_printer printer(out);
@@ -686,17 +682,17 @@ namespace mamba
 
         if (m_type != QueryType::kSEARCH && !m_pkg_view_list.empty())
         {
-            bool has_root = !m_dep_graph.get_edge_list(0).empty();
+            bool has_root = !m_dep_graph.successors(0).empty();
             j["result"]["graph_roots"] = nlohmann::json::array();
-            j["result"]["graph_roots"].push_back(
-                has_root ? m_dep_graph.get_node_list()[0].json_record() : nlohmann::json(m_query));
+            j["result"]["graph_roots"].push_back(has_root ? m_dep_graph.nodes()[0].json_record()
+                                                          : nlohmann::json(m_query));
         }
         return j;
     }
 
     void query_result::reset_pkg_view_list()
     {
-        auto it = m_dep_graph.get_node_list().begin();
+        auto it = m_dep_graph.nodes().begin();
         std::generate(m_pkg_view_list.begin(), m_pkg_view_list.end(), [&it]() { return it++; });
     }
 

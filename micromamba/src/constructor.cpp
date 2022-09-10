@@ -23,11 +23,11 @@ init_constructor_parser(CLI::App* subcom)
 {
     auto& config = Configuration::instance();
 
-    auto& prefix = config.insert(Configurable("constructor_prefix", fs::path(""))
+    auto& prefix = config.insert(Configurable("constructor_prefix", fs::u8path(""))
                                      .group("cli")
                                      .description("Extract the conda pkgs in <prefix>/pkgs"));
 
-    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::path>(), prefix.description());
+    subcom->add_option("-p,--prefix", prefix.get_cli_config<fs::u8path>(), prefix.description());
 
     auto& extract_conda_pkgs
         = config.insert(Configurable("constructor_extract_conda_pkgs", false)
@@ -54,7 +54,7 @@ set_constructor_command(CLI::App* subcom)
         {
             auto& c = Configuration::instance();
 
-            auto& prefix = c.at("constructor_prefix").compute().value<fs::path>();
+            auto& prefix = c.at("constructor_prefix").compute().value<fs::u8path>();
             auto& extract_conda_pkgs
                 = c.at("constructor_extract_conda_pkgs").compute().value<bool>();
             auto& extract_tarball = c.at("constructor_extract_tarball").compute().value<bool>();
@@ -65,7 +65,7 @@ set_constructor_command(CLI::App* subcom)
 
 
 void
-construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
+construct(const fs::u8path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 {
     auto& config = Configuration::instance();
 
@@ -99,22 +99,21 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
             LOG_WARNING << "Could not find entry in repodata cache for " << fn;
             return {};
         };
-
-        fs::path pkgs_dir = prefix / "pkgs";
-        fs::path urls_file = pkgs_dir / "urls";
+        fs::u8path pkgs_dir = prefix / "pkgs";
+        fs::u8path urls_file = pkgs_dir / "urls";
 
         auto [package_details, _] = detail::parse_urls_to_package_info(read_lines(urls_file));
 
         for (const auto& pkg_info : package_details)
         {
-            fs::path entry = pkgs_dir / pkg_info.fn;
+            fs::u8path entry = pkgs_dir / pkg_info.fn;
             LOG_TRACE << "Extracting " << pkg_info.fn << std::endl;
             std::cout << "Extracting " << pkg_info.fn << std::endl;
 
-            fs::path base_path = extract(entry);
+            fs::u8path base_path = extract(entry);
 
-            fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
-            fs::path index_path = base_path / "info" / "index.json";
+            fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
+            fs::u8path index_path = base_path / "info" / "index.json";
 
             std::string channel_url;
             if (pkg_info.url.size() > pkg_info.fn.size())
@@ -122,7 +121,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
                 channel_url = pkg_info.url.substr(0, pkg_info.url.size() - pkg_info.fn.size());
             }
             std::string repodata_cache_name = concat(cache_name_from_url(channel_url), ".json");
-            fs::path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
+            fs::u8path repodata_location = pkgs_dir / "cache" / repodata_cache_name;
 
             nlohmann::json repodata_record;
             if (fs::exists(repodata_location))
@@ -139,7 +138,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
             }
 
             nlohmann::json index;
-            std::ifstream index_file(index_path);
+            std::ifstream index_file{ index_path.std_path() };
             index_file >> index;
 
             if (!repodata_record.is_null())
@@ -175,14 +174,14 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
             }
 
             LOG_TRACE << "Writing " << repodata_record_path;
-            std::ofstream repodata_record_of(repodata_record_path);
+            std::ofstream repodata_record_of{ repodata_record_path.std_path() };
             repodata_record_of << repodata_record.dump(4);
         }
     }
 
     if (extract_tarball)
     {
-        fs::path extract_tarball_path = prefix / "_tmp.tar.bz2";
+        fs::u8path extract_tarball_path = prefix / "_tmp.tar.bz2";
         read_binary_from_stdin_and_write_to_file(extract_tarball_path);
         extract_archive(extract_tarball_path, prefix);
         fs::remove(extract_tarball_path);
@@ -191,7 +190,7 @@ construct(const fs::path& prefix, bool extract_conda_pkgs, bool extract_tarball)
 
 
 void
-read_binary_from_stdin_and_write_to_file(fs::path& filename)
+read_binary_from_stdin_and_write_to_file(fs::u8path& filename)
 {
     std::ofstream out_stream = open_ofstream(filename, std::ofstream::binary);
     // Need to reopen stdin as binary

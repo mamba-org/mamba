@@ -19,7 +19,7 @@ namespace mamba
     {
         try
         {
-            dist_str = strip_package_extension(dist_str);
+            dist_str = strip_package_extension(dist_str).string();
         }
         catch (...)
         {
@@ -84,7 +84,7 @@ namespace mamba
             if (!has_scheme(spec_str))
             {
                 LOG_INFO << "need to expand path!";
-                spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)));
+                spec_str = path_to_url(fs::absolute(env::expand_user(spec_str)).string());
             }
             auto& parsed_channel = make_channel(spec_str);
 

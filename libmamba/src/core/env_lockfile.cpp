@@ -149,14 +149,14 @@ namespace mamba
     }
 
     tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
-        const fs::path& lockfile_location)
+        const fs::u8path& lockfile_location)
     {
         const auto file_path = fs::absolute(
             lockfile_location);  // Having the complete path helps with logging and error reports.
         try
         {
             // TODO: add fields validation here (using some schema validation tool)
-            const YAML::Node lockfile_content = YAML::LoadFile(file_path);
+            const YAML::Node lockfile_content = YAML::LoadFile(file_path.string());
             const auto lockfile_version = lockfile_content["version"].as<int>();
             switch (lockfile_version)
             {

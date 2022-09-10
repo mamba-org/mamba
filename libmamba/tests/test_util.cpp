@@ -7,6 +7,8 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/context.hpp"
+
 
 namespace mamba
 {
@@ -69,24 +71,24 @@ namespace mamba
         EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
         EXPECT_TRUE(is_yaml_file_name("../../some/dir/something.yml"));
 
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "something-lock.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "/some/dir/something.yml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yaml" }.string()));
-        EXPECT_TRUE(is_yaml_file_name(fs::path{ "../../some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something-lock.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "something-lock.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "/some/dir/something.yml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yaml" }.string()));
+        EXPECT_TRUE(is_yaml_file_name(fs::u8path{ "../../some/dir/something.yml" }.string()));
 
         EXPECT_FALSE(is_yaml_file_name("something"));
         EXPECT_FALSE(is_yaml_file_name("something-lock"));
         EXPECT_FALSE(is_yaml_file_name("/some/dir/something"));
         EXPECT_FALSE(is_yaml_file_name("../../some/dir/something"));
 
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "something-lock" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "/some/dir/something" }.string()));
-        EXPECT_FALSE(is_yaml_file_name(fs::path{ "../../some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "something-lock" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "/some/dir/something" }.string()));
+        EXPECT_FALSE(is_yaml_file_name(fs::u8path{ "../../some/dir/something" }.string()));
     }
 
     TEST(utils, encode_decode_base64)
@@ -128,11 +130,7 @@ namespace mamba
         {
             const auto existing_file_path = test_dir_path / "existing-writable-test-delete-me.txt";
             {
-#ifdef _WIN32
-                std::ofstream temp_file{ existing_file_path.wstring() };
-#else
-                std::ofstream temp_file{ existing_file_path };
-#endif
+                std::ofstream temp_file{ existing_file_path.std_path() };
                 ASSERT_TRUE(temp_file.is_open());
                 temp_file << "delete me" << std::endl;
             }
@@ -142,5 +140,33 @@ namespace mamba
             fs::permissions(existing_file_path, fs::perms::all);
             EXPECT_TRUE(path::is_writable(existing_file_path));
         }
+    }
+
+    TEST(utils, proxy_match)
+    {
+        Context::instance().proxy_servers = { { "http", "foo" },
+                                              { "https", "bar" },
+                                              { "https://example.net", "foobar" },
+                                              { "all://example.net", "baz" },
+                                              { "all", "other" } };
+
+        EXPECT_EQ(*proxy_match("http://example.com/channel"), "foo");
+        EXPECT_EQ(*proxy_match("http://example.net/channel"), "foo");
+        EXPECT_EQ(*proxy_match("https://example.com/channel"), "bar");
+        EXPECT_EQ(*proxy_match("https://example.com:8080/channel"), "bar");
+        EXPECT_EQ(*proxy_match("https://example.net/channel"), "foobar");
+        EXPECT_EQ(*proxy_match("ftp://example.net/channel"), "baz");
+        EXPECT_EQ(*proxy_match("ftp://example.org"), "other");
+
+        Context::instance().proxy_servers = { { "http", "foo" },
+                                              { "https", "bar" },
+                                              { "https://example.net", "foobar" },
+                                              { "all://example.net", "baz" } };
+
+        EXPECT_FALSE(proxy_match("ftp://example.org").has_value());
+
+        Context::instance().proxy_servers = {};
+
+        EXPECT_FALSE(proxy_match("http://example.com/channel").has_value());
     }
 }

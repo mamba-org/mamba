@@ -88,10 +88,10 @@ namespace mamba
         m_has_progress_bars = !(ctx.no_progress_bars || ctx.quiet || ctx.json);
     }
 
-    void PackageDownloadExtractTarget::write_repodata_record(const fs::path& base_path)
+    void PackageDownloadExtractTarget::write_repodata_record(const fs::u8path& base_path)
     {
-        fs::path repodata_record_path = base_path / "info" / "repodata_record.json";
-        fs::path index_path = base_path / "info" / "index.json";
+        fs::u8path repodata_record_path = base_path / "info" / "repodata_record.json";
+        fs::u8path index_path = base_path / "info" / "index.json";
 
         nlohmann::json index, solvable_json;
         std::ifstream index_file = open_ifstream(index_path);
@@ -105,7 +105,7 @@ namespace mamba
             index["size"] = fs::file_size(m_tarball_path);
         }
 
-        std::ofstream repodata_record(repodata_record_path);
+        std::ofstream repodata_record(repodata_record_path.std_path());
         repodata_record << index.dump(4);
     }
 
@@ -113,7 +113,8 @@ namespace mamba
     void PackageDownloadExtractTarget::add_url()
     {
         std::lock_guard<std::mutex> lock(urls_txt_mutex);
-        std::ofstream urls_txt(m_cache_path / "urls.txt", std::ios::app);
+        const auto urls_file_path = m_cache_path / "urls.txt";
+        std::ofstream urls_txt(urls_file_path.std_path(), std::ios::app);
         urls_txt << m_url << std::endl;
     }
 
@@ -207,7 +208,7 @@ namespace mamba
             std::lock_guard<counting_semaphore> lock(DownloadExtractSemaphore::semaphore);
             interruption_point();
             LOG_DEBUG << "Decompressing '" << m_tarball_path.string() << "'";
-            fs::path extract_path;
+            fs::u8path extract_path;
             try
             {
                 std::string fn = m_filename;
@@ -226,7 +227,7 @@ namespace mamba
                 {
                     LOG_DEBUG << "Removing '" << extract_path.string()
                               << "' before extracting it again";
-                    remove_all(extract_path);
+                    fs::remove_all(extract_path);
                 }
 
                 // Use non-subproc version if concurrency is disabled to avoid
@@ -341,7 +342,7 @@ namespace mamba
     void PackageDownloadExtractTarget::clear_cache() const
     {
         fs::remove_all(m_tarball_path);
-        fs::path dest_dir = strip_package_extension(m_tarball_path);
+        fs::u8path dest_dir = strip_package_extension(m_tarball_path.string());
         if (fs::exists(dest_dir))
         {
             fs::remove_all(dest_dir);
@@ -366,11 +367,11 @@ namespace mamba
         // 2. If there is valid tarball, extract it, otherwise next.
         // 3. Run the full download pipeline.
 
-        fs::path extracted_cache = caches.get_extracted_dir_path(m_package_info);
+        fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
 
         if (extracted_cache.empty())
         {
-            fs::path tarball_cache = caches.get_tarball_path(m_package_info);
+            fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
             // Compute the first writable cache and clean its status for the current package
             caches.first_writable_cache(true).clear_query_cache(m_package_info);
             m_cache_path = caches.first_writable_path();
@@ -402,7 +403,7 @@ namespace mamba
                 LOG_DEBUG << "Adding '" << m_name << "' to download targets from '" << m_url << "'";
 
                 m_tarball_path = m_cache_path / m_filename;
-                m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path);
+                m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path.string());
                 m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback,
                                                 this);
                 m_target->set_expected_size(m_expected_size);
@@ -533,7 +534,8 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
@@ -623,7 +625,8 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX", Context::instance().target_prefix } });
+            Console::instance().json_write(
+                { { "PREFIX", Context::instance().target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
@@ -907,7 +910,7 @@ namespace mamba
         if (!empty())
             Console::instance().json_up();
         Console::instance().json_write(
-            { { "dry_run", ctx.dry_run }, { "prefix", ctx.target_prefix } });
+            { { "dry_run", ctx.dry_run }, { "prefix", ctx.target_prefix.string() } });
         if (empty())
             Console::instance().json_write(
                 { { "message", "All requested packages already installed" } });
@@ -954,11 +957,11 @@ namespace mamba
                         << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
 
                     PackageInfo package_to_unlink(s);
-                    const fs::path ul_cache_path(
+                    const fs::u8path ul_cache_path(
                         m_multi_cache.get_extracted_dir_path(package_to_unlink));
 
                     PackageInfo package_to_link(s2);
-                    const fs::path l_cache_path(
+                    const fs::u8path l_cache_path(
                         m_multi_cache.get_extracted_dir_path(package_to_link, false));
 
                     UnlinkPackage up(package_to_unlink, ul_cache_path, &m_transaction_context);
@@ -978,7 +981,7 @@ namespace mamba
                 {
                     PackageInfo package_info(s);
                     Console::stream() << "Unlinking " << package_info.str();
-                    const fs::path cache_path(m_multi_cache.get_extracted_dir_path(package_info));
+                    const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(package_info));
                     UnlinkPackage up(package_info, cache_path, &m_transaction_context);
                     up.execute();
                     rollback.record(up);
@@ -987,14 +990,14 @@ namespace mamba
                 }
                 case SOLVER_TRANSACTION_INSTALL:
                 {
-                    PackageInfo pacakge_info(s);
-                    Console::stream() << "Linking " << pacakge_info.str();
-                    const fs::path cache_path(
-                        m_multi_cache.get_extracted_dir_path(pacakge_info, false));
-                    LinkPackage lp(pacakge_info, cache_path, &m_transaction_context);
+                    PackageInfo package_info(s);
+                    Console::stream() << "Linking " << package_info.str();
+                    const fs::u8path cache_path(
+                        m_multi_cache.get_extracted_dir_path(package_info, false));
+                    LinkPackage lp(package_info, cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);
-                    m_history_entry.link_dists.push_back(pacakge_info.long_str());
+                    m_history_entry.link_dists.push_back(package_info.long_str());
                     break;
                 }
                 case SOLVER_TRANSACTION_IGNORE:
@@ -1556,7 +1559,7 @@ namespace mamba
     }
 
     MTransaction create_explicit_transaction_from_lockfile(MPool& pool,
-                                                           const fs::path& env_lockfile_path,
+                                                           const fs::u8path& env_lockfile_path,
                                                            MultiPackageCache& package_caches)
     {
         const auto maybe_lockfile = read_environment_lockfile(env_lockfile_path);

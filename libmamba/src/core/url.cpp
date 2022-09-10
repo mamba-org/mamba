@@ -79,7 +79,7 @@ namespace mamba
             return path;
         }
 
-        fs::path tmp_path = fs::path(path);
+        fs::u8path tmp_path = fs::u8path(path);
         std::string abs_path = fs::absolute(tmp_path).string();
 
         // TODO: handle percent encoding
@@ -182,11 +182,7 @@ namespace mamba
             copy = std::regex_replace(copy, Context::instance().token_regex, "/t/*****");
         }
 
-        if (contains(str, "://"))
-        {
-            copy = std::regex_replace(
-                copy, Context::instance().http_basicauth_regex, "://$1:*****@");
-        }
+        copy = std::regex_replace(copy, Context::instance().http_basicauth_regex, "$1$2:*****@");
 
         return copy;
     }

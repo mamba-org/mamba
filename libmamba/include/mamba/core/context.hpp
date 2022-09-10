@@ -105,8 +105,8 @@ namespace mamba
 
     class Logger;
 
-    std::string env_name(const fs::path& prefix);
-    fs::path locate_prefix_by_name(const std::string& name);
+    std::string env_name(const fs::u8path& prefix);
+    fs::u8path locate_prefix_by_name(const std::string& name);
 
     // Context singleton class
     class Context
@@ -120,14 +120,14 @@ namespace mamba
         bool experimental = false;
         bool debug = false;
 
-        fs::path target_prefix;
-        fs::path root_prefix;
-        fs::path conda_prefix;
+        fs::u8path target_prefix;
+        fs::u8path root_prefix;
+        fs::u8path conda_prefix;
 
         // TODO check writable and add other potential dirs
-        std::vector<fs::path> envs_dirs;
-        std::vector<fs::path> pkgs_dirs;
-        std::optional<fs::path> env_lockfile;
+        std::vector<fs::u8path> envs_dirs;
+        std::vector<fs::u8path> pkgs_dirs;
+        std::optional<fs::u8path> env_lockfile;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header
@@ -187,6 +187,7 @@ namespace mamba
         int retry_backoff = 3;  // retry_timeout * retry_backoff
         int max_retries = 3;    // max number of retries
 
+        std::map<std::string, std::string> proxy_servers;
         // ssl verify can be either an empty string (regular SSL verification),
         // the string "<false>" to indicate no SSL verification, or a path to
         // a directory with cert files, or a cert file.
@@ -224,7 +225,7 @@ namespace mamba
 
         std::string channel_alias = "https://conda.anaconda.org";
         std::map<std::string, AuthenticationInfo>& authentication_info();
-        std::vector<fs::path> token_locations{ "~/.continuum/anaconda-client/tokens" };
+        std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 
         bool override_channels_enabled = true;
 
@@ -237,7 +238,7 @@ namespace mamba
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters
         const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
-        const std::regex http_basicauth_regex{ "://([^\\s]+):([^\\s]+)@" };
+        const std::regex http_basicauth_regex{ "(://|^)([^\\s]+):([^\\s]+)@" };
         const std::regex scheme_regex{ "[a-z][a-z0-9]{0,11}://" };
 
         static Context& instance();

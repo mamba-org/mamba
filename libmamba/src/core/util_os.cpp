@@ -30,7 +30,7 @@ namespace mamba
 {
     // Heavily inspired by https://github.com/gpakosz/whereami/
     // check their source to add support for other OS
-    fs::path get_self_exe_path()
+    fs::u8path get_self_exe_path()
     {
 #ifdef _WIN32
         DWORD size;
@@ -298,7 +298,7 @@ namespace mamba
             return "";
         }
 
-        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)-.*");
+        std::regex re("([0-9]+\\.[0-9]+\\.[0-9]+)(?:-.*)?");
         std::smatch m;
 
         if (std::regex_search(out, m, re))
@@ -310,6 +310,8 @@ namespace mamba
                 return linux_version.str();
             }
         }
+
+        LOG_DEBUG << "Could not parse linux version";
 
         return "";
     }

@@ -19,6 +19,7 @@ endif ()
 
 pybind11_add_module(bindings
     src/main.cpp
+    longpath.manifest
 )
 target_link_libraries(bindings PUBLIC pybind11::pybind11 libmamba)
 set_property(TARGET bindings PROPERTY CXX_STANDARD 17)

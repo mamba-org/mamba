@@ -13,6 +13,21 @@ from .helpers import *
 
 source_dir_path = os.path.dirname(os.path.realpath(__file__))
 
+this_source_file_dir_path = Path(__file__).parent.resolve()
+
+test_env_requires_pip_install_path = os.path.join(
+    this_source_file_dir_path, "env-requires-pip-install.yaml"
+)
+
+test_env_requires_pip_install_path_with_whitespaces = os.path.join(
+    this_source_file_dir_path, "env-requires-pip-install-with-spaces.yaml"
+)
+
+test_envs = [
+    test_env_requires_pip_install_path,
+    test_env_requires_pip_install_path_with_whitespaces,
+]
+
 
 class TestCreate:
 
@@ -31,6 +46,11 @@ class TestCreate:
     test_lockfile_path = os.path.realpath(
         os.path.join(source_dir_path, "test_env-lock.yaml")
     )
+
+    def test_env_lockfile_step_path(step_number):
+        return os.path.join(
+            source_dir_path, f"envlockfile-check-step-{step_number}-lock.yaml"
+        )
 
     @classmethod
     def setup_class(cls):
@@ -144,6 +164,25 @@ class TestCreate:
             package["name"] == "zlib" and package["version"] == "1.2.11"
             for package in packages
         )
+
+    def test_env_lockfile_different_install_after_create(self):
+        cmd_prefix = ["-p", TestCreate.prefix]
+        create_spec_file = (
+            os.path.join(TestCreate.spec_files_location, "env-create") + "-lock.yaml"
+        )
+        shutil.copyfile(TestCreate.test_env_lockfile_step_path(1), create_spec_file)
+        assert os.path.exists(create_spec_file)
+
+        install_spec_file = (
+            os.path.join(TestCreate.spec_files_location, "env-install") + "-lock.yaml"
+        )
+        shutil.copyfile(TestCreate.test_env_lockfile_step_path(2), install_spec_file)
+        assert os.path.exists(install_spec_file)
+
+        res = create(*cmd_prefix, "-f", create_spec_file, "-y", "--json")
+        assert res["success"] == True
+
+        install(*cmd_prefix, "-f", install_spec_file, "-y", "--json")  # Must not crash
 
     @pytest.mark.parametrize("root_prefix", (None, "env_var", "cli"))
     @pytest.mark.parametrize("target_is_root", (False, True))
@@ -641,3 +680,15 @@ class TestCreate:
         create(*cmd)
         assert (site_packages / pyc_fn).exists()
         assert pyc_fn.name in six_meta
+
+    @pytest.mark.parametrize("env_file", test_envs)
+    def test_requires_pip_install(self, env_file):
+        prefix = Path(TestCreate.prefix)
+        cmd = ["-p", f"{prefix}", "-f", env_file]
+        create(*cmd)
+
+    @pytest.mark.parametrize("env_file", test_envs)
+    def test_requires_pip_install_prefix_spaces(self, env_file):
+        prefix = Path(f"{TestCreate.prefix} with space")
+        cmd = ["-p", f"{prefix}", "-f", env_file]
+        create(*cmd)

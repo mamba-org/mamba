@@ -8,11 +8,14 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   libmamba_static:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -23,7 +26,6 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -40,7 +42,8 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja
           ninja
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -52,7 +55,6 @@ jobs:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -63,7 +65,6 @@ jobs:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -84,7 +85,8 @@ jobs:
                    -GNinja
           ninja testing_libmamba_lock
           ninja test
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -96,7 +98,6 @@ jobs:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
@@ -107,7 +108,6 @@ jobs:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -127,7 +127,8 @@ jobs:
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja
           ninja
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: install zsh, xonsh and fish in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
@@ -155,7 +156,6 @@ jobs:
     needs: [libmamba_static]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         python_version: ["3.8"]
@@ -168,7 +168,6 @@ jobs:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
           cache-env: true
-          micromamba-version: "0.23.0"
           extra-specs: |
             conda-build
             python=${{ matrix.python_version }}
@@ -197,8 +196,13 @@ jobs:
                    -GNinja
           ninja
           ninja install
-          pip install -e ../libmambapy/ --no-deps
-          sccache --show-stats
+      - name: install libmambapy
+        shell: bash -l {0}
+        run: |
+          micromamba activate build_env
+          pip install -e ./libmambapy/ --no-deps
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -260,7 +264,6 @@ jobs:
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
 
@@ -271,7 +274,6 @@ jobs:
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -281,16 +283,21 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA=ON ^
                    -DBUILD_STATIC=ON ^
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -302,7 +309,6 @@ jobs:
     needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -314,7 +320,6 @@ jobs:
         with:
           environment-file: ./mamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
           extra-specs: |
             conda-build
@@ -332,8 +337,11 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBAPY=ON ^
                    -DBUILD_LIBMAMBA=ON ^
@@ -342,10 +350,17 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
-          pip install -e ..\libmambapy\ --no-deps
-          sccache --show-stats
+      - name: install libmambapy
+        shell: cmd /C call {0}
+        run: |
+          call micromamba activate build_env
+          pip install -e .\libmambapy\ --no-deps
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: install mamba
         shell: bash -l {0}
         run: |
@@ -393,7 +408,6 @@ jobs:
     needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -405,7 +419,6 @@ jobs:
         with:
           environment-file: ./libmamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -417,8 +430,11 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_LIBMAMBA_TESTS=ON ^
                    -DBUILD_LIBMAMBA=ON ^
@@ -426,9 +442,12 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja test
-          sccache --show-stats
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Cleanup
         shell: bash -l {0}
         if: always()
@@ -440,7 +459,6 @@ jobs:
     needs: [libmamba_static_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -452,7 +470,6 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -464,8 +481,11 @@ jobs:
         shell: cmd /C call {0}
         run: |
           call micromamba activate build_env
+          if %errorlevel% neq 0 exit /b %errorlevel%
           mkdir build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cd build
+          if %errorlevel% neq 0 exit /b %errorlevel%
           cmake .. -DCMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
                    -DBUILD_MICROMAMBA=ON ^
                    -DMICROMAMBA_LINKAGE=STATIC ^
@@ -474,14 +494,20 @@ jobs:
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache ^
                    -GNinja
+          if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install
-          sccache --show-stats
-          .\micromamba\micromamba.exe --help
+      - name: check that micromamba runs
+        shell: cmd /C call {0}
+        run: |
+          call micromamba activate build_env
+          .\build\micromamba\micromamba.exe --help
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: tar micromamba artifact
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe
       - uses: actions/upload-artifact@v2
         with:
-          name: micromamba_binary
+          name: _internal_micromamba_binary
           path: umamba.tar
       - name: Cleanup
         shell: bash -l {0}
@@ -494,7 +520,6 @@ jobs:
     needs: [umamba_tests_win]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [windows-latest]
         python-version: ["3.7"]
@@ -503,7 +528,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v2
         with:
-          name: micromamba_binary
+          name: _internal_micromamba_binary
 
       - name: untar micromamba artifact
         shell: bash -l -eo pipefail {0}
@@ -515,7 +540,6 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          micromamba-version: "0.23.0"
           extra-specs: menuinst
 
       - name: micromamba python based tests with pwsh
@@ -530,10 +554,15 @@ jobs:
       # - name: micromamba python based tests
       #   shell: cmd /C call {0}
       #   run: |
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     set PYTHONIOENCODING=UTF-8
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     set MAMBA_ROOT_PREFIX=%cd%\mambaroot
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     set MAMBA_TEST_SHELL_TYPE=cmd.exe
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #     reg delete "HKEY_CURRENT_USER\Software\Microsoft\Command Processor" /v AutoRun /f
+      #     if %errorlevel% neq 0 exit /b %errorlevel%
       #
       #     pytest -v --capture=tee-sys micromamba/tests/test_shell.py
 
@@ -552,47 +581,3 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf $(micromamba info --json | jq -r '."env location"')/envs
-
-  micromamba_full_static:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]  # Windows: missing yaml-cpp-static
-    steps:
-      - uses: actions/checkout@v3
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
-          cache-env: true
-          micromamba-version: "0.23.0"
-      - name: create build environment
-        run: micromamba install -y -n build_env -f ./libmamba/environment-static-dev.yml
-      - uses: hendrikmuhs/ccache-action@main
-        with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-      - name: build micromamba
-        shell: bash -l {0}
-        run: |
-          micromamba activate build_env
-          mkdir build
-          cd build
-          cmake .. -DBUILD_LIBMAMBA=ON \
-                   -DBUILD_STATIC_DEPS=ON \
-                   -DBUILD_STATIC=ON \
-                   -DBUILD_MICROMAMBA=ON \
-                   -DMICROMAMBA_STATIC_DEPS=ON \
-                   -DMICROMAMBA_LINKAGE=FULL_STATIC \
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                   -GNinja
-          ninja
-          sccache --show-stats
-          micromamba/micromamba --version
-      - uses: actions/upload-artifact@v3
-        with:
-          name: micromamba_fully_static_binary
-          path: build/micromamba/micromamba

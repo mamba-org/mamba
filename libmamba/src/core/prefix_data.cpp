@@ -18,7 +18,7 @@ extern "C"
 
 namespace mamba
 {
-    auto PrefixData::create(const fs::path& prefix_path) -> expected_t<PrefixData>
+    auto PrefixData::create(const fs::u8path& prefix_path) -> expected_t<PrefixData>
     {
         try
         {
@@ -31,13 +31,13 @@ namespace mamba
         }
         catch (...)
         {
-            return tl::make_unexpected(mamba_error("Unkown error when trying to load prefix data "
-                                                       + std::string(prefix_path),
-                                                   mamba_error_code::unknown));
+            return tl::make_unexpected(
+                mamba_error("Unkown error when trying to load prefix data " + prefix_path.string(),
+                            mamba_error_code::unknown));
         }
     }
 
-    PrefixData::PrefixData(const fs::path& prefix_path)
+    PrefixData::PrefixData(const fs::u8path& prefix_path)
         : m_history(prefix_path)
         , m_prefix_path(prefix_path)
     {
@@ -51,7 +51,7 @@ namespace mamba
         {
             for (auto& p : fs::directory_iterator(conda_meta_dir))
             {
-                if (ends_with(p.path().c_str(), ".json"))
+                if (ends_with(p.path().string(), ".json"))
                 {
                     load_single_record(p.path());
                 }
@@ -130,12 +130,12 @@ namespace mamba
         return m_history;
     }
 
-    const fs::path& PrefixData::path() const
+    const fs::u8path& PrefixData::path() const
     {
         return m_prefix_path;
     }
 
-    void PrefixData::load_single_record(const fs::path& path)
+    void PrefixData::load_single_record(const fs::u8path& path)
     {
         LOG_INFO << "Loading single package record: " << path;
         auto infile = open_ifstream(path);

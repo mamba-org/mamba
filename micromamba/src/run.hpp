@@ -9,7 +9,7 @@ namespace mamba
 {
     bool is_process_name_running(const std::string& name);
     std::string generate_unique_process_name(std::string_view program_name);
-    const fs::path& proc_dir();
+    const fs::u8path& proc_dir();
     std::unique_ptr<LockFile> lock_proc_dir();
 
     nlohmann::json get_all_running_processes_info(

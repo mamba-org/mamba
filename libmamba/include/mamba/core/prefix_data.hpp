@@ -21,23 +21,23 @@ namespace mamba
     public:
         using package_map = std::unordered_map<std::string, PackageInfo>;
 
-        static expected_t<PrefixData> create(const fs::path& prefix_path);
+        static expected_t<PrefixData> create(const fs::u8path& prefix_path);
 
         void add_packages(const std::vector<PackageInfo>& packages);
         const package_map& records() const;
-        void load_single_record(const fs::path& path);
+        void load_single_record(const fs::u8path& path);
 
         History& history();
-        const fs::path& path() const;
+        const fs::u8path& path() const;
         std::vector<PackageInfo> sorted_records() const;
 
     private:
-        PrefixData(const fs::path& prefix_path);
+        PrefixData(const fs::u8path& prefix_path);
         void load();
 
         History m_history;
         std::unordered_map<std::string, PackageInfo> m_package_records;
-        fs::path m_prefix_path;
+        fs::u8path m_prefix_path;
     };
 }  // namespace mamba
 

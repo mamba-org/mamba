@@ -90,18 +90,18 @@ namespace mamba
         if (action == "init")
         {
             if (prefix.empty() || prefix == "base")
-                shell_prefix = ctx.root_prefix;
+                shell_prefix = ctx.root_prefix.string();
             else
-                shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
+                shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
 
             init_shell(shell_type, shell_prefix);
         }
         else if (action == "deinit")
         {
             if (prefix.empty() || prefix == "base")
-                shell_prefix = ctx.root_prefix;
+                shell_prefix = ctx.root_prefix.string();
             else
-                shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
+                shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
 
             deinit_shell(shell_type, shell_prefix);
         }
@@ -124,11 +124,11 @@ namespace mamba
         else if (action == "activate")
         {
             if (prefix.empty() || prefix == "base")
-                shell_prefix = ctx.root_prefix;
+                shell_prefix = ctx.root_prefix.string();
             else if (prefix.find_first_of("/\\") == std::string::npos)
-                shell_prefix = ctx.root_prefix / "envs" / prefix;
+                shell_prefix = (ctx.root_prefix / "envs" / prefix).string();
             else
-                shell_prefix = fs::weakly_canonical(env::expand_user(prefix));
+                shell_prefix = fs::weakly_canonical(env::expand_user(prefix)).string();
 
             if (!fs::exists(shell_prefix))
                 throw std::runtime_error("Cannot activate, prefix does not exist at: "

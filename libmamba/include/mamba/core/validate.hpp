@@ -21,11 +21,11 @@ namespace validate
 {
     using nlohmann::json;
 
-    std::string sha256sum(const fs::path& path);
-    std::string md5sum(const fs::path& path);
-    bool sha256(const fs::path& path, const std::string& validation);
-    bool md5(const fs::path& path, const std::string& validation);
-    bool file_size(const fs::path& path, std::uintmax_t validation);
+    std::string sha256sum(const fs::u8path& path);
+    std::string md5sum(const fs::u8path& path);
+    bool sha256(const fs::u8path& path, const std::string& validation);
+    bool md5(const fs::u8path& path, const std::string& validation);
+    bool file_size(const fs::u8path& path, std::uintmax_t validation);
 
     const std::size_t MAMBA_SHA256_SIZE_HEX = 64;
     const std::size_t MAMBA_SHA256_SIZE_BYTES = 32;
@@ -354,7 +354,7 @@ namespace validate
         std::string compatible_prefix() const;
         std::vector<std::string> upgrade_prefix() const;
 
-        bool is_compatible(const fs::path& p) const;
+        bool is_compatible(const fs::u8path& p) const;
         bool is_compatible(const json& j) const;
         bool is_compatible(const std::string& version) const;
 
@@ -410,7 +410,7 @@ namespace validate
         friend void from_json(const json& j, RoleBase* r);
 
     protected:
-        json read_json_file(const fs::path& p, bool update = false) const;
+        json read_json_file(const fs::u8path& p, bool update = false) const;
 
         /**
          * Check that a threshold of valid signatures is met
@@ -467,13 +467,13 @@ namespace validate
     public:
         virtual ~RootRole() = default;
 
-        std::unique_ptr<RootRole> update(fs::path path);
+        std::unique_ptr<RootRole> update(fs::u8path path);
         std::unique_ptr<RootRole> update(json j);
 
-        std::vector<fs::path> possible_update_files();
+        std::vector<fs::u8path> possible_update_files();
 
         virtual std::unique_ptr<RepoIndexChecker> build_index_checker(
-            const std::string& url, const fs::path& cache_path) const = 0;
+            const std::string& url, const fs::u8path& cache_path) const = 0;
 
     protected:
         RootRole(std::shared_ptr<SpecBase> spec);
@@ -492,7 +492,7 @@ namespace validate
     public:
         virtual ~RepoIndexChecker() = default;
         virtual void verify_index(const json& j) const = 0;
-        virtual void verify_index(const fs::path& p) const = 0;
+        virtual void verify_index(const fs::u8path& p) const = 0;
         virtual void verify_package(const json& signed_data, const json& signatures) const = 0;
 
     protected:
@@ -515,31 +515,31 @@ namespace validate
          * @param cache_path Path to the cache directory
          */
         RepoChecker(const std::string& base_url,
-                    const fs::path& ref_path,
-                    const fs::path& cache_path = "");
+                    const fs::u8path& ref_path,
+                    const fs::u8path& cache_path = "");
 
         // Forwarding to a ``RepoIndexChecker`` implementation
         void verify_index(const json& j) const;
-        void verify_index(const fs::path& p) const;
+        void verify_index(const fs::u8path& p) const;
         void verify_package(const json& signed_data, const json& signatures) const;
 
         void generate_index_checker();
 
-        const fs::path& cache_path();
+        const fs::u8path& cache_path();
 
         std::size_t root_version();
 
     private:
         std::string m_base_url;
         std::size_t m_root_version = 0;
-        fs::path m_ref_path;
-        fs::path m_cache_path;
+        fs::u8path m_ref_path;
+        fs::u8path m_cache_path;
 
-        fs::path initial_trusted_root();
-        fs::path ref_root();
-        fs::path cached_root();
+        fs::u8path initial_trusted_root();
+        fs::u8path ref_root();
+        fs::u8path cached_root();
 
-        void persist_file(const fs::path& file_path);
+        void persist_file(const fs::u8path& file_path);
 
         std::unique_ptr<RepoIndexChecker> p_index_checker;
 
@@ -572,13 +572,13 @@ namespace validate
         class RootImpl final : public RootRole
         {
         public:
-            RootImpl(const fs::path& p);
+            RootImpl(const fs::u8path& p);
             RootImpl(const json& j);
 
             RoleFullKeys self_keys() const override;
 
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url, const fs::path& cache_path) const override;
+                const std::string& url, const fs::u8path& cache_path) const override;
 
             friend void to_json(json& j, const RootImpl& r);
             friend void from_json(const json& j, RootImpl& r);
@@ -643,7 +643,7 @@ namespace validate
             , public V06RoleBaseExtension
         {
         public:
-            RootImpl(const fs::path& p);
+            RootImpl(const fs::u8path& p);
             RootImpl(const json& j);
             RootImpl(const std::string& json_str);
 
@@ -652,7 +652,7 @@ namespace validate
              * from repository base URL.
              */
             std::unique_ptr<RepoIndexChecker> build_index_checker(
-                const std::string& url, const fs::path& cache_path) const override;
+                const std::string& url, const fs::u8path& cache_path) const override;
 
             RoleFullKeys self_keys() const override;
 
@@ -661,7 +661,7 @@ namespace validate
                                              const std::string& pk,
                                              const unsigned char* sk) const;
 
-            KeyMgrRole create_key_mgr(const fs::path& p) const;
+            KeyMgrRole create_key_mgr(const fs::u8path& p) const;
             KeyMgrRole create_key_mgr(const json& j) const;
 
             friend void to_json(json& j, const RootImpl& r);
@@ -692,7 +692,7 @@ namespace validate
             , public V06RoleBaseExtension
         {
         public:
-            KeyMgrRole(const fs::path& p,
+            KeyMgrRole(const fs::u8path& p,
                        const RoleFullKeys& keys,
                        const std::shared_ptr<SpecBase> spec);
             KeyMgrRole(const json& j,
@@ -705,15 +705,15 @@ namespace validate
             // std::set<std::string> roles() const override;
             RoleFullKeys self_keys() const override;
 
-            PkgMgrRole create_pkg_mgr(const fs::path& p) const;
+            PkgMgrRole create_pkg_mgr(const fs::u8path& p) const;
             PkgMgrRole create_pkg_mgr(const json& j) const;
 
             /**
              * Return a ``RepoIndexChecker`` implementation (derived class)
              * from repository base URL.
              */
-            std::unique_ptr<RepoIndexChecker> build_index_checker(const std::string& url,
-                                                                  const fs::path& cache_path) const;
+            std::unique_ptr<RepoIndexChecker> build_index_checker(
+                const std::string& url, const fs::u8path& cache_path) const;
 
             friend void to_json(json& j, const KeyMgrRole& r);
             friend void from_json(const json& j, KeyMgrRole& r);
@@ -746,7 +746,7 @@ namespace validate
         {
         public:
             PkgMgrRole(const RoleFullKeys& keys, const std::shared_ptr<SpecBase> spec);
-            PkgMgrRole(const fs::path& p,
+            PkgMgrRole(const fs::u8path& p,
                        const RoleFullKeys& keys,
                        const std::shared_ptr<SpecBase> spec);
             PkgMgrRole(const json& j,
@@ -756,7 +756,7 @@ namespace validate
                        const RoleFullKeys& keys,
                        const std::shared_ptr<SpecBase> spec);
 
-            void verify_index(const fs::path& p) const override;
+            void verify_index(const fs::u8path& p) const override;
             void verify_index(const json& j) const override;
             void verify_package(const json& signed_data, const json& signatures) const override;
 

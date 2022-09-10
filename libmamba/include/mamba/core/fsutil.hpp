@@ -20,20 +20,20 @@ namespace mamba
 {
     namespace path
     {
-        inline bool starts_with_home(const fs::path& p)
+        inline bool starts_with_home(const fs::u8path& p)
         {
-            std::string path = p;
+            std::string path = p.string();
             return path[0] == '~'
                    || starts_with(env::expand_user(path).string(), env::expand_user("~").string());
         }
 
         // TODO more error handling
-        inline void create_directories_sudo_safe(const fs::path& path)
+        inline void create_directories_sudo_safe(const fs::u8path& path)
         {
             if (fs::is_directory(path))
                 return;
 
-            fs::path base_dir = path.parent_path();
+            fs::u8path base_dir = path.parent_path();
             if (!fs::is_directory(base_dir))
             {
                 create_directories_sudo_safe(base_dir);
@@ -48,7 +48,7 @@ namespace mamba
 #endif
         }
 
-        inline bool touch(fs::path path, bool mkdir = false, bool sudo_safe = false)
+        inline bool touch(fs::u8path path, bool mkdir = false, bool sudo_safe = false)
         {
             // TODO error handling!
             path = env::expand_user(path);
@@ -72,12 +72,7 @@ namespace mamba
                     }
                 }
                 // directory exists, now create empty file
-                std::ofstream outfile;
-#if _WIN32
-                outfile.open(path.wstring(), std::ios::out);
-#else
-                outfile.open(path, std::ios::out);
-#endif
+                std::ofstream outfile{ path.std_path(), std::ios::out };
 
                 if (!outfile.good())
                     LOG_INFO << "Could not touch file at " << path;
@@ -96,7 +91,7 @@ namespace mamba
         // - a file name that does not exist but the parent directory in the path exists and we
         //   are able to create a file with that name in that directory for writing.
         // Returns `false` otherwise.
-        inline bool is_writable(const fs::path& path) noexcept
+        inline bool is_writable(const fs::u8path& path) noexcept
         {
             const auto& path_to_write_in = fs::exists(path) ? path : path.parent_path();
 
@@ -120,7 +115,7 @@ namespace mamba
             if (ec)
                 return false;
 
-            const auto test_file_path
+            const auto& test_file_path
                 = is_directory ? path / ".mamba-is-writable-check-delete-me" : path;
             const auto _ = on_scope_exit(
                 [&]
@@ -131,12 +126,8 @@ namespace mamba
                         fs::remove(test_file_path, ec);
                     }
                 });
-#if _WIN32
-            std::ofstream test_file{ test_file_path.wstring(),
+            std::ofstream test_file{ test_file_path.std_path(),
                                      std::ios_base::out | std::ios_base::app };
-#else
-            std::ofstream test_file{ test_file_path, std::ios_base::out | std::ios_base::app };
-#endif
             return test_file.is_open();
         }
 

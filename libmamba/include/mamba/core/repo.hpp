@@ -65,7 +65,7 @@ namespace mamba
         void add_package_info(Repodata*, const PackageInfo& pkg_info);
         void add_pip_as_python_dependency();
 
-        const fs::path& index_file();
+        const fs::u8path& index_file();
 
         Id id() const;
         std::string name() const;
@@ -100,7 +100,7 @@ namespace mamba
          */
         static MRepo& create(MPool& pool,
                              const std::string& name,
-                             const fs::path& filename,
+                             const fs::u8path& filename,
                              const RepoMetadata& meta,
                              const Channel& channel);
 
@@ -129,7 +129,7 @@ namespace mamba
 
         MRepo(MPool& pool,
               const std::string& name,
-              const fs::path& filename,
+              const fs::u8path& filename,
               const RepoMetadata& meta,
               const Channel& channel);
 
@@ -137,9 +137,9 @@ namespace mamba
 
         MRepo(MPool& pool, const std::string& name, const std::vector<PackageInfo>& uris);
 
-        bool read_file(const fs::path& filename);
+        bool read_file(const fs::u8path& filename);
 
-        fs::path m_json_file, m_solv_file;
+        fs::u8path m_json_file, m_solv_file;
         std::string m_url;
 
         RepoMetadata m_metadata;

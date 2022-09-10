@@ -10,7 +10,7 @@ namespace mamba
 {
     namespace detail
     {
-        MRepo& create_repo_from_pkgs_dir(MPool& pool, const fs::path& pkgs_dir)
+        MRepo& create_repo_from_pkgs_dir(MPool& pool, const fs::u8path& pkgs_dir)
         {
             if (!fs::exists(pkgs_dir))
             {
@@ -25,7 +25,7 @@ namespace mamba
             PrefixData& prefix_data = sprefix_data.value();
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
-                fs::path repodata_record_json = entry.path() / "info" / "repodata_record.json";
+                fs::u8path repodata_record_json = entry.path() / "info" / "repodata_record.json";
                 if (!fs::exists(repodata_record_json))
                 {
                     continue;

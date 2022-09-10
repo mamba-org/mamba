@@ -33,13 +33,13 @@ namespace mamba
                        int is_retry = 0);
 
     void install_explicit_specs(const std::vector<std::string>& specs, bool create_env = false);
-    void install_lockfile_specs(const fs::path& lockfile_specs, bool create_env = false);
+    void install_lockfile_specs(const fs::u8path& lockfile_specs, bool create_env = false);
 
     namespace detail
     {
-        void create_target_directory(const fs::path prefix);
+        void create_target_directory(const fs::u8path prefix);
 
-        void create_empty_target(const fs::path& prefix);
+        void create_empty_target(const fs::u8path& prefix);
 
         void file_specs_hook(std::vector<std::string>& file_specs);
 
@@ -65,7 +65,7 @@ namespace mamba
 
         bool eval_selector(const std::string& selector);
 
-        yaml_file_contents read_yaml_file(fs::path yaml_file);
+        yaml_file_contents read_yaml_file(fs::u8path yaml_file);
 
         std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
             const std::vector<std::string>& urls);

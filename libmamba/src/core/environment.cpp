@@ -74,7 +74,7 @@ namespace mamba
 #endif
         }
 
-        fs::path which(const std::string& exe, const std::string& override_path)
+        fs::u8path which(const std::string& exe, const std::string& override_path)
         {
             // TODO maybe add a cache?
             auto env_path = override_path == "" ? env::get("PATH") : override_path;
@@ -82,7 +82,7 @@ namespace mamba
             {
                 std::string path = env_path.value();
                 const auto parts = mamba::split(path, pathsep());
-                const std::vector<fs::path> search_paths(parts.begin(), parts.end());
+                const std::vector<fs::u8path> search_paths(parts.begin(), parts.end());
                 return which(exe, search_paths);
             }
 
@@ -104,7 +104,7 @@ namespace mamba
             return "";  // empty path
         }
 
-        fs::path which(const std::string& exe, const std::vector<fs::path>& search_paths)
+        fs::u8path which(const std::string& exe, const std::vector<fs::u8path>& search_paths)
         {
             for (auto& p : search_paths)
             {
@@ -195,7 +195,7 @@ namespace mamba
 #endif
         }
 
-        fs::path home_directory()
+        fs::u8path home_directory()
         {
 #ifdef _WIN32
             std::string maybe_home = env::get("USERPROFILE").value_or("");
@@ -223,17 +223,17 @@ namespace mamba
             return maybe_home;
         }
 
-        fs::path expand_user(const fs::path& path)
+        fs::u8path expand_user(const fs::u8path& path)
         {
             auto p = path.string();
             if (p[0] == '~')
             {
-                p.replace(0, 1, home_directory());
+                p.replace(0, 1, home_directory().string());
             }
             return p;
         }
 
-        fs::path shrink_user(const fs::path& path)
+        fs::u8path shrink_user(const fs::u8path& path)
         {
             auto p = path.string();
             auto home = home_directory().string();

@@ -6,6 +6,7 @@ find_package(Threads REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
 
 set(TEST_SRCS
+    ../longpath.manifest
     test_activation.cpp
     test_channel.cpp
     test_configuration.cpp
@@ -30,6 +31,7 @@ set(TEST_SRCS
     test_execution.cpp
     test_invoke.cpp
     test_tasksync.cpp
+    test_filesystem.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

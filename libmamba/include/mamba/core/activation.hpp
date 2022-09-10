@@ -31,8 +31,8 @@ namespace mamba
         std::vector<std::string> unset_vars;
         std::vector<std::pair<std::string, std::string>> set_vars;
         std::vector<std::pair<std::string, std::string>> export_vars;
-        std::vector<fs::path> activate_scripts;
-        std::vector<fs::path> deactivate_scripts;
+        std::vector<fs::u8path> activate_scripts;
+        std::vector<fs::u8path> deactivate_scripts;
     };
 
     class Activator
@@ -52,22 +52,23 @@ namespace mamba
         virtual std::string shell_extension() = 0;
         virtual std::string shell() = 0;
 
-        std::vector<fs::path> get_activate_scripts(const fs::path& prefix);
-        std::vector<fs::path> get_deactivate_scripts(const fs::path& prefix);
+        std::vector<fs::u8path> get_activate_scripts(const fs::u8path& prefix);
+        std::vector<fs::u8path> get_deactivate_scripts(const fs::u8path& prefix);
 
-        std::string get_default_env(const fs::path& prefix);
+        std::string get_default_env(const fs::u8path& prefix);
         std::vector<std::pair<std::string, std::string>> get_environment_vars(
-            const fs::path& prefix);
+            const fs::u8path& prefix);
 
-        std::string get_prompt_modifier(const fs::path& prefix,
+        std::string get_prompt_modifier(const fs::u8path& prefix,
                                         const std::string& conda_default_env,
                                         int old_conda_shlvl);
 
-        std::vector<fs::path> get_clean_dirs();
+        std::vector<fs::u8path> get_clean_dirs();
 
-        std::string add_prefix_to_path(const fs::path& prefix, int old_conda_shlvl);
-        std::string replace_prefix_in_path(const fs::path& old_prefix, const fs::path& new_prefix);
-        std::string remove_prefix_from_path(const fs::path& prefix);
+        std::string add_prefix_to_path(const fs::u8path& prefix, int old_conda_shlvl);
+        std::string replace_prefix_in_path(const fs::u8path& old_prefix,
+                                           const fs::u8path& new_prefix);
+        std::string remove_prefix_from_path(const fs::u8path& prefix);
 
         void get_export_unset_vars(
             EnvironmentTransform& envt,
@@ -75,15 +76,15 @@ namespace mamba
 
         EnvironmentTransform build_reactivate();
         EnvironmentTransform build_deactivate();
-        EnvironmentTransform build_activate(const fs::path& prefix);
+        EnvironmentTransform build_activate(const fs::u8path& prefix);
 
-        std::string activate(const fs::path& prefix, bool stack);
+        std::string activate(const fs::u8path& prefix, bool stack);
         std::string reactivate();
         std::string deactivate();
 
         virtual std::string hook_preamble() = 0;
         virtual std::string hook_postamble() = 0;
-        virtual fs::path hook_source_path() = 0;
+        virtual fs::u8path hook_source_path() = 0;
 
         std::string hook();
 
@@ -110,7 +111,7 @@ namespace mamba
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
-        fs::path hook_source_path() override;
+        fs::u8path hook_source_path() override;
     };
 
     class CmdExeActivator : public Activator
@@ -127,7 +128,7 @@ namespace mamba
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
-        fs::path hook_source_path() override;
+        fs::u8path hook_source_path() override;
     };
 
     class PowerShellActivator : public Activator
@@ -144,7 +145,7 @@ namespace mamba
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
-        fs::path hook_source_path() override;
+        fs::u8path hook_source_path() override;
     };
 
     class XonshActivator : public Activator
@@ -161,7 +162,7 @@ namespace mamba
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
-        fs::path hook_source_path() override;
+        fs::u8path hook_source_path() override;
     };
 
     class FishActivator : public Activator
@@ -178,11 +179,11 @@ namespace mamba
 
         std::string hook_preamble() override;
         std::string hook_postamble() override;
-        fs::path hook_source_path() override;
+        fs::u8path hook_source_path() override;
     };
 
 
-    std::vector<fs::path> get_path_dirs(const fs::path& prefix);
+    std::vector<fs::u8path> get_path_dirs(const fs::u8path& prefix);
 
 }  // namespace mamba
 

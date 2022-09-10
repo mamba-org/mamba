@@ -13,7 +13,7 @@
 
 namespace mamba
 {
-    History::History(const fs::path& prefix)
+    History::History(const fs::u8path& prefix)
         : m_prefix(prefix)
         , m_history_file_path(fs::absolute(m_prefix / "conda-meta" / "history"))
     {

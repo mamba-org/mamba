@@ -31,7 +31,7 @@ namespace mamba
                     return false;
                 }(),
                 /* .category = */
-                    package_node["category"] ? package_node["category"].as<std::string>() : "main",
+                package_node["category"] ? package_node["category"].as<std::string>() : "main",
                 /* .manager = */ package_node["manager"].as<std::string>(),
                 /* .platform = */ package_node["platform"].as<std::string>(),
             };

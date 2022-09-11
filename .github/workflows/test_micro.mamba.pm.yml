@@ -39,12 +39,8 @@ jobs:
             curl http://micro.mamba.pm/install.sh | ${{ matrix.shell }}
           fi
       - name: Test Micromamba
-        # remove /home/runner/.local/bin because the micromamba executable is located
-        # there and this would overwrite the micromamba function defined
-        # by the mamba activate block
         # use either -l or -i to source .bash_profile or .bashrc/.zshrc
         run: |
-          export PATH=${PATH/':/home/runner/.local/bin'/}
           ${{ matrix.shell }} ${{ matrix.shell-source-param }} -ec micromamba
       - uses: dblock/create-a-github-issue@2c9fa0d32c24d651281c37d21e5b49e333500fe8
         #if: failure()

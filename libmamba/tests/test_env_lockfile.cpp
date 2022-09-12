@@ -66,6 +66,17 @@ namespace mamba
         EXPECT_EQ(lockfile.get_all_packages().size(), 1);
     }
 
+    TEST(env_lockfile, valid_one_package_implicit_category)
+    {
+        const fs::u8path lockfile_path{
+            "env_lockfile_test/good_one_package_missing_category-lock.yaml"
+        };
+        const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
+        ASSERT_TRUE(maybe_lockfile) << maybe_lockfile.error().what();
+        const auto lockfile = maybe_lockfile.value();
+        EXPECT_EQ(lockfile.get_all_packages().size(), 1);
+    }
+
     TEST(env_lockfile, valid_multiple_packages_succeed)
     {
         const fs::u8path lockfile_path{ "env_lockfile_test/good_multiple_packages-lock.yaml" };
@@ -84,6 +95,11 @@ namespace mamba
             const auto packages = lockfile.get_packages_for("main", "linux-64", "conda");
             EXPECT_FALSE(packages.empty());
             EXPECT_GT(packages.size(), 4);
+        }
+        {
+            const auto packages = lockfile.get_packages_for("main", "linux-64", "pip");
+            EXPECT_FALSE(packages.empty());
+            EXPECT_EQ(packages.size(), 2);
         }
     }
 

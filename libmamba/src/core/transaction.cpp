@@ -1527,9 +1527,11 @@ namespace mamba
         t.print(std::cout);
     }
 
-    MTransaction create_explicit_transaction_from_urls(MPool& pool,
-                                                       const std::vector<std::string>& urls,
-                                                       MultiPackageCache& package_caches)
+    MTransaction create_explicit_transaction_from_urls(
+        MPool& pool,
+        const std::vector<std::string>& urls,
+        MultiPackageCache& package_caches,
+        std::vector<detail::other_pkg_mgr_spec>& other_specs)
     {
         std::vector<MatchSpec> specs_to_install;
         for (auto& u : urls)
@@ -1558,9 +1560,11 @@ namespace mamba
         return MTransaction(pool, {}, specs_to_install, package_caches);
     }
 
-    MTransaction create_explicit_transaction_from_lockfile(MPool& pool,
-                                                           const fs::u8path& env_lockfile_path,
-                                                           MultiPackageCache& package_caches)
+    MTransaction create_explicit_transaction_from_lockfile(
+        MPool& pool,
+        const fs::u8path& env_lockfile_path,
+        MultiPackageCache& package_caches,
+        std::vector<detail::other_pkg_mgr_spec>& other_specs)
     {
         const auto maybe_lockfile = read_environment_lockfile(env_lockfile_path);
         if (!maybe_lockfile)
@@ -1574,6 +1578,24 @@ namespace mamba
 
         const auto packages = lockfile_data.get_packages_for(
             default_category, Context::instance().platform, default_manager);
+
+        // extract pip packages
+        {
+            const auto pip_packages = lockfile_data.get_packages_for(
+                default_category, Context::instance().platform, "pip");
+            if (!pip_packages.empty())
+            {
+                std::vector<std::string> pip_specs;
+                for (const auto& package : pip_packages)
+                {
+                    pip_specs.push_back(package.name + " @ " + package.url
+                                        + "#sha256=" + package.sha256);
+                }
+                other_specs.push_back({ "pip --no-deps",
+                                        pip_specs,
+                                        fs::absolute(env_lockfile_path.parent_path()).string() });
+            }
+        }
 
         return MTransaction{ pool, packages, package_caches };
     }

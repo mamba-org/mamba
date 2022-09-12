@@ -1574,8 +1574,6 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
-        constexpr auto default_manager = "conda";
-
         struct
         {
             std::vector<PackageInfo> conda, pip;
@@ -1585,8 +1583,8 @@ namespace mamba
         {
             std::vector<PackageInfo> selected_packages;
 
-            selected_packages = lockfile_data.get_packages_for(
-                category, Context::instance().platform, default_manager);
+            selected_packages
+                = lockfile_data.get_packages_for(category, Context::instance().platform, "conda");
             std::copy(selected_packages.begin(),
                       selected_packages.end(),
                       std::back_inserter(packages.conda));

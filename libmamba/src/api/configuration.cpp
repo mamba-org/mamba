@@ -1266,7 +1266,7 @@ namespace mamba
 
         insert(Configurable("categories", std::vector<std::string>({ "main" }))
                    .group("Solver")
-                   .description("Package categories to consider"));
+                   .description("Package categories to consider when installing from a lock file"));
 
         insert(Configurable("retry_clean_cache", false)
                    .group("Solver")

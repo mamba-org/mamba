@@ -94,24 +94,29 @@ possible_interpreters = {
     "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
 }
 
-shell_files = [
-    Path(x).expanduser()
-    for x in [
-        "~/.bashrc",
-        "~/.bash_profile",
-        "~/.zshrc",
-        "~/.zsh_profile",
-        "~/.xonshrc",
-        "~/.tcshrc",
-        "~/.config/fish/config.fish",
-    ]
-]
-
-if plat == "win":
-    shell_files.append(Path(paths["win"]["powershell"]))
 
 regkey = "HKEY_CURRENT_USER\\Software\\Microsoft\\Command Processor\\AutoRun"
-bkup_winreg_value = None
+
+
+@pytest.fixture
+def winreg_value():
+    if plat == "win":
+        try:
+            saved_winreg_value = read_windows_registry(regkey)
+        except:
+            print("Could not read registry value")
+            saved_winreg_value = ("", 1)
+
+        new_winreg_value = ("", saved_winreg_value[1])
+        print("setting registry to ", new_winreg_value)
+        write_windows_registry(regkey, *new_winreg_value)
+
+        yield new_winreg_value
+
+        print("setting registry to ", saved_winreg_value)
+        write_windows_registry(regkey, *saved_winreg_value)
+    else:
+        yield None
 
 
 def find_path_in_str(p, s):
@@ -265,6 +270,7 @@ class TestActivation:
     def test_shell_init(
         self,
         tmp_home,
+        winreg_value,
         tmp_root_prefix,
         tmp_path,
         interpreter,
@@ -314,7 +320,7 @@ class TestActivation:
                 assert prev_text == x
 
         if interpreter == "cmd.exe":
-            write_windows_registry(regkey, "echo 'test'", bkup_winreg_value[1])
+            write_windows_registry(regkey, "echo 'test'", winreg_value[1])
             s = [f"{umamba} shell init -p {rpv}"]
             stdout, stderr = call(s)
 
@@ -420,6 +426,7 @@ class TestActivation:
     def test_shell_init_deinit_contents_cmdexe(
         self,
         tmp_home,
+        winreg_value,
         tmp_root_prefix,
         tmp_path,
     ):
@@ -508,7 +515,9 @@ class TestActivation:
         assert rc_contents_after_deinit == prev_rc_contents
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
-    def test_env_activation(self, tmp_home, tmp_root_prefix, tmp_path, interpreter):
+    def test_env_activation(
+        self, tmp_home, winreg_value, tmp_root_prefix, tmp_path, interpreter
+    ):
         if interpreter not in valid_interpreters:
             pytest.skip(f"{interpreter} not available")
 
@@ -585,6 +594,7 @@ class TestActivation:
         self,
         tmp_home,
         tmp_clean_env,
+        winreg_value,
         tmp_root_prefix,
         tmp_path,
         interpreter,
@@ -705,6 +715,7 @@ class TestActivation:
     def test_unicode_activation(
         self,
         tmp_home,
+        winreg_value,
         tmp_root_prefix,
         tmp_path,
         interpreter,

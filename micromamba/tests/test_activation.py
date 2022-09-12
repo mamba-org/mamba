@@ -35,8 +35,28 @@ suffixes = {
     "powershell": ".ps1",
 }
 
+
+class WindowsProfiles:
+    def __getitem__(self, shell: str) -> str:
+        if shell == "powershell":
+            # find powershell profile path dyanmically
+            args = [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "$PROFILE.CurrentUserAllHosts",
+            ]
+            res = subprocess.run(
+                args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+            )
+            return res.stdout.decode("utf-8").strip()
+        elif shell == "cmd.exe":
+            return None
+        raise KeyError(f"Invalid shell: {shell}")
+
+
 paths = {
-    "win": {"powershell": None, "cmd.exe": None},
+    "win": WindowsProfiles(),
     "osx": {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
@@ -62,15 +82,6 @@ def xonsh_shell_args(interpreter):
 
 def extract_vars(vxs, interpreter):
     return [f"echo {v}={shvar(v, interpreter)}" for v in vxs]
-
-
-if plat == "win":
-    # find powershell profile path
-    args = ["powershell", "-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts"]
-    res = subprocess.run(
-        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
-    )
-    paths["win"]["powershell"] = res.stdout.decode("utf-8").strip()
 
 
 def write_script(interpreter, lines, path):

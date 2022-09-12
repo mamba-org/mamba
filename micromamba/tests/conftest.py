@@ -77,9 +77,7 @@ def tmp_clean_env(
     os.environ.update(saved_environ)
 
 
-@pytest.fixture(
-    params=[helpers.random_string, "some ™∞¢3 spaces §∞©ƒ√≈ç", "long_prefix_" * 20]
-)
+@pytest.fixture(params=[helpers.random_string, "long_prefix_" * 20])
 def tmp_env_name(request) -> str:
     """Return the explicit or implicit parametrization."""
     if callable(request.param):

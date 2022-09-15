@@ -10,120 +10,87 @@
 #include <string>
 #include <utility>
 #include <optional>
-#include <vector>
-#include <regex>
 #include <variant>
-#include <unordered_set>
-#include <sstream>
+#include <unordered_map>
 
 #include "mamba/core/graph_util.hpp"
 #include "mamba/core/package_info.hpp"
 
-extern "C"
-{
-#include "solv/solver.h"
-}
-
 namespace mamba
 {
 
-    enum class ProblemType
-    {
-        CONFLICT,
-        NOT_FOUND,
-        NOT_INSTALLABLE,
-        BEST_NOT_INSTALLABLE,
-        ONLY_DIRECT_INSTALL,
-        EXCLUDED_BY_REPO_PRIORITY,
-        INFERIOR_ARCH,
-        PROVIDED_BY_SYSTEM
-    };
-
+    /**
+     * Separate a dependency spec into a package name and the version range.
+     */
     class DependencyInfo
     {
     public:
-        DependencyInfo(const std::string& dep);
+        DependencyInfo(const std::string& dependency);
 
-        const std::string& get_name() const;
-        const std::string& get_range() const;
+        const std::string& name() const;
+        const std::string& range() const;
         std::string str() const;
 
     private:
-        std::string name;
-        std::string range;
+        std::string m_name;
+        std::string m_range;
     };
 
-    namespace NodeInfo
-    {
-        struct ResolvedPackage
-        {
-            PackageInfo m_package_info;
-        };
-
-        struct ProblematicPackage
-        {
-            std::string m_dep;
-        };
-        struct Root
-        {
-        };
-    }
-
-    namespace EdgeInfo
-    {
-        struct Require
-        {
-            DependencyInfo m_dep;
-        };
-        struct Constraint
-        {
-            DependencyInfo m_dep;
-        };
-    }
-
-    class MNode
+    /**
+     * A directed graph of the pacakges involved in a libsolv conflict.
+     */
+    class ProblemsGraph
     {
     public:
-        using node_info
-            = std::variant<NodeInfo::ResolvedPackage, NodeInfo::ProblematicPackage, NodeInfo::Root>;
-        MNode(node_info const& node, std::optional<ProblemType> problem_type = std::nullopt);
-        void maybe_update_metadata(const MNode& other);
+        /**
+         * A simplification of the libsolv SolverRuleinfo
+         */
+        enum class ProblemType
+        {
+            CONFLICT,
+            NOT_FOUND,
+            NOT_INSTALLABLE,
+            BEST_NOT_INSTALLABLE,
+            ONLY_DIRECT_INSTALL,
+            EXCLUDED_BY_REPO_PRIORITY,
+            INFERIOR_ARCH,
+            PROVIDED_BY_SYSTEM
+        };
 
-    private:
-        node_info m_info;
-        std::optional<ProblemType> m_problem_type;
+        struct ResolvedPackageNode
+        {
+            PackageInfo package_info;
+            std::optional<ProblemType> problem_type;
+        };
+        struct ProblematicPackageNode
+        {
+            std::string dependency;
+            std::optional<ProblemType> problem_type;
+        };
+        struct RootNode
+        {
+        };
+        using node_t = std::variant<ResolvedPackageNode, ProblematicPackageNode, RootNode>;
 
-        bool is_root() const;
-        std::string get_name() const;
-        std::optional<ProblemType> get_problem_type() const;
-    };
+        struct RequireEdge : DependencyInfo
+        {
+        };
+        struct ConstraintEdge : DependencyInfo
+        {
+        };
+        using edge_t = std::variant<RequireEdge, ConstraintEdge>;
 
-    class MEdge
-    {
-    public:
-        using edge_info = std::variant<EdgeInfo::Require, EdgeInfo::Constraint>;
+        using graph_t = DiGraph<node_t, edge_t>;
+        using node_id = graph_t::node_id;
+        using conflict_map = std::unordered_map<node_id, vector_set<node_id>>;
 
-        MEdge(edge_info const& info);
-        std::string get_info() const;
-
-    private:
-        edge_info m_info;
-    };
-
-    class MProblemsGraph
-    {
-    public:
-        using graph_t = DiGraph<T, U>;
-        using node_id = typename DiGraph<T, U>::node_id;
-        using node_id_conflicts = std::unordered_map<node_id, std::vector<node_id>>;
-
-        graph_t& graph();
+        auto graph() const noexcept -> graph_t const&;
         void add_conflicts(node_id node1, node_id node2);
-        node_id_conflicts const& get_conflicts() const;
+        auto conflicts() const noexcept -> conflict_map const&;
 
     private:
         graph_t m_graph;
-        node_id_conflicts m_node_id_conflicts;
+        conflict_map m_node_id_conflicts;
     };
 }
 

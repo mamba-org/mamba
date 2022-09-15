@@ -4,6 +4,7 @@
 
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/fsutil.hpp"
+#include "mamba/core/transaction.hpp"
 
 namespace mamba
 {
@@ -101,6 +102,41 @@ namespace mamba
             EXPECT_FALSE(packages.empty());
             EXPECT_EQ(packages.size(), 2);
         }
+    }
+
+    TEST(env_lockfile, create_transaction_with_categories)
+    {
+        const fs::u8path lockfile_path{ "env_lockfile_test/good_multiple_categories-lock.yaml" };
+        MPool pool;
+        mamba::MultiPackageCache pkg_cache({ "/tmp/" });
+
+        auto& ctx = Context::instance();
+
+        ctx.platform = "linux-64";
+
+        auto check_categories
+            = [&](std::vector<std::string> categories, size_t num_conda, size_t num_pip)
+        {
+            std::vector<detail::other_pkg_mgr_spec> other_specs;
+            auto transaction = create_explicit_transaction_from_lockfile(
+                pool, lockfile_path, categories, pkg_cache, other_specs);
+            auto to_install = std::get<1>(transaction.to_conda());
+            EXPECT_EQ(to_install.size(), num_conda);
+            if (num_pip == 0)
+            {
+                EXPECT_EQ(other_specs.size(), 0);
+            }
+            else
+            {
+                EXPECT_EQ(other_specs.size(), 1);
+                EXPECT_EQ(other_specs.at(0).deps.size(), num_pip);
+            }
+        };
+
+        check_categories({ "main" }, 3, 5);
+        check_categories({ "main", "dev" }, 31, 6);
+        check_categories({ "dev" }, 28, 1);
+        check_categories({ "nonesuch" }, 0, 0);
     }
 
 

@@ -1563,6 +1563,7 @@ namespace mamba
     MTransaction create_explicit_transaction_from_lockfile(
         MPool& pool,
         const fs::u8path& env_lockfile_path,
+        const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
         std::vector<detail::other_pkg_mgr_spec>& other_specs)
     {
@@ -1573,31 +1574,43 @@ namespace mamba
 
         const auto lockfile_data = maybe_lockfile.value();
 
-        constexpr auto default_category = "main";
-        constexpr auto default_manager = "conda";
-
-        const auto packages = lockfile_data.get_packages_for(
-            default_category, Context::instance().platform, default_manager);
-
-        // extract pip packages
+        struct
         {
-            const auto pip_packages = lockfile_data.get_packages_for(
-                default_category, Context::instance().platform, "pip");
-            if (!pip_packages.empty())
-            {
-                std::vector<std::string> pip_specs;
-                for (const auto& package : pip_packages)
-                {
-                    pip_specs.push_back(package.name + " @ " + package.url
-                                        + "#sha256=" + package.sha256);
-                }
-                other_specs.push_back({ "pip --no-deps",
-                                        pip_specs,
-                                        fs::absolute(env_lockfile_path.parent_path()).string() });
-            }
+            std::vector<PackageInfo> conda, pip;
+        } packages;
+
+        for (const auto& category : categories)
+        {
+            std::vector<PackageInfo> selected_packages;
+
+            selected_packages
+                = lockfile_data.get_packages_for(category, Context::instance().platform, "conda");
+            std::copy(selected_packages.begin(),
+                      selected_packages.end(),
+                      std::back_inserter(packages.conda));
+
+            selected_packages
+                = lockfile_data.get_packages_for(category, Context::instance().platform, "pip");
+            std::copy(selected_packages.begin(),
+                      selected_packages.end(),
+                      std::back_inserter(packages.pip));
         }
 
-        return MTransaction{ pool, packages, package_caches };
+        // extract pip packages
+        if (!packages.pip.empty())
+        {
+            std::vector<std::string> pip_specs;
+            for (const auto& package : packages.pip)
+            {
+                pip_specs.push_back(package.name + " @ " + package.url
+                                    + "#sha256=" + package.sha256);
+            }
+            other_specs.push_back({ "pip --no-deps",
+                                    pip_specs,
+                                    fs::absolute(env_lockfile_path.parent_path()).string() });
+        }
+
+        return MTransaction{ pool, packages.conda, package_caches };
     }
 
 }  // namespace mamba

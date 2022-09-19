@@ -45,6 +45,7 @@ namespace mamba
         std::optional<PackageInfo> id2pkginfo(Id id);
 
         operator Pool*();
+        operator Pool const*() const;
 
         MRepo& add_repo(MRepo&& repo);
         void remove_repo(Id repo_id);

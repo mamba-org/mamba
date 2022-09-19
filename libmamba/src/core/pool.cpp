@@ -82,6 +82,11 @@ namespace mamba
         return m_pool;
     }
 
+    MPool::operator Pool const*() const
+    {
+        return m_pool;
+    }
+
     std::vector<Id> MPool::select_solvables(Id matchspec) const
     {
         MQueue job, solvables;

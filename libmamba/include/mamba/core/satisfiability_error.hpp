@@ -9,7 +9,6 @@
 
 #include <string>
 #include <utility>
-#include <optional>
 #include <variant>
 #include <unordered_map>
 
@@ -18,6 +17,9 @@
 
 namespace mamba
 {
+
+    class MSolver;
+    class MPool;
 
     /**
      * Separate a dependency spec into a package name and the version range.
@@ -57,12 +59,12 @@ namespace mamba
             PROVIDED_BY_SYSTEM
         };
 
-        struct ResolvedPackageNode
+        struct PackageNode
         {
             PackageInfo package_info;
             std::optional<ProblemType> problem_type;
         };
-        struct ProblematicPackageNode
+        struct UnresolvedDependencyNode
         {
             std::string dependency;
             std::optional<ProblemType> problem_type;
@@ -70,7 +72,7 @@ namespace mamba
         struct RootNode
         {
         };
-        using node_t = std::variant<ResolvedPackageNode, ProblematicPackageNode, RootNode>;
+        using node_t = std::variant<PackageNode, UnresolvedDependencyNode, RootNode>;
 
         struct RequireEdge : DependencyInfo
         {
@@ -84,13 +86,19 @@ namespace mamba
         using node_id = graph_t::node_id;
         using conflict_map = std::unordered_map<node_id, vector_set<node_id>>;
 
+        static auto from_solver(MSolver const& solver, MPool const& pool) -> ProblemsGraph;
+
+        ProblemsGraph() = delete;
+        ProblemsGraph(graph_t graph, conflict_map conflicts, node_id root_node);
+
         auto graph() const noexcept -> graph_t const&;
-        void add_conflicts(node_id node1, node_id node2);
         auto conflicts() const noexcept -> conflict_map const&;
+        auto root_node() const noexcept -> node_id;
 
     private:
         graph_t m_graph;
-        conflict_map m_node_id_conflicts;
+        conflict_map m_conflicts;
+        node_id m_root_node;
     };
 }
 

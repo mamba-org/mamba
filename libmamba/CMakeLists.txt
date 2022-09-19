@@ -142,8 +142,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/package_cache.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pool.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/prefix_data.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/problems_graph_util.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/problems_graph_creator.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/satisfiability_error.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/pinning.cpp
@@ -195,8 +194,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fetch.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/graph_util.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph_util.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/problems_graph_creator.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/satisfiability_error.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/link.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/mamba_fs.hpp

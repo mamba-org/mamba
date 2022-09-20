@@ -519,24 +519,10 @@ namespace mamba
         {
             auto quote_arg = [](const std::string& s)
             {
-                char quote_char;
-                if (s.find('"') != s.npos)
-                {
-                    quote_char = '\'';
-                }
-                else if (s.find('\'') != s.npos)
-                {
-                    quote_char = '\"';
-                }
-                else if (s.find_first_of(" \n") == s.npos)
-                {
-                    return s;
-                }
-                else
-                {
-                    quote_char = '"';
-                }
-                return concat(quote_char, s, quote_char);
+                // Identical to Python's shlex.quote but we always quote.
+                std::string s2 = s;
+                replace_all(s2, "'", "'\"'\"'");
+                return concat("'", s2, "'");
             };
 
             if (arguments.empty())

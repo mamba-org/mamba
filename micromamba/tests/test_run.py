@@ -79,6 +79,7 @@ class TestRun:
         print(res)
         assert len(res) > 0
 
+    @pytest.mark.skipif(platform == "win32")
     @pytest.mark.parametrize("inp", ["(", "a\nb", "a'b\""])
     def test_quoting(self, inp):
         res = umamba_run("echo", inp)

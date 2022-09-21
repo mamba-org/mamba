@@ -530,7 +530,8 @@ namespace mamba
                     std::string s2 = s;
                     replace_all(s2, "'", "'\"'\"'");
                     return concat("'", s2, "'");
-                } else
+                }
+                else
                 {
                     return s;
                 }

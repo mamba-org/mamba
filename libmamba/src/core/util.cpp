@@ -517,12 +517,20 @@ namespace mamba
         }
         else
         {
+            // Identical to Python's shlex.quote.
             auto quote_arg = [](const std::string& s)
             {
-                // Identical to Python's shlex.quote but we always quote.
-                std::string s2 = s;
-                replace_all(s2, "'", "'\"'\"'");
-                return concat("'", s2, "'");
+                if (s.size() == 0) {
+                    return std::string("''");
+                }
+                std::regex unsafe("[^\\w@%+=:,./-]");
+                if (std::regex_search(s, unsafe)) {
+                    std::string s2 = s;
+                    replace_all(s2, "'", "'\"'\"'");
+                    return concat("'", s2, "'");
+                } else {
+                    return s;
+                }
             };
 
             if (arguments.empty())

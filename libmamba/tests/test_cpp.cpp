@@ -383,14 +383,18 @@ namespace mamba
     {
         if (!on_win)
         {
-            std::vector<std::string> args1 = { "python", "-c", "print('is great')" };
-            EXPECT_EQ(quote_for_shell(args1), "python -c \"print('is great')\"");
+            std::vector<std::string> args1 = { "python", "-c", "print('is\ngreat')" };
+            EXPECT_EQ(quote_for_shell(args1), "python -c 'print('\"'\"'is\ngreat'\"'\"')'");
             std::vector<std::string> args2 = { "python", "-c", "print(\"is great\")" };
             EXPECT_EQ(quote_for_shell(args2), "python -c 'print(\"is great\")'");
             std::vector<std::string> args3 = { "python", "very nice", "print(\"is great\")" };
-            EXPECT_EQ(quote_for_shell(args3), "python \"very nice\" 'print(\"is great\")'");
+            EXPECT_EQ(quote_for_shell(args3), "python 'very nice' 'print(\"is great\")'");
             std::vector<std::string> args4 = { "pyt \t tab", "very nice", "print(\"is great\")" };
-            EXPECT_EQ(quote_for_shell(args4), "\"pyt \t tab\" \"very nice\" 'print(\"is great\")'");
+            EXPECT_EQ(quote_for_shell(args4), "'pyt \t tab' 'very nice' 'print(\"is great\")'");
+            std::vector<std::string> args5 = { "echo", "(" };
+            EXPECT_EQ(quote_for_shell(args5), "echo '('");
+            std::vector<std::string> args6 = { "echo", "foo'bar\nspam" };
+            EXPECT_EQ(quote_for_shell(args6), "echo 'foo'\"'\"'bar\nspam'");
         }
 
         std::vector<std::string> args1 = { "a b c", "d", "e" };

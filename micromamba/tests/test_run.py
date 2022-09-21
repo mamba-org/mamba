@@ -79,6 +79,11 @@ class TestRun:
         print(res)
         assert len(res) > 0
 
+    @pytest.mark.parametrize("inp", ["(", "a\nb", "a'b\""])
+    def test_quoting(self, inp):
+        res = umamba_run("echo", inp)
+        assert res.strip() == inp
+
     @pytest.mark.skipif(platform == "win32", reason="requires bash to be available")
     def test_shell_io_routing(self):
         test_script_file_name = "test_run.sh"

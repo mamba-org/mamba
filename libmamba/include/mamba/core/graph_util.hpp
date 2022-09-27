@@ -93,6 +93,8 @@ namespace mamba
 
         bool empty() const;
         std::size_t number_of_nodes() const;
+        std::size_t in_degree(node_id id) const noexcept;
+        std::size_t out_degree(node_id id) const noexcept;
         const node_list& nodes() const;
         node_t const& node(node_id id) const;
         node_t& node(node_id id);
@@ -339,6 +341,18 @@ namespace mamba
     }
 
     template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::in_degree(node_id id) const noexcept -> std::size_t
+    {
+        return m_predecessors[id].size();
+    }
+
+    template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::out_degree(node_id id) const noexcept -> std::size_t
+    {
+        return m_successors[id].size();
+    }
+
+    template <typename N, typename G>
     inline auto DiGraphBase<N, G>::nodes() const -> const node_list&
     {
         return m_node_list;
@@ -406,7 +420,7 @@ namespace mamba
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            if (m_successors[i].empty())
+            if (out_degree(i) == 0)
             {
                 func(i);
             }
@@ -421,7 +435,7 @@ namespace mamba
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            if (m_predecessors[i].empty())
+            if (in_degree(i) == 0)
             {
                 func(i);
             }
@@ -445,7 +459,7 @@ namespace mamba
 
             void start_node(node_id n, graph_t const& g)
             {
-                if (g.m_successors[n].size() == 0)
+                if (g.out_degree(n) == 0)
                 {
                     m_func(n);
                 }
@@ -472,7 +486,7 @@ namespace mamba
 
             void start_node(node_id n, graph_t const& g)
             {
-                if (g.m_predecessors[n].size() == 0)
+                if (g.in_degree(n) == 0)
                 {
                     m_func(n);
                 }

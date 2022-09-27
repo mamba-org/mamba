@@ -206,6 +206,17 @@ namespace mamba
         EXPECT_EQ(g.edge(0ul, 1ul), new_edge_val);
     }
 
+    TEST(graph, degree)
+    {
+        auto const g = build_graph();
+        EXPECT_EQ(g.out_degree(0), 2);
+        EXPECT_EQ(g.out_degree(1), 2);
+        EXPECT_EQ(g.out_degree(6), 0);
+        EXPECT_EQ(g.in_degree(0), 0);
+        EXPECT_EQ(g.in_degree(3), 2);
+        EXPECT_EQ(g.in_degree(6), 1);
+    }
+
     TEST(graph, for_each_leaf)
     {
         auto const g = build_graph();

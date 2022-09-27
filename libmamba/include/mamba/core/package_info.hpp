@@ -36,6 +36,7 @@ namespace mamba
         PackageInfo(Solvable* s);
         PackageInfo(nlohmann::json&& j);
         PackageInfo(const std::string& name);
+        PackageInfo(std::string&& name);
         PackageInfo(const std::string& name,
                     const std::string& version,
                     const std::string build_string,

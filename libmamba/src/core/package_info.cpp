@@ -262,6 +262,11 @@ namespace mamba
     {
     }
 
+    PackageInfo::PackageInfo(std::string&& n)
+        : name(std::move(n))
+    {
+    }
+
     PackageInfo::PackageInfo(const std::string& n,
                              const std::string& v,
                              const std::string b,

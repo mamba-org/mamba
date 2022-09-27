@@ -272,4 +272,11 @@ namespace mamba
         EXPECT_TRUE(vis.get_back_edge_map().empty());
         EXPECT_TRUE(vis.get_cross_edge_map().empty());
     }
+
+    TEST(graph_algorithm, is_reachable)
+    {
+        auto graph = build_graph();
+        EXPECT_TRUE(is_reachable(graph, 0, 6));
+        EXPECT_FALSE(is_reachable(graph, 6, 0));
+    }
 }  // namespace mamba

@@ -101,6 +101,8 @@ namespace mamba
         bool has_node(node_id id) const;
         bool has_edge(node_id from, node_id to) const;
 
+        // TODO C++20 better to return a range since this search cannot be interupted from the
+        // visitor
         template <typename UnaryFunc>
         UnaryFunc for_each_leaf(UnaryFunc func) const;
         template <typename UnaryFunc>
@@ -110,6 +112,8 @@ namespace mamba
         template <typename UnaryFunc>
         UnaryFunc for_each_root_from(node_id source, UnaryFunc func) const;
 
+        // TODO C++20 better to return a range since this search cannot be interupted from the
+        // visitor
         template <class V>
         void depth_first_search(V& visitor, node_id start = node_id(0), bool reverse = false) const;
 
@@ -153,6 +157,11 @@ namespace mamba
         adjacency_list m_predecessors;
         adjacency_list m_successors;
     };
+
+    template <typename Node, typename Derived>
+    auto is_reachable(DiGraphBase<Node, Derived> const& graph,
+                      typename DiGraphBase<Node, Derived>::node_id source,
+                      typename DiGraphBase<Node, Derived>::node_id target) -> bool;
 
     template <class G>
     class default_visitor
@@ -524,6 +533,33 @@ namespace mamba
         }
         status[node] = visited::yes;
         visitor.finish_node(node, derived_cast());
+    }
+
+    /*******************************
+     *  Algorithms implementation  *
+     *******************************/
+
+    template <typename Node, typename Derived>
+    auto is_reachable(DiGraphBase<Node, Derived> const& graph,
+                      typename DiGraphBase<Node, Derived>::node_id source,
+                      typename DiGraphBase<Node, Derived>::node_id target) -> bool
+    {
+        using graph_t = DiGraphBase<Node, Derived>;
+        using node_id = typename graph_t::node_id;
+
+        struct : default_visitor<graph_t>
+        {
+            node_id target;
+            bool target_visited = false;
+
+            void start_node(node_id node, const graph_t&)
+            {
+                target_visited = target_visited || (node == target);
+            }
+        } visitor{ {}, target };
+
+        graph.depth_first_search(visitor, source);
+        return visitor.target_visited;
     }
 
     /*********************************

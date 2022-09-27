@@ -231,6 +231,10 @@ namespace mamba
         curl_easy_setopt(handle, CURLOPT_NETRC, CURL_NETRC_OPTIONAL);
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
+        // From https://github.com/curl/curl/blob/2481dbe5f4f581a3556b56cdc5a6d46be35e827d/src/tool_operate.c#L1290
+        // This can improve throughput significantly, see https://github.com/mamba-org/mamba/issues/1944
+        curl_easy_setopt(handle, CURLOPT_BUFFERSIZE, 100*1024);
+
         // DO NOT SET TIMEOUT as it will also take into account multi-start time and
         // it's just wrong curl_easy_setopt(m_handle, CURLOPT_TIMEOUT,
         // Context::instance().read_timeout_secs);

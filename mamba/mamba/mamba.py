@@ -869,21 +869,21 @@ def _wrapped_main(*args, **kwargs):
     p = generate_parser()
     configure_clean_locks(p._subparsers._group_actions[0])
     configure_parser_repoquery(p._subparsers._group_actions[0])
-    args = p.parse_args(args[1:])
+    parsed_args = p.parse_args(args[1:])
 
-    context.__init__(argparse_args=args)
+    context.__init__(argparse_args=parsed_args)
     context.__initialized__ = True
 
     if (
         not found_no_banner
         and os.isatty(sys.stdout.fileno())
-        and not ("MAMBA_NO_BANNER" in os.environ or "list" in args or "run" in args)
+        and not ("MAMBA_NO_BANNER" in os.environ or parsed_args.cmd in ("list", "run"))
     ):
         print(banner, file=sys.stderr)
 
     init_loggers(context)
 
-    result = do_call(args, p)
+    result = do_call(parsed_args, p)
     exit_code = getattr(
         result, "rc", result
     )  # may be Result objects with code in rc field
@@ -909,7 +909,7 @@ def main(*args, **kwargs):
     if not args:
         args = sys.argv
 
-    if "--version" in args:
+    if len(args) == 2 and args[1] == "--version":
         from mamba._version import __version__
 
         print("mamba {}".format(__version__))

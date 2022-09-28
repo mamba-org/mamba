@@ -325,7 +325,7 @@ namespace mamba
                   PRINT_CTX(use_only_tar_bz2)
                   PRINT_CTX(auto_activate_base)
                   PRINT_CTX(extra_safety_checks)
-                  PRINT_CTX(download_threads)
+                  PRINT_CTX(max_parallel_downloads)
                   PRINT_CTX(verbosity)
                   PRINT_CTX(channel_alias)
                   << "channel_priority: " << (int) channel_priority << "\n"

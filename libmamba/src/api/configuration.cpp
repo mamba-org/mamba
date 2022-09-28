@@ -1386,7 +1386,8 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Enable or disable the usage of filesystem lockfiles for shared resources")
+                   .description(
+                       "Enable or disable the usage of filesystem lockfiles for shared resources")
                    .long_description(unindent(R"(
                         By default, mamba uses lockfiles on the filesystem to synchronize access to
                         shared resources for multiple mamba processes (such as the package cache).

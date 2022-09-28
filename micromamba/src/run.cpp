@@ -104,6 +104,9 @@ namespace mamba
 
     std::unique_ptr<LockFile> lock_proc_dir()
     {
+        if (!Context::instance().use_lockfiles)
+            return nullptr;
+
         auto lockfile = LockFile::try_lock(proc_dir());
         if (!lockfile)
         {
@@ -161,9 +164,9 @@ namespace mamba
                        std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
-            if (!Context::instance().use_lockfiles)
-                return;
-            assert(proc_dir_lock);  // Lock must be hold for the duraction of this constructor.
+            // Lock must be hold for the duraction of this constructor.
+            if (Context::instance().use_lockfiles)
+                assert(proc_dir_lock);
 
             const auto open_mode = std::ios::binary | std::ios::trunc | std::ios::out;
             std::ofstream pid_file(location.std_path(), open_mode);
@@ -183,8 +186,6 @@ namespace mamba
 
         ~ScopedProcFile()
         {
-            if (!Context::instance().use_lockfiles)
-                return;
             const auto lock = lock_proc_dir();
             std::error_code errcode;
             const bool is_removed = fs::remove(location, errcode);

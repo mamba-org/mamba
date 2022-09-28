@@ -50,14 +50,14 @@ namespace mamba
             }
             void TearDown() override
             {
-                mamba::Context::instance().disable_lockfile = false;
+                mamba::Context::instance().use_lockfiles = true;
             }
         };
 
         TEST_F(LockDirTest, disable_locking)
         {
             {
-                mamba::Context::instance().disable_lockfile = true;
+                mamba::Context::instance().use_lockfiles = false;
                 auto lock = LockFile(tempdir_path);
                 EXPECT_FALSE(fs::exists(lock.lockfile_path()));
             }

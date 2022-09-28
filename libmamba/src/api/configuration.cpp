@@ -1377,20 +1377,21 @@ namespace mamba
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("LockFile timeout")
+                   .description("Lockfile timeout")
                    .long_description(unindent(R"(
-                        LockFile timeout for blocking mode when waiting for another process
+                        Lockfile timeout for blocking mode when waiting for another process
                         to release the path. Default is 0 (no timeout))")));
 
-        insert(Configurable("disable_lockfile", &ctx.disable_lockfile)
+        insert(Configurable("use_lockfiles", &ctx.use_lockfiles)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .description("Don't use a lockfile")
+                   .description("Enable or disable the usage of filesystem lockfiles for shared resources")
                    .long_description(unindent(R"(
-                        Don't create a lockfile when running mamba commands. Use with caution!
-                        -- Some filesystems don't support File Locking and locks don't always
-                        make sense - like when on an HPC.  Default is False (use a lockfile)")));
+                        By default, mamba uses lockfiles on the filesystem to synchronize access to
+                        shared resources for multiple mamba processes (such as the package cache).
+                        However, some filesystems do not support file locking and locks do not always
+                        make sense - like when on an HPC.  Default is true (use a lockfile)")));
 
         insert(Configurable("compile_pyc", &ctx.compile_pyc)
                    .group("Extract, Link & Install")

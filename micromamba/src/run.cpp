@@ -161,7 +161,7 @@ namespace mamba
                        std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
-            if (Context::instance().disable_lockfile)
+            if (!Context::instance().use_lockfiles)
                 return;
             assert(proc_dir_lock);  // Lock must be hold for the duraction of this constructor.
 
@@ -183,7 +183,7 @@ namespace mamba
 
         ~ScopedProcFile()
         {
-            if (Context::instance().disable_lockfile)
+            if (!Context::instance().use_lockfiles)
                 return;
             const auto lock = lock_proc_dir();
             std::error_code errcode;

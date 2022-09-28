@@ -751,8 +751,9 @@ namespace mamba
         , m_timeout(timeout)
         , m_locked(false)
     {
-        if (Context::instance().disable_lockfile)
+        if (!Context::instance().use_lockfiles)
             return;
+
         std::error_code ec;
         if (!fs::exists(path, ec))
         {
@@ -817,8 +818,9 @@ namespace mamba
 
     LockFile::~LockFile()
     {
-        if (Context::instance().disable_lockfile)
+        if (!Context::instance().use_lockfiles)
             return;
+
         LOG_DEBUG << "Unlocking '" << m_path.string() << "'";
         unlock();
     }
@@ -1133,14 +1135,14 @@ namespace mamba
 
     std::unique_ptr<LockFile> LockFile::try_lock(const fs::u8path& path) noexcept
     {
+        // Don't even lock if the file/directory isn't writable by someone or doesnt exists.
+        if (!Context::instance().use_lockfiles || !path::is_writable(path))
+            return nullptr;
+
         try
         {
-            // Don't even lock if the file/directory isn't writable by someone or doesnt exists.
-            if (Context::instance().disable_lockfile || path::is_writable(path))
-            {
-                auto ptr = std::make_unique<LockFile>(path);
-                return ptr;
-            }
+            auto ptr = std::make_unique<LockFile>(path);
+            return ptr;
         }
         catch (...)
         {

@@ -14,7 +14,6 @@
 
 @SET MAMBA_EXES="%~dp0..\Scripts\mamba.exe"
 @CALL %MAMBA_EXES% %*
-@ENDLOCAL
 
 @IF %errorlevel% NEQ 0 EXIT /B %errorlevel%
 

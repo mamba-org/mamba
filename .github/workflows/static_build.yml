@@ -3,10 +3,10 @@ name: Fully static binary builds
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -62,7 +62,7 @@ jobs:
 
   micromamba_full_static_win:
     # Don't run this job branches because it is very slow
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
 
     # These build instructions are based on https://github.com/conda-forge/micromamba-feedstock
     runs-on: windows-2019

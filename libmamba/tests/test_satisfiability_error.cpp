@@ -25,32 +25,40 @@
 namespace mamba
 {
 
-    TEST(dependency_info, range)
+    TEST(dependency_info, free)
     {
-        auto const d = DependencyInfo("foo_bar>=4.3.0,<5.0");
-        EXPECT_EQ(d.name(), "foo_bar");
-        EXPECT_EQ(d.range(), ">=4.3.0,<5.0");
+        auto const d = DependencyInfo("foo7 ");
+        EXPECT_EQ(d.name(), "foo7");
+        EXPECT_EQ(d.version_range(), "");
+        EXPECT_EQ(d.build_range(), "");
+        EXPECT_EQ(d.str(), "foo7");
     }
 
-    TEST(dependency_info, equality)
+    TEST(dependency_info, version_range)
+    {
+        auto const d = DependencyInfo(" foo_bar  >=4.3.0,<5.0 ");
+        EXPECT_EQ(d.name(), "foo_bar");
+        EXPECT_EQ(d.version_range(), ">=4.3.0,<5.0");
+        EXPECT_EQ(d.build_range(), "");
+        EXPECT_EQ(d.str(), "foo_bar >=4.3.0,<5.0");
+    }
+
+    TEST(dependency_info, version_equality)
     {
         auto const d = DependencyInfo("foo-bar==4.3.0");
         EXPECT_EQ(d.name(), "foo-bar");
-        EXPECT_EQ(d.range(), "==4.3.0");
+        EXPECT_EQ(d.version_range(), "==4.3.0");
+        EXPECT_EQ(d.build_range(), "");
+        EXPECT_EQ(d.str(), "foo-bar ==4.3.0");
     }
 
-    TEST(dependency_info, free)
+    TEST(dependency_info, build_range)
     {
-        auto const d = DependencyInfo("foo7");
-        EXPECT_EQ(d.name(), "foo7");
-        EXPECT_EQ(d.range(), "");
-    }
-
-    TEST(dependency_info, strip)
-    {
-        auto const d = DependencyInfo(" foo >3.0 ");
-        EXPECT_EQ(d.name(), "foo");
-        EXPECT_EQ(d.range(), ">3.0");
+        auto const d = DependencyInfo(" python_abi  3.10.*  *_cp310 ");
+        EXPECT_EQ(d.name(), "python_abi");
+        EXPECT_EQ(d.version_range(), "3.10.*");
+        EXPECT_EQ(d.build_range(), "*_cp310");
+        EXPECT_EQ(d.str(), "python_abi 3.10.* *_cp310");
     }
 
     TEST(dependency_info, fail)

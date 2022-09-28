@@ -30,12 +30,14 @@ namespace mamba
         DependencyInfo(const std::string& dependency);
 
         const std::string& name() const;
-        const std::string& range() const;
+        const std::string& version_range() const;
+        const std::string& build_range() const;
         std::string str() const;
 
     private:
         std::string m_name;
-        std::string m_range;
+        std::string m_version_range;
+        std::string m_build_range;
     };
 
     /**

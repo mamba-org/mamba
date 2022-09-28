@@ -22,16 +22,17 @@ namespace mamba
 
     DependencyInfo::DependencyInfo(const std::string& dep)
     {
-        static std::regex const regexp("\\s*(\\w[\\w-]*)\\s*([^\\s]*)\\s*");
+        static std::regex const regexp("\\s*(\\w[\\w-]*)\\s*([^\\s]*)(?:\\s+([^\\s]+))?\\s*");
         std::smatch matches;
         bool const matched = std::regex_match(dep, matches, regexp);
         // First match is the whole regex match
-        if (!matched || matches.size() != 3)
+        if (!matched || matches.size() != 4)
         {
             throw std::runtime_error("Invalid dependency info: " + dep);
         }
         m_name = matches.str(1);
-        m_range = matches.str(2);
+        m_version_range = matches.str(2);
+        m_build_range = matches.str(3);
     }
 
     std::string const& DependencyInfo::name() const
@@ -39,14 +40,32 @@ namespace mamba
         return m_name;
     }
 
-    std::string const& DependencyInfo::range() const
+    std::string const& DependencyInfo::version_range() const
     {
-        return m_range;
+        return m_version_range;
+    }
+
+    std::string const& DependencyInfo::build_range() const
+    {
+        return m_build_range;
     }
 
     std::string DependencyInfo::str() const
     {
-        return m_name + " " + m_range;
+        auto out = std::string(m_name);
+        out.reserve(m_name.size() + (m_version_range.empty() ? 0 : 1) + m_version_range.size()
+                    + (m_build_range.empty() ? 0 : 1) + m_version_range.size());
+        if (!m_version_range.empty())
+        {
+            out += ' ';
+            out += m_version_range;
+        }
+        if (!m_build_range.empty())
+        {
+            out += ' ';
+            out += m_build_range;
+        }
+        return out;
     }
 
     namespace

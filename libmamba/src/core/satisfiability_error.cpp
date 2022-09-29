@@ -296,7 +296,7 @@ namespace mamba
         auto ProblemsGraphCreator::add_conflict(node_id n1, node_id n2) -> void
         {
             m_conflicts[n1].insert(n2);
-            m_conflicts[n2].insert(n2);
+            m_conflicts[n2].insert(n1);
         }
 
         auto ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id,
@@ -379,6 +379,7 @@ namespace mamba
                         auto tgt_id
                             = ensure_solvable(problem.target_id, std::move(dep).value(), type);
                         m_graph.add_edge(src_id, tgt_id, std::move(edge));
+                        break;
                     }
                     case SOLVER_RULE_PKG_CONFLICTS:
                     case SOLVER_RULE_PKG_SAME_NAME:

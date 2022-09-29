@@ -1125,16 +1125,25 @@ namespace mamba
         return m_lock;
     }
 
+    std::unique_ptr<LockFile> LockFile::create_lock(const fs::u8path& path)
+    {
+        if (!Context::instance().use_lockfiles)
+            return nullptr;
+
+        auto ptr = std::unique_ptr<LockFile>(new LockFile(path));
+        return ptr;
+    }
+
     std::unique_ptr<LockFile> LockFile::try_lock(const fs::u8path& path) noexcept
     {
+        // Don't even lock if the file/directory isn't writable by someone or doesnt exists.
+        if (!Context::instance().use_lockfiles || !path::is_writable(path))
+            return nullptr;
+
         try
         {
-            // Don't even log if the file/directory isn't writable by someone or doesnt exists.
-            if (path::is_writable(path))
-            {
-                auto ptr = std::make_unique<LockFile>(path);
-                return ptr;
-            }
+            auto ptr = std::unique_ptr<LockFile>(new LockFile(path));
+            return ptr;
         }
         catch (...)
         {

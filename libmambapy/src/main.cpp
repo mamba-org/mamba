@@ -58,7 +58,7 @@ PYBIND11_MODULE(bindings, m)
              { return fmt::format("fs::u8path[{}]", self.string()); });
     py::implicitly_convertible<std::string, fs::u8path>();
 
-    py::class_<mamba::LockFile>(m, "LockFile").def(py::init<fs::u8path>());
+    py::class_<mamba::LockFile>(m, "LockFile").def(py::init(&mamba::LockFile::create_lock));
 
     py::register_exception<mamba_error>(m, "MambaNativeException");
 

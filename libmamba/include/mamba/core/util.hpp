@@ -104,14 +104,13 @@ namespace mamba
     class LockFile
     {
     public:
-        LockFile(const fs::u8path& path);
-        LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
         ~LockFile();
 
         LockFile(const LockFile&) = delete;
         LockFile& operator=(const LockFile&) = delete;
         LockFile& operator=(LockFile&&) = default;
 
+        static std::unique_ptr<LockFile> create_lock(const fs::u8path& path);
         static std::unique_ptr<LockFile> try_lock(const fs::u8path& path) noexcept;
 
         int fd() const;
@@ -128,6 +127,9 @@ namespace mamba
         static int read_pid(int fd);
 
     private:
+        LockFile(const fs::u8path& path);
+        LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
+
         fs::u8path m_path;
         fs::u8path m_lock;
         std::chrono::seconds m_timeout;

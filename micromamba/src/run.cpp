@@ -104,14 +104,17 @@ namespace mamba
 
     std::unique_ptr<LockFile> lock_proc_dir()
     {
-        auto lockfile = LockFile::try_lock(proc_dir());
-        if (!lockfile)
+        try
+        {
+            auto lockfile = LockFile::create_lock(proc_dir());
+            return lockfile;
+        }
+        catch (...)
         {
             throw std::runtime_error(
                 fmt::format("'mamba run' failed to lock ({}) or lockfile was not properly deleted",
                             proc_dir().string()));
         }
-        return lockfile;
     }
 
     nlohmann::json get_all_running_processes_info(
@@ -161,7 +164,9 @@ namespace mamba
                        std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
-            assert(proc_dir_lock);  // Lock must be hold for the duraction of this constructor.
+            // Lock must be hold for the duraction of this constructor.
+            if (Context::instance().use_lockfiles)
+                assert(proc_dir_lock);
 
             const auto open_mode = std::ios::binary | std::ios::trunc | std::ios::out;
             std::ofstream pid_file(location.std_path(), open_mode);

@@ -921,7 +921,7 @@ namespace mamba
             return true;
         }
 
-        LockFile lf(ctx.target_prefix / "conda-meta");
+        auto lf = LockFile::create_lock(ctx.target_prefix / "conda-meta");
         clean_trash_files(ctx.target_prefix, false);
 
         Console::stream() << "\nTransaction starting";

@@ -104,17 +104,17 @@ namespace mamba
 
     std::unique_ptr<LockFile> lock_proc_dir()
     {
-        if (!Context::instance().use_lockfiles)
-            return nullptr;
-
-        auto lockfile = LockFile::try_lock(proc_dir());
-        if (!lockfile)
+        try
+        {
+            auto lockfile = LockFile::create_lock(proc_dir());
+            return lockfile;
+        }
+        catch (...)
         {
             throw std::runtime_error(
                 fmt::format("'mamba run' failed to lock ({}) or lockfile was not properly deleted",
                             proc_dir().string()));
         }
-        return lockfile;
     }
 
     nlohmann::json get_all_running_processes_info(

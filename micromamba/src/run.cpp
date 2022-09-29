@@ -248,7 +248,7 @@ set_ps_command(CLI::App* subcom)
     auto list_callback = []()
     {
         nlohmann::json info;
-        if (fs::exists(proc_dir()))
+        if (fs::is_directory(proc_dir()))
         {
             auto proc_dir_lock = lock_proc_dir();
             info = get_all_running_processes_info();
@@ -293,7 +293,7 @@ set_ps_command(CLI::App* subcom)
             auto filter = [](const nlohmann::json& j) -> bool
             { return j["name"] == pid_or_name || j["pid"] == pid_or_name; };
             nlohmann::json procs;
-            if (fs::exists(proc_dir()))
+            if (fs::is_directory(proc_dir()))
             {
                 auto proc_dir_lock = lock_proc_dir();
                 procs = get_all_running_processes_info(filter);
@@ -497,7 +497,7 @@ set_run_command(CLI::App* subcom)
                 // Writes the process file then unlock the directory. Deletes the process file once
                 // exit is called (in the destructor).
                 std::unique_ptr<ScopedProcFile> scoped_proc_file = nullptr;
-                if (fs::exists(proc_dir()) && mamba::path::is_writable(proc_dir()))
+                if (fs::is_directory(proc_dir()) && mamba::path::is_writable(proc_dir()))
                 {
                     scoped_proc_file = std::make_unique<ScopedProcFile>(
                         process_name, raw_command, std::move(proc_dir_lock));

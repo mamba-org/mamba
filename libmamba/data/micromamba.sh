@@ -1,28 +1,11 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-__add_sys_prefix_to_path() {
-    # In dev-mode MAMBA_EXE is python.exe and on Windows
-    # it is in a different relative location to condabin.
-    if [ -z "${MAMBA_ROOT_PREFIX}" ]; then
-        return 0
-    fi;
+__mamba_exe() (
+    "$MAMBA_EXE" "$@"
+)
 
-    if [ -n "${WINDIR+x}" ]; then
-        PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
-        PATH="${MAMBA_ROOT_PREFIX}/Scripts:${PATH}"
-        PATH="${MAMBA_ROOT_PREFIX}/Library/bin:${PATH}"
-        PATH="${MAMBA_ROOT_PREFIX}/Library/usr/bin:${PATH}"
-        PATH="${MAMBA_ROOT_PREFIX}/Library/mingw-w64/bin:${PATH}"
-        PATH="${MAMBA_ROOT_PREFIX}:${PATH}"
-    else
-        PATH="${MAMBA_ROOT_PREFIX}/bin:${PATH}"
-    fi
-    \export PATH
-}
-
-
-__conda_hashr() {
+__mamba_hashr() {
     if [ -n "${ZSH_VERSION:+x}" ]; then
         \rehash
     elif [ -n "${POSH_VERSION:+x}" ]; then
@@ -33,63 +16,33 @@ __conda_hashr() {
 }
 
 __mamba_activate() {
-    \local cmd="$1"
-    shift
     \local ask_conda
-    CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
-    ask_conda="$(PS1="$PS1" "$MAMBA_EXE" shell --shell bash "$cmd" "$@")" || \return $?
-    rc=$?
-    PATH="${CONDA_INTERNAL_OLDPATH}"
+    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash "$@")" || \return
     \eval "$ask_conda"
-    if [ $rc != 0 ]; then
-        \export PATH
-    fi
     __conda_hashr
 }
 
 __mamba_reactivate() {
     \local ask_conda
-    CONDA_INTERNAL_OLDPATH="${PATH}"
-    __add_sys_prefix_to_path
-    ask_conda="$(PS1="$PS1" "$MAMBA_EXE" shell --shell bash reactivate)" || \return $?
-    PATH="${CONDA_INTERNAL_OLDPATH}"
+    ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash reactivate)" || \return
     \eval "$ask_conda"
     __conda_hashr
 }
 
 micromamba() {
-    if [ "$#" -lt 1 ]; then
-        "$MAMBA_EXE"
-    else
-        \local cmd="$1"
-        shift
-        case "$cmd" in
-            activate|deactivate)
-                __mamba_activate "$cmd" "$@"
-                ;;
-            install|update|upgrade|remove|uninstall)
-                CONDA_INTERNAL_OLDPATH="${PATH}"
-                __add_sys_prefix_to_path
-                "$MAMBA_EXE" "$cmd" "$@"
-                \local t1=$?
-                PATH="${CONDA_INTERNAL_OLDPATH}"
-                if [ $t1 = 0 ]; then
-                    __mamba_reactivate
-                else
-                    return $t1
-                fi
-                ;;
-            *)
-                CONDA_INTERNAL_OLDPATH="${PATH}"
-                __add_sys_prefix_to_path
-                "$MAMBA_EXE" "$cmd" "$@"
-                \local t1=$?
-                PATH="${CONDA_INTERNAL_OLDPATH}"
-                return $t1
-                ;;
-        esac
-    fi
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __mamba_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __mamba_exe "$@" || \return
+            __mamba_reactivate
+            ;;
+        *)
+            __mamba_exe "$@"
+            ;;
+    esac
 }
 
 if [ -z "${CONDA_SHLVL+x}" ]; then

@@ -76,7 +76,17 @@ def _micromamba_main(args=None):
     else:
         _mamba_passthrough_handler(args)
 
+
+if 'CONDA_SHLVL' not in ${...}:
+    $CONDA_SHLVL = '0'
+    import os as _os
+    import sys as _sys
+    _sys.path.insert(0, _os.path.join($MAMBA_ROOT_PREFIX, "condabin"))
+    del _os, _sys
+
+
 aliases['micromamba'] = _micromamba_main
+
 
 def _list_dirs(path):
     """
@@ -87,13 +97,14 @@ def _list_dirs(path):
         if not entry.name.startswith('.') and entry.is_dir():
             yield entry.name
 
+
 def _mamba_completer(prefix, line, start, end, ctx):
     """
     Completion for conda
     """
     args = line.split(' ')
     possible = set()
-    if len(args) == 0 or args[0] not in ['xonda', 'conda']:
+    if len(args) == 0 or args[0] not in ['micromamba']:
         return None
     curix = args.index(prefix)
     if curix == 1:
@@ -107,6 +118,6 @@ def _mamba_completer(prefix, line, start, end, ctx):
 
 
 # add _xonda_completer to list of completers
-__xonsh__.completers['mamba'] = _mamba_completer
+__xonsh__.completers['micromamba'] = _mamba_completer
 # bump to top of list
-__xonsh__.completers.move_to_end('mamba', last=False)
+__xonsh__.completers.move_to_end('micromamba', last=False)

@@ -1,3 +1,10 @@
+param([parameter(Position=0,Mandatory=$false)] [Hashtable] $MambaModuleArgs=@{})
+
+# Defaults from before we had arguments.
+if (-not $MambaModuleArgs.ContainsKey('ChangePs1')) {
+    $MambaModuleArgs.ChangePs1 = $True
+}
+
 ## ENVIRONMENT MANAGEMENT ######################################################
 
 <#
@@ -38,31 +45,6 @@ function Get-CondaEnvironment {
 
 <#
     .SYNOPSIS
-        Adds the entries of sys.prefix to PATH and returns the old PATH.
-
-    .EXAMPLE
-        $OldPath = Add-Sys-Prefix-To-Path
-#>
-function Add-Sys-Prefix-To-Path() {
-    if ($Env:MAMBA_ROOT_PREFIX -eq $NULL) {
-        return $Env:PATH;
-    }
-    $OldPath = $Env:PATH;
-    if ($Env:OS -eq 'Windows_NT') {
-        $Env:PATH = $Env:MAMBA_ROOT_PREFIX + ';' +
-                    $Env:MAMBA_ROOT_PREFIX + '\Library\mingw-w64\bin;' +
-                    $Env:MAMBA_ROOT_PREFIX + '\Library\usr\bin;' +
-                    $Env:MAMBA_ROOT_PREFIX + '\Library\bin;' +
-                    $Env:MAMBA_ROOT_PREFIX + '\Scripts;' +
-                    $Env:MAMBA_ROOT_PREFIX + '\bin;' + $Env:PATH;
-    } else {
-        $Env:PATH = $Env:MAMBA_ROOT_PREFIX + '/bin:' + $Env:PATH;
-    }
-    return $OldPath;
-}
-
-<#
-    .SYNOPSIS
         Activates a conda environment, placing its commands and packages at
         the head of $Env:PATH.
 
@@ -77,10 +59,19 @@ function Add-Sys-Prefix-To-Path() {
         in a non-standard location.
 #>
 function Enter-MambaEnvironment {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)][switch]$Stack,
+        [Parameter(Position=0)][string]$Name
+    );
+
     begin {
-        $OldPath = Add-Sys-Prefix-To-Path;
-        $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Args | Out-String);
-        $Env:PATH = $OldPath;
+        If ($Stack) {
+            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell --stack $Name | Out-String);
+        } Else {
+            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Name | Out-String);
+        }
+
         Write-Verbose "[micromamba shell activate --shell powershell $Args]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }
@@ -88,7 +79,6 @@ function Enter-MambaEnvironment {
     process {}
 
     end {}
-
 }
 
 <#
@@ -106,9 +96,7 @@ function Exit-MambaEnvironment {
     param();
 
     begin {
-        $OldPath = Add-Sys-Prefix-To-Path;
         $deactivateCommand = (& $Env:MAMBA_EXE shell deactivate -s powershell | Out-String);
-        $Env:PATH = $OldPath;
 
         # If deactivate returns an empty string, we have nothing more to do,
         # so return early.
@@ -122,7 +110,7 @@ function Exit-MambaEnvironment {
     end {}
 }
 
-## CONDA WRAPPER ###############################################################
+## MAMBA WRAPPER ###############################################################
 
 <#
     .SYNOPSIS
@@ -139,7 +127,7 @@ function Invoke-Mamba() {
     # Don't use any explicit args here, we'll use $args and tab completion
     # so that we can capture everything, INCLUDING short options (e.g. -n).
     if ($Args.Count -eq 0) {
-        # No args, just call the underlying conda executable.
+        # No args, just call the underlying mamba executable.
         & $Env:MAMBA_EXE;
     }
     else {
@@ -161,9 +149,7 @@ function Invoke-Mamba() {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
                 # verbatim.
-                $OldPath = Add-Sys-Prefix-To-Path;
                 & $Env:MAMBA_EXE $Command @OtherArgs;
-                $Env:PATH = $OldPath;
             }
         }
     }
@@ -247,23 +233,22 @@ function TabExpansion($line, $lastWord) {
         Causes the current session's prompt to display the currently activated
         conda environment.
 #>
-
-# We use the same procedure to nest prompts as we did for nested tab completion.
-if (Test-Path Function:\prompt) {
-    Rename-Item Function:\prompt CondaPromptBackup
-} else {
-    function CondaPromptBackup() {
-        # Restore a basic prompt if the definition is missing.
-        "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
+if ($MambaModuleArgs.ChangePs1) {
+    # We use the same procedure to nest prompts as we did for nested tab completion.
+    if (Test-Path Function:\prompt) {
+        Rename-Item Function:\prompt MambaPromptBackup
+    } else {
+        function MambaPromptBackup() {
+            # Restore a basic prompt if the definition is missing.
+            "PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) ";
+        }
     }
-}
 
-function Add-CondaEnvironmentToPrompt() {
     function global:prompt() {
         if ($Env:CONDA_PROMPT_MODIFIER) {
             $Env:CONDA_PROMPT_MODIFIER | Write-Host -NoNewline
         }
-        CondaPromptBackup;
+        MambaPromptBackup;
     }
 }
 
@@ -280,9 +265,6 @@ Export-ModuleMember `
     -Alias * `
     -Function `
         Invoke-Mamba, `
-        Get-CondaEnvironment, Add-CondaEnvironmentToPrompt, `
-        Enter-MambaEnvironment, Exit-MambaEnvironment, `
-        prompt
-
-# We don't export TabExpansion as it's currently not implemented for Micromamba
-# TabExpansion
+        Get-CondaEnvironment, `
+        Enter-CondaEnvironment, Exit-CondaEnvironment, `
+        TabExpansion, prompt

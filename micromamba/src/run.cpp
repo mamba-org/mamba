@@ -248,17 +248,26 @@ set_ps_command(CLI::App* subcom)
     auto list_callback = []()
     {
         nlohmann::json info;
+        if (fs::is_directory(proc_dir()))
         {
             auto proc_dir_lock = lock_proc_dir();
             info = get_all_running_processes_info();
+        }
+        if (info.empty())
+        {
+            std::cout << "No running processes" << std::endl;
         }
         printers::Table table({ "PID", "Name", "Prefix", "Command" });
         table.set_padding({ 2, 4, 4, 4 });
         for (auto& el : info)
         {
+            auto prefix = el["prefix"].get<std::string>();
+            if (!prefix.empty())
+                prefix = env_name(prefix);
+
             table.add_row({ el["pid"].get<std::string>(),
                             el["name"].get<std::string>(),
-                            env_name(el["prefix"].get<std::string>()),
+                            prefix,
                             join(" ", el["command"].get<std::vector<std::string>>()) });
         }
 
@@ -284,6 +293,7 @@ set_ps_command(CLI::App* subcom)
             auto filter = [](const nlohmann::json& j) -> bool
             { return j["name"] == pid_or_name || j["pid"] == pid_or_name; };
             nlohmann::json procs;
+            if (fs::is_directory(proc_dir()))
             {
                 auto proc_dir_lock = lock_proc_dir();
                 procs = get_all_running_processes_info(filter);
@@ -373,7 +383,12 @@ set_run_command(CLI::App* subcom)
             std::vector<std::string> raw_command = command;
 
             // Make sure the proc directory is always existing and ready.
-            fs::create_directories(proc_dir());
+            std::error_code ec;
+            fs::create_directories(proc_dir(), ec);
+            if (!ec)
+            {
+                LOG_WARNING << "Could not create proc dir: " << proc_dir();
+            }
 
             LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();
             LOG_DEBUG << "Remaining args to run as command: " << join(" ", command);
@@ -481,9 +496,12 @@ set_run_command(CLI::App* subcom)
 
                 // Writes the process file then unlock the directory. Deletes the process file once
                 // exit is called (in the destructor).
-                ScopedProcFile scoped_proc_file{ process_name,
-                                                 raw_command,
-                                                 std::move(proc_dir_lock) };
+                std::unique_ptr<ScopedProcFile> scoped_proc_file = nullptr;
+                if (fs::is_directory(proc_dir()) && mamba::path::is_writable(proc_dir()))
+                {
+                    scoped_proc_file = std::make_unique<ScopedProcFile>(
+                        process_name, raw_command, std::move(proc_dir_lock));
+                }
 #endif
                 PID pid;
                 std::error_code ec;

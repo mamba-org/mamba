@@ -144,7 +144,8 @@ namespace mamba
 
         for (auto& dir_entry : fs::recursive_directory_iterator("."))
         {
-            if (dir_entry.is_directory())
+            // we only add empty directories to the archive
+            if (dir_entry.is_directory() && !fs::is_empty(dir_entry.path()))
             {
                 continue;
             }

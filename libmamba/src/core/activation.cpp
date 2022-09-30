@@ -68,37 +68,47 @@ namespace mamba
     {
         fs::u8path env_vars_file = prefix / PREFIX_STATE_FILE;
         fs::u8path pkg_env_var_dir = prefix / PACKAGE_ENV_VARS_DIR;
-        std::vector<std::pair<std::string, std::string>> env_vars;
+
+        nlohmann::ordered_map<std::string, std::string> env_vars;
 
         // # First get env vars from packages
         auto env_var_files = filter_dir(pkg_env_var_dir, "");
         std::sort(env_var_files.begin(), env_var_files.end());
-        /*for (auto& f : env_var_files)
+        for (auto& f : env_var_files)
         {
-            // TODO json load env vars and add to map
-            // if exists(pkg_env_var_dir):
-            //     for pkg_env_var_file in sorted(os.listdir(pkg_env_var_dir)):
-            //         with open(join(pkg_env_var_dir, pkg_env_var_file), 'r') as f:
-            //             env_vars.update(json.loads(f.read(),
-        object_pairs_hook=OrderedDict))
-        }*/
+            auto fin = open_ifstream(f);
+            nlohmann::ordered_json j;
+            fin >> j;
+            for (auto it = j.begin(); it != j.end(); ++it)
+            {
+                env_vars.insert({ it.key(), it.value() });
+            }
+        }
 
         // Then get env vars from environment specification
         if (fs::exists(env_vars_file))
         {
-            // TODO read this file;
-            // with open(env_vars_file, 'r') as f:
-            //     prefix_state = json.loads(f.read(), object_pairs_hook=OrderedDict)
-            //     prefix_state_env_vars = prefix_state.get('env_vars', {})
-            //     dup_vars = [ev for ev in env_vars.keys() if ev in
-            //     prefix_state_env_vars.keys()] for dup in dup_vars:
-            //         print("WARNING: duplicate env vars detected. Vars from the
-            //         environment "
-            //               "will overwrite those from packages", file=sys.stderr)
-            //         print("variable %s duplicated" % dup, file=sys.stderr)
-            //     env_vars.update(prefix_state_env_vars)
+            auto fin = open_ifstream(env_vars_file);
+            nlohmann::ordered_json j;
+            fin >> j;
+            if (j.contains("env_vars"))
+            {
+                auto& prefix_state_env_vars = j["env_vars"];
+                for (auto it = prefix_state_env_vars.begin(); it != prefix_state_env_vars.end();
+                     ++it)
+                {
+                    if (env_vars.find(it.key()) != env_vars.end())
+                    {
+                        LOG_WARNING << "Duplicate env vars detected. Vars from the environment "
+                                    << "will overwrite those from packages";
+                        LOG_WARNING << "Variable " << it.key() << " duplicated";
+                    }
+                    env_vars.insert({ it.key(), it.value() });
+                }
+            }
         }
-        return env_vars;
+        std::vector<std::pair<std::string, std::string>> res(env_vars.begin(), env_vars.end());
+        return res;
     }
 
     std::string Activator::get_prompt_modifier(const fs::u8path& prefix,
@@ -548,13 +558,14 @@ namespace mamba
             std::string env_shlvl(strip(m_env["CONDA_SHLVL"]));
             old_conda_shlvl = std::stoi(env_shlvl);
         }
-
-        new_conda_shlvl = old_conda_shlvl + 1;
         if (m_env.find("CONDA_PREFIX") != m_env.end())
         {
             old_conda_prefix = m_env["CONDA_PREFIX"];
         }
 
+        new_conda_shlvl = old_conda_shlvl + 1;
+
+        // if the prior active prefix is this prefix we are actually doing a reactivate
         if (old_conda_prefix == prefix && old_conda_shlvl > 0)
         {
             return build_reactivate();

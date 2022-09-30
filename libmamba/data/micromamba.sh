@@ -19,14 +19,14 @@ __mamba_activate() {
     \local ask_conda
     ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash "$@")" || \return
     \eval "$ask_conda"
-    __conda_hashr
+    __mamba_hashr
 }
 
 __mamba_reactivate() {
     \local ask_conda
     ask_conda="$(PS1="${PS1:-}" __mamba_exe shell --shell bash reactivate)" || \return
     \eval "$ask_conda"
-    __conda_hashr
+    __mamba_hashr
 }
 
 micromamba() {

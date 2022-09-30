@@ -328,7 +328,9 @@ namespace mamba
                             std::vector<std::string>&& channels = { "conda-forge" },
                             std::vector<std::string> const& platforms = { "linux-64", "noarch" })
     {
-        auto const tmp_dir = dir_guard(fs::temp_directory_path() / "mamba/tests" / random_str(20));
+        // Reusing the cache for all invocation of this funciton for speedup
+        static auto const tmp_dir
+            = dir_guard(fs::temp_directory_path() / "mamba/tests" / random_str(20));
 
         auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
         prefix_data.add_packages(virtual_packages);

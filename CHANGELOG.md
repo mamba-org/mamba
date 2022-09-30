@@ -1,3 +1,32 @@
+2022.09.29
+==========
+
+Releases: libmamba 0.26.0, libmambapy 0.26.0, mamba 0.26.0, micromamba 0.26.0
+
+Bug fixes:
+- [micromamba] fix fish scripts (thanks @jonashaag) #1975
+- [micromamba] fix issues with `micromamba ps` #1953
+- [libmamba, micromamba] add symlinks and empty directories to archive for `micromamba package compress` #1955
+- [mamba] fix mamba.sh and mamba.bat shell scripts to work with conda 22.09 #1952
+- [libmamba] increase curl buffer size for faster max download speeds (thanks @jonashaag) #1949
+- [micromamba] add `micromamba info --licenses` to print licenses of used OSS (thanks @jonashaag) #1933
+- [micromamba] proper quoting in `micromamba run` (thanks @jonashaag) #1936
+- [micromamba] install pip dependencies and by category for YAML lockfiles (thanks @jvansanten) #1908 #1917
+- [libmamba] fix crash when installing from environment lockfile (thanks @Klaim) #1893
+- [micromamba] fix update for packages with explicit channels (thanks @AntoinePrv) #1864
+- [libmamba] fix linux version regex (thanks @kelszo) #1852
+- [libmamba] remove duplicate console output (thanks @pavelzw) #1845
+- [mamba] remove usage of non-existing function (thanks @AntoinePrv) #1835
+
+Enhancements:
+- [libmamba] add option to disable file locks globally (thanks @danpf @JohanMabille) #1830
+- [libmamba] extend graph class for better solver messaging work (thanks @syslaila @AntoinePrv) #1880
+- [micromamba] only call compinit once to fix oh-my-zsh (thanks @AntoinePrv) #1911
+- [libmamba] use std::filesystem instead of ghc::filesystem (thanks @Klaim) #1665
+- [libmamba] add missing SolverRuleInfo enum entries (thanks @AntoinePrv) #1833
+- [micromamba] CI: add fully static micromamba build (thanks @jonashaag) #1821
+
+
 2022.07.29
 ==========
 

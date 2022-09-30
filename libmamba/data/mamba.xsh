@@ -37,7 +37,7 @@ def _raise_pipeline_error(pipeline):
     return stdout.strip()
 
 
-def _mamba_activate_handler(env_name_or_prefix):
+def _mamba_activate_handler(env_name_or_prefix=None):
     if env_name_or_prefix == 'base' or not env_name_or_prefix:
         env_name_or_prefix = $MAMBA_ROOT_PREFIX
     __xonsh__.execer.exec($($MAMBA_EXE shell activate -s xonsh -p @(env_name_or_prefix)),
@@ -98,21 +98,51 @@ def _list_dirs(path):
             yield entry.name
 
 
+def _get_envs():
+    """
+    Grab a list of all conda env dirs from conda, allowing all warnings.
+    """
+    import json
+    import os
+    env_list = json.loads($($MAMBA_EXE env list --json))["envs"]
+    env_list = set([os.path.basename(e) for e in env_list])
+    return env_list
+
+
 def _mamba_completer(prefix, line, start, end, ctx):
     """
     Completion for conda
     """
     args = line.split(' ')
     possible = set()
-    if len(args) == 0 or args[0] not in ['micromamba']:
+    if len(args) == 0 or args[0] != 'micromamba':
         return None
     curix = args.index(prefix)
     if curix == 1:
-        possible = {'activate', 'deactivate', 'install', 'create'}
+        possible = {'activate', 'deactivate', 'install', 'remove', 'info',
+                    'list', 'search', 'update',
+                    'config', 'clean', 'package','env',
+                    'create', '-h', '--help', '-V', '--version'}
 
     elif curix == 2:
-        if args[1] == 'create':
-            possible = {'-p'}
+        if args[1] in ['activate']:
+            possible = _get_envs()
+        elif args[1] == 'create':
+            possible = {'-p', '-n'}
+        elif args[1] == 'env':
+            possible = {'export', 'list', 'remove', 'update'}
+
+    elif curix == 3:
+        if args[2] == 'export':
+            possible = {'-n', '--name'}
+        elif args[2] == 'create':
+            possible = {'-h', '--help', '-f', '--file', '-n', '--name', '-p',
+                        '--prefix', '-q', '--quiet', '--force', '--json',
+                       '-v', '--verbose'}
+
+    elif curix == 4:
+        if args[2] == 'export' and args[3] in ['-n','--name']:
+            possible = _get_envs()
 
     return {i for i in possible if i.startswith(prefix)}
 

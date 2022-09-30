@@ -587,10 +587,10 @@ namespace mamba
 
         auto conda_environment_env_vars = get_environment_vars(prefix);
 
-        // TODO
-        // unset_env_vars = [k for k, v in conda_environment_env_vars.items()
-        //                   if v == CONDA_ENV_VARS_UNSET_VAR]
-        // [conda_environment_env_vars.pop(_) for _ in unset_env_vars]
+        // TODO check with conda if that's really what's supposed to happen ...
+        std::remove_if(conda_environment_env_vars.begin(),
+                       conda_environment_env_vars.end(),
+                       [](auto& el) { return el.second == CONDA_ENV_VARS_UNSET_VAR; });
 
         std::vector<std::string> clobbering_env_vars;
         for (auto& env_var : conda_environment_env_vars)
@@ -601,10 +601,8 @@ namespace mamba
 
         for (const auto& v : clobbering_env_vars)
         {
-            // TODO use concat
-            std::stringstream tmp;
-            tmp << "__CONDA_SHLVL_" << old_conda_shlvl << "_" << v;
-            conda_environment_env_vars.push_back({ tmp.str(), m_env[v] });
+            conda_environment_env_vars.push_back(
+                { fmt::format("__CONDA_SHLVL_{}_{}", old_conda_shlvl, v), m_env[v] });
         }
 
         if (clobbering_env_vars.size())
@@ -632,25 +630,22 @@ namespace mamba
         {
             get_export_unset_vars(envt, env_vars_to_export);
         }
+        else if (m_stack)
+        {
+            get_export_unset_vars(envt, env_vars_to_export);
+            envt.export_vars.push_back(
+                { fmt::format("CONDA_PREFIX_{}", old_conda_shlvl), old_conda_prefix });
+            envt.export_vars.push_back(
+                { fmt::format("CONDA_STACKED_{}", new_conda_shlvl), "true" });
+        }
         else
         {
-            if (m_stack)
-            {
-                get_export_unset_vars(envt, env_vars_to_export);
-                envt.export_vars.push_back(
-                    { "CONDA_PREFIX_" + std::to_string(old_conda_shlvl), old_conda_prefix });
-                envt.export_vars.push_back(
-                    { "CONDA_STACKED_" + std::to_string(new_conda_shlvl), "true" });
-            }
-            else
-            {
-                new_path = replace_prefix_in_path(old_conda_prefix, prefix.string());
-                envt.deactivate_scripts = get_deactivate_scripts(old_conda_prefix);
-                env_vars_to_export[0] = { "PATH", new_path };
-                get_export_unset_vars(envt, env_vars_to_export);
-                envt.export_vars.push_back(
-                    { "CONDA_PREFIX_" + std::to_string(old_conda_shlvl), old_conda_prefix });
-            }
+            new_path = replace_prefix_in_path(old_conda_prefix, prefix.string());
+            envt.deactivate_scripts = get_deactivate_scripts(old_conda_prefix);
+            env_vars_to_export[0] = { "PATH", new_path };
+            get_export_unset_vars(envt, env_vars_to_export);
+            envt.export_vars.push_back(
+                { fmt::format("CONDA_PREFIX_{}", old_conda_shlvl), old_conda_prefix });
         }
 
         if (Context::instance().change_ps1)
@@ -926,16 +921,13 @@ namespace mamba
 
     std::string PowerShellActivator::hook_preamble()
     {
-        return "";
+        return fmt::format("$MambaModuleArgs = @{{ChangePs1 = ${}}}",
+                           Context::instance().change_ps1 ? "True" : "False");
     }
 
     std::string PowerShellActivator::hook_postamble()
     {
-        if (Context::instance().change_ps1)
-        {
-            return "Add-CondaEnvironmentToPrompt";
-        }
-        return "";
+        return "Remove-Variable MambaModuleArgs";
     }
 
     fs::u8path PowerShellActivator::hook_source_path()

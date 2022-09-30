@@ -1,3 +1,11 @@
+mamba 0.26.0 (September 30, 2022)
+=================================
+
+Bug fixes:
+
+- fix mamba.sh and mamba.bat shell scripts to work with conda 22.09 #1952
+- remove usage of non-existing function (thanks @AntoinePrv) #1835
+
 mamba 0.25.0 (July 26, 2022)
 ============================
 

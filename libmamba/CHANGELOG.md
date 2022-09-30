@@ -1,3 +1,21 @@
+libmamba 0.26.0 (September 30, 2022)
+====================================
+
+Bug fixes:
+
+- add symlinks and empty directories to archive for `micromamba package compress` #1955
+- increase curl buffer size for faster max download speeds (thanks @jonashaag) #1949
+- fix crash when installing from environment lockfile (thanks @Klaim) #1893
+- fix linux version regex (thanks @kelszo) #1852
+- remove duplicate console output (thanks @pavelzw) #1845
+
+Enhancements:
+
+- add option to disable file locks globally (thanks @danpf @JohanMabille) #1830
+- extend graph class for better solver messaging work (thanks @syslaila @AntoinePrv) #1880
+- use std::filesystem instead of ghc::filesystem (thanks @Klaim) #1665
+- add missing SolverRuleInfo enum entries (thanks @AntoinePrv) #1833
+
 libmamba 0.25.0 (July 26, 2022)
 ===============================
 

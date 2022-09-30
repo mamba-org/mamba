@@ -1,3 +1,21 @@
+micromamba 0.26.0 (September 30, 2022)
+======================================
+
+Bug fixes:
+
+- fix fish scripts (thanks @jonashaag) #1975
+- fix issues with `micromamba ps` #1953
+- add symlinks and empty directories to archive for `micromamba package compress` #1955
+- add `micromamba info --licenses` to print licenses of used OSS (thanks @jonashaag) #1933
+- proper quoting in `micromamba run` (thanks @jonashaag) #1936
+- install pip dependencies and by category for YAML lockfiles (thanks @jvansanten) #1908 #1917
+- fix update for packages with explicit channels (thanks @AntoinePrv) #1864
+
+Enhancements:
+
+- only call compinit once to fix oh-my-zsh (thanks @AntoinePrv) #1911
+- CI: add fully static micromamba build (thanks @jonashaag) #1821
+
 micromamba 0.25.1 (July 29, 2022)
 =================================
 

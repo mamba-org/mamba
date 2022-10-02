@@ -8,7 +8,7 @@ on:
       - main
 jobs:
   linux-conda-build:
-    name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
+    name: "micromamba - ${{ matrix.TARGET }}"
     runs-on: ubuntu-latest
     env:
       CI: True
@@ -16,10 +16,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        CONDA_BUILD_YML:
-          - linux_64_
-          - linux_aarch64_
-          - linux_ppc64le_
+        include:
+          - {CONDA_BUILD_YML: linux_64_, TARGET: linux-64}
+          - {CONDA_BUILD_YML: linux_aarch64_, TARGET: linux-aarch64}
+          - {CONDA_BUILD_YML: linux_ppc64le_, TARGET: linux-ppc64le}
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -32,11 +32,19 @@ jobs:
       - name: Build conda package
         shell: bash -l {0}
         run: ./.github/workflows/conda-build.sh
-      - uses: mxschmitt/action-tmate@v3
-
+      - name: Unpack micromamba package
+        shell: bash -l {0}
+        run: |
+          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.TARGET }}
+          tar -xvf micromamba-*.tar.bz2
+      - name: Upload micromamba
+        uses: actions/upload-artifact@v2
+        with:
+          name: micromamba-${{ matrix.TARGET }}
+          path: ~/micromamba-root/envs/mambabuild/conda-bld/${{ matrix.TARGET }}/bin/micromamba
 
   macos-conda-build:
-    name: "MacOS - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
+    name: "micromamba - ${{ matrix.TARGET }}"
     runs-on: macos-latest
     env:
       CI: True
@@ -44,9 +52,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        CONDA_BUILD_YML:
-          - osx_64_
-          - osx_arm64_
+        include:
+          - { CONDA_BUILD_YML: osx_64_, TARGET: osx-64 }
+          - { CONDA_BUILD_YML: osx_arm64_, TARGET: osx-arm64 }
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -59,6 +67,16 @@ jobs:
       - name: Build conda package
         shell: bash -l {0}
         run: ./.github/workflows/macos-conda-build.sh
+      - name: Unpack micromamba package
+        shell: bash -l {0}
+        run: |
+          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.TARGET }}
+          tar -xvf micromamba-*.tar.bz2
+      - name: Upload micromamba
+        uses: actions/upload-artifact@v2
+        with:
+          name: micromamba-${{ matrix.TARGET }}
+          path: ~/micromamba-root/envs/mambabuild/conda-bld/${{ matrix.TARGET }}/bin/micromamba
 
   windows-conda-build:
     if: false

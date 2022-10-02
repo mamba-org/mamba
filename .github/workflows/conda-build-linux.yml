@@ -17,6 +17,7 @@ jobs:
       matrix:
         CONDA_BUILD_YML:
           - linux_64_
+          - linux_aarch64_
     steps:
       - name: Pull image
         run: docker pull condaforge/mambaforge:latest
@@ -30,3 +31,32 @@ jobs:
         uses: ./.github/actions/conda-build
         with:
           conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}
+
+  macos-conda-build:
+    name: "MacOS - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
+    runs-on: macos-latest
+    env:
+      CI: True
+      CONDA_BUILD_YML: ${{ matrix.CONDA_BUILD_YML }}
+    strategy:
+      fail-fast: false
+      matrix:
+        CONDA_BUILD_YML:
+          - osx_64_
+          - osx_arm64_
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Fetch full git history
+        run: git fetch --prune --unshallow
+      - uses: conda-incubator/setup-miniconda@35d1405e78aa3f784fe3ce9a2eb378d5eeb62169
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: 4.10.0-0
+          use-mamba: true
+          channels: conda-forge
+      - name: Build conda package
+        shell: bash -l {0}
+        run: ./.github/workflows/macos-conda-build.sh

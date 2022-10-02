@@ -8,7 +8,6 @@ on:
       - main
 jobs:
   linux-conda-build:
-    if: false
     name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: ubuntu-latest
     env:
@@ -19,6 +18,7 @@ jobs:
         CONDA_BUILD_YML:
           - linux_64_
           - linux_aarch64_
+          - linux_ppc64le_
     steps:
       - name: Pull image
         run: docker pull condaforge/mambaforge:latest
@@ -34,7 +34,6 @@ jobs:
           conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}
 
   macos-conda-build:
-    if: false
     name: "MacOS - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: macos-latest
     env:
@@ -64,6 +63,7 @@ jobs:
         run: ./.github/workflows/macos-conda-build.sh
 
   windows-conda-build:
+    if: false
     name: "Windows - conda-build - ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: windows-2019
     env:

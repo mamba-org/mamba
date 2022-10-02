@@ -52,12 +52,11 @@ jobs:
           ref: ${{ github.head_ref }}
       - name: Fetch full git history
         run: git fetch --prune --unshallow
-      - uses: conda-incubator/setup-miniconda@35d1405e78aa3f784fe3ce9a2eb378d5eeb62169
+      - uses: mamba-org/provision-with-micromamba@main
         with:
-          miniforge-variant: Mambaforge
-          miniforge-version: 4.10.0-0
-          use-mamba: true
-          channels: conda-forge
+          environment-file: false
+          environment-name: mambabuild
+          extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
         run: ./.github/workflows/macos-conda-build.sh

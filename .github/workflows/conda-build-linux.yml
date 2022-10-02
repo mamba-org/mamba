@@ -23,6 +23,14 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
+      - name: Checkout micromamba-feedstock
+        uses: actions/checkout@v3
+        with:
+          repository: conda-forge/micromamba-feedstock
+          path: micromamba-feedstock
+      - name: Patch micromamba-feedstock
+        run: |
+          sed -i -E ':a; N; $!ba; s/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge
@@ -31,7 +39,7 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != 'linux-64' && '--no-test' || '' }}
+        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml micromamba-feedstock/recipe ${{ matrix.TARGET != 'linux-64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
@@ -59,6 +67,17 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
+      - name: Checkout micromamba-feedstock
+        uses: actions/checkout@v3
+        with:
+          repository: conda-forge/micromamba-feedstock
+          path: micromamba-feedstock
+      - name: Patch micromamba-feedstock
+        run: |
+          sed -i '' -E 's/url:.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/patches:/d' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/libmamba.patch/d' micromamba-feedstock/recipe/meta.yaml
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge

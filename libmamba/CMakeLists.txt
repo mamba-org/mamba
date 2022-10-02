@@ -341,8 +341,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_package(CURL CONFIG REQUIRED)
             find_package(yaml-cpp CONFIG REQUIRED)
             find_package(nlohmann_json CONFIG REQUIRED)
-            find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
-
+            find_package(LibLZMA CONFIG REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
             find_package(zstd CONFIG REQUIRED)
@@ -355,8 +354,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_package(tl-expected REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
-            find_library(ICONV_LIBRARY NAMES iconv)
-            find_library(CHARSET_LIBRARY NAMES charset)
+            find_library(ICONV_LIBRARY NAMES libiconv)
+            find_library(CHARSET_LIBRARY NAMES libcharset)
             message("Found: ${LIBXML2_LIBRARY} ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
 
             target_link_libraries(${target_name} PUBLIC
@@ -365,14 +364,14 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${LIBXML2_LIBRARY}
                 ${ICONV_LIBRARY}
                 ${CHARSET_LIBRARY}
-                zstd::libzstd_static
+                libzstd
                 ${LZ4_LIBRARY}
                 ${LZO2_LIBRARY}
                 ${BZIP2_LIBRARIES}
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
                 nlohmann_json::nlohmann_json
-                yaml-cpp
+                ${YAML_CPP_LIBRARIES}
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
                 ${sodium_LIBRARY_RELEASE}
@@ -511,3 +510,52 @@ endif ()
 if (BUILD_TESTS)
     add_subdirectory(tests)
 endif()
+
+# Installation
+# ============
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+set(LIBMAMBA_CMAKECONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "install path for libmambaConfig.cmake")
+
+install(TARGETS ${libmamba_targets}
+        EXPORT ${PROJECT_NAME}-targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(DIRECTORY "${LIBMAMBA_INCLUDE_DIR}/"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        FILES_MATCHING
+        PATTERN "*.hpp"
+        PATTERN "*.h")
+
+# Makes the project importable from the build directory
+export(EXPORT ${PROJECT_NAME}-targets
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake")
+
+# Configure 'mambaConfig.cmake' for a build tree
+set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")
+set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}set(CMAKE_MODULE_PATH \"${CMAKE_CURRENT_SOURCE_DIR}/cmake;\${CMAKE_MODULE_PATH}\")\n")
+set(MAMBA_CONFIG_CODE "${MAMBA_CONFIG_CODE}##################################################")
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                                "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+                                INSTALL_DESTINATION ${PROJECT_BINARY_DIR})
+
+# Configure 'mambaConfig.cmake' for an install tree
+set(MAMBA_CONFIG_CODE "")
+configure_package_config_file(${PROJECT_NAME}Config.cmake.in
+                                "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake"
+                                INSTALL_DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
+
+
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                                    VERSION ${MAMBA_VERSION_MAJOR}.${MAMBA_VERSION_MINOR}.${MAMBA_VERSION_PATCH}
+                                    COMPATIBILITY AnyNewerVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${PROJECT_NAME}Config.cmake
+                ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+                DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})
+install(EXPORT ${PROJECT_NAME}-targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR})

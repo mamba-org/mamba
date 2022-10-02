@@ -31,7 +31,7 @@ requirements:
     - make   # [unix]
     - ninja  # [win]
     - vcpkg  # [win]
-    - patch  # [win]
+    - m2-patch  # [win]
     - python  # [win]
     # force a recent curl version for windows
     - curl >=7.75  # [win]

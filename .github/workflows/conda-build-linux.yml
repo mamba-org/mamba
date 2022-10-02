@@ -54,6 +54,7 @@ jobs:
         run: git fetch --prune --unshallow
       - uses: mamba-org/provision-with-micromamba@main
         with:
+          channels: conda-forge
           environment-file: false
           environment-name: mambabuild
           extra-specs: boa

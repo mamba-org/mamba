@@ -2,8 +2,6 @@
 
 set -eo pipefail
 
-export CONDA_BUILD_YML=$1
-
 # add --no-test if we are not building for x86
 if [[ $CONDA_BUILD_YML != linux_64_ ]]; then
   CONDA_BUILD_ARGS="--no-test"

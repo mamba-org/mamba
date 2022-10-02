@@ -7,31 +7,57 @@ on:
     branches:
       - main
 jobs:
+#  linux-conda-build:
+#    name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
+#    runs-on: ubuntu-latest
+#    env:
+#      CI: True
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        CONDA_BUILD_YML:
+#          - linux_64_
+#          - linux_aarch64_
+#          - linux_ppc64le_
+#    steps:
+#      - name: Pull image
+#        run: docker pull condaforge/mambaforge:latest
+#      - name: Checkout branch
+#        uses: actions/checkout@v3
+#        with:
+#          ref: ${{ github.head_ref }}
+#      - name: Fetch full git history
+#        run: git fetch --prune --unshallow
+#      - name: Run CI inside of container
+#        uses: ./.github/actions/conda-build
+#        with:
+#          conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}
+
   linux-conda-build:
     name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: ubuntu-latest
     env:
       CI: True
+      CONDA_BUILD_YML: ${{ matrix.CONDA_BUILD_YML }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         CONDA_BUILD_YML:
           - linux_64_
           - linux_aarch64_
           - linux_ppc64le_
     steps:
-      - name: Pull image
-        run: docker pull condaforge/mambaforge:latest
       - name: Checkout branch
         uses: actions/checkout@v3
+      - uses: mamba-org/provision-with-micromamba@main
         with:
-          ref: ${{ github.head_ref }}
-      - name: Fetch full git history
-        run: git fetch --prune --unshallow
-      - name: Run CI inside of container
-        uses: ./.github/actions/conda-build
-        with:
-          conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}
+          channels: conda-forge
+          environment-file: false
+          environment-name: mambabuild
+          extra-specs: boa
+      - name: Build conda package
+        shell: bash -l {0}
+        run: ./.github/workflows/conda-build.sh
 
   macos-conda-build:
     name: "MacOS - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
@@ -48,10 +74,6 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
-      - name: Fetch full git history
-        run: git fetch --prune --unshallow
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge

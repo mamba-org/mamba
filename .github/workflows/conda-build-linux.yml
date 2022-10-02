@@ -8,6 +8,7 @@ on:
       - main
 jobs:
   linux-conda-build:
+    if: false
     name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: ubuntu-latest
     env:
@@ -33,6 +34,7 @@ jobs:
           conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}
 
   macos-conda-build:
+    if: false
     name: "MacOS - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: macos-latest
     env:

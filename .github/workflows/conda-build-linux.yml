@@ -1,0 +1,29 @@
+name: conda-build Linux
+on:
+  push:
+    branches:
+      - main
+jobs:
+  linux-conda-build:
+    name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
+    runs-on: ubuntu-latest
+    env:
+      CI: True
+    strategy:
+      fail-fast: true
+      matrix:
+        CONDA_BUILD_YML:
+          - linux_64_
+    steps:
+      - name: Pull image
+        run: docker pull condaforge/mambaforge:latest
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Fetch full git history
+        run: git fetch --prune --unshallow
+      - name: Run CI inside of container
+        uses: ./.github/actions/conda-build
+        with:
+          conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}

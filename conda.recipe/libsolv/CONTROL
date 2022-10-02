@@ -1,0 +1,9 @@
+Source: libsolv
+Version: 0.7.18
+Description: Library for solving packages and reading repositories
+Homepage: https://github.com/openSUSE/libsolv
+Default-Features: conda
+Supports: !uwp
+
+Feature: conda
+Description: Conda support

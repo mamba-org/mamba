@@ -1,0 +1,29 @@
+c_compiler:
+- gcc
+c_compiler_version:
+- '10'
+cdt_name:
+- cos7
+channel_sources:
+- conda-forge
+channel_targets:
+- conda-forge main
+cxx_compiler:
+- gxx
+cxx_compiler_version:
+- '10'
+docker_image:
+- quay.io/condaforge/linux-anvil-cos7-x86_64
+libarchive:
+- '3.3'
+libcurl:
+- '7'
+openssl:
+- 1.1.1
+spdlog:
+- '1.10'
+target_platform:
+- linux-ppc64le
+zip_keys:
+- - c_compiler_version
+  - cxx_compiler_version

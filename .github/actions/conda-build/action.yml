@@ -1,0 +1,14 @@
+name: Run image
+description: Run private container from GitHub Packages Registry after Docker login
+inputs:
+  conda_build_yml:
+    description: "conda-build variant file"
+    required: true
+runs:
+  using: 'docker'
+  image: condaforge/mambaforge:latest
+  args:
+    - /bin/bash
+    - "-l"
+    - "-c"
+    - "./.github/workflows/conda-build.sh ${{ inputs.conda_build_yml }}"

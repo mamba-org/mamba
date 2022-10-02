@@ -1,4 +1,4 @@
-name: micromamba static builds
+name: Micromamba static builds
 
 on:
   push:

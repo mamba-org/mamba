@@ -60,3 +60,32 @@ jobs:
       - name: Build conda package
         shell: bash -l {0}
         run: ./.github/workflows/macos-conda-build.sh
+
+  windows-conda-build:
+    name: "Windows - conda-build - ${{ matrix.CONDA_BUILD_YML }}"
+    runs-on: windows-latest
+    env:
+      CI: True
+      CONDA_BUILD_YML: "${{ matrix.CONDA_BUILD_YML }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        CONDA_BUILD_YML:
+          - win_64_
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Fetch full git history
+        run: git fetch --prune --unshallow
+      - uses: conda-incubator/setup-miniconda@35d1405e78aa3f784fe3ce9a2eb378d5eeb62169
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: 4.10.0-0
+          use-mamba: true
+      - name: Build conda package
+        shell: pwsh
+        run: |
+          mamba install -n base -y conda-build
+          conda build -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe

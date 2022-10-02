@@ -1,4 +1,4 @@
-name: Fully static binary builds
+name: micromamba static builds
 
 on:
   push:
@@ -179,5 +179,5 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
       - uses: actions/upload-artifact@v3
         with:
-          name: Fully static binary (windows-2019)
+          name: micromamba-win-64
           path: build/micromamba/micromamba.exe

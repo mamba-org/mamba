@@ -1,4 +1,4 @@
-name: conda-build Linux
+name: micromamba static build
 on:
   push:
     branches:
@@ -31,12 +31,13 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: ./.github/workflows/conda-build.sh
+        run: conda mambabuild -m .ci_support/${{ CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != linux-64 && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
           cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.TARGET }}
           tar -xvf micromamba-*.tar.bz2
+          chmod +x bin/micromamba
       - name: Upload micromamba
         uses: actions/upload-artifact@v2
         with:
@@ -66,46 +67,15 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: ./.github/workflows/macos-conda-build.sh
+        run: conda mambabuild -m .ci_support/${{ CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != osx-64 && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
           cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.TARGET }}
           tar -xvf micromamba-*.tar.bz2
+          chmod +x bin/micromamba
       - name: Upload micromamba
         uses: actions/upload-artifact@v2
         with:
           name: micromamba-${{ matrix.TARGET }}
           path: ~/micromamba-root/envs/mambabuild/conda-bld/${{ matrix.TARGET }}/bin/micromamba
-
-  windows-conda-build:
-    if: false
-    name: "Windows - conda-build - ${{ matrix.CONDA_BUILD_YML }}"
-    runs-on: windows-2019
-    env:
-      CI: True
-      CONDA_BUILD_YML: "${{ matrix.CONDA_BUILD_YML }}"
-    strategy:
-      fail-fast: false
-      matrix:
-        CONDA_BUILD_YML:
-          - win_64_
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
-      - name: Fetch full git history
-        run: git fetch --prune --unshallow
-      - uses: conda-incubator/setup-miniconda@35d1405e78aa3f784fe3ce9a2eb378d5eeb62169
-        with:
-          miniforge-variant: Mambaforge
-          miniforge-version: 4.10.0-0
-          use-mamba: true
-#      - name: Debug
-#        uses: mxschmitt/action-tmate@v3
-      - name: Build conda package
-        shell: pwsh
-        run: |
-          mamba install -n base -y conda-build
-          conda build -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe

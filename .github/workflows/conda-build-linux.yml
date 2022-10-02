@@ -63,7 +63,7 @@ jobs:
 
   windows-conda-build:
     name: "Windows - conda-build - ${{ matrix.CONDA_BUILD_YML }}"
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       CI: True
       CONDA_BUILD_YML: "${{ matrix.CONDA_BUILD_YML }}"

@@ -31,7 +31,7 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != linux-64 && '--no-test' || '' }}
+        run: conda mambabuild -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != 'linux-64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
@@ -67,7 +67,7 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != osx-64 && '--no-test' || '' }}
+        run: conda mambabuild -m .ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml conda.recipe ${{ matrix.TARGET != 'osx-64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |

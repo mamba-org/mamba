@@ -8,6 +8,7 @@ on:
       - main
 jobs:
   linux-conda-build:
+    if: false
     name: "Linux - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: ubuntu-latest
     env:
@@ -33,6 +34,7 @@ jobs:
           conda_build_yml: ${{ matrix.CONDA_BUILD_YML }}
 
   macos-conda-build:
+    if: false
     name: "MacOS - conda-build - Python ${{ matrix.CONDA_BUILD_YML }}"
     runs-on: macos-latest
     env:
@@ -84,6 +86,8 @@ jobs:
           miniforge-variant: Mambaforge
           miniforge-version: 4.10.0-0
           use-mamba: true
+      - name: Debug
+        uses: mxschmitt/action-tmate@v3
       - name: Build conda package
         shell: pwsh
         run: |

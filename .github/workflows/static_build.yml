@@ -152,11 +152,24 @@ jobs:
     strategy:
       matrix:
         target:
-          - linux-aarch64
-          - linux-ppc64le
+          - aarch64
+          - ppc64le
     steps:
       - name: Download a single artifact
         uses: actions/download-artifact@v3
         with:
-          name: micromamba-${{ matrix.target }}
-      - uses: mxschmitt/action-tmate@v3
+          name: micromamba-linux-${{ matrix.target }}
+      - name: Test micromamba executable
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: ${{ matrix.target }}
+          distro: ubuntu_latest
+          dockerRunArgs: |
+            -v "${PWD}:/artifacts"
+          run: |
+            cd /artifacts
+            ls -lah
+            ./micromamba --version
+            ./micromamba --help
+            ./micromamba
+#      - uses: mxschmitt/action-tmate@v3

@@ -72,7 +72,6 @@ jobs:
             -v "${{ github.workspace }}/artifacts:/artifacts"
           run: |
             cd /artifacts
-            ls -lah
             ./micromamba --version
             ./micromamba --help
             ./micromamba

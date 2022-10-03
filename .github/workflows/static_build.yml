@@ -13,9 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linux-conda-build:
+  conda-build:
     name: "micromamba - ${{ matrix.TARGET }}"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.OS }}
     env:
       CI: True
       CONDA_BUILD_YML: ${{ matrix.CONDA_BUILD_YML }}
@@ -23,9 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { CONDA_BUILD_YML: linux_64_, TARGET: linux-64 }
-          - { CONDA_BUILD_YML: linux_aarch64_, TARGET: linux-aarch64 }
-          - { CONDA_BUILD_YML: linux_ppc64le_, TARGET: linux-ppc64le }
+          - { OS: ubuntu-latest, CONDA_BUILD_YML: linux_64_, TARGET: linux-64, BUILD: linux-64 }
+          - { OS: ubuntu-latest, CONDA_BUILD_YML: linux_aarch64_, TARGET: linux-aarch64, BUILD: linux-64 }
+          - { OS: ubuntu-latest, CONDA_BUILD_YML: linux_ppc64le_, TARGET: linux-ppc64le, BUILD: linux-64 }
+          - { OS: macos-latest, CONDA_BUILD_YML: osx_64_, TARGET: osx-64, BUILD: osx-64 }
+          - { OS: macos-latest, CONDA_BUILD_YML: osx_arm64_, TARGET: osx-arm64, BUILD: osx-64 }
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -35,50 +37,11 @@ jobs:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Patch micromamba-feedstock
+        if: ${{ matrix.OS == 'ubuntu-latest' }}
         run: |
           sed -i -E ':a; N; $!ba; s/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
-      - uses: mamba-org/provision-with-micromamba@main
-        with:
-          channels: conda-forge
-          environment-file: false
-          environment-name: mambabuild
-          extra-specs: boa
-      - name: Build conda package
-        shell: bash -l {0}
-        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml micromamba-feedstock/recipe ${{ matrix.TARGET != 'linux-64' && '--no-test' || '' }}
-      - name: Unpack micromamba package
-        shell: bash -l {0}
-        run: |
-          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.TARGET }}
-          tar -xvf micromamba-*.tar.bz2
-          chmod +x bin/micromamba
-      - name: Upload micromamba
-        uses: actions/upload-artifact@v2
-        with:
-          name: micromamba-${{ matrix.TARGET }}
-          path: ~/micromamba-root/envs/mambabuild/conda-bld/${{ matrix.TARGET }}/bin/micromamba
-
-  macos-conda-build:
-    name: "micromamba - ${{ matrix.TARGET }}"
-    runs-on: macos-latest
-    env:
-      CI: True
-      CONDA_BUILD_YML: ${{ matrix.CONDA_BUILD_YML }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { CONDA_BUILD_YML: osx_64_, TARGET: osx-64 }
-          - { CONDA_BUILD_YML: osx_arm64_, TARGET: osx-arm64 }
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v3
-      - name: Checkout micromamba-feedstock
-        uses: actions/checkout@v3
-        with:
-          repository: conda-forge/micromamba-feedstock
-          path: micromamba-feedstock
       - name: Patch micromamba-feedstock
+        if: ${{ matrix.OS == 'macos-latest' }}
         run: |
           sed -i '' -E 's/url:.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
@@ -92,7 +55,7 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml micromamba-feedstock/recipe ${{ matrix.TARGET != 'osx-64' && '--no-test' || '' }}
+        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.CONDA_BUILD_YML }}.yaml micromamba-feedstock/recipe ${{ matrix.TARGET != matrix.BUILD && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |

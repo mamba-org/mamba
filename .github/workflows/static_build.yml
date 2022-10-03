@@ -74,7 +74,6 @@ jobs:
           run: |
             cd /artifacts
             ls -lah
-#            chmod +x micromamba
             ./micromamba --version
             ./micromamba --help
             ./micromamba

@@ -220,7 +220,7 @@ namespace mamba
             std::size_t size = 0;
             for (auto& fp : fs::recursive_directory_iterator(p))
             {
-                if (!fp.is_symlink())
+                if (!fp.is_symlink() && !fp.is_directory())
                 {
                     size += fp.file_size();
                 }

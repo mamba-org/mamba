@@ -251,10 +251,13 @@ namespace mamba
                         }
                         else if (key == "pip")
                         {
-                            result.others_pkg_mgrs_specs.push_back(
-                                { "pip",
-                                  map_el.second.as<std::vector<std::string>>(),
-                                  fs::absolute(yaml_file.parent_path()).string() });
+                            const auto yaml_parent_path
+                                = fs::absolute(yaml_file).parent_path().string();
+                            result.others_pkg_mgrs_specs.push_back({
+                                "pip",
+                                map_el.second.as<std::vector<std::string>>(),
+                                yaml_parent_path,
+                            });
                             has_pip_deps = true;
                         }
                     }

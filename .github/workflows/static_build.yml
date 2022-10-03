@@ -61,7 +61,6 @@ jobs:
         run: |
           cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.target }}
           tar -xvf micromamba-*.tar.bz2
-          chmod +x bin/micromamba
       - name: Upload micromamba
         uses: actions/upload-artifact@v2
         with:
@@ -146,7 +145,7 @@ jobs:
           path: build/micromamba/micromamba.exe
 
   test-build:
-    name: "Test micromamba on ${{ matrix.target }}"
+    name: "Test micromamba on linux-${{ matrix.target }}"
     needs: conda-build
     runs-on: ubuntu-latest
     strategy:
@@ -168,7 +167,7 @@ jobs:
             -v "${PWD}:/artifacts"
           run: |
             cd /artifacts
-            ls -lah
+            chmod +x micromamba
             ./micromamba --version
             ./micromamba --help
             ./micromamba

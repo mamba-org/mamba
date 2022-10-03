@@ -4,13 +4,10 @@
 # Copyright (c) 2016, Gil Forsyth, All rights reserved.
 # Original code licensed under BSD-3-Clause.
 from xonsh.lazyasd import lazyobject
+from xonsh.completers import completer
+from xonsh.completers.tools import complete_from_sub_proc, contextual_command_completer
 
 _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
-
-@lazyobject
-def Env():
-    from collections import namedtuple
-    return namedtuple('Env', ['name', 'path', 'bin_dir', 'envs_dir'])
 
 
 def _parse_args(args=None):
@@ -64,6 +61,7 @@ def _mamba_reactivate_handler(args, name_or_prefix_given):
                               glbs=__xonsh__.ctx,
                               filename="$($MAMBA_EXE shell -s xonsh reactivate)")
 
+
 def _micromamba_main(args=None):
     parsed_args = _parse_args(args)
     if parsed_args.command == 'activate':
@@ -88,66 +86,20 @@ if 'CONDA_SHLVL' not in ${...}:
 aliases['micromamba'] = _micromamba_main
 
 
-def _list_dirs(path):
-    """
-    Generator that lists the directories in a given path.
-    """
-    import os
-    for entry in os.scandir(path):
-        if not entry.name.startswith('.') and entry.is_dir():
-            yield entry.name
+@contextual_command_completer
+def _micromamba_proc_completer(ctx):
+    if not ctx.args:
+        return
 
+    return (
+        complete_from_sub_proc(
+            "micromamba",
+            "completer",
+            *[a.value for a in ctx.args[1:]],
+            ctx.prefix,
+            sep=lambda x: x.split()
+        ),
+        False,
+    )
 
-def _get_envs():
-    """
-    Grab a list of all conda env dirs from conda, allowing all warnings.
-    """
-    import json
-    import os
-    env_list = json.loads($($MAMBA_EXE env list --json))["envs"]
-    env_list = set([os.path.basename(e) for e in env_list])
-    return env_list
-
-
-def _mamba_completer(prefix, line, start, end, ctx):
-    """
-    Completion for conda
-    """
-    args = line.split(' ')
-    possible = set()
-    if len(args) == 0 or args[0] != 'micromamba':
-        return None
-    curix = args.index(prefix)
-    if curix == 1:
-        possible = {'activate', 'deactivate', 'install', 'remove', 'info',
-                    'list', 'search', 'update',
-                    'config', 'clean', 'package','env',
-                    'create', '-h', '--help', '-V', '--version'}
-
-    elif curix == 2:
-        if args[1] in ['activate']:
-            possible = _get_envs()
-        elif args[1] == 'create':
-            possible = {'-p', '-n'}
-        elif args[1] == 'env':
-            possible = {'export', 'list', 'remove', 'update'}
-
-    elif curix == 3:
-        if args[2] == 'export':
-            possible = {'-n', '--name'}
-        elif args[2] == 'create':
-            possible = {'-h', '--help', '-f', '--file', '-n', '--name', '-p',
-                        '--prefix', '-q', '--quiet', '--force', '--json',
-                       '-v', '--verbose'}
-
-    elif curix == 4:
-        if args[2] == 'export' and args[3] in ['-n','--name']:
-            possible = _get_envs()
-
-    return {i for i in possible if i.startswith(prefix)}
-
-
-# add _xonda_completer to list of completers
-__xonsh__.completers['micromamba'] = _mamba_completer
-# bump to top of list
-__xonsh__.completers.move_to_end('micromamba', last=False)
+completer.add_one_completer("micromamba", _micromamba_proc_completer, "<bash")

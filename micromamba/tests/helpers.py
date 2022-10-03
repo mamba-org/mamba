@@ -195,6 +195,28 @@ def remove(*args, no_dry_run=False):
         raise (e)
 
 
+def clean(*args, no_dry_run=False):
+    umamba = get_umamba()
+    cmd = [umamba, "clean", "-y"] + [arg for arg in args if arg]
+
+    if "--print-config-only" in args:
+        cmd += ["--debug"]
+    if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
+        cmd += ["--dry-run"]
+
+    try:
+        res = subprocess.check_output(cmd)
+        if "--json" in args:
+            j = json.loads(res)
+            return j
+        if "--print-config-only" in args:
+            return yaml.load(res, Loader=yaml.FullLoader)
+        return res.decode()
+    except subprocess.CalledProcessError as e:
+        print(f"Error when executing '{' '.join(cmd)}'")
+        raise (e)
+
+
 def update(*args, default_channel=True, no_rc=True, no_dry_run=False):
     umamba = get_umamba()
     cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]

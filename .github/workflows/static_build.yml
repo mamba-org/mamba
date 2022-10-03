@@ -25,8 +25,8 @@ jobs:
           - { os: ubuntu-latest, platform: linux, arch: 64 }
           - { os: ubuntu-latest, platform: linux, arch: aarch64 }
           - { os: ubuntu-latest, platform: linux, arch: ppc64le }
-#          - { os: macos-latest, platform: osx, arch: 64 }
-#          - { os: macos-latest, platform: osx, arch: arm64 }
+          - { os: macos-latest, platform: osx, arch: 64 }
+          - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -68,7 +68,7 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           distro: ubuntu_latest
-          dockerRunArgs: | # todo does ${PWD} replaced by ${{ github.workspace }} work?
+          dockerRunArgs: |
             -v "${{ github.workspace }}/artifacts:/artifacts"
           run: |
             cd /artifacts
@@ -79,7 +79,7 @@ jobs:
       - name: Upload micromamba
         uses: actions/upload-artifact@v2
         with:
-          name: micromamba-${{ matrix.target }}
+          name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
 
   micromamba_full_static_win:

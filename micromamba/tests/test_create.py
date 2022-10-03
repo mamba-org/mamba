@@ -692,3 +692,17 @@ class TestCreate:
         prefix = Path(f"{TestCreate.prefix} with space")
         cmd = ["-p", f"{prefix}", "-f", env_file]
         create(*cmd)
+
+    @pytest.mark.parametrize("env_file", test_envs)
+    def test_requires_pip_install_no_parent_dir_specified(self, env_file):
+        prefix = Path(f"{TestCreate.prefix} with space")
+        initial_working_dir = os.getcwd()
+        try:
+            os.chdir(
+                source_dir_path
+            )  # Switch to the current source directory so that the file can be found without using an absolute path
+            env_file_name = Path(env_file).name
+            cmd = ["-p", f"{prefix}", "-f", env_file_name]
+            create(*cmd)
+        finally:
+            os.chdir(initial_working_dir)  # Switch back to original working dir.

@@ -14,20 +14,19 @@ concurrency:
 
 jobs:
   conda-build:
-    name: "micromamba - ${{ matrix.target }}"
+    name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     env:
       CI: True
-      CONDA_BUILD_YML: ${{ matrix.conda-build-yml }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, conda-build-yml: linux_64_.yaml, target: linux-64, host: linux-64 }
-          - { os: ubuntu-latest, conda-build-yml: linux_aarch64_.yaml, target: linux-aarch64, host: linux-64 }
-          - { os: ubuntu-latest, conda-build-yml: linux_ppc64le_.yaml, target: linux-ppc64le, host: linux-64 }
-#          - { os: macos-latest, conda-build-yml: osx_64_.yaml, target: osx-64, host: osx-64 }
-#          - { os: macos-latest, conda-build-yml: osx_arm64_.yaml, target: osx-arm64, host: osx-64 }
+          - { os: ubuntu-latest, platform: linux, arch: 64 }
+          - { os: ubuntu-latest, platform: linux, arch: aarch64 }
+          - { os: ubuntu-latest, platform: linux, arch: ppc64le }
+#          - { os: macos-latest, platform: osx, arch: 64 }
+#          - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3
@@ -37,11 +36,11 @@ jobs:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Patch micromamba-feedstock
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.platform == 'linux' }}
         run: |
           sed -i -E ':a; N; $!ba; s/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
       - name: Patch micromamba-feedstock
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: ${{ matrix.platform == 'osx' }}
         run: |
           sed -i '' -E 's/url:.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
@@ -55,19 +54,19 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.conda-build-yml }} micromamba-feedstock/recipe ${{ matrix.target != matrix.host && '--no-test' || '' }}
+        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
-          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.target }}
+          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
           tar -xvf micromamba-*.tar.bz2
           mkdir -p ${{ github.workspace }}/artifacts
           cp bin/micromamba ${{ github.workspace }}/artifacts
       - name: Test micromamba on emulated target architecture
-        if: ${{ matrix.target != matrix.host && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
         uses: uraimo/run-on-arch-action@v2
         with:
-          arch: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
           distro: ubuntu_latest
           dockerRunArgs: | # todo does ${PWD} replaced by ${{ github.workspace }} work?
             -v "${PWD}/artifacts:/artifacts"
@@ -160,7 +159,7 @@ jobs:
           name: micromamba-win-64
           path: build/micromamba/micromamba.exe
 
-#  test-build:
+#  test-build: todo remove
 #    name: "Test micromamba on linux-${{ matrix.target }}"
 #    needs: conda-build
 #    runs-on: ubuntu-latest

@@ -26,8 +26,8 @@ jobs:
           - { os: ubuntu-latest, conda-build-yml: linux_64_.yaml, target: linux-64, host: linux-64 }
           - { os: ubuntu-latest, conda-build-yml: linux_aarch64_.yaml, target: linux-aarch64, host: linux-64 }
           - { os: ubuntu-latest, conda-build-yml: linux_ppc64le_.yaml, target: linux-ppc64le, host: linux-64 }
-          - { os: macos-latest, conda-build-yml: osx_64_.yaml, target: osx-64, host: osx-64 }
-          - { os: macos-latest, conda-build-yml: osx_arm64_.yaml, target: osx-arm64, host: osx-64 }
+#          - { os: macos-latest, conda-build-yml: osx_64_.yaml, target: osx-64, host: osx-64 }
+#          - { os: macos-latest, conda-build-yml: osx_arm64_.yaml, target: osx-arm64, host: osx-64 }
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3

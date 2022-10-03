@@ -75,6 +75,7 @@ jobs:
             ./micromamba --version
             ./micromamba --help
             ./micromamba
+            apt install ca-certificates
             ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
       - name: Upload micromamba
         uses: actions/upload-artifact@v2

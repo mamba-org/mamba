@@ -1,3 +1,10 @@
+libmambapy 0.27.0 (October 04, 2022)
+====================================
+
+Bug fixes:
+
+- make compilation with external fmt library work #1987
+
 libmambapy 0.26.0 (September 30, 2022)
 ======================================
 

@@ -1,3 +1,10 @@
+libmamba 0.27.0 (October 04, 2022)
+==================================
+
+Bug fixes:
+
+- fix lockfiles relying on PID (thanks @Klaim) #1915
+
 libmamba 0.26.0 (September 30, 2022)
 ====================================
 

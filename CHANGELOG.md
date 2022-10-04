@@ -1,3 +1,18 @@
+2022.10.04
+==========
+
+Releases: libmamba 0.27.0, libmambapy 0.27.0, mamba 0.27.0, micromamba 0.27.0
+
+Bug fixes:
+- [libmamba, micromamba] fix lockfiles relying on PID (thanks @Klaim) #1915
+- [micromamba] fix error condition in micromamba run to not print warning every time #1985
+- [micromamba] fix error when getting size of directories (thanks @Klaim) #1982
+- [micromamba] fix crash when installing pip packages from env files (thanks @Klaim) #1978
+- [libmambapy] make compilation with external fmt library work #1987
+
+Enhancements:
+- [micromamba] add cross-compiled builds to CI (thanks @pavelzw) #1976, #1989
+
 2022.09.29
 ==========
 

@@ -148,8 +148,7 @@ PYBIND11_MODULE(bindings, m)
         .def("find_python_version", &MTransaction::find_python_version)
         .def("execute", &MTransaction::execute);
 
-    pySolver
-        .def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
+    pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_constraint", &MSolver::add_constraint)
@@ -365,8 +364,7 @@ PYBIND11_MODULE(bindings, m)
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 
-    pyPackageInfo
-        .def(py::init<Solvable*>())
+    pyPackageInfo.def(py::init<Solvable*>())
         .def(py::init<const std::string&>(), py::arg("name"))
         .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
              py::arg("name"),

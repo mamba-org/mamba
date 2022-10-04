@@ -389,10 +389,11 @@ set_run_command(CLI::App* subcom)
 
             // Make sure the proc directory is always existing and ready.
             std::error_code ec;
-            fs::create_directories(proc_dir(), ec);
-            if (!ec)
+            bool is_created = fs::create_directories(proc_dir(), ec);
+            if (!is_created && ec)
             {
-                LOG_WARNING << "Could not create proc dir: " << proc_dir();
+                LOG_WARNING << "Could not create proc dir: " << proc_dir() << " (" << ec.message()
+                            << ")";
             }
 
             LOG_DEBUG << "Currently running processes: " << get_all_running_processes_info();

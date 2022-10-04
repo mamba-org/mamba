@@ -1,4 +1,4 @@
-name: Fully static binary builds
+name: Micromamba static builds
 
 on:
   push:
@@ -13,58 +13,80 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  micromamba_full_static:
+  conda-build:
+    name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
+    env:
+      CI: True
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - { os: ubuntu-latest, platform: linux, arch: 64 }
+          - { os: ubuntu-latest, platform: linux, arch: aarch64 }
+          - { os: ubuntu-latest, platform: linux, arch: ppc64le }
+          - { os: macos-latest, platform: osx, arch: 64 }
+          - { os: macos-latest, platform: osx, arch: arm64 }
     steps:
-      - uses: actions/checkout@v3
-      - name: create build environment
-        uses: mamba-org/provision-with-micromamba@main
+      - name: Checkout branch
+        uses: actions/checkout@v3
+      - name: Checkout micromamba-feedstock
+        uses: actions/checkout@v3
         with:
-          environment-file: ./micromamba/environment-dev.yml
-          environment-name: build_env
-          cache-env: true
-      - name: create build environment
-        run: micromamba install -y -n build_env -f ./libmamba/environment-static-dev.yml
-      - uses: hendrikmuhs/ccache-action@main
+          repository: conda-forge/micromamba-feedstock
+          path: micromamba-feedstock
+      # replace the url: ... until the libmamba.patch line with git_url: ../..
+      - name: Patch micromamba-feedstock
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          sed -i -E -z 's/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
+      - name: Patch micromamba-feedstock
+        if: ${{ matrix.platform == 'osx' }}
+        run: |
+          sed -i '' -E 's/url:.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/patches:/d' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/libmamba.patch/d' micromamba-feedstock/recipe/meta.yaml
+      - uses: mamba-org/provision-with-micromamba@main
         with:
-          variant: sccache
-          key: ${{ github.job }}-${{ matrix.os }}
-      - name: build micromamba
+          channels: conda-forge
+          environment-file: false
+          environment-name: mambabuild
+          extra-specs: boa
+      - name: Build conda package
+        shell: bash -l {0}
+        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
+      - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
-          micromamba activate build_env
-          mkdir build
-          cd build
-          cmake .. -DBUILD_LIBMAMBA=ON \
-                   -DBUILD_STATIC_DEPS=ON \
-                   -DBUILD_STATIC=ON \
-                   -DBUILD_MICROMAMBA=ON \
-                   -DMICROMAMBA_STATIC_DEPS=ON \
-                   -DMICROMAMBA_LINKAGE=FULL_STATIC \
-                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                   -GNinja
-          ninja
-      - name: check that micromamba runs
-        shell: bash -l {0}
-        run: |
-          micromamba activate build_env
-          build/micromamba/micromamba --version
-      - name: build cache statistics
-        run: sccache --show-stats
-      - uses: actions/upload-artifact@v3
+          cd $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/${{ matrix.platform }}-${{ matrix.arch }}
+          tar -xvf micromamba-*.tar.bz2
+          mkdir -p ${{ github.workspace }}/artifacts
+          cp bin/micromamba ${{ github.workspace }}/artifacts
+      - name: Test micromamba on emulated target architecture
+        if: ${{ matrix.arch != '64' && matrix.platform == 'linux' }}
+        uses: uraimo/run-on-arch-action@v2
         with:
-          name: Fully static binary (${{ matrix.os }})
-          path: build/micromamba/micromamba
+          arch: ${{ matrix.arch }}
+          distro: ubuntu_latest
+          dockerRunArgs: |
+            -v "${{ github.workspace }}/artifacts:/artifacts"
+          run: |
+            cd /artifacts
+            ./micromamba --version
+            ./micromamba --help
+            ./micromamba
+            apt update && apt install -y ca-certificates
+            ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
+      - name: Upload micromamba
+        uses: actions/upload-artifact@v2
+        with:
+          name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/artifacts/micromamba
 
   micromamba_full_static_win:
-    # Don't run this job branches because it is very slow
-    if: github.ref == 'refs/heads/main'
-
     # These build instructions are based on https://github.com/conda-forge/micromamba-feedstock
+    name: "micromamba - win-64"
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -136,5 +158,5 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
       - uses: actions/upload-artifact@v3
         with:
-          name: Fully static binary (windows-2019)
+          name: micromamba-win-64
           path: build/micromamba/micromamba.exe

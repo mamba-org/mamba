@@ -1,4 +1,5 @@
 import os
+import pathlib
 import platform
 import shutil
 import string
@@ -679,6 +680,136 @@ class TestActivation:
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_activation_envvars(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        umamba = get_umamba()
+
+        s = [f"{umamba} shell init -p {self.root_prefix}"]
+        stdout, stderr = call_interpreter(s, tmp_path, interpreter)
+
+        call = lambda s: call_interpreter(
+            s, tmp_path, interpreter, interactive=True, env=clean_env
+        )
+
+        rp = Path(self.root_prefix)
+        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
+
+        if interpreter == "cmd.exe":
+            x = read_windows_registry(regkey)
+            fp = Path(x[0][1:-1])
+            assert fp.exists()
+
+        if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
+            print("Creating __def__")
+            s1 = ["micromamba create -n def"]
+            call(s1)
+
+            s = [
+                "micromamba activate def",
+            ] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+            abc_prefix = pathlib.Path(res["CONDA_PREFIX"])
+
+            state_file = abc_prefix / "conda-meta" / "state"
+
+            # Python dicts are guaranteed to keep insertion order since 3.7,
+            # so the following works fine!
+            state_file.write_text(
+                json.dumps(
+                    {
+                        "env_vars": {
+                            "test": "Test",
+                            "HELLO": "world",
+                            "WORKING": "/FINE/PATH/YAY",
+                            "AAA": "last",
+                        }
+                    }
+                )
+            )
+
+            s = (
+                [
+                    "micromamba activate def",
+                ]
+                + evars
+                + extract_vars(["TEST", "HELLO", "WORKING", "AAA"], interpreter)
+            )
+            stdout, stderr = call(s)
+
+            # assert that env vars are in the same order
+            activation_script, stderr = call(
+                ["micromamba shell activate -s bash -n def"]
+            )
+            idxs = []
+            for el in ["TEST", "HELLO", "WORKING", "AAA"]:
+                for idx, line in enumerate(activation_script.splitlines()):
+                    if line.startswith(f"export {el}="):
+                        idxs.append(idx)
+                        continue
+            assert len(idxs) == 4
+
+            # make sure that the order is correct
+            assert idxs == sorted(idxs)
+
+            res = TestActivation.to_dict(stdout)
+            assert res["TEST"] == "Test"
+            assert res["HELLO"] == "world"
+            assert res["WORKING"] == "/FINE/PATH/YAY"
+            assert res["AAA"] == "last"
+
+            pkg_env_vars_d = abc_prefix / "etc" / "conda" / "env_vars.d"
+            pkg_env_vars_d.mkdir(exist_ok=True, parents=True)
+
+            j1 = {"PKG_ONE": "FANCY_ENV_VAR", "OVERLAP": "LOSE_AGAINST_PKG_TWO"}
+
+            j2 = {
+                "PKG_TWO": "SUPER_FANCY_ENV_VAR",
+                "OVERLAP": "WINNER",
+                "TEST": "LOSE_AGAINST_META_STATE",
+            }
+
+            (pkg_env_vars_d / "001-pkg-one.json").write_text(json.dumps(j1))
+            (pkg_env_vars_d / "002-pkg-two.json").write_text(json.dumps(j2))
+
+            activation_script, stderr = call(
+                ["micromamba shell activate -s bash -n def"]
+            )
+            print(activation_script)
+            s = (
+                [
+                    "micromamba activate def",
+                ]
+                + evars
+                + extract_vars(
+                    [
+                        "TEST",
+                        "HELLO",
+                        "WORKING",
+                        "AAA",
+                        "PKG_ONE",
+                        "PKG_TWO",
+                        "OVERLAP",
+                    ],
+                    interpreter,
+                )
+            )
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+
+            assert res["HELLO"] == "world"
+            assert res["WORKING"] == "/FINE/PATH/YAY"
+            assert res["AAA"] == "last"
+            assert res["PKG_ONE"] == "FANCY_ENV_VAR"
+            assert res["PKG_TWO"] == "SUPER_FANCY_ENV_VAR"
+            assert res["OVERLAP"] == "WINNER"
+            assert res["TEST"] == "Test"
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_unicode_activation(

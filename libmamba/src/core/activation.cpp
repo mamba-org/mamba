@@ -83,7 +83,7 @@ namespace mamba
                 fin >> j;
                 for (auto it = j.begin(); it != j.end(); ++it)
                 {
-                    env_vars.insert({ to_upper(it.key()), it.value() });
+                    env_vars[to_upper(it.key())] = it.value();
                 }
             }
             catch (nlohmann::json::exception& error)
@@ -112,7 +112,7 @@ namespace mamba
                                         << "will overwrite those from packages";
                             LOG_WARNING << "Variable " << it.key() << " duplicated";
                         }
-                        env_vars.insert({ to_upper(it.key()), it.value() });
+                        env_vars[to_upper(it.key())] = it.value();
                     }
                 }
             }

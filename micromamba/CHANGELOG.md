@@ -1,3 +1,17 @@
+micromamba 0.27.0 (October 04, 2022)
+====================================
+
+Bug fixes:
+
+- fix lockfiles relying on PID (thanks @Klaim) #1915
+- fix error condition in micromamba run to not print warning every time #1985
+- fix error when getting size of directories (thanks @Klaim) #1982
+- fix crash when installing pip packages from env files (thanks @Klaim) #1978
+
+Enhancements:
+
+- add cross-compiled builds to CI (thanks @pavelzw) #1976, #1989
+
 micromamba 0.26.0 (September 30, 2022)
 ======================================
 

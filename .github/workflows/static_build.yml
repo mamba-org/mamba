@@ -16,8 +16,6 @@ jobs:
   conda-build:
     name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
-    env:
-      CI: True
     strategy:
       fail-fast: false
       matrix:

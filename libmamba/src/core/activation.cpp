@@ -78,10 +78,17 @@ namespace mamba
         {
             auto fin = open_ifstream(f);
             nlohmann::ordered_json j;
-            fin >> j;
-            for (auto it = j.begin(); it != j.end(); ++it)
+            try
             {
-                env_vars.insert({ it.key(), it.value() });
+                fin >> j;
+                for (auto it = j.begin(); it != j.end(); ++it)
+                {
+                    env_vars.insert({ to_upper(it.key()), it.value() });
+                }
+            }
+            catch (nlohmann::json::exception& error)
+            {
+                LOG_WARNING << "Could not read JSON at " << f << ": " << error.what();
             }
         }
 
@@ -89,22 +96,29 @@ namespace mamba
         if (fs::exists(env_vars_file))
         {
             auto fin = open_ifstream(env_vars_file);
-            nlohmann::ordered_json j;
-            fin >> j;
-            if (j.contains("env_vars"))
+            try
             {
-                auto& prefix_state_env_vars = j["env_vars"];
-                for (auto it = prefix_state_env_vars.begin(); it != prefix_state_env_vars.end();
-                     ++it)
+                nlohmann::ordered_json j;
+                fin >> j;
+                if (j.contains("env_vars"))
                 {
-                    if (env_vars.find(it.key()) != env_vars.end())
+                    auto& prefix_state_env_vars = j["env_vars"];
+                    for (auto it = prefix_state_env_vars.begin(); it != prefix_state_env_vars.end();
+                         ++it)
                     {
-                        LOG_WARNING << "Duplicate env vars detected. Vars from the environment "
-                                    << "will overwrite those from packages";
-                        LOG_WARNING << "Variable " << it.key() << " duplicated";
+                        if (env_vars.find(it.key()) != env_vars.end())
+                        {
+                            LOG_WARNING << "Duplicate env vars detected. Vars from the environment "
+                                        << "will overwrite those from packages";
+                            LOG_WARNING << "Variable " << it.key() << " duplicated";
+                        }
+                        env_vars.insert({ to_upper(it.key()), it.value() });
                     }
-                    env_vars.insert({ it.key(), it.value() });
                 }
+            }
+            catch (nlohmann::json::exception& error)
+            {
+                LOG_WARNING << "Could not read JSON at " << env_vars_file << ": " << error.what();
             }
         }
         std::vector<std::pair<std::string, std::string>> res(env_vars.begin(), env_vars.end());

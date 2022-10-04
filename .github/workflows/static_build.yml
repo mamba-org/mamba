@@ -39,7 +39,7 @@ jobs:
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'linux' }}
         run: |
-          sed -i -E ':a; N; $!ba; s/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
+          sed -i -E -z 's/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'osx' }}
         run: |

@@ -101,6 +101,8 @@ namespace mamba
 
     const std::size_t MAMBA_LOCK_POS = 21;
 
+    class LockFileOwner;
+
     class LockFile
     {
     public:
@@ -108,7 +110,9 @@ namespace mamba
 
         LockFile(const LockFile&) = delete;
         LockFile& operator=(const LockFile&) = delete;
-        LockFile& operator=(LockFile&&) = default;
+
+        LockFile(LockFile&&);
+        LockFile& operator=(LockFile&&);
 
         static std::unique_ptr<LockFile> create_lock(const fs::u8path& path);
         static std::unique_ptr<LockFile> try_lock(const fs::u8path& path) noexcept;
@@ -124,35 +128,21 @@ namespace mamba
         // Opening a new file descriptor on Unix would clear locks
         static bool is_locked(int fd);
 #endif
-        static int read_pid(int fd);
+
+        static bool is_locked(const LockFile& lockfile)
+        {
+#ifdef _WIN32
+            return is_locked(lockfile.lockfile_path());
+#else
+            // Opening a new file descriptor on Unix would clear locks
+            return is_locked(lockfile.fd());
+#endif
+        }
 
     private:
         LockFile(const fs::u8path& path);
         LockFile(const fs::u8path& path, const std::chrono::seconds& timeout);
-
-        fs::u8path m_path;
-        fs::u8path m_lock;
-        std::chrono::seconds m_timeout;
-        int m_fd = -1;
-        bool m_locked;
-        bool m_lockfile_existed;
-
-#if defined(__APPLE__) || defined(__linux__)
-        pid_t m_pid;
-#else
-        int m_pid;
-#endif
-        int read_pid() const;
-        bool write_pid(int pid) const;
-
-        bool set_fd_lock(bool blocking) const;
-        bool lock_non_blocking();
-        bool lock_blocking();
-        bool lock(int pid, bool blocking) const;
-
-        void remove_lockfile() noexcept;
-        int close_fd();
-        bool unlock();
+        std::shared_ptr<LockFileOwner> impl;
     };
 
 

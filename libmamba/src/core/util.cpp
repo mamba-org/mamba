@@ -36,6 +36,8 @@ extern "C"
 #include <mutex>
 #include <condition_variable>
 #include <optional>
+#include <unordered_map>
+#include <memory>
 #include <openssl/evp.h>
 
 #include "mamba/core/environment.hpp"
@@ -744,7 +746,52 @@ namespace mamba
         return prepend(p.c_str(), start, newline);
     }
 
-    LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
+
+    class LockFileOwner
+    {
+    public:
+        explicit LockFileOwner(const fs::u8path& file_path, const std::chrono::seconds timeout);
+        ~LockFileOwner();
+
+        LockFileOwner(const LockFileOwner&) = delete;
+        LockFileOwner& operator=(const LockFileOwner&) = delete;
+        LockFileOwner(LockFileOwner&&) = delete;
+        LockFileOwner& operator=(LockFileOwner&&) = delete;
+
+        bool set_fd_lock(bool blocking) const;
+        bool lock_non_blocking();
+        bool lock_blocking();
+        bool lock(bool blocking) const;
+
+        void remove_lockfile() noexcept;
+        int close_fd();
+        bool unlock();
+
+        int fd() const
+        {
+            return m_fd;
+        }
+
+        fs::u8path path() const
+        {
+            return m_path;
+        }
+
+        fs::u8path lockfile_path() const
+        {
+            return m_lockfile_path;
+        }
+
+    private:
+        fs::u8path m_path;
+        fs::u8path m_lockfile_path;
+        std::chrono::seconds m_timeout;
+        int m_fd = -1;
+        bool m_locked;
+        bool m_lockfile_existed;
+    };
+
+    LockFileOwner::LockFileOwner(const fs::u8path& path, const std::chrono::seconds timeout)
         : m_path(path)
         , m_timeout(timeout)
         , m_locked(false)
@@ -759,29 +806,28 @@ namespace mamba
         if (fs::is_directory(path))
         {
             LOG_DEBUG << "Locking directory '" << path.string() << "'";
-            m_lock = m_path / (m_path.filename().string() + ".lock");
+            m_lockfile_path = m_path / (m_path.filename().string() + ".lock");
         }
         else
         {
             LOG_DEBUG << "Locking file '" << path.string() << "'";
-            m_lock = m_path.string() + ".lock";
+            m_lockfile_path = m_path.string() + ".lock";
         }
 
-        m_lockfile_existed = fs::exists(m_lock, ec);
+        m_lockfile_existed = fs::exists(m_lockfile_path, ec);
 #ifdef _WIN32
-        m_fd = _wopen(m_lock.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = _wopen(m_lockfile_path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
 #else
-        m_fd = open(m_lock.string().c_str(), O_RDWR | O_CREAT, 0666);
+        m_fd = open(m_lockfile_path.string().c_str(), O_RDWR | O_CREAT, 0666);
 #endif
         if (m_fd <= 0)
         {
-            LOG_ERROR << "Could not open lockfile '" << m_lock.string() << "'";
+            LOG_ERROR << "Could not open lockfile '" << m_lockfile_path.string() << "'";
             unlock();
             throw std::runtime_error("LockFile error. Aborting.");
         }
         else
         {
-            m_pid = getpid();
             if ((m_locked = lock_non_blocking()) == false)
             {
                 LOG_WARNING << "Cannot lock '" << m_path.string() << "'"
@@ -792,7 +838,7 @@ namespace mamba
 
             if (m_locked)
             {
-                LOG_TRACE << "Lockfile created at '" << m_lock.string() << "'";
+                LOG_TRACE << "Lockfile created at '" << m_lockfile_path.string() << "'";
                 LOG_DEBUG << "Successfully locked";
             }
             else
@@ -806,36 +852,31 @@ namespace mamba
         }
     }
 
-    LockFile::LockFile(const fs::u8path& path)
-        : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
-    {
-    }
-
-    LockFile::~LockFile()
+    LockFileOwner::~LockFileOwner()
     {
         LOG_DEBUG << "Unlocking '" << m_path.string() << "'";
         unlock();
     }
 
-    void LockFile::remove_lockfile() noexcept
+    void LockFileOwner::remove_lockfile() noexcept
     {
         close_fd();
 
         if (!m_lockfile_existed)
         {
             std::error_code ec;
-            LOG_TRACE << "Removing file '" << m_lock.string() << "'";
-            fs::remove(m_lock, ec);
+            LOG_TRACE << "Removing file '" << m_lockfile_path.string() << "'";
+            fs::remove(m_lockfile_path, ec);
 
             if (ec)
             {
-                LOG_ERROR << "Removing lock file '" << m_lock.string() << "' failed\n"
+                LOG_ERROR << "Removing lock file '" << m_lockfile_path.string() << "' failed\n"
                           << "You may need to remove it manually";
             }
         }
     }
 
-    int LockFile::close_fd()
+    int LockFileOwner::close_fd()
     {
         int ret = 0;
         if (m_fd > -1)
@@ -846,127 +887,23 @@ namespace mamba
         return ret;
     }
 
-    bool LockFile::unlock()
+    bool LockFileOwner::unlock()
     {
         int ret = 0;
 
         // POSIX systems automatically remove locks when closing any file
         // descriptor related to the file
 #ifdef _WIN32
-        LOG_TRACE << "Removing lock on '" << m_lock.string() << "'";
+        LOG_TRACE << "Removing lock on '" << m_lockfile_path.string() << "'";
         _lseek(m_fd, MAMBA_LOCK_POS, SEEK_SET);
         ret = _locking(m_fd, LK_UNLCK, 1 /*lock_file_contents_length()*/);
 #endif
         remove_lockfile();
-
         return ret == 0;
     }
 
-    int LockFile::read_pid(int fd)
-    {
-        char pid_buffer[20] = "";
-
-#ifdef _WIN32
-        _lseek(fd, 0, SEEK_SET);
-        int read_res = _read(fd, pid_buffer, 20);
-#else
-        lseek(fd, 0, SEEK_SET);
-        int read_res = read(fd, pid_buffer, 20);
-#endif
-        if (read_res == -1 && errno != EBADF)
-        {
-            LOG_ERROR << "Could not read lockfile (" << strerror(errno) << ")";
-            return -1;
-        }
-
-        if (strlen(pid_buffer) == 0)
-            return -1;
-
-        int pid;
-        try
-        {
-            pid = std::stoi(pid_buffer);
-        }
-        catch (...)
-        {
-            LOG_ERROR << "Could not parse lockfile";
-            return -1;
-        };
-
-        return pid;
-    }
-
-    int LockFile::read_pid() const
-    {
-        return read_pid(m_fd);
-    }
-
-#ifdef _WIN32
-    bool LockFile::is_locked(const fs::u8path& path)
-    {
-        // Windows locks are isolated between file descriptor
-        // We can then test if locked by opening a new one
-        int fd = _wopen(path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
-        _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
-        char buffer[1];
-        bool is_locked = _read(fd, buffer, 1) == -1;
-        _close(fd);
-        return is_locked;
-    }
-#endif
-
 #ifndef _WIN32
-    bool LockFile::is_locked(int fd)
-    {
-        // UNIX/POSIX record locks can't be checked from current process: opening
-        // then closing a new file descriptor would unset the locks
-        // 1. compare owner PID written in lockfile with current PID
-        // 2. call fcntl called with F_GETLK
-        //  -> log an error if fcntl return a different owner PID vs lockfile content
-
-        // Warning:
-        // If called from the same process as the lockfile one and PID written in
-        // file is corrupted, the result is a false negative
-
-        // Note: don't use on Windows
-        // On Windows, if called from the same process, with the lockfile file descriptor
-        // and PID written in lockfile is corrupted, the result would be a false negative
-
-        int pid = read_pid(fd);
-        if (pid == getpid())
-            return true;
-
-        struct flock lock;
-        lock.l_type = F_WRLCK;
-        lock.l_whence = SEEK_SET;
-        lock.l_start = MAMBA_LOCK_POS;
-        lock.l_len = 1;
-        fcntl(fd, F_GETLK, &lock);
-
-        if ((lock.l_type == F_UNLCK) && (pid != lock.l_pid))
-            LOG_ERROR << "LockFile file has wrong owner PID " << pid << ", actual is "
-                      << lock.l_pid;
-
-        return lock.l_type != F_UNLCK;
-    }
-#endif
-
-    bool LockFile::write_pid(int pid) const
-    {
-        auto pid_s = std::to_string(pid);
-#ifdef _WIN32
-        _lseek(m_fd, 0, SEEK_SET);
-        _chsize_s(m_fd, 0);
-        return _write(m_fd, pid_s.c_str(), pid_s.size()) > -1;
-#else
-        lseek(m_fd, 0, SEEK_SET);
-        ftruncate(m_fd, 0);
-        return write(m_fd, pid_s.c_str(), pid_s.size()) > -1;
-#endif
-    }
-
-#ifndef _WIN32
-    int timedout_set_fd_lock(int fd, struct flock& lock, const std::chrono::seconds& timeout)
+    int timedout_set_fd_lock(int fd, struct flock& lock, const std::chrono::seconds timeout)
     {
         int ret;
         std::mutex m;
@@ -1013,7 +950,7 @@ namespace mamba
     }
 #endif
 
-    bool LockFile::set_fd_lock(bool blocking) const
+    bool LockFileOwner::set_fd_lock(bool blocking) const
     {
         int ret = 0;
 #ifdef _WIN32
@@ -1021,19 +958,19 @@ namespace mamba
 
         if (blocking)
         {
-            std::chrono::seconds timer(0);
-            bool has_timeout = m_timeout.count() > 0;
-
-            while (!has_timeout || (timer < m_timeout))
+            static constexpr auto default_timeout = std::chrono::seconds(30);
+            const auto timeout
+                = m_timeout > std::chrono::seconds::zero() ? m_timeout : default_timeout;
+            const auto begin_time = std::chrono::system_clock::now();
+            while ((std::chrono::system_clock::now() - begin_time) < timeout)
             {
                 ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
                 if (ret == 0)
                     break;
                 std::this_thread::sleep_for(std::chrono::seconds(1));
-                timer += std::chrono::seconds(1);
             }
 
-            if (has_timeout && (timer >= m_timeout) && (ret == -1))
+            if (ret != 0)
                 errno = EINTR;
         }
         else
@@ -1058,71 +995,158 @@ namespace mamba
         return ret == 0;
     }
 
-    bool LockFile::lock(int pid, bool blocking) const
+    bool LockFileOwner::lock(bool blocking) const
     {
         if (!set_fd_lock(blocking))
         {
             LOG_ERROR << "Could not set lock (" << strerror(errno) << ")";
             return false;
         }
+        return true;
+    }
 
-        if (!write_pid(pid))
+    bool LockFileOwner::lock_blocking()
+    {
+        return lock(true);
+    }
+
+    namespace
+    {
+        constexpr auto noop = [](auto&&...) {};
+
+        template <typename Func>
+        bool throw_duplicate_lockfile_in_process(const fs::u8path& path, Func on_failure)
         {
-            LOG_ERROR << "Could not write PID to lockfile (" << strerror(errno) << ")";
-            return false;
+            LOG_ERROR << "Path already locked by the same process: '" << fs::absolute(path).string()
+                      << "'";
+            on_failure();
+            throw std::logic_error("LockFile error.");
         }
 
-        return true;
+        bool is_lockfile_locked(const LockFileOwner& lockfile)
+        {
+#ifdef _WIN32
+            return LockFile::is_locked(lockfile.lockfile_path());
+#else
+            // Opening a new file descriptor on Unix would clear locks
+            return LockFile::is_locked(lockfile.fd());
+#endif
+        }
+
+        class LockedFilesRegistry
+        {
+        public:
+            LockedFilesRegistry() = default;
+            LockedFilesRegistry(LockedFilesRegistry&&) = delete;
+            LockedFilesRegistry(const LockedFilesRegistry&) = delete;
+            LockedFilesRegistry& operator=(LockedFilesRegistry&&) = delete;
+            LockedFilesRegistry& operator=(const LockedFilesRegistry&) = delete;
+
+
+            std::shared_ptr<LockFileOwner> acquire_lock(const fs::u8path& file_path,
+                                                        const std::chrono::seconds timeout)
+            {
+                const auto absolute_file_path = fs::absolute(file_path);
+                std::scoped_lock lock{ mutex };
+
+                const auto it = locked_files.find(absolute_file_path);
+                if (it != locked_files.end())
+                {
+                    if (auto lockedfile = it->second.lock())
+                    {
+                        // TODO: just `return lockedfile;` once we decide to remove the exception
+                        throw_duplicate_lockfile_in_process(absolute_file_path, noop);
+                    }
+                }
+
+                // At this point, we didn't find a lockfile alive, so we create one.
+                auto lockedfile = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
+                auto tracker = std::weak_ptr{ lockedfile };
+                locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
+                fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
+                assert(is_lockfile_locked(*lockedfile));
+                return lockedfile;
+            }
+
+            // note: the resulting value will be obsolete before returning.
+            bool is_locked(const fs::u8path& file_path) const
+            {
+                const auto absolute_file_path = fs::absolute(file_path);
+                std::scoped_lock lock{ mutex };
+                auto it = locked_files.find(file_path);
+                if (it != locked_files.end())
+                    return !it->second.expired();
+                else
+                    return false;
+            }
+
+            // note: the resulting value will be obsolete before returning.
+            bool is_locked(int fd) const
+            {
+                std::scoped_lock lock{ mutex };
+                const auto it = fd_to_locked_path.find(fd);
+                if (it != fd_to_locked_path.end())
+                    return is_locked(it->second);
+                else
+                    return false;
+            }
+
+        private:
+            // TODO: replace by something like boost::multiindex or equivalent to avoid having to
+            // handle 2 hashmaps
+            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>>
+                locked_files;  // TODO: consider replacing by real concurrent set to avoid having to
+                               // lock the whole container
+
+            std::unordered_map<int, fs::u8path>
+                fd_to_locked_path;  // this is a workaround the usage of file descriptors on linux
+                                    // instead of paths
+            mutable std::recursive_mutex
+                mutex;  // TODO: replace by synchronized_value once available
+        };
+
+        static LockedFilesRegistry files_locked_by_this_process;
+    }
+
+    bool LockFileOwner::lock_non_blocking()
+    {
+        // TODO: improve lockfile semantics by removing this case and allowing
+        // sharing the lockfile as long as it's in the same process
+        if (files_locked_by_this_process.is_locked(m_lockfile_path))
+        {
+            throw_duplicate_lockfile_in_process(m_lockfile_path, [&] { unlock(); });
+        }
+        return lock(false);
+    }
+
+    LockFile::~LockFile() = default;
+    LockFile::LockFile(LockFile&&) = default;
+    LockFile& LockFile::operator=(LockFile&&) = default;
+
+    LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
+        : impl{ files_locked_by_this_process.acquire_lock(path, timeout) }
+    {
+        assert(impl);
+    }
+
+    LockFile::LockFile(const fs::u8path& path)
+        : LockFile(path, std::chrono::seconds(Context::instance().lock_timeout))
+    {
     }
 
     int LockFile::fd() const
     {
-        return m_fd;
-    }
-
-    bool LockFile::lock_blocking()
-    {
-        return lock(m_pid, true);
-    }
-
-    bool LockFile::lock_non_blocking()
-    {
-        int old_pid = read_pid();
-        if (old_pid > 0)
-        {
-            if (old_pid == m_pid)
-            {
-                LOG_ERROR << "Path already locked by the same PID: '" << m_path.string() << "'";
-                unlock();
-                throw std::logic_error("LockFile error.");
-            }
-
-            LOG_TRACE << "File currently locked by PID " << old_pid;
-#ifdef _WIN32
-            return false;
-#else
-            // sending `0` with kill will check if the process is still alive
-            if (kill(old_pid, 0) != -1)
-                return false;
-            else
-            {
-                LOG_TRACE << "Removing dangling lock file '" << m_lock << "'";
-                m_lockfile_existed = false;
-            }
-#endif
-        }
-
-        return lock(m_pid, false);
+        return impl->fd();
     }
 
     fs::u8path LockFile::path() const
     {
-        return m_path;
+        return impl->path();
     }
 
     fs::u8path LockFile::lockfile_path() const
     {
-        return m_lock;
+        return impl->lockfile_path();
     }
 
     std::unique_ptr<LockFile> LockFile::create_lock(const fs::u8path& path)
@@ -1133,6 +1157,60 @@ namespace mamba
         auto ptr = std::unique_ptr<LockFile>(new LockFile(path));
         return ptr;
     }
+
+#ifdef _WIN32
+    bool LockFile::is_locked(const fs::u8path& path)
+    {
+        // Windows locks are isolated between file descriptor
+        // We can then test if locked by opening a new one
+        int fd = _wopen(path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+        _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
+        char buffer[1];
+        bool is_locked = _read(fd, buffer, 1) == -1;
+        _close(fd);
+        return is_locked;
+    }
+#endif
+
+#ifndef _WIN32
+    bool LockFile::is_locked(int fd)
+    {
+        // UNIX/POSIX record locks can't be checked from current process: opening
+        // then closing a new file descriptor would unset the locks
+        // 1. compare owner PID written in lockfile with current PID
+        // 2. call fcntl called with F_GETLK
+        //  -> log an error if fcntl return a different owner PID vs lockfile content
+
+        // Warning:
+        // If called from the same process as the lockfile one and PID written in
+        // file is corrupted, the result is a false negative
+
+        // Note: don't use on Windows
+        // On Windows, if called from the same process, with the lockfile file descriptor
+        // and PID written in lockfile is corrupted, the result would be a false negative
+
+        // Here we replaced the pid check by tracking internally if we did or not lock
+        // the file.
+        if (files_locked_by_this_process.is_locked(fd))
+            return true;
+
+        const auto this_process_pid = getpid();
+
+        struct flock lock;
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = MAMBA_LOCK_POS;
+        lock.l_len = 1;
+        auto result = fcntl(fd, F_GETLK, &lock);
+
+        if ((lock.l_type == F_UNLCK) && (this_process_pid != lock.l_pid))
+            LOG_ERROR << "LockFile file has wrong owner PID " << this_process_pid << ", actual is "
+                      << lock.l_pid;
+
+        return lock.l_type != F_UNLCK && result != -1;
+    }
+#endif
+
 
     std::unique_ptr<LockFile> LockFile::try_lock(const fs::u8path& path) noexcept
     {

@@ -1323,5 +1323,16 @@ namespace fs
 
 }
 
+template <>
+struct std::hash<::fs::u8path>
+{
+    std::size_t operator()(const ::fs::u8path& path) const noexcept
+    {
+        return std::filesystem::hash_value(
+            path.std_path());  // TODO: once we stop using gcc < 12 we can properly use
+                               // std::hash<std::filesystem::path>{}(path.std_path());
+    }
+};
+
 
 #endif

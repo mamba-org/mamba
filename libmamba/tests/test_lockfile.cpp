@@ -24,11 +24,6 @@ namespace mamba
 {
     namespace testing
     {
-#ifdef _WIN32
-#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::LockFile::is_locked(lock->lockfile_path()));
-#else
-#define EXPECT_LOCKED(lock) EXPECT_TRUE(mamba::LockFile::is_locked(lock->fd()));
-#endif
 
         class LockDirTest : public ::testing::Test
         {
@@ -75,6 +70,12 @@ namespace mamba
                 EXPECT_TRUE(fs::exists(lock->lockfile_path()));
             }
             EXPECT_FALSE(fs::exists(tempdir_path / (tempdir_path.filename().string() + ".lock")));
+
+            // we can still re-lock afterwards
+            {
+                auto lock = LockFile::create_lock(tempdir_path);
+                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+            }
         }
 
         TEST_F(LockDirTest, different_pid)
@@ -93,12 +94,8 @@ namespace mamba
                 auto lock = LockFile::create_lock(tempdir_path);
                 EXPECT_TRUE(fs::exists(lock->lockfile_path()));
 
-                // Check lock PID
-                int pid = getpid();
-                EXPECT_EQ(mamba::LockFile::read_pid(lock->fd()), pid);
-
                 // Check lock status
-                EXPECT_LOCKED(lock);
+                EXPECT_TRUE(mamba::LockFile::is_locked(*lock));
 
                 // Check lock status from another process
                 args = { lock_cli, "is-locked", lock->lockfile_path().string() };
@@ -135,9 +132,6 @@ namespace mamba
                     std::cout << "convertion error" << std::endl;
                 }
                 EXPECT_FALSE(new_lock_created);
-
-                // Check the PID hasn't changed
-                EXPECT_EQ(mamba::LockFile::read_pid(lock->fd()), pid);
             }
 
             fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
@@ -210,12 +204,8 @@ namespace mamba
                 auto lock = LockFile::create_lock(tempfile_path);
                 EXPECT_TRUE(fs::exists(lock->lockfile_path()));
 
-                // Check lock PID
-                int pid = getpid();
-                EXPECT_EQ(mamba::LockFile::read_pid(lock->fd()), pid);
-
                 // Check lock status from current PID
-                EXPECT_LOCKED(lock);
+                EXPECT_TRUE(mamba::LockFile::is_locked(*lock));
 
                 // Check lock status from another process
                 args = { lock_cli, "is-locked", lock->lockfile_path().string() };
@@ -252,9 +242,6 @@ namespace mamba
                     std::cout << "convertion error" << std::endl;
                 }
                 EXPECT_FALSE(new_lock_created);
-
-                // Check the PID hasn't changed
-                EXPECT_EQ(mamba::LockFile::read_pid(lock->fd()), pid);
             }
 
             fs::u8path lock_path = tempfile_path.string() + ".lock";
@@ -276,6 +263,5 @@ namespace mamba
             }
             EXPECT_FALSE(is_locked);
         }
-#undef EXPECT_LOCKED
     }
 }

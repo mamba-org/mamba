@@ -35,6 +35,7 @@ jobs:
         with:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
+      # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'linux' }}
         run: |
@@ -75,6 +76,8 @@ jobs:
             ./micromamba --version
             ./micromamba --help
             ./micromamba
+            apt update && apt install -y ca-certificates
+            ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
       - name: Upload micromamba
         uses: actions/upload-artifact@v2
         with:

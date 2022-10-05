@@ -462,6 +462,16 @@ namespace mamba
             // All nodes reachable from the root
             EXPECT_TRUE(is_reachable(pb.graph(), pb.root_node(), id));
         }
+
+        auto const& conflicts = pb.conflicts();
+        for (auto const& [n1, neighbors1] : conflicts)
+        {
+            for (auto const& n2 : neighbors1)
+            {
+                ASSERT_NE(conflicts.find(n2), conflicts.end());
+                EXPECT_TRUE(conflicts.at(n2).contains(n1));
+            }
+        }
     }
 
     INSTANTIATE_TEST_SUITE_P(satifiability_error,

@@ -26,6 +26,9 @@ extern "C"
 
 namespace mamba
 {
+
+    char const* solver_ruleinfo_name(SolverRuleinfo rule);
+
     class MPool;
     class PackageInfo;
 

@@ -48,6 +48,9 @@ namespace mamba
     class ProblemsGraph
     {
     public:
+        struct RootNode
+        {
+        };
         struct PackageNode
         {
             PackageInfo package_info;
@@ -56,20 +59,17 @@ namespace mamba
         struct UnresolvedDependencyNode
         {
             std::string dependency;
-            std::optional<SolverRuleinfo> problem_type;
+            static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP;
         };
-        struct RootNode
+        struct ConstraintNode
         {
+            std::string dependency;
+            static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_CONSTRAINS;
         };
-        using node_t = std::variant<PackageNode, UnresolvedDependencyNode, RootNode>;
+        using node_t
+            = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;
 
-        struct RequireEdge : DependencyInfo
-        {
-        };
-        struct ConstraintEdge : DependencyInfo
-        {
-        };
-        using edge_t = std::variant<RequireEdge, ConstraintEdge>;
+        using edge_t = DependencyInfo;
 
         using graph_t = DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;

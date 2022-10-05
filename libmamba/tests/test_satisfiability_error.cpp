@@ -411,6 +411,32 @@ namespace mamba
     {
     };
 
+    auto is_virtual_package(ProblemsGraph::node_t const& node) -> bool
+    {
+        return std::holds_alternative<ProblemsGraph::PackageNode>(node)
+               && starts_with(std::get<ProblemsGraph::PackageNode>(node).package_info.name, "__");
+    };
+
+    auto has_problem_type(ProblemsGraph::node_t const& node) -> bool
+    {
+        return std::visit(
+            [](auto const& n) -> bool
+            {
+                using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
+                if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
+                {
+                    return false;
+                }
+                if constexpr (std::is_same_v<Node, ProblemsGraph::PackageNode>)
+                {
+                    return n.problem_type.has_value();
+                }
+                return true;
+            },
+            node);
+    };
+
+
     TEST_P(Problem, constructor)
     {
         auto [solver, pool] = std::invoke(GetParam());
@@ -419,34 +445,14 @@ namespace mamba
         auto const pb = ProblemsGraph::from_solver(*solver, *pool);
         auto const& g = pb.graph();
 
-        auto has_problem_type = [](auto const& node) -> bool
-        {
-            return std::visit(
-                [](auto const& n) -> bool
-                {
-                    using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
-                    if constexpr (!std::is_same_v<Node, ProblemsGraph::RootNode>)
-                    {
-                        return n.problem_type.has_value();
-                    }
-                    return false;
-                },
-                node);
-        };
-
-        auto is_virtual_package = [](auto const& node) -> bool
-        {
-            return std::holds_alternative<ProblemsGraph::PackageNode>(node)
-                   && starts_with(std::get<ProblemsGraph::PackageNode>(node).package_info.name,
-                                  "__");
-        };
-
+        EXPECT_GE(g.number_of_nodes(), 1);
         for (std::size_t id = 0; id < g.number_of_nodes(); ++id)
         {
             if (is_virtual_package(g.node(id)))
             {
                 // Currently we do not make assumption about virtual package since
                 // we are not sure we are including them the same way than they would be in practice
+                break;
             }
             else if (g.in_degree(id) == 0)
             {
@@ -457,23 +463,15 @@ namespace mamba
             else if (g.out_degree(id) == 0)
             {
                 EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(g.node(id)));
-                // FIXME? Should all leaves have a problem type?
-                // EXPECT_TRUE(has_problem_type(g.node(id)));
+                EXPECT_TRUE(has_problem_type(g.node(id)));
             }
             else
             {
                 EXPECT_FALSE(std::holds_alternative<ProblemsGraph::RootNode>(g.node(id)));
                 EXPECT_FALSE(has_problem_type(g.node(id)));
             }
-        }
-
-        // All nodes reachable from the root
-        for (std::size_t id = 0; id < pb.graph().number_of_nodes(); ++id)
-        {
-            if (!is_virtual_package(g.node(id)))
-            {
-                EXPECT_TRUE(is_reachable(pb.graph(), pb.root_node(), id));
-            }
+            // All nodes reachable from the root
+            EXPECT_TRUE(is_reachable(pb.graph(), pb.root_node(), id));
         }
     }
 

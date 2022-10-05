@@ -7,8 +7,11 @@
 #ifndef MAMBA_CORE_UTIL_RANDOM_HPP
 #define MAMBA_CORE_UTIL_RANDOM_HPP
 
+#include <algorithm>
+#include <functional>
 #include <random>
 #include <string>
+#include <string_view>
 
 namespace mamba
 {
@@ -42,12 +45,12 @@ namespace mamba
 
     inline std::string generate_random_alphanumeric_string(std::size_t len)
     {
-        static constexpr auto chars = "0123456789"
-                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                      "abcdefghijklmnopqrstuvwxyz";
+        static constexpr auto chars = std::string_view("0123456789"
+                                                       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                                       "abcdefghijklmnopqrstuvwxyz");
         auto& rng = local_random_generator<std::mt19937>();
 
-        auto dist = std::uniform_int_distribution{ {}, std::strlen(chars) - 1 };
+        auto dist = std::uniform_int_distribution{ {}, chars.size() - 1 };
         auto result = std::string(len, '\0');
         std::generate_n(begin(result), len, [&]() { return chars[dist(rng)]; });
         return result;

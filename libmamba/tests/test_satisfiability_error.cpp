@@ -1,3 +1,9 @@
+// Copyright (c) 2022, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
 #include <array>
 #include <vector>
 #include <string>
@@ -93,7 +99,7 @@ namespace mamba
         auto pkg = PackageInfo(std::move(name));
         pkg.version = std::move(version);
         pkg.depends = std::move(dependencies);
-        pkg.build_string = "buildstring";
+        pkg.build_string = "bld";
         return pkg;
     }
 

@@ -12,6 +12,8 @@
 #include <variant>
 #include <unordered_map>
 
+#include <solv/solver.h>
+
 #include "mamba/core/graph_util.hpp"
 #include "mamba/core/package_info.hpp"
 
@@ -46,30 +48,15 @@ namespace mamba
     class ProblemsGraph
     {
     public:
-        /**
-         * A simplification of the libsolv SolverRuleinfo
-         */
-        enum class ProblemType
-        {
-            CONFLICT,
-            NOT_FOUND,
-            NOT_INSTALLABLE,
-            BEST_NOT_INSTALLABLE,
-            ONLY_DIRECT_INSTALL,
-            EXCLUDED_BY_REPO_PRIORITY,
-            INFERIOR_ARCH,
-            PROVIDED_BY_SYSTEM
-        };
-
         struct PackageNode
         {
             PackageInfo package_info;
-            std::optional<ProblemType> problem_type;
+            std::optional<SolverRuleinfo> problem_type;
         };
         struct UnresolvedDependencyNode
         {
             std::string dependency;
-            std::optional<ProblemType> problem_type;
+            std::optional<SolverRuleinfo> problem_type;
         };
         struct RootNode
         {

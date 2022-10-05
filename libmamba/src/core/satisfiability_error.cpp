@@ -80,61 +80,12 @@ namespace mamba
                         << solver_ruleinfo_name(problem.type);
         }
 
-        std::optional<ProblemsGraph::ProblemType> map_problem(SolverRuleinfo solverRuleInfo)
-        {
-            switch (solverRuleInfo)
-            {
-                case SOLVER_RULE_PKG_CONSTRAINS:
-                case SOLVER_RULE_PKG_REQUIRES:
-                case SOLVER_RULE_JOB:
-                case SOLVER_RULE_PKG:
-                case SOLVER_RULE_UPDATE:
-                    return std::nullopt;
-                case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
-                case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
-                case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
-                    return ProblemsGraph::ProblemType::NOT_FOUND;
-                case SOLVER_RULE_PKG_CONFLICTS:
-                case SOLVER_RULE_PKG_SAME_NAME:
-                    return ProblemsGraph::ProblemType::CONFLICT;
-                case SOLVER_RULE_BEST:
-                    return ProblemsGraph::ProblemType::BEST_NOT_INSTALLABLE;
-                case SOLVER_RULE_BLACK:
-                    return ProblemsGraph::ProblemType::ONLY_DIRECT_INSTALL;
-                case SOLVER_RULE_INFARCH:
-                    return ProblemsGraph::ProblemType::INFERIOR_ARCH;
-                case SOLVER_RULE_PKG_NOT_INSTALLABLE:
-                    return ProblemsGraph::ProblemType::NOT_INSTALLABLE;
-                case SOLVER_RULE_STRICT_REPO_PRIORITY:
-                    return ProblemsGraph::ProblemType::EXCLUDED_BY_REPO_PRIORITY;
-                case SOLVER_RULE_JOB_PROVIDED_BY_SYSTEM:
-                    return ProblemsGraph::ProblemType::PROVIDED_BY_SYSTEM;
-                case SOLVER_RULE_CHOICE:
-                case SOLVER_RULE_FEATURE:
-                case SOLVER_RULE_JOB_UNSUPPORTED:
-                case SOLVER_RULE_LEARNT:
-                case SOLVER_RULE_PKG_RECOMMENDS:
-                case SOLVER_RULE_RECOMMENDS:
-                case SOLVER_RULE_UNKNOWN:
-                    return std::nullopt;
-                case SOLVER_RULE_PKG_SELF_CONFLICT:
-                case SOLVER_RULE_PKG_OBSOLETES:
-                case SOLVER_RULE_PKG_IMPLICIT_OBSOLETES:
-                case SOLVER_RULE_PKG_INSTALLED_OBSOLETES:
-                case SOLVER_RULE_YUMOBS:
-                case SOLVER_RULE_DISTUPGRADE:
-                    return std::nullopt;
-            }
-            return std::nullopt;
-        }
-
         class ProblemsGraphCreator
         {
         public:
             using SolvId = Id;  // Unscoped from libsolv
 
             using graph_t = ProblemsGraph::graph_t;
-            using ProblemType = ProblemsGraph::ProblemType;
             using RootNode = ProblemsGraph::RootNode;
             using PackageNode = ProblemsGraph::PackageNode;
             using UnresolvedDependencyNode = ProblemsGraph::UnresolvedDependencyNode;
@@ -186,7 +137,7 @@ namespace mamba
                                                        SolvId dep_id,
                                                        edge_t const& edge) -> bool;
 
-            auto set_problem_type(node_id n, ProblemsGraph::ProblemType pb) -> void;
+            auto set_problem_type(node_id n, SolverRuleinfo pb) -> void;
 
             auto parse_problems() -> void;
         };
@@ -234,8 +185,7 @@ namespace mamba
             return added;
         }
 
-        auto ProblemsGraphCreator::set_problem_type(node_id n, ProblemsGraph::ProblemType pb)
-            -> void
+        auto ProblemsGraphCreator::set_problem_type(node_id n, SolverRuleinfo pb) -> void
         {
             std::visit(
                 [pb](auto& node) -> void
@@ -261,8 +211,9 @@ namespace mamba
                 auto source = problem.source();
                 auto target = problem.target();
                 auto dep = problem.dep();
-                auto type = map_problem(problem.type);
-                switch (problem.type)
+                auto const type = problem.type;
+
+                switch (type)
                 {
                     case SOLVER_RULE_PKG_CONSTRAINS:
                     {
@@ -274,13 +225,13 @@ namespace mamba
                         }
                         auto src_id = ensure_solvable(problem.source_id, std::move(source).value());
                         auto tgt_id = ensure_solvable(problem.target_id, std::move(target).value());
-                        set_problem_type(tgt_id, type.value());
+                        set_problem_type(tgt_id, type);
                         auto const edge = ConstraintEdge{ DependencyInfo(dep.value()) };
                         auto added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
-                                        << solver_ruleinfo_name(problem.type);
+                                        << solver_ruleinfo_name(type);
                         }
                         add_conflict(src_id, tgt_id);
                         break;
@@ -298,7 +249,7 @@ namespace mamba
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
-                                        << solver_ruleinfo_name(problem.type);
+                                        << solver_ruleinfo_name(type);
                         }
                         break;
                     }
@@ -316,7 +267,7 @@ namespace mamba
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
-                                        << solver_ruleinfo_name(problem.type);
+                                        << solver_ruleinfo_name(type);
                         }
                         break;
                     }
@@ -330,7 +281,7 @@ namespace mamba
                         }
                         auto edge = RequireEdge{ DependencyInfo(dep.value()) };
                         auto tgt_id = ensure_solvable(problem.target_id, std::move(dep).value());
-                        set_problem_type(tgt_id, type.value());
+                        set_problem_type(tgt_id, type);
                         m_graph.add_edge(m_root_node, tgt_id, std::move(edge));
                         break;
                     }
@@ -344,7 +295,7 @@ namespace mamba
                         auto edge = RequireEdge{ DependencyInfo(dep.value()) };
                         auto src_id = ensure_solvable(problem.source_id, std::move(source).value());
                         auto tgt_id = ensure_solvable(problem.target_id, std::move(dep).value());
-                        set_problem_type(tgt_id, type.value());
+                        set_problem_type(tgt_id, type);
                         m_graph.add_edge(src_id, tgt_id, std::move(edge));
                         break;
                     }
@@ -357,16 +308,16 @@ namespace mamba
                             break;
                         }
                         auto src_id = ensure_solvable(problem.source_id, std::move(source).value());
-                        set_problem_type(src_id, type.value());
+                        set_problem_type(src_id, type);
                         auto tgt_id = ensure_solvable(problem.target_id, std::move(target).value());
-                        set_problem_type(tgt_id, type.value());
+                        set_problem_type(tgt_id, type);
                         add_conflict(src_id, tgt_id);
                         break;
                     }
                     default:
                     {
                         LOG_WARNING << "Problem type not implemented "
-                                    << solver_ruleinfo_name(problem.type);
+                                    << solver_ruleinfo_name(type);
                         break;
                     }
                 }

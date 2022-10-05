@@ -27,6 +27,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/util_random.hpp"
 
 namespace mamba
 {
@@ -129,19 +130,6 @@ namespace mamba
     }
 
     /**
-     * Generate a string of random characters.
-     */
-    auto random_str(std::size_t n) -> std::string
-    {
-        static auto constexpr chars = std::string_view{ "abcdefghijklmnopqrstuvwxyz1234567890" };
-        auto result = std::string(n, 'a');
-        auto gen = std::default_random_engine(std::random_device()());
-        auto choice = std::uniform_int_distribution<std::size_t>(0, chars.size() - 1);
-        std::generate(result.begin(), result.end(), [&]() { return chars[choice(gen)]; });
-        return result;
-    }
-
-    /**
      * Create a solver and a pool of a conflict.
      *
      * The underlying packages do not exist, we are onl interested in the conflict.
@@ -149,7 +137,8 @@ namespace mamba
     template <typename PkgRange>
     auto create_problem(PkgRange const& packages, std::vector<std::string> const& specs)
     {
-        auto const tmp_dir = dir_guard(fs::temp_directory_path() / "mamba/tests" / random_str(20));
+        auto const tmp_dir = dir_guard(fs::temp_directory_path() / "mamba/tests"
+                                       / generate_random_alphanumeric_string(20));
         auto const repodata_f = create_repodata_json(tmp_dir.path, packages);
 
         auto pool = std::make_unique<MPool>();
@@ -335,8 +324,8 @@ namespace mamba
                             std::vector<std::string> const& platforms = { "linux-64", "noarch" })
     {
         // Reusing the cache for all invocation of this funciton for speedup
-        static auto const tmp_dir
-            = dir_guard(fs::temp_directory_path() / "mamba/tests" / random_str(20));
+        static auto const tmp_dir = dir_guard(fs::temp_directory_path() / "mamba/tests"
+                                              / generate_random_alphanumeric_string(20));
 
         auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
         prefix_data.add_packages(virtual_packages);

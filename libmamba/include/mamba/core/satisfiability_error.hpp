@@ -11,6 +11,7 @@
 #include <utility>
 #include <variant>
 #include <unordered_map>
+#include <optional>
 
 #include <solv/solver.h>
 

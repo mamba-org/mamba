@@ -28,6 +28,7 @@
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/core/util.hpp"
 
 namespace mamba
 {
@@ -124,7 +125,7 @@ namespace mamba
 
         fs::create_directories(dir / "noarch");
         auto repodata_f = dir / "noarch/repodata.json";
-        std::ofstream(repodata_f, std::ofstream::app) << repodata_j;
+        open_ofstream(repodata_f, std::ofstream::app) << repodata_j;
 
         return repodata_f;
     }

@@ -693,7 +693,7 @@ namespace mamba
         return script(build_deactivate());
     }
 
-    std::string Activator::hook()
+    std::string Activator::hook(const std::string& shell_type)
     {
         std::stringstream builder;
         builder << hook_preamble() << "\n";
@@ -718,11 +718,12 @@ namespace mamba
 
         if (Context::instance().shell_completion)
         {
-            if (shell() == "posix")
+            if (shell() == "posix" && (shell_type == "zsh" || shell_type == "bash"))
             {
                 builder << data_mamba_completion_posix;
             }
         }
+
         if (Context::instance().auto_activate_base)
         {
             builder << "micromamba activate base\n";

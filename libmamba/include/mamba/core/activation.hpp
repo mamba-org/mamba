@@ -86,7 +86,7 @@ namespace mamba
         virtual std::string hook_postamble() = 0;
         virtual fs::u8path hook_source_path() = 0;
 
-        std::string hook();
+        std::string hook(const std::string& shell_type);
 
     protected:
         Activator();

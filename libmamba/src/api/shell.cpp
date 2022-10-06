@@ -61,7 +61,8 @@ namespace mamba
         std::unique_ptr<Activator> activator;
         std::string shell_prefix;
 
-        if (shell_type == "bash" || shell_type == "zsh" || shell_type == "posix")
+        if (shell_type == "bash" || shell_type == "zsh" || shell_type == "dash"
+            || shell_type == "posix")
         {
             activator = std::make_unique<mamba::PosixActivator>();
         }
@@ -114,11 +115,11 @@ namespace mamba
                     { { "success", true },
                       { "operation", "shell_hook" },
                       { "context", { { "shell_type", shell_type } } },
-                      { "actions", { { "print", { activator->hook() } } } } });
+                      { "actions", { { "print", { activator->hook(shell_type) } } } } });
             }
             else
             {
-                std::cout << activator->hook();
+                std::cout << activator->hook(shell_type);
             }
         }
         else if (action == "activate")
@@ -153,18 +154,6 @@ namespace mamba
             }
         }
 #endif
-        else if (action == "completion")
-        {
-            if (shell_type == "bash")
-            {
-            }
-            else
-            {
-                LOG_ERROR << "Shell auto-completion is not supported in '" << shell_type << "'";
-                throw std::runtime_error("Shell auto-completion is not supported in '" + shell_type
-                                         + "'");
-            }
-        }
         else
         {
             throw std::runtime_error(

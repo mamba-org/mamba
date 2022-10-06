@@ -9,42 +9,6 @@ if (-not $MambaModuleArgs.ContainsKey('ChangePs1')) {
 
 <#
     .SYNOPSIS
-        Obtains a list of valid conda environments.
-
-    .EXAMPLE
-        Get-CondaEnvironment
-
-    .EXAMPLE
-        genv
-#>
-function Get-CondaEnvironment {
-    [CmdletBinding()]
-    param();
-
-    begin {}
-
-    process {
-        # NB: the JSON output of conda env list does not include the names
-        #     of each env, so we need to parse the fragile output instead.
-        & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA env list | `
-            Where-Object { -not $_.StartsWith("#") } | `
-            Where-Object { -not $_.Trim().Length -eq 0 } | `
-            ForEach-Object {
-                $envLine = $_ -split "\s+";
-                $Active = $envLine[1] -eq "*";
-                [PSCustomObject] @{
-                    Name = $envLine[0];
-                    Active = $Active;
-                    Path = if ($Active) {$envLine[2]} else {$envLine[1]};
-                } | Write-Output;
-            }
-    }
-
-    end {}
-}
-
-<#
-    .SYNOPSIS
         Activates a conda environment, placing its commands and packages at
         the head of $Env:PATH.
 
@@ -156,70 +120,23 @@ function Invoke-Mamba() {
 }
 
 ## TAB COMPLETION ##############################################################
-# We borrow the approach used by posh-git, in which we override any existing
-# functions named TabExpansion, look for commands we can complete on, and then
-# default to the previously defined TabExpansion function for everything else.
 
-if (Test-Path Function:\TabExpansion) {
-    # Since this technique is common, we encounter an infinite loop if it's
-    # used more than once unless we give our backup a unique name.
-    Rename-Item Function:\TabExpansion CondaTabExpansionBackup
-}
-
-function Expand-CondaEnv() {
-    param(
-        [string]
-        $Filter
-    );
-
-    $ValidEnvs = Get-CondaEnvironment;
-    $ValidEnvs `
-        | Where-Object { $_.Name -like "$filter*" } `
-        | ForEach-Object { $_.Name } `
-        | Write-Output;
-    $ValidEnvs `
-        | Where-Object { $_.Path -like "$filter*" } `
-        | ForEach-Object { $_.Path } `
-        | Write-Output;
-
-}
-
-function Expand-CondaSubcommands() {
-    param(
-        [string]
-        $Filter
-    );
-
-    $ValidCommands = Invoke-Mamba shell.powershell commands;
-
-    # Add in the commands defined within this wrapper, filter, sort, and return.
-    $ValidCommands + @('activate', 'deactivate') `
-        | Where-Object { $_ -like "$Filter*" } `
-        | Sort-Object `
-        | Write-Output;
-
-}
-
-function TabExpansion($line, $lastWord) {
-    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
-
-    switch -regex ($lastBlock) {
-        # Pull out conda commands we recognize first before falling through
-        # to the general patterns for conda itself.
-        "^micromamba activate (.*)" { Expand-CondaEnv $lastWord; break; }
-        "^etenv (.*)" { Expand-CondaEnv $lastWord; break; }
-
-        # If we got down to here, check arguments to conda itself.
-        "^conda (.*)" { Expand-CondaSubcommands $lastWord; break; }
-
-        # Finally, fall back on existing tab expansion.
-        default {
-            if (Test-Path Function:\CondaTabExpansionBackup) {
-                CondaTabExpansionBackup $line $lastWord
-            }
-        }
+$scriptblock = {
+    param($wordToComplete, $commandAst, $cursorPosition)
+    $RemainingArgs = $commandAst.ToString().Split()
+    $OneRemainingArgs = $RemainingArgs[1..$RemainingArgs.Length]
+    if (-not $wordToComplete) {
+        $OneRemainingArgs += '""'
+    }
+    $MMOUT = & $Env:MAMBA_EXE completer @OneRemainingArgs
+    $MMLIST = $MMOUT.trim() -split '\s+'
+    foreach ($el in $MMLIST) {
+        [System.Management.Automation.CompletionResult]::new(
+            $el, $el, 'ParameterValue', $el)
     }
 }
+
+Register-ArgumentCompleter -Native -CommandName micromamba -ScriptBlock $scriptblock
 
 ## PROMPT MANAGEMENT ###########################################################
 
@@ -255,16 +172,9 @@ if ($MambaModuleArgs.ChangePs1) {
 ## ALIASES #####################################################################
 
 New-Alias micromamba Invoke-Mamba -Force
-New-Alias genv Get-CondaEnvironment -Force
-New-Alias etenv Enter-MambaEnvironment -Force
-New-Alias exenv Exit-MambaEnvironment -Force
 
 ## EXPORTS ###################################################################
 
 Export-ModuleMember `
     -Alias * `
-    -Function `
-        Invoke-Mamba, `
-        Get-CondaEnvironment, `
-        Enter-CondaEnvironment, Exit-CondaEnvironment, `
-        TabExpansion, prompt
+    -Function Invoke-Mamba, prompt

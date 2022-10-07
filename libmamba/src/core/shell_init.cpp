@@ -371,8 +371,8 @@ namespace mamba
 
         content << "\n# >>> mamba initialize >>>\n";
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
-        content << "setenv MAMBA_EXE=" << mamba_exe << ";\n";
-        content << "setenv MAMBA_ROOT_PREFIX=" << env_prefix << ";\n";
+        content << "setenv MAMBA_EXE " << mamba_exe << ";\n";
+        content << "setenv MAMBA_ROOT_PREFIX " << env_prefix << ";\n";
         // content << "source `$MAMBA_EXE shell hook --shell csh --prefix " << env_prefix << "`;\n";
         content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/micromamba.csh;\n";
         content << "# <<< mamba initialize <<<\n";

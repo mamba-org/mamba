@@ -879,13 +879,13 @@ namespace mamba
         {
             if (on_win)
             {
-                out << "setenv PATH='"
+                out << "setenv PATH '"
                     << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
                     << "';\n";
             }
             else
             {
-                out << "setenv PATH='" << env_transform.export_path << "';\n";
+                out << "setenv PATH '" << env_transform.export_path << "';\n";
             }
         }
 
@@ -908,12 +908,12 @@ namespace mamba
         {
             if (on_win && ekey == "PATH")
             {
-                out << "setenv " << ekey << "='"
+                out << "setenv " << ekey << " '"
                     << native_path_to_unix(evar, /*is_a_env_path=*/true) << "';\n";
             }
             else
             {
-                out << "setenv " << ekey << "='" << evar << "';\n";
+                out << "setenv " << ekey << " '" << evar << "';\n";
             }
         }
 

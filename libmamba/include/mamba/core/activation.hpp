@@ -114,6 +114,23 @@ namespace mamba
         fs::u8path hook_source_path() override;
     };
 
+    class CshActivator : public Activator
+    {
+    public:
+        CshActivator() = default;
+        virtual ~CshActivator() = default;
+
+        std::string script(const EnvironmentTransform& env_transform) override;
+        std::pair<std::string, std::string> update_prompt(
+            const std::string& conda_prompt_modifier) override;
+        std::string shell_extension() override;
+        std::string shell() override;
+
+        std::string hook_preamble() override;
+        std::string hook_postamble() override;
+        fs::u8path hook_source_path() override;
+    };
+
     class CmdExeActivator : public Activator
     {
     public:

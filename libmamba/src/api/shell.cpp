@@ -66,6 +66,10 @@ namespace mamba
         {
             activator = std::make_unique<mamba::PosixActivator>();
         }
+        if (shell_type == "csh")
+        {
+            activator = std::make_unique<mamba::CshActivator>();
+        }
         else if (shell_type == "cmd.exe")
         {
             activator = std::make_unique<mamba::CmdExeActivator>();

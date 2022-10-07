@@ -537,11 +537,12 @@ namespace mamba
         for (auto& env_var : old_conda_environment_env_vars)
         {
             envt.unset_vars.push_back(env_var.first);
-            std::string save_var = std::string("__CONDA_SHLVL_") + std::to_string(new_conda_shlvl)
-                                   + "_" + env_var.first;  // % (new_conda_shlvl, env_var)
+            std::string save_var
+                = fmt::format("__CONDA_SHLVL_{}_{}", new_conda_shlvl, env_var.first);
             if (m_env.find(save_var) != m_env.end())
             {
                 envt.export_vars.push_back({ env_var.first, m_env[save_var] });
+                envt.unset_vars.push_back(save_var);
             }
         }
 
@@ -656,6 +657,22 @@ namespace mamba
         {
             new_path = replace_prefix_in_path(old_conda_prefix, prefix.string());
             envt.deactivate_scripts = get_deactivate_scripts(old_conda_prefix);
+            auto old_conda_environment_env_vars = get_environment_vars(old_conda_prefix);
+
+            for (auto& env_var : old_conda_environment_env_vars)
+            {
+                envt.unset_vars.push_back(env_var.first);
+                // restore saved variable
+                std::string save_var = std::string("__CONDA_SHLVL_")
+                                       + std::to_string(old_conda_shlvl - 1) + "_"
+                                       + env_var.first;  // % (new_conda_shlvl, env_var)
+                if (m_env.find(save_var) != m_env.end())
+                {
+                    envt.export_vars.insert(envt.export_vars.begin(),
+                                            { env_var.first, m_env[save_var] });
+                }
+            }
+
             env_vars_to_export[0] = { "PATH", new_path };
             get_export_unset_vars(envt, env_vars_to_export);
             envt.export_vars.push_back(
@@ -850,6 +867,106 @@ namespace mamba
     {
         return Context::instance().root_prefix / "etc" / "profile.d" / "micromamba.sh";
     }
+
+    /*********************************
+     * CshActivator implementation   *
+     *********************************/
+
+    std::string CshActivator::script(const EnvironmentTransform& env_transform)
+    {
+        std::stringstream out;
+        if (!env_transform.export_path.empty())
+        {
+            if (on_win)
+            {
+                out << "setenv PATH='"
+                    << native_path_to_unix(env_transform.export_path, /*is_a_env_path=*/true)
+                    << "';\n";
+            }
+            else
+            {
+                out << "setenv PATH='" << env_transform.export_path << "';\n";
+            }
+        }
+
+        for (const fs::u8path& ds : env_transform.deactivate_scripts)
+        {
+            out << "source '" << ds << "';\n";
+        }
+
+        for (const std::string& uvar : env_transform.unset_vars)
+        {
+            out << "unsetenv " << uvar << ";\n";
+        }
+
+        for (const auto& [skey, svar] : env_transform.set_vars)
+        {
+            out << "set " << skey << "='" << svar << "';\n";
+        }
+
+        for (const auto& [ekey, evar] : env_transform.export_vars)
+        {
+            if (on_win && ekey == "PATH")
+            {
+                out << "setenv " << ekey << "='"
+                    << native_path_to_unix(evar, /*is_a_env_path=*/true) << "';\n";
+            }
+            else
+            {
+                out << "setenv " << ekey << "='" << evar << "';\n";
+            }
+        }
+
+        for (const fs::u8path& p : env_transform.activate_scripts)
+        {
+            out << "source '" << p << "';\n";
+        }
+
+        return out.str();
+    }
+
+    std::pair<std::string, std::string> CshActivator::update_prompt(
+        const std::string& conda_prompt_modifier)
+    {
+        std::string prompt = (m_env.find("prompt") != m_env.end()) ? m_env["prompt"] : "";
+        auto current_prompt_modifier = env::get("CONDA_PROMPT_MODIFIER");
+        if (current_prompt_modifier)
+        {
+            replace_all(prompt, current_prompt_modifier.value(), "");
+        }
+        // Because we're using single-quotes to set shell variables, we need to handle
+        // the proper escaping of single quotes that are already part of the string.
+        // Best solution appears to be https://stackoverflow.com/a/1250279
+        replace_all(prompt, "'", "'\"'\"'");
+        return { "prompt", conda_prompt_modifier + prompt };
+    }
+
+
+    std::string CshActivator::shell_extension()
+    {
+        return ".csh";
+    }
+
+    std::string CshActivator::shell()
+    {
+        return "csh";
+    }
+
+    std::string CshActivator::hook_preamble()
+    {
+        return std::string();
+    }
+
+    std::string CshActivator::hook_postamble()
+    {
+        return std::string();
+    }
+
+    fs::u8path CshActivator::hook_source_path()
+    {
+        return Context::instance().root_prefix / "etc" / "profile.d" / "micromamba.csh";
+    }
+
 
     std::string CmdExeActivator::shell_extension()
     {

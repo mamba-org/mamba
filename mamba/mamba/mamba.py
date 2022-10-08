@@ -821,19 +821,19 @@ Examples:
 
     c1 = subsub_parser.add_parser(
         "whoneeds",
-        help="shows packages that depends on this package",
+        help="shows packages that depend on this package",
         parents=[package_cmds, view_cmds],
     )
 
     c2 = subsub_parser.add_parser(
         "depends",
-        help="shows packages that depends on this package",
+        help="shows dependencies of this package",
         parents=[package_cmds, view_cmds],
     )
 
     c3 = subsub_parser.add_parser(
         "search",
-        help="shows packages that depends on this package",
+        help="shows all available package versions",
         parents=[package_cmds],
     )
 

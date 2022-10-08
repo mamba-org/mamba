@@ -373,7 +373,6 @@ namespace mamba
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
         content << "setenv MAMBA_EXE " << mamba_exe << ";\n";
         content << "setenv MAMBA_ROOT_PREFIX " << env_prefix << ";\n";
-        // content << "source `$MAMBA_EXE shell hook --shell csh --prefix " << env_prefix << "`;\n";
         content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/micromamba.csh;\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
@@ -730,6 +729,14 @@ namespace mamba
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";
         }
+        else if (shell == "csh")
+        {
+            CshActivator a;
+            auto sh_source_path = a.hook_source_path();
+
+            fs::remove(sh_source_path);
+            LOG_INFO << "Removed " << sh_source_path << " file.";
+        }
         else if (shell == "xonsh")
         {
             XonshActivator a;
@@ -1016,6 +1023,11 @@ namespace mamba
         {
             fs::u8path xonshrc_path = home / ".xonshrc";
             reset_rc_file(xonshrc_path, shell, mamba_exe);
+        }
+        else if (shell == "csh")
+        {
+            fs::u8path tcshrc_path = home / ".tcshrc";
+            reset_rc_file(tcshrc_path, shell, mamba_exe);
         }
         else if (shell == "fish")
         {

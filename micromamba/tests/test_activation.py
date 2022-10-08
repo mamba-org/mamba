@@ -52,6 +52,7 @@ suffixes = {
     "cmd.exe": ".bat",
     "bash": ".sh",
     "zsh": ".sh",
+    "tcsh": ".csh",
     "xonsh": ".sh",
     "fish": ".fish",
     "powershell": ".ps1",
@@ -63,12 +64,14 @@ paths = {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
         "xonsh": "~/.xonshrc",
+        "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
     },
     "linux": {
         "zsh": "~/.zshrc",
         "bash": "~/.bashrc",
         "xonsh": "~/.xonshrc",
+        "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
     },
 }
@@ -111,7 +114,7 @@ def write_script(interpreter, lines, path):
 
 possible_interpreters = {
     "win": {"powershell", "cmd.exe"},
-    "unix": {"bash", "zsh", "fish", "xonsh"},
+    "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
 }
 
 shell_files = [
@@ -122,6 +125,7 @@ shell_files = [
         "~/.zshrc",
         "~/.zsh_profile",
         "~/.xonshrc",
+        "~/.tcshrc",
         "~/.config/fish/config.fish",
     ]
 ]
@@ -280,7 +284,7 @@ valid_interpreters = get_valid_interpreters()
 
 
 def shvar(v, interpreter):
-    if interpreter in ["bash", "zsh", "xonsh", "fish"]:
+    if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh"]:
         return f"${v}"
     elif interpreter == "powershell":
         return f"$Env:{v}"
@@ -341,6 +345,16 @@ class TestActivation:
                 v.split(" ", maxsplit=1)[0]: v.split(" ", maxsplit=1)[1]
                 for _, _, v in [x.partition("set -gx ") for x in out.splitlines()]
             }
+        elif interpreter in ["csh", "tcsh"]:
+            res = {}
+            for line in out.splitlines():
+                line = line.removesuffix(";")
+                if line.startswith("set "):
+                    k, v = line.split(" ")[1].split("=")
+                elif line.startswith("setenv "):
+                    _, k, v = line.strip().split(maxsplit=2)
+                res[k] = v
+            return res
         else:
             return {k: v for k, _, v in [x.partition("=") for x in out.splitlines()]}
 
@@ -373,7 +387,8 @@ class TestActivation:
             path = Path(paths[plat][interpreter]).expanduser()
             with open(path) as fi:
                 x = fi.read()
-                assert "mamba" in x
+                print(x)
+                assert "micromamba" in x
                 assert find_path_in_str(self.root_prefix, x)
                 prev_text = x
 
@@ -467,6 +482,8 @@ class TestActivation:
             files = [root_prefix_path / "etc" / "fish" / "conf.d" / "mamba.fish"]
         elif interpreter == "xonsh":
             files = [root_prefix_path / "etc" / "profile.d" / "mamba.xsh"]
+        elif interpreter in ["csh", "tcsh"]:
+            files = [root_prefix_path / "etc" / "profile.d" / "micromamba.csh"]
         else:
             raise ValueError(f"Unknown shell {interpreter}")
 
@@ -617,8 +634,8 @@ class TestActivation:
                 with pytest.raises(subprocess.CalledProcessError):
                     stdout, stderr = call(s)
 
-            s1 = ["micromamba create -n abc"]
-            s2 = ["micromamba create -n xyz"]
+            s1 = ["micromamba create -n abc -y"]
+            s2 = ["micromamba create -n xyz -y"]
             call(s1)
             call(s2)
 
@@ -707,7 +724,7 @@ class TestActivation:
 
         if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
             print("Creating __def__")
-            s1 = ["micromamba create -n def"]
+            s1 = ["micromamba create -n def -y"]
             call(s1)
 
             s = [
@@ -947,6 +964,7 @@ class TestActivation:
 
         res = shell("activate", self.env_name, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
+
         assert any([str(self.prefix) in p for p in dict_res.values()])
 
         res = shell("activate", self.prefix, "-s", interpreter)

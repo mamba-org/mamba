@@ -51,7 +51,8 @@ class TestShell:
             shutil.rmtree(TestShell.root_prefix)
 
     @pytest.mark.parametrize(
-        "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish"]
+        "shell_type",
+        ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh"],
     )
     def test_hook(self, shell_type):
         res = shell("hook", "-s", shell_type)
@@ -64,13 +65,15 @@ class TestShell:
         if shell_type == "powershell":
             assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
         elif shell_type in ("zsh", "bash", "posix"):
-            assert res.count(mamba_exe) == 5
+            assert res.count(mamba_exe) == 1
         elif shell_type == "xonsh":
             assert res.count(mamba_exe) == 8
         elif shell_type == "fish":
             assert res.count(mamba_exe) == 5
         elif shell_type == "cmd.exe":
             assert res == ""
+        elif shell_type == "csh":
+            assert res.count(mamba_exe) == 2
 
         res = shell("hook", "-s", shell_type, "--json")
         expected_keys = {"success", "operation", "context", "actions"}

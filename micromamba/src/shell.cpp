@@ -28,7 +28,7 @@ init_shell_parser(CLI::App* subcom)
         ->add_option(
             "-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
         ->check(CLI::IsMember(std::set<std::string>(
-            { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh" })));
+            { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh", "tcsh" })));
 
     auto& stack = config.insert(Configurable("shell_stack", false)
                                     .group("cli")

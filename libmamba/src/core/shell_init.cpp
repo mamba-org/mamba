@@ -870,6 +870,13 @@ namespace mamba
         fs::u8path home = env::home_directory();
         if (shell == "bash")
         {
+            // On Linux, when opening the terminal, .bashrc is sourced (because it is an interactive
+            // shell).
+            // On macOS on the other hand, the .bash_profile gets sourced by default when executing
+            // it in Terminal.app. Some other programs do the same on macOS so that's why we're
+            // initializing conda in .bash_profile.
+            // On Windows, there are multiple ways to open bash depending on how it was installed.
+            // Git Bash, Cygwin, and MSYS2 all use .bash_profile by default.
             fs::u8path bashrc_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
             modify_rc_file(bashrc_path, conda_prefix, shell, mamba_exe);
         }

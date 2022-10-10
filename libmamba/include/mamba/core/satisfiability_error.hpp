@@ -12,6 +12,7 @@
 #include <variant>
 #include <unordered_map>
 #include <optional>
+#include <vector>
 
 #include <solv/solver.h>
 
@@ -44,7 +45,7 @@ namespace mamba
     };
 
     /**
-     * A directed graph of the pacakges involved in a libsolv conflict.
+     * A directed graph of the packages involved in a libsolv conflict.
      */
     class ProblemsGraph
     {
@@ -83,6 +84,37 @@ namespace mamba
         graph_t const& graph() const noexcept;
         conflict_map const& conflicts() const noexcept;
         node_id root_node() const noexcept;
+
+    private:
+        graph_t m_graph;
+        conflict_map m_conflicts;
+        node_id m_root_node;
+    };
+
+    class CompressedProblemsGraph
+    {
+    public:
+        using RootNode = ProblemsGraph::RootNode;
+        using PackageListNode = std::vector<ProblemsGraph::PackageNode>;
+        using UnresolvedDependencyListNode = std::vector<ProblemsGraph::UnresolvedDependencyNode>;
+        using ConstraintListNode = std::vector<ProblemsGraph::ConstraintNode>;
+        using node_t = std::
+            variant<RootNode, PackageListNode, UnresolvedDependencyListNode, ConstraintListNode>;
+
+        using edge_t = std::vector<DependencyInfo>;
+
+        using graph_t = DiGraph<node_t, edge_t>;
+        using node_id = graph_t::node_id;
+        using conflict_map = std::unordered_map<node_id, vector_set<node_id>>;
+
+        static auto from_problems_graph(ProblemsGraph const& pbs) -> CompressedProblemsGraph;
+
+        CompressedProblemsGraph() = delete;
+        CompressedProblemsGraph(graph_t graph, conflict_map conflicts, node_id root_node);
+
+        auto graph() const noexcept -> graph_t const&;
+        auto conflicts() const noexcept -> conflict_map const&;
+        auto root_node() const noexcept -> node_id;
 
     private:
         graph_t m_graph;

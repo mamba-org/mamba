@@ -169,6 +169,7 @@ namespace mamba
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 7ul);
+        EXPECT_EQ(g.number_of_edges(), 7ul);
         EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 }));
         EXPECT_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
         EXPECT_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
@@ -186,6 +187,7 @@ namespace mamba
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 3ul);
+        EXPECT_EQ(g.number_of_edges(), 2ul);
         EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5 }));
         EXPECT_EQ(g.successors(0ul), node_id_list({ 1ul }));
         EXPECT_EQ(g.successors(1ul), node_id_list({ 2ul }));
@@ -236,6 +238,20 @@ namespace mamba
         EXPECT_EQ(g.in_degree(0), 0);
         EXPECT_EQ(g.in_degree(3), 2);
         EXPECT_EQ(g.in_degree(6), 1);
+    }
+
+    TEST(graph, for_each_edge)
+    {
+        auto const g = build_graph();
+        using node_id = decltype(g)::node_id;
+        std::size_t n_edges = 0;
+        g.for_each_edge(
+            [&g, &n_edges](node_id from, node_id to)
+            {
+                EXPECT_TRUE(g.has_edge(from, to));
+                ++n_edges;
+            });
+        EXPECT_EQ(n_edges, g.number_of_edges());
     }
 
     TEST(graph, for_each_leaf)

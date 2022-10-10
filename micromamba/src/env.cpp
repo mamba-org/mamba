@@ -8,6 +8,8 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/api/remove.hpp"
+
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -162,5 +164,37 @@ set_env_command(CLI::App* com)
                 t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
             }
             t.print(std::cout);
+        });
+
+    auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
+    init_general_options(remove_subcom);
+    init_prefix_options(remove_subcom);
+
+    remove_subcom->callback(
+        []()
+        {
+            // Remove specs if exist
+            remove(MAMBA_REMOVE_ALL);
+
+            auto& ctx = Context::instance();
+            if (!ctx.dry_run)
+            {
+                auto& prefix = ctx.target_prefix;
+                // Remove env directory and all its content
+                fs::remove_all(env::expand_user(prefix));
+
+                EnvironmentsManager env_manager;
+                // Unregister environment
+                env_manager.unregister_env(env::expand_user(prefix));
+
+                Console::instance().print(
+                                    join("", std::vector<std::string>(
+                                    { "Environment removed at prefix: ", prefix.string() })));
+                Console::instance().json_write({ { "success", true } });
+            }
+            else
+            {
+                Console::stream() << "Dry run. The environment was not removed.";
+            }
         });
 }

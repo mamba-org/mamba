@@ -144,11 +144,6 @@ Register-ArgumentCompleter -Native -CommandName micromamba -ScriptBlock $scriptb
     .SYNOPSIS
         Modifies the current prompt to show the currently activated conda
         environment, if any.
-    .EXAMPLE
-        Add-CondaEnvironmentToPrompt
-
-        Causes the current session's prompt to display the currently activated
-        conda environment.
 #>
 if ($MambaModuleArgs.ChangePs1) {
     # We use the same procedure to nest prompts as we did for nested tab completion.

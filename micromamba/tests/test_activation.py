@@ -284,7 +284,7 @@ valid_interpreters = get_valid_interpreters()
 
 
 def shvar(v, interpreter):
-    if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh"]:
+    if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh", "dash"]:
         return f"${v}"
     elif interpreter == "powershell":
         return f"$Env:{v}"

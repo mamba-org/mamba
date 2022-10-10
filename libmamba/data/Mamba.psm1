@@ -121,7 +121,7 @@ function Invoke-Mamba() {
 
 ## TAB COMPLETION ##############################################################
 
-$scriptblock = {
+$MicromambaAutocompleteScriptblock = {
     param($wordToComplete, $commandAst, $cursorPosition)
     $RemainingArgs = $commandAst.ToString().Split()
     $OneRemainingArgs = $RemainingArgs[1..$RemainingArgs.Length]
@@ -135,8 +135,6 @@ $scriptblock = {
             $el, $el, 'ParameterValue', $el)
     }
 }
-
-Register-ArgumentCompleter -Native -CommandName micromamba -ScriptBlock $scriptblock
 
 ## PROMPT MANAGEMENT ###########################################################
 
@@ -167,9 +165,10 @@ if ($MambaModuleArgs.ChangePs1) {
 ## ALIASES #####################################################################
 
 New-Alias micromamba Invoke-Mamba -Force
+Register-ArgumentCompleter -Native -CommandName micromamba -ScriptBlock $MicromambaAutocompleteScriptblock
 
 ## EXPORTS ###################################################################
 
 Export-ModuleMember `
     -Alias * `
-    -Function Invoke-Mamba, prompt
+    -Function Invoke-Mamba, Enter-MambaEnvironment, Exit-MambaEnvironment, prompt

@@ -1035,15 +1035,11 @@ namespace mamba
 
     namespace
     {
-        constexpr auto noop = [](auto&&...) {};
 
-        template <typename Func>
-        bool throw_duplicate_lockfile_in_process(const fs::u8path& path, Func on_failure)
+        bool log_duplicate_lockfile_in_process(const fs::u8path& path)
         {
-            LOG_ERROR << "Path already locked by the same process: '" << fs::absolute(path).string()
+            LOG_DEBUG << "Path already locked by the same process: '" << fs::absolute(path).string()
                       << "'";
-            on_failure();
-            throw std::logic_error("LockFile error.");
         }
 
         bool is_lockfile_locked(const LockFileOwner& lockfile)
@@ -1077,8 +1073,8 @@ namespace mamba
                 {
                     if (auto lockedfile = it->second.lock())
                     {
-                        // TODO: just `return lockedfile;` once we decide to remove the exception
-                        throw_duplicate_lockfile_in_process(absolute_file_path, noop);
+                        log_duplicate_lockfile_in_process(absolute_file_path);
+                        return lockedfile;
                     }
                 }
 
@@ -1133,11 +1129,10 @@ namespace mamba
 
     bool LockFileOwner::lock_non_blocking()
     {
-        // TODO: improve lockfile semantics by removing this case and allowing
-        // sharing the lockfile as long as it's in the same process
         if (files_locked_by_this_process.is_locked(m_lockfile_path))
         {
-            throw_duplicate_lockfile_in_process(m_lockfile_path, [&] { unlock(); });
+            log_duplicate_lockfile_in_process(m_lockfile_path);
+            return true;
         }
         return lock(false);
     }

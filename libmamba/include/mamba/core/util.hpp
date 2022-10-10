@@ -121,6 +121,11 @@ namespace mamba
         fs::u8path path() const;
         fs::u8path lockfile_path() const;
 
+        std::size_t count_lock_owners() const
+        {
+            return impl.use_count();
+        }
+
 #ifdef _WIN32
         // Using file descriptor on Windows may cause false negative
         static bool is_locked(const fs::u8path& path);

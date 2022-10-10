@@ -188,8 +188,9 @@ set_env_command(CLI::App* com)
                 env_manager.unregister_env(env::expand_user(prefix));
 
                 Console::instance().print(
-                                    join("", std::vector<std::string>(
-                                    { "Environment removed at prefix: ", prefix.string() })));
+                    join("",
+                         std::vector<std::string>(
+                             { "Environment removed at prefix: ", prefix.string() })));
                 Console::instance().json_write({ { "success", true } });
             }
             else

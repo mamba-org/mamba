@@ -23,19 +23,8 @@ if (-not $MambaModuleArgs.ContainsKey('ChangePs1')) {
         in a non-standard location.
 #>
 function Enter-MambaEnvironment {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$false)][switch]$Stack,
-        [Parameter(Position=0)][string]$Name
-    );
-
     begin {
-        If ($Stack) {
-            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell --stack $Name | Out-String);
-        } Else {
-            $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Name | Out-String);
-        }
-
+        $activateCommand = (& $Env:MAMBA_EXE shell activate -s powershell $Args | Out-String);
         Write-Verbose "[micromamba shell activate --shell powershell $Args]`n$activateCommand";
         Invoke-Expression -Command $activateCommand;
     }

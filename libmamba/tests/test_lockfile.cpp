@@ -62,11 +62,13 @@ namespace mamba
         {
             {
                 auto lock = LockFile::create_lock(tempdir_path);
+                EXPECT_TRUE(lock->is_locked());
                 EXPECT_EQ(lock->count_lock_owners(), 1);
                 EXPECT_TRUE(fs::exists(lock->lockfile_path()));
 
                 {
                     auto other_lock = LockFile::create_lock(tempdir_path);
+                    EXPECT_TRUE(other_lock->is_locked());
                     EXPECT_EQ(other_lock->count_lock_owners(), 2);
                     EXPECT_EQ(lock->count_lock_owners(), 2);
                 }
@@ -185,11 +187,13 @@ namespace mamba
         {
             {
                 auto lock = LockFile::create_lock(tempfile_path);
+                EXPECT_TRUE(lock->is_locked());
                 EXPECT_TRUE(fs::exists(lock->lockfile_path()));
                 EXPECT_EQ(lock->count_lock_owners(), 1);
 
                 {
                     auto other_lock = LockFile::create_lock(tempfile_path);
+                    EXPECT_TRUE(other_lock->is_locked());
                     EXPECT_EQ(other_lock->count_lock_owners(), 2);
                     EXPECT_EQ(lock->count_lock_owners(), 2);
                 }

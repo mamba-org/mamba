@@ -117,10 +117,32 @@ namespace mamba
         static std::unique_ptr<LockFile> create_lock(const fs::u8path& path);
         static std::unique_ptr<LockFile> try_lock(const fs::u8path& path) noexcept;
 
+        // Returns true if this LockFile is currently maintaining a lock on the target path.
+        // Returns false if this instance have been moved-from without being re-assigned,
+        // or if the lock acquisition failed.
+        bool is_locked() const
+        {
+            return impl ? true: false;
+        }
+
+        // Convenient operator to check if a lockfile is actually locking a path.
+        explicit operator bool() const
+        {
+            return is_locked();
+        }
+
+        // Returns the fd of the path being locked if `is_locked() == true`.
         int fd() const;
+
+        // Returns the path being locked if `is_locked() == true`.
         fs::u8path path() const;
+
+        // Returns the path of the lock-file being locked if `is_locked() == true`.
         fs::u8path lockfile_path() const;
 
+        // Returns the count of LockFile instances which are currently locking
+        // the same path/file from the same process.
+        // Returns 0 if `is_locked() == false`.
         std::size_t count_lock_owners() const
         {
             return impl.use_count();

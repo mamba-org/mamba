@@ -17,6 +17,7 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/error_handling.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -102,19 +103,31 @@ namespace mamba
         return path;
     }
 
-    std::unique_ptr<LockFile> lock_proc_dir()
+    LockFile lock_proc_dir()
     {
-        try
+        const auto proc_dir_path = proc_dir();
+        auto lockfile = LockFile(proc_dir_path);
+        if (!lockfile)
         {
-            auto lockfile = LockFile::create_lock(proc_dir());
-            return lockfile;
+            if (auto error = lockfile.error())
+            {
+                throw mamba_error{
+                    fmt::format(
+                        "'mamba run' failed to lock ({}) or lockfile was not properly deleted - error: {}",
+                        proc_dir_path.string(),
+                        error->what()),
+                    mamba_error_code::lockfile_failure
+                };
+            }
+            else
+            {
+                LOG_DEBUG
+                    << "`mamba run` file locking attempt ignored because locking is disabled - path: "
+                    << proc_dir_path.string();
+            }
         }
-        catch (...)
-        {
-            throw std::runtime_error(
-                fmt::format("'mamba run' failed to lock ({}) or lockfile was not properly deleted",
-                            proc_dir().string()));
-        }
+
+        return lockfile;
     }
 
     nlohmann::json get_all_running_processes_info(
@@ -161,7 +174,7 @@ namespace mamba
     public:
         ScopedProcFile(const std::string& name,
                        const std::vector<std::string>& command,
-                       std::unique_ptr<LockFile> proc_dir_lock = lock_proc_dir())
+                       LockFile proc_dir_lock = lock_proc_dir())
             : location{ proc_dir() / fmt::format("{}.json", getpid()) }
         {
             // Lock must be hold for the duraction of this constructor.

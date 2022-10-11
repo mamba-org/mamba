@@ -52,7 +52,7 @@ extern "C"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/shell_init.hpp"
-
+#include "mamba/core/invoke.hpp"
 
 namespace mamba
 {
@@ -812,6 +812,18 @@ namespace mamba
         int m_fd = -1;
         bool m_locked;
         bool m_lockfile_existed;
+
+        template <typename Func = no_op>
+        void throw_lock_error(std::string error_message, Func before_throw_task = no_op{}) const
+        {
+            auto complete_error_message = fmt::format("LockFile acquisition failed, aborting: {}",
+                                                      std::move(error_message));
+            LOG_ERROR << error_message;
+            safe_invoke(before_throw_task)
+                .map_error([](const auto& error)
+                           { LOG_ERROR << "While handling LockFile failure: " << error.what(); });
+            throw mamba_error(complete_error_message, mamba_error_code::lockfile_failure);
+        }
     };
 
     LockFileOwner::LockFileOwner(const fs::u8path& path, const std::chrono::seconds timeout)
@@ -822,8 +834,7 @@ namespace mamba
         std::error_code ec;
         if (!fs::exists(path, ec))
         {
-            LOG_ERROR << "Could not lock non-existing path '" << path.string() << "'";
-            throw std::runtime_error("LockFile error. Aborting.");
+            throw_lock_error(fmt::format("Could not lock non-existing path '{}'", path.string()));
         }
 
         if (fs::is_directory(path))
@@ -845,9 +856,8 @@ namespace mamba
 #endif
         if (m_fd <= 0)
         {
-            LOG_ERROR << "Could not open lockfile '" << m_lockfile_path.string() << "'";
-            unlock();
-            throw std::runtime_error("LockFile error. Aborting.");
+            throw_lock_error(fmt::format("Could not open lockfile '{}'", m_lockfile_path.string()),
+                             [this] { unlock(); });
         }
         else
         {
@@ -866,11 +876,12 @@ namespace mamba
             }
             else
             {
-                LOG_ERROR << "LockFile can't be set at '" << m_path.string() << "'\n"
-                          << "This could be fixed by changing the locks' timeout or "
-                          << "cleaning your environment from previous runs";
-                unlock();
-                throw std::runtime_error("LockFile error. Aborting.");
+                throw_lock_error(
+                    fmt::format("LockFile can't be set at '{}'\n"
+                                "This could be fixed by changing the locks' timeout or "
+                                "cleaning your environment from previous runs",
+                                m_path.string()),
+                    [this] { unlock(); });
             }
         }
     }
@@ -1062,9 +1073,15 @@ namespace mamba
             LockedFilesRegistry& operator=(const LockedFilesRegistry&) = delete;
 
 
-            std::shared_ptr<LockFileOwner> acquire_lock(const fs::u8path& file_path,
-                                                        const std::chrono::seconds timeout)
+            tl::expected<std::shared_ptr<LockFileOwner>, mamba_error> acquire_lock(
+                const fs::u8path& file_path, const std::chrono::seconds timeout)
             {
+                if (!Context::instance().use_lockfiles)
+                {
+                    // No locking allowed, so do nothing.
+                    return std::shared_ptr<LockFileOwner>{};
+                }
+
                 const auto absolute_file_path = fs::absolute(file_path);
                 std::scoped_lock lock{ mutex };
 
@@ -1079,12 +1096,17 @@ namespace mamba
                 }
 
                 // At this point, we didn't find a lockfile alive, so we create one.
-                auto lockedfile = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
-                auto tracker = std::weak_ptr{ lockedfile };
-                locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
-                fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
-                assert(is_lockfile_locked(*lockedfile));
-                return lockedfile;
+                return safe_invoke(
+                    [&]
+                    {
+                        auto lockedfile
+                            = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
+                        auto tracker = std::weak_ptr{ lockedfile };
+                        locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
+                        fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
+                        assert(is_lockfile_locked(*lockedfile));
+                        return lockedfile;
+                    });
             }
 
             // note: the resulting value will be obsolete before returning.
@@ -1154,26 +1176,17 @@ namespace mamba
 
     int LockFile::fd() const
     {
-        return impl->fd();
+        return impl.value()->fd();
     }
 
     fs::u8path LockFile::path() const
     {
-        return impl->path();
+        return impl.value()->path();
     }
 
     fs::u8path LockFile::lockfile_path() const
     {
-        return impl->lockfile_path();
-    }
-
-    std::unique_ptr<LockFile> LockFile::create_lock(const fs::u8path& path)
-    {
-        if (!Context::instance().use_lockfiles)
-            return nullptr;
-
-        auto ptr = std::unique_ptr<LockFile>(new LockFile(path));
-        return ptr;
+        return impl.value()->lockfile_path();
     }
 
 #ifdef _WIN32
@@ -1182,6 +1195,16 @@ namespace mamba
         // Windows locks are isolated between file descriptor
         // We can then test if locked by opening a new one
         int fd = _wopen(path.wstring().c_str(), O_RDWR | O_CREAT, 0666);
+        if (fd == -1)
+        {
+            if (errno == EACCES)
+                return true;
+
+            // In other cases, something is wrong.
+            throw mamba_error{ fmt::format("failed to check if path is locked : '{}'",
+                                           path.string()),
+                               mamba_error_code::lockfile_failure };
+        }
         _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
         char buffer[1];
         bool is_locked = _read(fd, buffer, 1) == -1;
@@ -1229,25 +1252,6 @@ namespace mamba
     }
 #endif
 
-
-    std::unique_ptr<LockFile> LockFile::try_lock(const fs::u8path& path) noexcept
-    {
-        // Don't even lock if the file/directory isn't writable by someone or doesnt exists.
-        if (!Context::instance().use_lockfiles || !path::is_writable(path))
-            return nullptr;
-
-        try
-        {
-            auto ptr = std::unique_ptr<LockFile>(new LockFile(path));
-            return ptr;
-        }
-        catch (...)
-        {
-            LOG_WARNING << "LockFile creation for path '" << path.string()
-                        << "' failed, continuing without it";
-        }
-        return nullptr;
-    }
 
     std::string timestamp(const std::time_t& utc_time)
     {

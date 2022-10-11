@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <map>
 #include <type_traits>
+#include <string_view>
 
 #include <solv/pool.h>
 
@@ -386,20 +387,22 @@ namespace mamba
 
             std::size_t const n_nodes = node_indices.size();
             std::vector<bool> node_added_to_a_group(n_nodes, false);
-            for (node_id i = 0; i < n_nodes; ++i)
+            for (std::size_t i = 0; i < n_nodes; ++i)
             {
                 if (!node_added_to_a_group[i])
                 {
+                    auto const id_i = node_indices[i];
                     std::vector<node_id> current_group{};
-                    current_group.push_back(node_indices[i]);
+                    current_group.push_back(id_i);
                     node_added_to_a_group[i] = true;
                     // This is where we use symetry and transitivity, going through all remaining
                     // nodes and adding them to the current group if they match the criteria.
-                    for (node_id j = i + 1; j < n_nodes; ++j)
+                    for (std::size_t j = i + 1; j < n_nodes; ++j)
                     {
-                        if ((!node_added_to_a_group[j]) && merge_criteria(i, j))
+                        auto const id_j = node_indices[j];
+                        if ((!node_added_to_a_group[j]) && merge_criteria(id_i, id_j))
                         {
-                            current_group.push_back(node_indices[j]);
+                            current_group.push_back(id_j);
                             node_added_to_a_group[j] = true;
                         }
                     }
@@ -497,6 +500,27 @@ namespace mamba
         }
 
         /**
+         * The name of a ProblemsGraph::node_t, used to avoid merging.
+         */
+        std::string_view node_name(ProblemsGraph::node_t const& node)
+        {
+            return std::visit(
+                [](auto const& n) -> std::string_view
+                {
+                    using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
+                    if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
+                    {
+                        return "";
+                    }
+                    else
+                    {
+                        return std::invoke(&Node::name, n);
+                    }
+                },
+                node);
+        }
+
+        /**
          * The criteria for deciding whether to merge two nodes together.
          */
         auto create_merge_criteria(ProblemsGraph const& pbs)
@@ -504,10 +528,12 @@ namespace mamba
             using node_id = ProblemsGraph::node_id;
             return [&pbs](node_id n1, node_id n2) -> bool
             {
+                auto const& g = pbs.graph();
                 // TODO needs finetuning, not the same conditions
-                return !(pbs.conflicts().in_conflict(n1, n2))
-                       && (pbs.graph().successors(n1) == pbs.graph().successors(n2))
-                       && (pbs.graph().predecessors(n1) == pbs.graph().predecessors(n2));
+                return (node_name(g.node(n1)) == node_name(g.node(n2)))
+                       && !(pbs.conflicts().in_conflict(n1, n2))
+                       && (g.successors(n1) == g.successors(n2))
+                       && (g.predecessors(n1) == g.predecessors(n2));
             };
         }
 

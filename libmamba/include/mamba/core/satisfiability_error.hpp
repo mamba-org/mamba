@@ -60,12 +60,12 @@ namespace mamba
         };
         struct UnresolvedDependencyNode
         {
-            std::string dependency;
+            DependencyInfo dependency;
             static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP;
         };
         struct ConstraintNode
         {
-            std::string dependency;
+            DependencyInfo dependency;
             static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_CONSTRAINS;
         };
         using node_t

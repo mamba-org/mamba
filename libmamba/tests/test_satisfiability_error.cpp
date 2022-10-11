@@ -427,7 +427,7 @@ namespace mamba
     auto is_virtual_package(ProblemsGraph::node_t const& node) -> bool
     {
         return std::holds_alternative<ProblemsGraph::PackageNode>(node)
-               && starts_with(std::get<ProblemsGraph::PackageNode>(node).package_info.name, "__");
+               && starts_with(std::get<ProblemsGraph::PackageNode>(node).name, "__");
     };
 
     auto has_problem_type(ProblemsGraph::node_t const& node) -> bool

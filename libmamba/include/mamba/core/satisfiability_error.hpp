@@ -77,19 +77,16 @@ namespace mamba
         struct RootNode
         {
         };
-        struct PackageNode
+        struct PackageNode : PackageInfo
         {
-            PackageInfo package_info;
             std::optional<SolverRuleinfo> problem_type;
         };
-        struct UnresolvedDependencyNode
+        struct UnresolvedDependencyNode : DependencyInfo
         {
-            DependencyInfo dependency;
             static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP;
         };
-        struct ConstraintNode
+        struct ConstraintNode : DependencyInfo
         {
-            DependencyInfo dependency;
             static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_CONSTRAINS;
         };
         using node_t

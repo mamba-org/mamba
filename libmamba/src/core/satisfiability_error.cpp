@@ -45,12 +45,12 @@ namespace mamba
         return m_name;
     }
 
-    std::string const& DependencyInfo::version_range() const
+    std::string const& DependencyInfo::version() const
     {
         return m_version_range;
     }
 
-    std::string const& DependencyInfo::build_range() const
+    std::string const& DependencyInfo::build_string() const
     {
         return m_build_range;
     }

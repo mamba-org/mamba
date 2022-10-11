@@ -76,14 +76,13 @@ namespace mamba
         using node_id = graph_t::node_id;
         using conflict_map = std::unordered_map<node_id, vector_set<node_id>>;
 
-        static auto from_solver(MSolver const& solver, MPool const& pool) -> ProblemsGraph;
+        static ProblemsGraph from_solver(MSolver const& solver, MPool const& pool);
 
-        ProblemsGraph() = delete;
         ProblemsGraph(graph_t graph, conflict_map conflicts, node_id root_node);
 
-        auto graph() const noexcept -> graph_t const&;
-        auto conflicts() const noexcept -> conflict_map const&;
-        auto root_node() const noexcept -> node_id;
+        graph_t const& graph() const noexcept;
+        conflict_map const& conflicts() const noexcept;
+        node_id root_node() const noexcept;
 
     private:
         graph_t m_graph;

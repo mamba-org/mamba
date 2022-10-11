@@ -72,7 +72,7 @@ namespace mamba
     namespace
     {
 
-        auto warn_unexpected_problem(MSolverProblem const& problem) -> void
+        void warn_unexpected_problem(MSolverProblem const& problem)
         {
             // TODO: Once the new error message are not experimental, we should consider
             // reducing this level since it is not somethig the user has control over.
@@ -122,14 +122,14 @@ namespace mamba
              * If the node is already present and ``update`` is false then the current
              * node is left as it is, otherwise the new value is inserted.
              */
-            auto add_solvable(SolvId solv_id, node_t&& pkg_info, bool update = true) -> node_id;
+            node_id add_solvable(SolvId solv_id, node_t&& pkg_info, bool update = true);
 
-            auto add_conflict(node_id n1, node_id n2) -> void;
-            [[nodiscard]] auto add_expanded_deps_edges(node_id from_id,
+            void add_conflict(node_id n1, node_id n2);
+            [[nodiscard]] bool add_expanded_deps_edges(node_id from_id,
                                                        SolvId dep_id,
-                                                       edge_t const& edge) -> bool;
+                                                       edge_t const& edge);
 
-            auto parse_problems() -> void;
+            void parse_problems();
         };
 
         auto ProblemsGraphCreator::add_solvable(SolvId solv_id, node_t&& node, bool update)
@@ -159,7 +159,7 @@ namespace mamba
                                                            SolvId dep_id,
                                                            edge_t const& edge) -> bool
         {
-            auto added = false;
+            bool added = false;
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
             {
                 added = true;
@@ -177,10 +177,10 @@ namespace mamba
             {
                 // These functions do not return a reference so we make sure to
                 // compute the value only once.
-                auto source = problem.source();
-                auto target = problem.target();
-                auto dep = problem.dep();
-                auto const type = problem.type;
+                std::optional<PackageInfo> source = problem.source();
+                std::optional<PackageInfo> target = problem.target();
+                std::optional<std::string> dep = problem.dep();
+                SolverRuleinfo type = problem.type;
 
                 switch (type)
                 {

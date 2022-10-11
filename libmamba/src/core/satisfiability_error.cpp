@@ -101,7 +101,7 @@ namespace mamba
             using node_t = ProblemsGraph::node_t;
             using node_id = ProblemsGraph::node_id;
             using edge_t = ProblemsGraph::edge_t;
-            using conflict_map = ProblemsGraph::conflict_map;
+            using conflicts_t = ProblemsGraph::conflicts_t;
 
             ProblemsGraphCreator(MSolver const& solver, MPool const& pool)
                 : m_solver{ solver }
@@ -120,7 +120,7 @@ namespace mamba
             MSolver const& m_solver;
             MPool const& m_pool;
             graph_t m_graph;
-            conflict_map m_conflicts;
+            conflicts_t m_conflicts;
             std::map<SolvId, node_id> m_solv2node;
             node_id m_root_node;
 
@@ -159,8 +159,7 @@ namespace mamba
 
         void ProblemsGraphCreator::add_conflict(node_id n1, node_id n2)
         {
-            m_conflicts[n1].insert(n2);
-            m_conflicts[n2].insert(n1);
+            m_conflicts.add(n1, n2);
         }
 
         bool ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id,
@@ -335,7 +334,7 @@ namespace mamba
         return ProblemsGraphCreator(solver, pool);
     }
 
-    ProblemsGraph::ProblemsGraph(graph_t graph, conflict_map conflicts, node_id root_node)
+    ProblemsGraph::ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node)
         : m_graph(std::move(graph))
         , m_conflicts(std::move(conflicts))
         , m_root_node(root_node)
@@ -347,7 +346,7 @@ namespace mamba
         return m_graph;
     }
 
-    auto ProblemsGraph::conflicts() const noexcept -> conflict_map const&
+    auto ProblemsGraph::conflicts() const noexcept -> conflicts_t const&
     {
         return m_conflicts;
     }
@@ -505,21 +504,8 @@ namespace mamba
             using node_id = ProblemsGraph::node_id;
             return [&pbs](node_id n1, node_id n2) -> bool
             {
-                auto in_conflict = [&conflicts = pbs.conflicts()](node_id n1, node_id n2) -> bool
-                {
-                    auto conflict1 = (conflicts.find(n1) != conflicts.end())
-                                     && (conflicts.at(n1).contains(n2));
-                    // Assert that the conflict map was indeed symetric.
-                    // Should be a proper data structure.
-                    if (conflict1)
-                    {
-                        assert(conflicts.at(n2).contains(n1));
-                    }
-                    return conflict1;
-                };
-
                 // TODO needs finetuning, not the same conditions
-                return !(in_conflict(n1, n2))
+                return !(pbs.conflicts().in_conflict(n1, n2))
                        && (pbs.graph().successors(n1) == pbs.graph().successors(n2))
                        && (pbs.graph().predecessors(n1) == pbs.graph().predecessors(n2));
             };
@@ -644,22 +630,17 @@ namespace mamba
          * If two groups contain a node that are respectively in conflicts, then they are in
          * conflicts.
          */
-        auto merge_conflicts(ProblemsGraph::conflict_map const& old_conflicts,
+        auto merge_conflicts(ProblemsGraph::conflicts_t const& old_conflicts,
                              node_id_mapping const& old_to_new)
-            -> CompressedProblemsGraph::conflict_map
+            -> CompressedProblemsGraph::conflicts_t
         {
-            auto new_conflicts = CompressedProblemsGraph::conflict_map();
+            auto new_conflicts = CompressedProblemsGraph::conflicts_t();
             for (auto const& [old_from, old_with] : old_conflicts)
             {
                 auto const new_from = old_to_new[old_from];
-                if (new_conflicts.find(new_from) == new_conflicts.end())
-                {
-                    new_conflicts.insert({});
-                }
-                auto& new_with = new_conflicts[new_from];
                 for (auto const old_to : old_with)
                 {
-                    new_with.insert(old_to_new[old_to]);
+                    new_conflicts.add(new_from, old_to_new[old_to]);
                 }
             }
             return new_conflicts;
@@ -677,7 +658,7 @@ namespace mamba
     }
 
     CompressedProblemsGraph::CompressedProblemsGraph(graph_t graph,
-                                                     conflict_map conflicts,
+                                                     conflicts_t conflicts,
                                                      node_id root_node)
         : m_graph(std::move(graph))
         , m_conflicts(std::move(conflicts))
@@ -690,7 +671,7 @@ namespace mamba
         return m_graph;
     }
 
-    auto CompressedProblemsGraph::conflicts() const noexcept -> conflict_map const&
+    auto CompressedProblemsGraph::conflicts() const noexcept -> conflicts_t const&
     {
         return m_conflicts;
     }

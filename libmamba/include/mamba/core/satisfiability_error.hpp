@@ -44,6 +44,30 @@ namespace mamba
         std::string m_build_range;
     };
 
+    template <typename T>
+    class conflict_map : private std::unordered_map<T, vector_set<T>>
+    {
+    public:
+        using Base = std::unordered_map<T, vector_set<T>>;
+        using typename Base::const_iterator;
+        using typename Base::key_type;
+        using typename Base::value_type;
+
+        using Base::empty;
+        using Base::size;
+        bool has_conflict(key_type const& a) const;
+        auto conflicts(key_type const& a) const -> vector_set<T> const&;
+        bool in_conflict(key_type const& a, key_type const& b) const;
+
+        using Base::cbegin;
+        using Base::cend;
+        const_iterator begin() const noexcept;
+        const_iterator end() const noexcept;
+
+        using Base::clear;
+        void add(key_type const& a, key_type const& b);
+    };
+
     /**
      * A directed graph of the packages involved in a libsolv conflict.
      */
@@ -75,19 +99,19 @@ namespace mamba
 
         using graph_t = DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
-        using conflict_map = std::unordered_map<node_id, vector_set<node_id>>;
+        using conflicts_t = conflict_map<node_id>;
 
         static ProblemsGraph from_solver(MSolver const& solver, MPool const& pool);
 
-        ProblemsGraph(graph_t graph, conflict_map conflicts, node_id root_node);
+        ProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
         graph_t const& graph() const noexcept;
-        conflict_map const& conflicts() const noexcept;
+        conflicts_t const& conflicts() const noexcept;
         node_id root_node() const noexcept;
 
     private:
         graph_t m_graph;
-        conflict_map m_conflicts;
+        conflicts_t m_conflicts;
         node_id m_root_node;
     };
 
@@ -105,22 +129,63 @@ namespace mamba
 
         using graph_t = DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
-        using conflict_map = std::unordered_map<node_id, vector_set<node_id>>;
+        using conflicts_t = conflict_map<node_id>;
 
         static auto from_problems_graph(ProblemsGraph const& pbs) -> CompressedProblemsGraph;
 
-        CompressedProblemsGraph() = delete;
-        CompressedProblemsGraph(graph_t graph, conflict_map conflicts, node_id root_node);
+        CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
-        auto graph() const noexcept -> graph_t const&;
-        auto conflicts() const noexcept -> conflict_map const&;
-        auto root_node() const noexcept -> node_id;
+        graph_t const& graph() const noexcept;
+        conflicts_t const& conflicts() const noexcept;
+        node_id root_node() const noexcept;
 
     private:
         graph_t m_graph;
-        conflict_map m_conflicts;
+        conflicts_t m_conflicts;
         node_id m_root_node;
     };
+
+    /************************************
+     *  Implementation of conflict_map  *
+     ************************************/
+
+    template <typename T>
+    bool conflict_map<T>::has_conflict(key_type const& a) const
+    {
+        return Base::find(a) != end();
+    }
+
+    template <typename T>
+    auto conflict_map<T>::conflicts(key_type const& a) const -> vector_set<T> const&
+    {
+        return Base::at(a);
+    }
+
+    template <typename T>
+    bool conflict_map<T>::in_conflict(key_type const& a, key_type const& b) const
+    {
+        return has_conflict(a) && Base::at(a).contains(b);
+    }
+
+    template <typename T>
+    auto conflict_map<T>::begin() const noexcept -> const_iterator
+    {
+        return Base::begin();
+    }
+
+    template <typename T>
+    auto conflict_map<T>::end() const noexcept -> const_iterator
+    {
+        return Base::end();
+    }
+
+    template <typename T>
+    void conflict_map<T>::add(key_type const& a, key_type const& b)
+    {
+        Base::operator[](a).insert(b);
+        Base::operator[](b).insert(a);
+    }
+
 }
 
 #endif  // MAMBA_PROBLEMS_GRAPH_HPP

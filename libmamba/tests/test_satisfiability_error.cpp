@@ -69,6 +69,21 @@ namespace mamba
         EXPECT_ANY_THROW(DependencyInfo("<foo"));
     }
 
+    TEST(conflict_map, symetric)
+    {
+        auto c = conflict_map<std::size_t>();
+        EXPECT_EQ(c.size(), 0);
+        EXPECT_FALSE(c.has_conflict(0));
+        EXPECT_FALSE(c.in_conflict(0, 1));
+        c.add(0, 1);
+        c.add(1, 2);
+        EXPECT_TRUE(c.has_conflict(0));
+        EXPECT_TRUE(c.in_conflict(0, 1));
+        EXPECT_TRUE(c.in_conflict(1, 2));
+        EXPECT_TRUE(c.has_conflict(2));
+        EXPECT_FALSE(c.in_conflict(0, 2));
+    }
+
     /**
      * A RAII object to ensure a path exists only for the lifetime of the guard.
      */
@@ -473,13 +488,10 @@ namespace mamba
         }
 
         auto const& conflicts = pbs.conflicts();
-        for (auto const& [n1, neighbors1] : conflicts)
+        for (auto const& [n, _] : conflicts)
         {
-            for (auto const& n2 : neighbors1)
-            {
-                ASSERT_NE(conflicts.find(n2), conflicts.end());
-                EXPECT_TRUE(conflicts.at(n2).contains(n1));
-            }
+            EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(g.node(n))
+                        || std::holds_alternative<ProblemsGraph::ConstraintNode>(g.node(n)));
         }
     }
 

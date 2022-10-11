@@ -21,6 +21,7 @@ __version__ = version_ns["__version__"]
 
 data_files = [
     ("etc/profile.d", ["mamba/shell_templates/mamba.sh"]),
+    ("etc/fish/conf.d", ["mamba/shell_templates/mamba.fish"]),
 ]
 if sys.platform == "win32":
     data_files.append(

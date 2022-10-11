@@ -698,7 +698,11 @@ namespace mamba
             fo << buffer;
             fo.close();
 
-            fs::permissions(dst, fs::status(src).permissions());
+            std::error_code ec;
+            fs::permissions(dst, fs::status(src).permissions(), ec);
+            if (ec)
+                LOG_WARNING << "Could not set permissions on [" << dst << "]: " << ec.message();
+
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {

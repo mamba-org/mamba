@@ -53,7 +53,7 @@ namespace mamba
 
     std::string DependencyInfo::str() const
     {
-        auto out = std::string(m_name);
+        std::string out(m_name);
         out.reserve(m_name.size() + (m_version_range.empty() ? 0 : 1) + m_version_range.size()
                     + (m_build_range.empty() ? 0 : 1) + m_version_range.size());
         if (!m_version_range.empty())
@@ -137,41 +137,41 @@ namespace mamba
         {
             if (auto const iter = m_solv2node.find(solv_id); iter != m_solv2node.end())
             {
-                auto const id = iter->second;
+                node_id const id = iter->second;
                 if (update)
                 {
                     m_graph.node(id) = std::move(node);
                 }
                 return id;
             }
-            auto const id = m_graph.add_node(std::move(node));
+            node_id const id = m_graph.add_node(std::move(node));
             m_solv2node[solv_id] = id;
             return id;
         };
 
-        auto ProblemsGraphCreator::add_conflict(node_id n1, node_id n2) -> void
+        void ProblemsGraphCreator::add_conflict(node_id n1, node_id n2)
         {
             m_conflicts[n1].insert(n2);
             m_conflicts[n2].insert(n1);
         }
 
-        auto ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id,
+        bool ProblemsGraphCreator::add_expanded_deps_edges(node_id from_id,
                                                            SolvId dep_id,
-                                                           edge_t const& edge) -> bool
+                                                           edge_t const& edge)
         {
             bool added = false;
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
             {
                 added = true;
-                auto pkg_info = PackageInfo(pool_id2solvable(m_pool, solv_id));
-                auto to_id = add_solvable(
+                PackageInfo pkg_info(pool_id2solvable(m_pool, solv_id));
+                node_id to_id = add_solvable(
                     solv_id, PackageNode{ std::move(pkg_info), std::nullopt }, false);
                 m_graph.add_edge(from_id, to_id, edge);
             }
             return added;
         }
 
-        auto ProblemsGraphCreator::parse_problems() -> void
+        void ProblemsGraphCreator::parse_problems()
         {
             for (const auto& problem : m_solver.all_problems_structured())
             {
@@ -197,10 +197,11 @@ namespace mamba
                         auto src_id
                             = add_solvable(problem.source_id,
                                            PackageNode{ std::move(source).value(), std::nullopt });
-                        auto tgt_id = add_solvable(
+                        node_id tgt_id = add_solvable(
                             problem.target_id, PackageNode{ std::move(target).value(), { type } });
-                        auto cons_id = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
-                        auto edge = DependencyInfo(dep.value());
+                        node_id cons_id
+                            = add_solvable(problem.dep_id, ConstraintNode{ dep.value() });
+                        DependencyInfo edge(dep.value());
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -215,8 +216,8 @@ namespace mamba
                         auto src_id
                             = add_solvable(problem.source_id,
                                            PackageNode{ std::move(source).value(), std::nullopt });
-                        auto edge = DependencyInfo(dep.value());
-                        auto added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
+                        DependencyInfo edge(dep.value());
+                        bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
@@ -232,8 +233,8 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = DependencyInfo(dep.value());
-                        auto added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
+                        DependencyInfo edge(dep.value());
+                        bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
                             LOG_WARNING << "Added empty dependency for problem type "
@@ -249,9 +250,9 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = DependencyInfo(dep.value());
-                        auto tgt_id = add_solvable(problem.target_id,
-                                                   PackageNode{ std::move(dep).value(), { type } });
+                        DependencyInfo edge(dep.value());
+                        node_id tgt_id = add_solvable(
+                            problem.target_id, PackageNode{ std::move(dep).value(), { type } });
                         m_graph.add_edge(m_root_node, tgt_id, std::move(edge));
                         break;
                     }
@@ -262,11 +263,11 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = DependencyInfo(dep.value());
+                        DependencyInfo edge(dep.value());
                         auto src_id
                             = add_solvable(problem.source_id,
                                            PackageNode{ std::move(source).value(), std::nullopt });
-                        auto tgt_id = add_solvable(
+                        node_id tgt_id = add_solvable(
                             problem.target_id, UnresolvedDependencyNode{ std::move(dep).value() });
                         m_graph.add_edge(src_id, tgt_id, std::move(edge));
                         break;
@@ -279,9 +280,9 @@ namespace mamba
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto src_id = add_solvable(
+                        node_id src_id = add_solvable(
                             problem.source_id, PackageNode{ std::move(source).value(), { type } });
-                        auto tgt_id = add_solvable(
+                        node_id tgt_id = add_solvable(
                             problem.target_id, PackageNode{ std::move(target).value(), { type } });
                         add_conflict(src_id, tgt_id);
                         break;

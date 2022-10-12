@@ -147,8 +147,8 @@ namespace mamba
     //          {
     //              if(auto error = lock.error) print(error); // some error happened while
     //              attempting the lock, maybe some other process already locks the path else
-    //              print("didn't attempt locking {}") // locking didn't happen for some other
-    //              reason, maybe a configuration option
+    //              print("didn't attempt locking {}", some_path); // locking didn't happen for some
+    //              other reason, maybe a configuration option
     //          }
     //          some_more_work(some_path); // do this that the lock failed or not
     //          return lock; // The locking ownership can be transfered to another function if

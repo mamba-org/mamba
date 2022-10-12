@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <optional>
 #include <vector>
+#include <stdexcept>
 
 #include <solv/solver.h>
 
@@ -116,13 +117,53 @@ namespace mamba
     {
     public:
         using RootNode = ProblemsGraph::RootNode;
-        using PackageListNode = std::vector<ProblemsGraph::PackageNode>;
-        using UnresolvedDependencyListNode = std::vector<ProblemsGraph::UnresolvedDependencyNode>;
-        using ConstraintListNode = std::vector<ProblemsGraph::ConstraintNode>;
-        using node_t = std::
-            variant<RootNode, PackageListNode, UnresolvedDependencyListNode, ConstraintListNode>;
 
-        using edge_t = std::vector<DependencyInfo>;
+        template <typename T, typename Allocator = std::allocator<T>>
+        class NamedList : private std::vector<T, Allocator>
+        {
+        public:
+            using Base = std::vector<T, Allocator>;
+            using typename Base::allocator_type;
+            using typename Base::const_iterator;
+            using typename Base::const_reverse_iterator;
+            using typename Base::value_type;
+
+            using Base::empty;
+            using Base::size;
+            value_type const& front() const noexcept;
+            value_type const& back() const noexcept;
+            using Base::cbegin;
+            using Base::cend;
+            using Base::crbegin;
+            using Base::crend;
+            const_iterator begin() const noexcept;
+            const_iterator end() const noexcept;
+            const_reverse_iterator rbegin() const noexcept;
+            const_reverse_iterator rend() const noexcept;
+
+            std::string const& name() const;
+
+            using Base::clear;
+            using Base::reserve;
+            void push_back(value_type const& e);
+            void push_back(value_type&& e);
+
+        private:
+            template <typename T_>
+            static decltype(auto) name_of(T_&& e);
+            template <typename T_>
+            void push_back_impl(T_&& e);
+        };
+
+        using PackageListNode = NamedList<ProblemsGraph::PackageNode>;
+        using UnresolvedDependencyListNode = NamedList<ProblemsGraph::UnresolvedDependencyNode>;
+        using ConstraintListNode = NamedList<ProblemsGraph::ConstraintNode>;
+        using node_t = std::variant<RootNode,  //
+                                    PackageListNode,
+                                    UnresolvedDependencyListNode,
+                                    ConstraintListNode>;
+
+        using edge_t = NamedList<DependencyInfo>;
 
         using graph_t = DiGraph<node_t, edge_t>;
         using node_id = graph_t::node_id;
@@ -182,6 +223,89 @@ namespace mamba
         Base::operator[](a).insert(b);
         Base::operator[](b).insert(a);
     }
+
+    /**********************************************************
+     *  Implementation of CompressedProblemsGraph::NamedList  *
+     **********************************************************/
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> value_type const&
+    {
+        return Base::front();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::back() const noexcept -> value_type const&
+    {
+        return Base::back();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::begin() const noexcept -> const_iterator
+    {
+        return Base::begin();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::end() const noexcept -> const_iterator
+    {
+        return Base::end();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::rbegin() const noexcept -> const_reverse_iterator
+    {
+        return Base::rbegin();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::rend() const noexcept -> const_reverse_iterator
+    {
+        return Base::rend();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::name() const -> std::string const&
+    {
+        if (size() == 0)
+        {
+            static const std::string empty = "";
+            return empty;
+        }
+        return name_of(front());
+    }
+
+    template <typename T, typename A>
+    void CompressedProblemsGraph::NamedList<T, A>::push_back(value_type const& e)
+    {
+        return push_back_impl(e);
+    }
+
+    template <typename T, typename A>
+    void CompressedProblemsGraph::NamedList<T, A>::push_back(value_type&& e)
+    {
+        return push_back_impl(std::move(e));
+    }
+
+    template <typename T, typename A>
+    template <typename T_>
+    void CompressedProblemsGraph::NamedList<T, A>::push_back_impl(T_&& e)
+    {
+        if ((size() > 0) && (name_of(e) != name()))
+        {
+            throw std::invalid_argument("Name of new element (" + name_of(e)
+                                        + ") does not match name of list (" + name() + ')');
+        }
+        Base::push_back(std::forward<T_>(e));
+    }
+
+    template <typename T, typename A>
+    template <typename T_>
+    decltype(auto) CompressedProblemsGraph::NamedList<T, A>::name_of(T_&& e)
+    {
+        return std::invoke(&T::name, std::forward<T_>(e));
+    }
+
 
 }
 

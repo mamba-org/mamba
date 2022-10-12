@@ -10,6 +10,7 @@
 #include <map>
 #include <type_traits>
 #include <string_view>
+#include <functional>
 
 #include <solv/pool.h>
 
@@ -486,14 +487,14 @@ namespace mamba
         }
 
         /**
-         * ``ranges::transform(f) | ranges::to<std::vector>()``
+         * ``ranges::transform(f) | ranges::to<CompressedProblemsGraph::NamedList>()``
          */
         template <typename Range, typename Func>
-        auto transform_to_vec(Range const& rng, Func&& f)
+        auto transform_to_list(Range const& rng, Func&& f)
         {
             using T = typename Range::value_type;
             using O = std::invoke_result_t<Func, T>;
-            auto out = std::vector<O>();
+            auto out = CompressedProblemsGraph::NamedList<O>();
             out.reserve(rng.size());
             std::transform(rng.begin(), rng.end(), std::back_inserter(out), std::forward<Func>(f));
             return out;
@@ -564,7 +565,7 @@ namespace mamba
 
             for (auto const& old_grp : old_groups)
             {
-                auto const new_id = new_graph.add_node(transform_to_vec(old_grp, get_old_node));
+                auto const new_id = new_graph.add_node(transform_to_list(old_grp, get_old_node));
                 for (auto const old_id : old_grp)
                 {
                     old_to_new[old_id] = new_id;
@@ -599,7 +600,8 @@ namespace mamba
 
             {
                 using Node = ProblemsGraph::RootNode;
-                static constexpr auto type_idx = variant_type_index<ProblemsGraph::node_t, Node>();
+                [[maybe_unused]] static constexpr auto type_idx
+                    = variant_type_index<ProblemsGraph::node_t, Node>();
                 assert(old_ids_groups[type_idx].size() == 1);
                 assert(old_ids_groups[type_idx][0].size() == 1);
                 assert(old_ids_groups[type_idx][0][0] == pbs.root_node());

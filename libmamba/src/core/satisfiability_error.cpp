@@ -186,6 +186,7 @@ namespace mamba
                 {
                     case SOLVER_RULE_PKG_CONSTRAINS:
                     {
+                        // A constraint (run_constrained) on source is conflicting with target.
                         // SOLVER_RULE_PKG_CONSTRAINS has a dep, but it can resolve to nothing.
                         // The constraint conflict is actually expressed between the target and
                         // a constrains node child of the source.
@@ -208,6 +209,10 @@ namespace mamba
                     }
                     case SOLVER_RULE_PKG_REQUIRES:
                     {
+                        // Express a dependency on source that is involved in explaining the
+                        // problem.
+                        // Not all dependency of package will appear, only enough to explain the
+                        // problem. It is not a problem in itself, only a part of the graph.
                         if (!dep || !source)
                         {
                             warn_unexpected_problem(problem);
@@ -228,6 +233,8 @@ namespace mamba
                     case SOLVER_RULE_JOB:
                     case SOLVER_RULE_PKG:
                     {
+                        // A top level requirement.
+                        // The difference between JOB and PKG is unknown (possibly unused).
                         if (!dep)
                         {
                             warn_unexpected_problem(problem);
@@ -245,6 +252,8 @@ namespace mamba
                     case SOLVER_RULE_JOB_NOTHING_PROVIDES_DEP:
                     case SOLVER_RULE_JOB_UNKNOWN_PACKAGE:
                     {
+                        // A top level dependency does not exist.
+                        // Could be a wrong name or missing channel.
                         if (!dep)
                         {
                             warn_unexpected_problem(problem);
@@ -258,6 +267,10 @@ namespace mamba
                     }
                     case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
                     {
+                        // A package dependency does not exist.
+                        // Could be a wrong name or missing channel.
+                        // This is a partial exaplanation of why a specific solvable (could be any
+                        // of the parent) cannot be installed.
                         if (!source || !dep)
                         {
                             warn_unexpected_problem(problem);
@@ -275,6 +288,10 @@ namespace mamba
                     case SOLVER_RULE_PKG_CONFLICTS:
                     case SOLVER_RULE_PKG_SAME_NAME:
                     {
+                        // Looking for a valid solution to the installation satisfiability expand to
+                        // two solvables of same package that cannot be installed together. This is
+                        // a partial exaplanation of why one of the solvables (could be any of the
+                        // parent) cannot be installed.
                         if (!source || !target)
                         {
                             warn_unexpected_problem(problem);
@@ -289,11 +306,13 @@ namespace mamba
                     }
                     case SOLVER_RULE_UPDATE:
                     {
+                        // Encounterd in the problems list from libsolv but unknown.
                         // Explicitly ignored until we do something with it.
                         break;
                     }
                     default:
                     {
+                        // Many more SolverRuleinfo that heve not been encountered.
                         LOG_WARNING << "Problem type not implemented "
                                     << solver_ruleinfo_name(type);
                         break;

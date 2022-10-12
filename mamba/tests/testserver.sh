@@ -18,27 +18,43 @@ readonly this_pid="$$"
 trap 'rm -rf "${test_dir}"; pkill -P ${this_pid} || true' EXIT
 
 
-python "${reposerver}" -d "${repo}" --auth none & PID=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/ test-package --json
+start_server() {
+	exec python "${reposerver}" -n mychannel -d "${repo}" "$@"
+}
+
+test_install() {
+	local tmp=$(mktemp -d)
+	${MAMBA_EXE} create -y -p "${tmp}/env1" --override-channels -c $1/mychannel test-package --json
+	cat > "${tmp}/condarc" <<EOF
+override_channels: true
+channels: [mychannel]
+channel_alias: "$1"
+EOF
+	${MAMBA_EXE} create -y -p "${tmp}/env2" test-package --json --rc-file "${tmp}/condarc"
+}
+
+
+start_server & PID=$!
+test_install http://localhost:8000 test-package --json
 kill -TERM $PID
 
-python "${reposerver}" -d "${repo}" --auth basic --user user --password test & PID=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user:test@localhost:8000/ test-package --json
+start_server --auth basic --user user --password test & PID=$!
+test_install http://user:test@localhost:8000 test-package --json
 kill -TERM $PID
 
-python "${reposerver}" -d "${repo}" --auth basic --user user@email.com --password test & PID=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user@email.com:test@localhost:8000/ test-package --json
+start_server --auth basic --user user@email.com --password test & PID=$!
+test_install http://user%40email.com:test@localhost:8000 test-package --json
 kill -TERM $PID
 
-python "${reposerver}" -d "${repo}" --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012 test-package --json
+start_server --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
+test_install http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012 test-package --json
 kill -TERM $PID
 
 if [[ "$(uname -s)" == "Linux" ]]; then
 	export KEY1=$(gpg --fingerprint "MAMBA1")
 	export KEY2=$(gpg --fingerprint "MAMBA2")
 
-	python "${reposerver}" -d "${repo}" --auth none --sign & PID=$!
+	start_server --auth none --sign & PID=$!
 	sleep 5s
 	kill -TERM $PID
 fi
@@ -58,5 +74,5 @@ python "${reposerver}" \
 	-d "${channel_a}" -n channel_a --user user@email.com --password test -- \
 	-d "${channel_b}" -n channel_b --auth none & PID=$!
 mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://localhost:8000/defaults/t/private-token test-package --json
-mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user@email.com:test@localhost:8000/channel_a _r-mutex --json
+mamba create -y -q -n "env-${RANDOM}" --override-channels -c http://user%40email.com:test@localhost:8000/channel_a _r-mutex --json
 kill -TERM $PID

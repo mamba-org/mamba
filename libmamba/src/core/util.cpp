@@ -1166,7 +1166,6 @@ namespace mamba
     LockFile::LockFile(const fs::u8path& path, const std::chrono::seconds& timeout)
         : impl{ files_locked_by_this_process.acquire_lock(path, timeout) }
     {
-        assert(impl);
     }
 
     LockFile::LockFile(const fs::u8path& path)

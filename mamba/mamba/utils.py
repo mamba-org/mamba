@@ -306,6 +306,8 @@ def to_package_record_from_subjson(entry, pkg, jsn_string):
     info["fn"] = pkg
     info["channel"] = to_conda_channel(entry["channel"], entry["platform"])
     info["url"] = join_url(channel_url, pkg)
+    if not info.get("subdir"):
+        info["subdir"] = entry["platform"]
     package_record = PackageRecord(**info)
     return package_record
 

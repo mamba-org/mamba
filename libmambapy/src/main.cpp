@@ -53,6 +53,14 @@ PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
 
+    // declare earlier to avoid C++ types in docstrings
+    auto pyChannel = py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel");
+    auto pyPackageInfo = py::class_<PackageInfo>(m, "PackageInfo");
+    auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
+    auto pySolver = py::class_<MSolver>(m, "Solver");
+    // only used in a return type; does it belong in the module?
+    auto pyRootRole = py::class_<validate::RootRole>(m, "RootRole");
+
     py::class_<fs::u8path>(m, "Path")
         .def(py::init<std::string>())
         .def("__str__", [](fs::u8path& self) -> std::string { return self.string(); })
@@ -143,8 +151,7 @@ PYBIND11_MODULE(bindings, m)
         .def("find_python_version", &MTransaction::find_python_version)
         .def("execute", &MTransaction::execute);
 
-    py::class_<MSolver>(m, "Solver")
-        .def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
+    pySolver.def(py::init<MPool&, std::vector<std::pair<int, int>>>(), py::keep_alive<1, 2>())
         .def("add_jobs", &MSolver::add_jobs)
         .def("add_global_job", &MSolver::add_global_job)
         .def("add_constraint", &MSolver::add_constraint)
@@ -343,7 +350,7 @@ PYBIND11_MODULE(bindings, m)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
-    py::class_<PrefixData>(m, "PrefixData")
+    pyPrefixData
         .def(py::init(
             [](const fs::u8path& prefix_path) -> PrefixData
             {
@@ -360,8 +367,7 @@ PYBIND11_MODULE(bindings, m)
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 
-    py::class_<PackageInfo>(m, "PackageInfo")
-        .def(py::init<Solvable*>())
+    pyPackageInfo.def(py::init<Solvable*>())
         .def(py::init<const std::string&>(), py::arg("name"))
         .def(py::init<const std::string&, const std::string&, const std::string&, std::size_t>(),
              py::arg("name"),
@@ -475,7 +481,7 @@ PYBIND11_MODULE(bindings, m)
             { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
             py::arg("json_str"));
 
-    py::class_<Channel, std::unique_ptr<Channel, py::nodelete>>(m, "Channel")
+    pyChannel
         .def(py::init([](const std::string& value)
                       { return const_cast<Channel*>(&make_channel(value)); }))
         .def_property_readonly("scheme", &Channel::scheme)

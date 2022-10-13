@@ -321,6 +321,10 @@ namespace mamba
     template <class S>
     void replace_all_impl(S& data, const S& search, const S& replace)
     {
+        if (search.empty())
+        {
+            return;
+        }
         std::size_t pos = data.find(search);
         while (pos != std::string::npos)
         {

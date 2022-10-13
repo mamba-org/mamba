@@ -2,13 +2,6 @@
 @REM SPDX-License-Identifier: BSD-3-Clause
 @REM Helper routine for activation, deactivation, and reactivation.
 
-@IF "%CONDA_PS1_BACKUP%"=="" GOTO FIXUP43
-    @REM Handle transition from shell activated with conda 4.3 to a subsequent activation
-    @REM after conda updated to 4.4. See issue #6173.
-    @SET "PROMPT=%CONDA_PS1_BACKUP%"
-    @SET CONDA_PS1_BACKUP=
-:FIXUP43
-
 @SETLOCAL EnableDelayedExpansion
 
 @REM This is the standard user case.  This script is run in root\condabin.
@@ -16,10 +9,6 @@
 @REM IF NOT EXIST "!_sysp!\Scripts\micromamba.exe" @SET "_sysp=!_sysp!..\"
 
 @FOR %%A in ("%TMP%") do @SET TMP=%%~sA
-@IF "%MAMBA_ROOT_PREFIX%" NEQ "" (
-    @SET "_sysp=%MAMBA_ROOT_PREFIX%"
-    @SET "PATH=!_sysp!;!_sysp!\Library\mingw-w64\bin;!_sysp!\Library\usr\bin;!_sysp!\Library\bin;!_sysp!\Scripts;!_sysp!\bin;%PATH%"
-)
 @REM It seems that it is not possible to have "CONDA_EXE=Something With Spaces"
 @REM and %* to contain: activate "Something With Spaces does not exist".
 @REM MSDOS associates the outer "'s and is unable to run very much at all.

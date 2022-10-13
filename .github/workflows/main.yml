@@ -129,11 +129,11 @@ jobs:
           ninja
       - name: build cache statistics
         run: sccache --show-stats
-      - name: install zsh, xonsh and fish in linux
+      - name: install zsh, xonsh, fish and tcsh in linux
         if: matrix.os == 'ubuntu-latest'
         shell: bash -l -eo pipefail {0}
         run: |
-          sudo apt-get install zsh xonsh fish -y
+          sudo apt-get install zsh xonsh fish tcsh -y
       - name: install xonsh and fish in mac
         if: matrix.os == 'macos-latest'
         shell: bash -l -eo pipefail {0}

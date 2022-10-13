@@ -60,7 +60,7 @@ set_activate_command(CLI::App* subcom)
                 $ micromamba shell init --shell=)"
                                             + guessed_shell + R"( --prefix=~/micromamba
 
-            Supported shells are {bash, zsh, xonsh, cmd.exe, powershell, fish}.)")
+            Supported shells are {bash, zsh, csh, xonsh, cmd.exe, powershell, fish}.)")
                                                .c_str());
 
             std::cout << "\n" << message << "\n" << std::endl;

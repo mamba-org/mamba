@@ -14,9 +14,12 @@ def skip_if_shell_incompat(shell_type):
     """Skip test if ``shell_type`` is incompatible with the platform"""
     plat_system = platform.system()
     if (
-        (plat_system == "Linux" and shell_type not in ("bash", "posix"))
+        (plat_system == "Linux" and shell_type not in ("bash", "posix", "dash"))
         or (plat_system == "Windows" and shell_type not in ("cmd.exe", "powershell"))
-        or (plat_system == "Darwin" and shell_type not in ("zsh", "bash", "posix"))
+        or (
+            plat_system == "Darwin"
+            and shell_type not in ("zsh", "bash", "posix", "dash")
+        )
     ):
         pytest.skip("Incompatible shell/OS")
 
@@ -51,7 +54,8 @@ class TestShell:
             shutil.rmtree(TestShell.root_prefix)
 
     @pytest.mark.parametrize(
-        "shell_type", ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish"]
+        "shell_type",
+        ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh"],
     )
     def test_hook(self, shell_type):
         res = shell("hook", "-s", shell_type)
@@ -64,13 +68,15 @@ class TestShell:
         if shell_type == "powershell":
             assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
         elif shell_type in ("zsh", "bash", "posix"):
-            assert res.count(mamba_exe) == 5
+            assert res.count(mamba_exe) == 1
         elif shell_type == "xonsh":
             assert res.count(mamba_exe) == 8
         elif shell_type == "fish":
             assert res.count(mamba_exe) == 5
         elif shell_type == "cmd.exe":
             assert res == ""
+        elif shell_type == "tcsh":
+            assert res.count(mamba_exe) == 2
 
         res = shell("hook", "-s", shell_type, "--json")
         expected_keys = {"success", "operation", "context", "actions"}
@@ -247,3 +253,8 @@ class TestShell:
             assert Path(os.path.join(TestShell.root_prefix, "condabin")).is_dir()
 
         shell("init", "-y", "-s", shell_type, "-p", TestShell.current_root_prefix)
+
+    def test_dash(self):
+        skip_if_shell_incompat("dash")
+        subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s dash)"])
+        subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s posix)"])

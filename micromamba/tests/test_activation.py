@@ -1,4 +1,5 @@
 import os
+import pathlib
 import platform
 import shutil
 import string
@@ -51,6 +52,7 @@ suffixes = {
     "cmd.exe": ".bat",
     "bash": ".sh",
     "zsh": ".sh",
+    "tcsh": ".csh",
     "xonsh": ".sh",
     "fish": ".fish",
     "powershell": ".ps1",
@@ -62,12 +64,14 @@ paths = {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
         "xonsh": "~/.xonshrc",
+        "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
     },
     "linux": {
         "zsh": "~/.zshrc",
         "bash": "~/.bashrc",
         "xonsh": "~/.xonshrc",
+        "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
     },
 }
@@ -110,7 +114,7 @@ def write_script(interpreter, lines, path):
 
 possible_interpreters = {
     "win": {"powershell", "cmd.exe"},
-    "unix": {"bash", "zsh", "fish", "xonsh"},
+    "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
 }
 
 shell_files = [
@@ -121,6 +125,7 @@ shell_files = [
         "~/.zshrc",
         "~/.zsh_profile",
         "~/.xonshrc",
+        "~/.tcshrc",
         "~/.config/fish/config.fish",
     ]
 ]
@@ -279,7 +284,7 @@ valid_interpreters = get_valid_interpreters()
 
 
 def shvar(v, interpreter):
-    if interpreter in ["bash", "zsh", "xonsh", "fish"]:
+    if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh", "dash"]:
         return f"${v}"
     elif interpreter == "powershell":
         return f"$Env:{v}"
@@ -340,6 +345,16 @@ class TestActivation:
                 v.split(" ", maxsplit=1)[0]: v.split(" ", maxsplit=1)[1]
                 for _, _, v in [x.partition("set -gx ") for x in out.splitlines()]
             }
+        elif interpreter in ["csh", "tcsh"]:
+            res = {}
+            for line in out.splitlines():
+                line = line.removesuffix(";")
+                if line.startswith("set "):
+                    k, v = line.split(" ")[1].split("=")
+                elif line.startswith("setenv "):
+                    _, k, v = line.strip().split(maxsplit=2)
+                res[k] = v
+            return res
         else:
             return {k: v for k, _, v in [x.partition("=") for x in out.splitlines()]}
 
@@ -372,7 +387,8 @@ class TestActivation:
             path = Path(paths[plat][interpreter]).expanduser()
             with open(path) as fi:
                 x = fi.read()
-                assert "mamba" in x
+                print(x)
+                assert "micromamba" in x
                 assert find_path_in_str(self.root_prefix, x)
                 prev_text = x
 
@@ -466,6 +482,8 @@ class TestActivation:
             files = [root_prefix_path / "etc" / "fish" / "conf.d" / "mamba.fish"]
         elif interpreter == "xonsh":
             files = [root_prefix_path / "etc" / "profile.d" / "mamba.xsh"]
+        elif interpreter in ["csh", "tcsh"]:
+            files = [root_prefix_path / "etc" / "profile.d" / "micromamba.csh"]
         else:
             raise ValueError(f"Unknown shell {interpreter}")
 
@@ -616,8 +634,8 @@ class TestActivation:
                 with pytest.raises(subprocess.CalledProcessError):
                     stdout, stderr = call(s)
 
-            s1 = ["micromamba create -n abc"]
-            s2 = ["micromamba create -n xyz"]
+            s1 = ["micromamba create -n abc -y"]
+            s2 = ["micromamba create -n xyz -y"]
             call(s1)
             call(s2)
 
@@ -679,6 +697,136 @@ class TestActivation:
             assert not find_path_in_str(str(rp / "bin"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "xyz"), res["PATH"])
             assert find_path_in_str(str(rp / "envs" / "abc"), res["PATH"])
+
+    @pytest.mark.parametrize("interpreter", get_interpreters())
+    def test_activation_envvars(
+        self, tmp_path, interpreter, clean_shell_files, new_root_prefix, clean_env
+    ):
+        if interpreter not in valid_interpreters:
+            pytest.skip(f"{interpreter} not available")
+
+        umamba = get_umamba()
+
+        s = [f"{umamba} shell init -p {self.root_prefix}"]
+        stdout, stderr = call_interpreter(s, tmp_path, interpreter)
+
+        call = lambda s: call_interpreter(
+            s, tmp_path, interpreter, interactive=True, env=clean_env
+        )
+
+        rp = Path(self.root_prefix)
+        evars = extract_vars(["CONDA_PREFIX", "CONDA_SHLVL", "PATH"], interpreter)
+
+        if interpreter == "cmd.exe":
+            x = read_windows_registry(regkey)
+            fp = Path(x[0][1:-1])
+            assert fp.exists()
+
+        if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
+            print("Creating __def__")
+            s1 = ["micromamba create -n def -y"]
+            call(s1)
+
+            s = [
+                "micromamba activate def",
+            ] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+            abc_prefix = pathlib.Path(res["CONDA_PREFIX"])
+
+            state_file = abc_prefix / "conda-meta" / "state"
+
+            # Python dicts are guaranteed to keep insertion order since 3.7,
+            # so the following works fine!
+            state_file.write_text(
+                json.dumps(
+                    {
+                        "env_vars": {
+                            "test": "Test",
+                            "HELLO": "world",
+                            "WORKING": "/FINE/PATH/YAY",
+                            "AAA": "last",
+                        }
+                    }
+                )
+            )
+
+            s = (
+                [
+                    "micromamba activate def",
+                ]
+                + evars
+                + extract_vars(["TEST", "HELLO", "WORKING", "AAA"], interpreter)
+            )
+            stdout, stderr = call(s)
+
+            # assert that env vars are in the same order
+            activation_script, stderr = call(
+                ["micromamba shell activate -s bash -n def"]
+            )
+            idxs = []
+            for el in ["TEST", "HELLO", "WORKING", "AAA"]:
+                for idx, line in enumerate(activation_script.splitlines()):
+                    if line.startswith(f"export {el}="):
+                        idxs.append(idx)
+                        continue
+            assert len(idxs) == 4
+
+            # make sure that the order is correct
+            assert idxs == sorted(idxs)
+
+            res = TestActivation.to_dict(stdout)
+            assert res["TEST"] == "Test"
+            assert res["HELLO"] == "world"
+            assert res["WORKING"] == "/FINE/PATH/YAY"
+            assert res["AAA"] == "last"
+
+            pkg_env_vars_d = abc_prefix / "etc" / "conda" / "env_vars.d"
+            pkg_env_vars_d.mkdir(exist_ok=True, parents=True)
+
+            j1 = {"PKG_ONE": "FANCY_ENV_VAR", "OVERLAP": "LOSE_AGAINST_PKG_TWO"}
+
+            j2 = {
+                "PKG_TWO": "SUPER_FANCY_ENV_VAR",
+                "OVERLAP": "WINNER",
+                "TEST": "LOSE_AGAINST_META_STATE",
+            }
+
+            (pkg_env_vars_d / "001-pkg-one.json").write_text(json.dumps(j1))
+            (pkg_env_vars_d / "002-pkg-two.json").write_text(json.dumps(j2))
+
+            activation_script, stderr = call(
+                ["micromamba shell activate -s bash -n def"]
+            )
+            print(activation_script)
+            s = (
+                [
+                    "micromamba activate def",
+                ]
+                + evars
+                + extract_vars(
+                    [
+                        "TEST",
+                        "HELLO",
+                        "WORKING",
+                        "AAA",
+                        "PKG_ONE",
+                        "PKG_TWO",
+                        "OVERLAP",
+                    ],
+                    interpreter,
+                )
+            )
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+
+            assert res["HELLO"] == "world"
+            assert res["WORKING"] == "/FINE/PATH/YAY"
+            assert res["AAA"] == "last"
+            assert res["PKG_ONE"] == "FANCY_ENV_VAR"
+            assert res["PKG_TWO"] == "SUPER_FANCY_ENV_VAR"
+            assert res["OVERLAP"] == "WINNER"
+            assert res["TEST"] == "Test"
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_unicode_activation(
@@ -816,6 +964,7 @@ class TestActivation:
 
         res = shell("activate", self.env_name, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
+
         assert any([str(self.prefix) in p for p in dict_res.values()])
 
         res = shell("activate", self.prefix, "-s", interpreter)

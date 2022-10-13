@@ -54,6 +54,15 @@ namespace mamba
         {
             return "zsh";
         }
+        if (contains(parent_process_name_lower, "csh"))
+        {
+            return "csh";
+        }
+        if (contains(parent_process_name_lower, "dash"))
+        {
+            return "dash";
+        }
+
         // xonsh in unix, Python in macOS
         if (contains(parent_process_name_lower, "python"))
         {
@@ -344,6 +353,31 @@ namespace mamba
         return content.str();
     }
 
+    std::string csh_content(const fs::u8path& env_prefix,
+                            const std::string& /*shell*/,
+                            const fs::u8path& mamba_exe)
+    {
+        std::stringstream content;
+        std::string s_mamba_exe;
+
+        if (on_win)
+        {
+            s_mamba_exe = native_path_to_unix(mamba_exe.string());
+        }
+        else
+        {
+            s_mamba_exe = mamba_exe.string();
+        }
+
+        content << "\n# >>> mamba initialize >>>\n";
+        content << "# !! Contents within this block are managed by 'mamba init' !!\n";
+        content << "setenv MAMBA_EXE " << mamba_exe << ";\n";
+        content << "setenv MAMBA_ROOT_PREFIX " << env_prefix << ";\n";
+        content << "source $MAMBA_ROOT_PREFIX/etc/profile.d/micromamba.csh;\n";
+        content << "# <<< mamba initialize <<<\n";
+        return content.str();
+    }
+
     void modify_rc_file(const fs::u8path& file_path,
                         const fs::u8path& conda_prefix,
                         const std::string& shell,
@@ -369,6 +403,10 @@ namespace mamba
         else if (shell == "fish")
         {
             conda_init_content = fish_content(conda_prefix, shell, mamba_exe);
+        }
+        else if (shell == "csh")
+        {
+            conda_init_content = csh_content(conda_prefix, shell, mamba_exe);
         }
         else
         {
@@ -449,6 +487,12 @@ namespace mamba
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             std::string contents = data_micromamba_sh;
+            replace_all(contents, "$MAMBA_EXE", exe.string());
+            return contents;
+        }
+        else if (shell == "csh")
+        {
+            std::string contents = data_micromamba_csh;
             replace_all(contents, "$MAMBA_EXE", exe.string());
             return contents;
         }
@@ -602,6 +646,21 @@ namespace mamba
             std::ofstream sh_file = open_ofstream(sh_source_path);
             sh_file << data_micromamba_sh;
         }
+        else if (shell == "csh")
+        {
+            CshActivator a;
+            auto sh_source_path = a.hook_source_path();
+            try
+            {
+                fs::create_directories(sh_source_path.parent_path());
+            }
+            catch (...)
+            {
+                // Maybe the prefix isn't writable. No big deal, just keep going.
+            }
+            std::ofstream sh_file = open_ofstream(sh_source_path);
+            sh_file << data_micromamba_csh;
+        }
         else if (shell == "xonsh")
         {
             XonshActivator a;
@@ -665,6 +724,14 @@ namespace mamba
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             PosixActivator a;
+            auto sh_source_path = a.hook_source_path();
+
+            fs::remove(sh_source_path);
+            LOG_INFO << "Removed " << sh_source_path << " file.";
+        }
+        else if (shell == "csh")
+        {
+            CshActivator a;
             auto sh_source_path = a.hook_source_path();
 
             fs::remove(sh_source_path);
@@ -885,6 +952,11 @@ namespace mamba
             fs::u8path zshrc_path = home / ".zshrc";
             modify_rc_file(zshrc_path, conda_prefix, shell, mamba_exe);
         }
+        else if (shell == "csh")
+        {
+            fs::u8path cshrc_path = home / ".tcshrc";
+            modify_rc_file(cshrc_path, conda_prefix, shell, mamba_exe);
+        }
         else if (shell == "xonsh")
         {
             fs::u8path xonshrc_path = home / ".xonshrc";
@@ -951,6 +1023,11 @@ namespace mamba
         {
             fs::u8path xonshrc_path = home / ".xonshrc";
             reset_rc_file(xonshrc_path, shell, mamba_exe);
+        }
+        else if (shell == "csh")
+        {
+            fs::u8path tcshrc_path = home / ".tcshrc";
+            reset_rc_file(tcshrc_path, shell, mamba_exe);
         }
         else if (shell == "fish")
         {

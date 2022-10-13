@@ -61,6 +61,10 @@ namespace mamba
         replace_all(prefix, "/I/am/a/PREFIX", "/Yes/Thats/great/");
         EXPECT_TRUE(starts_with(prefix, "/Yes/Thats/great/\n"));
 
+        std::string testbuf2 = "this is another test wow";
+        replace_all(testbuf2, "", "somereplacement");
+        EXPECT_EQ(testbuf2, "this is another test wow");
+
         std::string prefix_unicode = "/I/am/Dörteæœ©æ©fðgb®/PREFIX\n\nabcdefg\nxyz";
         replace_all(
             prefix_unicode, "/I/am/Dörteæœ©æ©fðgb®/PREFIX", "/home/åéäáßðæœ©ðfßfáðß/123123123");

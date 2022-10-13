@@ -49,6 +49,20 @@ namespace mamba
             }
         };
 
+
+        TEST_F(LockDirTest, basics)
+        {
+            mamba::LockFile lock{ tempdir_path };
+            EXPECT_TRUE(lock);
+            {
+                auto new_lock = std::move(lock);
+                EXPECT_FALSE(lock);
+                EXPECT_TRUE(new_lock);
+            }
+            EXPECT_FALSE(lock);
+        }
+
+
         TEST_F(LockDirTest, disable_locking)
         {
             {
@@ -193,13 +207,13 @@ namespace mamba
         TEST_F(LockFileTest, same_pid)
         {
             {
-                auto lock = LockFile(tempfile_path);
+                LockFile lock{ tempfile_path };
                 EXPECT_TRUE(lock.is_locked());
                 EXPECT_TRUE(fs::exists(lock.lockfile_path()));
                 EXPECT_EQ(lock.count_lock_owners(), 1);
 
                 {
-                    auto other_lock = LockFile(tempfile_path);
+                    LockFile other_lock{ tempfile_path };
                     EXPECT_TRUE(other_lock.is_locked());
                     EXPECT_EQ(other_lock.count_lock_owners(), 2);
                     EXPECT_EQ(lock.count_lock_owners(), 2);

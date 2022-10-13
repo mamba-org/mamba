@@ -1047,7 +1047,7 @@ namespace mamba
     namespace
     {
 
-        bool log_duplicate_lockfile_in_process(const fs::u8path& path)
+        void log_duplicate_lockfile_in_process(const fs::u8path& path)
         {
             LOG_DEBUG << "Path already locked by the same process: '" << fs::absolute(path).string()
                       << "'";

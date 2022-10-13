@@ -32,6 +32,7 @@ set(TEST_SRCS
     test_invoke.cpp
     test_tasksync.cpp
     test_filesystem.cpp
+    test_satisfiability_error.cpp
 )
 
 message(STATUS "Building libmamba C++ tests")

@@ -9,8 +9,9 @@
 
 #include <list>
 #include <optional>
-#include "repo.hpp"
-#include "package_info.hpp"
+
+#include "mamba/core/repo.hpp"
+#include "mamba/core/package_info.hpp"
 
 extern "C"
 {
@@ -38,12 +39,13 @@ namespace mamba
         void set_debuglevel();
         void create_whatprovides();
 
-        std::vector<Id> select_solvables(Id id);
+        std::vector<Id> select_solvables(Id id) const;
         Id matchspec2id(const std::string& ms);
 
         std::optional<PackageInfo> id2pkginfo(Id id);
 
         operator Pool*();
+        operator Pool const*() const;
 
         MRepo& add_repo(MRepo&& repo);
         void remove_repo(Id repo_id);

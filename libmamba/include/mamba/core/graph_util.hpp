@@ -93,6 +93,8 @@ namespace mamba
 
         bool empty() const;
         std::size_t number_of_nodes() const;
+        std::size_t in_degree(node_id id) const noexcept;
+        std::size_t out_degree(node_id id) const noexcept;
         const node_list& nodes() const;
         node_t const& node(node_id id) const;
         node_t& node(node_id id);
@@ -101,6 +103,8 @@ namespace mamba
         bool has_node(node_id id) const;
         bool has_edge(node_id from, node_id to) const;
 
+        // TODO C++20 better to return a range since this search cannot be interupted from the
+        // visitor
         template <typename UnaryFunc>
         UnaryFunc for_each_leaf(UnaryFunc func) const;
         template <typename UnaryFunc>
@@ -110,6 +114,8 @@ namespace mamba
         template <typename UnaryFunc>
         UnaryFunc for_each_root_from(node_id source, UnaryFunc func) const;
 
+        // TODO C++20 better to return a range since this search cannot be interupted from the
+        // visitor
         template <class V>
         void depth_first_search(V& visitor, node_id start = node_id(0), bool reverse = false) const;
 
@@ -153,6 +159,11 @@ namespace mamba
         adjacency_list m_predecessors;
         adjacency_list m_successors;
     };
+
+    template <typename Node, typename Derived>
+    auto is_reachable(DiGraphBase<Node, Derived> const& graph,
+                      typename DiGraphBase<Node, Derived>::node_id source,
+                      typename DiGraphBase<Node, Derived>::node_id target) -> bool;
 
     template <class G>
     class default_visitor
@@ -330,6 +341,18 @@ namespace mamba
     }
 
     template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::in_degree(node_id id) const noexcept -> std::size_t
+    {
+        return m_predecessors[id].size();
+    }
+
+    template <typename N, typename G>
+    inline auto DiGraphBase<N, G>::out_degree(node_id id) const noexcept -> std::size_t
+    {
+        return m_successors[id].size();
+    }
+
+    template <typename N, typename G>
     inline auto DiGraphBase<N, G>::nodes() const -> const node_list&
     {
         return m_node_list;
@@ -397,7 +420,7 @@ namespace mamba
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            if (m_successors[i].empty())
+            if (out_degree(i) == 0)
             {
                 func(i);
             }
@@ -412,7 +435,7 @@ namespace mamba
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
         {
-            if (m_predecessors[i].empty())
+            if (in_degree(i) == 0)
             {
                 func(i);
             }
@@ -436,7 +459,7 @@ namespace mamba
 
             void start_node(node_id n, graph_t const& g)
             {
-                if (g.m_successors[n].size() == 0)
+                if (g.out_degree(n) == 0)
                 {
                     m_func(n);
                 }
@@ -463,7 +486,7 @@ namespace mamba
 
             void start_node(node_id n, graph_t const& g)
             {
-                if (g.m_predecessors[n].size() == 0)
+                if (g.in_degree(n) == 0)
                 {
                     m_func(n);
                 }
@@ -526,6 +549,33 @@ namespace mamba
         visitor.finish_node(node, derived_cast());
     }
 
+    /*******************************
+     *  Algorithms implementation  *
+     *******************************/
+
+    template <typename Node, typename Derived>
+    auto is_reachable(DiGraphBase<Node, Derived> const& graph,
+                      typename DiGraphBase<Node, Derived>::node_id source,
+                      typename DiGraphBase<Node, Derived>::node_id target) -> bool
+    {
+        using graph_t = DiGraphBase<Node, Derived>;
+        using node_id = typename graph_t::node_id;
+
+        struct : default_visitor<graph_t>
+        {
+            node_id target;
+            bool target_visited = false;
+
+            void start_node(node_id node, const graph_t&)
+            {
+                target_visited = target_visited || (node == target);
+            }
+        } visitor{ {}, target };
+
+        graph.depth_first_search(visitor, source);
+        return visitor.target_visited;
+    }
+
     /*********************************
      *  DiGraph Edge Implementation  *
      *********************************/
@@ -547,7 +597,8 @@ namespace mamba
     inline void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
         Base::add_edge(from, to);
-        m_edges[{ from, to }] = std::forward<T>(data);
+        auto edge_id = std::make_pair(from, to);
+        m_edges.insert(std::make_pair(edge_id, std::forward<T>(data)));
     }
 
     template <typename N, typename E>

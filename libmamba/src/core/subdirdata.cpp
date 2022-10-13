@@ -294,7 +294,7 @@ namespace mamba
         m_valid_cache_path = "";
         m_expired_cache_path = "";
         m_loaded = false;
-        m_mod_etag = nlohmann::json();
+        m_mod_etag = nlohmann::json::object();
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 

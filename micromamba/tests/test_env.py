@@ -19,8 +19,6 @@ class TestEnv:
     env_name_2 = random_string()
     env_name_3 = random_string()
     root_prefix = Path(os.path.join("~", "tmproot" + random_string())).expanduser()
-    env_txt = Path("~/.conda/environments.txt").expanduser()
-    env_txt_bkup = Path("~/.conda/environments.txt.bkup").expanduser()
 
     @classmethod
     def setup_class(cls):
@@ -29,9 +27,6 @@ class TestEnv:
 
         # speed-up the tests
         os.environ["CONDA_PKGS_DIRS"] = cls.cache
-
-        if cls.env_txt.exists():
-            cls.env_txt.rename(cls.env_txt_bkup)
 
         res = create(
             f"",
@@ -52,16 +47,14 @@ class TestEnv:
         os.environ.pop("CONDA_PKGS_DIRS")
         shutil.rmtree(cls.root_prefix)
 
-        if cls.env_txt_bkup.exists():
-            cls.env_txt_bkup.rename(cls.env_txt)
-
     def test_env_list(self):
         env_json = run_env("list", "--json")
+        env_1_fp = str(self.root_prefix / "envs" / self.env_name_1)
 
         assert "envs" in env_json
-        assert len(env_json["envs"]) == 2
-        assert str(self.root_prefix) == env_json["envs"][0]
-        assert self.env_name_1 in env_json["envs"][1]
+        assert len(env_json["envs"]) >= 2
+        assert str(self.root_prefix) in env_json["envs"]
+        assert env_1_fp in env_json["envs"]
 
     def test_env_list_table(self):
         res = run_env("list")

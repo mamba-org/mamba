@@ -593,6 +593,22 @@ class TestActivation:
             assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
             assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
 
+            s = [
+                "micromamba activate",
+                "micromamba activate abc",
+                "micromamba activate xyz --stack",
+            ] + evars
+            stdout, stderr = call(s)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+            assert not find_path_in_str(tmp_root_prefix / "bin", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "xyz", res["PATH"])
+            assert find_path_in_str(tmp_root_prefix / "envs" / "abc", res["PATH"])
+
+            stdout, stderr = call(evars)
+            res = TestActivation.to_dict(stdout)
+            assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])
+
             stdout, stderr = call(["micromamba deactivate"] + evars)
             res = TestActivation.to_dict(stdout)
             assert find_path_in_str(tmp_root_prefix / "condabin", res["PATH"])

@@ -2,6 +2,7 @@ import asyncio
 import os
 import shutil
 import time
+import urllib.parse
 from pathlib import Path
 from subprocess import TimeoutExpired
 
@@ -69,9 +70,16 @@ class TestProxy:
             self.proxy_process.kill()
         self.proxy_process = None
 
-    @pytest.mark.parametrize("with_auth", (True, False))
+    @pytest.mark.parametrize(
+        "auth",
+        [
+            None,
+            "foo:bar",
+            "user%40example.com:pass",
+        ],
+    )
     @pytest.mark.parametrize("ssl_verify", (True, False))
-    def test_install(self, unused_tcp_port, with_auth, ssl_verify):
+    def test_install(self, unused_tcp_port, auth, ssl_verify):
         """
         This test makes sure micromamba follows the proxy settings in .condarc
 
@@ -81,9 +89,9 @@ class TestProxy:
         mitmproxy intercepted, making sure that all the requests went through the proxy.
         """
 
-        if with_auth:
-            proxy_options = ["--proxyauth", "foo:bar"]
-            proxy_url = "http://foo:bar@localhost:{}".format(unused_tcp_port)
+        if auth is not None:
+            proxy_options = ["--proxyauth", urllib.parse.unquote(auth)]
+            proxy_url = "http://{}@localhost:{}".format(auth, unused_tcp_port)
         else:
             proxy_options = []
             proxy_url = "http://localhost:{}".format(unused_tcp_port)

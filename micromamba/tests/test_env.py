@@ -134,7 +134,7 @@ class TestEnv:
         env_json = run_env("list", "--json")
         assert env_fp in env_json["envs"]
         assert Path(env_fp).expanduser().exists()
-        with open(conda_env_file, 'r') as f:
+        with open(conda_env_file, "r") as f:
             content = f.read()
             assert env_fp in content
 
@@ -143,6 +143,6 @@ class TestEnv:
         env_json = run_env("list", "--json")
         assert env_fp not in env_json["envs"]
         assert not Path(env_fp).expanduser().exists()
-        with open(conda_env_file, 'r') as f:
+        with open(conda_env_file, "r") as f:
             content = f.read()
             assert env_fp not in content

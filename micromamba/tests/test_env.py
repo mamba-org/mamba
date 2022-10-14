@@ -43,8 +43,8 @@ class TestEnv:
     @classmethod
     def teardown_class(cls):
         # Unregister / remove all test envs
-        run_env("remove", "-n",  cls.env_name_1, "-y")
-        run_env("remove", "-n",  cls.env_name_3, "-y")
+        run_env("remove", "-n", cls.env_name_1, "-y")
+        run_env("remove", "-n", cls.env_name_3, "-y")
         run_env("remove", "-n", "env-create-export", "-y")
 
         os.environ["MAMBA_ROOT_PREFIX"] = cls.current_root_prefix

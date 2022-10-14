@@ -2,6 +2,7 @@ import asyncio
 import os
 import shutil
 import time
+import urllib.parse
 from pathlib import Path
 from subprocess import TimeoutExpired
 
@@ -89,7 +90,7 @@ class TestProxy:
         """
 
         if auth is not None:
-            proxy_options = ["--proxyauth", auth]
+            proxy_options = ["--proxyauth", urllib.parse.unquote(auth)]
             proxy_url = "http://{}@localhost:{}".format(auth, unused_tcp_port)
         else:
             proxy_options = []

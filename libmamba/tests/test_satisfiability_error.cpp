@@ -296,7 +296,7 @@ namespace mamba
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        auto downloader = powerloader::Downloader{mamba::Context::instance().plcontext};
+        auto downloader = powerloader::Downloader{ mamba::Context::instance().plcontext };
         auto sub_dirs = std::vector<MSubdirData>();
         for (auto const* chan : get_channels(channels))
         {

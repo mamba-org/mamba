@@ -40,6 +40,7 @@ Enhancements:
 - [libmamba] use std::filesystem instead of ghc::filesystem (thanks @Klaim) #1665
 - [libmamba] add missing SolverRuleInfo enum entries (thanks @AntoinePrv) #1833
 - [micromamba] CI: add fully static micromamba build (thanks @jonashaag) #1821
+- [mamba, micromamba] allow configuring proxies (thanks @AdrianFreundQC) #1841
 
 
 2022.07.29

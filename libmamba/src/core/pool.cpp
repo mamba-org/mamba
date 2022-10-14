@@ -9,6 +9,7 @@ extern "C"
 #include <solv/pool.h>
 #include <solv/solver.h>
 #include <solv/selection.h>
+#include <solv/evr.h>
 }
 
 #include "spdlog/spdlog.h"
@@ -87,11 +88,25 @@ namespace mamba
         return m_pool;
     }
 
-    std::vector<Id> MPool::select_solvables(Id matchspec) const
+    std::vector<Id> MPool::select_solvables(Id matchspec, bool sorted) const
     {
         MQueue job, solvables;
         job.push(SOLVER_SOLVABLE_PROVIDES, matchspec);
         selection_solvables(m_pool, job, solvables);
+
+        if (sorted)
+        {
+            std::sort(solvables.begin(),
+                      solvables.end(),
+                      [this](Id a, Id b)
+                      {
+                          Solvable* sa;
+                          Solvable* sb;
+                          sa = pool_id2solvable(this->m_pool, a);
+                          sb = pool_id2solvable(this->m_pool, b);
+                          return (pool_evrcmp(this->m_pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+                      });
+        }
         return solvables.as<std::vector>();
     }
 

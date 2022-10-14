@@ -54,7 +54,7 @@ update_self(const std::optional<std::string>& version)
         matchspec = fmt::format("micromamba={}", version.value());
     }
 
-    auto solvable_ids = pool.select_solvables(pool.matchspec2id(matchspec));
+    auto solvable_ids = pool.select_solvables(pool.matchspec2id(matchspec), true);
 
     if (solvable_ids.empty())
     {
@@ -69,17 +69,6 @@ update_self(const std::optional<std::string>& version)
                 "No newer version of micromamba found in the loaded channels.");
         }
     }
-
-    std::sort(solvable_ids.begin(),
-              solvable_ids.end(),
-              [&pool](Id a, Id b)
-              {
-                  Solvable* sa;
-                  Solvable* sb;
-                  sa = pool_id2solvable(pool, a);
-                  sb = pool_id2solvable(pool, b);
-                  return (pool_evrcmp(pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-              });
 
     std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     LOG_WARNING << latest_micromamba.value().url;

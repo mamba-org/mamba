@@ -82,6 +82,12 @@ init_general_options(CLI::App* subcom)
     subcom->add_flag("--dry-run", dry_run.get_cli_config<bool>(), dry_run.description())
         ->group(cli_group);
 
+    auto& download_only = config.at("download_only");
+    subcom
+        ->add_flag(
+            "--download-only", download_only.get_cli_config<bool>(), download_only.description())
+        ->group(cli_group);
+
     auto& experimental = config.at("experimental");
     subcom
         ->add_flag(

@@ -39,7 +39,7 @@ namespace mamba
         void set_debuglevel();
         void create_whatprovides();
 
-        std::vector<Id> select_solvables(Id id) const;
+        std::vector<Id> select_solvables(Id id, bool sorted = false) const;
         Id matchspec2id(const std::string& ms);
 
         std::optional<PackageInfo> id2pkginfo(Id id);

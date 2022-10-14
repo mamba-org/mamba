@@ -21,6 +21,7 @@
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/validate.hpp"
+#include "mamba/core/util_os.hpp"
 
 #if _WIN32
 #include "../data/conda_exe.hpp"
@@ -706,24 +707,7 @@ namespace mamba
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
             {
-                reproc::options options;
-                options.env.behavior = reproc::env::empty;
-                if (Context::instance().verbosity <= 1)
-                {
-                    reproc::redirect silence;
-                    silence.type = reproc::redirect::discard;
-                    options.redirect.out = silence;
-                    options.redirect.err = silence;
-                }
-
-                std::vector<std::string> cmd
-                    = { "/usr/bin/codesign", "-s", "-", "-f", dst.string() };
-                auto [status, ec] = reproc::run(cmd, options);
-                if (ec)
-                {
-                    throw std::runtime_error(std::string("Could not codesign executable")
-                                             + ec.message());
-                }
+                codesign(dst, Context::instance().verbosity > 1);
             }
 #endif
             return std::make_tuple(validate::sha256sum(dst), rel_dst.string());

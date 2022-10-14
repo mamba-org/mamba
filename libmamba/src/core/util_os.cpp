@@ -542,4 +542,24 @@ namespace mamba
         return coninfo.srWindow.Bottom - coninfo.srWindow.Top + 1;
 #endif
     }
+
+    void codesign(const fs::u8path& path, bool verbose)
+    {
+        reproc::options options;
+        options.env.behavior = reproc::env::empty;
+        if (!verbose)
+        {
+            reproc::redirect silence;
+            silence.type = reproc::redirect::discard;
+            options.redirect.out = silence;
+            options.redirect.err = silence;
+        }
+
+        std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
+        auto [status, ec] = reproc::run(cmd, options);
+        if (ec)
+        {
+            throw std::runtime_error(std::string("Could not codesign executable") + ec.message());
+        }
+    }
 }

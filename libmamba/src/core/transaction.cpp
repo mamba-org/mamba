@@ -927,6 +927,13 @@ namespace mamba
         Console::stream() << "\nTransaction starting";
         fetch_extract_packages();
 
+        if (ctx.download_only)
+        {
+            Console::stream()
+                << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
+            return true;
+        }
+
         History::UserRequest ur = History::UserRequest::prefilled();
 
         TransactionRollback rollback;

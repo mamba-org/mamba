@@ -152,6 +152,7 @@ namespace mamba
         bool on_ci = false;
         bool no_progress_bars = false;
         bool dry_run = false;
+        bool download_only = false;
         bool always_yes = false;
 
         bool allow_softlinks = false;

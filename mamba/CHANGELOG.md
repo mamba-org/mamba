@@ -9,6 +9,7 @@ Bug fixes:
 
 - fix mamba.sh and mamba.bat shell scripts to work with conda 22.09 #1952
 - remove usage of non-existing function (thanks @AntoinePrv) #1835
+- allow configuring proxies (thanks @AdrianFreundQC) #1841
 
 mamba 0.25.0 (July 26, 2022)
 ============================

@@ -29,6 +29,7 @@ Enhancements:
 
 - only call compinit once to fix oh-my-zsh (thanks @AntoinePrv) #1911
 - CI: add fully static micromamba build (thanks @jonashaag) #1821
+- allow configuring proxies (thanks @AdrianFreundQC) #1841
 
 micromamba 0.25.1 (July 29, 2022)
 =================================

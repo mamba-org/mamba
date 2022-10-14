@@ -125,16 +125,24 @@ class TestEnv:
 
     def test_env_remove(self):
         env_name = "env-create-remove"
+        env_fp = str(self.root_prefix / "envs" / env_name)
+        conda_env_file = Path(os.path.join("~", ".conda/environments.txt")).expanduser()
+
         # Create env with xtensor
         res = create("xtensor", "-n", env_name, "--json", no_dry_run=True)
 
         env_json = run_env("list", "--json")
-        env_fp = str(self.root_prefix / "envs" / env_name)
         assert env_fp in env_json["envs"]
         assert Path(env_fp).expanduser().exists()
+        with open(conda_env_file, 'r') as f:
+            content = f.read()
+            assert env_fp in content
 
+        # Unregister / remove env_name
         run_env("remove", "-n", env_name, "-y")
         env_json = run_env("list", "--json")
-        env_fp = str(self.root_prefix / "envs" / env_name)
         assert env_fp not in env_json["envs"]
         assert not Path(env_fp).expanduser().exists()
+        with open(conda_env_file, 'r') as f:
+            content = f.read()
+            assert env_fp not in content

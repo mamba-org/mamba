@@ -19,5 +19,6 @@ dependencies:
   - cli11 >=2.2
   - spdlog
   - pybind11
+  - pybind11-stubgen
   - pytest
   - sel(win): winreg

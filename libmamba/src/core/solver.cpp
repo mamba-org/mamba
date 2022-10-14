@@ -522,14 +522,14 @@ namespace mamba
 
     bool MSolver::solve()
     {
-        bool success;
         m_solver = solver_create(m_pool);
         set_flags(m_flags);
 
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
-        success = solver_problem_count(m_solver) == 0;
+        const auto problem_count = solver_problem_count(m_solver);
+        LOG_INFO << "Problem count: " << problem_count;
+        const bool success = problem_count == 0;
         Console::instance().json_write({ { "success", success } });
         return success;
     }

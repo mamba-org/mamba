@@ -308,7 +308,12 @@ namespace mamba
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }
-        downloader.download();
+        const auto success = downloader.download();
+        if(!success)
+        {
+            throw std::runtime_error("channel loading failed");
+        }
+
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);
@@ -352,7 +357,7 @@ namespace mamba
     {
         auto [solver, pool] = create_conda_forge({ "xtensor>=0.7" });
         auto const solved = solver->solve();
-        ASSERT_TRUE(solved);
+        ASSERT_TRUE(solved) << solver->problems_to_str();
     }
 
     auto create_pytorch_cpu()

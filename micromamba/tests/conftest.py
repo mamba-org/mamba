@@ -1,16 +1,11 @@
 import os
 import pathlib
-import random
-import string
+import platform
 from typing import Generator
 
 import pytest
 
-
-@pytest.fixture
-def env_name(N: int = 10) -> str:
-    """Return Ten random characters."""
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=N))
+from . import helpers
 
 
 @pytest.fixture
@@ -32,8 +27,68 @@ def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
         yield pathlib.Path.home()
 
 
+@pytest.fixture(scope="session")
+def tmp_pkgs_dirs(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """A common package cache for mamba downloads.
+
+    The directory is not used automatically when calling this fixture.
+    """
+    return tmp_path_factory.mktemp("pkgs_dirs")
+
+
+@pytest.fixture(params=[False])
+def shared_pkgs_dirs(request) -> bool:
+    """A dummy fixture to control the use of shared package dir."""
+    return request.param
+
+
 @pytest.fixture
-def tmp_root_prefix(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
+def tmp_clean_env(
+    tmp_pkgs_dirs: pathlib.Path, shared_pkgs_dirs: bool
+) -> Generator[None, None, None]:
+    """Remove all Conda/Mamba activation artifacts from environment."""
+    saved_environ = {}
+    for k, v in os.environ.items():
+        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA")):
+            saved_environ[k] = v
+            del os.environ[k]
+
+    def keep_in_path(
+        p: str, prefix: str | None = saved_environ.get("CONDA_PREFIX")
+    ) -> bool:
+        if "condabin" in p:
+            return False
+        # On windows, PATH is also used for dyanamic libraries.
+        if (prefix is not None) and (platform.system() != "Windows"):
+            p = str(pathlib.Path(p).expanduser().resolve())
+            prefix = str(pathlib.Path(prefix).expanduser().resolve())
+            return not p.startswith(prefix)
+        return True
+
+    path_list = os.environ["PATH"].split(os.pathsep)
+    path_list = [p for p in path_list if keep_in_path(p)]
+    os.environ["PATH"] = os.pathsep.join(path_list)
+
+    if shared_pkgs_dirs:
+        os.environ["CONDA_PKGS_DIRS"] = str(tmp_pkgs_dirs)
+
+    yield None
+
+    os.environ.update(saved_environ)
+
+
+@pytest.fixture(params=[helpers.random_string, "long_prefix_" * 20])
+def tmp_env_name(request) -> str:
+    """Return the explicit or implicit parametrization."""
+    if callable(request.param):
+        return request.param()
+    return request.param
+
+
+@pytest.fixture
+def tmp_root_prefix(
+    tmp_path: pathlib.Path, tmp_clean_env: None
+) -> Generator[pathlib.Path, None, None]:
     """Change the micromamba root directory to a tmp folder for the duration of a test."""
     old_root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
     new_root_prefix = tmp_path / "mamba"
@@ -47,12 +102,21 @@ def tmp_root_prefix(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, Non
 
 
 @pytest.fixture
+def tmp_empty_env(
+    tmp_root_prefix: pathlib.Path, tmp_env_name: str
+) -> Generator[pathlib.Path, None, None]:
+    """An empty envirnment created under a temporary root prefix."""
+    helpers.create("-n", tmp_env_name, no_dry_run=True)
+    yield tmp_root_prefix
+
+
+@pytest.fixture
 def tmp_prefix(
-    tmp_root_prefix: pathlib.Path, env_name: str
+    tmp_root_prefix: pathlib.Path, tmp_env_name: str
 ) -> Generator[pathlib.Path, None, None]:
     """Change the conda prefix to a tmp folder for the duration of a test."""
     old_prefix = os.environ.get("CONDA_PREFIX")
-    new_prefix = tmp_root_prefix / "envs" / env_name
+    new_prefix = tmp_root_prefix / "envs" / tmp_env_name
     new_prefix.mkdir(parents=True, exist_ok=True)
     os.environ["CONDA_PREFIX"] = str(new_prefix)
     yield new_prefix

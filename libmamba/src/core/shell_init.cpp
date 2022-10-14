@@ -395,6 +395,11 @@ namespace mamba
         {
             rc_content = read_contents(file_path, std::ios::in);
         }
+        else
+        {
+            // Ensure base directory of config file exists (in case it is under ~/.config)
+            fs::create_directories(file_path.parent_path());
+        }
 
         if (shell == "xonsh")
         {
@@ -783,10 +788,9 @@ namespace mamba
 
         out << "\n#region mamba initialize\n";
         out << "# !! Contents within this block are managed by 'mamba shell init' !!\n";
-        out << "$Env:MAMBA_ROOT_PREFIX = " << conda_prefix << "\n";
-        out << "$Env:MAMBA_EXE = " << self_exe << "\n";
-        out << "(& " << self_exe << " 'shell' 'hook' -s 'powershell' -p " << conda_prefix
-            << ") | Out-String | Invoke-Expression\n";
+        out << "$Env:MAMBA_ROOT_PREFIX = \"" << conda_prefix.string() << "\"\n";
+        out << "$Env:MAMBA_EXE = \"" << self_exe.string() << "\"\n";
+        out << "(& $Env:MAMBA_EXE 'shell' 'hook' -s 'powershell' -p $Env:MAMBA_ROOT_PREFIX) | Out-String | Invoke-Expression\n";
         out << "#endregion\n";
         return out.str();
     }

@@ -158,6 +158,10 @@ Register-ArgumentCompleter -Native -CommandName micromamba -ScriptBlock $Microma
 
 ## EXPORTS ###################################################################
 
+if ($null -eq $Env:CONDA_SHLVL) {
+    $Env:PATH = "$Env:MAMBA_ROOT_PREFIX\condabin;" + $Env:PATH
+}
+
 Export-ModuleMember `
     -Alias * `
     -Function Invoke-Mamba, Enter-MambaEnvironment, Exit-MambaEnvironment, prompt

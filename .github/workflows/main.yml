@@ -552,6 +552,7 @@ jobs:
         run: |
           $env:PYTHONIOENCODING='UTF-8'
           $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'build\micromamba\micromamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
           pytest -v --capture=tee-sys micromamba/tests/

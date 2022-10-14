@@ -725,6 +725,10 @@ namespace mamba
         if (starts_with(m_repodata_url, "https://conda.anaconda.org/"))
         {
             std::string target_url = m_repodata_url.substr(27);
+            // TODO find a robust way to do this!!
+            ctx.plcontext.mirror_map[p_channel->canonical_name()]
+                = { std::make_shared<powerloader::Mirror>(ctx.plcontext,
+                                                          "https://conda.anaconda.org/") };
             m_target = std::make_shared<powerloader::DownloadTarget>(
                 target_url, p_channel->canonical_name(), m_temp_file->path());
         }

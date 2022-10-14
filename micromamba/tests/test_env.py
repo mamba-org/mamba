@@ -135,7 +135,7 @@ class TestEnv:
         assert env_fp in env_json["envs"]
         assert Path(env_fp).expanduser().exists()
         with open(conda_env_file, "r") as f:
-            lines = [x.strip() for x in f.readlines()]
+            lines = [line.strip() for line in f]
             assert env_fp in lines
 
         # Unregister / remove env_name
@@ -144,5 +144,5 @@ class TestEnv:
         assert env_fp not in env_json["envs"]
         assert not Path(env_fp).expanduser().exists()
         with open(conda_env_file, "r") as f:
-            lines = [x.strip() for x in f.readlines()]
+            lines = [line.strip() for line in f]
             assert env_fp not in lines

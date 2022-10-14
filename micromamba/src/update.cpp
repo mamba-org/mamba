@@ -27,7 +27,7 @@ extern "C"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-void
+int
 update_self(const std::optional<std::string>& version)
 {
     auto& config = mamba::Configuration::instance();
@@ -65,8 +65,9 @@ update_self(const std::optional<std::string>& version)
         }
         else
         {
-            throw std::runtime_error(
-                "No newer version of micromamba found in the loaded channels.");
+            Console::instance().print(fmt::format(
+                "\nYour micromamba version ({}) is already up to date.", umamba::version()));
+            return 0;
         }
     }
 
@@ -91,23 +92,35 @@ update_self(const std::optional<std::string>& version)
     fs::u8path cache_path = package_caches.get_extracted_dir_path(latest_micromamba.value())
                             / latest_micromamba.value().str();
 
-    if (on_win)
+    fs::rename(mamba_exe, mamba_exe_bkup);
+
+    try
     {
-        fs::rename(mamba_exe, mamba_exe_bkup);
-        fs::copy_file(cache_path / "Library" / "bin" / "micromamba.exe",
-                      mamba_exe,
-                      fs::copy_options::overwrite_existing);
-    }
-    else
-    {
-        fs::copy_file(
-            cache_path / "bin" / "micromamba", mamba_exe, fs::copy_options::overwrite_existing);
+        if (on_win)
+        {
+            fs::copy_file(cache_path / "Library" / "bin" / "micromamba.exe",
+                          mamba_exe,
+                          fs::copy_options::overwrite_existing);
+        }
+        else
+        {
+            fs::copy_file(
+                cache_path / "bin" / "micromamba", mamba_exe, fs::copy_options::overwrite_existing);
 #ifdef __APPLE__
-        codesign(mamba_exe, false);
+            codesign(mamba_exe, false);
 #endif
+        }
+    }
+    catch (std::exception& e)
+    {
+        LOG_ERROR << "Error while updating micromamba: " << e.what();
+        LOG_ERROR << "Restoring backup";
+        fs::rename(mamba_exe_bkup, mamba_exe);
+        throw;
     }
 
     fs::remove(mamba_exe_bkup);
+    return 0;
 }
 
 
@@ -125,16 +138,18 @@ set_update_command(CLI::App* subcom)
     subcom->get_option("specs")->description("Specs to update in the environment");
     subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
 
-    static bool update_self_in = false;
-    subcom->add_flag("--self", update_self_in, "Update micromamba");
-    static std::optional<std::string> version;
-    subcom->add_option("--version", version, "Update micromamba");
+    subcom->callback([&]() { update(update_all, prune); });
+}
 
-    subcom->callback(
-        [&]()
-        {
-            if (update_self_in)
-                return update_self(version);
-            update(update_all, prune);
-        });
+void
+set_self_update_command(CLI::App* subcom)
+{
+    Configuration::instance();
+
+    init_install_options(subcom);
+
+    static std::optional<std::string> version;
+    subcom->add_option("--version", version, "Install specific micromamba version");
+
+    subcom->callback([&]() { return update_self(version); });
 }

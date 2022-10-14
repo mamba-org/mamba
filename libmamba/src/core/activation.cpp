@@ -254,27 +254,6 @@ namespace mamba
                          "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\" };
             }
         }
-        // We used to prepend sys.prefix\Library\bin to PATH on startup but not
-        // anymore. Instead, in conda 4.6 we add the full suite of entries. This is
-        // performed in condabin\conda.bat and condabin\ _conda_activate.bat. However,
-        // we need to ignore the stuff we add there, and only consider actual PATH
-        // entries.
-        auto prefix_dirs = get_path_dirs(Context::instance().root_prefix);
-        std::size_t start_index = 0;
-        while (start_index < prefix_dirs.size() && start_index < path.size()
-               && paths_equal(path[start_index], prefix_dirs[start_index]))
-        {
-            start_index++;
-        }
-        if (start_index > 0)
-        {
-            path.erase(path.begin(), path.begin() + start_index);
-        }
-        if (path.size()
-            && paths_equal(path[0], (Context::instance().root_prefix / "Library" / "bin")))
-        {
-            path.erase(path.begin(), path.begin() + 1);
-        }
         return path;
     }
 

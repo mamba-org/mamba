@@ -296,7 +296,7 @@ namespace mamba
      */
     auto load_channels(MPool& pool, MultiPackageCache& cache, std::vector<std::string>&& channels)
     {
-        auto dlist = MultiDownloadTarget();
+        auto downloader = powerloader::Downloader{mamba::Context::instance().plcontext};
         auto sub_dirs = std::vector<MSubdirData>();
         for (auto const* chan : get_channels(channels))
         {
@@ -304,11 +304,11 @@ namespace mamba
             {
                 auto sub_dir
                     = expected_value_or_throw(MSubdirData::create(*chan, platform, url, cache));
-                dlist.add(sub_dir.target());
+                downloader.add(sub_dir.target());
                 sub_dirs.push_back(std::move(sub_dir));
             }
         }
-        dlist.download(MAMBA_DOWNLOAD_FAILFAST);
+        downloader.download();
         for (auto& sub_dir : sub_dirs)
         {
             sub_dir.create_repo(pool);

@@ -508,7 +508,7 @@ namespace mamba
                 LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
                           << "' to '" << m_writable_pkgs_dir.string() << "'";
                 fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
-                auto lock = LockFile(writable_cache_dir);
+                auto lock = LockFile::create_lock(writable_cache_dir);
 
                 auto copied_json_file = writable_cache_dir / m_json_fn;
                 if (fs::exists(copied_json_file))
@@ -530,13 +530,13 @@ namespace mamba
 
             {
                 LOG_TRACE << "Refreshing '" << json_file.string() << "'";
-                auto lock = LockFile(json_file);
+                auto lock = LockFile::create_lock(json_file);
                 fs::last_write_time(json_file, now);
             }
             if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
             {
                 LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
-                auto lock = LockFile(solv_file);
+                auto lock = LockFile::create_lock(solv_file);
                 fs::last_write_time(solv_file, now);
                 m_solv_cache_valid = true;
             }

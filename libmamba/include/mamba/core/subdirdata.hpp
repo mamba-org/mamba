@@ -32,6 +32,19 @@ namespace decompress
 namespace mamba
 {
 
+    // Represents a repodata update "jlap" document
+    struct Jlap
+    {
+        std::string start_hash;
+        std::string end_hash;
+        nlohmann::json metadata;
+        std::vector<nlohmann::json> patches;
+
+        static tl::expected<Jlap, std::runtime_error> parse(const fs::u8path& path);
+
+        tl::expected<void, std::runtime_error> apply_patches_to(const fs::u8path& path);
+    };
+
     /**
      * Represents a channel subdirectory (i.e. a platform)
      * packages index. Handles downloading of the index

@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <string_view>
 #include <functional>
+#include <stdexcept>
 
 #include <solv/pool.h>
 
@@ -714,4 +715,88 @@ namespace mamba
     {
         return m_root_node;
     }
+
+    /**********************************************************
+     *  Implementation of CompressedProblemsGraph::NamedList  *
+     **********************************************************/
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> value_type const&
+    {
+        return Base::front();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::back() const noexcept -> value_type const&
+    {
+        return Base::back();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::begin() const noexcept -> const_iterator
+    {
+        return Base::begin();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::end() const noexcept -> const_iterator
+    {
+        return Base::end();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::rbegin() const noexcept -> const_reverse_iterator
+    {
+        return Base::rbegin();
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::rend() const noexcept -> const_reverse_iterator
+    {
+        return Base::rend();
+    }
+
+    template <typename T>
+    decltype(auto) invoke_name(T&& e)
+    {
+        using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+        return std::invoke(&TT::name, std::forward<T>(e));
+    }
+
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::name() const -> std::string const&
+    {
+        if (size() == 0)
+        {
+            static const std::string empty = "";
+            return empty;
+        }
+        return invoke_name(front());
+    }
+
+    template <typename T, typename A>
+    void CompressedProblemsGraph::NamedList<T, A>::push_back(value_type const& e)
+    {
+        return push_back_impl(e);
+    }
+
+    template <typename T, typename A>
+    void CompressedProblemsGraph::NamedList<T, A>::push_back(value_type&& e)
+    {
+        return push_back_impl(std::move(e));
+    }
+
+    template <typename T, typename A>
+    template <typename T_>
+    void CompressedProblemsGraph::NamedList<T, A>::push_back_impl(T_&& e)
+    {
+        if ((size() > 0) && (invoke_name(e) != name()))
+        {
+            throw std::invalid_argument("Name of new element (" + invoke_name(e)
+                                        + ") does not match name of list (" + name() + ')');
+        }
+        Base::push_back(std::forward<T_>(e));
+    }
+
 }

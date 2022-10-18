@@ -9,6 +9,7 @@
 #include <cstring>
 #include <sstream>
 #include <algorithm>
+#include <iomanip>
 
 namespace mamba
 {

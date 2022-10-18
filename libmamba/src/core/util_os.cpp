@@ -555,7 +555,8 @@ namespace mamba
             options.redirect.err = silence;
         }
 
-        std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
+        const std::vector<std::string> cmd
+            = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
         auto [status, ec] = reproc::run(cmd, options);
         if (ec)
         {

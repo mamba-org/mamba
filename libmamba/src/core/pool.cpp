@@ -100,10 +100,8 @@ namespace mamba
                       solvables.end(),
                       [this](Id a, Id b)
                       {
-                          Solvable* sa;
-                          Solvable* sb;
-                          sa = pool_id2solvable(this->m_pool, a);
-                          sb = pool_id2solvable(this->m_pool, b);
+                          Solvable* sa = pool_id2solvable(this->m_pool, a);
+                          Solvable* sb = pool_id2solvable(this->m_pool, b);
                           return (pool_evrcmp(this->m_pool, sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
                       });
         }

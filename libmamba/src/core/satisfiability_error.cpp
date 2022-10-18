@@ -555,6 +555,9 @@ namespace mamba
                                            CompressedProblemsGraph::graph_t& new_graph,
                                            node_id_mapping& old_to_new)
         {
+            // Check nothrow move for efficient push_back
+            static_assert(std::is_nothrow_move_constructible_v<Node>);
+
             auto get_old_node = [&old_graph](ProblemsGraph::node_id id)
             {
                 auto node = old_graph.node(id);
@@ -639,6 +642,9 @@ namespace mamba
                          CompressedProblemsGraph::graph_t& new_graph,
                          node_id_mapping const& old_to_new)
         {
+            // Check nothrow move for efficient push_back
+            static_assert(std::is_nothrow_move_constructible_v<ProblemsGraph::edge_t>);
+
             auto add_new_edge = [&](ProblemsGraph::node_id old_from, ProblemsGraph::node_id old_to)
             {
                 auto const new_from = old_to_new[old_from];

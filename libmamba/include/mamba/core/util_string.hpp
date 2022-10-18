@@ -147,51 +147,27 @@ namespace mamba
 
     namespace concat_impl
     {
+        inline std::size_t size(const char* s)
+        {
+            return strlen(s);
+        }
+        inline std::size_t size(const char /*c*/)
+        {
+            return 1;
+        }
         template <class T>
-        inline void concat_foreach(std::string& result, const T& rhs)
+        inline std::size_t size(T& s)
         {
-            result += rhs;
+            return s.size();
         }
-
-        template <class T, class... Rest>
-        inline void concat_foreach(std::string& result, const T& rhs, const Rest&... rest)
-        {
-            result += rhs;
-            concat_foreach(result, rest...);
-        }
-
-        struct sizer
-        {
-            inline sizer(const char* s)
-                : size(strlen(s))
-            {
-            }
-
-            inline sizer(const char /*s*/)
-                : size(1)
-            {
-            }
-
-            template <class T>
-            inline sizer(T& s)
-                : size(s.size())
-            {
-            }
-
-            std::size_t size;
-        };
     }  // namespace concat_impl
 
     template <typename... Args>
     inline std::string concat(const Args&... args)
     {
-        size_t len = 0;
-        for (auto s : std::initializer_list<concat_impl::sizer>{ args... })
-            len += s.size;
-
         std::string result;
-        result.reserve(len);
-        concat_impl::concat_foreach(result, args...);
+        result.reserve((concat_impl::size(args) + ...));
+        ((result += args), ...);
         return result;
     }
 

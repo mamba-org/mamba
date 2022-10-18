@@ -72,7 +72,16 @@ update_self(const std::optional<std::string>& version)
     }
 
     std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
-    LOG_WARNING << latest_micromamba.value().url;
+    if (!latest_micromamba)
+    {
+        throw std::runtime_error("Could not convert solvable to PackageId");
+    }
+    Console::instance().print(
+        fmt::format("Micromamba version available: {} (currently installed {})",
+                    latest_micromamba.value().version,
+                    umamba::version()));
+    Console::instance().print(
+        fmt::format("Fetching micromamba from {}", latest_micromamba.value().url));
 
     ctx.download_only = true;
     MTransaction t(pool, { latest_micromamba.value() }, package_caches);
@@ -109,17 +118,18 @@ update_self(const std::optional<std::string>& version)
 #ifdef __APPLE__
             codesign(mamba_exe, false);
 #endif
+            fs::remove(mamba_exe_bkup);
         }
     }
     catch (std::exception& e)
     {
         LOG_ERROR << "Error while updating micromamba: " << e.what();
         LOG_ERROR << "Restoring backup";
+        fs::remove(mamba_exe);
         fs::rename(mamba_exe_bkup, mamba_exe);
         throw;
     }
 
-    fs::remove(mamba_exe_bkup);
     return 0;
 }
 

@@ -16,6 +16,7 @@
 #include <solv/pool.h>
 
 #include "mamba/core/output.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/solver.hpp"
@@ -720,6 +721,10 @@ namespace mamba
      *  Implementation of CompressedProblemsGraph::NamedList  *
      **********************************************************/
 
+    template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;
+    template class CompressedProblemsGraph::NamedList<ProblemsGraph::UnresolvedDependencyNode>;
+    template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
+
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> value_type const&
     {
@@ -763,7 +768,6 @@ namespace mamba
         return std::invoke(&TT::name, std::forward<T>(e));
     }
 
-
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::name() const -> std::string const&
     {
@@ -773,6 +777,41 @@ namespace mamba
             return empty;
         }
         return invoke_name(front());
+    }
+
+    template <typename T>
+    decltype(auto) invoke_version(T&& e)
+    {
+        using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+        return std::invoke(&TT::version, std::forward<T>(e));
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc() const -> std::string
+    {
+        auto versions = std::vector<std::string>(size());
+        auto invoke_version = [](auto&& v) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
+            return std::invoke(&TT::version, std::forward<decltype(v)>(v));
+        };
+        // TODO(C++20) *this | std::ranges::transform(invoke_version)
+        std::transform(begin(), end(), versions.begin(), invoke_version);
+        return join_trunc(versions);
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc() const -> std::string
+    {
+        auto builds = std::vector<std::string>(size());
+        auto invoke_build_string = [](auto&& v) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
+            return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
+        };
+        // TODO(C++20) *this | std::ranges::transform(invoke_version)
+        std::transform(begin(), end(), builds.begin(), invoke_build_string);
+        return join_trunc(builds);
     }
 
     template <typename T, typename A>

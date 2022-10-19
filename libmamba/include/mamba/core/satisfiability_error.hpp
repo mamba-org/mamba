@@ -147,6 +147,8 @@ namespace mamba
             const_reverse_iterator rend() const noexcept;
 
             std::string const& name() const;
+            std::string versions_trunc() const;
+            std::string build_strings_trunc() const;
 
             using Base::clear;
             using Base::reserve;

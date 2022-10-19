@@ -142,6 +142,7 @@ namespace mamba
         }
     }
 
+    // TODO(C++20) Take an input range and return a range
     template <typename InputIt, typename UnaryFunction, typename Value>
     UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, Value const& sep)
     {
@@ -175,6 +176,7 @@ namespace mamba
         return out;
     }
 
+    // TODO(C++20) Take an input range and return a range
     template <typename InputIt, typename UnaryFunction, typename Value>
     UnaryFunction join_trunc_for_each(InputIt first,
                                       InputIt last,

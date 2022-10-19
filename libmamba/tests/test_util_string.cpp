@@ -127,6 +127,9 @@ namespace mamba
             testing::StaticAssertTypeEq<decltype(joined), decltype(to_join)::value_type>();
             EXPECT_EQ(joined, "/a/bc/d");
         }
+        {
+            EXPECT_EQ(join(",", std::vector<std::string>()), "");
+        }
     }
 
     TEST(util_string, join_trunc)
@@ -143,6 +146,9 @@ namespace mamba
         {
             auto joined = join_trunc(to_join, ",", "..", 4, { 2, 1 });
             EXPECT_EQ(joined, "a,bc,..,f");
+        }
+        {
+            EXPECT_EQ(join_trunc(std::vector<std::string>()), "");
         }
     }
 

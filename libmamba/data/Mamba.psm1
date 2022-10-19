@@ -99,7 +99,10 @@ function Invoke-Mamba() {
             }
             "self-update" {
                 & $Env:MAMBA_EXE $Command @OtherArgs;
-                Remove-Item $($Env:MAMBA_EXE + ".bkup")
+                $MAMBA_EXE_BKUP = $Env:MAMBA_EXE + ".bkup";
+                if (Test-Path $MAMBA_EXE_BKUP) {
+                    Remove-Item $MAMBA_EXE_BKUP
+                }
             }
             default {
                 # There may be a command we don't know want to handle

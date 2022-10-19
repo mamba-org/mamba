@@ -10,6 +10,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iomanip>
+#include <type_traits>
 
 namespace mamba
 {
@@ -113,29 +114,64 @@ namespace mamba
                 left += right;
             }
         };
+
+        template <class T, class = void>
+        struct has_reserve : std::false_type
+        {
+        };
+        template <class T>
+        struct has_reserve<T, std::void_t<decltype(std::declval<T>().reserve(std::size_t()))>>
+            : std::true_type
+        {
+        };
+        template <typename T>
+        inline constexpr bool has_reserve_v = has_reserve<T>::value;
+
+        inline std::size_t size(const char* s)
+        {
+            return strlen(s);
+        }
+        inline std::size_t size(const char /*c*/)
+        {
+            return 1;
+        }
+        template <class T>
+        inline std::size_t size(T& s)
+        {
+            return s.size();
+        }
     }
 
-    template <typename InputIt, typename Inserter, typename Value>
-    void join_insert(InputIt first, InputIt last, Inserter inserter, Value const& sep)
+    template <typename InputIt, typename UnaryFunction, typename Value>
+    UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, Value const& sep)
     {
         if (first < last)
         {
-            inserter(*(first++));
+            func(*(first++));
             for (; first < last; ++first)
             {
-                inserter(sep);
-                inserter(*first);
+                func(sep);
+                func(*first);
             }
         }
+        return func;
     }
 
     template <class Range, class Value, class Joiner = details::PlusEqual>
     auto join(Value const& sep, const Range& container, Joiner joiner = details::PlusEqual{}) ->
         typename Range::value_type
     {
-        auto out = typename Range::value_type();
-        auto joiner_inserter = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
-        join_insert(container.begin(), container.end(), joiner_inserter, sep);
+        using Result = typename Range::value_type;
+        Result out{};
+        if constexpr (details::has_reserve_v<Result>)
+        {
+            std::size_t final_size = 0;
+            auto inc_size = [&final_size](auto const& val) { final_size += details::size(val); };
+            join_for_each(container.begin(), container.end(), inc_size, sep);
+            out.reserve(final_size);
+        }
+        auto out_joiner = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
+        join_for_each(container.begin(), container.end(), out_joiner, sep);
         return out;
     }
 
@@ -154,12 +190,12 @@ namespace mamba
         auto const [show_head, show_tail] = show;
         auto out = typename Range::value_type();
 
-        auto inserter = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
-        join_insert(container.begin(), container.begin() + show_head, inserter, sep);
-        inserter(sep);
-        inserter(etc);
-        inserter(sep);
-        join_insert(container.end() - show_tail, container.end(), inserter, sep);
+        auto out_joiner = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
+        join_for_each(container.begin(), container.begin() + show_head, out_joiner, sep);
+        out_joiner(sep);
+        out_joiner(etc);
+        out_joiner(sep);
+        join_for_each(container.end() - show_tail, container.end(), out_joiner, sep);
         return out;
     }
 
@@ -180,28 +216,11 @@ namespace mamba
     std::string to_upper(const std::string_view& input);
     std::string to_lower(const std::string_view& input);
 
-    namespace concat_impl
-    {
-        inline std::size_t size(const char* s)
-        {
-            return strlen(s);
-        }
-        inline std::size_t size(const char /*c*/)
-        {
-            return 1;
-        }
-        template <class T>
-        inline std::size_t size(T& s)
-        {
-            return s.size();
-        }
-    }  // namespace concat_impl
-
     template <typename... Args>
     inline std::string concat(const Args&... args)
     {
         std::string result;
-        result.reserve((concat_impl::size(args) + ...));
+        result.reserve((details::size(args) + ...));
         ((result += args), ...);
         return result;
     }

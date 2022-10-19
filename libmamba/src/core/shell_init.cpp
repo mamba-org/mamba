@@ -29,13 +29,15 @@ namespace mamba
 {
     namespace
     {
-        std::regex CONDA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
+        std::regex MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
                                              "([\\s\\S]*?)"
                                              "# <<< mamba initialize <<<(?:\n|\r\n)?");
 
-        std::regex CONDA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
+        std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
                                                 "([\\s\\S]*?)"
                                                 "#endregion(?:\n|\r\n)?");
+        std::wregex MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
+
     }
 
     std::string guess_shell()
@@ -129,9 +131,8 @@ namespace mamba
 
         // modify registry key
         std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
-        std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
         std::wstring replaced_value = std::regex_replace(
-            prev_value, hook_regex, replace_str, std::regex_constants::format_first_only);
+            prev_value, MAMBA_CMDEXE_HOOK_REGEX, replace_str, std::regex_constants::format_first_only);
 
         std::wstring new_value = replaced_value;
 
@@ -429,7 +430,7 @@ namespace mamba
         }
 
         std::string result
-            = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, conda_init_content);
+            = std::regex_replace(rc_content, MAMBA_INITIALIZE_RE_BLOCK, conda_init_content);
 
         if (result.find("# >>> mamba initialize >>>") == std::string::npos)
         {
@@ -474,7 +475,7 @@ namespace mamba
             return;
         }
 
-        std::string result = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, "");
+        std::string result = std::regex_replace(rc_content, MAMBA_INITIALIZE_RE_BLOCK, "");
 
         if (Context::instance().dry_run)
         {
@@ -823,7 +824,7 @@ namespace mamba
         {
             LOG_DEBUG << "Found mamba initialize. Replacing mamba initialize block.";
             profile_content = std::regex_replace(
-                profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
+                profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
         }
 
         LOG_DEBUG << "Original profile content:\n" << profile_original_content;
@@ -874,7 +875,7 @@ namespace mamba
                           << "#region mamba initialize\n...\n#endregion\n"
                           << termcolor::reset;
 
-        profile_content = std::regex_replace(profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, "");
+        profile_content = std::regex_replace(profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, "");
         LOG_DEBUG << "Profile content:\n" << profile_content;
 
         if (Context::instance().dry_run)
@@ -1117,8 +1118,8 @@ namespace mamba
 
 #ifdef _WIN32
         // cmd.exe
-        auto reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
-        if (contains(reg, "mamba_hook.bat") != std::string::npos)
+        std::wstring reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
+        if (std::regex_match(reg, MAMBA_CMDEXE_HOOK_REGEX) != std::wstring::npos)
         {
             result.push_back("cmd.exe");
         }

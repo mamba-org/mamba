@@ -66,6 +66,8 @@ namespace mamba
 
     void init_shell(const std::string& shell, const fs::u8path& conda_prefix);
     void deinit_shell(const std::string& shell, const fs::u8path& conda_prefix);
+    std::vector<std::string> find_initialized_shells();
+
 }
 
 #endif

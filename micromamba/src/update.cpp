@@ -12,8 +12,11 @@
 
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/shell_init.hpp"
 #include "mamba/core/util_os.hpp"
 #include "version.hpp"
+#include <reproc++/run.hpp>
+
 
 extern "C"
 {
@@ -128,6 +131,14 @@ update_self(const std::optional<std::string>& version)
         fs::remove(mamba_exe);
         fs::rename(mamba_exe_bkup, mamba_exe);
         throw;
+    }
+
+    for (const auto& shell : find_initialized_shells())
+    {
+        // re-initialize all the shell scripts after update
+        LOG_WARNING << "Reinitializing " << shell;
+        const std::vector<std::string> reinit = { mamba_exe, "shell", "init", "-s", shell };
+        auto [status, ec] = reproc::run(reinit, reproc::options{});
     }
 
     return 0;

@@ -16,5 +16,6 @@ __MAMBA_INSERT_ROOT_PREFIX__
 @IF [%1]==[upgrade]   "%~dp0_mamba_activate" reactivate
 @IF [%1]==[remove]    "%~dp0_mamba_activate" reactivate
 @IF [%1]==[uninstall] "%~dp0_mamba_activate" reactivate
+@IF [%1]==[self-update] DEL %MAMBA_EXE%.bkup
 
 @EXIT /B %errorlevel%

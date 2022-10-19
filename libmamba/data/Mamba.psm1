@@ -99,7 +99,7 @@ function Invoke-Mamba() {
             }
             "self-update" {
                 & $Env:MAMBA_EXE $Command @OtherArgs;
-                Remove-Item $Env:MAMBA_EXE + ".bkup"
+                Remove-Item $($Env:MAMBA_EXE + ".bkup")
             }
             default {
                 # There may be a command we don't know want to handle
@@ -108,7 +108,7 @@ function Invoke-Mamba() {
                 & $Env:MAMBA_EXE $Command @OtherArgs;
 
                 # reactivate environment
-                if (@("install", "update", "remove).contains($Command))
+                if (@("install", "update", "remove").contains($Command))
                 {
                     $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell $Args | Out-String);
                     Write-Verbose "[micromamba shell reactivate --shell powershell $Args]`n$activateCommand";

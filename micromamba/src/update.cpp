@@ -99,7 +99,7 @@ update_self(const std::optional<std::string>& version)
 
     fs::u8path mamba_exe = get_self_exe_path();
     fs::u8path mamba_exe_bkup = mamba_exe;
-    mamba_exe_bkup.replace_extension(".bkup");
+    mamba_exe_bkup.replace_extension(mamba_exe.extension().string() + ".bkup");
 
     fs::u8path cache_path = package_caches.get_extracted_dir_path(latest_micromamba.value())
                             / latest_micromamba.value().str();

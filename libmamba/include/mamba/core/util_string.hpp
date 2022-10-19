@@ -175,27 +175,62 @@ namespace mamba
         return out;
     }
 
-    template <class Range, class Joiner = details::PlusEqual>
-    auto join_trunc(Range const& container,
+    template <typename InputIt, typename UnaryFunction, typename Value>
+    UnaryFunction join_trunc_for_each(InputIt first,
+                                      InputIt last,
+                                      UnaryFunction func,
+                                      Value const& sep,
+                                      Value const& etc,
+                                      std::size_t threshold = 5,
+                                      std::pair<std::size_t, std::size_t> show = { 2, 1 })
+    {
+        if ((last - first) <= threshold)
+        {
+            return join_for_each(first, last, std::move(func), sep);
+        }
+
+        // Working around non-assignable function types, such as lambda with references.
+        auto join_for_each_func = [&func](auto f, auto l, auto val)
+        {
+            if constexpr (std::is_assignable_v<UnaryFunction, UnaryFunction>)
+            {
+                func = join_for_each(f, l, std::move(func), val);
+            }
+            else
+            {
+                join_for_each(f, l, func, val);
+            }
+        };
+
+        auto const [show_head, show_tail] = show;
+        join_for_each_func(first, first + show_head, sep);
+        func(sep);
+        func(etc);
+        func(sep);
+        join_for_each_func(last - show_tail, last, sep);
+        return func;
+    }
+
+    template <typename Range, typename Joiner = details::PlusEqual>
+    auto join_trunc(Range const& range,
                     std::string_view sep = ", ",
                     std::string_view etc = "...",
                     std::size_t threshold = 5,
                     std::pair<std::size_t, std::size_t> show = { 2, 1 },
                     Joiner joiner = details::PlusEqual{}) -> typename Range::value_type
     {
-        if (container.size() <= threshold)
+        using Result = typename Range::value_type;
+        Result out{};
+        if constexpr (details::has_reserve_v<Result>)
         {
-            return join(sep, container);
+            std::size_t final_size = 0;
+            auto inc_size = [&final_size](auto const& val) { final_size += details::size(val); };
+            join_trunc_for_each(range.begin(), range.end(), inc_size, sep, etc, threshold, show);
+            out.reserve(final_size);
         }
-        auto const [show_head, show_tail] = show;
-        auto out = typename Range::value_type();
 
         auto out_joiner = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
-        join_for_each(container.begin(), container.begin() + show_head, out_joiner, sep);
-        out_joiner(sep);
-        out_joiner(etc);
-        out_joiner(sep);
-        join_for_each(container.end() - show_tail, container.end(), out_joiner, sep);
+        join_trunc_for_each(range.begin(), range.end(), out_joiner, sep, etc, threshold, show);
         return out;
     }
 

@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
 
 namespace mamba
 {
-    TEST(util, to_upper_lower)
+    TEST(util_string, to_upper_lower)
     {
         std::string a = "ThisIsARandomTTTeeesssT";
         EXPECT_EQ(to_upper(a), "THISISARANDOMTTTEEESSST");
@@ -13,7 +13,7 @@ namespace mamba
         // EXPECT_EQ(to_lower(a), "thisisarandomttteeessst");
     }
 
-    TEST(util, split)
+    TEST(util_string, split)
     {
         std::string a = "hello.again.it's.me.mario";
         std::vector<std::string> e1 = { "hello", "again", "it's", "me", "mario" };
@@ -46,7 +46,7 @@ namespace mamba
         EXPECT_EQ(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1), v21);
     }
 
-    TEST(util, replace_all)
+    TEST(util_string, replace_all)
     {
         std::string testbuf = "this is just a test a just a a abc bca";
 

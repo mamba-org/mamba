@@ -868,3 +868,35 @@ class TestActivation:
         res = shell("activate", prefix_short, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
+
+
+@pytest.fixture
+def backup_umamba():
+    mamba_exe = get_umamba()
+    shutil.copyfile(mamba_exe, mamba_exe + ".orig")
+    yield mamba_exe
+    shutil.move(mamba_exe + ".orig", mamba_exe)
+    os.chmod(mamba_exe, 0o755)
+
+
+def get_self_update_interpreters():
+    if plat == "win":
+        return ["cmd.exe", "powershell"]
+    if plat == "osx":
+        return ["zsh"]
+    else:
+        return ["bash"]
+
+
+@pytest.mark.parametrize("interpreter", get_self_update_interpreters())
+def test_self_update(backup_umamba, tmp_path, interpreter):
+
+    mamba_exe = backup_umamba
+
+    call_interpreter([f"{mamba_exe} self-update --version 0.25.1"], tmp_path, "bash")
+
+    assert Path(mamba_exe).exists()
+    assert not Path(mamba_exe + ".bkup").exists()
+
+    version = subprocess.check_output([mamba_exe, "--version"])
+    assert version.decode("utf8").strip() == "0.25.1"

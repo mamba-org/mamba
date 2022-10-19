@@ -478,23 +478,3 @@ class TestUpdateConfig:
         install("quantstack::sphinx", no_dry_run=True)
         res = update("quantstack::sphinx", "-c", "conda-forge", "--json")
         assert "actions" not in res
-
-
-@pytest.fixture
-def backup_umamba():
-    mamba_exe = get_umamba()
-    shutil.copyfile(mamba_exe, mamba_exe + ".orig")
-    yield mamba_exe
-    shutil.move(mamba_exe + ".orig", mamba_exe)
-    os.chmod(mamba_exe, 0o755)
-
-
-def test_self_update(backup_umamba):
-    mamba_exe = backup_umamba
-    subprocess_run(*[mamba_exe, "self-update", "--version", "0.25.1"])
-
-    assert Path(mamba_exe).exists()
-    assert not Path(mamba_exe + ".bkup").exists()
-
-    version = subprocess.check_output([mamba_exe, "--version"])
-    assert version.decode("utf8").strip() == "0.25.1"

@@ -1117,8 +1117,8 @@ namespace mamba
 
 #ifdef _WIN32
         // cmd.exe
-        auto reg = get_registry_key(L"Software\\Microsoft\\Command Processor");
-        if (reg.contains("mamba_hook.bat") != std::string::npos)
+        auto reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
+        if (contains(reg, "mamba_hook.bat") != std::string::npos)
         {
             result.push_back("cmd.exe");
         }

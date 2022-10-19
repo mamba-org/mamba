@@ -127,16 +127,11 @@ namespace mamba
         template <typename T>
         inline constexpr bool has_reserve_v = has_reserve<T>::value;
 
-        inline std::size_t size(const char* s)
-        {
-            return strlen(s);
-        }
-        inline std::size_t size(const char /*c*/)
-        {
-            return 1;
-        }
+        std::size_t size(const char* s);
+        std::size_t size(const wchar_t* s);
+        std::size_t size(const char c);
         template <class T>
-        inline std::size_t size(T& s)
+        inline std::size_t size(T const& s)
         {
             return s.size();
         }

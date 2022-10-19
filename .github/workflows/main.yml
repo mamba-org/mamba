@@ -270,7 +270,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-2019]
 
     steps:
       - uses: actions/checkout@v3
@@ -315,7 +315,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-2019]
         python-version: ["3.7"]
 
     steps:
@@ -414,7 +414,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-2019]
         python-version: ["3.7"]
 
     steps:
@@ -465,7 +465,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-2019]
         python-version: ["3.7"]
 
     steps:
@@ -526,7 +526,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-2019]
         python-version: ["3.7"]
 
     steps:

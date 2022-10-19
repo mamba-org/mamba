@@ -115,20 +115,54 @@ namespace mamba
         };
     }
 
-    template <class S, class CharType, class Joiner = details::PlusEqual>
-    auto join(const CharType* sep, const S& container, Joiner joiner = details::PlusEqual{}) ->
-        typename S::value_type
+    template <typename InputIt, typename Inserter, typename Value>
+    void join_insert(InputIt first, InputIt last, Inserter inserter, Value const& sep)
     {
-        if (container.empty())
-            return {};
-        auto result = container[0];
-        for (std::size_t i = 1; i < container.size(); ++i)
+        if (first < last)
         {
-            joiner(result, sep);
-            joiner(result, container[i]);
+            inserter(*(first++));
+            for (; first < last; ++first)
+            {
+                inserter(sep);
+                inserter(*first);
+            }
         }
-        return result;
     }
+
+    template <class Range, class Value, class Joiner = details::PlusEqual>
+    auto join(Value const& sep, const Range& container, Joiner joiner = details::PlusEqual{}) ->
+        typename Range::value_type
+    {
+        auto out = typename Range::value_type();
+        auto joiner_inserter = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
+        join_insert(container.begin(), container.end(), joiner_inserter, sep);
+        return out;
+    }
+
+    template <class Range, class Joiner = details::PlusEqual>
+    auto join_trunc(Range const& container,
+                    std::string_view sep = ", ",
+                    std::string_view etc = "...",
+                    std::size_t threshold = 5,
+                    std::pair<std::size_t, std::size_t> show = { 2, 1 },
+                    Joiner joiner = details::PlusEqual{}) -> typename Range::value_type
+    {
+        if (container.size() <= threshold)
+        {
+            return join(sep, container);
+        }
+        auto const [show_head, show_tail] = show;
+        auto out = typename Range::value_type();
+
+        auto inserter = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
+        join_insert(container.begin(), container.begin() + show_head, inserter, sep);
+        inserter(sep);
+        inserter(etc);
+        inserter(sep);
+        join_insert(container.end() - show_tail, container.end(), inserter, sep);
+        return out;
+    }
+
 
     void replace_all(std::string& data, const std::string& search, const std::string& replace);
 
@@ -189,8 +223,6 @@ namespace mamba
     {
         return hex_string(buffer, buffer.size());
     }
-
-
 }
 
 #endif

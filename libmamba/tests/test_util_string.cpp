@@ -129,6 +129,23 @@ namespace mamba
         }
     }
 
+    TEST(util_string, join_trunc)
+    {
+        std::vector<std::string> to_join = { "a", "bc", "d", "e", "f" };
+        {
+            auto joined = join_trunc(to_join);
+            testing::StaticAssertTypeEq<decltype(joined), decltype(to_join)::value_type>();
+        }
+        {
+            auto joined = join_trunc(to_join, "-", "..", 5, { 2, 1 });
+            EXPECT_EQ(joined, "a-bc-d-e-f");
+        }
+        {
+            auto joined = join_trunc(to_join, ",", "..", 4, { 2, 1 });
+            EXPECT_EQ(joined, "a,bc,..,f");
+        }
+    }
+
     TEST(util_string, replace_all)
     {
         std::string testbuf = "this is just a test a just a a abc bca";

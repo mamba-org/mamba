@@ -881,7 +881,7 @@ def backup_umamba():
 
 def get_self_update_interpreters():
     if plat == "win":
-        return ["cmd.exe", "powershell"]
+        return ["cmd.exe", "powershell", "bash"]
     if plat == "osx":
         return ["zsh"]
     else:
@@ -893,7 +893,9 @@ def test_self_update(backup_umamba, tmp_path, interpreter):
 
     mamba_exe = backup_umamba
 
-    call_interpreter([f"{mamba_exe} self-update --version 0.25.1"], tmp_path, "bash")
+    call_interpreter(
+        [f"{mamba_exe} self-update --version 0.25.1"], tmp_path, interpreter
+    )
 
     assert Path(mamba_exe).exists()
     assert not Path(mamba_exe + ".bkup").exists()

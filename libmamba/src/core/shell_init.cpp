@@ -36,7 +36,8 @@ namespace mamba
         std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
                                                 "([\\s\\S]*?)"
                                                 "#endregion(?:\n|\r\n)?");
-        std::wregex MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
+        std::wregex MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
+                                            std::regex_constants::icase);
 
     }
 
@@ -131,8 +132,10 @@ namespace mamba
 
         // modify registry key
         std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
-        std::wstring replaced_value = std::regex_replace(
-            prev_value, MAMBA_CMDEXE_HOOK_REGEX, replace_str, std::regex_constants::format_first_only);
+        std::wstring replaced_value = std::regex_replace(prev_value,
+                                                         MAMBA_CMDEXE_HOOK_REGEX,
+                                                         replace_str,
+                                                         std::regex_constants::format_first_only);
 
         std::wstring new_value = replaced_value;
 

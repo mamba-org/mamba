@@ -137,6 +137,13 @@ namespace mamba
         }
     }
 
+    /**
+     * Execute the function @p func on each element of a join iteration.
+     *
+     * The join iteration of an iterator pair (@p first, @p last) with a separator @p sep is
+     * defined by iterating through the ``n`` elements of the iterator pair, interleaving the
+     * separator in between the elements (thus appearing ``n-1`` times).
+     */
     // TODO(C++20) Take an input range and return a range
     template <typename InputIt, typename UnaryFunction, typename Value>
     UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, Value const& sep)
@@ -153,6 +160,15 @@ namespace mamba
         return func;
     }
 
+    /**
+     * Concatenate the elements of the container @p container by interleaving a separator.
+     *
+     * Joining is done by successively joining (using the provided @p joiner) the aggregate with
+     * element of the container and the separator, such that the separator only appears
+     * in-between two elements of the range.
+     *
+     * @see join_for_each
+     */
     template <class Range, class Value, class Joiner = details::PlusEqual>
     auto join(Value const& sep, const Range& container, Joiner joiner = details::PlusEqual{}) ->
         typename Range::value_type
@@ -171,6 +187,26 @@ namespace mamba
         return out;
     }
 
+    /**
+     * Execute the function @p func on each element of a tuncated join iteration.
+     *
+     * The join iteration of an iterator pair (@p first, @p last) with a separator @p sep
+     * and a trunction symbol @p etc is define by the join iteration of either all the elements
+     * in the iterator pair if they are less than @p threshold, a limited number of elements, with
+     * middle elements represented by @p etc.
+     * defined by iterating through the ``n`` elements of the iterator pair, interleaving the
+     * separator in between the elements (thus appearing ``n-1`` times).
+     *
+     * @param first The iterator pointing to the begining of the range of elements to join.
+     * @param last The iterator pointing to past the end of the range of elements to join.
+     * @param func The unary function to apply to all elements (separation and truncation included).
+     * @param sep The separator used in between elements.
+     * @param etc The value used to represent the truncation of the elements.
+     * @param threshold Distance between the iterator pair beyond which truncation is preformed.
+     * @param show Number of elements to keep at the begining/end when truncation is preformed.
+     *
+     * @see join_for_each
+     */
     // TODO(C++20) Take an input range and return a range
     template <typename InputIt, typename UnaryFunction, typename Value>
     UnaryFunction join_trunc_for_each(InputIt first,
@@ -208,6 +244,18 @@ namespace mamba
         return func;
     }
 
+    /**
+     * Join elements of a range, with possible truncation.
+     *
+     * @param range Elements to join.
+     * @param sep The separator used in between elements.
+     * @param etc The value used to represent the truncation of the elements.
+     * @param threshold Distance between the iterator pair beyond which truncation is preformed.
+     * @param show Number of elements to keep at the begining/end when truncation is preformed.
+     *
+     * @see join_trunc_for_each
+     * @see join
+     */
     template <typename Range, typename Joiner = details::PlusEqual>
     auto join_trunc(Range const& range,
                     std::string_view sep = ", ",

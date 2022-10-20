@@ -180,8 +180,8 @@ set_env_command(CLI::App* com)
             if (!ctx.dry_run)
             {
                 auto& prefix = ctx.target_prefix;
-                // Remove env directory and all its content
-                fs::remove_all(env::expand_user(prefix));
+                // Remove env directory or rename it (e.g. if used)
+                remove_or_rename(env::expand_user(prefix));
 
                 EnvironmentsManager env_manager;
                 // Unregister environment

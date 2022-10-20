@@ -894,7 +894,10 @@ def test_self_update(backup_umamba, tmp_path, interpreter):
     mamba_exe = backup_umamba
 
     call_interpreter(
-        [f"{mamba_exe} self-update --version 0.25.1"], tmp_path, interpreter
+        ["micromamba self-update --version 0.25.1"],
+        tmp_path,
+        interpreter,
+        interactive=True,
     )
 
     assert Path(mamba_exe).exists()

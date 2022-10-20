@@ -33,6 +33,11 @@ namespace mamba
     public:
         DependencyInfo(const std::string& dependency);
 
+        DependencyInfo(DependencyInfo const&) = default;
+        DependencyInfo(DependencyInfo&&) noexcept = default;
+        DependencyInfo& operator=(DependencyInfo const&) = default;
+        DependencyInfo& operator=(DependencyInfo&&) noexcept = default;
+
         const std::string& name() const;
         const std::string& version() const;
         const std::string& build_string() const;
@@ -80,14 +85,29 @@ namespace mamba
         struct PackageNode : PackageInfo
         {
             std::optional<SolverRuleinfo> problem_type;
+
+            PackageNode(PackageNode const&) = default;
+            PackageNode(PackageNode&&) noexcept = default;
+            PackageNode& operator=(PackageNode const&) = default;
+            PackageNode& operator=(PackageNode&&) noexcept = default;
         };
         struct UnresolvedDependencyNode : DependencyInfo
         {
             static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP;
+
+            UnresolvedDependencyNode(UnresolvedDependencyNode const&) = default;
+            UnresolvedDependencyNode(UnresolvedDependencyNode&&) noexcept = default;
+            UnresolvedDependencyNode& operator=(UnresolvedDependencyNode const&) = default;
+            UnresolvedDependencyNode& operator=(UnresolvedDependencyNode&&) noexcept = default;
         };
         struct ConstraintNode : DependencyInfo
         {
             static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_CONSTRAINS;
+
+            ConstraintNode(ConstraintNode const&) = default;
+            ConstraintNode(ConstraintNode&&) noexcept = default;
+            ConstraintNode& operator=(ConstraintNode const&) = default;
+            ConstraintNode& operator=(ConstraintNode&&) noexcept = default;
         };
         using node_t
             = std::variant<RootNode, PackageNode, UnresolvedDependencyNode, ConstraintNode>;

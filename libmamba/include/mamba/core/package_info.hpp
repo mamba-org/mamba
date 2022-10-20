@@ -42,6 +42,11 @@ namespace mamba
                     const std::string build_string,
                     std::size_t build_number);
 
+        PackageInfo(PackageInfo const&) = default;
+        PackageInfo(PackageInfo&&) noexcept = default;
+        PackageInfo& operator=(PackageInfo const&) = default;
+        PackageInfo& operator=(PackageInfo&&) noexcept = default;
+
         nlohmann::json json_record() const;
         nlohmann::json json_signable() const;
         std::string str() const;

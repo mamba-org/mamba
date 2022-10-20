@@ -131,9 +131,10 @@ namespace mamba
         std::size_t size(const wchar_t* s);
         std::size_t size(const char c);
         template <class T>
-        inline std::size_t size(T const& s)
+        std::size_t size(T const& s)
         {
-            return s.size();
+            using std::size;
+            return size(s);
         }
     }
 
@@ -236,11 +237,17 @@ namespace mamba
         };
 
         auto const [show_head, show_tail] = show;
-        join_for_each_func(first, first + show_head, sep);
-        func(sep);
+        if (show_head > 0)
+        {
+            join_for_each_func(first, first + show_head, sep);
+            func(sep);
+        }
         func(etc);
-        func(sep);
-        join_for_each_func(last - show_tail, last, sep);
+        if (show_tail)
+        {
+            func(sep);
+            join_for_each_func(last - show_tail, last, sep);
+        }
         return func;
     }
 
@@ -279,13 +286,12 @@ namespace mamba
         return out;
     }
 
-
     void replace_all(std::string& data, const std::string& search, const std::string& replace);
 
     void replace_all(std::wstring& data, const std::wstring& search, const std::wstring& replace);
 
     template <typename T>
-    auto without_duplicates(std::vector<T> values)
+    std::vector<T> without_duplicates(std::vector<T> values)
     {
         const auto end_it = std::unique(values.begin(), values.end());
         values.erase(end_it, values.end());
@@ -297,7 +303,7 @@ namespace mamba
     std::string to_lower(const std::string_view& input);
 
     template <typename... Args>
-    inline std::string concat(const Args&... args)
+    std::string concat(const Args&... args)
     {
         std::string result;
         result.reserve((details::size(args) + ...));
@@ -306,7 +312,7 @@ namespace mamba
     }
 
     template <class B>
-    inline std::string hex_string(const B& buffer, std::size_t size)
+    std::string hex_string(const B& buffer, std::size_t size)
     {
         std::ostringstream oss;
         oss << std::hex;
@@ -318,7 +324,7 @@ namespace mamba
     }
 
     template <class B>
-    inline std::string hex_string(const B& buffer)
+    std::string hex_string(const B& buffer)
     {
         return hex_string(buffer, buffer.size());
     }

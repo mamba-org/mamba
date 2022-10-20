@@ -139,17 +139,12 @@ namespace mamba
             auto joined = join_trunc(to_join);
             testing::StaticAssertTypeEq<decltype(joined), decltype(to_join)::value_type>();
         }
-        {
-            auto joined = join_trunc(to_join, "-", "..", 5, { 2, 1 });
-            EXPECT_EQ(joined, "a-bc-d-e-f");
-        }
-        {
-            auto joined = join_trunc(to_join, ",", "..", 4, { 2, 1 });
-            EXPECT_EQ(joined, "a,bc,..,f");
-        }
-        {
-            EXPECT_EQ(join_trunc(std::vector<std::string>()), "");
-        }
+        EXPECT_EQ(join_trunc(to_join, "-", "..", 5, { 2, 1 }), "a-bc-d-e-f");
+        EXPECT_EQ(join_trunc(to_join, ",", "..", 4, { 2, 1 }), "a,bc,..,f");
+        EXPECT_EQ(join_trunc(to_join, ",", "..", 4, { 0, 1 }), "..,f");
+        EXPECT_EQ(join_trunc(to_join, ",", "..", 4, { 2, 0 }), "a,bc,..");
+        EXPECT_EQ(join_trunc(to_join, ",", "..", 4, { 0, 0 }), "..");
+        EXPECT_EQ(join_trunc(std::vector<std::string>()), "");
     }
 
     TEST(util_string, replace_all)

@@ -721,10 +721,6 @@ namespace mamba
      *  Implementation of CompressedProblemsGraph::NamedList  *
      **********************************************************/
 
-    template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;
-    template class CompressedProblemsGraph::NamedList<ProblemsGraph::UnresolvedDependencyNode>;
-    template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
-
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> value_type const&
     {
@@ -837,5 +833,10 @@ namespace mamba
         }
         Base::push_back(std::forward<T_>(e));
     }
+
+    template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;
+    template class CompressedProblemsGraph::NamedList<ProblemsGraph::UnresolvedDependencyNode>;
+    template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
+    template class CompressedProblemsGraph::NamedList<DependencyInfo>;
 
 }

@@ -20,13 +20,13 @@ set(TEST_SRCS
     test_output.cpp
     test_progress_bar.cpp
     test_shell_init.cpp
-    test_string_methods.cpp
     test_thread_utils.cpp
     test_transfer.cpp
     test_url.cpp
     test_validate.cpp
     test_virtual_packages.cpp
     test_util.cpp
+    test_util_string.cpp
     test_env_lockfile.cpp
     test_execution.cpp
     test_invoke.cpp

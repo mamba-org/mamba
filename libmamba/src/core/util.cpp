@@ -27,8 +27,6 @@ extern "C"
 #include <fcntl.h>
 }
 
-#include "mamba/core/shell_init.hpp"
-
 #endif
 
 #include <cerrno>
@@ -38,6 +36,9 @@ extern "C"
 #include <optional>
 #include <unordered_map>
 #include <memory>
+#include <cstring>
+#include <cwchar>
+
 #include <openssl/evp.h>
 
 #include "mamba/core/environment.hpp"
@@ -50,6 +51,8 @@ extern "C"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/shell_init.hpp"
+
 
 namespace mamba
 {
@@ -316,6 +319,22 @@ namespace mamba
         std::reverse(result.begin(), result.end());
 
         return result;
+    }
+
+    namespace details
+    {
+        std::size_t size(const char* s)
+        {
+            return std::strlen(s);
+        }
+        std::size_t size(const wchar_t* s)
+        {
+            return std::wcslen(s);
+        }
+        std::size_t size(const char /*c*/)
+        {
+            return 1;
+        }
     }
 
     template <class S>

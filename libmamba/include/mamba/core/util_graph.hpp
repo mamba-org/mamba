@@ -469,7 +469,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <typename BinaryFunc>
-    inline BinaryFunc DiGraphBase<N, G>::for_each_edge(BinaryFunc func) const
+    BinaryFunc DiGraphBase<N, G>::for_each_edge(BinaryFunc func) const
     {
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)

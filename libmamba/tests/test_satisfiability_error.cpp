@@ -568,6 +568,16 @@ namespace mamba
         }
     }
 
+    TEST_P(Problem, problem_tree_str)
+    {
+        auto [solver, pool] = std::invoke(GetParam());
+        auto const solved = solver.solve();
+        ASSERT_FALSE(solved);
+        auto const pbs = ProblemsGraph::from_solver(solver, pool);
+        auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        auto const str = problem_tree_str(cp_pbs);
+    }
+
     INSTANTIATE_TEST_SUITE_P(satifiability_error,
                              Problem,
                              testing::Values(create_basic_conflict,

@@ -900,4 +900,342 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
     template class CompressedProblemsGraph::NamedList<DependencyInfo>;
 
+    /****************************************
+     *  Implementation of problem_tree_str  *
+     ****************************************/
+
+    namespace
+    {
+        /**
+         * The depth first search (DFS) algorithm to explain problems.
+         *
+         * We need to reimplement a DFS algorithm instead of using the one provided by the one
+         * from DiGraph because we need a more complex exploration, including:
+         *   - Controling the order in which neighbors are explored;
+         *   - Dynamically adding and removing nodes;
+         *   - Executing some operations before and after a node is visited;
+         *   - Propagating information from the exploration of the subtree back to the current
+         *     node (e.g. the status).
+         *
+         * The goal of this class is to return a vector of ``TreeNode``, *i.e.* a ``node_id``
+         * enhanced with extra DFS information.
+         * This is not where string representation is done.
+         *
+         * A first step in mitigating these constraints would be to put more structure in the
+         * graph to start with.
+         * Currently a node ``pkg_a-0.1.0-build`` depends directly on other packages such as
+         *   - ``pkg_b-0.3.0-build``
+         *   - ``pkg_b-0.3.1-build``
+         *   - ``pkg_c-0.2.0-build``
+         * One and only one of ``pkg_b`` and ``pkg_c`` must be selected, which is why we have
+         * to first do a grouping by package name.
+         * A more structured approach would be to put an intermerdiary "dependency" node
+         * (currently represented by the edge data) that would serve as grouping packages with the
+         * same name together.
+         */
+        class TreeDFS
+        {
+        public:
+            using node_id = CompressedProblemsGraph::node_id;
+            using graph_t = CompressedProblemsGraph::graph_t;
+
+            /**
+             * Describes how a given graph node appears in the DFS.
+             */
+            struct TreeNode
+            {
+                enum struct Type
+                {
+                    /** A single node with no ancestors or successors. */
+                    standalone,
+                    /** A root node with no ancestors and at least one successor. */
+                    root,
+                    /** A leaf node with at least one ancestors and no successor. */
+                    leaf,
+                    /** A node with at least one ancestor that has already been visited */
+                    visited,
+                    /** Start dependency split (multiple edges with same dep_id). */
+                    split,
+                    /** A regular node with at least one ancestor and at least one successor. */
+                    diving
+                };
+
+                /**
+                 * Keep track of whether a node is the last visited among its sibling.
+                 */
+                enum struct SiblingNumber : bool
+                {
+                    not_last = 0,
+                    last = 1,
+                };
+
+                /** Progagate a status up the tree, such as whether the package is installable. */
+                using Status = bool;
+
+                node_id id;
+                node_id id_from;
+                Type type;
+                Type type_from;
+                Status status;
+                std::vector<SiblingNumber> ancestry;
+
+                auto depth() const -> std::size_t;
+            };
+
+        private:
+            using Status = TreeNode::Status;
+            using SiblingNumber = TreeNode::SiblingNumber;
+            using TreeNodeList = std::vector<TreeNode>;
+            using TreeNodeIter = typename TreeNodeList::iterator;
+
+            graph_t const& m_graph;
+            std::vector<std::optional<Status>> m_node_visited;
+
+            /**
+             * Initialize search data and capture reference to graph.
+             */
+            TreeDFS(graph_t const& graph);
+
+            /**
+             * Get the type of a node depending on the exploration.
+             */
+            auto node_type(node_id id) const -> TreeNode::Type;
+
+            /**
+             * The successors of a node, grouped by same dependency name (edge data).
+             */
+            auto successors_per_dep(node_id from);
+
+            /**
+             * Visit a "split" node.
+             *
+             * A node that aims at grouping versions and builds of a given dependency.
+             * Exactly the missing information that should be added to the graph as a proper node.
+             */
+            auto visit_split(std::vector<node_id> const& children_ids,
+                             SiblingNumber position,
+                             TreeNode const& from,
+                             TreeNodeIter out) -> std::pair<TreeNodeIter, Status>;
+            /**
+             * Visit a node from another node.
+             */
+            auto visit_node(node_id id,
+                            SiblingNumber position,
+                            TreeNode const& from,
+                            TreeNodeIter out) -> std::pair<TreeNodeIter, Status>;
+            /**
+             * Visit the first node in the graph.
+             */
+            auto visit_node(node_id id, TreeNodeIter out) -> std::pair<TreeNodeIter, Status>;
+            /**
+             * Code reuse.
+             */
+            auto visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
+                -> std::pair<TreeNodeIter, Status>;
+
+
+        public:
+            /**
+             * Execute DFS and return the vector of ``TreeNode``.
+             */
+            static auto visit(CompressedProblemsGraph const& pbs) -> std::vector<TreeNode>;
+        };
+
+        /********************************
+         *  Implementation of Tree DFS  *
+         ********************************/
+
+        auto TreeDFS::TreeNode::depth() const -> std::size_t
+        {
+            return ancestry.size();
+        }
+
+        TreeDFS::TreeDFS(graph_t const& graph)
+            : m_graph(graph)
+            , m_node_visited(graph.number_of_nodes(), std::nullopt)
+        {
+        }
+
+        auto TreeDFS::node_type(node_id id) const -> TreeNode::Type
+        {
+            bool const has_predecessors = m_graph.predecessors(id).size() > 0;
+            bool const has_successors = m_graph.successors(id).size() > 0;
+            bool const is_visited = m_node_visited[id].has_value();
+            // We purposefully check if the node is a leaf/standalone before checking if it
+            // is visited because showing a single  node again is more intelligible than
+            // refering to another one.
+            if (!has_successors)
+            {
+                return has_predecessors ? TreeNode::Type::leaf : TreeNode::Type::standalone;
+            }
+            else if (is_visited)
+            {
+                return TreeNode::Type::visited;
+            }
+            else
+            {
+                return has_predecessors ? TreeNode::Type::diving : TreeNode::Type::root;
+            }
+        }
+
+        auto TreeDFS::successors_per_dep(node_id from)
+        {
+            auto out = std::map<std::string_view, std::vector<node_id>>();
+            for (auto to : m_graph.successors(from))
+            {
+                out[m_graph.edge(from, to).name()].push_back(to);
+            }
+            return out;
+        }
+
+        /**
+         * Specific concatenation for a const vector and a value.
+         */
+        template <typename T, typename U>
+        auto concat(std::vector<T> const& v, U&& x) -> std::vector<T>
+        {
+            auto out = std::vector<T>();
+            out.reserve(v.size() + 1);
+            out.insert(out.begin(), v.begin(), v.end());
+            out.emplace_back(std::forward<U>(x));
+            return out;
+        }
+
+        auto TreeDFS::visit_split(std::vector<node_id> const& children_ids,
+                                  SiblingNumber position,
+                                  TreeNode const& from,
+                                  TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
+        {
+            // TODO sort children
+            auto& ongoing = *(out++);
+            // There is no node_id for this dynamically created node, however we still need
+            // a node_id to later retrieve the dependency from the edge data so we put th
+            assert(children_ids.size() > 0);
+            ongoing = TreeNode{
+                /* id= */ children_ids[0],
+                /* id_from= */ from.id,
+                /* type= */ TreeNode::Type::split,
+                /* type_from= */ from.type,
+                /* status= */ false,  // Placeholder updated
+                /* ancestry= */ concat(from.ancestry, position),
+            };
+
+            // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
+            std::size_t i = 0;
+            for (node_id child_id : children_ids)
+            {
+                Status status;
+                auto const child_pos
+                    = i == children_ids.size() - 1 ? SiblingNumber::last : SiblingNumber::not_last;
+                std::tie(out, status) = visit_node(child_id, child_pos, ongoing, out);
+                // If there are any valid option in the split, the split is iself valid.
+                ongoing.status |= status;
+                ++i;
+            }
+
+            // // TODO
+            // All children are visited leaves, no grand-children.
+            // We dynamically delete all children and mark the whole thing as visited.
+
+            return { out, ongoing.status };
+        }
+
+        auto TreeDFS::visit_node(node_id root_id, TreeNodeIter out)
+            -> std::pair<TreeNodeIter, Status>
+        {
+            auto& ongoing = *(out++);
+            ongoing = TreeNode{
+                /* id= */ root_id,
+                /* id_from= */ root_id,
+                /* type= */ node_type(root_id),
+                /* type_from= */ node_type(root_id),
+                /* status= */ {},  // Placeholder updated
+                /* ancestry= */ {},
+            };
+
+            auto out_status = visit_node_impl(root_id, ongoing, out);
+            ongoing.status = out_status.second;
+            return out_status;
+        }
+
+        auto TreeDFS::visit_node(node_id id,
+                                 SiblingNumber position,
+                                 TreeNode const& from,
+                                 TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
+        {
+            auto& ongoing = *(out++);
+            ongoing = TreeNode{
+                /* id= */ id,
+                /* id_from= */ from.id,
+                /* type= */ node_type(id),
+                /* type_from= */ from.type,
+                /* status= */ {},  // Placeholder updated
+                /* ancestry= */ concat(from.ancestry, position),
+            };
+
+            auto out_status = visit_node_impl(id, ongoing, out);
+            ongoing.status = out_status.second;
+            return out_status;
+        }
+
+
+        auto TreeDFS::visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
+            -> std::pair<TreeNodeIter, Status>
+        {
+            // TODO sort keys (dependencies)
+            auto const successors = successors_per_dep(id);
+
+            if (auto const status = m_node_visited[id]; status.has_value())
+            {
+                return { out, status.value() };
+            }
+            if (successors.size() == 0)
+            {
+                auto const status = Status{};  // TODO leaf_status()
+                m_node_visited[id] = status;
+                return { out, status };
+            }
+
+            Status status = true;
+            // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
+            std::size_t i = 0;
+            for (auto const& [_, children] : successors)
+            {
+                auto const children_pos
+                    = i == successors.size() - 1 ? SiblingNumber::last : SiblingNumber::not_last;
+                Status child_status;
+                if (children.size() > 1)
+                {
+                    std::tie(out, child_status) = visit_split(children, children_pos, ongoing, out);
+                }
+                else
+                {
+                    std::tie(out, child_status)
+                        = visit_node(children[0], children_pos, ongoing, out);
+                }
+                // All children statuses need to be valid for a parent to be valid.
+                status &= child_status;
+                ++i;
+            }
+
+            m_node_visited[id] = status;
+            return { out, status };
+        }
+
+        auto TreeDFS::visit(CompressedProblemsGraph const& pbs) -> std::vector<TreeNode>
+        {
+            auto dfs = TreeDFS(pbs.graph());
+            // Using the number of nodes as an upper bound on the number of split nodes inserted
+            auto path = std::vector<TreeNode>(2 * pbs.graph().number_of_nodes());
+            auto [out, _] = dfs.visit_node(pbs.root_node(), path.begin());
+            path.resize(out - path.begin());
+            return path;
+        }
+    }
+
+    std::string problem_tree_str(CompressedProblemsGraph const& pbs)
+    {
+        auto path = TreeDFS::visit(pbs);
+        return {};
+    }
 }

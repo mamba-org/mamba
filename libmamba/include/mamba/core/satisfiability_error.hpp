@@ -230,6 +230,8 @@ namespace mamba
         node_id m_root_node;
     };
 
+    std::string problem_tree_str(CompressedProblemsGraph const& pbs);
+
     /************************************
      *  Implementation of conflict_map  *
      ************************************/

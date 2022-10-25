@@ -13,6 +13,7 @@
 #include <functional>
 #include <stdexcept>
 #include <tuple>
+#include <type_traits>
 
 #include <solv/pool.h>
 
@@ -522,24 +523,40 @@ namespace mamba
         }
 
         /**
+         * Detect if a type has a ``name`` member (function).
+         */
+        template <class T, class = void>
+        struct has_name : std::false_type
+        {
+        };
+        template <class T>
+        struct has_name<T, std::void_t<decltype(std::invoke(&T::name, std::declval<T>()))>>
+            : std::true_type
+        {
+        };
+        template <typename T>
+        inline constexpr bool has_name_v = has_name<T>::value;
+
+        template <typename T, typename Str>
+        decltype(auto) name_or(T const& obj, Str val)
+        {
+            if constexpr (has_name_v<T>)
+            {
+                return std::invoke(&T::name, obj);
+            }
+            else
+            {
+                return val;
+            }
+        }
+
+        /**
          * The name of a ProblemsGraph::node_t, used to avoid merging.
          */
         std::string_view node_name(ProblemsGraph::node_t const& node)
         {
-            return std::visit(
-                [](auto const& n) -> std::string_view
-                {
-                    using Node = std::remove_const_t<std::remove_reference_t<decltype(n)>>;
-                    if constexpr (std::is_same_v<Node, ProblemsGraph::RootNode>)
-                    {
-                        return "";
-                    }
-                    else
-                    {
-                        return std::invoke(&Node::name, n);
-                    }
-                },
-                node);
+            return std::visit([](auto const& n) -> std::string_view { return name_or(n, ""); },
+                              node);
         }
 
         /**

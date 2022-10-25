@@ -861,7 +861,10 @@ namespace mamba
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc() const -> std::string
+    auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
+                                                                  std::string_view etc
+
+    ) const -> std::string
     {
         auto versions = std::vector<std::string>(size());
         auto invoke_version = [](auto&& v) -> decltype(auto)
@@ -871,11 +874,13 @@ namespace mamba
         };
         // TODO(C++20) *this | std::ranges::transform(invoke_version)
         std::transform(begin(), end(), versions.begin(), invoke_version);
-        return join_trunc(versions);
+        return join_trunc(versions, sep, etc);
     }
 
     template <typename T, typename A>
-    auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc() const -> std::string
+    auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
+                                                                       std::string_view etc) const
+        -> std::string
     {
         auto builds = std::vector<std::string>(size());
         auto invoke_build_string = [](auto&& v) -> decltype(auto)
@@ -885,7 +890,7 @@ namespace mamba
         };
         // TODO(C++20) *this | std::ranges::transform(invoke_buid_string)
         std::transform(begin(), end(), builds.begin(), invoke_build_string);
-        return join_trunc(builds);
+        return join_trunc(builds, sep, etc);
     }
 
     template <typename T, typename A>

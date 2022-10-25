@@ -42,8 +42,11 @@ main(int argc, char** argv)
             mamba::Context::instance().lock_timeout = timeout;
             try
             {
-                auto lock = mamba::LockFile::create_lock(path);
-                std::cout << 1;
+                auto lock = mamba::LockFile(path);
+                if (lock)
+                    std::cout << 1;
+                else
+                    std::cout << 0;
             }
             catch (...)
             {

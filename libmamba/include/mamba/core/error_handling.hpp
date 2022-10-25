@@ -27,6 +27,7 @@ namespace mamba
         env_lockfile_parsing_failed,
         openssl_failed,
         internal_failure,
+        lockfile_failure,
     };
 
     class mamba_error : public std::runtime_error

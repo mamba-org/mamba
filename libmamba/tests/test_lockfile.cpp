@@ -49,32 +49,62 @@ namespace mamba
             }
         };
 
+
+        TEST_F(LockDirTest, basics)
+        {
+            mamba::LockFile lock{ tempdir_path };
+            EXPECT_TRUE(lock);
+            {
+                auto new_lock = std::move(lock);
+                EXPECT_FALSE(lock);
+                EXPECT_TRUE(new_lock);
+            }
+            EXPECT_FALSE(lock);
+        }
+
+
         TEST_F(LockDirTest, disable_locking)
         {
             {
+                auto _ = on_scope_exit([] { mamba::Context::instance().use_lockfiles = true; });
                 mamba::Context::instance().use_lockfiles = false;
-                auto lock = LockFile::create_lock(tempdir_path);
-                EXPECT_TRUE(lock == nullptr);
+                auto lock = LockFile(tempdir_path);
+                EXPECT_FALSE(lock);
+            }
+            ASSERT_TRUE(mamba::Context::instance().use_lockfiles);
+            {
+                ASSERT_TRUE(mamba::Context::instance().use_lockfiles);
+                auto lock = LockFile(tempdir_path);
+                EXPECT_TRUE(lock);
             }
         }
 
         TEST_F(LockDirTest, same_pid)
         {
             {
-                auto lock = LockFile::create_lock(tempdir_path);
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                auto lock = LockFile(tempdir_path);
+                EXPECT_TRUE(lock.is_locked());
+                EXPECT_EQ(lock.count_lock_owners(), 1);
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
-                EXPECT_THROW(LockFile::create_lock(tempdir_path), std::logic_error);
+                {
+                    auto other_lock = LockFile(tempdir_path);
+                    EXPECT_TRUE(other_lock.is_locked());
+                    EXPECT_EQ(other_lock.count_lock_owners(), 2);
+                    EXPECT_EQ(lock.count_lock_owners(), 2);
+                }
+
+                EXPECT_EQ(lock.count_lock_owners(), 1);
 
                 // check the first lock is still locked
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
             }
             EXPECT_FALSE(fs::exists(tempdir_path / (tempdir_path.filename().string() + ".lock")));
 
             // we can still re-lock afterwards
             {
-                auto lock = LockFile::create_lock(tempdir_path);
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                auto lock = LockFile(tempdir_path);
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
             }
         }
 
@@ -91,14 +121,14 @@ namespace mamba
 #endif
 
             {
-                auto lock = LockFile::create_lock(tempdir_path);
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                auto lock = LockFile(tempdir_path);
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
                 // Check lock status
-                EXPECT_TRUE(mamba::LockFile::is_locked(*lock));
+                EXPECT_TRUE(mamba::LockFile::is_locked(lock));
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock->lockfile_path().string() };
+                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -177,13 +207,22 @@ namespace mamba
         TEST_F(LockFileTest, same_pid)
         {
             {
-                auto lock = LockFile::create_lock(tempfile_path);
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                LockFile lock{ tempfile_path };
+                EXPECT_TRUE(lock.is_locked());
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
+                EXPECT_EQ(lock.count_lock_owners(), 1);
 
-                EXPECT_THROW(LockFile::create_lock(tempfile_path), std::logic_error);
+                {
+                    LockFile other_lock{ tempfile_path };
+                    EXPECT_TRUE(other_lock.is_locked());
+                    EXPECT_EQ(other_lock.count_lock_owners(), 2);
+                    EXPECT_EQ(lock.count_lock_owners(), 2);
+                }
+
+                EXPECT_EQ(lock.count_lock_owners(), 1);
 
                 // check the first lock is still locked
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
             }
             EXPECT_FALSE(fs::exists(tempfile_path.string() + ".lock"));
         }
@@ -201,14 +240,14 @@ namespace mamba
 #endif
             {
                 // Create a lock
-                auto lock = LockFile::create_lock(tempfile_path);
-                EXPECT_TRUE(fs::exists(lock->lockfile_path()));
+                auto lock = LockFile(tempfile_path);
+                EXPECT_TRUE(fs::exists(lock.lockfile_path()));
 
                 // Check lock status from current PID
-                EXPECT_TRUE(mamba::LockFile::is_locked(*lock));
+                EXPECT_TRUE(mamba::LockFile::is_locked(lock));
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock->lockfile_path().string() };
+                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(

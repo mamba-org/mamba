@@ -317,7 +317,7 @@ namespace mamba
 
         if (is_solv)
         {
-            auto lock = LockFile::try_lock(m_solv_file);
+            auto lock = LockFile(m_solv_file);
 #ifdef _WIN32
             auto fp = _wfopen(m_solv_file.wstring().c_str(), L"rb");
 #else
@@ -393,7 +393,7 @@ namespace mamba
             fclose(fp);
         }
 
-        auto lock = LockFile::try_lock(m_json_file);
+        auto lock = LockFile(m_json_file);
 #ifdef _WIN32
         auto fp = _wfopen(m_json_file.wstring().c_str(), L"r");
 #else

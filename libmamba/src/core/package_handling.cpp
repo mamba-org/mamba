@@ -305,7 +305,7 @@ namespace mamba
         archive_write_disk_set_options(ext, flags);
         archive_write_disk_set_standard_lookup(ext);
 
-        auto lock = LockFile::try_lock(file);
+        auto lock = LockFile(file);
         r = archive_read_open_filename(a, file.string().c_str(), 10240);
 
         if (r != ARCHIVE_OK)

@@ -3,6 +3,21 @@
 Troubleshooting
 ===============
 
+Mamba should be installed to the ``base`` environment
+-----------------------------------------------------
+
+Installing Mamba to an environment other than ``base`` is not supported. Mamba must be installed in the ``base`` environment alongside Conda, and no other packages may be installed into ``base``.
+
+No other packages should be installed to ``base``
+-------------------------------------------------
+
+Installing packages other than Conda and Mamba into the ``base`` environment is not supported. Mamba must live in the same environment as Conda, and Conda does not support having packages other than Conda itself and its dependencies in ``base``.
+
+Mamba broken after Conda update
+-------------------------------
+
+Mamba sometimes stops working if you update to a very recent version of Conda. Please downgrade to the latest working a version and file a bug report in the Mamba bug tracker if the problem has not been reported yet.
+
 Windows long paths
 ------------------
 

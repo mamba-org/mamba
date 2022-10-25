@@ -56,6 +56,8 @@ if (NOT ${BUILD_LOG_LEVEL} MATCHES "^(TRACE|DEBUG|INFO|WARN|ERROR|CRITICAL|OFF)$
     message(FATAL_ERROR "Invalid log level: ${BUILD_LOG_LEVEL}, should be one of { TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF }")
 endif ()
 
+add_definitions("-DSPDLOG_FMT_EXTERNAL")
+
 if (BUILD_STATIC_DEPS)
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${BUILD_LOG_LEVEL}")
 endif ()

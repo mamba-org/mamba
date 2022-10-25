@@ -21,6 +21,7 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/activation.hpp"
+#include "mamba/core/environments_manager.hpp"
 
 #include "termcolor/termcolor.hpp"
 
@@ -629,6 +630,10 @@ namespace mamba
         void create_target_directory(const fs::u8path prefix)
         {
             path::touch(prefix / "conda-meta" / "history", true);
+
+            // Register the environment
+            EnvironmentsManager env_manager;
+            env_manager.register_env(prefix);
         }
 
         void file_specs_hook(std::vector<std::string>& file_specs)

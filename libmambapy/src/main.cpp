@@ -8,11 +8,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "nlohmann/json.hpp"
-
-// Make sure to use external fmt if desired
-#include "spdlog/tweakme.h"
-#include "spdlog/fmt/fmt.h"
+#include <nlohmann/json.hpp>
+#include <fmt/format.h>
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"

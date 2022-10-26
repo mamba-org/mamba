@@ -3,6 +3,8 @@ channels:
   - conda-forge
 dependencies:
   - yaml-cpp-static
+  - spdlog
+  - fmt
   # we pin an older curl build for darwin-ssl support
   - libcurl         # sel(linux)
   - libcurl-static  # sel(linux)

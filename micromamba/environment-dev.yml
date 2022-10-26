@@ -18,11 +18,14 @@ dependencies:
   - yaml-cpp
   - termcolor-cpp
   - cli11 >=2.2
-  - pytest
+  # Pin Pytest while pytest-xprocess relies on removed features
+  # https://github.com/pytest-dev/pytest-xprocess/issues/110
+  - pytest <7.2.0
   - pytest-asyncio
   - pytest-lazy-fixture
   - pytest-xprocess
   - pyyaml
   - spdlog
+  - fmt
   - sel(win): winreg
   - sel(win): pywin32

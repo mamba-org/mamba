@@ -120,11 +120,6 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
           if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: Apply libmamba.patch
-        run: |
-          cd libmamba
-          patch < ../build/micromamba-feedstock/recipe/libmamba.patch
-        shell: bash
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

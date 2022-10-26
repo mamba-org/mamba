@@ -11,12 +11,7 @@
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
-#include "spdlog/spdlog.h"
-#ifdef SPDLOG_FMT_EXTERNAL
 #include <fmt/format.h>
-#else
-#include <spdlog/fmt/bundled/format.h>
-#endif
 
 #include "mamba/core/pool.hpp"
 #include "mamba/core/solver.hpp"

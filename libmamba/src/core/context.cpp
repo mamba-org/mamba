@@ -4,6 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <termcolor/termcolor.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/pattern_formatter.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
@@ -11,11 +16,6 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/execution.hpp"
-
-#include "termcolor/termcolor.hpp"
-
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
 
 namespace mamba
 {

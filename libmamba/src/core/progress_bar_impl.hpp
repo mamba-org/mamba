@@ -7,13 +7,6 @@
 #ifndef MAMBA_CORE_PROGRESS_BAR_IMPL_HPP
 #define MAMBA_CORE_PROGRESS_BAR_IMPL_HPP
 
-#include "spdlog/spdlog.h"
-#ifdef SPDLOG_FMT_EXTERNAL
-#include "fmt/color.h"
-#else
-#include "spdlog/fmt/bundled/color.h"
-#endif
-
 #include <iosfwd>
 #include <mutex>
 #include <atomic>
@@ -21,6 +14,9 @@
 #include <string_view>
 #include <vector>
 #include <map>
+
+#include <spdlog/spdlog.h>
+#include <fmt/color.h>
 
 #include "mamba/core/progress_bar.hpp"
 

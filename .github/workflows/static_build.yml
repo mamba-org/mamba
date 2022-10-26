@@ -186,12 +186,20 @@ jobs:
           repository: pavelzw/micromamba-nightlies
       - run: ls -la
       - run: echo "Hello, world!" >> artifact.txt
-      - name: Tag repository
-        id: tag_version
-        uses: anothrNick/github-tag-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CUSTOM_TAG: ${{ github.sha }}
+#      - name: Tag repository
+#        id: tag_version
+#        uses: anothrNick/github-tag-action@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          CUSTOM_TAG: ${{ github.sha }}
+      - name: package-version-to-git-tag
+        uses: pkgdeps/git-tag-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_repo: pavelzw/micromamba-nightlies
+          git_commit_sha: e606818dfc0f9ce7d1b0fccdabcfa6822d41cf98
+          version: ${{ github.sha }}
+          git_tag_prefix: ''
 
       - name: Create release
         uses: softprops/action-gh-release@v1

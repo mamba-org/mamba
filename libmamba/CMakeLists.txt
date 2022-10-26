@@ -379,7 +379,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${LIBXML2_LIBRARY}
                 ${ICONV_LIBRARY}
                 ${CHARSET_LIBRARY}
-                libzstd
+                zstd::libzstd_static
                 ${LZ4_LIBRARY}
                 ${LZO2_LIBRARY}
                 ${BZIP2_LIBRARIES}

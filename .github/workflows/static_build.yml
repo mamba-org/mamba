@@ -198,8 +198,8 @@ jobs:
           github_token: ${{ secrets.MICROMAMBA_NIGHTLIES_TOKEN }}
           github_repo: pavelzw/micromamba-nightlies
           git_commit_sha: e606818dfc0f9ce7d1b0fccdabcfa6822d41cf98
-          version: sha-${{ github.sha }}
-          git_tag_prefix: ''
+          version: ${{ github.sha }}
+          git_tag_prefix: 'sha-'
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -211,4 +211,4 @@ jobs:
             artifact.txt
           repository: pavelzw/micromamba-nightlies
           token: ${{ secrets.MICROMAMBA_NIGHTLIES_TOKEN }}
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          tag_name: 'sha-${{ steps.tag_version.outputs.new_tag }}'

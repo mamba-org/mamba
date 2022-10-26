@@ -178,6 +178,7 @@ jobs:
 
   create_nightly_release:
     name: "Create nightly release"
+    runs-on: ubuntu-latest
 #    depends-on: [conda-build, micromamba-full-static-win]
     steps:
       - run: echo "Hello, world!" >> artifact.txt

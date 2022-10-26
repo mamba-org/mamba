@@ -35,7 +35,7 @@ jobs:
           path: micromamba-feedstock
       - name: Patch micromamba-feedstock
         run: |
-          sed -i -E -z 's/- spdlog/- spdlog <=1.10=*0/g' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' -E 's/- spdlog/- spdlog <=1.10=*0/g' micromamba-feedstock/recipe/meta.yaml
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'linux' }}

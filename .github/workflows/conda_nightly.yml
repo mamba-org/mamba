@@ -1,0 +1,107 @@
+name: Conda nightly tests
+
+on:
+  schedule:
+    - cron: '0 10 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -el {0}
+
+jobs:
+  conda_nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: mamba
+      - name: create mamba + conda build environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-name: build_env
+          environment-file: mamba/mamba/environment-dev.yml
+          channels: conda-forge
+          extra-specs: |
+            python=3.10
+            boa
+
+      # Build and install Conda nightly
+      - uses: actions/checkout@v3
+        with:
+          repository: conda/conda
+          path: conda
+          fetch-depth: 0
+      - name: Patch Conda recipe for boa
+        run: |
+          cd conda
+          git rm -r tests
+          GIT_AUTHOR_NAME=hack GIT_COMMITTER_NAME=hack GIT_COMMITTER_EMAIL=hack@hack git commit -am "Workaround for boa not supporting --no-test"
+          conda mambabuild --python 3.10 --no-copy-test-source-files --no-test . 2>&1 | tee build-log
+      - run: micromamba install --no-channel-priority $(grep -Eo '[^ ]+/conda-.+.tar.bz2' conda/build-log)
+
+      # Build Mamba
+      - uses: hendrikmuhs/ccache-action@main
+        with:
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}
+          restore-keys: |
+            libmamba_static-${{ matrix.os }}
+      - name: build libmamba Python bindings
+        run: |
+          cd mamba
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+                   -DBUILD_LIBMAMBAPY=ON \
+                   -DBUILD_LIBMAMBA=ON \
+                   -DBUILD_SHARED=ON \
+                   -DBUILD_MAMBA_PACKAGE=ON \
+                   -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                   -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                   -GNinja
+          ninja
+          ninja install
+      - name: install libmambapy
+        run: |
+          cd mamba
+          pip install -e ./libmambapy/ --no-deps
+      - name: build cache statistics
+        run: sccache --show-stats
+      - name: install mamba
+        run: |
+          cd mamba
+          pip install ./mamba[test] --no-deps
+
+      # Test Mamba with Conda nightly
+      - name: run mamba tests suite
+        run: |
+          cd mamba
+          pytest -v --capture=tee-sys mamba/tests
+      - name: run mamba create/update tests
+        run: |
+          cd mamba
+          mamba create -n test_env xtensor -c conda-forge -y
+          mamba env create -f mamba/tests/test_env.yml
+          mamba env update -f mamba/tests/update_env.yml
+
+      - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
+        if: failure()
+        with:
+          filename: mamba/.github/workflows/bot_issue_template.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Do not cache temporary envs with 'cache-env: true'
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld

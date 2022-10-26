@@ -17,7 +17,7 @@ dependencies:
   - yaml-cpp
   - termcolor-cpp
   - cli11 >=2.2
-  - spdlog
+  - spdlog <=1.10=*0
   - pybind11
   - pybind11-stubgen
   - pytest

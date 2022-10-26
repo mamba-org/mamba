@@ -23,6 +23,6 @@ dependencies:
   - pytest-lazy-fixture
   - pytest-xprocess
   - pyyaml
-  - spdlog
+  - spdlog <=1.10=*0
   - sel(win): winreg
   - sel(win): pywin32

@@ -11,7 +11,7 @@ dependencies:
   - cpp-expected
   - cpp-filesystem
   - nlohmann_json
-  - spdlog
+  - spdlog <=1.10=*0
   - termcolor-cpp
   - zlib
   - winreg

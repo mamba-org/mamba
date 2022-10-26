@@ -369,8 +369,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_package(tl-expected REQUIRED)
 
             find_library(LIBXML2_LIBRARY NAMES libxml2)
-            find_library(ICONV_LIBRARY NAMES libiconv)
-            find_library(CHARSET_LIBRARY NAMES libcharset)
+            find_library(ICONV_LIBRARY NAMES libiconv iconv)
+            find_library(CHARSET_LIBRARY NAMES libcharset charset)
             message("Found: ${LIBXML2_LIBRARY} ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
 
             target_link_libraries(${target_name} PUBLIC

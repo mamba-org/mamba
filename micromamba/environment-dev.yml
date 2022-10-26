@@ -21,6 +21,9 @@ dependencies:
   - pytest
   - pytest-asyncio
   - pytest-lazy-fixture
+  # explicitly require `py` until this issue is closed:
+  # https://github.com/pytest-dev/pytest-xprocess/issues/110
+  - py
   - pytest-xprocess
   - pyyaml
   - spdlog

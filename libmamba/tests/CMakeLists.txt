@@ -13,7 +13,6 @@ set(TEST_SRCS
     test_cpp.cpp
     test_env_file_reading.cpp
     test_environments_manager.cpp
-    test_graph.cpp
     history_test/test_history.cpp
     test_lockfile.cpp
     test_pinning.cpp
@@ -27,6 +26,7 @@ set(TEST_SRCS
     test_virtual_packages.cpp
     test_util.cpp
     test_util_string.cpp
+    test_util_graph.cpp
     test_env_lockfile.cpp
     test_execution.cpp
     test_invoke.cpp

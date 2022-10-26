@@ -344,6 +344,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_package(CURL CONFIG REQUIRED)
             find_package(yaml-cpp CONFIG REQUIRED)
             find_package(nlohmann_json CONFIG REQUIRED)
+            find_package(spdlog CONFIG REQUIRED)
+            find_package(fmt REQUIRED)
             find_package(LibLZMA CONFIG REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
@@ -374,6 +376,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
                 nlohmann_json::nlohmann_json
+                spdlog::spdlog
+                fmt::fmt
                 ${YAML_CPP_LIBRARIES}
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
@@ -383,7 +387,9 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 tl::expected
             )
 
-            add_definitions("-DLIBARCHIVE_STATIC -DCURL_STATICLIB -DSOLV_BUILD_STATIC")
+            add_definitions(
+              -DLIBARCHIVE_STATIC -DCURL_STATICLIB -DSOLV_BUILD_STATIC
+            )
             set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
             include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static/include/)
@@ -399,6 +405,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
         find_package(tl-expected REQUIRED)
+        find_package(spdlog CONFIG REQUIRED)
+        find_package(fmt REQUIRED)
 
         set(LIBMAMBA_LIBRARIES_DEPS
             ${LIBSOLV_LIBRARIES}
@@ -410,6 +418,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             reproc++
             reproc
             tl::expected
+            spdlog::spdlog
+            fmt::fmt
         )
 
         target_link_libraries(${target_name} PUBLIC

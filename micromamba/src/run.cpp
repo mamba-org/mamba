@@ -2,15 +2,10 @@
 #include <exception>
 #include <thread>
 
-#include "spdlog/spdlog.h"
-#ifdef SPDLOG_FMT_EXTERNAL
-#include "fmt/color.h"
-#else
-#include "spdlog/fmt/bundled/color.h"
-#endif
-
+#include <spdlog/spdlog.h>
+#include <fmt/color.h>
 #include <reproc++/run.hpp>
-#include "common_options.hpp"
+#include <nlohmann/json.hpp>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
@@ -19,7 +14,7 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/error_handling.hpp"
 
-#include <nlohmann/json.hpp>
+#include "common_options.hpp"
 
 #ifndef _WIN32
 extern "C"

@@ -22,18 +22,9 @@ pybind11_add_module(bindings
     src/main.cpp
     longpath.manifest
 )
+
 target_link_libraries(bindings PUBLIC pybind11::pybind11 libmamba)
 set_property(TARGET bindings PROPERTY CXX_STANDARD 17)
-
-# Check spdlog C header for external fmt configuration.
-find_file(SPDLOG_TWEAK_H NAMES spdlog/tweakme.h)
-if(SPDLOG_TWEAK_H)
-    file(READ ${SPDLOG_TWEAK_H} SPDLOG_TWEAK_H_STRING)
-    if("${SPDLOG_TWEAK_H_STRING}" MATCHES "\n *#define *SPDLOG_FMT_EXTERNAL *")
-        find_package(fmt REQUIRED)
-        target_link_libraries(bindings PRIVATE fmt::fmt)
-    endif()
-endif()
 
 install(TARGETS bindings
         LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/libmambapy/)

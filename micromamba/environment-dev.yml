@@ -24,5 +24,6 @@ dependencies:
   - pytest-xprocess
   - pyyaml
   - spdlog
+  - fmt
   - sel(win): winreg
   - sel(win): pywin32

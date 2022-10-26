@@ -394,7 +394,7 @@ namespace mamba
 
     auto create_jupyterlab()
     {
-        return create_conda_forge({ "jupyterlab>3", "openssl=3.*" });
+        return create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
     }
 
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>

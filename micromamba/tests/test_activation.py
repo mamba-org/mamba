@@ -889,15 +889,27 @@ def get_self_update_interpreters():
 
 
 @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
-def test_self_update(backup_umamba, tmp_path, interpreter):
+def test_self_update(backup_umamba, tmp_path, tmp_root_prefix, interpreter):
 
     mamba_exe = backup_umamba
 
+    shell_init = [f"{mamba_exe} shell init -s {interpreter} -p {tmp_root_prefix}"]
+    call_interpreter(shell_init, tmp_path, interpreter)
+
+    extra_start_code = []
+    if interpreter == "powershell":
+        extra_start_code = [
+            f'$Env:MAMBA_EXE="{mamba_exe}"',
+            f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
+        ]
+    elif interpreter == "bash" and plat == "win":
+        extra_start_code = ["source ~/.bash_profile"]
+
     call_interpreter(
-        ["micromamba self-update --version 0.25.1"],
+        extra_start_code + ["micromamba self-update --version 0.25.1"],
         tmp_path,
         interpreter,
-        interactive=True,
+        interactive=False,
     )
 
     assert Path(mamba_exe).exists()

@@ -34,7 +34,6 @@ jobs:
           repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       - name: Patch micromamba-feedstock
-        if: ${{ matrix.platform == 'linux' }}
         run: |
           sed -i -E -z 's/- spdlog/- spdlog <=1.10=*0/g' micromamba-feedstock/recipe/meta.yaml
       # replace the url: ... until the libmamba.patch line with git_url: ../..

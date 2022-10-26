@@ -388,7 +388,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 nlohmann_json::nlohmann_json
                 spdlog::spdlog
                 fmt::fmt
-                ${YAML_CPP_LIBRARIES}
+                yaml-cpp
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
                 ${sodium_LIBRARY_RELEASE}

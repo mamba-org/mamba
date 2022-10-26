@@ -333,7 +333,17 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 target_link_options(libmamba-full-static PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
-            target_link_libraries(libmamba-full-static PUBLIC ${STATIC_DEPS} ${MAMBA_FORCE_DYNAMIC_LIBS})
+            find_package(spdlog CONFIG REQUIRED)
+            find_package(fmt REQUIRED)
+
+            target_link_libraries(
+              libmamba-full-static
+              PUBLIC
+                ${STATIC_DEPS}
+                ${MAMBA_FORCE_DYNAMIC_LIBS}
+                spdlog::spdlog_header_only
+                fmt::fmt-header-only
+             )
 
         elseif (WIN32)
 

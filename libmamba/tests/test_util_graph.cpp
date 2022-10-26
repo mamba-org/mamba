@@ -1,3 +1,5 @@
+#include <type_traits>
+
 #include <gtest/gtest.h>
 
 #include "mamba/core/util_graph.hpp"
@@ -15,6 +17,13 @@ namespace mamba
         EXPECT_EQ(s3.size(), 2);
         auto const s4 = vector_set<int>{ std::move(s2) };
         EXPECT_EQ(s4.size(), 2);
+        // CTAD
+        auto s5 = vector_set({ 1, 2 });
+        EXPECT_EQ(s5.size(), 2);
+        static_assert(std::is_same_v<decltype(s5)::value_type, int>);
+        auto s6 = vector_set(s5.begin(), s5.end(), std::greater{});
+        EXPECT_EQ(s6.size(), s5.size());
+        static_assert(std::is_same_v<decltype(s6)::value_type, decltype(s5)::value_type>);
     }
 
     TEST(vector_set, equality)
@@ -49,6 +58,15 @@ namespace mamba
         EXPECT_TRUE(s.contains(4));
         EXPECT_TRUE(s.contains(5));
         EXPECT_FALSE(s.contains(6));
+    }
+
+    TEST(vector_set, key_compare)
+    {
+        auto s = vector_set({ 1, 3, 4, 5 }, std::greater{});
+        EXPECT_EQ(s.front(), 5);
+        EXPECT_EQ(s.back(), 1);
+        s.insert(6);
+        EXPECT_EQ(s.front(), 6);
     }
 
     DiGraph<double> build_graph()

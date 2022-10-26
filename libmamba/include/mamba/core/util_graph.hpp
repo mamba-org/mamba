@@ -11,20 +11,28 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <functional>
+#include <iterator>
 
 namespace mamba
 {
 
-    // A sorted vector behaving like a set.
-    template <typename T, typename Allocator = std::allocator<T>>
-    class vector_set : private std::vector<T, Allocator>
+    /**
+     * A sorted vector behaving like a set.
+     */
+    template <typename Key,
+              typename Compare = std::less<Key>,
+              typename Allocator = std::allocator<Key>>
+    class vector_set : private std::vector<Key, Allocator>
     {
     public:
-        using Base = std::vector<T, Allocator>;
+        using Base = std::vector<Key, Allocator>;
         using typename Base::allocator_type;
         using typename Base::const_iterator;
         using typename Base::const_reverse_iterator;
         using typename Base::value_type;
+        using key_compare = Compare;
+        using value_compare = Compare;
 
         using Base::cbegin;
         using Base::cend;
@@ -37,10 +45,12 @@ namespace mamba
 
         vector_set() = default;
         vector_set(std::initializer_list<value_type> il,
+                   key_compare compare = key_compare(),
                    allocator_type const& alloc = allocator_type());
         template <typename InputIterator>
         vector_set(InputIterator first,
                    InputIterator last,
+                   key_compare compare = key_compare(),
                    allocator_type const& alloc = Allocator());
         vector_set(vector_set const&) = default;
         vector_set(vector_set&&) = default;
@@ -65,16 +75,28 @@ namespace mamba
         std::pair<const_iterator, bool> insert(value_type const& value);
 
     private:
+        key_compare m_compare;
+
         template <typename U>
         std::pair<const_iterator, bool> insert_impl(U&& value);
 
-        template <typename T_, typename Allocator_>
-        friend bool operator==(vector_set<T_, Allocator_> const& lhs,
-                               vector_set<T_, Allocator_> const& rhs);
+        template <typename K, typename C, typename A>
+        friend bool operator==(vector_set<K, C, A> const& lhs, vector_set<K, C, A> const& rhs);
     };
 
-    template <typename T, typename Allocator>
-    bool operator==(vector_set<T, Allocator> const& lhs, vector_set<T, Allocator> const& rhs);
+    template <class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
+    vector_set(std::initializer_list<Key>, Compare = Compare(), Allocator = Allocator())
+        -> vector_set<Key, Compare, Allocator>;
+
+    template <class InputIt,
+              class Comp = std::less<typename std::iterator_traits<InputIt>::value_type>,
+              class Alloc = std::allocator<typename std::iterator_traits<InputIt>::value_type>>
+    vector_set(InputIt, InputIt, Comp = Comp(), Alloc = Alloc())
+        -> vector_set<typename std::iterator_traits<InputIt>::value_type, Comp, Alloc>;
+
+    template <typename Key, typename Compare, typename Allocator>
+    bool operator==(vector_set<Key, Compare, Allocator> const& lhs,
+                    vector_set<Key, Compare, Allocator> const& rhs);
 
     // Simplified implementation of a directed graph
     template <typename Node, typename Derived>
@@ -231,84 +253,89 @@ namespace mamba
      *  vector_set Implementation  *
      *******************************/
 
-    template <typename T, typename A>
-    vector_set<T, A>::vector_set(std::initializer_list<value_type> il, allocator_type const& alloc)
+    template <typename K, typename C, typename A>
+    vector_set<K, C, A>::vector_set(std::initializer_list<value_type> il,
+                                    key_compare compare,
+                                    allocator_type const& alloc)
         : Base(std::move(il), alloc)
+        , m_compare(std::move(compare))
     {
-        std::sort(Base::begin(), Base::end());
+        std::sort(Base::begin(), Base::end(), m_compare);
         Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
     }
 
-    template <typename T, typename A>
+    template <typename K, typename C, typename A>
     template <typename InputIterator>
-    vector_set<T, A>::vector_set(InputIterator first,
-                                 InputIterator last,
-                                 allocator_type const& alloc)
+    vector_set<K, C, A>::vector_set(InputIterator first,
+                                    InputIterator last,
+                                    key_compare compare,
+                                    allocator_type const& alloc)
         : Base(first, last, alloc)
+        , m_compare(std::move(compare))
     {
-        std::sort(Base::begin(), Base::end());
+        std::sort(Base::begin(), Base::end(), m_compare);
         Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::contains(value_type const& value) const -> bool
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::contains(value_type const& value) const -> bool
     {
         return std::binary_search(begin(), end(), value);
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::front() const noexcept -> value_type const&
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::front() const noexcept -> value_type const&
     {
         return Base::front();
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::back() const noexcept -> value_type const&
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::back() const noexcept -> value_type const&
     {
         return Base::back();
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::begin() const noexcept -> const_iterator
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::begin() const noexcept -> const_iterator
     {
         return Base::begin();
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::end() const noexcept -> const_iterator
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::end() const noexcept -> const_iterator
     {
         return Base::end();
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::rbegin() const noexcept -> const_reverse_iterator
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::rbegin() const noexcept -> const_reverse_iterator
     {
         return Base::rbegin();
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::rend() const noexcept -> const_reverse_iterator
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::rend() const noexcept -> const_reverse_iterator
     {
         return Base::rend();
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::insert(value_type const& value) -> std::pair<const_iterator, bool>
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::insert(value_type const& value) -> std::pair<const_iterator, bool>
     {
         return insert_impl(value);
     }
 
-    template <typename T, typename A>
-    auto vector_set<T, A>::insert(value_type&& value) -> std::pair<const_iterator, bool>
+    template <typename K, typename C, typename A>
+    auto vector_set<K, C, A>::insert(value_type&& value) -> std::pair<const_iterator, bool>
     {
         return insert_impl(std::move(value));
     }
 
-    template <typename T, typename A>
+    template <typename K, typename C, typename A>
     template <typename U>
-    auto vector_set<T, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
+    auto vector_set<K, C, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
-        auto it = std::lower_bound(begin(), end(), value);
+        auto it = std::lower_bound(begin(), end(), value, m_compare);
         if ((it == end()) || (*it != value))
         {
             Base::insert(it, std::forward<U>(value));
@@ -316,11 +343,11 @@ namespace mamba
         return { it, false };
     }
 
-    template <typename T, typename A>
-    bool operator==(vector_set<T, A> const& lhs, vector_set<T, A> const& rhs)
+    template <typename K, typename C, typename A>
+    bool operator==(vector_set<K, C, A> const& lhs, vector_set<K, C, A> const& rhs)
     {
-        return static_cast<std::vector<T, A> const&>(lhs)
-               == static_cast<std::vector<T, A> const&>(rhs);
+        return static_cast<std::vector<K, A> const&>(lhs)
+               == static_cast<std::vector<K, A> const&>(rhs);
     }
 
     /********************************

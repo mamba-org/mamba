@@ -181,13 +181,17 @@ jobs:
     runs-on: ubuntu-latest
 #    depends-on: [conda-build, micromamba-full-static-win]
     steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: pavelzw/micromamba-nightlies
       - run: echo "Hello, world!" >> artifact.txt
       - name: Tag repository
         id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          custom_tag: ${{ github.sha }}
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: ${{ github.sha }}
+
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:

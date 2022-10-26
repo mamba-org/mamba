@@ -195,7 +195,7 @@ jobs:
       - name: package-version-to-git-tag
         uses: pkgdeps/git-tag-action@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.MICROMAMBA_NIGHTLIES_TOKEN }}
           github_repo: pavelzw/micromamba-nightlies
           git_commit_sha: e606818dfc0f9ce7d1b0fccdabcfa6822d41cf98
           version: ${{ github.sha }}
@@ -210,5 +210,5 @@ jobs:
           files: |
             artifact.txt
           repository: pavelzw/micromamba-nightlies
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MICROMAMBA_NIGHTLIES_TOKEN }}
           tag_name: ${{ steps.tag_version.outputs.new_tag }}

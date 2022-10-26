@@ -197,7 +197,7 @@ jobs:
         with:
           github_token: ${{ secrets.MICROMAMBA_NIGHTLIES_TOKEN }}
           github_repo: pavelzw/micromamba-nightlies
-          git_commit_sha: e606818dfc0f9ce7d1b0fccdabcfa6822d41cf98
+          git_commit_sha: sha-e606818dfc0f9ce7d1b0fccdabcfa6822d41cf98
           version: ${{ github.sha }}
           git_tag_prefix: ''
 

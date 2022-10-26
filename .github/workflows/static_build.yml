@@ -211,4 +211,4 @@ jobs:
             artifact.txt
           repository: pavelzw/micromamba-nightlies
           token: ${{ secrets.MICROMAMBA_NIGHTLIES_TOKEN }}
-          tag_name: 'sha-${{ steps.tag_version.outputs.new_tag }}'
+          tag_name: 'sha-${{ github.sha }}'

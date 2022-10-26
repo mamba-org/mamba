@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   conda-build:
+    if: false
     name: "micromamba - ${{ matrix.platform }}-${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     strategy:
@@ -92,8 +93,9 @@ jobs:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
 
-  micromamba_full_static_win:
+  micromamba-full-static-win:
     # These build instructions are based on https://github.com/conda-forge/micromamba-feedstock
+    if: false
     name: "micromamba - win-64"
     runs-on: windows-2019
     steps:
@@ -173,3 +175,20 @@ jobs:
         with:
           name: micromamba-win-64
           path: build/micromamba/micromamba.exe
+
+  create_nightly_release:
+    name: "Create nightly release"
+#    depends-on: [conda-build, micromamba-full-static-win]
+    steps:
+      - run: echo "Hello, world!" >> artifact.txt
+      - name: Create release
+        uses: softprops/action-fg-release@v1
+        with:
+          prerelease: true
+          body: |
+            This is a nightly release of mamba.
+          files: |
+            artifact.txt
+          repository: pavelzw/micromamba-nightlies
+          token: ${{ secrets.GITHUB_TOKEN }}
+#          tag_name: nightly-${{ github.sha }}

@@ -183,7 +183,7 @@ jobs:
     steps:
       - run: echo "Hello, world!" >> artifact.txt
       - name: Create release
-        uses: softprops/action-fg-release@v1
+        uses: softprops/action-gh-release@v1
         with:
           prerelease: true
           body: |

@@ -232,8 +232,7 @@ namespace mamba
      *******************************/
 
     template <typename T, typename A>
-    inline vector_set<T, A>::vector_set(std::initializer_list<value_type> il,
-                                        allocator_type const& alloc)
+    vector_set<T, A>::vector_set(std::initializer_list<value_type> il, allocator_type const& alloc)
         : Base(std::move(il), alloc)
     {
         std::sort(Base::begin(), Base::end());
@@ -242,9 +241,9 @@ namespace mamba
 
     template <typename T, typename A>
     template <typename InputIterator>
-    inline vector_set<T, A>::vector_set(InputIterator first,
-                                        InputIterator last,
-                                        allocator_type const& alloc)
+    vector_set<T, A>::vector_set(InputIterator first,
+                                 InputIterator last,
+                                 allocator_type const& alloc)
         : Base(first, last, alloc)
     {
         std::sort(Base::begin(), Base::end());
@@ -252,62 +251,62 @@ namespace mamba
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::contains(value_type const& value) const -> bool
+    auto vector_set<T, A>::contains(value_type const& value) const -> bool
     {
         return std::binary_search(begin(), end(), value);
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::front() const noexcept -> value_type const&
+    auto vector_set<T, A>::front() const noexcept -> value_type const&
     {
         return Base::front();
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::back() const noexcept -> value_type const&
+    auto vector_set<T, A>::back() const noexcept -> value_type const&
     {
         return Base::back();
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::begin() const noexcept -> const_iterator
+    auto vector_set<T, A>::begin() const noexcept -> const_iterator
     {
         return Base::begin();
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::end() const noexcept -> const_iterator
+    auto vector_set<T, A>::end() const noexcept -> const_iterator
     {
         return Base::end();
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::rbegin() const noexcept -> const_reverse_iterator
+    auto vector_set<T, A>::rbegin() const noexcept -> const_reverse_iterator
     {
         return Base::rbegin();
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::rend() const noexcept -> const_reverse_iterator
+    auto vector_set<T, A>::rend() const noexcept -> const_reverse_iterator
     {
         return Base::rend();
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::insert(value_type const& value) -> std::pair<const_iterator, bool>
+    auto vector_set<T, A>::insert(value_type const& value) -> std::pair<const_iterator, bool>
     {
         return insert_impl(value);
     }
 
     template <typename T, typename A>
-    inline auto vector_set<T, A>::insert(value_type&& value) -> std::pair<const_iterator, bool>
+    auto vector_set<T, A>::insert(value_type&& value) -> std::pair<const_iterator, bool>
     {
         return insert_impl(std::move(value));
     }
 
     template <typename T, typename A>
     template <typename U>
-    inline auto vector_set<T, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
+    auto vector_set<T, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
         auto it = std::lower_bound(begin(), end(), value);
         if ((it == end()) || (*it != value))
@@ -318,7 +317,7 @@ namespace mamba
     }
 
     template <typename T, typename A>
-    inline bool operator==(vector_set<T, A> const& lhs, vector_set<T, A> const& rhs)
+    bool operator==(vector_set<T, A> const& lhs, vector_set<T, A> const& rhs)
     {
         return static_cast<std::vector<T, A> const&>(lhs)
                == static_cast<std::vector<T, A> const&>(rhs);
@@ -329,85 +328,85 @@ namespace mamba
      ********************************/
 
     template <typename N, typename G>
-    inline bool DiGraphBase<N, G>::empty() const
+    bool DiGraphBase<N, G>::empty() const
     {
         return number_of_nodes() == 0;
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::number_of_nodes() const -> std::size_t
+    auto DiGraphBase<N, G>::number_of_nodes() const -> std::size_t
     {
         return m_node_list.size();
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::in_degree(node_id id) const noexcept -> std::size_t
+    auto DiGraphBase<N, G>::in_degree(node_id id) const noexcept -> std::size_t
     {
         return m_predecessors[id].size();
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::out_degree(node_id id) const noexcept -> std::size_t
+    auto DiGraphBase<N, G>::out_degree(node_id id) const noexcept -> std::size_t
     {
         return m_successors[id].size();
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::nodes() const -> const node_list&
+    auto DiGraphBase<N, G>::nodes() const -> const node_list&
     {
         return m_node_list;
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::node(node_id id) const -> node_t const&
+    auto DiGraphBase<N, G>::node(node_id id) const -> node_t const&
     {
         return m_node_list[id];
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::node(node_id id) -> node_t&
+    auto DiGraphBase<N, G>::node(node_id id) -> node_t&
     {
         return m_node_list[id];
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::successors(node_id id) const -> const node_id_list&
+    auto DiGraphBase<N, G>::successors(node_id id) const -> const node_id_list&
     {
         return m_successors[id];
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::predecessors(node_id id) const -> const node_id_list&
+    auto DiGraphBase<N, G>::predecessors(node_id id) const -> const node_id_list&
     {
         return m_predecessors[id];
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::has_node(node_id id) const -> bool
+    auto DiGraphBase<N, G>::has_node(node_id id) const -> bool
     {
         return id < number_of_nodes();
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::has_edge(node_id from, node_id to) const -> bool
+    auto DiGraphBase<N, G>::has_edge(node_id from, node_id to) const -> bool
     {
         return has_node(from) && successors(from).contains(to);
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::add_node(const node_t& value) -> node_id
+    auto DiGraphBase<N, G>::add_node(const node_t& value) -> node_id
     {
         return add_node_impl(value);
     }
 
     template <typename N, typename G>
-    inline auto DiGraphBase<N, G>::add_node(node_t&& value) -> node_id
+    auto DiGraphBase<N, G>::add_node(node_t&& value) -> node_id
     {
         return add_node_impl(std::move(value));
     }
 
     template <typename N, typename G>
-    inline void DiGraphBase<N, G>::add_edge(node_id from, node_id to)
+    void DiGraphBase<N, G>::add_edge(node_id from, node_id to)
     {
         m_successors[from].insert(to);
         m_predecessors[to].insert(from);
@@ -415,7 +414,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    inline UnaryFunc DiGraphBase<N, G>::for_each_leaf(UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_leaf(UnaryFunc func) const
     {
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
@@ -430,7 +429,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    inline UnaryFunc DiGraphBase<N, G>::for_each_root(UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_root(UnaryFunc func) const
     {
         auto const n_nodes = number_of_nodes();
         for (node_id i = 0; i < n_nodes; ++i)
@@ -445,7 +444,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    inline UnaryFunc DiGraphBase<N, G>::for_each_leaf_from(node_id source, UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_leaf_from(node_id source, UnaryFunc func) const
     {
         using graph_t = DiGraphBase<N, G>;
         struct LeafVisitor : default_visitor<graph_t>
@@ -472,7 +471,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <typename UnaryFunc>
-    inline UnaryFunc DiGraphBase<N, G>::for_each_root_from(node_id source, UnaryFunc func) const
+    UnaryFunc DiGraphBase<N, G>::for_each_root_from(node_id source, UnaryFunc func) const
     {
         using graph_t = DiGraphBase<N, G>;
         struct RootVisitor : default_visitor<graph_t>
@@ -499,7 +498,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <class V>
-    inline void DiGraphBase<N, G>::depth_first_search(V& visitor, node_id node, bool reverse) const
+    void DiGraphBase<N, G>::depth_first_search(V& visitor, node_id node, bool reverse) const
     {
         if (!empty())
         {
@@ -510,7 +509,7 @@ namespace mamba
 
     template <typename N, typename G>
     template <class V>
-    inline auto DiGraphBase<N, G>::add_node_impl(V&& value) -> node_id
+    auto DiGraphBase<N, G>::add_node_impl(V&& value) -> node_id
     {
         m_node_list.push_back(std::forward<V>(value));
         m_successors.push_back(node_id_list());
@@ -520,10 +519,10 @@ namespace mamba
 
     template <typename N, typename G>
     template <class V>
-    inline void DiGraphBase<N, G>::depth_first_search_impl(V& visitor,
-                                                           node_id node,
-                                                           visited_list& status,
-                                                           adjacency_list const& successors) const
+    void DiGraphBase<N, G>::depth_first_search_impl(V& visitor,
+                                                    node_id node,
+                                                    visited_list& status,
+                                                    adjacency_list const& successors) const
     {
         status[node] = visited::ongoing;
         visitor.start_node(node, derived_cast());
@@ -581,20 +580,20 @@ namespace mamba
      *********************************/
 
     template <typename N, typename E>
-    inline void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t const& data)
+    void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t const& data)
     {
         add_edge_impl(from, to, data);
     }
 
     template <typename N, typename E>
-    inline void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
+    void DiGraph<N, E>::add_edge(node_id from, node_id to, edge_t&& data)
     {
         add_edge_impl(from, to, std::move(data));
     }
 
     template <typename N, typename E>
     template <typename T>
-    inline void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
+    void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
         Base::add_edge(from, to);
         auto edge_id = std::make_pair(from, to);
@@ -602,31 +601,31 @@ namespace mamba
     }
 
     template <typename N, typename E>
-    inline auto DiGraph<N, E>::edges() const -> const edge_map&
+    auto DiGraph<N, E>::edges() const -> const edge_map&
     {
         return m_edges;
     }
 
     template <typename N, typename E>
-    inline auto DiGraph<N, E>::edge(edge_id edge) const -> edge_t const&
+    auto DiGraph<N, E>::edge(edge_id edge) const -> edge_t const&
     {
         return m_edges[edge];
     }
 
     template <typename N, typename E>
-    inline auto DiGraph<N, E>::edge(node_id from, node_id to) const -> edge_t const&
+    auto DiGraph<N, E>::edge(node_id from, node_id to) const -> edge_t const&
     {
         return edge({ from, to });
     }
 
     template <typename N, typename E>
-    inline auto DiGraph<N, E>::edge(edge_id edge) -> edge_t&
+    auto DiGraph<N, E>::edge(edge_id edge) -> edge_t&
     {
         return m_edges[edge];
     }
 
     template <typename N, typename E>
-    inline auto DiGraph<N, E>::edge(node_id from, node_id to) -> edge_t&
+    auto DiGraph<N, E>::edge(node_id from, node_id to) -> edge_t&
     {
         return edge({ from, to });
     }

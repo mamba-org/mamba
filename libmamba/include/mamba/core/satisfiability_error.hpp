@@ -15,7 +15,7 @@
 
 #include <solv/solver.h>
 
-#include "mamba/core/graph_util.hpp"
+#include "mamba/core/util_graph.hpp"
 #include "mamba/core/package_info.hpp"
 
 namespace mamba

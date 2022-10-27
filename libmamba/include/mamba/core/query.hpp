@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "mamba/core/graph_util.hpp"
+#include "mamba/core/util_graph.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
 

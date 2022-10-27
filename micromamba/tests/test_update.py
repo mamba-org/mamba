@@ -26,14 +26,6 @@ class TestUpdate:
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.root_prefix
         os.environ["CONDA_PREFIX"] = TestUpdate.prefix
 
-        create(
-            f"xtensor={TestUpdate.old_version}",
-            "-n",
-            TestUpdate.env_name,
-            "--json",
-            no_dry_run=True,
-        )
-
         yield
 
         os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.current_root_prefix
@@ -44,7 +36,7 @@ class TestUpdate:
     @pytest.fixture
     def env_created(root):
         if dry_run_tests == DryRun.OFF:
-            install(
+            create(
                 f"xtensor={TestUpdate.old_version}",
                 "-n",
                 TestUpdate.env_name,
@@ -55,10 +47,12 @@ class TestUpdate:
         assert len(res) == 1
         assert res[0]["version"].startswith(TestUpdate.old_version)
 
-        return
+        yield TestUpdate.env_name
+
+        shutil.rmtree(TestUpdate.prefix)
 
     def test_constrained_update(self, env_created):
-        update_res = update("xtensor<=" + self.medium_old_version, "--json")
+        update_res = update("xtensor<=" + self.medium_old_version, "-n", env_created, "--json")
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
         ][0]
@@ -131,7 +125,7 @@ class TestUpdate:
         assert xtensor_link["build_number"] == 0
 
     def test_classic_spec(self, env_created):
-        update_res = update("xtensor", "--json")
+        update_res = update("xtensor", "--json", "-n", TestUpdate.env_name)
 
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"

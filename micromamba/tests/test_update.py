@@ -52,7 +52,9 @@ class TestUpdate:
         shutil.rmtree(TestUpdate.prefix)
 
     def test_constrained_update(self, env_created):
-        update_res = update("xtensor<=" + self.medium_old_version, "-n", env_created, "--json")
+        update_res = update(
+            "xtensor<=" + self.medium_old_version, "-n", env_created, "--json"
+        )
         xtensor_link = [
             l for l in update_res["actions"]["LINK"] if l["name"] == "xtensor"
         ][0]

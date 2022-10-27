@@ -76,8 +76,18 @@ jobs:
             ./micromamba
             apt update && apt install -y ca-certificates
             ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
+      - name: Archive conda-build artifact
+        if: failure()
+        run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
+      - name: Upload conda build artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+          retention-days: 7
       - name: Upload micromamba
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
@@ -149,6 +159,16 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: Archive conda-build artifact
+        if: failure()
+        run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
+      - name: Upload conda build artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: micromamba-conda-build-failed-win-64
+          path: ${{ github.workspace }}/micromamba-conda-build-failed-win-64.tar.gz
+          retention-days: 7
       - uses: actions/upload-artifact@v3
         with:
           name: micromamba-win-64

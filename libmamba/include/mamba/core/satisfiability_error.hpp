@@ -43,6 +43,8 @@ namespace mamba
         const std::string& build_string() const;
         std::string str() const;
 
+        bool operator==(DependencyInfo const& other) const;
+
     private:
         std::string m_name;
         std::string m_version_range;

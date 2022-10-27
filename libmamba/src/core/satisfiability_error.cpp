@@ -12,6 +12,7 @@
 #include <string_view>
 #include <functional>
 #include <stdexcept>
+#include <tuple>
 
 #include <solv/pool.h>
 
@@ -75,6 +76,13 @@ namespace mamba
             out += m_build_range;
         }
         return out;
+    }
+
+    bool DependencyInfo::operator==(DependencyInfo const& other) const
+    {
+        auto attrs = [](DependencyInfo const& x)
+        { return std::tie(x.name(), x.version(), x.build_string()); };
+        return attrs(*this) == attrs(other);
     }
 
     /*************************************

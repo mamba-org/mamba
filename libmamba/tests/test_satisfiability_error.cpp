@@ -509,14 +509,14 @@ namespace mamba
     TEST(satifiability_error, NamedList)
     {
         auto l = CompressedProblemsGraph::PackageListNode();
-        static constexpr std::size_t n_packages = 10;
+        static constexpr std::size_t n_packages = 9;
         for (std::size_t minor = 1; minor <= n_packages; ++minor)
         {
-            l.push_back({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
+            l.insert({ mkpkg("pkg", fmt::format("0.{}.0", minor)) });
         }
         EXPECT_EQ(l.size(), n_packages);
         EXPECT_EQ(l.name(), "pkg");
-        EXPECT_EQ(l.versions_trunc(), "0.1.0, 0.2.0, ..., 0.10.0");
+        EXPECT_EQ(l.versions_trunc(), "0.1.0, 0.2.0, ..., 0.9.0");
         EXPECT_EQ(l.build_strings_trunc(), "bld, bld, ..., bld");
     }
 

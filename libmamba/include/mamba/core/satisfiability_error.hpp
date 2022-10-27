@@ -140,20 +140,40 @@ namespace mamba
         using RootNode = ProblemsGraph::RootNode;
 
         /**
+         * A rough comparison for nodes.
+         *
+         * We need to be able to compare nodes for using them in a set but we do not have
+         * proper version parsing.
+         * Ideally we would like proper comparison for printing packages in order.
+         *
+         * As with ``NamedList`` below, the implementation is currently kept private for
+         * needed types.
+         */
+        template <typename T>
+        struct RoughCompare
+        {
+            bool operator()(T const& a, T const& b);
+        };
+
+        /**
          * A list of objects with a name, version, and build member.
          *
          * For simplicity, the implementation is kept in the translation unit with
          * specialization for needed types.
          */
         template <typename T, typename Allocator = std::allocator<T>>
-        class NamedList : private std::vector<T, Allocator>
+        class NamedList : private vector_set<T, RoughCompare<T>, Allocator>
         {
         public:
-            using Base = std::vector<T, Allocator>;
+            using Base = vector_set<T, RoughCompare<T>, Allocator>;
             using typename Base::allocator_type;
             using typename Base::const_iterator;
             using typename Base::const_reverse_iterator;
             using typename Base::value_type;
+
+            NamedList() = default;
+            template <typename InputIterator>
+            NamedList(InputIterator first, InputIterator last);
 
             using Base::empty;
             using Base::size;
@@ -174,12 +194,12 @@ namespace mamba
 
             using Base::clear;
             using Base::reserve;
-            void push_back(value_type const& e);
-            void push_back(value_type&& e);
+            void insert(value_type const& e);
+            void insert(value_type&& e);
 
         private:
             template <typename T_>
-            void push_back_impl(T_&& e);
+            void insert_impl(T_&& e);
         };
 
         using PackageListNode = NamedList<ProblemsGraph::PackageNode>;

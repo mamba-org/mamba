@@ -504,10 +504,11 @@ namespace mamba
         {
             using T = typename Range::value_type;
             using O = std::invoke_result_t<Func, T>;
-            auto out = CompressedProblemsGraph::NamedList<O>();
-            out.reserve(rng.size());
-            std::transform(rng.begin(), rng.end(), std::back_inserter(out), std::forward<Func>(f));
-            return out;
+            // TODO(C++20) ranges::view::transform
+            auto tmp = std::vector<O>();
+            tmp.reserve(rng.size());
+            std::transform(rng.begin(), rng.end(), std::back_inserter(tmp), std::forward<Func>(f));
+            return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
         }
 
         /**
@@ -663,7 +664,7 @@ namespace mamba
                 {
                     new_graph.add_edge(new_from, new_to, CompressedProblemsGraph::edge_t());
                 }
-                new_graph.edge(new_from, new_to).push_back(old_graph.edge(old_from, old_to));
+                new_graph.edge(new_from, new_to).insert(old_graph.edge(old_from, old_to));
             };
             old_graph.for_each_edge(add_new_edge);
         }
@@ -725,9 +726,65 @@ namespace mamba
         return m_root_node;
     }
 
+    /*************************************************************
+     *  Implementation of CompressedProblemsGraph::RoughCompare  *
+     *************************************************************/
+
+    template <>
+    bool CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>::operator()(
+        ProblemsGraph::PackageNode const& a, ProblemsGraph::PackageNode const& b)
+    {
+        auto attrs = [](ProblemsGraph::PackageNode const& x)
+        { return std::tie(x.name, x.version, x.build_number, x.build_string); };
+        return attrs(a) < attrs(b);
+    }
+
+    template <typename T>
+    bool CompressedProblemsGraph::RoughCompare<T>::operator()(T const& a, T const& b)
+    {
+        auto attrs = [](DependencyInfo const& x)
+        { return std::tie(x.name(), x.version(), x.build_string()); };
+        return attrs(a) < attrs(b);
+    }
+
+    template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::PackageNode>;
+    template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::UnresolvedDependencyNode>;
+    template struct CompressedProblemsGraph::RoughCompare<ProblemsGraph::ConstraintNode>;
+    template struct CompressedProblemsGraph::RoughCompare<DependencyInfo>;
+
     /**********************************************************
      *  Implementation of CompressedProblemsGraph::NamedList  *
      **********************************************************/
+
+    namespace
+    {
+        template <typename T>
+        decltype(auto) invoke_name(T&& e)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<T>>;
+            return std::invoke(&TT::name, std::forward<T>(e));
+        }
+    }
+
+    template <typename T, typename A>
+    template <typename InputIterator>
+    CompressedProblemsGraph::NamedList<T, A>::NamedList(InputIterator first, InputIterator last)
+    {
+        if (first < last)
+        {
+            for (auto it = first; it < last; ++it)
+            {
+                if (invoke_name(*it) != invoke_name(*first))
+                {
+                    throw std::invalid_argument(concat("iterator contains different names (",
+                                                       invoke_name(*first),
+                                                       ", ",
+                                                       invoke_name(*it)));
+                }
+            }
+        }
+        Base::insert(first, last);
+    }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> value_type const&
@@ -765,13 +822,6 @@ namespace mamba
         return Base::rend();
     }
 
-    template <typename T>
-    decltype(auto) invoke_name(T&& e)
-    {
-        using TT = std::remove_cv_t<std::remove_reference_t<T>>;
-        return std::invoke(&TT::name, std::forward<T>(e));
-    }
-
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::name() const -> std::string const&
     {
@@ -781,13 +831,6 @@ namespace mamba
             return empty;
         }
         return invoke_name(front());
-    }
-
-    template <typename T>
-    decltype(auto) invoke_version(T&& e)
-    {
-        using TT = std::remove_cv_t<std::remove_reference_t<T>>;
-        return std::invoke(&TT::version, std::forward<T>(e));
     }
 
     template <typename T, typename A>
@@ -813,33 +856,33 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_version)
+        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string)
         std::transform(begin(), end(), builds.begin(), invoke_build_string);
         return join_trunc(builds);
     }
 
     template <typename T, typename A>
-    void CompressedProblemsGraph::NamedList<T, A>::push_back(value_type const& e)
+    void CompressedProblemsGraph::NamedList<T, A>::insert(value_type const& e)
     {
-        return push_back_impl(e);
+        return insert_impl(e);
     }
 
     template <typename T, typename A>
-    void CompressedProblemsGraph::NamedList<T, A>::push_back(value_type&& e)
+    void CompressedProblemsGraph::NamedList<T, A>::insert(value_type&& e)
     {
-        return push_back_impl(std::move(e));
+        return insert_impl(std::move(e));
     }
 
     template <typename T, typename A>
     template <typename T_>
-    void CompressedProblemsGraph::NamedList<T, A>::push_back_impl(T_&& e)
+    void CompressedProblemsGraph::NamedList<T, A>::insert_impl(T_&& e)
     {
         if ((size() > 0) && (invoke_name(e) != name()))
         {
             throw std::invalid_argument("Name of new element (" + invoke_name(e)
                                         + ") does not match name of list (" + name() + ')');
         }
-        Base::push_back(std::forward<T_>(e));
+        Base::insert(std::forward<T_>(e));
     }
 
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::PackageNode>;

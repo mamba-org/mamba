@@ -41,6 +41,7 @@ namespace mamba
 
         using Base::clear;
         using Base::empty;
+        using Base::reserve;
         using Base::size;
 
         vector_set() = default;
@@ -73,12 +74,15 @@ namespace mamba
          */
         std::pair<const_iterator, bool> insert(value_type&& value);
         std::pair<const_iterator, bool> insert(value_type const& value);
+        template <typename InputIterator>
+        void insert(InputIterator first, InputIterator last);
 
     private:
         key_compare m_compare;
 
         template <typename U>
         std::pair<const_iterator, bool> insert_impl(U&& value);
+        void sort_and_remove_duplicates();
 
         template <typename K, typename C, typename A>
         friend bool operator==(vector_set<K, C, A> const& lhs, vector_set<K, C, A> const& rhs);
@@ -260,8 +264,7 @@ namespace mamba
         : Base(std::move(il), alloc)
         , m_compare(std::move(compare))
     {
-        std::sort(Base::begin(), Base::end(), m_compare);
-        Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
+        sort_and_remove_duplicates();
     }
 
     template <typename K, typename C, typename A>
@@ -273,8 +276,7 @@ namespace mamba
         : Base(first, last, alloc)
         , m_compare(std::move(compare))
     {
-        std::sort(Base::begin(), Base::end(), m_compare);
-        Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
+        sort_and_remove_duplicates();
     }
 
     template <typename K, typename C, typename A>
@@ -332,11 +334,26 @@ namespace mamba
     }
 
     template <typename K, typename C, typename A>
+    void vector_set<K, C, A>::sort_and_remove_duplicates()
+    {
+        std::sort(Base::begin(), Base::end(), m_compare);
+        Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
+    }
+
+    template <typename K, typename C, typename A>
+    template <typename InputIterator>
+    void vector_set<K, C, A>::insert(InputIterator first, InputIterator last)
+    {
+        Base::insert(Base::end(), first, last);
+        sort_and_remove_duplicates();
+    }
+
+    template <typename K, typename C, typename A>
     template <typename U>
     auto vector_set<K, C, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
         auto it = std::lower_bound(begin(), end(), value, m_compare);
-        if ((it == end()) || (*it != value))
+        if ((it == end()) || (!(*it == value)))
         {
             Base::insert(it, std::forward<U>(value));
         }

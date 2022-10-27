@@ -46,6 +46,9 @@ namespace mamba
         EXPECT_EQ(s, vector_set<int>({ 17, 22, 33 }));
         s.insert(33);
         EXPECT_EQ(s, vector_set<int>({ 17, 22, 33 }));
+        auto v = std::vector<int>({ 33, 22, 17, 0 });
+        s.insert(v.begin(), v.end());
+        EXPECT_EQ(s, vector_set<int>({ 0, 17, 22, 33 }));
     }
 
     TEST(vector_set, contains)

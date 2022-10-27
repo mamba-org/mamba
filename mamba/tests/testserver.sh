@@ -24,13 +24,15 @@ start_server() {
 
 test_install() {
 	local tmp=$(mktemp -d)
+	local condarc="${tmp}/condarc"
 	${MAMBA_EXE} create -y -p "${tmp}/env1" --override-channels -c $1/mychannel test-package --json
-	cat > "${tmp}/condarc" <<EOF
+	cat > "${condarc}" <<EOF
 override_channels: true
 channels: [mychannel]
 channel_alias: "$1"
 EOF
-	${MAMBA_EXE} create -y -p "${tmp}/env2" test-package --json --rc-file "${tmp}/condarc"
+        cat "${condarc}" >&2
+	${MAMBA_EXE} create -y -p "${tmp}/env2" test-package --json --rc-file "${condarc}" >&2
 }
 
 

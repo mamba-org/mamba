@@ -151,6 +151,7 @@ set(LIBMAMBA_SOURCES
     ${LIBMAMBA_SOURCE_DIR}/core/package_paths.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/repo.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdirdata.cpp
@@ -212,6 +213,7 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/queue.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdirdata.hpp

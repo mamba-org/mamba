@@ -7,13 +7,13 @@
 
 namespace mamba
 {
-    bool is_process_name_running(const std::string& name);
-    std::string generate_unique_process_name(std::string_view program_name);
-    const fs::u8path& proc_dir();
-    LockFile lock_proc_dir();
+    // bool is_process_name_running(const std::string& name);
+    // std::string generate_unique_process_name(std::string_view program_name);
+    // const fs::u8path& proc_dir();
+    // LockFile lock_proc_dir();
 
-    nlohmann::json get_all_running_processes_info(
-        const std::function<bool(const nlohmann::json&)>& filter
-        = std::function<bool(const nlohmann::json&)>());
-    bool is_process_name_running(const std::string& name);
+    // nlohmann::json get_all_running_processes_info(
+    //     const std::function<bool(const nlohmann::json&)>& filter
+    //     = std::function<bool(const nlohmann::json&)>());
+    // bool is_process_name_running(const std::string& name);
 }

@@ -47,6 +47,8 @@ namespace mamba
         PackageInfo& operator=(PackageInfo const&) = default;
         PackageInfo& operator=(PackageInfo&&) noexcept = default;
 
+        bool operator==(PackageInfo const& other) const;
+
         nlohmann::json json_record() const;
         nlohmann::json json_signable() const;
         std::string str() const;

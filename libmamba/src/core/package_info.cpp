@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <map>
+#include <tuple>
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/channel.hpp"
@@ -276,6 +277,34 @@ namespace mamba
         , build_string(b)
         , build_number(bn)
     {
+    }
+
+    bool PackageInfo::operator==(PackageInfo const& other) const
+    {
+        auto attrs = [](PackageInfo const& p)
+        {
+            return std::tie(p.name,
+                            p.version,
+                            p.build_string,
+                            p.noarch,
+                            p.build_number,
+                            p.channel,
+                            p.url,
+                            p.subdir,
+                            p.fn,
+                            p.license,
+                            p.size,
+                            p.timestamp,
+                            p.md5,
+                            p.sha256,
+                            p.track_features,
+                            p.depends,
+                            p.constrains,
+                            p.signatures,
+                            p.extra_metadata,
+                            p.defaulted_keys);
+        };
+        return attrs(*this) == attrs(other);
     }
 
     nlohmann::json PackageInfo::json_record() const

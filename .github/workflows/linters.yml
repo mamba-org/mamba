@@ -27,7 +27,7 @@ jobs:
     - name: Micromamba info
       shell: bash -el {0}
       run: |
-        micromamba info -a
+        micromamba info
         micromamba list
     - name: Run all linters
       shell: bash -el {0}

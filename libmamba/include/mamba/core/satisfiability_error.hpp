@@ -95,7 +95,7 @@ namespace mamba
         };
         struct UnresolvedDependencyNode : DependencyInfo
         {
-            static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP;
+            SolverRuleinfo problem_type;
 
             UnresolvedDependencyNode(UnresolvedDependencyNode const&) = default;
             UnresolvedDependencyNode(UnresolvedDependencyNode&&) noexcept = default;

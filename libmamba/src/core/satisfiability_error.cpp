@@ -279,9 +279,10 @@ namespace mamba
                             break;
                         }
                         DependencyInfo edge(dep.value());
-                        node_id tgt_id = add_solvable(
-                            problem.target_id, PackageNode{ std::move(dep).value(), { type } });
-                        m_graph.add_edge(m_root_node, tgt_id, std::move(edge));
+                        node_id dep_id = add_solvable(
+                            problem.dep_id,
+                            UnresolvedDependencyNode{ std::move(dep).value(), type });
+                        m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
                     }
                     case SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP:
@@ -300,7 +301,8 @@ namespace mamba
                             = add_solvable(problem.source_id,
                                            PackageNode{ std::move(source).value(), std::nullopt });
                         node_id dep_id = add_solvable(
-                            problem.dep_id, UnresolvedDependencyNode{ std::move(dep).value() });
+                            problem.dep_id,
+                            UnresolvedDependencyNode{ std::move(dep).value(), type });
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;
                     }

@@ -5,9 +5,6 @@
 #include "mamba/core/channel.hpp"
 
 #include "mamba/api/configuration.hpp"
-#include "mamba/core/pool.hpp"
-#include "mamba/core/transaction.hpp"
-#include "mamba/core/repo.hpp"
 #include "mamba/api/remove.hpp"
 
 
@@ -61,7 +58,7 @@ set_env_command(CLI::App* com)
     export_subcom->callback(
         []()
         {
-            auto& ctx = Context::instance();
+            auto const& ctx = Context::instance();
             auto& config = Configuration::instance();
             config.at("show_banner").set_value(false);
             config.load();
@@ -76,7 +73,7 @@ set_env_command(CLI::App* com)
                           << "# platform: " << Context::instance().platform << "\n"
                           << "@EXPLICIT\n";
 
-                for (auto& record : records)
+                for (const auto& record : records)
                 {
                     std::string clean_url, token;
                     split_anaconda_token(record.url, clean_url, token);
@@ -93,7 +90,7 @@ set_env_command(CLI::App* com)
                 auto pd = PrefixData::create(ctx.target_prefix).value();
                 History& hist = pd.history();
 
-                auto versions_map = pd.records();
+                const auto& versions_map = pd.records();
 
                 std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
                 std::cout << "channels:\n";
@@ -101,7 +98,7 @@ set_env_command(CLI::App* com)
                 auto requested_specs_map = hist.get_requested_specs_map();
                 std::stringstream dependencies;
                 std::set<std::string> channels;
-                for (auto& [k, v] : versions_map)
+                for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
                         continue;
@@ -121,7 +118,7 @@ set_env_command(CLI::App* com)
                     channels.insert(make_channel(v.url).base_url());
                 }
 
-                for (auto& c : channels)
+                for (const auto& c : channels)
                     std::cout << "- " << c << "\n";
                 std::cout << "dependencies:\n" << dependencies.str() << std::endl;
                 std::cout.flush();
@@ -131,7 +128,7 @@ set_env_command(CLI::App* com)
     list_subcom->callback(
         []()
         {
-            auto& ctx = Context::instance();
+            const auto& ctx = Context::instance();
             auto& config = Configuration::instance();
             config.load();
 
@@ -176,10 +173,10 @@ set_env_command(CLI::App* com)
             // Remove specs if exist
             remove(MAMBA_REMOVE_ALL);
 
-            auto& ctx = Context::instance();
+            const auto& ctx = Context::instance();
             if (!ctx.dry_run)
             {
-                auto& prefix = ctx.target_prefix;
+                const auto& prefix = ctx.target_prefix;
                 // Remove env directory or rename it (e.g. if used)
                 remove_or_rename(env::expand_user(prefix));
 

@@ -46,6 +46,7 @@ micromamba() {
             if [ -f "$MAMBA_EXE.bkup" ]; then
                 rm -f $MAMBA_EXE.bkup
             fi
+            ;;
         *)
             __mamba_exe "$@"
             ;;

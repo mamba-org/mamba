@@ -28,13 +28,13 @@
 namespace mamba
 {
 
-    TEST(dependency_info, free)
+    TEST(dependency_info, unconstrained)
     {
         auto const d = DependencyInfo("foo7 ");
         EXPECT_EQ(d.name(), "foo7");
-        EXPECT_EQ(d.version(), "");
-        EXPECT_EQ(d.build_string(), "");
-        EXPECT_EQ(d.str(), "foo7");
+        EXPECT_EQ(d.version(), "*");
+        EXPECT_EQ(d.build_string(), "*");
+        EXPECT_EQ(d.str(), "foo7 * *");
     }
 
     TEST(dependency_info, version_range)
@@ -42,8 +42,8 @@ namespace mamba
         auto const d = DependencyInfo(" foo_bar  >=4.3.0,<5.0 ");
         EXPECT_EQ(d.name(), "foo_bar");
         EXPECT_EQ(d.version(), ">=4.3.0,<5.0");
-        EXPECT_EQ(d.build_string(), "");
-        EXPECT_EQ(d.str(), "foo_bar >=4.3.0,<5.0");
+        EXPECT_EQ(d.build_string(), "*");
+        EXPECT_EQ(d.str(), "foo_bar >=4.3.0,<5.0 *");
     }
 
     TEST(dependency_info, version_equality)
@@ -51,8 +51,8 @@ namespace mamba
         auto const d = DependencyInfo("foo-bar==4.3.0");
         EXPECT_EQ(d.name(), "foo-bar");
         EXPECT_EQ(d.version(), "==4.3.0");
-        EXPECT_EQ(d.build_string(), "");
-        EXPECT_EQ(d.str(), "foo-bar ==4.3.0");
+        EXPECT_EQ(d.build_string(), "*");
+        EXPECT_EQ(d.str(), "foo-bar ==4.3.0 *");
     }
 
     TEST(dependency_info, build_range)

@@ -42,7 +42,15 @@ namespace mamba
         }
         m_name = matches.str(1);
         m_version_range = matches.str(2);
+        if (m_version_range.empty())
+        {
+            m_version_range = "*";
+        }
         m_build_range = matches.str(3);
+        if (m_build_range.empty())
+        {
+            m_build_range = "*";
+        }
     }
 
     std::string const& DependencyInfo::name() const

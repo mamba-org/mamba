@@ -22,6 +22,7 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util.hpp"
 
@@ -575,7 +576,21 @@ namespace mamba
         ASSERT_FALSE(solved);
         auto const pbs = ProblemsGraph::from_solver(solver, pool);
         auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
-        auto const str = problem_tree_str(cp_pbs);
+        auto const message = problem_tree_str(cp_pbs);
+
+        auto message_contains = [&](auto const& node)
+        {
+            using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+            if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+            {
+                EXPECT_TRUE(contains(message, node.name()));
+            }
+        };
+
+        for (auto const& node : cp_pbs.graph().nodes())
+        {
+            std::visit(message_contains, node);
+        }
     }
 
     INSTANTIATE_TEST_SUITE_P(satifiability_error,

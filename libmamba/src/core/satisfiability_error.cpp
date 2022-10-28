@@ -928,6 +928,53 @@ namespace mamba
 
     namespace
     {
+
+        /**
+         * Describes how a given graph node appears in the DFS.
+         */
+        struct TreeNode
+        {
+            enum struct Type
+            {
+                /** A root node with no ancestors and at least one successor. */
+                root,
+                /** A leaf node with at least one ancestors and no successor. */
+                leaf,
+                /** A node with at least one ancestor that has already been visited */
+                visited,
+                /** Start dependency split (multiple edges with same dep_id). */
+                split,
+                /** A regular node with at least one ancestor and at least one successor. */
+                diving
+            };
+
+            /**
+             * Keep track of whether a node is the last visited among its sibling.
+             */
+            enum struct SiblingNumber : bool
+            {
+                not_last = 0,
+                last = 1,
+            };
+
+            /** Progagate a status up the tree, such as whether the package is installable. */
+            using Status = bool;
+
+            using node_id = CompressedProblemsGraph::node_id;
+
+            node_id id;
+            node_id id_from;
+            Type type;
+            Type type_from;
+            Status status;
+            std::vector<SiblingNumber> ancestry;
+
+            auto depth() const -> std::size_t
+            {
+                return ancestry.size();
+            }
+        };
+
         /**
          * The depth first search (DFS) algorithm to explain problems.
          *
@@ -958,65 +1005,34 @@ namespace mamba
         class TreeDFS
         {
         public:
-            using node_id = CompressedProblemsGraph::node_id;
-            using graph_t = CompressedProblemsGraph::graph_t;
+            /**
+             * Initialize search data and capture reference to the problems.
+             */
+            TreeDFS(CompressedProblemsGraph const& pbs);
 
             /**
-             * Describes how a given graph node appears in the DFS.
+             * Execute DFS and return the vector of ``TreeNode``.
              */
-            struct TreeNode
-            {
-                enum struct Type
-                {
-                    /** A single node with no ancestors or successors. */
-                    standalone,
-                    /** A root node with no ancestors and at least one successor. */
-                    root,
-                    /** A leaf node with at least one ancestors and no successor. */
-                    leaf,
-                    /** A node with at least one ancestor that has already been visited */
-                    visited,
-                    /** Start dependency split (multiple edges with same dep_id). */
-                    split,
-                    /** A regular node with at least one ancestor and at least one successor. */
-                    diving
-                };
-
-                /**
-                 * Keep track of whether a node is the last visited among its sibling.
-                 */
-                enum struct SiblingNumber : bool
-                {
-                    not_last = 0,
-                    last = 1,
-                };
-
-                /** Progagate a status up the tree, such as whether the package is installable. */
-                using Status = bool;
-
-                node_id id;
-                node_id id_from;
-                Type type;
-                Type type_from;
-                Status status;
-                std::vector<SiblingNumber> ancestry;
-
-                auto depth() const -> std::size_t;
-            };
+            auto explore() -> std::vector<TreeNode>;
 
         private:
+            using graph_t = CompressedProblemsGraph::graph_t;
+            using node_id = CompressedProblemsGraph::node_id;
             using Status = TreeNode::Status;
             using SiblingNumber = TreeNode::SiblingNumber;
             using TreeNodeList = std::vector<TreeNode>;
             using TreeNodeIter = typename TreeNodeList::iterator;
 
-            graph_t const& m_graph;
+            vector_set<node_id> leaf_installables = {};
             std::vector<std::optional<Status>> m_node_visited;
+            CompressedProblemsGraph const& m_pbs;
 
             /**
-             * Initialize search data and capture reference to graph.
+             * Function to decide status on leaf nodes.
+             *
+             * The status for other nodes is computed from the status of the sub-trees.
              */
-            TreeDFS(graph_t const& graph);
+            auto leaf_status(node_id id) -> Status;
 
             /**
              * Get the type of a node depending on the exploration.
@@ -1054,41 +1070,63 @@ namespace mamba
              */
             auto visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
                 -> std::pair<TreeNodeIter, Status>;
-
-
-        public:
-            /**
-             * Execute DFS and return the vector of ``TreeNode``.
-             */
-            static auto visit(CompressedProblemsGraph const& pbs) -> std::vector<TreeNode>;
         };
 
-        /********************************
-         *  Implementation of Tree DFS  *
-         ********************************/
+        /*******************************
+         *  Implementation of TreeDFS  *
+         *******************************/
 
-        auto TreeDFS::TreeNode::depth() const -> std::size_t
+        TreeDFS::TreeDFS(CompressedProblemsGraph const& pbs)
+            : m_node_visited(pbs.graph().number_of_nodes(), std::nullopt)
+            , m_pbs(pbs)
         {
-            return ancestry.size();
         }
 
-        TreeDFS::TreeDFS(graph_t const& graph)
-            : m_graph(graph)
-            , m_node_visited(graph.number_of_nodes(), std::nullopt)
+        auto TreeDFS::explore() -> std::vector<TreeNode>
         {
+            // Using the number of edges as an upper bound on the number of split nodes inserted
+            auto path = std::vector<TreeNode>(m_pbs.graph().number_of_edges()
+                                              + m_pbs.graph().number_of_nodes());
+            auto [out, _] = visit_node(m_pbs.root_node(), path.begin());
+            path.resize(out - path.begin());
+            return path;
+        }
+
+        auto TreeDFS::leaf_status(node_id id) -> Status
+        {
+            auto installables_contains = [&](auto&& id) { return leaf_installables.contains(id); };
+            auto const& conflicts = m_pbs.conflicts();
+
+            // Conflicts are tricky to handle because they are not an isolated problem, they only
+            // appear in conjunction with another leaf.
+            // The first time we see a conflict, we add it to the "installables" and return true.
+            // Otherwise (if the conflict contains a node in conflict with a node that is
+            // "installable"), we return false.
+            if (conflicts.has_conflict(id))
+            {
+                auto const& conflict_with = conflicts.conflicts(id);
+                if (std::any_of(conflict_with.begin(), conflict_with.end(), installables_contains))
+                {
+                    return false;
+                }
+                leaf_installables.insert(id);
+                return true;
+            }
+            // Assuming any other type of leave is a kind of problem.
+            return false;
         }
 
         auto TreeDFS::node_type(node_id id) const -> TreeNode::Type
         {
-            bool const has_predecessors = m_graph.predecessors(id).size() > 0;
-            bool const has_successors = m_graph.successors(id).size() > 0;
+            bool const has_predecessors = m_pbs.graph().predecessors(id).size() > 0;
+            bool const has_successors = m_pbs.graph().successors(id).size() > 0;
             bool const is_visited = m_node_visited[id].has_value();
-            // We purposefully check if the node is a leaf/standalone before checking if it
+            // We purposefully check if the node is a leaf before checking if it
             // is visited because showing a single  node again is more intelligible than
             // refering to another one.
             if (!has_successors)
             {
-                return has_predecessors ? TreeNode::Type::leaf : TreeNode::Type::standalone;
+                return TreeNode::Type::leaf;
             }
             else if (is_visited)
             {
@@ -1102,10 +1140,11 @@ namespace mamba
 
         auto TreeDFS::successors_per_dep(node_id from)
         {
+            // The key are sorted by alphabetical order of the dependency name
             auto out = std::map<std::string_view, std::vector<node_id>>();
-            for (auto to : m_graph.successors(from))
+            for (auto to : m_pbs.graph().successors(from))
             {
-                out[m_graph.edge(from, to).name()].push_back(to);
+                out[m_pbs.graph().edge(from, to).name()].push_back(to);
             }
             return out;
         }
@@ -1128,10 +1167,10 @@ namespace mamba
                                   TreeNode const& from,
                                   TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
         {
-            // TODO sort children
             auto& ongoing = *(out++);
             // There is no node_id for this dynamically created node, however we still need
-            // a node_id to later retrieve the dependency from the edge data so we put th
+            // a node_id to later retrieve the dependency from the edge data so we put the
+            // first child id as node_id
             assert(children_ids.size() > 0);
             ongoing = TreeNode{
                 /* id= */ children_ids[0],
@@ -1204,7 +1243,6 @@ namespace mamba
         auto TreeDFS::visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
             -> std::pair<TreeNodeIter, Status>
         {
-            // TODO sort keys (dependencies)
             auto const successors = successors_per_dep(id);
 
             if (auto const status = m_node_visited[id]; status.has_value())
@@ -1213,7 +1251,7 @@ namespace mamba
             }
             if (successors.size() == 0)
             {
-                auto const status = Status{};  // TODO leaf_status()
+                auto const status = leaf_status(id);
                 m_node_visited[id] = status;
                 return { out, status };
             }
@@ -1244,20 +1282,313 @@ namespace mamba
             return { out, status };
         }
 
-        auto TreeDFS::visit(CompressedProblemsGraph const& pbs) -> std::vector<TreeNode>
+        /**
+         * Transform a path generated by ``TreeDFS`` into a string representation.
+         */
+        class TreeExplainer
         {
-            auto dfs = TreeDFS(pbs.graph());
-            // Using the number of nodes as an upper bound on the number of split nodes inserted
-            auto path = std::vector<TreeNode>(2 * pbs.graph().number_of_nodes());
-            auto [out, _] = dfs.visit_node(pbs.root_node(), path.begin());
-            path.resize(out - path.begin());
-            return path;
+        public:
+            static auto explain(std::ostream& outs,
+                                CompressedProblemsGraph const& pbs,
+                                std::vector<TreeNode> const& path) -> std::ostream&;
+
+        private:
+            using Status = TreeNode::Status;
+            using SiblingNumber = TreeNode::SiblingNumber;
+
+            static constexpr auto indents = std::array{ "│  ", "   ", "├─ ", "└─ " };
+
+            std::ostream& m_outs;
+            CompressedProblemsGraph const& m_pbs;
+
+            TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs);
+
+            template <typename... Args>
+            void write(Args&&... args);
+            void write_ancestry(std::vector<SiblingNumber> const& ancestry);
+            void write_node_repr(TreeNode const& tn);
+            void write_incoming_edge_repr(TreeNode const& tn);
+            void write_root(TreeNode const& tn);
+            void write_diving(TreeNode const& tn);
+            void write_split(TreeNode const& tn);
+            void write_leaf(TreeNode const& tn);
+            void write_visited(TreeNode const& tn);
+            void write_path(std::vector<TreeNode> const& path);
+        };
+
+        /*************************************
+         *  Implementation of TreeExplainer  *
+         *************************************/
+
+        TreeExplainer::TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs)
+            : m_outs(outs)
+            , m_pbs(pbs)
+        {
         }
+
+        template <typename... Args>
+        void TreeExplainer::write(Args&&... args)
+        {
+            (m_outs << ... << std::forward<Args>(args));
+        }
+
+        void TreeExplainer::write_ancestry(std::vector<SiblingNumber> const& ancestry)
+        {
+            std::size_t const size = ancestry.size();
+            if (size > 0)
+            {
+                for (std::size_t i = 0; i < size - 1; ++i)
+                {
+                    write(indents[static_cast<std::size_t>(ancestry[i])]);
+                }
+                write(indents[2 + static_cast<std::size_t>(ancestry[size - 1])]);
+            }
+        }
+
+        void TreeExplainer::write_node_repr(TreeNode const& tn)
+        {
+            auto do_write = [this](auto const& node)
+            {
+                using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+                if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+                {
+                    write(node.name(), ' ');
+                    if (node.size() == 1)
+                    {
+                        write(node.versions_trunc());  // Won't be truncated as it's size one
+                    }
+                    else
+                    {
+                        write('[', node.versions_trunc(), ']');
+                    }
+                }
+            };
+            std::visit(do_write, m_pbs.graph().node(tn.id));
+        }
+
+        void TreeExplainer::write_incoming_edge_repr(TreeNode const& tn)
+        {
+            auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
+            write(edge.name(), ' ');
+            if (edge.size() == 1)
+            {
+                write(edge.versions_trunc());  // Won't be truncated as it's size one
+            }
+            else
+            {
+                write('[', edge.versions_trunc(), ']');
+            }
+        }
+
+        void TreeExplainer::write_root(TreeNode const& tn)
+        {
+            if (m_pbs.graph().successors(tn.id).size() > 1)
+            {
+                write("The following packages are incompatible");
+            }
+            else
+            {
+                write("The following package could not be installed");
+            }
+        }
+
+        void TreeExplainer::write_diving(TreeNode const& tn)
+        {
+            write_node_repr(tn);
+            if (tn.status)
+            {
+                if (tn.depth() == 1)
+                {
+                    write(" is installable and it requires");
+                }
+                else
+                {
+                    write(", which requires");
+                }
+            }
+            else
+            {
+                if (tn.depth() == 1)
+                {
+                    write(" is uninstallable because it requires");
+                }
+                else
+                {
+                    // TODO confirm this
+                    // write(", which requires");
+                    write(" would require");
+                }
+            }
+        }
+
+        void TreeExplainer::write_split(TreeNode const& tn)
+        {
+            write_incoming_edge_repr(tn);
+            if (tn.status)
+            {
+                if (tn.depth() == 1)
+                {
+                    write(" is installable with the potential options");
+                }
+                else
+                {
+                    write(" with the potential options");
+                }
+            }
+            else
+            {
+                if (tn.depth() == 1)
+                {
+                    write(" is uninstallable because there are no viable options");
+                }
+                else
+                {
+                    write(" but there are no viable options");
+                }
+            }
+        }
+
+        void TreeExplainer::write_leaf(TreeNode const& tn)
+        {
+            auto do_write = [&](auto const& node)
+            {
+                using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+                using RootNode = CompressedProblemsGraph::RootNode;
+                using PackageListNode = CompressedProblemsGraph::PackageListNode;
+                using UnresolvedDepListNode = CompressedProblemsGraph::UnresolvedDependencyListNode;
+                using ConstraintListNode = CompressedProblemsGraph::ConstraintListNode;
+
+                if constexpr (std::is_same_v<Node, RootNode>)
+                {
+                    assert(false);
+                }
+                else if constexpr (std::is_same_v<
+                                       Node,
+                                       PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
+                {
+                    write_node_repr(tn);
+                    if (tn.status)
+                    {
+                        if (tn.depth() == 1)
+                        {
+                            write(" is requested and can be installed");
+                        }
+                        else
+                        {
+                            write(", which can be installed");
+                        }
+                    }
+                    else
+                    {
+                        // Assuming this is always a conflict.
+                        if (tn.depth() == 1)
+                        {
+                            write(" is uninstallable because it");
+                        }
+                        else
+                        {
+                            write(", which");
+                        }
+                        write(" conflicts with installable versions previously reported");
+                    }
+                }
+                else if constexpr (std::is_same_v<Node, UnresolvedDepListNode>)
+                {
+                    write_node_repr(tn);
+                    if (tn.depth() > 1)
+                    {
+                        write(", which");
+                    }
+                    // Virtual package
+                    if (starts_with(node.name(), "__"))
+                    {
+                        write(" is missing on the system");
+                    }
+                    else
+                    {
+                        write(" does not exsist (perhaps ",
+                              (tn.depth() == 1 ? "a typo or a " : "a "),
+                              "missing channel)");
+                    }
+                }
+            };
+            std::visit(do_write, m_pbs.graph().node(tn.id));
+        }
+
+        void TreeExplainer::write_visited(TreeNode const& tn)
+        {
+            write_node_repr(tn);
+            if (tn.status)
+            {
+                write(", which can be installed (as previously explained)");
+            }
+            else
+            {
+                write(", which cannot be installed (as previously explained)");
+            }
+        }
+
+        void TreeExplainer::write_path(std::vector<TreeNode> const& path)
+        {
+            std::size_t const length = path.size();
+            for (std::size_t i = 0; i < length; ++i)
+            {
+                auto const& tn = path[i];
+                write_ancestry(tn.ancestry);
+                switch (tn.type)
+                {
+                    case (TreeNode::Type::root):
+                    {
+                        write_root(tn);
+                        break;
+                    }
+                    case (TreeNode::Type::diving):
+                    {
+                        write_diving(tn);
+                        break;
+                    }
+                    case (TreeNode::Type::split):
+                    {
+                        write_split(tn);
+                        break;
+                    }
+                    case (TreeNode::Type::leaf):
+                    {
+                        write_leaf(tn);
+                        break;
+                    }
+                    case (TreeNode::Type::visited):
+                    {
+                        write_visited(tn);
+                        break;
+                    }
+                }
+                write('\n');
+            }
+        }
+
+        auto TreeExplainer::explain(std::ostream& outs,
+                                    CompressedProblemsGraph const& pbs,
+                                    std::vector<TreeNode> const& path) -> std::ostream&
+        {
+            auto explainer = TreeExplainer(outs, pbs);
+            explainer.write_path(path);
+            return outs;
+        }
+    }
+
+    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs)
+    {
+        auto dfs = TreeDFS(pbs);
+        auto path = dfs.explore();
+        TreeExplainer::explain(out, pbs, path);
+        return out;
     }
 
     std::string problem_tree_str(CompressedProblemsGraph const& pbs)
     {
-        auto path = TreeDFS::visit(pbs);
-        return {};
+        std::stringstream ss;
+        problem_tree_str(ss, pbs);
+        return ss.str();
     }
 }

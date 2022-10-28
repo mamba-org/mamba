@@ -8,6 +8,7 @@
 #define MAMBA_PROBLEMS_GRAPH_HPP
 
 #include <string>
+#include <ostream>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -233,6 +234,7 @@ namespace mamba
         node_id m_root_node;
     };
 
+    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs);
     std::string problem_tree_str(CompressedProblemsGraph const& pbs);
 
     /************************************

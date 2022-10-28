@@ -20,6 +20,7 @@ jobs:
     - name: Install pre-commit
       uses: mamba-org/provision-with-micromamba@main
       with:
+        environment-file: false
         environment-name: linters
         extra-specs: pre-commit
     - name: Micromamba info

@@ -22,6 +22,7 @@ jobs:
       with:
         environment-file: false
         environment-name: linters
+        channels: conda-forge
         extra-specs: pre-commit
     - name: Micromamba info
       shell: bash -el {0}

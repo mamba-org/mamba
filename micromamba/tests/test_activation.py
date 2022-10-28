@@ -883,7 +883,7 @@ def get_self_update_interpreters():
     if plat == "win":
         return ["cmd.exe", "powershell", "bash"]
     if plat == "osx":
-        return ["zsh"]
+        return ["zsh", "bash"]
     else:
         return ["bash"]
 
@@ -902,8 +902,10 @@ def test_self_update(backup_umamba, tmp_path, tmp_root_prefix, interpreter):
             f'$Env:MAMBA_EXE="{mamba_exe}"',
             f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
         ]
-    elif interpreter == "bash" and plat == "win":
+    elif interpreter == "bash":
         extra_start_code = ["source ~/.bash_profile"]
+    elif interpreter == "zsh":
+        extra_start_code = ["source ~/.zshrc"]
 
     call_interpreter(
         extra_start_code + ["micromamba self-update --version 0.25.1"],

@@ -43,19 +43,12 @@ update_self(const std::optional<std::string>& version)
     auto exp_loaded = load_channels(pool, package_caches, 0);
     if (!exp_loaded)
     {
-        throw std::runtime_error(exp_loaded.error().what());
+        throw exp_loaded.error();
     }
 
     pool.create_whatprovides();
-    std::string matchspec;
-    if (!version)
-    {
-        matchspec = fmt::format("micromamba>{}", umamba::version());
-    }
-    else
-    {
-        matchspec = fmt::format("micromamba={}", version.value());
-    }
+    std::string matchspec = version ? fmt::format("micromamba={}", version.value())
+                                    : fmt::format("micromamba>{}", umamba::version());
 
     auto solvable_ids = pool.select_solvables(pool.matchspec2id(matchspec), true);
 
@@ -63,8 +56,9 @@ update_self(const std::optional<std::string>& version)
     {
         if (pool.select_solvables(pool.matchspec2id("micromamba")).empty())
         {
-            throw std::runtime_error(
-                "micromamba not found in the loaded channels. Add 'conda-forge' to your config file.");
+            throw mamba::mamba_error(
+                "micromamba not found in the loaded channels. Add 'conda-forge' to your config file.",
+                mamba_error_code::selfupdate_failure);
         }
         else
         {
@@ -77,7 +71,8 @@ update_self(const std::optional<std::string>& version)
     std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     if (!latest_micromamba)
     {
-        throw std::runtime_error("Could not convert solvable to PackageId");
+        throw mamba::mamba_error("Could not convert solvable to PackageId",
+                                 mamba_error_code::internal_failure);
     }
     Console::instance().print(
         fmt::format("Micromamba version available: {} (currently installed {})",
@@ -91,9 +86,9 @@ update_self(const std::optional<std::string>& version)
     auto exp_prefix_data = PrefixData::create(ctx.root_prefix);
     if (!exp_prefix_data)
     {
-        // TODO: propagate tl::expected mechanism
-        throw std::runtime_error(exp_prefix_data.error().what());
+        throw exp_prefix_data.error();
     }
+
     PrefixData& prefix_data = exp_prefix_data.value();
     t.execute(prefix_data);
 

@@ -119,6 +119,7 @@ namespace mamba
 
         bool empty() const;
         std::size_t number_of_nodes() const;
+        std::size_t number_of_edges() const;
         std::size_t in_degree(node_id id) const noexcept;
         std::size_t out_degree(node_id id) const noexcept;
         const node_list& nodes() const;
@@ -131,6 +132,8 @@ namespace mamba
 
         // TODO C++20 better to return a range since this search cannot be interupted from the
         // visitor
+        template <typename BinaryFunc>
+        BinaryFunc for_each_edge(BinaryFunc func) const;
         template <typename UnaryFunc>
         UnaryFunc for_each_leaf(UnaryFunc func) const;
         template <typename UnaryFunc>
@@ -184,6 +187,7 @@ namespace mamba
         node_list m_node_list;
         adjacency_list m_predecessors;
         adjacency_list m_successors;
+        std::size_t m_number_of_edges = 0;
     };
 
     template <typename Node, typename Derived>
@@ -384,6 +388,12 @@ namespace mamba
     }
 
     template <typename N, typename G>
+    auto DiGraphBase<N, G>::number_of_edges() const -> std::size_t
+    {
+        return m_number_of_edges;
+    }
+
+    template <typename N, typename G>
     auto DiGraphBase<N, G>::in_degree(node_id id) const noexcept -> std::size_t
     {
         return m_predecessors[id].size();
@@ -454,6 +464,22 @@ namespace mamba
     {
         m_successors[from].insert(to);
         m_predecessors[to].insert(from);
+        ++m_number_of_edges;
+    }
+
+    template <typename N, typename G>
+    template <typename BinaryFunc>
+    BinaryFunc DiGraphBase<N, G>::for_each_edge(BinaryFunc func) const
+    {
+        auto const n_nodes = number_of_nodes();
+        for (node_id i = 0; i < n_nodes; ++i)
+        {
+            for (node_id j : successors(i))
+            {
+                func(i, j);
+            }
+        }
+        return func;
     }
 
     template <typename N, typename G>
@@ -653,7 +679,7 @@ namespace mamba
     template <typename N, typename E>
     auto DiGraph<N, E>::edge(edge_id edge) const -> edge_t const&
     {
-        return m_edges[edge];
+        return m_edges.at(edge);
     }
 
     template <typename N, typename E>

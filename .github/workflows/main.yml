@@ -510,7 +510,7 @@ jobs:
         run: sccache --show-stats
       - name: tar micromamba artifact
         run: tar -cvf umamba.tar build/micromamba/micromamba.exe
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: _internal_micromamba_binary
           path: umamba.tar
@@ -531,7 +531,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: _internal_micromamba_binary
 

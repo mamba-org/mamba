@@ -387,8 +387,11 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
                 nlohmann_json::nlohmann_json
-                spdlog::spdlog
                 fmt::fmt
+                # Since conda-forge spdlog is built with a bundled version of fmt we use the
+                # header only version to avoid chasing after the correct fmt version mathching
+                # the one used in the bundle
+                spdlog::spdlog_header_only
                 yaml-cpp
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
@@ -432,8 +435,11 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             reproc++
             reproc
             tl::expected
-            spdlog::spdlog
             fmt::fmt
+            # Since conda-forge spdlog is built with a bundled version of fmt we use the
+            # header only version to avoid chasing after the correct fmt version mathching
+            # the one used in the bundle
+            spdlog::spdlog_header_only
         )
 
         add_compile_definitions(SPDLOG_FMT_EXTERNAL)

@@ -333,9 +333,10 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 target_link_options(libmamba-full-static PUBLIC -static-libstdc++ -static-libgcc)
             endif()
 
-            find_package(spdlog CONFIG REQUIRED)
             find_package(fmt REQUIRED)
+            find_package(spdlog CONFIG REQUIRED)
 
+            add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
               libmamba-full-static
               PUBLIC
@@ -354,8 +355,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             find_package(CURL CONFIG REQUIRED)
             find_package(yaml-cpp CONFIG REQUIRED)
             find_package(nlohmann_json CONFIG REQUIRED)
-            find_package(spdlog CONFIG REQUIRED)
             find_package(fmt REQUIRED)
+            find_package(spdlog CONFIG REQUIRED)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
@@ -386,8 +387,11 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${LIBLZMA_LIBRARIES}
                 CURL::libcurl
                 nlohmann_json::nlohmann_json
-                spdlog::spdlog
                 fmt::fmt
+                # Since conda-forge spdlog is built with a bundled version of fmt we use the
+                # header only version to avoid chasing after the correct fmt version mathching
+                # the one used in the bundle
+                spdlog::spdlog_header_only
                 yaml-cpp
                 ${LIBSOLV_BUILD_STATICRARIES}
                 ${LIBSOLVEXT_BUILD_STATICRARIES}
@@ -397,8 +401,11 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 tl::expected
             )
 
-            add_definitions(
-              -DLIBARCHIVE_STATIC -DCURL_STATICLIB -DSOLV_BUILD_STATIC
+            add_compile_definitions(
+              SPDLOG_FMT_EXTERNAL
+              LIBARCHIVE_STATIC
+              CURL_STATICLIB
+              SOLV_BUILD_STATIC
             )
             set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
@@ -415,8 +422,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
         find_package(tl-expected REQUIRED)
-        find_package(spdlog CONFIG REQUIRED)
         find_package(fmt REQUIRED)
+        find_package(spdlog CONFIG REQUIRED)
 
         set(LIBMAMBA_LIBRARIES_DEPS
             ${LIBSOLV_LIBRARIES}
@@ -428,10 +435,14 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             reproc++
             reproc
             tl::expected
-            spdlog::spdlog
             fmt::fmt
+            # Since conda-forge spdlog is built with a bundled version of fmt we use the
+            # header only version to avoid chasing after the correct fmt version mathching
+            # the one used in the bundle
+            spdlog::spdlog_header_only
         )
 
+        add_compile_definitions(SPDLOG_FMT_EXTERNAL)
         target_link_libraries(${target_name} PUBLIC
                               ${LIBMAMBA_LIBRARIES_DEPS}
                               ${MAMBA_FORCE_DYNAMIC_LIBS})

@@ -10,6 +10,8 @@ dependencies:
   - cli11 >=2.2,<3
   - cpp-expected
   - cpp-filesystem
+  - fmt
+  - spdlog
   - nlohmann_json
   - spdlog
   - fmt

@@ -27,7 +27,7 @@
 #define LIBMAMBA_VERSION_STRING                                                                    \
     __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MAJOR)                                                   \
     "." __LIBMAMBA_STRINGIZE(LIBMAMBA_VERSION_MINOR) "." __LIBMAMBA_STRINGIZE(                     \
-        LIBMAMBA_VERSION_PATCH)
+        LIBMAMBA_VERSION_PATCH) " (" __LIBMAMBA_STRINGIZE(LIBMAMBA_COMMIT_SHA) ")"
 
 namespace mamba
 {

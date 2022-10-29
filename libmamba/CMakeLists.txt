@@ -46,6 +46,8 @@ message(STATUS "libmamba binary version: v${LIBMAMBA_BINARY_VERSION}")
 # Build options
 # =============
 
+add_definitions("-DLIBMAMBA_COMMIT_SHA=unknown sha")
+
 option(BUILD_TESTS "Build libmamba C++ tests" OFF)
 option(BUILD_SHARED "Build shared libmamba library" OFF)
 option(BUILD_STATIC "Build static libmamba library" OFF)

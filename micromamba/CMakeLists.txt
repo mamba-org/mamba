@@ -51,6 +51,8 @@ set(MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
 
+add_definitions("-DUMAMBA_COMMIT_SHA=unknown sha")
+
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 
 if(NOT (TARGET libmamba OR TARGET libmamba-static OR TARGET libmamba-full-static))

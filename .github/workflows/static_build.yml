@@ -95,7 +95,7 @@ jobs:
 
   micromamba-full-static-win:
     # These build instructions are based on https://github.com/conda-forge/micromamba-feedstock
-    if: false
+#    if: false
     name: "micromamba - win-64"
     runs-on: windows-2019
     steps:
@@ -151,6 +151,8 @@ jobs:
               -D BUILD_STATIC_DEPS=ON ^
               -D BUILD_MICROMAMBA=ON ^
               -D MICROMAMBA_LINKAGE=FULL_STATIC ^
+              -D LIBMAMBA_COMMIT_SHA=${{ github.sha }} ^
+              -D UMAMBA_COMMIT_SHA=${{ github.sha }} ^
               -G "Ninja"
           if %errorlevel% neq 0 exit /b %errorlevel%
           ninja install

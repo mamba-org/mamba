@@ -903,7 +903,10 @@ def test_self_update(backup_umamba, tmp_path, tmp_root_prefix, interpreter):
             f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
         ]
     elif interpreter == "bash":
-        extra_start_code = ["source ~/.bash_profile"]
+        if plat == "linux":
+            extra_start_code = ["source ~/.bashrc"]
+        else:
+            extra_start_code = ["source ~/.bash_profile"]
     elif interpreter == "zsh":
         extra_start_code = ["source ~/.zshrc"]
 

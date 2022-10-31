@@ -890,7 +890,9 @@ class TestActivation:
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
     @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
-    def test_self_update(self, backup_umamba, tmp_home, tmp_path, tmp_root_prefix, interpreter):
+    def test_self_update(
+        self, backup_umamba, tmp_home, tmp_path, tmp_root_prefix, interpreter
+    ):
 
         mamba_exe = backup_umamba
 
@@ -914,7 +916,8 @@ class TestActivation:
             extra_start_code = ["source ~/.zshrc"]
 
         call_interpreter(
-            extra_start_code + ["micromamba self-update --version 0.25.1 -c conda-forge"],
+            extra_start_code
+            + ["micromamba self-update --version 0.25.1 -c conda-forge"],
             tmp_path,
             interpreter,
             interactive=False,

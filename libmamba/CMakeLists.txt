@@ -303,6 +303,10 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 libreproc++.a
                 libreproc.a
             )
+            if (APPLE)
+                set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)
+            endif()
+
 
             set(STATIC_DEPS "")
             foreach(LIB ${REQUIRED_STATIC_DEPS})
@@ -326,7 +330,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             endforeach(LIB)
 
             if (APPLE)
-                set (MAMBA_FORCE_DYNAMIC_LIBS resolv)
+                set (MAMBA_FORCE_DYNAMIC_LIBS resolv c++abi)
                 target_link_options(libmamba-full-static PRIVATE -static-libstdc++)
             elseif (UNIX)
                 set(MAMBA_FORCE_DYNAMIC_LIBS rt dl resolv)

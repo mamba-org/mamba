@@ -874,9 +874,15 @@ class TestActivation:
 def backup_umamba():
     mamba_exe = get_umamba()
     shutil.copyfile(mamba_exe, mamba_exe + ".orig")
+
     yield mamba_exe
+
     shutil.move(mamba_exe + ".orig", mamba_exe)
     os.chmod(mamba_exe, 0o755)
+
+    # reinit with previous mamba_exe
+    shell_init = [f"{mamba_exe} shell init -s {interpreter} -p {tmp_root_prefix}"]
+    call_interpreter(shell_init, tmp_path, interpreter)
 
 
 def get_self_update_interpreters():
@@ -900,7 +906,9 @@ def test_self_update(backup_umamba, tmp_path, tmp_root_prefix, interpreter):
     if interpreter == "powershell":
         extra_start_code = [
             f'$Env:MAMBA_EXE="{mamba_exe}"',
+            "$MambaModuleArgs = @{ChangePs1 = $True}"
             f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
+            "Remove-Variable MambaModuleArgs",
         ]
     elif interpreter == "bash":
         if plat == "linux":
@@ -911,7 +919,7 @@ def test_self_update(backup_umamba, tmp_path, tmp_root_prefix, interpreter):
         extra_start_code = ["source ~/.zshrc"]
 
     call_interpreter(
-        extra_start_code + ["micromamba self-update --version 0.25.1"],
+        extra_start_code + ["micromamba self-update --version 0.25.1 -c conda-forge"],
         tmp_path,
         interpreter,
         interactive=False,

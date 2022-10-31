@@ -37,6 +37,10 @@ update_self(const std::optional<std::string>& version)
     auto& ctx = mamba::Context::instance();
     config.load();
 
+    // set target_prefix to root_prefix (irrelevant, but transaction tries to lock
+    // the conda-meta folder of the target_prefix)
+    ctx.target_prefix = ctx.root_prefix;
+
     mamba::MPool pool;
     mamba::MultiPackageCache package_caches(ctx.pkgs_dirs);
 

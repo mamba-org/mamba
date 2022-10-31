@@ -218,7 +218,17 @@ namespace mamba
                                       std::size_t threshold = 5,
                                       std::pair<std::size_t, std::size_t> show = { 2, 1 })
     {
-        if ((last - first) <= threshold)
+        auto unsigned_cast = [](auto n)
+        {
+            assert(n >= 0);
+            return static_cast<std::make_unsigned_t<decltype(n)>>(n);
+        };
+
+        if (last <= first)
+        {
+            return func;
+        }
+        if (unsigned_cast(last - first) <= threshold)
         {
             return join_for_each(first, last, std::move(func), sep);
         }

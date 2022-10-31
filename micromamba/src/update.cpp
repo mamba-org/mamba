@@ -132,14 +132,6 @@ update_self(const std::optional<std::string>& version)
         throw;
     }
 
-    for (const auto& shell : find_initialized_shells())
-    {
-        // re-initialize all the shell scripts after update
-        LOG_WARNING << "Reinitializing " << shell;
-        const std::vector<std::string> reinit = { mamba_exe, "shell", "init", "-s", shell };
-        auto [status, ec] = reproc::run(reinit, reproc::options{});
-    }
-
     return 0;
 }
 

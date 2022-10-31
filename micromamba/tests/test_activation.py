@@ -243,6 +243,26 @@ def get_valid_interpreters():
 valid_interpreters = get_valid_interpreters()
 
 
+@pytest.fixture
+def backup_umamba():
+    mamba_exe = get_umamba()
+    shutil.copyfile(mamba_exe, mamba_exe + ".orig")
+
+    yield mamba_exe
+
+    shutil.move(mamba_exe + ".orig", mamba_exe)
+    os.chmod(mamba_exe, 0o755)
+
+
+def get_self_update_interpreters():
+    if plat == "win":
+        return ["cmd.exe", "powershell", "bash"]
+    if plat == "osx":
+        return ["zsh", "bash"]
+    else:
+        return ["bash"]
+
+
 def shvar(v, interpreter):
     if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh", "dash"]:
         return f"${v}"
@@ -869,64 +889,42 @@ class TestActivation:
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
 
+    @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
+    def test_self_update(self, backup_umamba, tmp_home, tmp_path, tmp_root_prefix, interpreter):
 
-@pytest.fixture
-def backup_umamba():
-    mamba_exe = get_umamba()
-    shutil.copyfile(mamba_exe, mamba_exe + ".orig")
+        mamba_exe = backup_umamba
 
-    yield mamba_exe
+        shell_init = [f"{mamba_exe} shell init -s {interpreter} -p {tmp_root_prefix}"]
+        call_interpreter(shell_init, tmp_path, interpreter)
 
-    shutil.move(mamba_exe + ".orig", mamba_exe)
-    os.chmod(mamba_exe, 0o755)
+        extra_start_code = []
+        if interpreter == "powershell":
+            extra_start_code = [
+                f'$Env:MAMBA_EXE="{mamba_exe}"',
+                "$MambaModuleArgs = @{ChangePs1 = $True}"
+                f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
+                "Remove-Variable MambaModuleArgs",
+            ]
+        elif interpreter == "bash":
+            if plat == "linux":
+                extra_start_code = ["source ~/.bashrc"]
+            else:
+                extra_start_code = ["source ~/.bash_profile"]
+        elif interpreter == "zsh":
+            extra_start_code = ["source ~/.zshrc"]
 
-    # reinit with previous mamba_exe
-    shell_init = [f"{mamba_exe} shell init -s {interpreter} -p {tmp_root_prefix}"]
-    call_interpreter(shell_init, tmp_path, interpreter)
+        call_interpreter(
+            extra_start_code + ["micromamba self-update --version 0.25.1 -c conda-forge"],
+            tmp_path,
+            interpreter,
+            interactive=False,
+        )
 
+        assert Path(mamba_exe).exists()
+        assert not Path(mamba_exe + ".bkup").exists()
 
-def get_self_update_interpreters():
-    if plat == "win":
-        return ["cmd.exe", "powershell", "bash"]
-    if plat == "osx":
-        return ["zsh", "bash"]
-    else:
-        return ["bash"]
+        version = subprocess.check_output([mamba_exe, "--version"])
+        assert version.decode("utf8").strip() == "0.25.1"
 
-
-@pytest.mark.parametrize("interpreter", get_self_update_interpreters())
-def test_self_update(backup_umamba, tmp_path, tmp_root_prefix, interpreter):
-
-    mamba_exe = backup_umamba
-
-    shell_init = [f"{mamba_exe} shell init -s {interpreter} -p {tmp_root_prefix}"]
-    call_interpreter(shell_init, tmp_path, interpreter)
-
-    extra_start_code = []
-    if interpreter == "powershell":
-        extra_start_code = [
-            f'$Env:MAMBA_EXE="{mamba_exe}"',
-            "$MambaModuleArgs = @{ChangePs1 = $True}"
-            f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
-            "Remove-Variable MambaModuleArgs",
-        ]
-    elif interpreter == "bash":
-        if plat == "linux":
-            extra_start_code = ["source ~/.bashrc"]
-        else:
-            extra_start_code = ["source ~/.bash_profile"]
-    elif interpreter == "zsh":
-        extra_start_code = ["source ~/.zshrc"]
-
-    call_interpreter(
-        extra_start_code + ["micromamba self-update --version 0.25.1 -c conda-forge"],
-        tmp_path,
-        interpreter,
-        interactive=False,
-    )
-
-    assert Path(mamba_exe).exists()
-    assert not Path(mamba_exe + ".bkup").exists()
-
-    version = subprocess.check_output([mamba_exe, "--version"])
-    assert version.decode("utf8").strip() == "0.25.1"
+        shutil.copyfile(mamba_exe + ".orig", mamba_exe)
+        os.chmod(mamba_exe, 0o755)

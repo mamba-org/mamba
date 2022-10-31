@@ -891,7 +891,13 @@ class TestActivation:
 
     @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
     def test_self_update(
-        self, backup_umamba, tmp_home, tmp_path, tmp_root_prefix, interpreter
+        self,
+        backup_umamba,
+        tmp_home,
+        tmp_path,
+        tmp_root_prefix,
+        winreg_value,
+        interpreter,
     ):
 
         mamba_exe = backup_umamba

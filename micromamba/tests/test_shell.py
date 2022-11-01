@@ -68,7 +68,7 @@ class TestShell:
         if shell_type == "powershell":
             assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
         elif shell_type in ("zsh", "bash", "posix"):
-            assert res.count(mamba_exe) == 1
+            assert res.count(mamba_exe) == 3
         elif shell_type == "xonsh":
             assert res.count(mamba_exe) == 8
         elif shell_type == "fish":

@@ -1425,6 +1425,12 @@ namespace mamba
                    .set_env_var_names()
                    .description("Only display what would have been done"));
 
+        insert(Configurable("download_only", &ctx.download_only)
+                   .group("Output, Prompt and Flow Control")
+                   .set_env_var_names()
+                   .description(
+                       "Only download and extract packages, do not link them into environment."));
+
         insert(Configurable("log_level", &ctx.logging_level)
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()

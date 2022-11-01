@@ -6,7 +6,6 @@ import subprocess
 import tempfile
 
 import pytest
-from numpy import interp
 
 from .helpers import *
 

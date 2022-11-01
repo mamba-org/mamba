@@ -1,10 +1,10 @@
 import os
 import pathlib
-from pathlib import PurePosixPath, PureWindowsPath
 import platform
 import shutil
 import subprocess
 import tempfile
+from pathlib import PurePosixPath, PureWindowsPath
 
 import pytest
 

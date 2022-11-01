@@ -941,7 +941,15 @@ class TestActivation:
             if plat == "linux":
                 extra_start_code = ["source ~/.bashrc"]
             else:
-                extra_start_code = ["source ~/.bash_profile"]
+                print(mamba_exe)
+                extra_start_code = [
+                    "source ~/.bash_profile",
+                    "micromamba info",
+                    "echo $MAMBA_ROOT_PREFIX",
+                    "echo $HOME",
+                    "ls ~",
+                    "echo $MAMBA_EXE",
+                ]
         elif interpreter == "zsh":
             extra_start_code = ["source ~/.zshrc"]
 

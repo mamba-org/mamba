@@ -314,10 +314,8 @@ class TestActivation:
         interpreter,
     ):
         # TODO enable these tests also on win + bash!
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 
@@ -419,10 +417,8 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 
@@ -515,10 +511,8 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 
@@ -569,10 +563,8 @@ class TestActivation:
     def test_env_activation(
         self, tmp_home, winreg_value, tmp_root_prefix, tmp_path, interpreter
     ):
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 
@@ -670,10 +662,8 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 
@@ -795,10 +785,8 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 
@@ -901,10 +889,8 @@ class TestActivation:
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_activate_path(self, tmp_empty_env, tmp_env_name, interpreter, tmp_path):
-        if (
-            interpreter not in valid_interpreters
-            or plat == "win"
-            and interpreter == "bash"
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
         ):
             pytest.skip(f"{interpreter} not available")
 

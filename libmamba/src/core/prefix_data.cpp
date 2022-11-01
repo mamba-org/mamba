@@ -32,7 +32,7 @@ namespace mamba
         catch (...)
         {
             return tl::make_unexpected(
-                mamba_error("Unkown error when trying to load prefix data " + prefix_path.string(),
+                mamba_error("Unknown error when trying to load prefix data " + prefix_path.string(),
                             mamba_error_code::unknown));
         }
     }

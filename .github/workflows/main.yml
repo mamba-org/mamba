@@ -555,7 +555,8 @@ jobs:
           $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'build\micromamba\micromamba.exe'
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
 
-          pytest -v --capture=tee-sys micromamba/tests/
+          # pytest -v --capture=tee-sys micromamba/tests/
+          pytest -v -s micromamba/tests/test_activation.py
 
       # - name: micromamba python based tests
       #   shell: cmd /C call {0}

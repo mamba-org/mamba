@@ -10,8 +10,8 @@
 #include <array>
 #include <string>
 
-#define UMAMBA_VERSION_MAJOR 0
-#define UMAMBA_VERSION_MINOR 27
+#define UMAMBA_VERSION_MAJOR 1
+#define UMAMBA_VERSION_MINOR 0
 #define UMAMBA_VERSION_PATCH 0
 
 // Binary version

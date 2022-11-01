@@ -1,3 +1,35 @@
+micromamba 1.0.0 (November 01, 2022)
+====================================
+
+Our biggest version number yet! Finally a 1.0 release :)
+
+New notable micromamba features include:
+
+- - improved shell scripts with autocompletion available in PowerShell, xonsh, fish, bash and zsh
+- - `micromamba shell -n someenv`: enter a sub-shell without modifying the system
+- - `micromamba self-update`: micromamba searches for updates and installs them if available
+
+(you can also downgrade using `--version 0.26.0` for example)
+
+Bug fixes:
+
+- ignore "Permission denied" in `env::which` (thanks @Rafflesiaceae) #2067
+- Link micromamba with static libc++.a and system libc++abi (thanks @isuruf) #2069
+- Fix an infinite loop in replace_all() when the search string is empty (thanks @tsibley)
+- Do not crash when permissions cannot be changed, instead log warning (thanks @hwalinga)
+
+Enhancements:
+
+- Add `micromamba env remove` (thanks @Hind-M) #2002
+- add self-update functionality (#2023)
+- order dependencies alphabetically from `micromamba env export` (thanks @torfinnberset) #2063
+- Fix ci deprecation warnings, upload conda-bld artifacts for failed builds #2058, #2062
+- Explicitly define SPDLOG_FMT_EXTERNAL and use spdlog header only use external fmt (thanks @AntoinePrv) #2060, #2048
+- Fix CI by pointing to updated feedstock and fixing update tests (thanks @AntoinePrv) #2055
+- Add authentication with urlencoded @ to proxy test (#2024) @AdrianFreundQC
+- better test isolation (thanks @AntoinePrv) #1903
+- Test special characters in basic auth (thanks @jonashaag) #2012
+
 micromamba 0.27.0 (October 04, 2022)
 ====================================
 

@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 
 import pytest
+from numpy import interp
 
 from .helpers import *
 
@@ -138,7 +139,7 @@ def find_path_in_str(p, s):
     return False
 
 
-def format_path(p):
+def format_path(p, interpreter):
     if plat == "win" and interpreter == "bash":
         return str(PurePosixPath(PureWindowsPath(p)))
     else:
@@ -313,7 +314,12 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        # TODO enable these tests also on win + bash!
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -414,7 +420,11 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -506,7 +516,11 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -556,7 +570,11 @@ class TestActivation:
     def test_env_activation(
         self, tmp_home, winreg_value, tmp_root_prefix, tmp_path, interpreter
     ):
-        if interpreter not in valid_interpreters:
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -653,7 +671,11 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -774,7 +796,11 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -876,7 +902,11 @@ class TestActivation:
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_activate_path(self, tmp_empty_env, tmp_env_name, interpreter, tmp_path):
-        if interpreter not in valid_interpreters:
+        if (
+            interpreter not in valid_interpreters
+            or plat == "win"
+            and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         # Activate env name
@@ -909,7 +939,7 @@ class TestActivation:
         mamba_exe = backup_umamba
 
         shell_init = [
-            f"{format_path(mamba_exe)} shell init -s {interpreter} -p {format_path(tmp_root_prefix)}"
+            f"{format_path(mamba_exe, interpreter)} shell init -s {interpreter} -p {format_path(tmp_root_prefix, interpreter)}"
         ]
         call_interpreter(shell_init, tmp_path, interpreter)
 

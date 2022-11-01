@@ -486,7 +486,6 @@ namespace mamba
         }
 
         std::ofstream rc_file = open_ofstream(file_path, std::ios::out | std::ios::binary);
-        Console::stream() << "RC FILE: " << result << std::endl;
         rc_file << result;
     }
 

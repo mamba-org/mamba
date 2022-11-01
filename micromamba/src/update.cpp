@@ -4,29 +4,20 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <termcolor/termcolor.hpp>
+
 #include "common_options.hpp"
+#include "version.hpp"
 
 #include "mamba/api/configuration.hpp"
-#include "mamba/api/update.hpp"
 #include "mamba/api/channel_loader.hpp"
+#include "mamba/api/shell.hpp"
+#include "mamba/api/update.hpp"
 
-#include "mamba/core/transaction.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/shell_init.hpp"
+#include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
-#include "version.hpp"
-#include <reproc++/run.hpp>
 
-
-extern "C"
-{
-#include "solv/evr.h"
-#include "solv/pool.h"
-#include "solv/conda.h"
-#include "solv/repo.h"
-#include "solv/selection.h"
-#include "solv/solver.h"
-}
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -61,7 +52,7 @@ update_self(const std::optional<std::string>& version)
         if (pool.select_solvables(pool.matchspec2id("micromamba")).empty())
         {
             throw mamba::mamba_error(
-                "micromamba not found in the loaded channels. Add 'conda-forge' to your config file.",
+                "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
                 mamba_error_code::selfupdate_failure);
         }
         else
@@ -75,15 +66,18 @@ update_self(const std::optional<std::string>& version)
     std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     if (!latest_micromamba)
     {
-        throw mamba::mamba_error("Could not convert solvable to PackageId",
+        throw mamba::mamba_error("Could not convert solvable to PackageInfo",
                                  mamba_error_code::internal_failure);
     }
+    Console::instance().stream()
+        << termcolor::green
+        << fmt::format("\n  Installing micromamba version: {} (currently installed {})",
+                       latest_micromamba.value().version,
+                       umamba::version())
+        << termcolor::reset;
+
     Console::instance().print(
-        fmt::format("Micromamba version available: {} (currently installed {})",
-                    latest_micromamba.value().version,
-                    umamba::version()));
-    Console::instance().print(
-        fmt::format("Fetching micromamba from {}", latest_micromamba.value().url));
+        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url));
 
     ctx.download_only = true;
     MTransaction t(pool, { latest_micromamba.value() }, package_caches);
@@ -131,6 +125,10 @@ update_self(const std::optional<std::string>& version)
         fs::rename(mamba_exe_bkup, mamba_exe);
         throw;
     }
+
+    Console::instance().print("\nReinitializing all previously initialized shells\n");
+    std::string shell_type = "";
+    mamba::shell("reinit", shell_type, ctx.root_prefix, false);
 
     return 0;
 }

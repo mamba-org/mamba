@@ -560,7 +560,7 @@ namespace mamba
         auto [status, ec] = reproc::run(cmd, options);
         if (ec)
         {
-            throw std::runtime_error(std::string("Could not codesign executable") + ec.message());
+            throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
         }
     }
 }

@@ -929,6 +929,8 @@ class TestActivation:
         ]
         call_interpreter(shell_init, tmp_path, interpreter)
 
+        assert((Path(tmp_root_prefix) / "etc" / "profile.d" / "micromamba.sh").exists())
+
         extra_start_code = []
         if interpreter == "powershell":
             extra_start_code = [

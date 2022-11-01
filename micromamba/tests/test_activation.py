@@ -2,9 +2,7 @@ import os
 import pathlib
 import platform
 import shutil
-import string
 import subprocess
-import sys
 import tempfile
 
 import pytest
@@ -101,7 +99,7 @@ def write_script(interpreter, lines, path):
 
 
 possible_interpreters = {
-    "win": {"powershell", "cmd.exe"},
+    "win": {"powershell", "cmd.exe", "bash"},
     "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
 }
 
@@ -140,6 +138,13 @@ def find_path_in_str(p, s):
     return False
 
 
+def format_path(p):
+    if plat == "win" and interpreter == "bash":
+        return str(PurePosixPath(PureWindowsPath(p)))
+    else:
+        return str(p)
+
+
 def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interactive and interpreter == "powershell":
         # "Get-Content -Path $PROFILE.CurrentUserAllHosts | Invoke-Expression"
@@ -166,6 +171,8 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = ["cmd.exe", "/Q", "/C", f]
     elif interpreter == "powershell":
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
+    elif interpreter == "bash" and plat == "win":
+        args = [os.path.join(os.environ["PROGRAMFILES"], "Git", "bin", "bash.exe"), f]
     else:
         args = [interpreter, f]
         if interactive:
@@ -899,17 +906,18 @@ class TestActivation:
         winreg_value,
         interpreter,
     ):
-
         mamba_exe = backup_umamba
 
-        shell_init = [f"{mamba_exe} shell init -s {interpreter} -p {tmp_root_prefix}"]
+        shell_init = [
+            f"{format_path(mamba_exe)} shell init -s {interpreter} -p {format_path(tmp_root_prefix)}"
+        ]
         call_interpreter(shell_init, tmp_path, interpreter)
 
         extra_start_code = []
         if interpreter == "powershell":
             extra_start_code = [
                 f'$Env:MAMBA_EXE="{mamba_exe}"',
-                "$MambaModuleArgs = @{ChangePs1 = $True}"
+                "$MambaModuleArgs = @{ChangePs1 = $True}",
                 f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
                 "Remove-Variable MambaModuleArgs",
             ]
@@ -930,10 +938,11 @@ class TestActivation:
         )
 
         assert Path(mamba_exe).exists()
-        assert not Path(mamba_exe + ".bkup").exists()
 
         version = subprocess.check_output([mamba_exe, "--version"])
         assert version.decode("utf8").strip() == "0.25.1"
+
+        assert not Path(mamba_exe + ".bkup").exists()
 
         shutil.copyfile(mamba_exe + ".orig", mamba_exe)
         os.chmod(mamba_exe, 0o755)

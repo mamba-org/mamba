@@ -1,3 +1,48 @@
+2022.11.01
+==========
+
+Releases: libmamba 1.0.0, libmambapy 1.0.0, mamba 1.0.0, micromamba 1.0.0
+
+Our biggest version number yet! Finally a 1.0 release :)
+
+New notable micromamba features include:
+
+- improved shell scripts with autocompletion available in PowerShell, xonsh, fish, bash and zsh
+- `micromamba shell -n someenv`: enter a sub-shell without modifying the system
+- `micromamba self-update`: micromamba searches for updates and installs them if available
+							(you can also downgrade using `--version 0.26.0` for example)
+
+Bug fixes:
+- [micromamba, libmamba] ignore "Permission denied" in `env::which` (thanks @Rafflesiaceae) #2067
+- [micromamba] Link micromamba with static libc++.a and system libc++abi (thanks @isuruf) #2069
+- [libmamba, micromamba] Fix an infinite loop in replace_all() when the search string is empty (thanks @tsibley)
+- [mamba, libmambapy] Ensure package record always has subdir (thanks @jaimergp) #2016
+- [libmamba, micromamba] Do not crash when permissions cannot be changed, instead log warning (thanks @hwalinga)
+
+Enhancements:
+- [libmamba] Rewrite LockFile interface (thanks @Klaim) #2014
+- [micromamba] Add `micromamba env remove` (thanks @Hind-M) #2002
+- [micromamba] add self-update functionality (#2023)
+- [micromamba] order dependencies alphabetically from `micromamba env export` (thanks @torfinnberset) #2063
+
+- [libmambapy] add stubs with pybind11-stubgen (thanks @dholth) #1983
+- [mamba] Support for mamba init fish (thanks @dlukes) #2006
+- [mamba] Fix Repoquery help text (thanks @BastianZim) #1998
+
+- [all] Fix ci deprecation warnings, upload conda-bld artifacts for failed builds #2058, #2062
+- [all] Explicitly define SPDLOG_FMT_EXTERNAL and use spdlog header only use external fmt (thanks @AntoinePrv) #2060, #2048
+- [all] Fix CI by pointing to updated feedstock and fixing update tests (thanks @AntoinePrv) #2055
+- [all] Add authentication with urlencoded @ to proxy test (#2024) @AdrianFreundQC
+- [all] better test isolation (thanks @AntoinePrv) #1903
+- [all] Test special characters in basic auth (thanks @jonashaag) #2012
+
+- [libmamba] ProblemsGraph compression (thanks @AntoinePrv) #2019
+- [libmamba] vector_set compare function (thanks @AntoinePrv) #2051
+- [libmamba] Clean up util_graph header and tests (thanks @AntoinePrv) #2039
+- [libmamba] Add string utilities (thanks @AntoinePrv) #
+- [libmamba] Dynamic tree walk of the Compressed problem graph
+- [libmamba] Creating the initial problems graph (thanks @syslaila) #1891
+
 2022.10.04
 ==========
 

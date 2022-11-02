@@ -97,12 +97,26 @@ function Invoke-Mamba() {
             "deactivate" {
                 Exit-MambaEnvironment;
             }
-
+            "self-update" {
+                & $Env:MAMBA_EXE $Command @OtherArgs;
+                $MAMBA_EXE_BKUP = $Env:MAMBA_EXE + ".bkup";
+                if (Test-Path $MAMBA_EXE_BKUP) {
+                    Remove-Item $MAMBA_EXE_BKUP
+                }
+            }
             default {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
                 # verbatim.
                 & $Env:MAMBA_EXE $Command @OtherArgs;
+
+                # reactivate environment
+                if (@("install", "update", "remove").contains($Command))
+                {
+                    $activateCommand = (& $Env:MAMBA_EXE shell reactivate -s powershell $Args | Out-String);
+                    Write-Verbose "[micromamba shell reactivate --shell powershell $Args]`n$activateCommand";
+                    Invoke-Expression -Command $activateCommand;
+                }
             }
         }
     }

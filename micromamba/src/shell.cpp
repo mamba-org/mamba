@@ -9,6 +9,7 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
+#include "mamba/core/run.hpp"
 
 #include "mamba/core/fsutil.hpp"
 
@@ -48,6 +49,7 @@ init_shell_parser(CLI::App* subcom)
     subcom->add_option("action", action.get_cli_config<std::string>(), action.description())
         ->check(CLI::IsMember(std::vector<std::string>({ "init",
                                                          "deinit",
+                                                         "reinit",
                                                          "hook",
                                                          "activate",
                                                          "deactivate",
@@ -56,8 +58,7 @@ init_shell_parser(CLI::App* subcom)
                                                          ,
                                                          "enable-long-paths-support"
 #endif
-        })))
-        ->required();
+        })));
 
     auto& prefix = config.insert(
         Configurable("shell_prefix", std::string(""))
@@ -83,6 +84,28 @@ set_shell_command(CLI::App* subcom)
             auto& action = config.at("shell_action").compute().value<std::string>();
             auto& shell = config.at("shell_type").compute().value<std::string>();
             auto& stack = config.at("shell_stack").compute().value<bool>();
-            mamba::shell(action, shell, prefix, stack);
+            if (action.empty())
+            {
+                Context::instance().target_prefix = prefix;
+                std::string default_shell = "bash";
+                if (on_win)
+                {
+                    default_shell = "cmd.exe";
+                }
+                else if (on_mac)
+                {
+                    default_shell = "zsh";
+                }
+
+                auto env_shell = env::get("SHELL").value_or(default_shell);
+                mamba::run_in_environment(
+                    { env_shell }, ".", (int) STREAM_OPTIONS::ALL_STREAMS, false, false, {}, "");
+                return 0;
+            }
+            else
+            {
+                mamba::shell(action, shell, prefix, stack);
+                return 0;
+            }
         });
 }

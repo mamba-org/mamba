@@ -56,6 +56,9 @@ void
 set_update_command(CLI::App* subcom);
 
 void
+set_self_update_command(CLI::App* subcom);
+
+void
 set_repoquery_command(CLI::App* subcom);
 
 void

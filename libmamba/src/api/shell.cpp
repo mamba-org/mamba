@@ -110,6 +110,14 @@ namespace mamba
 
             deinit_shell(shell_type, shell_prefix);
         }
+        else if (action == "reinit")
+        {
+            // re-initialize all the shell scripts after update
+            for (auto& shell_type : find_initialized_shells())
+            {
+                shell("init", shell_type, prefix, false);
+            }
+        }
         else if (action == "hook")
         {
             // TODO do we need to do something wtih `shell_prefix -> root_prefix?`?

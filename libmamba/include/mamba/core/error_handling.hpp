@@ -28,6 +28,7 @@ namespace mamba
         openssl_failed,
         internal_failure,
         lockfile_failure,
+        selfupdate_failure,
     };
 
     class mamba_error : public std::runtime_error

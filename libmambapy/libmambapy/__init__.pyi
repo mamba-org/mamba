@@ -307,6 +307,14 @@ class Context:
     def default_channels(self, arg0: typing.List[str]) -> None:
         pass
     @property
+    def download_only(self) -> bool:
+        """
+        :type: bool
+        """
+    @download_only.setter
+    def download_only(self, arg0: bool) -> None:
+        pass
+    @property
     def download_threads(self) -> int:
         """
         :type: int
@@ -830,7 +838,7 @@ class Pool:
     def create_whatprovides(self) -> None: ...
     def id2pkginfo(self, id: int) -> typing.Optional[PackageInfo]: ...
     def matchspec2id(self, ms: str) -> int: ...
-    def select_solvables(self, id: int) -> typing.List[int]: ...
+    def select_solvables(self, id: int, sorted: bool = False) -> typing.List[int]: ...
     def set_debuglevel(self) -> None: ...
     pass
 

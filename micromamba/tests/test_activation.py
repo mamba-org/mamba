@@ -2,10 +2,9 @@ import os
 import pathlib
 import platform
 import shutil
-import string
 import subprocess
-import sys
 import tempfile
+from pathlib import PurePosixPath, PureWindowsPath
 
 import pytest
 
@@ -101,7 +100,7 @@ def write_script(interpreter, lines, path):
 
 
 possible_interpreters = {
-    "win": {"powershell", "cmd.exe"},
+    "win": {"powershell", "cmd.exe", "bash"},
     "unix": {"bash", "zsh", "fish", "xonsh", "tcsh"},
 }
 
@@ -140,6 +139,13 @@ def find_path_in_str(p, s):
     return False
 
 
+def format_path(p, interpreter):
+    if plat == "win" and interpreter == "bash":
+        return str(PurePosixPath(PureWindowsPath(p)))
+    else:
+        return str(p)
+
+
 def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
     if interactive and interpreter == "powershell":
         # "Get-Content -Path $PROFILE.CurrentUserAllHosts | Invoke-Expression"
@@ -166,6 +172,8 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = ["cmd.exe", "/Q", "/C", f]
     elif interpreter == "powershell":
         args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f]
+    elif interpreter == "bash" and plat == "win":
+        args = [os.path.join(os.environ["PROGRAMFILES"], "Git", "bin", "bash.exe"), f]
     else:
         args = [interpreter, f]
         if interactive:
@@ -243,6 +251,26 @@ def get_valid_interpreters():
 valid_interpreters = get_valid_interpreters()
 
 
+@pytest.fixture
+def backup_umamba():
+    mamba_exe = get_umamba()
+    shutil.copyfile(mamba_exe, mamba_exe + ".orig")
+
+    yield mamba_exe
+
+    shutil.move(mamba_exe + ".orig", mamba_exe)
+    os.chmod(mamba_exe, 0o755)
+
+
+def get_self_update_interpreters():
+    if plat == "win":
+        return ["cmd.exe", "powershell", "bash"]
+    if plat == "osx":
+        return ["zsh", "bash"]
+    else:
+        return ["bash"]
+
+
 def shvar(v, interpreter):
     if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh", "dash"]:
         return f"${v}"
@@ -286,7 +314,10 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        # TODO enable these tests also on win + bash!
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -387,7 +418,9 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -479,7 +512,9 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -529,7 +564,9 @@ class TestActivation:
     def test_env_activation(
         self, tmp_home, winreg_value, tmp_root_prefix, tmp_path, interpreter
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -626,7 +663,9 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -747,7 +786,9 @@ class TestActivation:
         tmp_path,
         interpreter,
     ):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         umamba = get_umamba()
@@ -849,7 +890,9 @@ class TestActivation:
 
     @pytest.mark.parametrize("interpreter", get_interpreters())
     def test_activate_path(self, tmp_empty_env, tmp_env_name, interpreter, tmp_path):
-        if interpreter not in valid_interpreters:
+        if interpreter not in valid_interpreters or (
+            plat == "win" and interpreter == "bash"
+        ):
             pytest.skip(f"{interpreter} not available")
 
         # Activate env name
@@ -868,3 +911,67 @@ class TestActivation:
         res = shell("activate", prefix_short, "-s", interpreter)
         dict_res = self.to_dict(res, interpreter)
         assert any([str(tmp_empty_env) in p for p in dict_res.values()])
+
+    @pytest.mark.parametrize("interpreter", get_self_update_interpreters())
+    def test_self_update(
+        self,
+        backup_umamba,
+        tmp_home,
+        tmp_path,
+        tmp_root_prefix,
+        winreg_value,
+        interpreter,
+    ):
+        mamba_exe = backup_umamba
+
+        shell_init = [
+            f"{format_path(mamba_exe, interpreter)} shell init -s {interpreter} -p {format_path(tmp_root_prefix, interpreter)}"
+        ]
+        call_interpreter(shell_init, tmp_path, interpreter)
+
+        if interpreter == "bash":
+            assert (
+                Path(tmp_root_prefix) / "etc" / "profile.d" / "micromamba.sh"
+            ).exists()
+
+        extra_start_code = []
+        if interpreter == "powershell":
+            extra_start_code = [
+                f'$Env:MAMBA_EXE="{mamba_exe}"',
+                "$MambaModuleArgs = @{ChangePs1 = $True}",
+                f'Import-Module "{tmp_root_prefix}\\condabin\\Mamba.psm1" -ArgumentList $MambaModuleArgs',
+                "Remove-Variable MambaModuleArgs",
+            ]
+        elif interpreter == "bash":
+            if plat == "linux":
+                extra_start_code = ["source ~/.bashrc"]
+            else:
+                print(mamba_exe)
+                extra_start_code = [
+                    "source ~/.bash_profile",
+                    "micromamba info",
+                    "echo $MAMBA_ROOT_PREFIX",
+                    "echo $HOME",
+                    "ls ~",
+                    "echo $MAMBA_EXE",
+                ]
+        elif interpreter == "zsh":
+            extra_start_code = ["source ~/.zshrc"]
+
+        call_interpreter(
+            extra_start_code
+            + ["micromamba self-update --version 0.25.1 -c conda-forge"],
+            tmp_path,
+            interpreter,
+            interactive=False,
+        )
+
+        assert Path(mamba_exe).exists()
+
+        version = subprocess.check_output([mamba_exe, "--version"])
+        assert version.decode("utf8").strip() == "0.25.1"
+
+        assert not Path(mamba_exe + ".bkup").exists()
+
+        shutil.copyfile(mamba_exe + ".orig", mamba_exe)
+        os.chmod(mamba_exe, 0o755)

@@ -50,6 +50,8 @@ namespace mamba
     ConsoleFeatures get_console_features();
     int get_console_width();
     int get_console_height();
+
+    void codesign(const fs::u8path& path, bool verbose = false);
 }
 
 #endif

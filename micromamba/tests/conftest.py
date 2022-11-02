@@ -12,8 +12,8 @@ from . import helpers
 def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
     """Change the home directory to a tmp folder for the duration of a test."""
     # Try multiple combination for Unix/Windows
-    home_envs = [k for k in ("HOME", "USERPROFILE") if k in os.environ]
-    old_homes = {name: os.environ[name] for name in home_envs}
+    home_envs = ["HOME", "USERPROFILE"]
+    old_homes = {name: os.environ.get(name) for name in home_envs}
 
     if len(home_envs) > 0:
         new_home = tmp_path / "home"
@@ -22,7 +22,10 @@ def tmp_home(tmp_path: pathlib.Path) -> Generator[pathlib.Path, None, None]:
             os.environ[env] = str(new_home)
         yield new_home
         for env, home in old_homes.items():
-            os.environ[env] = home
+            if old_homes[env] is None:
+                del os.environ[env]
+            else:
+                os.environ[env] = home
     else:
         yield pathlib.Path.home()
 

@@ -1204,17 +1204,17 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "set -e " << uvar << "\n";
+            out << "set -e " << uvar << ";\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)
         {
-            out << "set " << skey << " \"" << svar << "\"\n";
+            out << "set " << skey << " \"" << svar << "\";\n";
         }
 
         for (const auto& [ekey, evar] : env_transform.export_vars)
         {
-            out << "set -gx " << ekey << " \"" << evar << "\"\n";
+            out << "set -gx " << ekey << " \"" << evar << "\";\n";
         }
 
         for (const fs::u8path& p : env_transform.activate_scripts)

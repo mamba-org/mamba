@@ -5,9 +5,9 @@ end
 
 if not set -q MAMBA_NO_PROMPT
   function __mamba_add_prompt
-    if set -q MAMBA_PROMPT_MODIFIER
+    if set -q CONDA_PROMPT_MODIFIER
       set_color -o green
-      echo -n $MAMBA_PROMPT_MODIFIER
+      echo -n $CONDA_PROMPT_MODIFIER
       set_color normal
     end
   end

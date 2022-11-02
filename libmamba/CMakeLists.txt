@@ -293,7 +293,6 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 libzstd.a
                 libz.a
                 liblzma.a
-                liblzo2.a
 
                 libsolv.a
                 libsolvext.a
@@ -309,6 +308,9 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)
             endif()
 
+            if (UNIX AND NOT APPLE)
+                list(REMOVE_ITEM REQUIRED_STATIC_DEPS libiconv.a)
+            endif()
 
             set(STATIC_DEPS "")
             foreach(LIB ${REQUIRED_STATIC_DEPS})
@@ -321,9 +323,10 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
             if (APPLE)
                 find_library(SECURITY_LIBRARY Security)
+                find_library(SYSTEMCONFIGURATION_LIBRARY SystemConfiguration)
                 find_library(COREFOUNDATION_LIBRARY CoreFoundation)
                 message("Found library: ${SECURITY_LIBRARY}\n${COREFOUNDATION_LIBRARY}")
-                list(APPEND STATIC_DEPS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY})
+                list(APPEND STATIC_DEPS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY} ${SYSTEMCONFIGURATION_LIBRARY})
             endif()
 
             message("   -> Found static dependencies:")

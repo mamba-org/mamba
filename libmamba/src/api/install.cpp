@@ -518,7 +518,8 @@ namespace mamba
                 Console::instance().json_write(
                     { { "success", false }, { "solver_problems", solver.all_problems() } });
             }
-            throw mamba_error("UnsatisfiableError", mamba_error_code::satisfiablitity_error);
+            throw mamba_error("Could not solve for environment specs",
+                              mamba_error_code::satisfiablitity_error);
         }
 
         MTransaction trans(solver, package_caches);

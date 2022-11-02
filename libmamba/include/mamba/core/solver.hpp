@@ -70,6 +70,7 @@ namespace mamba
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
         [[nodiscard]] bool is_solved() const;
         [[nodiscard]] bool try_solve();
+        void must_solve();
         std::string problems_to_str() const;
         std::vector<std::string> all_problems() const;
         std::vector<MSolverProblem> all_problems_structured() const;

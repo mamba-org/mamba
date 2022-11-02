@@ -124,7 +124,7 @@ namespace mamba
                     solver_flag |= SOLVER_CLEANDEPS;
 
                 solver.add_jobs(specs, solver_flag);
-                solver.try_solve();
+                solver.must_solve();
 
                 MTransaction transaction(solver, package_caches);
                 execute_transaction(transaction);

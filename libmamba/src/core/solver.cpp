@@ -537,6 +537,16 @@ namespace mamba
         return success;
     }
 
+    void MSolver::must_solve()
+    {
+        bool const success = try_solve();
+        if (!success)
+        {
+            explain_problems(LOG_ERROR);
+            throw mamba_error("Could not solve for environment specs",
+                              mamba_error_code::satisfiablitity_error);
+        }
+    }
 
     std::vector<MSolverProblem> MSolver::all_problems_structured() const
     {

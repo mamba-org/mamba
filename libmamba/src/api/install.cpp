@@ -504,8 +504,7 @@ namespace mamba
         bool success = solver.solve();
         if (!success)
         {
-            auto out = Console::stream();
-            solver.explain_problems(out);
+            solver.explain_problems(LOG_ERROR);
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;

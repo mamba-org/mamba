@@ -604,23 +604,26 @@ namespace mamba
 
     std::ostream& MSolver::explain_problems(std::ostream& out) const
     {
-        LOG_ERROR << "Could not solve for environment specs";
         bool sat_error_message = Context::instance().experimental_sat_error_message;
         if (sat_error_message)
         {
+            out << "Could not solve for environment specs\n";
             fmt::print(out, "{:=^80}\n", " Experimental satisfiability error messages ");
             out << "You are seeing this because you set `experimental_sat_error_message: true`\n"
                    "Use the following issue to share feedback on this experimental feature\n"
                    "   https://github.com/mamba-org/mamba/issues/2078\n\n";
             fmt::print(out, "{:=^80}\n", " Legacy messages (old) ");
-        }
-        out << problems_to_str() << '\n'
-            << "The environment can't be solved, aborting the operation\n";
-        if (sat_error_message)
-        {
+            out << problems_to_str() << '\n'
+                << "The environment can't be solved, aborting the operation\n";
             fmt::print(out, "{:=^80}\n", " Experimental messages (new) ");
             out << "Coming soon\n";
             fmt::print(out, "{:=^80}\n", "");
+        }
+        else
+        {
+            out << "Could not solve for environment specs\n"
+                << problems_to_str() << '\n'
+                << "The environment can't be solved, aborting the operation\n";
         }
         return out;
     }

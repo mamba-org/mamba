@@ -8,7 +8,7 @@
 #define MAMBA_CORE_SOLVER_HPP
 
 #include <string>
-#include <ostream>
+#include <iosfwd>
 #include <utility>
 #include <vector>
 #include <optional>

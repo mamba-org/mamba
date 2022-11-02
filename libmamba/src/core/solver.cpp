@@ -5,7 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <stdexcept>
-#include <strstream>
+#include <sstream>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>

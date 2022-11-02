@@ -518,7 +518,7 @@ namespace mamba
                 Console::instance().json_write(
                     { { "success", false }, { "solver_problems", solver.all_problems() } });
             }
-            throw std::runtime_error("UnsatisfiableError");
+            throw mamba_error("UnsatisfiableError", mamba_error_code::satisfiablitity_error);
         }
 
         MTransaction trans(solver, package_caches);

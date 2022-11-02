@@ -8,6 +8,7 @@
 #define MAMBA_CORE_SOLVER_HPP
 
 #include <string>
+#include <ostream>
 #include <utility>
 #include <vector>
 #include <optional>
@@ -73,6 +74,8 @@ namespace mamba
         std::vector<std::string> all_problems() const;
         std::vector<MSolverProblem> all_problems_structured() const;
         std::string all_problems_to_str() const;
+        std::ostream& explain_problems(std::ostream& out) const;
+        std::string explain_problems() const;
 
         const std::vector<MatchSpec>& install_specs() const;
         const std::vector<MatchSpec>& remove_specs() const;

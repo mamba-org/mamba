@@ -504,7 +504,8 @@ namespace mamba
         bool success = solver.solve();
         if (!success)
         {
-            Console::stream() << solver.problems_to_str();
+            auto out = Console::stream();
+            solver.explain_problems(out);
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
@@ -518,9 +519,6 @@ namespace mamba
                 Console::instance().json_write(
                     { { "success", false }, { "solver_problems", solver.all_problems() } });
             }
-
-            Console::stream() << "The environment can't be solved, aborting the operation";
-            LOG_ERROR << "Could not solve for environment specs";
             throw std::runtime_error("UnsatisfiableError");
         }
 

@@ -68,20 +68,21 @@ namespace mamba
         void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
-        [[nodiscard]] bool is_solved() const;
         [[nodiscard]] bool try_solve();
         void must_solve();
-        std::string problems_to_str() const;
-        std::vector<std::string> all_problems() const;
-        std::vector<MSolverProblem> all_problems_structured() const;
-        std::string all_problems_to_str() const;
-        std::ostream& explain_problems(std::ostream& out) const;
-        std::string explain_problems() const;
 
-        const std::vector<MatchSpec>& install_specs() const;
-        const std::vector<MatchSpec>& remove_specs() const;
-        const std::vector<MatchSpec>& neuter_specs() const;
-        const std::vector<MatchSpec>& pinned_specs() const;
+        [[nodiscard]] bool is_solved() const;
+        [[nodiscard]] std::string problems_to_str() const;
+        [[nodiscard]] std::vector<std::string> all_problems() const;
+        [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
+        [[nodiscard]] std::string all_problems_to_str() const;
+        std::ostream& explain_problems(std::ostream& out) const;
+        [[nodiscard]] std::string explain_problems() const;
+
+        [[nodiscard]] const std::vector<MatchSpec>& install_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& remove_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& neuter_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& pinned_specs() const;
 
         operator Solver*();
 

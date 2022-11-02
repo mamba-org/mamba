@@ -168,7 +168,7 @@ namespace mamba
     TEST(satifiability_error, create_problem)
     {
         auto [solver, pool] = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
-        auto const solved = solver->solve();
+        auto const solved = solver->try_solve();
         ASSERT_TRUE(solved);
     }
 
@@ -366,7 +366,7 @@ namespace mamba
     TEST(satifiability_error, create_conda_forge)
     {
         auto [solver, pool] = create_conda_forge({ "xtensor>=0.7" });
-        auto const solved = solver->solve();
+        auto const solved = solver->try_solve();
         ASSERT_TRUE(solved);
     }
 
@@ -464,7 +464,7 @@ namespace mamba
     TEST_P(Problem, constructor)
     {
         auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto const solved = solver.try_solve();
         ASSERT_FALSE(solved);
         auto const pbs = ProblemsGraph::from_solver(solver, pool);
         auto const& g = pbs.graph();
@@ -526,7 +526,7 @@ namespace mamba
         using CpPbGr = CompressedProblemsGraph;
 
         auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto const solved = solver.try_solve();
         ASSERT_FALSE(solved);
         auto const pbs = ProblemsGraph::from_solver(solver, pool);
         auto const cp_pbs = CpPbGr::from_problems_graph(pbs);

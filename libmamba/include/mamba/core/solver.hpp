@@ -68,8 +68,8 @@ namespace mamba
         void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
-        bool is_solved() const;
-        bool solve();
+        [[nodiscard]] bool is_solved() const;
+        [[nodiscard]] bool try_solve();
         std::string problems_to_str() const;
         std::vector<std::string> all_problems() const;
         std::vector<MSolverProblem> all_problems_structured() const;

@@ -160,7 +160,7 @@ PYBIND11_MODULE(bindings, m)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
         .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
         .def("all_problems_structured", &MSolver::all_problems_structured)
-        .def("solve", &MSolver::solve);
+        .def("try_solve", &MSolver::try_solve);
 
     py::class_<MSolverProblem>(m, "SolverProblem")
         .def_readwrite("target_id", &MSolverProblem::target_id)

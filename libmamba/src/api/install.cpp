@@ -501,7 +501,7 @@ namespace mamba
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
-        bool success = solver.solve();
+        bool success = solver.try_solve();
         if (!success)
         {
             solver.explain_problems(LOG_ERROR);

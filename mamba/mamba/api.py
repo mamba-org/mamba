@@ -88,7 +88,7 @@ class MambaSolver:
         _specs = specs
 
         api_solver.add_jobs(_specs, libmambapy.SOLVER_INSTALL)
-        success = api_solver.solve()
+        success = api_solver.try_solve()
 
         if not success:
             error_string = "Mamba failed to solve:\n"

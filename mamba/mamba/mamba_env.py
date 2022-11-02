@@ -135,7 +135,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
     if update_specs:
         solver.add_jobs(update_specs, api.SOLVER_UPDATE)
 
-    success = solver.solve()
+    success = solver.try_solve()
     if not success:
         print(solver.explain_problems())
         exit(1)

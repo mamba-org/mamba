@@ -117,7 +117,7 @@ namespace mamba
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
-        solver.solve();
+        solver.try_solve();
 
         MTransaction transaction(solver, package_caches);
 

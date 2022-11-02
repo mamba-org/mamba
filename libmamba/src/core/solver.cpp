@@ -524,16 +524,15 @@ namespace mamba
         return m_pinned_specs;
     }
 
-    bool MSolver::solve()
+    bool MSolver::try_solve()
     {
-        bool success;
         m_solver = solver_create(m_pool);
         set_flags(m_flags);
 
         solver_solve(m_solver, &m_jobs);
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
-        success = solver_problem_count(m_solver) == 0;
+        bool const success = solver_problem_count(m_solver) == 0;
         Console::instance().json_write({ { "success", success } });
         return success;
     }

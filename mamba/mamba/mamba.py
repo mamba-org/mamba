@@ -217,7 +217,7 @@ def remove(args, parser):
         )
 
         solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
-        success = solver.solve()
+        success = solver.try_solve()
         if not success:
             print(solver.explain_problems())
             exit_code = 1
@@ -553,7 +553,7 @@ def install(args, parser, command="install"):
         if pinned_specs_info and not (context.quiet or context.json):
             print(f"\nPinned packages:\n{pinned_specs_info}\n")
 
-        success = solver.solve()
+        success = solver.try_solve()
         if not success:
             print(solver.explain_problems())
             exit_code = 1

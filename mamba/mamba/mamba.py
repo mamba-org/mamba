@@ -219,7 +219,7 @@ def remove(args, parser):
         solver.add_jobs(mamba_solve_specs, api.SOLVER_ERASE | api.SOLVER_CLEANDEPS)
         success = solver.solve()
         if not success:
-            print(solver.problems_to_str())
+            print(solver.explain_problems())
             exit_code = 1
             return exit_code
 
@@ -555,7 +555,7 @@ def install(args, parser, command="install"):
 
         success = solver.solve()
         if not success:
-            print(solver.problems_to_str())
+            print(solver.explain_problems())
             exit_code = 1
             return exit_code
 

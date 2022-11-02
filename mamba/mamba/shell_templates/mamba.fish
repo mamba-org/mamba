@@ -13,10 +13,10 @@ function mamba --inherit-variable CONDA_EXE --inherit-variable MAMBA_EXE
     set -e argv[1]
     switch $cmd
       case activate deactivate
-        eval ($CONDA_EXE shell -s fish $cmd $argv)
+        eval ($CONDA_EXE shell.fish $cmd $argv)
       case install update upgrade remove uninstall
         $MAMBA_EXE $cmd $argv || return $status
-        and eval ($CONDA_EXE shell -s fish reactivate)
+        and eval ($CONDA_EXE shell.fish reactivate)
       case '*'
         $MAMBA_EXE $cmd $argv
     end

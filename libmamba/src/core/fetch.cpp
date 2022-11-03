@@ -749,7 +749,7 @@ namespace mamba
     {
         m_handle = curl_multi_init();
         curl_multi_setopt(
-            m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, Context::instance().download_threads);
+            m_handle, CURLMOPT_MAX_TOTAL_CONNECTIONS, Context::instance().max_parallel_downloads);
     }
 
     MultiDownloadTarget::~MultiDownloadTarget()

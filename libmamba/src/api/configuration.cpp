@@ -787,11 +787,12 @@ namespace mamba
             }
         }
 
-        void download_threads_hook(std::size_t& value)
+        void max_parallel_downloads_hook(std::size_t& value)
         {
             if (!value)
                 throw std::runtime_error(fmt::format(
-                    "Number of download threads as to be positive (currently set to {})", value));
+                    "Maximum number of packages to download in parallel must be positive (currently set to {})",
+                    value));
         }
 
         void extract_threads_hook()
@@ -1287,14 +1288,14 @@ namespace mamba
                    .description("Allow downgrade when installing packages. Default is false."));
 
         // Extract, Link & Install
-        insert(Configurable("download_threads", &ctx.download_threads)
+        insert(Configurable("max_parallel_downloads", &ctx.max_parallel_downloads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_merge_hook(detail::download_threads_hook)
-                   .description("Defines the number of threads for package download")
+                   .set_post_merge_hook(detail::max_parallel_downloads_hook)
+                   .description("Defines the maximum number of package downloads to do in parallel")
                    .long_description(unindent(R"(
-                        Defines the number of threads for package download.
+                        Defines the maximum number of package downloads to do in parallel.
                         It has to be strictly positive.)")));
 
         insert(Configurable("extract_threads", &ctx.extract_threads)

@@ -29,15 +29,17 @@ namespace mamba
 {
     namespace
     {
-        std::regex MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
-                                             "([\\s\\S]*?)"
-                                             "# <<< mamba initialize <<<(?:\n|\r\n)?");
+        static std::regex const MAMBA_INITIALIZE_RE_BLOCK(
+            "\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
+            "([\\s\\S]*?)"
+            "# <<< mamba initialize <<<(?:\n|\r\n)?");
 
-        std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
-                                                "([\\s\\S]*?)"
-                                                "#endregion(?:\n|\r\n)?");
-        std::wregex MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
-                                            std::regex_constants::icase);
+        static std::regex const MAMBA_INITIALIZE_PS_RE_BLOCK(
+            "\n?#region mamba initialize(?:\n|\r\n)?"
+            "([\\s\\S]*?)"
+            "#endregion(?:\n|\r\n)?");
+        static std::wregex const MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
+                                                         std::regex_constants::icase);
 
     }
 
@@ -70,7 +72,7 @@ namespace mamba
         if (contains(parent_process_name_lower, "python"))
         {
             Console::stream() << "Your parent process name is " << parent_process_name
-                              << ".\nIf your shell is xonsh, please use \"-s xonsh\"." << std::endl;
+                              << ".\nIf your shell is xonsh, please use \"-s xonsh\".\n";
         }
         if (contains(parent_process_name_lower, "xonsh"))
         {

@@ -22,19 +22,20 @@
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/util_string.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util.hpp"
 
 namespace mamba
 {
 
-    TEST(dependency_info, free)
+    TEST(dependency_info, unconstrained)
     {
         auto const d = DependencyInfo("foo7 ");
         EXPECT_EQ(d.name(), "foo7");
-        EXPECT_EQ(d.version(), "");
-        EXPECT_EQ(d.build_string(), "");
-        EXPECT_EQ(d.str(), "foo7");
+        EXPECT_EQ(d.version(), "*");
+        EXPECT_EQ(d.build_string(), "*");
+        EXPECT_EQ(d.str(), "foo7 * *");
     }
 
     TEST(dependency_info, version_range)
@@ -42,8 +43,8 @@ namespace mamba
         auto const d = DependencyInfo(" foo_bar  >=4.3.0,<5.0 ");
         EXPECT_EQ(d.name(), "foo_bar");
         EXPECT_EQ(d.version(), ">=4.3.0,<5.0");
-        EXPECT_EQ(d.build_string(), "");
-        EXPECT_EQ(d.str(), "foo_bar >=4.3.0,<5.0");
+        EXPECT_EQ(d.build_string(), "*");
+        EXPECT_EQ(d.str(), "foo_bar >=4.3.0,<5.0 *");
     }
 
     TEST(dependency_info, version_equality)
@@ -51,8 +52,8 @@ namespace mamba
         auto const d = DependencyInfo("foo-bar==4.3.0");
         EXPECT_EQ(d.name(), "foo-bar");
         EXPECT_EQ(d.version(), "==4.3.0");
-        EXPECT_EQ(d.build_string(), "");
-        EXPECT_EQ(d.str(), "foo-bar ==4.3.0");
+        EXPECT_EQ(d.build_string(), "*");
+        EXPECT_EQ(d.str(), "foo-bar ==4.3.0 *");
     }
 
     TEST(dependency_info, build_range)
@@ -516,8 +517,8 @@ namespace mamba
         }
         EXPECT_EQ(l.size(), n_packages);
         EXPECT_EQ(l.name(), "pkg");
-        EXPECT_EQ(l.versions_trunc(), "0.1.0, 0.2.0, ..., 0.9.0");
-        EXPECT_EQ(l.build_strings_trunc(), "bld, bld, ..., bld");
+        EXPECT_EQ(l.versions_trunc(", ", "..."), "0.1.0, 0.2.0, ..., 0.9.0");
+        EXPECT_EQ(l.build_strings_trunc(", ", "..."), "bld, bld, ..., bld");
     }
 
     TEST_P(Problem, compression)
@@ -565,6 +566,30 @@ namespace mamba
         {
             EXPECT_TRUE(std::holds_alternative<CpPbGr::PackageListNode>(cp_g.node(n))
                         || std::holds_alternative<CpPbGr::ConstraintListNode>(cp_g.node(n)));
+        }
+    }
+
+    TEST_P(Problem, problem_tree_str)
+    {
+        auto [solver, pool] = std::invoke(GetParam());
+        auto const solved = solver.solve();
+        ASSERT_FALSE(solved);
+        auto const pbs = ProblemsGraph::from_solver(solver, pool);
+        auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+        auto const message = problem_tree_str(cp_pbs);
+
+        auto message_contains = [&](auto const& node)
+        {
+            using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+            if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+            {
+                EXPECT_TRUE(contains(message, node.name()));
+            }
+        };
+
+        for (auto const& node : cp_pbs.graph().nodes())
+        {
+            std::visit(message_contains, node);
         }
     }
 

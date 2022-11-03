@@ -92,7 +92,7 @@ namespace mamba
     class ConsoleStream : public std::stringstream
     {
     public:
-        ConsoleStream();
+        ConsoleStream() = default;
         ~ConsoleStream();
     };
 

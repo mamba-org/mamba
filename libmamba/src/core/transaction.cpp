@@ -7,6 +7,11 @@
 #include <iostream>
 #include <stack>
 
+#include <fmt/format.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <solv/selection.h>
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
@@ -18,14 +23,6 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_scope.hpp"
-
-
-#include "termcolor/termcolor.hpp"
-
-extern "C"
-{
-#include "solv/selection.h"
-}
 
 #include "progress_bar_impl.hpp"
 
@@ -1150,8 +1147,10 @@ namespace mamba
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
-            Console::stream() << "Content trust verifications successful, " << termcolor::green
-                              << "package(s) are trusted " << termcolor::reset;
+            auto out = Console::stream();
+            fmt::print(out,
+                       "Content trust verifications successful, {} ",
+                       fmt::styled("package(s) are trusted", fmt::fg(fmt::color::green)));
             LOG_INFO << "All package(s) are trusted";
         }
 

@@ -4,16 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
-#include <solv/evr.h>
-}
-
 #include <iostream>
 #include <stack>
 
 #include <spdlog/spdlog.h>
 #include <fmt/chrono.h>
+#include <fmt/format.h>
+#include <fmt/color.h>
+#include <solv/evr.h>
 
 #include "mamba/core/query.hpp"
 #include "mamba/core/match_spec.hpp"
@@ -590,7 +588,8 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << concat("\033[2m", g.nodes()[to].name, " already visited", "\033[00m") << '\n';
+            m_out << fmt::format(
+                fmt::fg(fmt::color::gray), "{} already visited\n", g.nodes()[to].name);
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)

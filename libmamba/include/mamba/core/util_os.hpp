@@ -8,7 +8,7 @@
 #define MAMBA_CORE_UTIL_OS_HPP
 
 #include <string>
-#include <ostream>
+#include <iosfwd>
 
 #include "mamba/core/fsutil.hpp"
 

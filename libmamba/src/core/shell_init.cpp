@@ -5,6 +5,15 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <regex>
+#include <stdexcept>
+
+#include <fmt/format.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <reproc++/run.hpp>
+#ifdef _WIN32
+#include <WinReg.hpp>
+#endif
 
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/context.hpp"
@@ -15,15 +24,6 @@
 #include "mamba/core/environment.hpp"
 
 #include "progress_bar_impl.hpp"
-
-#include "termcolor/termcolor.hpp"
-
-#include <reproc++/run.hpp>
-#include <stdexcept>
-
-#ifdef _WIN32
-#include "WinReg.hpp"
-#endif
 
 namespace mamba
 {
@@ -112,9 +112,9 @@ namespace mamba
 
     void set_autorun_registry_key(const std::wstring& reg_path, const std::wstring& value)
     {
-        std::cout << "Setting cmd.exe AUTORUN to: " << termcolor::green;
-        std::wcout << value;
-        std::cout << termcolor::reset << std::endl;
+        // TODO: Should this directly print to std::cout / stdout?
+        fmt::print("Setting cmd.exe AUTORUN to: {}\n",
+                   fmt::styled(value, fmt::fg(fmt::color::green)));
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         key.SetStringValue(L"AutoRun", value);
@@ -164,8 +164,8 @@ namespace mamba
         }
         else
         {
-            std::cout << termcolor::green << "cmd.exe already initialized." << termcolor::reset
-                      << std::endl;
+            // TODO: Should this directly print to std::cout / stdout?
+            fmt::print(fmt::fg(fmt::color::green), "cmd.exe already initialized.\n");
         }
     }
 
@@ -199,8 +199,8 @@ namespace mamba
         }
         else
         {
-            std::cout << termcolor::green << "cmd.exe not initialized yet." << termcolor::reset
-                      << std::endl;
+            // TODO: Should this directly print to std::cout / stdout?
+            fmt::print(fmt::fg(fmt::color::green), "cmd.exe not initialized yet.\n");
         }
     }
 #endif  // _WIN32
@@ -387,11 +387,14 @@ namespace mamba
                         const std::string& shell,
                         const fs::u8path& mamba_exe)
     {
-        Console::stream() << "Modifying RC file " << file_path
-                          << "\nGenerating config for root prefix " << termcolor::bold
-                          << conda_prefix << termcolor::reset
-                          << "\nSetting mamba executable to: " << termcolor::bold << mamba_exe
-                          << termcolor::reset;
+        auto out = Console::stream();
+        fmt::print(out,
+                   "Modifying RC file {}\n"
+                   "Generating config for root prefix {}\n"
+                   "Setting mamba executable to: {}",
+                   fmt::streamed(file_path),
+                   fmt::styled(fmt::streamed(conda_prefix), fmt::emphasis::bold),
+                   fmt::styled(fmt::streamed(mamba_exe), fmt::emphasis::bold));
 
         // TODO do we need binary or not?
         std::string conda_init_content, rc_content;
@@ -422,10 +425,10 @@ namespace mamba
             conda_init_content = rcfile_content(conda_prefix, shell, mamba_exe);
         }
 
-        Console::stream() << "Adding (or replacing) the following in your " << file_path
-                          << " file\n"
-                          << termcolor::colorize << termcolor::green << conda_init_content
-                          << termcolor::reset;
+        fmt::print(out,
+                   "Adding (or replacing) the following in your {} file\n{}",
+                   fmt::streamed(file_path),
+                   fmt::styled(conda_init_content, fmt::fg(fmt::color::green)));
 
         if (Context::instance().dry_run)
         {
@@ -467,10 +470,12 @@ namespace mamba
             rc_content = read_contents(file_path, std::ios::in);
         }
 
-        Console::stream() << "Removing the following in your " << file_path << " file\n"
-                          << termcolor::colorize << termcolor::green
-                          << "# >>> mamba initialize >>>\n...\n# <<< mamba initialize <<<\n"
-                          << termcolor::reset;
+        auto out = Console::stream();
+        fmt::print(out,
+                   "Removing the following in your {} file\n{}\n",
+                   fmt::streamed(file_path),
+                   fmt::styled("# >>> mamba initialize >>>\n...\n# <<< mamba initialize <<<",
+                               fmt::fg(fmt::color::green)));
 
         if (rc_content.find("# >>> mamba initialize >>>") == std::string::npos)
         {
@@ -817,10 +822,11 @@ namespace mamba
             = profile_content.find("#region mamba initialize") != std::string::npos;
 
         // Find what content we need to add.
-        Console::stream() << "Adding (or replacing) the following in your " << profile_path
-                          << " file\n"
-                          << termcolor::colorize << termcolor::green << conda_init_content
-                          << termcolor::reset;
+        auto out = Console::stream();
+        fmt::print(out,
+                   "Adding (or replacing) the following in your {} file\n{}",
+                   fmt::streamed(profile_path),
+                   fmt::styled(conda_init_content, fmt::fg(fmt::color::green)));
 
         if (found_mamba_initialize)
         {
@@ -872,10 +878,12 @@ namespace mamba
         std::string profile_content = read_contents(profile_path);
         LOG_DEBUG << "Original profile content:\n" << profile_content;
 
-        Console::stream() << "Removing the following in your " << profile_path << " file\n"
-                          << termcolor::colorize << termcolor::green
-                          << "#region mamba initialize\n...\n#endregion\n"
-                          << termcolor::reset;
+        auto out = Console::stream();
+        fmt::print(
+            out,
+            "Removing the following in your {} file\n{}\n",
+            fmt::streamed(profile_path),
+            fmt::styled("#region mamba initialize\n...\n#endregion\n", fmt::fg(fmt::color::green)));
 
         profile_content = std::regex_replace(profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, "");
         LOG_DEBUG << "Profile content:\n" << profile_content;

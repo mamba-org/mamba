@@ -20,6 +20,8 @@
 #include "WinReg.hpp"
 #endif
 
+#include <fmt/format.h>
+#include <fmt/color.h>
 #include <reproc++/run.hpp>
 
 #include "mamba/core/environment.hpp"
@@ -150,8 +152,8 @@ namespace mamba
 
         if (prev_value == 1)
         {
-            std::cout << termcolor::green << "Windows long-path support already enabled."
-                      << termcolor::reset << std::endl;
+            // TODO: Should this directly print to std::cout / stdout?
+            fmt::print(fmt::fg(fmt::color::green), "Windows long-path support already enabled.\n");
             return true;
         }
 
@@ -182,8 +184,8 @@ namespace mamba
         prev_value = key.GetDwordValue(L"LongPathsEnabled");
         if (prev_value == 1)
         {
-            std::cout << termcolor::green << "Windows long-path support enabled."
-                      << termcolor::reset << std::endl;
+            // TODO: Should this directly print to std::cout / stdout?
+            fmt::print(fmt::fg(fmt::color::green), "Windows long-path support enabled.\n");
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";

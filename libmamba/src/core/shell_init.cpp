@@ -168,6 +168,7 @@ namespace mamba
             auto out = Console::stream();
             fmt::print(
                 out,
+                "{}",
                 fmt::styled("cmd.exe already initialized.\n", fmt::fg(fmt::terminal_color::green)));
         }
     }
@@ -205,6 +206,7 @@ namespace mamba
             auto out = Console::stream();
             fmt::print(
                 out,
+                "{}",
                 fmt::styled("cmd.exe not initialized yet.\n", fmt::fg(fmt::terminal_color::green)));
         }
     }

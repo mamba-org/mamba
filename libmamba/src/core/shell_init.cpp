@@ -10,6 +10,7 @@
 #include <fmt/format.h>
 #include <fmt/color.h>
 #include <fmt/ostream.h>
+#include <fmt/xchar.h>
 #include <reproc++/run.hpp>
 #ifdef _WIN32
 #include <WinReg.hpp>

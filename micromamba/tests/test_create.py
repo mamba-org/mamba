@@ -546,6 +546,33 @@ class TestCreate:
             assert l["channel"].startswith(f"{ca}/conda-forge/")
             assert l["url"].startswith(f"{ca}/conda-forge/")
 
+    @pytest.mark.parametrize(
+        "channel",
+        [
+            {"in": "conda-forge", "out": "https://conda.anaconda.org/conda-forge"},
+            {
+                "in": "https://conda.anaconda.org/conda-forge",
+                "out": "https://conda.anaconda.org/conda-forge",
+            },
+        ],
+    )
+    def test_channel_location(self, channel):
+        res = create(
+            "-n",
+            TestCreate.env_name,
+            "xtensor",
+            "--json",
+            "--override-channels",
+            "--channel",
+            channel["in"],
+            default_channel=False,
+            no_dry_run=False,
+        )
+
+        for l in res["actions"]["LINK"]:
+            if l["name"] == "xtensor":
+                assert l["channel"] == channel["out"]
+
     def test_spec_with_channel(self, existing_cache):
         res = create("-n", TestCreate.env_name, "bokeh::bokeh", "--json", "--dry-run")
         ca = "https://conda.anaconda.org"

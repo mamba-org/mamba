@@ -114,7 +114,7 @@ namespace mamba
     {
         // TODO: Should this directly print to std::cout / stdout?
         fmt::print("Setting cmd.exe AUTORUN to: {}\n",
-                   fmt::styled(value, fmt::fg(fmt::color::green)));
+                   fmt::styled(value, fmt::fg(fmt::terminal_color::green)));
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         key.SetStringValue(L"AutoRun", value);
@@ -165,7 +165,7 @@ namespace mamba
         else
         {
             // TODO: Should this directly print to std::cout / stdout?
-            fmt::print(fmt::fg(fmt::color::green), "cmd.exe already initialized.\n");
+            fmt::print(fmt::fg(fmt::terminal_color::green), "cmd.exe already initialized.\n");
         }
     }
 
@@ -200,7 +200,7 @@ namespace mamba
         else
         {
             // TODO: Should this directly print to std::cout / stdout?
-            fmt::print(fmt::fg(fmt::color::green), "cmd.exe not initialized yet.\n");
+            fmt::print(fmt::fg(fmt::terminal_color::green), "cmd.exe not initialized yet.\n");
         }
     }
 #endif  // _WIN32
@@ -428,7 +428,7 @@ namespace mamba
         fmt::print(out,
                    "Adding (or replacing) the following in your {} file\n{}",
                    fmt::streamed(file_path),
-                   fmt::styled(conda_init_content, fmt::fg(fmt::color::green)));
+                   fmt::styled(conda_init_content, fmt::fg(fmt::terminal_color::green)));
 
         if (Context::instance().dry_run)
         {
@@ -475,7 +475,7 @@ namespace mamba
                    "Removing the following in your {} file\n{}\n",
                    fmt::streamed(file_path),
                    fmt::styled("# >>> mamba initialize >>>\n...\n# <<< mamba initialize <<<",
-                               fmt::fg(fmt::color::green)));
+                               fmt::fg(fmt::terminal_color::green)));
 
         if (rc_content.find("# >>> mamba initialize >>>") == std::string::npos)
         {
@@ -826,7 +826,7 @@ namespace mamba
         fmt::print(out,
                    "Adding (or replacing) the following in your {} file\n{}",
                    fmt::streamed(profile_path),
-                   fmt::styled(conda_init_content, fmt::fg(fmt::color::green)));
+                   fmt::styled(conda_init_content, fmt::fg(fmt::terminal_color::green)));
 
         if (found_mamba_initialize)
         {
@@ -879,11 +879,11 @@ namespace mamba
         LOG_DEBUG << "Original profile content:\n" << profile_content;
 
         auto out = Console::stream();
-        fmt::print(
-            out,
-            "Removing the following in your {} file\n{}\n",
-            fmt::streamed(profile_path),
-            fmt::styled("#region mamba initialize\n...\n#endregion\n", fmt::fg(fmt::color::green)));
+        fmt::print(out,
+                   "Removing the following in your {} file\n{}\n",
+                   fmt::streamed(profile_path),
+                   fmt::styled("#region mamba initialize\n...\n#endregion\n",
+                               fmt::fg(fmt::terminal_color::green)));
 
         profile_content = std::regex_replace(profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, "");
         LOG_DEBUG << "Profile content:\n" << profile_content;

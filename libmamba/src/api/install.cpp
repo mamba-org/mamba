@@ -128,9 +128,11 @@ namespace mamba
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 
-        Console::stream() << fmt::format(
-            fg(fmt::color::cyan), "\nInstalling {} packages: {}", pkg_mgr, fmt::join(deps, ", "));
-         fmt::print(LOG_INFO, "Calling: {}", fmt::join(install_instructions, " "));
+        Console::stream() << fmt::format(fg(fmt::terminal_color::cyan),
+                                         "\nInstalling {} packages: {}",
+                                         pkg_mgr,
+                                         fmt::join(deps, ", "));
+        fmt::print(LOG_INFO, "Calling: {}", fmt::join(install_instructions, " "));
 
         auto [status, ec] = reproc::run(wrapped_command, options);
         assert_reproc_success(options, status, ec);

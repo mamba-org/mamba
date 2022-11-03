@@ -70,7 +70,7 @@ update_self(const std::optional<std::string>& version)
                                  mamba_error_code::internal_failure);
     }
     Console::instance().stream() << fmt::format(
-        fg(fmt::color::green),
+        fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",
         latest_micromamba.value().version,
         umamba::version());

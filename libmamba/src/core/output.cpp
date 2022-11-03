@@ -122,22 +122,22 @@ namespace mamba
                         if (static_cast<std::size_t>(row[j].flag)
                             & static_cast<std::size_t>(format::red))
                         {
-                            color = fmt::fg(fmt::color::red);
+                            color = fmt::fg(fmt::terminal_color::red);
                         }
                         if (static_cast<std::size_t>(row[j].flag)
                             & static_cast<std::size_t>(format::green))
                         {
-                            color = fmt::fg(fmt::color::green);
+                            color = fmt::fg(fmt::terminal_color::green);
                         }
                         if (static_cast<std::size_t>(row[j].flag)
                             & static_cast<std::size_t>(format::yellow))
                         {
-                            color = fmt::fg(fmt::color::yellow);
+                            color = fmt::fg(fmt::terminal_color::yellow);
                         }
                         if (static_cast<std::size_t>(row[j].flag)
                             & static_cast<std::size_t>(format::bold_blue))
                         {
-                            color = fmt::fg(fmt::color::blue) | fmt::emphasis::bold;
+                            color = fmt::fg(fmt::terminal_color::blue) | fmt::emphasis::bold;
                         }
                     }
                     if (this->m_align[j] == alignment::left)

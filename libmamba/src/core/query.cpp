@@ -589,7 +589,7 @@ namespace mamba
         {
             print_prefix(to);
             m_out << fmt::format(
-                fmt::fg(fmt::color::gray), "{} already visited\n", g.nodes()[to].name);
+                fmt::fg(fmt::terminal_color::gray), "{} already visited\n", g.nodes()[to].name);
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)

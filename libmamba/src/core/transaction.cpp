@@ -1150,7 +1150,7 @@ namespace mamba
             auto out = Console::stream();
             fmt::print(out,
                        "Content trust verifications successful, {} ",
-                       fmt::styled("package(s) are trusted", fmt::fg(fmt::color::green)));
+                       fmt::styled("package(s) are trusted", fmt::fg(fmt::terminal_color::green)));
             LOG_INFO << "All package(s) are trusted";
         }
 

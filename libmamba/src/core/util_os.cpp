@@ -152,9 +152,10 @@ namespace mamba
 
         if (prev_value == 1)
         {
-            // TODO: Should this directly print to std::cout / stdout?
-            fmt::print(fmt::fg(fmt::terminal_color::green),
-                       "Windows long-path support already enabled.\n");
+            auto out = Console::stream();
+            fmt::print(out,
+                       fmt::styled("Windows long-path support already enabled.\n",
+                                   fmt::fg(fmt::terminal_color::green)));
             return true;
         }
 
@@ -185,8 +186,10 @@ namespace mamba
         prev_value = key.GetDwordValue(L"LongPathsEnabled");
         if (prev_value == 1)
         {
-            // TODO: Should this directly print to std::cout / stdout?
-            fmt::print(fmt::fg(fmt::terminal_color::green), "Windows long-path support enabled.\n");
+            auto out = Console::stream();
+            fmt::print(out,
+                       fmt::styled("Windows long-path support enabled.\n",
+                                   fmt::fg(fmt::terminal_color::green)));
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";

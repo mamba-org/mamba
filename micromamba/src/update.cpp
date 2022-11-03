@@ -69,7 +69,7 @@ update_self(const std::optional<std::string>& version)
         throw mamba::mamba_error("Could not convert solvable to PackageInfo",
                                  mamba_error_code::internal_failure);
     }
-    Console::instance().stream() << fmt::format(
+    Console::stream() << fmt::format(
         fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",
         latest_micromamba.value().version,

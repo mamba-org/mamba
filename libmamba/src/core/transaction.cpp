@@ -1530,7 +1530,8 @@ namespace mamba
         to_human_readable_filesize(summary, total_size);
         summary << "\n";
         t.add_row({ summary.str() });
-        t.print(std::cout);
+        auto out = Console::stream();
+        t.print(out);
     }
 
     MTransaction create_explicit_transaction_from_urls(

@@ -334,7 +334,7 @@ namespace mamba
     {
         auto& data = instance().p_data;
         for (auto& message : data->m_buffer)
-            ostream << message << "\n";
+            ostream << message << '\n';
 
         const std::lock_guard<std::mutex> lock(data->m_mutex);
         data->m_buffer.clear();

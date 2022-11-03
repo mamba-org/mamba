@@ -30,7 +30,7 @@ namespace mamba
         auto specs = config.at("specs").value<std::vector<std::string>>();
         int dump_opts = MAMBA_SHOW_CONFIG_DESCS | show_long_desc | show_group;
 
-        std::cout << config.dump(dump_opts, specs) << std::endl;
+        Console::stream() << config.dump(dump_opts, specs) << '\n';
 
         config.operation_teardown();
     }
@@ -62,7 +62,7 @@ namespace mamba
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | show_sources | show_desc | show_long_desc
                         | show_group | show_all_rcs | show_all;
 
-        std::cout << config.dump(dump_opts, specs) << std::endl;
+        Console::stream() << config.dump(dump_opts, specs) << '\n';
 
         config.operation_teardown();
     }
@@ -82,11 +82,11 @@ namespace mamba
 
         if (no_rc)
         {
-            std::cout << "Configuration files disabled by --no-rc flag" << std::endl;
+            Console::stream() << "Configuration files disabled by --no-rc flag" << '\n';
         }
         else
         {
-            std::cout << "Configuration files (by precedence order):" << std::endl;
+            Console::stream() << "Configuration files (by precedence order):" << '\n';
 
             auto srcs = config.sources();
             auto valid_srcs = config.valid_sources();
@@ -96,11 +96,11 @@ namespace mamba
                 auto found_s = std::find(valid_srcs.begin(), valid_srcs.end(), s);
                 if (found_s != valid_srcs.end())
                 {
-                    std::cout << env::shrink_user(s).string() << std::endl;
+                    Console::stream() << env::shrink_user(s).string() << '\n';
                 }
                 else
                 {
-                    std::cout << env::shrink_user(s).string() + " (invalid)" << std::endl;
+                    Console::stream() << env::shrink_user(s).string() << " (invalid)" << '\n';
                 }
             }
         }

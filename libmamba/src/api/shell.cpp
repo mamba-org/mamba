@@ -131,7 +131,7 @@ namespace mamba
             }
             else
             {
-                std::cout << activator->hook(shell_type);
+                Console::stream() << activator->hook(shell_type);
             }
         }
         else if (action == "activate")
@@ -147,15 +147,15 @@ namespace mamba
                 throw std::runtime_error("Cannot activate, prefix does not exist at: "
                                          + shell_prefix);
 
-            std::cout << activator->activate(shell_prefix, stack);
+            Console::stream() << activator->activate(shell_prefix, stack);
         }
         else if (action == "reactivate")
         {
-            std::cout << activator->reactivate();
+            Console::stream() << activator->reactivate();
         }
         else if (action == "deactivate")
         {
-            std::cout << activator->deactivate();
+            Console::stream() << activator->deactivate();
         }
 #ifdef _WIN32
         else if (action == "enable-long-paths-support")

@@ -112,8 +112,9 @@ namespace mamba
 
     void set_autorun_registry_key(const std::wstring& reg_path, const std::wstring& value)
     {
-        // TODO: Should this directly print to std::cout / stdout?
-        fmt::print("Setting cmd.exe AUTORUN to: {}\n",
+        auto out = Console::stream();
+        fmt::print(out,
+                   "Setting cmd.exe AUTORUN to: {}\n",
                    fmt::styled(value, fmt::fg(fmt::terminal_color::green)));
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
@@ -164,8 +165,10 @@ namespace mamba
         }
         else
         {
-            // TODO: Should this directly print to std::cout / stdout?
-            fmt::print(fmt::fg(fmt::terminal_color::green), "cmd.exe already initialized.\n");
+            auto out = Console::stream();
+            fmt::print(
+                out,
+                fmt::styled("cmd.exe already initialized.\n", fmt::fg(fmt::terminal_color::green)));
         }
     }
 
@@ -199,8 +202,10 @@ namespace mamba
         }
         else
         {
-            // TODO: Should this directly print to std::cout / stdout?
-            fmt::print(fmt::fg(fmt::terminal_color::green), "cmd.exe not initialized yet.\n");
+            auto out = Console::stream();
+            fmt::print(
+                out,
+                fmt::styled("cmd.exe not initialized yet.\n", fmt::fg(fmt::terminal_color::green)));
         }
     }
 #endif  // _WIN32

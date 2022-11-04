@@ -34,39 +34,6 @@ namespace mamba
             }
 
 #ifdef LIBMAMBA_STATIC_DEPS
-            CURLsslset sslset_res;
-            const curl_ssl_backend** available_backends;
-
-            if (on_linux)
-            {
-                sslset_res
-                    = curl_global_sslset(CURLSSLBACKEND_OPENSSL, nullptr, &available_backends);
-            }
-            else if (on_mac)
-            {
-                sslset_res = curl_global_sslset(
-                    CURLSSLBACKEND_SECURETRANSPORT, nullptr, &available_backends);
-            }
-            else if (on_win)
-            {
-                sslset_res
-                    = curl_global_sslset(CURLSSLBACKEND_SCHANNEL, nullptr, &available_backends);
-            }
-
-            if (sslset_res == CURLSSLSET_TOO_LATE)
-            {
-                LOG_ERROR << "cURL SSL init called too late, that is a bug.";
-            }
-            else if (sslset_res == CURLSSLSET_UNKNOWN_BACKEND
-                     || sslset_res == CURLSSLSET_NO_BACKENDS)
-            {
-                LOG_WARNING
-                    << "Could not use preferred SSL backend (Linux: OpenSSL, OS X: SecureTransport, Win: SChannel)"
-                    << std::endl;
-                LOG_WARNING << "Please check the cURL library configuration that you are using."
-                            << std::endl;
-            }
-
             CURL* handle = curl_easy_init();
             if (handle)
             {
@@ -148,9 +115,9 @@ namespace mamba
         , m_filename(filename)
         , m_url(unc_url(url))
     {
+        init_curl_ssl();
         m_handle = curl_easy_init();
 
-        init_curl_ssl();
         init_curl_target(m_url);
     }
 
@@ -605,9 +572,8 @@ namespace mamba
 
     bool DownloadTarget::resource_exists()
     {
-        auto handle = curl_easy_init();
-
         init_curl_ssl();
+        auto handle = curl_easy_init();
         init_curl_handle(handle, m_url);
 
         curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1L);

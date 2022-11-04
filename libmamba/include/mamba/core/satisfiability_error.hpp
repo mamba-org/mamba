@@ -8,6 +8,8 @@
 #define MAMBA_PROBLEMS_GRAPH_HPP
 
 #include <string>
+#include <ostream>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <unordered_map>
@@ -95,7 +97,7 @@ namespace mamba
         };
         struct UnresolvedDependencyNode : DependencyInfo
         {
-            static SolverRuleinfo constexpr problem_type = SOLVER_RULE_PKG_NOTHING_PROVIDES_DEP;
+            SolverRuleinfo problem_type;
 
             UnresolvedDependencyNode(UnresolvedDependencyNode const&) = default;
             UnresolvedDependencyNode(UnresolvedDependencyNode&&) noexcept = default;
@@ -189,8 +191,10 @@ namespace mamba
             const_reverse_iterator rend() const noexcept;
 
             std::string const& name() const;
-            std::string versions_trunc() const;
-            std::string build_strings_trunc() const;
+            std::string versions_trunc(std::string_view sep = "|",
+                                       std::string_view etc = "...") const;
+            std::string build_strings_trunc(std::string_view sep = "|",
+                                            std::string_view etc = "...") const;
 
             using Base::clear;
             using Base::reserve;
@@ -229,6 +233,9 @@ namespace mamba
         conflicts_t m_conflicts;
         node_id m_root_node;
     };
+
+    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs);
+    std::string problem_tree_str(CompressedProblemsGraph const& pbs);
 
     /************************************
      *  Implementation of conflict_map  *

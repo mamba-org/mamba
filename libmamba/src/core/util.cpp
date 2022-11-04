@@ -1556,9 +1556,9 @@ namespace mamba
 
     tl::expected<std::string, mamba_error> encode_base64(const std::string_view& input)
     {
-        const auto pl = 4 * ((input.size() + 2) / 3);
+        const std::size_t pl = 4 * ((input.size() + 2) / 3);
         std::vector<unsigned char> output(pl + 1);
-        const auto ol
+        const std::size_t ol
             = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
 
         if (pl != ol)
@@ -1572,10 +1572,10 @@ namespace mamba
 
     tl::expected<std::string, mamba_error> decode_base64(const std::string_view& input)
     {
-        const auto pl = 3 * input.size() / 4;
+        const std::size_t pl = 3 * input.size() / 4;
 
         std::vector<unsigned char> output(pl + 1);
-        const auto ol
+        const std::size_t ol
             = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
         if (pl != ol)
         {

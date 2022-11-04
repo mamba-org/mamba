@@ -83,7 +83,7 @@ namespace mamba
                 bool escaped = false;
                 int i = 0, N = 4;
                 std::size_t idx = 0;
-                std::size_t prev_keystart;
+                std::size_t prev_keystart = 0;
                 bool in_key = false;
                 std::string key = "";
 

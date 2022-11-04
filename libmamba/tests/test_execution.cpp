@@ -21,7 +21,7 @@ namespace mamba
             producers.emplace_back(
                 [=]
                 {
-                    for (int i = 0; i < tasks_to_generate; ++i)
+                    for (std::size_t i = 0; i < tasks_to_generate; ++i)
                     {
                         work();
                     }

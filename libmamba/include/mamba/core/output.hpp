@@ -162,7 +162,6 @@ namespace mamba
 
     private:
         std::string m_file;
-        int m_line;
         log_level m_level;
         std::stringstream m_stream;
 

@@ -496,6 +496,11 @@ namespace mamba
     {
         return to_utf8(w, wcslen(w));
     }
+
+    std::string to_utf8(std::wstring const& s)
+    {
+        return to_utf8(s.data(), s.size());
+    }
 #endif
 
     /* From https://github.com/ikalnytskyi/termcolor

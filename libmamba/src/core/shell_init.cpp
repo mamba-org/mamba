@@ -10,7 +10,6 @@
 #include <fmt/format.h>
 #include <fmt/color.h>
 #include <fmt/ostream.h>
-#include <fmt/xchar.h>
 #include <reproc++/run.hpp>
 #ifdef _WIN32
 #include <WinReg.hpp>
@@ -116,7 +115,7 @@ namespace mamba
         auto out = Console::stream();
         fmt::print(out,
                    "Setting cmd.exe AUTORUN to: {}\n",
-                   fmt::styled(value, fmt::fg(fmt::terminal_color::green)));
+                   fmt::styled(to_utf8(value), fmt::fg(fmt::terminal_color::green)));
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
         key.SetStringValue(L"AutoRun", value);

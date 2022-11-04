@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/channel_loader.hpp"
 
@@ -17,7 +19,6 @@ namespace mamba
                    const std::string& query)
     {
         auto& ctx = Context::instance();
-        auto out = Console::stream();
         auto& config = Configuration::instance();
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
@@ -38,7 +39,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
             MRepo::create(pool, prefix_data);
-            out << "Loaded current active prefix: " << ctx.target_prefix << '\n';
+            Console::stream() << "Loaded current active prefix: " << ctx.target_prefix << std::endl;
         }
         else
         {
@@ -54,28 +55,22 @@ namespace mamba
         {
             if (ctx.json)
             {
-                out << q.find(query).groupby("name").json().dump(4);
+                std::cout << q.find(query).groupby("name").json().dump(4);
             }
             else
             {
-                out << '\n' << std::endl;
+                std::cout << "\n" << std::endl;
                 auto res = q.find(query);
                 switch (format)
                 {
                     case QueryResultFormat::kJSON:
-                    {
-                        out << res.json().dump(4);
+                        std::cout << res.json().dump(4);
                         break;
-                    }
                     case QueryResultFormat::kPRETTY:
-                    {
-                        res.pretty(out);
+                        res.pretty(std::cout);
                         break;
-                    }
                     default:
-                    {
-                        res.groupby("name").table(out);
-                    }
+                        res.groupby("name").table(std::cout);
                 }
             }
         }
@@ -86,19 +81,13 @@ namespace mamba
             {
                 case QueryResultFormat::kTREE:
                 case QueryResultFormat::kPRETTY:
-                {
-                    res.tree(out);
+                    res.tree(std::cout);
                     break;
-                }
                 case QueryResultFormat::kJSON:
-                {
-                    out << res.json().dump(4);
+                    std::cout << res.json().dump(4);
                     break;
-                }
                 case QueryResultFormat::kTABLE:
-                {
-                    res.sort("name").table(out);
-                }
+                    res.sort("name").table(std::cout);
             }
         }
         else if (type == QueryType::kWHONEEDS)
@@ -108,20 +97,15 @@ namespace mamba
             {
                 case QueryResultFormat::kTREE:
                 case QueryResultFormat::kPRETTY:
-                {
-                    res.tree(out);
+                    res.tree(std::cout);
                     break;
-                }
                 case QueryResultFormat::kJSON:
-                {
-                    out << res.json().dump(4);
+                    std::cout << res.json().dump(4);
                     break;
-                }
                 case QueryResultFormat::kTABLE:
-                {
                     res.sort("name").table(
-                        out, { "Name", "Version", "Build", concat("Depends:", query), "Channel" });
-                }
+                        std::cout,
+                        { "Name", "Version", "Build", concat("Depends:", query), "Channel" });
             }
         }
 

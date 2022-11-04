@@ -86,11 +86,11 @@ namespace mamba
                         jout.push_back(obj);
                     }
                 }
-                Console::stream() << jout.dump(4) << '\n';
+                std::cout << jout.dump(4) << std::endl;
                 return;
             }
 
-            Console::stream() << "List of packages in environment: " << ctx.target_prefix << "\n\n";
+            std::cout << "List of packages in environment: " << ctx.target_prefix << "\n\n";
 
             formatted_pkg formatted_pkgs;
 
@@ -139,8 +139,7 @@ namespace mamba
                 t.add_row({ formatted_name, p.version, p.build, p.channel });
             }
 
-            auto out = Console::stream();
-            t.print(out);
+            t.print(std::cout);
         }
     }
 }

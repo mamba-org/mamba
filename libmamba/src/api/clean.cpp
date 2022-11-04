@@ -189,8 +189,7 @@ namespace mamba
             if (total_size)
             {
                 t.add_rows({}, { { "Total size: ", get_file_size(total_size) } });
-                auto out = Console::stream();
-                t.print(out);
+                t.print(std::cout);
             }
             return res;
         };
@@ -268,8 +267,7 @@ namespace mamba
             if (total_size)
             {
                 t.add_rows({}, { { "Total size: ", get_file_size(total_size) } });
-                auto out = Console::stream();
-                t.print(out);
+                t.print(std::cout);
             }
             return res;
         };

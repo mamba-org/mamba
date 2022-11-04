@@ -30,7 +30,7 @@
     {                                                                                              \
         int dump_opts                                                                              \
             = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS | MAMBA_SHOW_ALL_CONFIGS;          \
-        Console::stream() << Configuration::instance().dump(dump_opts) << '\n';                    \
+        std::cout << Configuration::instance().dump(dump_opts) << std::endl;                       \
         exit(0);                                                                                   \
     }
 

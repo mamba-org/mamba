@@ -1620,7 +1620,7 @@ namespace mamba
         }
     }
 
-    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs)
+    std::ostream& print_problem_tree_msg(std::ostream& out, CompressedProblemsGraph const& pbs)
     {
         auto dfs = TreeDFS(pbs);
         auto path = dfs.explore();
@@ -1628,10 +1628,22 @@ namespace mamba
         return out;
     }
 
-    std::string problem_tree_str(CompressedProblemsGraph const& pbs)
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs)
     {
         std::stringstream ss;
-        problem_tree_str(ss, pbs);
+        print_problem_tree_msg(ss, pbs);
+        return ss.str();
+    }
+
+    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs)
+    {
+        return out << "Could not solve for environment specs\n";
+    }
+
+    std::string summary_msg(CompressedProblemsGraph const& pbs)
+    {
+        std::stringstream ss;
+        print_summary_msg(ss, pbs);
         return ss.str();
     }
 }

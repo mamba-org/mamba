@@ -234,8 +234,11 @@ namespace mamba
         node_id m_root_node;
     };
 
-    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs);
-    std::string problem_tree_str(CompressedProblemsGraph const& pbs);
+    std::ostream& print_problem_tree_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs);
+
+    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
+    std::string summary_msg(CompressedProblemsGraph const& pbs);
 
     /************************************
      *  Implementation of conflict_map  *

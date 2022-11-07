@@ -16,6 +16,9 @@
 #include <type_traits>
 
 #include <solv/pool.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <fmt/format.h>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_string.hpp"
@@ -1294,18 +1297,25 @@ namespace mamba
             using Status = TreeNode::Status;
             using SiblingNumber = TreeNode::SiblingNumber;
 
+            struct Palette
+            {
+                fmt::text_style unavailable = fmt::fg(fmt::terminal_color::red);
+                fmt::text_style available = fmt::fg(fmt::terminal_color::green);
+            };
+
             static constexpr auto indents = std::array{ "│  ", "   ", "├─ ", "└─ " };
 
             std::ostream& m_outs;
             CompressedProblemsGraph const& m_pbs;
+            Palette m_palette = {};
 
             TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs);
 
             template <typename... Args>
             void write(Args&&... args);
             void write_ancestry(std::vector<SiblingNumber> const& ancestry);
-            void write_node_repr(TreeNode const& tn);
-            void write_incoming_edge_repr(TreeNode const& tn);
+            void write_pkg_list(TreeNode const& tn);
+            void write_pkg_dep(TreeNode const& tn);
             void write_root(TreeNode const& tn);
             void write_diving(TreeNode const& tn);
             void write_split(TreeNode const& tn);
@@ -1343,38 +1353,40 @@ namespace mamba
             }
         }
 
-        void TreeExplainer::write_node_repr(TreeNode const& tn)
+        void TreeExplainer::write_pkg_list(TreeNode const& tn)
         {
-            auto do_write = [this](auto const& node)
+            auto do_write = [&](auto const& node)
             {
                 using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
-                    write(node.name(), ' ');
+                    auto const style = tn.status ? m_palette.available : m_palette.unavailable;
                     if (node.size() == 1)
                     {
-                        write(node.versions_trunc());  // Won't be truncated as it's size one
+                        // Won't be truncated as it's size one
+                        write(fmt::format(style, "{} {}", node.name(), node.versions_trunc()));
                     }
                     else
                     {
-                        write('[', node.versions_trunc(), ']');
+                        write(fmt::format(style, "{} [{}]", node.name(), node.versions_trunc()));
                     }
                 }
             };
             std::visit(do_write, m_pbs.graph().node(tn.id));
         }
 
-        void TreeExplainer::write_incoming_edge_repr(TreeNode const& tn)
+        void TreeExplainer::write_pkg_dep(TreeNode const& tn)
         {
             auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
-            write(edge.name(), ' ');
+            auto const style = tn.status ? m_palette.available : m_palette.unavailable;
             if (edge.size() == 1)
             {
-                write(edge.versions_trunc());  // Won't be truncated as it's size one
+                // Won't be truncated as it's size one
+                write(fmt::format(style, "{} {}", edge.name(), edge.versions_trunc()));
             }
             else
             {
-                write('[', edge.versions_trunc(), ']');
+                write(fmt::format(style, "{} [{}]", edge.name(), edge.versions_trunc()));
             }
         }
 

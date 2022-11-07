@@ -1551,6 +1551,7 @@ namespace mamba
             std::size_t const length = path.size();
             for (std::size_t i = 0; i < length; ++i)
             {
+                bool const last = (i == length - 1);
                 auto const& tn = path[i];
                 write_ancestry(tn.ancestry);
                 switch (tn.type)
@@ -1558,30 +1559,34 @@ namespace mamba
                     case (TreeNode::Type::root):
                     {
                         write_root(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::diving):
                     {
                         write_diving(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::split):
                     {
                         write_split(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::leaf):
                     {
                         write_leaf(tn);
+                        write(last ? "." : ";\n");
                         break;
                     }
                     case (TreeNode::Type::visited):
                     {
                         write_visited(tn);
+                        write(last ? "." : ";\n");
                         break;
                     }
                 }
-                write('\n');
             }
         }
 

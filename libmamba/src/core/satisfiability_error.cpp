@@ -563,18 +563,16 @@ namespace mamba
         /**
          * The criteria for deciding whether to merge two nodes together.
          */
-        auto create_merge_criteria(ProblemsGraph const& pbs)
+        auto default_merge_criteria(ProblemsGraph const& pbs,
+                                    ProblemsGraph::node_id n1,
+                                    ProblemsGraph::node_id n2) -> bool
         {
-            using node_id = ProblemsGraph::node_id;
-            return [&pbs](node_id n1, node_id n2) -> bool
-            {
-                auto const& g = pbs.graph();
-                // TODO needs finetuning, not the same conditions
-                return (node_name(g.node(n1)) == node_name(g.node(n2)))
-                       && !(pbs.conflicts().in_conflict(n1, n2))
-                       && (g.successors(n1) == g.successors(n2))
-                       && (g.predecessors(n1) == g.predecessors(n2));
-            };
+            auto const& g = pbs.graph();
+            // TODO needs finetuning, not the same conditions
+            return (node_name(g.node(n1)) == node_name(g.node(n2)))
+                   && !(pbs.conflicts().in_conflict(n1, n2))
+                   && (g.successors(n1) == g.successors(n2))
+                   && (g.predecessors(n1) == g.predecessors(n2));
         }
 
         using node_id_mapping = std::vector<CompressedProblemsGraph::node_id>;
@@ -721,10 +719,26 @@ namespace mamba
     }
 
     // TODO move graph nodes and edges.
-    auto CompressedProblemsGraph::from_problems_graph(ProblemsGraph const& pbs)
+    auto CompressedProblemsGraph::from_problems_graph(ProblemsGraph const& pbs,
+                                                      merge_criteria_t const& merge_criteria)
         -> CompressedProblemsGraph
     {
-        auto [graph, root_node, old_to_new] = merge_nodes(pbs, create_merge_criteria(pbs));
+        graph_t graph;
+        node_id root_node;
+        node_id_mapping old_to_new;
+        if (merge_criteria)
+        {
+            auto merge_func
+                = [&pbs, &merge_criteria](ProblemsGraph::node_id n1, ProblemsGraph::node_id n2)
+            { return merge_criteria(pbs, n1, n2); };
+            std::tie(graph, root_node, old_to_new) = merge_nodes(pbs, merge_func);
+        }
+        else
+        {
+            auto merge_func = [&pbs](ProblemsGraph::node_id n1, ProblemsGraph::node_id n2)
+            { return default_merge_criteria(pbs, n1, n2); };
+            std::tie(graph, root_node, old_to_new) = merge_nodes(pbs, merge_func);
+        }
         merge_edges(pbs.graph(), graph, old_to_new);
         auto conflicts = merge_conflicts(pbs.conflicts(), old_to_new);
         return { std::move(graph), std::move(conflicts), root_node };

@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <optional>
 #include <vector>
+#include <functional>
 
 #include <solv/solver.h>
 #include <fmt/color.h>
@@ -222,7 +223,12 @@ namespace mamba
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
-        static auto from_problems_graph(ProblemsGraph const& pbs) -> CompressedProblemsGraph;
+        using merge_criteria_t = std::function<bool(
+            ProblemsGraph const&, ProblemsGraph::node_id, ProblemsGraph::node_id)>;
+
+        static auto from_problems_graph(ProblemsGraph const& pbs,
+                                        merge_criteria_t const& merge_criteria = {})
+            -> CompressedProblemsGraph;
 
         CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 

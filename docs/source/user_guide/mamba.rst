@@ -74,6 +74,8 @@ Here are some examples:
     # will show you a list of the dependencies of xtensor.
     $ mamba repoquery depends xtensor
 
+Note that the ``depends`` sub-command requires either the specified package to be installed in you environment, or for the channel to be specified with the ``-c,--channel`` flag.
+
 With the ``-t,--tree`` flag, you can get the same information in a tree.
 
 .. code::

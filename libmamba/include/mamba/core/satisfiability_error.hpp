@@ -7,6 +7,7 @@
 #ifndef MAMBA_PROBLEMS_GRAPH_HPP
 #define MAMBA_PROBLEMS_GRAPH_HPP
 
+#include <array>
 #include <string>
 #include <ostream>
 #include <string_view>
@@ -17,6 +18,7 @@
 #include <vector>
 
 #include <solv/solver.h>
+#include <fmt/color.h>
 
 #include "mamba/core/util_graph.hpp"
 #include "mamba/core/package_info.hpp"
@@ -234,11 +236,24 @@ namespace mamba
         node_id m_root_node;
     };
 
-    std::ostream& print_problem_tree_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
-    std::string problem_tree_msg(CompressedProblemsGraph const& pbs);
+    /**
+     * Formatting options for error message functions.
+     */
+    struct ProblemsMessageFormat
+    {
+        fmt::text_style unavailable = fmt::fg(fmt::terminal_color::red);
+        fmt::text_style available = fmt::fg(fmt::terminal_color::green);
+        std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
+    };
 
     std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
     std::string summary_msg(CompressedProblemsGraph const& pbs);
+
+    std::ostream& print_problem_tree_msg(std::ostream& out,
+                                         CompressedProblemsGraph const& pbs,
+                                         ProblemsMessageFormat const& format = {});
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs,
+                                 ProblemsMessageFormat const& format = {});
 
     /************************************
      *  Implementation of conflict_map  *

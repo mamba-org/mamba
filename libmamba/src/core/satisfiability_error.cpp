@@ -923,8 +923,24 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
     template class CompressedProblemsGraph::NamedList<DependencyInfo>;
 
+    /***********************************
+     *  Implementation of summary_msg  *
+     ***********************************/
+
+    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs)
+    {
+        return out << "Could not solve for environment specs\n";
+    }
+
+    std::string summary_msg(CompressedProblemsGraph const& pbs)
+    {
+        std::stringstream ss;
+        print_summary_msg(ss, pbs);
+        return ss.str();
+    }
+
     /****************************************
-     *  Implementation of problem_tree_str  *
+     *  Implementation of problem_tree_msg  *
      ****************************************/
 
     namespace
@@ -1309,25 +1325,20 @@ namespace mamba
         public:
             static auto explain(std::ostream& outs,
                                 CompressedProblemsGraph const& pbs,
+                                ProblemsMessageFormat const& format,
                                 std::vector<TreeNode> const& path) -> std::ostream&;
 
         private:
             using Status = TreeNode::Status;
             using SiblingNumber = TreeNode::SiblingNumber;
 
-            struct Palette
-            {
-                fmt::text_style unavailable = fmt::fg(fmt::terminal_color::red);
-                fmt::text_style available = fmt::fg(fmt::terminal_color::green);
-            };
-
-            static constexpr auto indents = std::array{ "│  ", "   ", "├─ ", "└─ " };
-
             std::ostream& m_outs;
             CompressedProblemsGraph const& m_pbs;
-            Palette m_palette = {};
+            ProblemsMessageFormat const& m_format;
 
-            TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs);
+            TreeExplainer(std::ostream& outs,
+                          CompressedProblemsGraph const& pbs,
+                          ProblemsMessageFormat const& format);
 
             template <typename... Args>
             void write(Args&&... args);
@@ -1347,9 +1358,12 @@ namespace mamba
          *  Implementation of TreeExplainer  *
          *************************************/
 
-        TreeExplainer::TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs)
+        TreeExplainer::TreeExplainer(std::ostream& outs,
+                                     CompressedProblemsGraph const& pbs,
+                                     ProblemsMessageFormat const& format)
             : m_outs(outs)
             , m_pbs(pbs)
+            , m_format(format)
         {
         }
 
@@ -1362,6 +1376,7 @@ namespace mamba
         void TreeExplainer::write_ancestry(std::vector<SiblingNumber> const& ancestry)
         {
             std::size_t const size = ancestry.size();
+            auto const indents = m_format.indents;
             if (size > 0)
             {
                 for (std::size_t i = 0; i < size - 1; ++i)
@@ -1379,7 +1394,7 @@ namespace mamba
                 using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
-                    auto const style = tn.status ? m_palette.available : m_palette.unavailable;
+                    auto const style = tn.status ? m_format.available : m_format.unavailable;
                     if (node.size() == 1)
                     {
                         // Won't be truncated as it's size one
@@ -1397,7 +1412,7 @@ namespace mamba
         void TreeExplainer::write_pkg_dep(TreeNode const& tn)
         {
             auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
-            auto const style = tn.status ? m_palette.available : m_palette.unavailable;
+            auto const style = tn.status ? m_format.available : m_format.unavailable;
             if (edge.size() == 1)
             {
                 // Won't be truncated as it's size one
@@ -1612,38 +1627,30 @@ namespace mamba
 
         auto TreeExplainer::explain(std::ostream& outs,
                                     CompressedProblemsGraph const& pbs,
+                                    ProblemsMessageFormat const& format,
                                     std::vector<TreeNode> const& path) -> std::ostream&
         {
-            auto explainer = TreeExplainer(outs, pbs);
+            auto explainer = TreeExplainer(outs, pbs, format);
             explainer.write_path(path);
             return outs;
         }
     }
 
-    std::ostream& print_problem_tree_msg(std::ostream& out, CompressedProblemsGraph const& pbs)
+    std::ostream& print_problem_tree_msg(std::ostream& out,
+                                         CompressedProblemsGraph const& pbs,
+                                         ProblemsMessageFormat const& format)
     {
         auto dfs = TreeDFS(pbs);
         auto path = dfs.explore();
-        TreeExplainer::explain(out, pbs, path);
+        TreeExplainer::explain(out, pbs, format, path);
         return out;
     }
 
-    std::string problem_tree_msg(CompressedProblemsGraph const& pbs)
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs,
+                                 ProblemsMessageFormat const& format)
     {
         std::stringstream ss;
         print_problem_tree_msg(ss, pbs);
-        return ss.str();
-    }
-
-    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs)
-    {
-        return out << "Could not solve for environment specs\n";
-    }
-
-    std::string summary_msg(CompressedProblemsGraph const& pbs)
-    {
-        std::stringstream ss;
-        print_summary_msg(ss, pbs);
         return ss.str();
     }
 }

@@ -53,6 +53,7 @@ extern "C"
 #include "mamba/core/url.hpp"
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/invoke.hpp"
+#include "mamba/core/util_compare.hpp"
 
 namespace mamba
 {
@@ -1561,7 +1562,7 @@ namespace mamba
         const auto ol
             = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
 
-        if (pl != ol)
+        if (util::cmp_not_equal(pl, ol))
         {
             return make_unexpected("Could not encode base64 string",
                                    mamba_error_code::openssl_failed);
@@ -1577,7 +1578,7 @@ namespace mamba
         std::vector<unsigned char> output(pl + 1);
         const auto ol
             = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
-        if (pl != ol)
+        if (util::cmp_not_equal(pl, ol))
         {
             return make_unexpected("Could not decode base64 string",
                                    mamba_error_code::openssl_failed);

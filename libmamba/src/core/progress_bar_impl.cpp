@@ -1,7 +1,3 @@
-#include "mamba/core/context.hpp"
-
-#include "progress_bar_impl.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -11,7 +7,11 @@
 #include <random>
 #include <sstream>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/util_compare.hpp"
+
+#include "progress_bar_impl.hpp"
 
 namespace cursor
 {
@@ -810,9 +810,10 @@ namespace mamba
                 {
                     std::size_t spinner_start, spinner_length, rest;
 
-                    spinner_start = pos > spinner_width ? pos - spinner_width : 0;
-                    spinner_length = ((pos + spinner_width) < width ? pos + spinner_width : width)
-                                     - spinner_start;
+                    spinner_start = util::cmp_greater(pos, spinner_width) ? pos - spinner_width : 0;
+                    spinner_length
+                        = (util::cmp_less(pos + spinner_width, width) ? pos + spinner_width : width)
+                          - spinner_start;
 
                     ProgressScaleWriter::format_progress(
                         sstream, fmt::fg(fmt::terminal_color::bright_black), spinner_start, false);

@@ -38,12 +38,12 @@ jobs:
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'linux' }}
         run: |
-          sed -i -E 's/url:.*$/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
+          sed -i -E 's/(url|git_url):.*$/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'osx' }}
         run: |
-          sed -i '' -E 's/url:.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' -E 's/(url|git_url):.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
       - uses: mamba-org/provision-with-micromamba@main
         with:

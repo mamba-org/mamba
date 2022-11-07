@@ -154,6 +154,7 @@ namespace mamba
         {
             auto out = Console::stream();
             fmt::print(out,
+                       "{}",
                        fmt::styled("Windows long-path support already enabled.\n",
                                    fmt::fg(fmt::terminal_color::green)));
             return true;
@@ -188,6 +189,7 @@ namespace mamba
         {
             auto out = Console::stream();
             fmt::print(out,
+                       "{}",
                        fmt::styled("Windows long-path support enabled.\n",
                                    fmt::fg(fmt::terminal_color::green)));
             return true;

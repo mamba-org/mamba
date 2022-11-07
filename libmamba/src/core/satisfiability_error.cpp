@@ -1316,6 +1316,7 @@ namespace mamba
             void write_ancestry(std::vector<SiblingNumber> const& ancestry);
             void write_pkg_list(TreeNode const& tn);
             void write_pkg_dep(TreeNode const& tn);
+            void write_pkg_repr(TreeNode const& tn);
             void write_root(TreeNode const& tn);
             void write_diving(TreeNode const& tn);
             void write_split(TreeNode const& tn);
@@ -1390,6 +1391,18 @@ namespace mamba
             }
         }
 
+        void TreeExplainer::write_pkg_repr(TreeNode const& tn)
+        {
+            if ((tn.depth() > 1) && (tn.type_from == TreeNode::Type::split))
+            {
+                write_pkg_list(tn);
+            }
+            else
+            {
+                write_pkg_dep(tn);
+            }
+        }
+
         void TreeExplainer::write_root(TreeNode const& tn)
         {
             if (m_pbs.graph().successors(tn.id).size() > 1)
@@ -1404,36 +1417,31 @@ namespace mamba
 
         void TreeExplainer::write_diving(TreeNode const& tn)
         {
-            write_node_repr(tn);
-            if (tn.status)
+            write_pkg_repr(tn);
+            if (tn.depth() == 1)
             {
-                if (tn.depth() == 1)
+                if (tn.status)
                 {
                     write(" is installable and it requires");
                 }
                 else
                 {
-                    write(", which requires");
+                    write(" is uninstallable because it requires");
                 }
+            }
+            else if (tn.type_from == TreeNode::Type::split)
+            {
+                write(" would require");
             }
             else
             {
-                if (tn.depth() == 1)
-                {
-                    write(" is uninstallable because it requires");
-                }
-                else
-                {
-                    // TODO confirm this
-                    // write(", which requires");
-                    write(" would require");
-                }
+                write(", which requires");
             }
         }
 
         void TreeExplainer::write_split(TreeNode const& tn)
         {
-            write_incoming_edge_repr(tn);
+            write_pkg_repr(tn);
             if (tn.status)
             {
                 if (tn.depth() == 1)
@@ -1476,7 +1484,7 @@ namespace mamba
                                        Node,
                                        PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
                 {
-                    write_node_repr(tn);
+                    write_pkg_repr(tn);
                     if (tn.status)
                     {
                         if (tn.depth() == 1)
@@ -1495,17 +1503,17 @@ namespace mamba
                         {
                             write(" is uninstallable because it");
                         }
-                        else
+                        else if (tn.type_from != TreeNode::Type::split)
                         {
                             write(", which");
                         }
-                        write(" conflicts with installable versions previously reported");
+                        write(" conflicts with any installable versions previously reported");
                     }
                 }
                 else if constexpr (std::is_same_v<Node, UnresolvedDepListNode>)
                 {
-                    write_node_repr(tn);
-                    if (tn.depth() > 1)
+                    write_pkg_repr(tn);
+                    if ((tn.depth() > 1) && (tn.type_from != TreeNode::Type::split))
                     {
                         write(", which");
                     }
@@ -1527,7 +1535,7 @@ namespace mamba
 
         void TreeExplainer::write_visited(TreeNode const& tn)
         {
-            write_node_repr(tn);
+            write_pkg_list(tn);
             if (tn.status)
             {
                 write(", which can be installed (as previously explained)");

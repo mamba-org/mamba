@@ -22,6 +22,7 @@
 
 #include <fmt/format.h>
 #include <fmt/color.h>
+#include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
 #include "mamba/core/environment.hpp"

@@ -963,12 +963,13 @@ namespace mamba
 
             using node_id = CompressedProblemsGraph::node_id;
 
+            std::vector<SiblingNumber> ancestry;
             node_id id;
             node_id id_from;
             Type type;
             Type type_from;
             Status status;
-            std::vector<SiblingNumber> ancestry;
+            bool virtual_node;
 
             auto depth() const -> std::size_t
             {
@@ -1174,30 +1175,45 @@ namespace mamba
             // first child id as node_id
             assert(children_ids.size() > 0);
             ongoing = TreeNode{
+                /* ancestry= */ concat(from.ancestry, position),
                 /* id= */ children_ids[0],
                 /* id_from= */ from.id,
                 /* type= */ TreeNode::Type::split,
                 /* type_from= */ from.type,
                 /* status= */ false,  // Placeholder updated
-                /* ancestry= */ concat(from.ancestry, position),
+                /* virtual_node= */ true,
             };
 
+            TreeNodeIter const children_begin = out;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
-            std::size_t i = 0;
-            for (node_id child_id : children_ids)
+            std::size_t const n_children = children_ids.size();
+            for (std::size_t i = 0; i < n_children; ++i)
             {
+                bool const last = (i == n_children - 1);
+                auto const child_pos = last ? SiblingNumber::last : SiblingNumber::not_last;
                 Status status;
-                auto const child_pos
-                    = i == children_ids.size() - 1 ? SiblingNumber::last : SiblingNumber::not_last;
-                std::tie(out, status) = visit_node(child_id, child_pos, ongoing, out);
+                std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out);
                 // If there are any valid option in the split, the split is iself valid.
                 ongoing.status |= status;
-                ++i;
             }
 
-            // // TODO
-            // All children are visited leaves, no grand-children.
-            // We dynamically delete all children and mark the whole thing as visited.
+            // All children are the same type of visited or leaves, no grand-children.
+            // We dynamically delete all children and mark the whole node as such.
+            auto all_same_type = [](TreeNodeIter first, TreeNodeIter last) -> bool
+            {
+                if (last <= first)
+                {
+                    return true;
+                }
+                return std::all_of(
+                    first, last, [t = first->type](TreeNode const& tn) { return tn.type == t; });
+            };
+            TreeNodeIter const children_end = out;
+            if ((n_children >= 1) && all_same_type(children_begin, children_end))
+            {
+                ongoing.type = children_begin->type;
+                out = children_begin;
+            }
 
             return { out, ongoing.status };
         }
@@ -1207,12 +1223,13 @@ namespace mamba
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
+                /* ancestry= */ {},
                 /* id= */ root_id,
                 /* id_from= */ root_id,
                 /* type= */ node_type(root_id),
                 /* type_from= */ node_type(root_id),
                 /* status= */ {},  // Placeholder updated
-                /* ancestry= */ {},
+                /* virtual_node= */ false,
             };
 
             auto out_status = visit_node_impl(root_id, ongoing, out);
@@ -1227,12 +1244,13 @@ namespace mamba
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
+                /* ancestry= */ concat(from.ancestry, position),
                 /* id= */ id,
                 /* id_from= */ from.id,
                 /* type= */ node_type(id),
                 /* type_from= */ from.type,
                 /* status= */ {},  // Placeholder updated
-                /* ancestry= */ concat(from.ancestry, position),
+                /* virtual_node= */ false,
             };
 
             auto out_status = visit_node_impl(id, ongoing, out);
@@ -1393,8 +1411,10 @@ namespace mamba
 
         void TreeExplainer::write_pkg_repr(TreeNode const& tn)
         {
-            if ((tn.depth() > 1) && (tn.type_from == TreeNode::Type::split))
+            if ((tn.type_from == TreeNode::Type::split))
             {
+                assert(tn.depth() > 1);
+                assert(!tn.virtual_node);
                 write_pkg_list(tn);
             }
             else

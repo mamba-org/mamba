@@ -1,3 +1,8 @@
+// Copyright (c) 2019, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
 
 #ifndef MAMBA_CORE_UTIL_STRING_HPP
 #define MAMBA_CORE_UTIL_STRING_HPP
@@ -11,6 +16,8 @@
 #include <algorithm>
 #include <iomanip>
 #include <type_traits>
+
+#include "mamba/core/util_compare.hpp"
 
 namespace mamba
 {
@@ -218,7 +225,7 @@ namespace mamba
                                       std::size_t threshold = 5,
                                       std::pair<std::size_t, std::size_t> show = { 2, 1 })
     {
-        if ((last - first) <= threshold)
+        if (util::cmp_less_equal(last - first, threshold))
         {
             return join_for_each(first, last, std::move(func), sep);
         }

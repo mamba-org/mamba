@@ -39,6 +39,14 @@ micromamba() {
             __mamba_exe "$@" || \return
             __mamba_reactivate
             ;;
+        self-update)
+            __mamba_exe "$@" || \return
+
+            # remove leftover backup file on Windows
+            if [ -f "$MAMBA_EXE.bkup" ]; then
+                rm -f $MAMBA_EXE.bkup
+            fi
+            ;;
         *)
             __mamba_exe "$@"
             ;;

@@ -29,13 +29,16 @@ namespace mamba
 {
     namespace
     {
-        std::regex CONDA_INITIALIZE_RE_BLOCK("\n# >>> mamba initialize >>>(?:\n|\r\n)?"
+        std::regex MAMBA_INITIALIZE_RE_BLOCK("\n?# >>> mamba initialize >>>(?:\n|\r\n)?"
                                              "([\\s\\S]*?)"
                                              "# <<< mamba initialize <<<(?:\n|\r\n)?");
 
-        std::regex CONDA_INITIALIZE_PS_RE_BLOCK("\n#region mamba initialize(?:\n|\r\n)?"
+        std::regex MAMBA_INITIALIZE_PS_RE_BLOCK("\n?#region mamba initialize(?:\n|\r\n)?"
                                                 "([\\s\\S]*?)"
                                                 "#endregion(?:\n|\r\n)?");
+        std::wregex MAMBA_CMDEXE_HOOK_REGEX(L"(\"[^\"]*?mamba[-_]hook\\.bat\")",
+                                            std::regex_constants::icase);
+
     }
 
     std::string guess_shell()
@@ -129,9 +132,10 @@ namespace mamba
 
         // modify registry key
         std::wstring replace_str(L"__CONDA_REPLACE_ME_123__");
-        std::wregex hook_regex(L"(\"[^\"]*?mamba[-_]hook\\.bat\")", std::regex_constants::icase);
-        std::wstring replaced_value = std::regex_replace(
-            prev_value, hook_regex, replace_str, std::regex_constants::format_first_only);
+        std::wstring replaced_value = std::regex_replace(prev_value,
+                                                         MAMBA_CMDEXE_HOOK_REGEX,
+                                                         replace_str,
+                                                         std::regex_constants::format_first_only);
 
         std::wstring new_value = replaced_value;
 
@@ -429,7 +433,7 @@ namespace mamba
         }
 
         std::string result
-            = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, conda_init_content);
+            = std::regex_replace(rc_content, MAMBA_INITIALIZE_RE_BLOCK, conda_init_content);
 
         if (result.find("# >>> mamba initialize >>>") == std::string::npos)
         {
@@ -474,7 +478,7 @@ namespace mamba
             return;
         }
 
-        std::string result = std::regex_replace(rc_content, CONDA_INITIALIZE_RE_BLOCK, "");
+        std::string result = std::regex_replace(rc_content, MAMBA_INITIALIZE_RE_BLOCK, "");
 
         if (Context::instance().dry_run)
         {
@@ -822,7 +826,7 @@ namespace mamba
         {
             LOG_DEBUG << "Found mamba initialize. Replacing mamba initialize block.";
             profile_content = std::regex_replace(
-                profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
+                profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, conda_init_content);
         }
 
         LOG_DEBUG << "Original profile content:\n" << profile_original_content;
@@ -873,7 +877,7 @@ namespace mamba
                           << "#region mamba initialize\n...\n#endregion\n"
                           << termcolor::reset;
 
-        profile_content = std::regex_replace(profile_content, CONDA_INITIALIZE_PS_RE_BLOCK, "");
+        profile_content = std::regex_replace(profile_content, MAMBA_INITIALIZE_PS_RE_BLOCK, "");
         LOG_DEBUG << "Profile content:\n" << profile_content;
 
         if (Context::instance().dry_run)
@@ -1065,5 +1069,75 @@ namespace mamba
         }
 
         deinit_root_prefix(shell, conda_prefix);
+    }
+
+    fs::u8path config_path_for_shell(const std::string& shell)
+    {
+        fs::u8path home = env::home_directory();
+        fs::u8path config_path;
+        if (shell == "bash")
+        {
+            config_path = (on_mac || on_win) ? home / ".bash_profile" : home / ".bashrc";
+        }
+        else if (shell == "zsh")
+        {
+            config_path = home / ".zshrc";
+        }
+        else if (shell == "xonsh")
+        {
+            config_path = home / ".xonshrc";
+        }
+        else if (shell == "csh")
+        {
+            config_path = home / ".tcshrc";
+        }
+        else if (shell == "fish")
+        {
+            config_path = home / ".config" / "fish" / "config.fish";
+        }
+        return config_path;
+    }
+
+    std::vector<std::string> find_initialized_shells()
+    {
+        fs::u8path home = env::home_directory();
+
+        std::vector<std::string> result;
+        std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish" };
+        for (const std::string& shell : supported_shells)
+        {
+            fs::u8path config_path = config_path_for_shell(shell);
+
+            if (fs::exists(config_path))
+            {
+                auto contents = read_contents(config_path);
+                if (contents.find("# >>> mamba initialize >>>") != std::string::npos)
+                {
+                    result.push_back(shell);
+                }
+            }
+        }
+
+#ifdef _WIN32
+        // cmd.exe
+        std::wstring reg = get_autorun_registry_key(L"Software\\Microsoft\\Command Processor");
+        if (std::regex_match(reg, MAMBA_CMDEXE_HOOK_REGEX) != std::wstring::npos)
+        {
+            result.push_back("cmd.exe");
+        }
+#endif
+        // powershell
+        {
+            std::set<std::string> pwsh_profiles;
+            for (auto& exe : std::vector<std::string>{ "powershell", "pwsh", "pwsh-preview" })
+            {
+                auto profile_path = find_powershell_paths(exe);
+                if (!profile_path.empty() && fs::exists(profile_path))
+                {
+                    result.push_back("powershell");
+                }
+            }
+        }
+        return result;
     }
 }

@@ -8,7 +8,7 @@
 #define MAMBA_CORE_PREFIX_DATA_HPP
 
 #include <string>
-#include <unordered_map>
+#include <map>
 
 #include "error_handling.hpp"
 #include "history.hpp"
@@ -19,7 +19,7 @@ namespace mamba
     class PrefixData
     {
     public:
-        using package_map = std::unordered_map<std::string, PackageInfo>;
+        using package_map = std::map<std::string, PackageInfo>;
 
         static expected_t<PrefixData> create(const fs::u8path& prefix_path);
 
@@ -37,7 +37,7 @@ namespace mamba
         void load_site_packages();
 
         History m_history;
-        std::unordered_map<std::string, PackageInfo> m_package_records;
+        package_map m_package_records;
         fs::u8path m_prefix_path;
     };
 }  // namespace mamba

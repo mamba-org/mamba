@@ -1,3 +1,5 @@
+#include <type_traits>
+
 #include <gtest/gtest.h>
 
 #include "mamba/core/util_graph.hpp"
@@ -15,6 +17,13 @@ namespace mamba
         EXPECT_EQ(s3.size(), 2);
         auto const s4 = vector_set<int>{ std::move(s2) };
         EXPECT_EQ(s4.size(), 2);
+        // CTAD
+        auto s5 = vector_set({ 1, 2 });
+        EXPECT_EQ(s5.size(), 2);
+        static_assert(std::is_same_v<decltype(s5)::value_type, int>);
+        auto s6 = vector_set(s5.begin(), s5.end(), std::greater{});
+        EXPECT_EQ(s6.size(), s5.size());
+        static_assert(std::is_same_v<decltype(s6)::value_type, decltype(s5)::value_type>);
     }
 
     TEST(vector_set, equality)
@@ -37,6 +46,9 @@ namespace mamba
         EXPECT_EQ(s, vector_set<int>({ 17, 22, 33 }));
         s.insert(33);
         EXPECT_EQ(s, vector_set<int>({ 17, 22, 33 }));
+        auto v = std::vector<int>({ 33, 22, 17, 0 });
+        s.insert(v.begin(), v.end());
+        EXPECT_EQ(s, vector_set<int>({ 0, 17, 22, 33 }));
     }
 
     TEST(vector_set, contains)
@@ -49,6 +61,15 @@ namespace mamba
         EXPECT_TRUE(s.contains(4));
         EXPECT_TRUE(s.contains(5));
         EXPECT_FALSE(s.contains(6));
+    }
+
+    TEST(vector_set, key_compare)
+    {
+        auto s = vector_set({ 1, 3, 4, 5 }, std::greater{});
+        EXPECT_EQ(s.front(), 5);
+        EXPECT_EQ(s.back(), 1);
+        s.insert(6);
+        EXPECT_EQ(s.front(), 6);
     }
 
     DiGraph<double> build_graph()
@@ -148,6 +169,7 @@ namespace mamba
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 7ul);
+        EXPECT_EQ(g.number_of_edges(), 7ul);
         EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 }));
         EXPECT_EQ(g.successors(0u), node_id_list({ 1u, 2u }));
         EXPECT_EQ(g.successors(1u), node_id_list({ 3u, 4u }));
@@ -165,6 +187,7 @@ namespace mamba
         using node_list = decltype(g)::node_list;
         using node_id_list = decltype(g)::node_id_list;
         EXPECT_EQ(g.number_of_nodes(), 3ul);
+        EXPECT_EQ(g.number_of_edges(), 2ul);
         EXPECT_EQ(g.nodes(), node_list({ 0.5, 1.5, 2.5 }));
         EXPECT_EQ(g.successors(0ul), node_id_list({ 1ul }));
         EXPECT_EQ(g.successors(1ul), node_id_list({ 2ul }));
@@ -215,6 +238,20 @@ namespace mamba
         EXPECT_EQ(g.in_degree(0), 0);
         EXPECT_EQ(g.in_degree(3), 2);
         EXPECT_EQ(g.in_degree(6), 1);
+    }
+
+    TEST(graph, for_each_edge)
+    {
+        auto const g = build_graph();
+        using node_id = decltype(g)::node_id;
+        std::size_t n_edges = 0;
+        g.for_each_edge(
+            [&g, &n_edges](node_id from, node_id to)
+            {
+                EXPECT_TRUE(g.has_edge(from, to));
+                ++n_edges;
+            });
+        EXPECT_EQ(n_edges, g.number_of_edges());
     }
 
     TEST(graph, for_each_leaf)

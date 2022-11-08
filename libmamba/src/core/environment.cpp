@@ -108,7 +108,8 @@ namespace mamba
         {
             for (auto& p : search_paths)
             {
-                if (!fs::exists(p) || !fs::is_directory(p))
+                std::error_code _ec;  // ignore
+                if (!fs::exists(p, _ec) || !fs::is_directory(p, _ec))
                 {
                     continue;
                 }
@@ -116,7 +117,7 @@ namespace mamba
 #ifdef _WIN32
                 const auto exe_with_extension = exe + ".exe";
 #endif
-                for (const auto& entry : fs::directory_iterator(p))
+                for (const auto& entry : fs::directory_iterator(p, _ec))
                 {
                     const auto filename = entry.path().filename();
                     if (filename == exe

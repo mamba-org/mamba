@@ -173,8 +173,8 @@ namespace mamba
             std::cout << fmt::format(fmtstring, "Track Features", pkg->track_features);
         }
 
-        std::cout << fmt::format(
-            " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg->timestamp));
+        // std::cout << fmt::format<char>(
+        // " {:<15} {:%Y-%m-%d %H:%M:%S} UTC\n", "Timestamp", fmt::gmtime(pkg->timestamp));
 
         if (!pkg->depends.empty())
         {

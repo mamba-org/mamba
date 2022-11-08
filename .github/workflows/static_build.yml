@@ -31,20 +31,20 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: conda-forge/micromamba-feedstock
+          repository: AntoinePrv/micromamba-feedstock
+          ref: spdlog
           path: micromamba-feedstock
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'linux' }}
         run: |
-          sed -i -E -z 's/url:.*libmamba.patch/git_url: ..\/..\//g' micromamba-feedstock/recipe/meta.yaml
+          sed -i -E 's/(url|git_url):.*$/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
+          sed -i '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
       - name: Patch micromamba-feedstock
         if: ${{ matrix.platform == 'osx' }}
         run: |
-          sed -i '' -E 's/url:.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' -E 's/(url|git_url):.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/patches:/d' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/libmamba.patch/d' micromamba-feedstock/recipe/meta.yaml
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge
@@ -76,8 +76,18 @@ jobs:
             ./micromamba
             apt update && apt install -y ca-certificates
             ./micromamba create -p /tmp/testenv --override-channels -c conda-forge --yes python=3.9
+      - name: Archive conda-build artifact
+        if: failure()
+        run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
+      - name: Upload conda build artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+          retention-days: 7
       - name: Upload micromamba
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
@@ -149,6 +159,16 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: Archive conda-build artifact
+        if: failure()
+        run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
+      - name: Upload conda build artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: micromamba-conda-build-failed-win-64
+          path: ${{ github.workspace }}/micromamba-conda-build-failed-win-64.tar.gz
+          retention-days: 7
       - uses: actions/upload-artifact@v3
         with:
           name: micromamba-win-64

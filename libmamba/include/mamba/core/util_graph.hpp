@@ -55,6 +55,10 @@ namespace mamba
                    allocator_type const& alloc = Allocator());
         vector_set(vector_set const&) = default;
         vector_set(vector_set&&) = default;
+        explicit vector_set(std::vector<Key, Allocator>&& other,
+                            key_compare compare = key_compare());
+        explicit vector_set(std::vector<Key, Allocator> const& other,
+                            key_compare compare = key_compare());
 
         vector_set& operator=(vector_set const&) = default;
         vector_set& operator=(vector_set&&) = default;
@@ -97,6 +101,14 @@ namespace mamba
               class Alloc = std::allocator<typename std::iterator_traits<InputIt>::value_type>>
     vector_set(InputIt, InputIt, Comp = Comp(), Alloc = Alloc())
         -> vector_set<typename std::iterator_traits<InputIt>::value_type, Comp, Alloc>;
+
+    template <class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
+    vector_set(std::vector<Key, Allocator>&&, Compare compare = Compare())
+        -> vector_set<Key, Compare, Allocator>;
+
+    template <class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
+    vector_set(std::vector<Key, Allocator> const&, Compare compare = Compare())
+        -> vector_set<Key, Compare, Allocator>;
 
     template <typename Key, typename Compare, typename Allocator>
     bool operator==(vector_set<Key, Compare, Allocator> const& lhs,
@@ -278,6 +290,22 @@ namespace mamba
                                     key_compare compare,
                                     allocator_type const& alloc)
         : Base(first, last, alloc)
+        , m_compare(std::move(compare))
+    {
+        sort_and_remove_duplicates();
+    }
+
+    template <typename K, typename C, typename A>
+    vector_set<K, C, A>::vector_set(std::vector<K, A>&& other, C compare)
+        : Base(std::move(other))
+        , m_compare(std::move(compare))
+    {
+        sort_and_remove_duplicates();
+    }
+
+    template <typename K, typename C, typename A>
+    vector_set<K, C, A>::vector_set(std::vector<K, A> const& other, C compare)
+        : Base(std::move(other))
         , m_compare(std::move(compare))
     {
         sort_and_remove_duplicates();

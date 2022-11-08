@@ -15,6 +15,8 @@ extern "C"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/queue.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/transaction_context.hpp"
+#include "mamba/core/channel.hpp"
 
 namespace mamba
 {
@@ -57,6 +59,7 @@ namespace mamba
                 }
             }
         }
+        load_site_packages();
     }
 
     void PrefixData::add_packages(const std::vector<PackageInfo>& packages)
@@ -144,4 +147,32 @@ namespace mamba
         auto prec = PackageInfo(std::move(j));
         m_package_records.insert({ prec.name, std::move(prec) });
     }
+
+    // Load python packages installed with pip in the site-packages of the prefix.
+    void PrefixData::load_site_packages()
+    {
+        LOG_INFO << "Loading site packages";
+
+        // Look for "python" package and return if doesn't exist
+        auto python_pkg_record = m_package_records.find("python");
+        if (python_pkg_record == m_package_records.end())
+            return;
+
+        auto site_packages_dir = get_python_site_packages_short_path(
+            compute_short_python_version(python_pkg_record->second.version));
+        auto site_packages_path = fix_win_path(m_prefix_path / site_packages_dir);
+        auto pip_json = fs::u8path(site_packages_path) / "pip_history.json";
+        if (!lexists(pip_json))
+            return;
+        auto infile = open_ifstream(pip_json);
+        nlohmann::json j;
+        infile >> j;
+
+        for (auto& [key, value] : j.items())
+        {
+            auto prec = PackageInfo(key, value, "pypi_0", "pypi");
+            m_package_records.insert({ prec.name, std::move(prec) });
+        }
+    }
+
 }  // namespace mamba

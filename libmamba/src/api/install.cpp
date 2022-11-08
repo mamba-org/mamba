@@ -540,11 +540,55 @@ namespace mamba
 
             trans.execute(prefix_data);
 
+            // Create "pip_history.json" file in python site-packages to store installed packages
+            // with pip
+            std::string py_version;
+            auto iter = prefix_data.records().find("python");
+            if (iter != prefix_data.records().end())
+                py_version = iter->second.version;
+            auto site_packages_dir
+                = get_python_site_packages_short_path(compute_short_python_version(py_version));
+            auto site_packages_path = fix_win_path(ctx.target_prefix / site_packages_dir);
+            auto pip_json = fs::u8path(site_packages_path) / "pip_history.json";
+            path::touch(pip_json, true);
+            std::ofstream pip_pkgs_file = open_ofstream(pip_json);
+
             for (auto other_spec : config.at("others_pkg_mgrs_specs")
                                        .value<std::vector<detail::other_pkg_mgr_spec>>())
             {
                 install_for_other_pkgmgr(other_spec);
+                if (!pip_pkgs_file.is_open())
+                {
+                    throw std::runtime_error(
+                        fmt::format("Could not open file '{}'", pip_json.string()));
+                }
+                nlohmann::json j;
+                for (auto& d : other_spec.deps)
+                {
+                    // Find the correponding dir name with pkg in it and .dist-info or .egg-info
+                    // extension
+                    for (auto& p : fs::directory_iterator(site_packages_path))
+                    {
+                        if (p.exists())
+                        {
+                            // Get the version from dir name
+                            if (starts_with(p.path().string(), d.c_str())
+                                && ends_with(p.path().string(), ".dist-info"))
+                            {
+                                j[d.c_str()]
+                                    = split(strip(p.path().string(), ".dist-info"), "-")[1];
+                            }
+                            else if (starts_with(p.path().string(), d.c_str())
+                                     && ends_with(p.path().string(), ".egg-info"))
+                            {
+                                j[d.c_str()] = split(strip(p.path().string(), ".egg-info"), "-")[1];
+                            }
+                        }
+                    }
+                }
+                pip_pkgs_file << j;
             }
+            pip_pkgs_file.close();
         }
     }
 
@@ -585,10 +629,55 @@ namespace mamba
 
                 transaction.execute(prefix_data);
 
+                // Create "pip_history.json" file in python site-packages to store installed
+                // packages with pip
+                std::string py_version;
+                auto iter = prefix_data.records().find("python");
+                if (iter != prefix_data.records().end())
+                    py_version = iter->second.version;
+                auto site_packages_dir
+                    = get_python_site_packages_short_path(compute_short_python_version(py_version));
+                auto site_packages_path = fix_win_path(ctx.target_prefix / site_packages_dir);
+                auto pip_json = fs::u8path(site_packages_path) / "pip_history.json";
+                path::touch(pip_json, true);
+                std::ofstream pip_pkgs_file = open_ofstream(pip_json);
+
                 for (auto other_spec : others)
                 {
                     install_for_other_pkgmgr(other_spec);
+                    if (!pip_pkgs_file.is_open())
+                    {
+                        throw std::runtime_error(
+                            fmt::format("Could not open file '{}'", pip_json.string()));
+                    }
+                    nlohmann::json j;
+                    for (auto& d : other_spec.deps)
+                    {
+                        // Find the correponding dir name with pkg in it and .dist-info or .egg-info
+                        // extension
+                        for (auto& p : fs::directory_iterator(site_packages_path))
+                        {
+                            if (p.exists())
+                            {
+                                // Get the version from dir name
+                                if (starts_with(p.path().string(), d.c_str())
+                                    && ends_with(p.path().string(), ".dist-info"))
+                                {
+                                    j[d.c_str()]
+                                        = split(strip(p.path().string(), ".dist-info"), "-")[1];
+                                }
+                                else if (starts_with(p.path().string(), d.c_str())
+                                         && ends_with(p.path().string(), ".egg-info"))
+                                {
+                                    j[d.c_str()]
+                                        = split(strip(p.path().string(), ".egg-info"), "-")[1];
+                                }
+                            }
+                        }
+                    }
+                    pip_pkgs_file << j;
                 }
+                pip_pkgs_file.close();
             }
         }
     }

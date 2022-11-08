@@ -67,6 +67,8 @@ namespace mamba
     std::vector<const Channel*> get_channels(const std::vector<std::string>& channel_names);
 
     void check_whitelist(const std::vector<std::string>& urls);
+
+    std::string fix_win_path(const std::string& path);
 }  // namespace mamba
 
 #endif

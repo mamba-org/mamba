@@ -877,6 +877,7 @@ def _wrapped_main(*args, **kwargs):
     if (
         not found_no_banner
         and os.isatty(sys.stdout.fileno())
+        and not context.quiet
         and not ("MAMBA_NO_BANNER" in os.environ or parsed_args.cmd in ("list", "run"))
     ):
         print(banner, file=sys.stderr)

@@ -12,14 +12,12 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <memory>
+
+#include <solv/queue.h>
+#include <solv/solver.h>
 
 #include "match_spec.hpp"
-
-extern "C"
-{
-#include "solv/queue.h"
-#include "solv/solver.h"
-}
 
 #define MAMBA_NO_DEPS 0b0001
 #define MAMBA_ONLY_DEPS 0b0010
@@ -54,7 +52,7 @@ namespace mamba
     {
     public:
         MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
-        ~MSolver();
+        ~MSolver() = default;
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
@@ -91,6 +89,8 @@ namespace mamba
         bool force_reinstall = false;
 
     private:
+        static void delete_libsolve_solver(Solver* solver);
+
         void add_channel_specific_job(const MatchSpec& ms, int job_flag);
         void add_reinstall_job(MatchSpec& ms, int job_flag);
 
@@ -100,7 +100,7 @@ namespace mamba
         std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
         bool m_is_solved;
-        Solver* m_solver;
+        std::unique_ptr<::Solver, decltype(&MSolver::delete_libsolve_solver)> m_solver;
         Pool* m_pool;
         Queue m_jobs;
     };

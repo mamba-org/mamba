@@ -179,23 +179,24 @@ namespace mamba
         return pool_dep2str(solver->pool, dep_id);
     }
 
+
+    void MSolver::delete_libsolve_solver(Solver* solver)
+    {
+        LOG_INFO << "Freeing solver.";
+        if (solver != nullptr)
+        {
+            solver_free(solver);
+        }
+    }
+
     MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
         : m_flags(flags)
         , m_is_solved(false)
-        , m_solver(nullptr)
+        , m_solver(nullptr, &MSolver::delete_libsolve_solver)
         , m_pool(pool)
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(pool);
-    }
-
-    MSolver::~MSolver()
-    {
-        LOG_INFO << "Freeing solver.";
-        if (m_solver != nullptr)
-        {
-            solver_free(m_solver);
-        }
     }
 
     inline bool channel_match(Solvable* s, const Channel& needle)
@@ -495,7 +496,7 @@ namespace mamba
     {
         for (const auto& option : flags)
         {
-            solver_set_flag(m_solver, option.first, option.second);
+            solver_set_flag(m_solver.get(), option.first, option.second);
         }
     }
 
@@ -526,13 +527,13 @@ namespace mamba
 
     bool MSolver::try_solve()
     {
-        m_solver = solver_create(m_pool);
+        m_solver.reset(solver_create(m_pool));
         set_flags(m_flags);
 
-        solver_solve(m_solver, &m_jobs);
+        solver_solve(m_solver.get(), &m_jobs);
         m_is_solved = true;
-        LOG_INFO << "Problem count: " << solver_problem_count(m_solver);
-        bool const success = solver_problem_count(m_solver) == 0;
+        LOG_INFO << "Problem count: " << solver_problem_count(m_solver.get());
+        bool const success = solver_problem_count(m_solver.get()) == 0;
         Console::instance().json_write({ { "success", success } });
         return success;
     }
@@ -553,22 +554,22 @@ namespace mamba
         std::vector<MSolverProblem> res;
         Queue problem_rules;
         queue_init(&problem_rules);
-        Id count = solver_problem_count(m_solver);
+        Id count = solver_problem_count(m_solver.get());
         for (Id i = 1; i <= count; ++i)
         {
-            solver_findallproblemrules(m_solver, i, &problem_rules);
+            solver_findallproblemrules(m_solver.get(), i, &problem_rules);
             for (Id j = 0; j < problem_rules.count; ++j)
             {
                 Id type, source, target, dep;
                 Id r = problem_rules.elements[j];
                 if (r)
                 {
-                    type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
+                    type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     MSolverProblem problem;
                     problem.source_id = source;
                     problem.target_id = target;
                     problem.dep_id = dep;
-                    problem.solver = m_solver;
+                    problem.solver = m_solver.get();
                     problem.type = static_cast<SolverRuleinfo>(type);
                     res.push_back(problem);
                 }
@@ -585,10 +586,10 @@ namespace mamba
 
         Queue problem_rules;
         queue_init(&problem_rules);
-        Id count = solver_problem_count(m_solver);
+        Id count = solver_problem_count(m_solver.get());
         for (Id i = 1; i <= count; ++i)
         {
-            solver_findallproblemrules(m_solver, i, &problem_rules);
+            solver_findallproblemrules(m_solver.get(), i, &problem_rules);
             for (Id j = 0; j < problem_rules.count; ++j)
             {
                 Id type, source, target, dep;
@@ -599,10 +600,10 @@ namespace mamba
                 }
                 else
                 {
-                    type = solver_ruleinfo(m_solver, r, &source, &target, &dep);
+                    type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     problems << "  - "
                              << solver_problemruleinfo2str(
-                                    m_solver, (SolverRuleinfo) type, source, target, dep)
+                                    m_solver.get(), (SolverRuleinfo) type, source, target, dep)
                              << "\n";
                 }
             }
@@ -648,12 +649,12 @@ namespace mamba
     {
         Queue problem_queue;
         queue_init(&problem_queue);
-        int count = solver_problem_count(m_solver);
+        int count = solver_problem_count(m_solver.get());
         std::stringstream problems;
         for (int i = 1; i <= count; i++)
         {
             queue_push(&problem_queue, i);
-            problems << "  - " << solver_problem2str(m_solver, i) << "\n";
+            problems << "  - " << solver_problem2str(m_solver.get(), i) << "\n";
         }
         queue_free(&problem_queue);
         return "Encountered problems while solving:\n" + problems.str();
@@ -664,11 +665,11 @@ namespace mamba
         std::vector<std::string> problems;
         Queue problem_queue;
         queue_init(&problem_queue);
-        int count = static_cast<int>(solver_problem_count(m_solver));
+        int count = static_cast<int>(solver_problem_count(m_solver.get()));
         for (int i = 1; i <= count; i++)
         {
             queue_push(&problem_queue, i);
-            problems.emplace_back(solver_problem2str(m_solver, i));
+            problems.emplace_back(solver_problem2str(m_solver.get(), i));
         }
         queue_free(&problem_queue);
 
@@ -677,6 +678,6 @@ namespace mamba
 
     MSolver::operator Solver*()
     {
-        return m_solver;
+        return m_solver.get();
     }
 }  // namespace mamba

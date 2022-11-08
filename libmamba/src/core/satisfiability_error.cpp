@@ -577,9 +577,15 @@ namespace mamba
                 return vector_set(std::move(leaves));
             };
             return (node_name(g.node(n1)) == node_name(g.node(n2)))
+                   // Merging conflicts would be counter-productive in explaining problems
                    && !(pbs.conflicts().in_conflict(n1, n2))
+                   // We don't want to use leaves_from for leaves because it resove to themselves,
+                   // preventing any merging.
                    && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
-                   && (g.predecessors(n1) == g.predecessors(n2));
+                   // We only check the parents for non-leaves meaning parents can "inject"
+                   // themselves into a bigger problem
+                   && ((!is_leaf(n1) && !is_leaf(n2))
+                       || (g.predecessors(n1) == g.predecessors(n2)));
         }
 
         using node_id_mapping = std::vector<CompressedProblemsGraph::node_id>;

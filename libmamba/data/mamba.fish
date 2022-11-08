@@ -1,6 +1,6 @@
 if not set -q MAMBA_SHLVL
   set -gx MAMBA_SHLVL "0"
-  fish_add_path $MAMBA_ROOT_PREFIX/condabin
+  fish_add_path --move $MAMBA_ROOT_PREFIX/condabin
 end
 
 if not set -q MAMBA_NO_PROMPT

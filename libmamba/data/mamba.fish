@@ -62,10 +62,10 @@ function micromamba --inherit-variable MAMBA_EXE
     set -e argv[1]
     switch $cmd
       case activate deactivate
-        eval ($MAMBA_EXE shell -s fish $cmd $argv)
+        $MAMBA_EXE shell -s fish $cmd $argv | source || return $status
       case install update upgrade remove uninstall
         $MAMBA_EXE $cmd $argv || return $status
-        and eval ($MAMBA_EXE shell -s fish reactivate)
+        $MAMBA_EXE shell -s fish reactivate | source || return $status
       case '*'
         $MAMBA_EXE $cmd $argv
     end

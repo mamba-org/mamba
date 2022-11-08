@@ -65,7 +65,7 @@ namespace mamba
 
         MRepo::create(pool, prefix_data);
 
-        MSolver solver(pool,
+        MSolver solver(std::move(pool),
                        { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
                          { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
                          { SOLVER_FLAG_STRICT_REPO_PRIORITY,

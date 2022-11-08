@@ -461,7 +461,7 @@ namespace mamba
 
         MRepo::create(pool, prefix_data);
 
-        MSolver solver(pool,
+        MSolver solver(std::move(pool),
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
                          { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
                          { SOLVER_FLAG_STRICT_REPO_PRIORITY,
@@ -565,8 +565,8 @@ namespace mamba
             fs::u8path pkgs_dirs(Context::instance().root_prefix / "pkgs");
             MultiPackageCache pkg_caches({ pkgs_dirs });
             prefix_data.add_packages(get_virtual_packages());
-            MRepo::create(
-                pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables in the pool
+            // Potentially re-alloc (moves in memory) Solvables in the pool
+            MRepo::create(pool, prefix_data);
 
             std::vector<detail::other_pkg_mgr_spec> others;
             // Note that the Transaction will gather the Solvables,

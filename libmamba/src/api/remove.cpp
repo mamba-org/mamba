@@ -104,7 +104,7 @@ namespace mamba
             }
             else
             {
-                MSolver solver(pool,
+                MSolver solver(std::move(pool),
                                { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
                                  { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
                                  { SOLVER_FLAG_STRICT_REPO_PRIORITY,

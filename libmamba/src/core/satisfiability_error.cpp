@@ -567,11 +567,18 @@ namespace mamba
                                     ProblemsGraph::node_id n1,
                                     ProblemsGraph::node_id n2) -> bool
         {
+            using node_id = ProblemsGraph::node_id;
             auto const& g = pbs.graph();
-            // TODO needs finetuning, not the same conditions
+            auto is_leaf = [&g](node_id n) -> bool { return g.successors(n).size() == 0; };
+            auto leaves_from = [&g](node_id n) -> vector_set<node_id>
+            {
+                auto leaves = std::vector<node_id>();
+                g.for_each_leaf_from(n, [&leaves](node_id m) { leaves.push_back(m); });
+                return vector_set(std::move(leaves));
+            };
             return (node_name(g.node(n1)) == node_name(g.node(n2)))
                    && !(pbs.conflicts().in_conflict(n1, n2))
-                   && (g.successors(n1) == g.successors(n2))
+                   && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
                    && (g.predecessors(n1) == g.predecessors(n2));
         }
 

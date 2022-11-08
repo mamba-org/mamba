@@ -17,6 +17,8 @@
 #include <solv/queue.h>
 #include <solv/solver.h>
 
+#include "mamba/core/pool.hpp"
+
 #include "match_spec.hpp"
 
 #define MAMBA_NO_DEPS 0b0001
@@ -28,7 +30,6 @@ namespace mamba
 
     char const* solver_ruleinfo_name(SolverRuleinfo rule);
 
-    class MPool;
     class PackageInfo;
 
     class MSolverProblem
@@ -51,7 +52,15 @@ namespace mamba
     class MSolver
     {
     public:
-        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
+        /**
+         * Create Solver and take ownership of the Pool.
+         *
+         * Should the pool need to be shared among multiple solvers in the future, one should:
+         *   - Change the ``MPool`` internal implementation to use ``std::shared_ptr``;
+         *   - Enable copy semantics on ``MPool``;
+         *   - Overload ``MSolver`` constructor to take the pool by copy.
+         */
+        MSolver(MPool&& pool, const std::vector<std::pair<int, int>>& flags = {});
         ~MSolver() = default;
 
         MSolver(const MSolver&) = delete;
@@ -77,10 +86,15 @@ namespace mamba
         std::ostream& explain_problems(std::ostream& out) const;
         [[nodiscard]] std::string explain_problems() const;
 
+        [[nodiscard]] MPool const& pool() const&;
+        [[nodiscard]] MPool& pool() &;
+        [[nodiscard]] MPool&& pool() &&;
+
         [[nodiscard]] const std::vector<MatchSpec>& install_specs() const;
         [[nodiscard]] const std::vector<MatchSpec>& remove_specs() const;
         [[nodiscard]] const std::vector<MatchSpec>& neuter_specs() const;
         [[nodiscard]] const std::vector<MatchSpec>& pinned_specs() const;
+
 
         operator Solver*();
 
@@ -100,8 +114,9 @@ namespace mamba
         std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
         bool m_is_solved;
+        // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
+        MPool m_pool;
         std::unique_ptr<::Solver, decltype(&MSolver::delete_libsolve_solver)> m_solver;
-        Pool* m_pool;
         Queue m_jobs;
     };
 }  // namespace mamba

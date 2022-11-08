@@ -189,14 +189,14 @@ namespace mamba
         }
     }
 
-    MSolver::MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags)
+    MSolver::MSolver(MPool&& pool, const std::vector<std::pair<int, int>>& flags)
         : m_flags(flags)
         , m_is_solved(false)
+        , m_pool(std::move(pool))
         , m_solver(nullptr, &MSolver::delete_libsolve_solver)
-        , m_pool(pool)
     {
         queue_init(&m_jobs);
-        pool_createwhatprovides(pool);
+        pool_createwhatprovides(m_pool);
     }
 
     inline bool channel_match(Solvable* s, const Channel& needle)
@@ -259,22 +259,21 @@ namespace mamba
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
     {
-        if (!m_pool->installed)
+        Pool* const pool = m_pool;
+        if (pool->installed == nullptr)
         {
             throw std::runtime_error("Did not find any packages marked as installed.");
         }
-
-        Pool* pool = m_pool;
 
         // 1. check if spec is already installed
         Id needle = pool_str2id(m_pool, ms.name.c_str(), 0);
         static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
 
-        if (needle && m_pool->installed)
+        if (needle && (pool->installed != nullptr))
         {
             Id pkg_id;
             Solvable* s;
-            FOR_REPO_SOLVABLES(m_pool->installed, pkg_id, s)
+            FOR_REPO_SOLVABLES(pool->installed, pkg_id, s)
             {
                 if (s->name == needle)
                 {
@@ -314,8 +313,7 @@ namespace mamba
                 }
             }
         }
-        Id inst_id
-            = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
+        Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
         queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
@@ -340,14 +338,12 @@ namespace mamba
                 // ignoring update specs here for now
                 if (!ms.is_simple())
                 {
-                    Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
-                                                      ms.conda_build_form().c_str());
+                    Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
                     queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
                 }
                 if (ms.channel.empty())
                 {
-                    Id update_id
-                        = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.name.c_str());
+                    Id update_id = pool_conda_matchspec(m_pool, ms.name.c_str());
                     queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
                 }
                 else
@@ -372,8 +368,7 @@ namespace mamba
             {
                 // Todo remove double parsing?
                 LOG_INFO << "Adding job: " << ms.conda_build_form();
-                Id inst_id = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool),
-                                                  ms.conda_build_form().c_str());
+                Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
                 queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, inst_id);
             }
         }
@@ -382,8 +377,7 @@ namespace mamba
     void MSolver::add_constraint(const std::string& job)
     {
         MatchSpec ms(job);
-        Id inst_id
-            = pool_conda_matchspec(reinterpret_cast<Pool*>(m_pool), ms.conda_build_form().c_str());
+        Id inst_id = pool_conda_matchspec(m_pool, ms.conda_build_form().c_str());
         queue_push2(&m_jobs, SOLVER_INSTALL | SOLVER_SOLVABLE_PROVIDES, inst_id);
     }
 
@@ -503,6 +497,21 @@ namespace mamba
     bool MSolver::is_solved() const
     {
         return m_is_solved;
+    }
+
+    MPool const& MSolver::pool() const&
+    {
+        return m_pool;
+    }
+
+    MPool& MSolver::pool() &
+    {
+        return m_pool;
+    }
+
+    MPool&& MSolver::pool() &&
+    {
+        return std::move(m_pool);
     }
 
     const std::vector<MatchSpec>& MSolver::install_specs() const

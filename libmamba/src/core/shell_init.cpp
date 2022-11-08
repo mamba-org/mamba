@@ -260,8 +260,8 @@ namespace mamba
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
         content << "export MAMBA_EXE=" << std::quoted(cyg_mamba_exe, '\'') << ";\n";
         content << "export MAMBA_ROOT_PREFIX=" << std::quoted(cyg_env_prefix, '\'') << ";\n";
-        content << "eval \"$('$MAMBA_EXE' shell hook --shell " << shell
-                << " --prefix '$MAMBA_ROOT_PREFIX')\"\n";
+        content << "eval \"$(\"$MAMBA_EXE\" shell hook --shell " << shell
+                << " --prefix \"$MAMBA_ROOT_PREFIX\")\"\n";
         content << "# <<< mamba initialize <<<\n";
         return content.str();
 
@@ -273,9 +273,8 @@ namespace mamba
         content << "# !! Contents within this block are managed by 'mamba init' !!\n";
         content << "export MAMBA_EXE=" << mamba_exe << ";\n";
         content << "export MAMBA_ROOT_PREFIX=" << env_prefix << ";\n";
-        content << "__mamba_setup=\"$('$MAMBA_EXE' shell hook --shell " << shell
-                << " --prefix '$MAMBA_ROOT_PREFIX'"
-                << " 2> /dev/null)\"\n";
+        content << "__mamba_setup=\"$(\"$MAMBA_EXE\" shell hook --shell " << shell
+                << " --prefix \"$MAMBA_ROOT_PREFIX\" 2> /dev/null)\"\n";
         content << "if [ $? -eq 0 ]; then\n";
         content << "    eval \"$__mamba_setup\"\n";
         content << "else\n";

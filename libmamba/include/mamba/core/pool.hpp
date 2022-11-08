@@ -9,14 +9,12 @@
 
 #include <list>
 #include <optional>
+#include <memory>
+
+#include <solv/pooltypes.h>
 
 #include "mamba/core/repo.hpp"
 #include "mamba/core/package_info.hpp"
-
-extern "C"
-{
-#include "solv/pooltypes.h"
-}
 
 namespace spdlog
 {
@@ -29,12 +27,12 @@ namespace mamba
     {
     public:
         MPool();
-        ~MPool();
+        ~MPool() = default;
 
         MPool(const MPool&) = delete;
         MPool& operator=(const MPool&) = delete;
-        MPool(MPool&&) = delete;
-        MPool& operator=(MPool&&) = delete;
+        MPool(MPool&&) = default;
+        MPool& operator=(MPool&&) = default;
 
         void set_debuglevel();
         void create_whatprovides();
@@ -51,8 +49,10 @@ namespace mamba
         void remove_repo(Id repo_id);
 
     private:
+        static void delete_libsolv_pool(::Pool* pool);
+
         std::pair<spdlog::logger*, std::string> m_debug_logger;
-        Pool* m_pool;
+        std::unique_ptr<Pool, decltype(&MPool::delete_libsolv_pool)> m_pool;
         std::list<MRepo> m_repo_list;
     };
 }  // namespace mamba

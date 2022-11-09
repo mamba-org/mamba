@@ -46,6 +46,14 @@ namespace query
     };
 }
 
+void
+deprecated(char const* message)
+{
+    auto const warnings = py::module_::import("warnings");
+    auto const builtins = py::module_::import("builtins");
+    warnings.attr("warn")(message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
+}
+
 PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
@@ -160,6 +168,12 @@ PYBIND11_MODULE(bindings, m)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
         .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
         .def("all_problems_structured", &MSolver::all_problems_structured)
+        .def("solve",
+             [](MSolver& self)
+             {
+                 deprecated("Solver.solve is deprecated, use try_solve or must_solve instead");
+                 return self.try_solve();
+             })
         .def("try_solve", &MSolver::try_solve)
         .def("must_solve", &MSolver::must_solve);
 

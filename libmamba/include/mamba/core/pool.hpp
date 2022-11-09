@@ -7,7 +7,6 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
-#include <list>
 #include <optional>
 #include <memory>
 
@@ -16,23 +15,13 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/package_info.hpp"
 
-namespace spdlog
-{
-    class logger;
-}
-
 namespace mamba
 {
     class MPool
     {
     public:
         MPool();
-        ~MPool() = default;
-
-        MPool(const MPool&) = delete;
-        MPool& operator=(const MPool&) = delete;
-        MPool(MPool&&) = default;
-        MPool& operator=(MPool&&) = default;
+        ~MPool();
 
         void set_debuglevel();
         void create_whatprovides();
@@ -49,11 +38,24 @@ namespace mamba
         void remove_repo(Id repo_id);
 
     private:
-        static void delete_libsolv_pool(::Pool* pool);
+        struct MPoolData;
 
-        std::pair<spdlog::logger*, std::string> m_debug_logger;
-        std::unique_ptr<Pool, decltype(&MPool::delete_libsolv_pool)> m_pool;
-        std::list<MRepo> m_repo_list;
+        Pool* pool();
+        Pool const* pool() const;
+
+        /**
+         * Make MPool behave like a shared_ptr (with move and copy).
+         *
+         * The pool is passed to the ``MSolver`` for its lifetime but the pool can legitimely
+         * be reused with different solvers (in fact it is in ``conda-forge``'s ``regro-bot``
+         * and ``boa``).
+         * An alternative considered was to make ``MPool`` a move-only type, moving it in and out
+         * of ``MSolver`` (effectively borrowing).
+         * It was decided to make ``MPool`` share ressources for the following reasons.
+         *    - Rvalue semantics would be unexpected in Python (and breaking ``conda-forge``);
+         *    - Facilitate (potential) future investigation of parallel solves.
+         */
+        std::shared_ptr<MPoolData> m_data;
     };
 }  // namespace mamba
 

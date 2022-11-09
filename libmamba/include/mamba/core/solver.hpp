@@ -52,15 +52,7 @@ namespace mamba
     class MSolver
     {
     public:
-        /**
-         * Create Solver and take ownership of the Pool.
-         *
-         * Should the pool need to be shared among multiple solvers in the future, one should:
-         *   - Change the ``MPool`` internal implementation to use ``std::shared_ptr``;
-         *   - Enable copy semantics on ``MPool``;
-         *   - Overload ``MSolver`` constructor to take the pool by copy.
-         */
-        MSolver(MPool&& pool, const std::vector<std::pair<int, int>>& flags = {});
+        MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
         ~MSolver() = default;
 
         MSolver(const MSolver&) = delete;

@@ -970,14 +970,20 @@ class Solver:
     def set_postsolve_flags(
         self, arg0: typing.List[typing.Tuple[int, int]]
     ) -> None: ...
+    def solve(self) -> bool: ...
     def try_solve(self) -> bool: ...
     pass
 
 class SolverProblem:
     def __str__(self) -> str: ...
-    def dep(self) -> typing.Optional[str]: ...
-    def source(self) -> typing.Optional[PackageInfo]: ...
-    def target(self) -> typing.Optional[PackageInfo]: ...
+    @property
+    def dep(self) -> typing.Optional[str]:
+        """
+        :type: typing.Optional[str]
+        """
+    @dep.setter
+    def dep(self, arg0: typing.Optional[str]) -> None:
+        pass
     @property
     def dep_id(self) -> int:
         """
@@ -987,12 +993,36 @@ class SolverProblem:
     def dep_id(self, arg0: int) -> None:
         pass
     @property
+    def description(self) -> str:
+        """
+        :type: str
+        """
+    @description.setter
+    def description(self, arg0: str) -> None:
+        pass
+    @property
+    def source(self) -> typing.Optional[PackageInfo]:
+        """
+        :type: typing.Optional[PackageInfo]
+        """
+    @source.setter
+    def source(self, arg0: typing.Optional[PackageInfo]) -> None:
+        pass
+    @property
     def source_id(self) -> int:
         """
         :type: int
         """
     @source_id.setter
     def source_id(self, arg0: int) -> None:
+        pass
+    @property
+    def target(self) -> typing.Optional[PackageInfo]:
+        """
+        :type: typing.Optional[PackageInfo]
+        """
+    @target.setter
+    def target(self, arg0: typing.Optional[PackageInfo]) -> None:
         pass
     @property
     def target_id(self) -> int:

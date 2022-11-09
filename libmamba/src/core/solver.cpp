@@ -19,6 +19,7 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 
 namespace mamba
 {
@@ -652,7 +653,9 @@ namespace mamba
             out << problems_to_str() << '\n'
                 << "The environment can't be solved, aborting the operation\n";
             fmt::print(out, "{:=^80}\n", " Experimental messages (new) ");
-            out << "Coming soon\n";
+            auto const pbs = ProblemsGraph::from_solver(*this, pool());
+            auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+            problem_tree_str(out, cp_pbs);
             fmt::print(out, "{:=^80}\n", "");
         }
         else

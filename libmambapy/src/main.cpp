@@ -164,14 +164,15 @@ PYBIND11_MODULE(bindings, m)
         .def("must_solve", &MSolver::must_solve);
 
     py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readwrite("target_id", &MSolverProblem::target_id)
-        .def_readwrite("source_id", &MSolverProblem::source_id)
-        .def_readwrite("dep_id", &MSolverProblem::dep_id)
         .def_readwrite("type", &MSolverProblem::type)
-        .def("__str__", &MSolverProblem::to_string)
-        .def("target", &MSolverProblem::target)
-        .def("source", &MSolverProblem::source)
-        .def("dep", &MSolverProblem::dep);
+        .def_readwrite("source_id", &MSolverProblem::source_id)
+        .def_readwrite("target_id", &MSolverProblem::target_id)
+        .def_readwrite("dep_id", &MSolverProblem::dep_id)
+        .def_readwrite("source", &MSolverProblem::source)
+        .def_readwrite("target", &MSolverProblem::target)
+        .def_readwrite("dep", &MSolverProblem::dep)
+        .def_readwrite("description", &MSolverProblem::description)
+        .def("__str__", [](MSolverProblem const& self) { return self.description; });
 
     py::class_<History>(m, "History")
         .def(py::init<const fs::u8path&>())

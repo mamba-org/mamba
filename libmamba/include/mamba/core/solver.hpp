@@ -18,6 +18,7 @@
 #include <solv/solver.h>
 
 #include "mamba/core/pool.hpp"
+#include "mamba/core/package_info.hpp"
 
 #include "match_spec.hpp"
 
@@ -30,23 +31,16 @@ namespace mamba
 
     char const* solver_ruleinfo_name(SolverRuleinfo rule);
 
-    class PackageInfo;
-
-    class MSolverProblem
+    struct MSolverProblem
     {
-    public:
         SolverRuleinfo type;
         Id source_id;
         Id target_id;
         Id dep_id;
-
-        Solver* solver;
-
-        std::string to_string() const;
-
-        std::optional<PackageInfo> target() const;
-        std::optional<PackageInfo> source() const;
-        std::optional<std::string> dep() const;
+        std::optional<PackageInfo> source;
+        std::optional<PackageInfo> target;
+        std::optional<std::string> dep;
+        std::string description;
     };
 
     class MSolver

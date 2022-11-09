@@ -201,13 +201,11 @@ namespace mamba
 
         void ProblemsGraphCreator::parse_problems()
         {
-            for (const auto& problem : m_solver.all_problems_structured())
+            for (auto& problem : m_solver.all_problems_structured())
             {
-                // These functions do not return a reference so we make sure to
-                // compute the value only once.
-                std::optional<PackageInfo> source = problem.source();
-                std::optional<PackageInfo> target = problem.target();
-                std::optional<std::string> dep = problem.dep();
+                std::optional<PackageInfo>& source = problem.source;
+                std::optional<PackageInfo>& target = problem.target;
+                std::optional<std::string>& dep = problem.dep;
                 SolverRuleinfo type = problem.type;
 
                 switch (type)

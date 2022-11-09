@@ -151,32 +151,51 @@ namespace mamba
         }
     }
 
-    std::string MSolverProblem::to_string() const
+    namespace
     {
-        return solver_problemruleinfo2str(
-            solver, (SolverRuleinfo) type, source_id, target_id, dep_id);
-    }
+        std::optional<PackageInfo> make_solver_problem_source(::Pool* pool, Id source_id)
+        {
+            if (source_id == 0 || source_id >= pool->nsolvables)
+            {
+                return std::nullopt;
+            }
+            return pool_id2solvable(pool, source_id);
+        }
 
-    std::optional<PackageInfo> MSolverProblem::target() const
-    {
-        if (target_id == 0 || target_id >= solver->pool->nsolvables)
-            return std::nullopt;
-        return pool_id2solvable(solver->pool, target_id);
-    }
+        std::optional<PackageInfo> make_solver_problem_target(::Pool* pool, Id target_id)
+        {
+            if (target_id == 0 || target_id >= pool->nsolvables)
+            {
+                return std::nullopt;
+            }
+            return pool_id2solvable(pool, target_id);
+        }
 
-    std::optional<PackageInfo> MSolverProblem::source() const
-    {
-        if (source_id == 0 || source_id >= solver->pool->nsolvables)
-            return std::nullopt;
-        ;
-        return pool_id2solvable(solver->pool, source_id);
-    }
 
-    std::optional<std::string> MSolverProblem::dep() const
-    {
-        if (!dep_id)
-            return std::nullopt;
-        return pool_dep2str(solver->pool, dep_id);
+        std::optional<std::string> make_solver_problem_dep(::Pool* pool, Id dep_id)
+        {
+            if (!dep_id)
+            {
+                return std::nullopt;
+            }
+            return pool_dep2str(pool, dep_id);
+        }
+
+        MSolverProblem make_solver_problem(
+            ::Solver* solver, SolverRuleinfo type, Id source_id, Id target_id, Id dep_id)
+        {
+            return {
+                /* type= */ type,
+                /* source_id= */ source_id,
+                /* target_id= */ target_id,
+                /* dep_id= */ dep_id,
+                /* source= */ make_solver_problem_source(solver->pool, source_id),
+                /* target= */ make_solver_problem_target(solver->pool, target_id),
+                /* dep= */ make_solver_problem_dep(solver->pool, dep_id),
+                /* description= */
+                solver_problemruleinfo2str(solver, type, source_id, target_id, dep_id),
+            };
+        }
     }
 
 
@@ -569,18 +588,16 @@ namespace mamba
             solver_findallproblemrules(m_solver.get(), i, &problem_rules);
             for (Id j = 0; j < problem_rules.count; ++j)
             {
-                Id type, source, target, dep;
-                Id r = problem_rules.elements[j];
-                if (r)
+                if (Id const r = problem_rules.elements[j]; r)
                 {
-                    type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
-                    MSolverProblem problem;
-                    problem.source_id = source;
-                    problem.target_id = target;
-                    problem.dep_id = dep;
-                    problem.solver = m_solver.get();
-                    problem.type = static_cast<SolverRuleinfo>(type);
-                    res.push_back(problem);
+                    Id source, target, dep;
+                    Id const type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    res.push_back(make_solver_problem(
+                        /* solver= */ m_solver.get(),
+                        /* type= */ static_cast<SolverRuleinfo>(type),
+                        /* source_id= */ source,
+                        /* target_id= */ target,
+                        /* dep_id= */ dep));
                 }
             }
         }

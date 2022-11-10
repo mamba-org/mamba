@@ -104,7 +104,7 @@ namespace mamba
             }
             else
             {
-                MSolver solver(pool,
+                MSolver solver(std::move(pool),
                                { { SOLVER_FLAG_ALLOW_DOWNGRADE, 1 },
                                  { SOLVER_FLAG_ALLOW_UNINSTALL, 1 },
                                  { SOLVER_FLAG_STRICT_REPO_PRIORITY,
@@ -124,7 +124,7 @@ namespace mamba
                     solver_flag |= SOLVER_CLEANDEPS;
 
                 solver.add_jobs(specs, solver_flag);
-                solver.solve();
+                solver.must_solve();
 
                 MTransaction transaction(solver, package_caches);
                 execute_transaction(transaction);

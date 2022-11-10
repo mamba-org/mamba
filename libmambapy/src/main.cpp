@@ -46,6 +46,14 @@ namespace query
     };
 }
 
+void
+deprecated(char const* message)
+{
+    auto const warnings = py::module_::import("warnings");
+    auto const builtins = py::module_::import("builtins");
+    warnings.attr("warn")(message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
+}
+
 PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
@@ -158,18 +166,27 @@ PYBIND11_MODULE(bindings, m)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
+        .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
         .def("all_problems_structured", &MSolver::all_problems_structured)
-        .def("solve", &MSolver::solve);
+        .def("solve",
+             [](MSolver& self)
+             {
+                 deprecated("Solver.solve is deprecated, use try_solve or must_solve instead");
+                 return self.try_solve();
+             })
+        .def("try_solve", &MSolver::try_solve)
+        .def("must_solve", &MSolver::must_solve);
 
     py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readwrite("target_id", &MSolverProblem::target_id)
-        .def_readwrite("source_id", &MSolverProblem::source_id)
-        .def_readwrite("dep_id", &MSolverProblem::dep_id)
         .def_readwrite("type", &MSolverProblem::type)
-        .def("__str__", &MSolverProblem::to_string)
-        .def("target", &MSolverProblem::target)
-        .def("source", &MSolverProblem::source)
-        .def("dep", &MSolverProblem::dep);
+        .def_readwrite("source_id", &MSolverProblem::source_id)
+        .def_readwrite("target_id", &MSolverProblem::target_id)
+        .def_readwrite("dep_id", &MSolverProblem::dep_id)
+        .def_readwrite("source", &MSolverProblem::source)
+        .def_readwrite("target", &MSolverProblem::target)
+        .def_readwrite("dep", &MSolverProblem::dep)
+        .def_readwrite("description", &MSolverProblem::description)
+        .def("__str__", [](MSolverProblem const& self) { return self.description; });
 
     py::class_<History>(m, "History")
         .def(py::init<const fs::u8path&>())

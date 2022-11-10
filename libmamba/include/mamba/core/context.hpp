@@ -148,6 +148,8 @@ namespace mamba
         std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
 
+        bool experimental_sat_error_message = false;
+
         bool dev = false;
         bool on_ci = false;
         bool no_progress_bars = false;

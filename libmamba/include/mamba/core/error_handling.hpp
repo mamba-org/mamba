@@ -12,7 +12,7 @@ namespace mamba
 {
 
     /*********************
-     * Mamba esxceptions *
+     * Mamba exceptions *
      *********************/
 
     enum class mamba_error_code
@@ -29,6 +29,7 @@ namespace mamba
         internal_failure,
         lockfile_failure,
         selfupdate_failure,
+        satisfiablitity_error,
     };
 
     class mamba_error : public std::runtime_error

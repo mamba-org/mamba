@@ -153,13 +153,13 @@ namespace mamba
                                        / generate_random_alphanumeric_string(20));
         auto const repodata_f = create_repodata_json(tmp_dir.path, packages);
 
-        auto pool = std::make_unique<MPool>();
-        MRepo::create(*pool, "some-name", repodata_f, "some-url");
+        auto pool = MPool();
+        MRepo::create(pool, "some-name", repodata_f, "some-url");
         auto solver = std::make_unique<MSolver>(
-            *pool, std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+            std::move(pool), std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
         solver->add_jobs(specs, SOLVER_INSTALL);
 
-        return std::pair{ std::move(solver), std::move(pool) };
+        return solver;
     }
 
     /**
@@ -167,21 +167,21 @@ namespace mamba
      */
     TEST(satifiability_error, create_problem)
     {
-        auto [solver, pool] = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
-        auto const solved = solver->solve();
+        auto solver = create_problem(std::array{ mkpkg("foo", "0.1.0", {}) }, { "foo" });
+        auto const solved = solver->try_solve();
         ASSERT_TRUE(solved);
     }
 
-    auto create_basic_conflict() -> std::pair<MSolver&, MPool&>
+    auto create_basic_conflict() -> MSolver&
     {
-        static auto solver_pool = create_problem(
+        static auto solver = create_problem(
             std::array{
                 mkpkg("A", "0.1.0"),
                 mkpkg("A", "0.2.0"),
                 mkpkg("A", "0.3.0"),
             },
             { "A=0.4.0" });
-        return { *solver_pool.first, *solver_pool.second };
+        return *solver;
     }
 
     /**
@@ -190,9 +190,9 @@ namespace mamba
      * The example given by Natalie Weizenbaum
      * (credits https://nex3.medium.com/pubgrub-2fb6470504f).
      */
-    auto create_pubgrub() -> std::pair<MSolver&, MPool&>
+    auto create_pubgrub() -> MSolver&
     {
-        static auto solver_pool = create_problem(
+        static auto solver = create_problem(
             std::array{
                 mkpkg("menu", "1.5.0", { "dropdown=2.*" }),
                 mkpkg("menu", "1.4.0", { "dropdown=2.*" }),
@@ -212,7 +212,7 @@ namespace mamba
                 mkpkg("intl", "3.0.0"),
             },
             { "menu", "icons=1.*", "intl=5.*" });
-        return { *solver_pool.first, *solver_pool.second };
+        return *solver;
     }
 
     auto create_pubgrub_hard_(bool missing_package)
@@ -271,19 +271,19 @@ namespace mamba
     /**
      * A harder version of ``create_pubgrub``.
      */
-    auto create_pubgrub_hard() -> std::pair<MSolver&, MPool&>
+    auto create_pubgrub_hard() -> MSolver&
     {
-        static auto solver_pool = create_pubgrub_hard_(false);
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_pubgrub_hard_(false);
+        return *solver;
     }
 
     /**
      * The hard version of the alternate PubGrub with missing packages.
      */
-    auto create_pubgrub_missing() -> std::pair<MSolver&, MPool&>
+    auto create_pubgrub_missing() -> MSolver&
     {
-        static auto solver_pool = create_pubgrub_hard_(true);
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_pubgrub_hard_(true);
+        return *solver;
     }
 
     template <typename T, typename E>
@@ -345,19 +345,19 @@ namespace mamba
 
         auto prefix_data = expected_value_or_throw(PrefixData::create(tmp_dir.path / "prefix"));
         prefix_data.add_packages(virtual_packages);
-        auto pool = std::make_unique<MPool>();
-        auto& repo = MRepo::create(*pool, prefix_data);
+        auto pool = MPool();
+        auto& repo = MRepo::create(pool, prefix_data);
         repo.set_installed();
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
         create_cache_dir(cache.first_writable_path());
-        load_channels(*pool, cache, make_platform_channels(std::move(channels), platforms));
+        load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
 
         auto solver = std::make_unique<MSolver>(
-            *pool, std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
+            std::move(pool), std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });
         solver->add_jobs(specs, SOLVER_INSTALL);
 
-        return std::pair{ std::move(solver), std::move(pool) };
+        return solver;
     }
 
     /**
@@ -365,60 +365,60 @@ namespace mamba
      */
     TEST(satifiability_error, create_conda_forge)
     {
-        auto [solver, pool] = create_conda_forge({ "xtensor>=0.7" });
-        auto const solved = solver->solve();
+        auto solver = create_conda_forge({ "xtensor>=0.7" });
+        auto const solved = solver->try_solve();
         ASSERT_TRUE(solved);
     }
 
-    auto create_pytorch_cpu() -> std::pair<MSolver&, MPool&>
+    auto create_pytorch_cpu() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "python=2.7", "pytorch=1.12" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "python=2.7", "pytorch=1.12" });
+        return *solver;
     }
 
-    auto create_pytorch_cuda() -> std::pair<MSolver&, MPool&>
+    auto create_pytorch_cuda() -> MSolver&
     {
-        static auto solver_pool
+        static auto solver
             = create_conda_forge({ "python=2.7", "pytorch=1.12" },
                                  { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "10.2.0") });
-        return { *solver_pool.first, *solver_pool.second };
+        return *solver;
     }
 
-    auto create_cudatoolkit() -> std::pair<MSolver&, MPool&>
+    auto create_cudatoolkit() -> MSolver&
     {
-        static auto solver_pool
+        static auto solver
             = create_conda_forge({ "python=3.7",
                                    "cudatoolkit=11.1",
                                    "cudnn=8.0",
                                    "pytorch=1.8",
                                    "torchvision=0.9=*py37_cu111*" },
                                  { mkpkg("__glibc", "2.17.0"), mkpkg("__cuda", "11.1") });
-        return { *solver_pool.first, *solver_pool.second };
+        return *solver;
     }
 
-    auto create_jpeg9b() -> std::pair<MSolver&, MPool&>
+    auto create_jpeg9b() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "python=3.7", "jpeg=9b" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "python=3.7", "jpeg=9b" });
+        return *solver;
     }
 
-    auto create_r_base() -> std::pair<MSolver&, MPool&>
+    auto create_r_base() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge(
+        static auto solver = create_conda_forge(
             { "r-base=3.5.* ", "pandas=0", "numpy<1.20.0", "matplotlib=2", "r-matchit=4.*" });
-        return { *solver_pool.first, *solver_pool.second };
+        return *solver;
     }
 
-    auto create_scip() -> std::pair<MSolver&, MPool&>
+    auto create_scip() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "scip=8.*", "pyscipopt<4.0" });
+        return *solver;
     }
 
-    auto create_jupyterlab() -> std::pair<MSolver&, MPool&>
+    auto create_jupyterlab() -> MSolver&
     {
-        static auto solver_pool = create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
-        return { *solver_pool.first, *solver_pool.second };
+        static auto solver = create_conda_forge({ "jupyterlab=3.4", "openssl=3.0.0" });
+        return *solver;
     }
 
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
@@ -463,10 +463,10 @@ namespace mamba
 
     TEST_P(Problem, constructor)
     {
-        auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto& solver = std::invoke(GetParam());
+        auto const solved = solver.try_solve();
         ASSERT_FALSE(solved);
-        auto const pbs = ProblemsGraph::from_solver(solver, pool);
+        auto const pbs = ProblemsGraph::from_solver(solver, solver.pool());
         auto const& g = pbs.graph();
 
         EXPECT_GE(g.number_of_nodes(), 1);
@@ -525,10 +525,10 @@ namespace mamba
     {
         using CpPbGr = CompressedProblemsGraph;
 
-        auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto& solver = std::invoke(GetParam());
+        auto const solved = solver.try_solve();
         ASSERT_FALSE(solved);
-        auto const pbs = ProblemsGraph::from_solver(solver, pool);
+        auto const pbs = ProblemsGraph::from_solver(solver, solver.pool());
         auto const cp_pbs = CpPbGr::from_problems_graph(pbs);
         auto const& cp_g = cp_pbs.graph();
 
@@ -571,10 +571,10 @@ namespace mamba
 
     TEST_P(Problem, problem_tree_str)
     {
-        auto [solver, pool] = std::invoke(GetParam());
-        auto const solved = solver.solve();
+        auto& solver = std::invoke(GetParam());
+        auto const solved = solver.try_solve();
         ASSERT_FALSE(solved);
-        auto const pbs = ProblemsGraph::from_solver(solver, pool);
+        auto const pbs = ProblemsGraph::from_solver(solver, solver.pool());
         auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
         auto const message = problem_tree_str(cp_pbs);
 

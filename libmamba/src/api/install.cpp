@@ -461,7 +461,7 @@ namespace mamba
 
         MRepo::create(pool, prefix_data);
 
-        MSolver solver(pool,
+        MSolver solver(std::move(pool),
                        { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
                          { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
                          { SOLVER_FLAG_STRICT_REPO_PRIORITY,
@@ -501,10 +501,10 @@ namespace mamba
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
-        bool success = solver.solve();
+        bool success = solver.try_solve();
         if (!success)
         {
-            Console::stream() << solver.problems_to_str();
+            solver.explain_problems(LOG_ERROR);
             if (retry_clean_cache && !(is_retry & RETRY_SOLVE_ERROR))
             {
                 ctx.local_repodata_ttl = 2;
@@ -518,10 +518,8 @@ namespace mamba
                 Console::instance().json_write(
                     { { "success", false }, { "solver_problems", solver.all_problems() } });
             }
-
-            Console::stream() << "The environment can't be solved, aborting the operation";
-            LOG_ERROR << "Could not solve for environment specs";
-            throw std::runtime_error("UnsatisfiableError");
+            throw mamba_error("Could not solve for environment specs",
+                              mamba_error_code::satisfiablitity_error);
         }
 
         MTransaction trans(solver, package_caches);

@@ -154,6 +154,15 @@ namespace mamba
 
     namespace
     {
+        void delete_libsolve_solver(::Solver* solver)
+        {
+            LOG_INFO << "Freeing solver.";
+            if (solver != nullptr)
+            {
+                solver_free(solver);
+            }
+        }
+
         std::optional<PackageInfo> make_solver_problem_source(::Pool* pool, Id source_id)
         {
             if (source_id == 0 || source_id >= pool->nsolvables)
@@ -186,26 +195,16 @@ namespace mamba
             ::Solver* solver, SolverRuleinfo type, Id source_id, Id target_id, Id dep_id)
         {
             return {
-                /* type= */ type,
-                /* source_id= */ source_id,
-                /* target_id= */ target_id,
-                /* dep_id= */ dep_id,
-                /* source= */ make_solver_problem_source(solver->pool, source_id),
-                /* target= */ make_solver_problem_target(solver->pool, target_id),
-                /* dep= */ make_solver_problem_dep(solver->pool, dep_id),
-                /* description= */
+                /* .type= */ type,
+                /* .source_id= */ source_id,
+                /* .target_id= */ target_id,
+                /* .dep_id= */ dep_id,
+                /* .source= */ make_solver_problem_source(solver->pool, source_id),
+                /* .target= */ make_solver_problem_target(solver->pool, target_id),
+                /* .dep= */ make_solver_problem_dep(solver->pool, dep_id),
+                /* .description= */
                 solver_problemruleinfo2str(solver, type, source_id, target_id, dep_id),
             };
-        }
-    }
-
-
-    void MSolver::delete_libsolve_solver(Solver* solver)
-    {
-        LOG_INFO << "Freeing solver.";
-        if (solver != nullptr)
-        {
-            solver_free(solver);
         }
     }
 
@@ -213,7 +212,7 @@ namespace mamba
         : m_flags(std::move(flags))
         , m_is_solved(false)
         , m_pool(std::move(pool))
-        , m_solver(nullptr, &MSolver::delete_libsolve_solver)
+        , m_solver(nullptr, &delete_libsolve_solver)
     {
         queue_init(&m_jobs);
         pool_createwhatprovides(m_pool);

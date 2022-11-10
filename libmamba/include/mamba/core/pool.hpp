@@ -17,6 +17,14 @@
 
 namespace mamba
 {
+    /**
+     * Pool of solvable involved in resolving en environment.
+     *
+     * The pool contains the solvable (packages) information required from the ``MSolver``.
+     * The pool can be reused by multiple solvers to solve differents requirements with the same
+     * ecosystem.
+     * Behaves like a ``std::shared_ptr``, meaning ressources are shared on copy.
+     */
     class MPool
     {
     public:

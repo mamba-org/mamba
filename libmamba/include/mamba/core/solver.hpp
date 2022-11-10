@@ -89,8 +89,6 @@ namespace mamba
         bool force_reinstall = false;
 
     private:
-        static void delete_libsolve_solver(Solver* solver);
-
         void add_channel_specific_job(const MatchSpec& ms, int job_flag);
         void add_reinstall_job(MatchSpec& ms, int job_flag);
 
@@ -102,7 +100,7 @@ namespace mamba
         bool m_is_solved;
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
-        std::unique_ptr<::Solver, decltype(&MSolver::delete_libsolve_solver)> m_solver;
+        std::unique_ptr<::Solver, void (*)(::Solver*)> m_solver;
         Queue m_jobs;
     };
 }  // namespace mamba

@@ -75,9 +75,10 @@ namespace mamba
         keep_temp_files = env::get("MAMBA_KEEP_TEMP") ? true : false;
         keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
-        if (on_ci || !is_atty(std::cout))
         {
-            no_progress_bars = true;
+            bool const cout_is_atty = is_atty(std::cout);
+            no_progress_bars = (on_ci || !cout_is_atty);
+            palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
         }
 
 #ifdef _WIN32

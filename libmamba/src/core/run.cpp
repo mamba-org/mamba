@@ -326,7 +326,7 @@ namespace mamba
 #ifndef _WIN32
         if (detach)
         {
-            Console::stream() << fmt::format(fmt::fg(fmt::terminal_color::green),
+            Console::stream() << fmt::format(Context::instance().palette.success,
                                              "Running wrapped script {} in the background\n",
                                              fmt::join(command, " "));
             daemonize();

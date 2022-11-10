@@ -128,7 +128,7 @@ namespace mamba
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 
-        Console::stream() << fmt::format(fg(fmt::terminal_color::cyan),
+        Console::stream() << fmt::format(Context::instance().palette.external,
                                          "\nInstalling {} packages: {}",
                                          pkg_mgr,
                                          fmt::join(deps, ", "));

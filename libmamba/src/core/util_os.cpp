@@ -193,7 +193,7 @@ namespace mamba
             fmt::print(out,
                        "{}",
                        fmt::styled("Windows long-path support enabled.\n",
-                                   Context::instance().palette.succeess));
+                                   Context::instance().palette.success));
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";

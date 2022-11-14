@@ -119,25 +119,33 @@ namespace mamba
                     fmt::text_style color{};
                     if (row[j].flag != format::none)
                     {
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::red))
+                        switch (row[j].flag)
                         {
-                            color = fmt::fg(fmt::terminal_color::red);
-                        }
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::green))
-                        {
-                            color = fmt::fg(fmt::terminal_color::green);
-                        }
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::yellow))
-                        {
-                            color = fmt::fg(fmt::terminal_color::yellow);
-                        }
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::bold_blue))
-                        {
-                            color = fmt::fg(fmt::terminal_color::blue) | fmt::emphasis::bold;
+                            case (format::none):
+                            {
+                                color = {};
+                                break;
+                            }
+                            case (format::red):
+                            {
+                                color = fmt::fg(fmt::terminal_color::red);
+                                break;
+                            }
+                            case (format::green):
+                            {
+                                color = fmt::fg(fmt::terminal_color::green);
+                                break;
+                            }
+                            case (format::yellow):
+                            {
+                                color = fmt::fg(fmt::terminal_color::yellow);
+                                break;
+                            }
+                            case (format::bold_blue):
+                            {
+                                color = fmt::fg(fmt::terminal_color::blue) | fmt::emphasis::bold;
+                                break;
+                            }
                         }
                     }
                     if (this->m_align[j] == alignment::left)

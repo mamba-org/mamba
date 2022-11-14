@@ -144,6 +144,8 @@ jobs:
           cmake .. ^
               -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
               -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static;%CMAKE_PREFIX_PATH%" ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
               -D CMAKE_BUILD_TYPE="Release" ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_STATIC_DEPS=ON ^
@@ -159,6 +161,8 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Archive conda-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-win-64.tar.gz ${{ github.workspace }}/build/

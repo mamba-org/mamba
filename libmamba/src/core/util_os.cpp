@@ -27,6 +27,7 @@
 
 #include "mamba/core/environment.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 
@@ -157,7 +158,7 @@ namespace mamba
             fmt::print(out,
                        "{}",
                        fmt::styled("Windows long-path support already enabled.\n",
-                                   Context::instance().palette.ignored);
+                                   Context::instance().palette.ignored));
             return true;
         }
 

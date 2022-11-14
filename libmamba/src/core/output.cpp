@@ -116,52 +116,20 @@ namespace mamba
             {
                 for (size_t j = 0; j < row.size(); ++j)
                 {
-                    fmt::text_style color{};
-                    if (row[j].flag != format::none)
-                    {
-                        switch (row[j].flag)
-                        {
-                            case (format::none):
-                            {
-                                color = {};
-                                break;
-                            }
-                            case (format::red):
-                            {
-                                color = fmt::fg(fmt::terminal_color::red);
-                                break;
-                            }
-                            case (format::green):
-                            {
-                                color = fmt::fg(fmt::terminal_color::green);
-                                break;
-                            }
-                            case (format::yellow):
-                            {
-                                color = fmt::fg(fmt::terminal_color::yellow);
-                                break;
-                            }
-                            case (format::bold_blue):
-                            {
-                                color = fmt::fg(fmt::terminal_color::blue) | fmt::emphasis::bold;
-                                break;
-                            }
-                        }
-                    }
                     if (this->m_align[j] == alignment::left)
                     {
                         fmt::print(out,
                                    "{: ^{}}{: <{}}",
                                    "",
                                    this->m_padding[j],
-                                   fmt::styled(row[j].s, color),
+                                   fmt::styled(row[j].s, row[j].style),
                                    cell_sizes[j]);
                     }
                     else
                     {
                         fmt::print(out,
                                    "{: >{}}",
-                                   fmt::styled(row[j].s, color),
+                                   fmt::styled(row[j].s, row[j].style),
                                    cell_sizes[j] + m_padding[j]);
                     }
                 }

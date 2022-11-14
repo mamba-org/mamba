@@ -14,6 +14,7 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <fmt/color.h>
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/progress_bar.hpp"
@@ -24,19 +25,10 @@ namespace mamba
 
     namespace printers
     {
-        enum class format
-        {
-            none,
-            red,
-            green,
-            yellow,
-            bold_blue,
-        };
-
         struct FormattedString
         {
             std::string s;
-            format flag = format::none;
+            fmt::text_style style = {};
 
             FormattedString() = default;
 
@@ -60,7 +52,6 @@ namespace mamba
         {
             left,
             right,
-            fill,
         };
 
         class Table

@@ -23,6 +23,10 @@ namespace mamba
         fmt::text_style user;
         /** Input from the user was ignored or has no effect. */
         fmt::text_style ignored;
+        /** Something was added. */
+        fmt::text_style addition;
+        /** Something was removed. */
+        fmt::text_style deletion;
         /** Refers to exeternal ecosystem. */
         fmt::text_style external;
 
@@ -60,6 +64,8 @@ namespace mamba
             /* .failure= */ fmt::fg(fmt::terminal_color::red),
             /* .user= */ fmt::fg(fmt::terminal_color::blue) | fmt::emphasis::bold,
             /* .ignored= */ fmt::fg(fmt::terminal_color::yellow),
+            /* .addition= */ fmt::fg(fmt::terminal_color::green),
+            /* .deletion= */ fmt::fg(fmt::terminal_color::red),
             /* .external= */ fmt::fg(fmt::terminal_color::cyan),
             /* .safe= */ fmt::fg(fmt::terminal_color::green),
             /* .unsafe= */ fmt::fg(fmt::terminal_color::red),

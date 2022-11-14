@@ -7,6 +7,7 @@
 #ifndef MAMBA_PROBLEMS_GRAPH_HPP
 #define MAMBA_PROBLEMS_GRAPH_HPP
 
+#include <array>
 #include <string>
 #include <ostream>
 #include <string_view>
@@ -15,8 +16,10 @@
 #include <unordered_map>
 #include <optional>
 #include <vector>
+#include <functional>
 
 #include <solv/solver.h>
+#include <fmt/color.h>
 
 #include "mamba/core/util_graph.hpp"
 #include "mamba/core/package_info.hpp"
@@ -220,7 +223,12 @@ namespace mamba
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
-        static auto from_problems_graph(ProblemsGraph const& pbs) -> CompressedProblemsGraph;
+        using merge_criteria_t = std::function<bool(
+            ProblemsGraph const&, ProblemsGraph::node_id, ProblemsGraph::node_id)>;
+
+        static auto from_problems_graph(ProblemsGraph const& pbs,
+                                        merge_criteria_t const& merge_criteria = {})
+            -> CompressedProblemsGraph;
 
         CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
@@ -234,8 +242,24 @@ namespace mamba
         node_id m_root_node;
     };
 
-    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs);
-    std::string problem_tree_str(CompressedProblemsGraph const& pbs);
+    /**
+     * Formatting options for error message functions.
+     */
+    struct ProblemsMessageFormat
+    {
+        fmt::text_style unavailable = fmt::fg(fmt::terminal_color::red);
+        fmt::text_style available = fmt::fg(fmt::terminal_color::green);
+        std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
+    };
+
+    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
+    std::string summary_msg(CompressedProblemsGraph const& pbs);
+
+    std::ostream& print_problem_tree_msg(std::ostream& out,
+                                         CompressedProblemsGraph const& pbs,
+                                         ProblemsMessageFormat const& format = {});
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs,
+                                 ProblemsMessageFormat const& format = {});
 
     /************************************
      *  Implementation of conflict_map  *

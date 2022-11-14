@@ -576,7 +576,7 @@ namespace mamba
         ASSERT_FALSE(solved);
         auto const pbs = ProblemsGraph::from_solver(solver, solver.pool());
         auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
-        auto const message = problem_tree_str(cp_pbs);
+        auto const message = problem_tree_msg(cp_pbs);
 
         auto message_contains = [&](auto const& node)
         {

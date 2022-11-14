@@ -16,6 +16,9 @@
 #include <type_traits>
 
 #include <solv/pool.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <fmt/format.h>
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_string.hpp"
@@ -560,18 +563,29 @@ namespace mamba
         /**
          * The criteria for deciding whether to merge two nodes together.
          */
-        auto create_merge_criteria(ProblemsGraph const& pbs)
+        auto default_merge_criteria(ProblemsGraph const& pbs,
+                                    ProblemsGraph::node_id n1,
+                                    ProblemsGraph::node_id n2) -> bool
         {
             using node_id = ProblemsGraph::node_id;
-            return [&pbs](node_id n1, node_id n2) -> bool
+            auto const& g = pbs.graph();
+            auto is_leaf = [&g](node_id n) -> bool { return g.successors(n).size() == 0; };
+            auto leaves_from = [&g](node_id n) -> vector_set<node_id>
             {
-                auto const& g = pbs.graph();
-                // TODO needs finetuning, not the same conditions
-                return (node_name(g.node(n1)) == node_name(g.node(n2)))
-                       && !(pbs.conflicts().in_conflict(n1, n2))
-                       && (g.successors(n1) == g.successors(n2))
-                       && (g.predecessors(n1) == g.predecessors(n2));
+                auto leaves = std::vector<node_id>();
+                g.for_each_leaf_from(n, [&leaves](node_id m) { leaves.push_back(m); });
+                return vector_set(std::move(leaves));
             };
+            return (node_name(g.node(n1)) == node_name(g.node(n2)))
+                   // Merging conflicts would be counter-productive in explaining problems
+                   && !(pbs.conflicts().in_conflict(n1, n2))
+                   // We don't want to use leaves_from for leaves because it resove to themselves,
+                   // preventing any merging.
+                   && ((is_leaf(n1) && is_leaf(n2)) || (leaves_from(n1) == leaves_from(n2)))
+                   // We only check the parents for non-leaves meaning parents can "inject"
+                   // themselves into a bigger problem
+                   && ((!is_leaf(n1) && !is_leaf(n2))
+                       || (g.predecessors(n1) == g.predecessors(n2)));
         }
 
         using node_id_mapping = std::vector<CompressedProblemsGraph::node_id>;
@@ -718,10 +732,26 @@ namespace mamba
     }
 
     // TODO move graph nodes and edges.
-    auto CompressedProblemsGraph::from_problems_graph(ProblemsGraph const& pbs)
+    auto CompressedProblemsGraph::from_problems_graph(ProblemsGraph const& pbs,
+                                                      merge_criteria_t const& merge_criteria)
         -> CompressedProblemsGraph
     {
-        auto [graph, root_node, old_to_new] = merge_nodes(pbs, create_merge_criteria(pbs));
+        graph_t graph;
+        node_id root_node;
+        node_id_mapping old_to_new;
+        if (merge_criteria)
+        {
+            auto merge_func
+                = [&pbs, &merge_criteria](ProblemsGraph::node_id n1, ProblemsGraph::node_id n2)
+            { return merge_criteria(pbs, n1, n2); };
+            std::tie(graph, root_node, old_to_new) = merge_nodes(pbs, merge_func);
+        }
+        else
+        {
+            auto merge_func = [&pbs](ProblemsGraph::node_id n1, ProblemsGraph::node_id n2)
+            { return default_merge_criteria(pbs, n1, n2); };
+            std::tie(graph, root_node, old_to_new) = merge_nodes(pbs, merge_func);
+        }
         merge_edges(pbs.graph(), graph, old_to_new);
         auto conflicts = merge_conflicts(pbs.conflicts(), old_to_new);
         return { std::move(graph), std::move(conflicts), root_node };
@@ -920,8 +950,24 @@ namespace mamba
     template class CompressedProblemsGraph::NamedList<ProblemsGraph::ConstraintNode>;
     template class CompressedProblemsGraph::NamedList<DependencyInfo>;
 
+    /***********************************
+     *  Implementation of summary_msg  *
+     ***********************************/
+
+    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs)
+    {
+        return out << "Could not solve for environment specs\n";
+    }
+
+    std::string summary_msg(CompressedProblemsGraph const& pbs)
+    {
+        std::stringstream ss;
+        print_summary_msg(ss, pbs);
+        return ss.str();
+    }
+
     /****************************************
-     *  Implementation of problem_tree_str  *
+     *  Implementation of problem_tree_msg  *
      ****************************************/
 
     namespace
@@ -960,12 +1006,13 @@ namespace mamba
 
             using node_id = CompressedProblemsGraph::node_id;
 
+            std::vector<SiblingNumber> ancestry;
             node_id id;
             node_id id_from;
             Type type;
             Type type_from;
             Status status;
-            std::vector<SiblingNumber> ancestry;
+            bool virtual_node;
 
             auto depth() const -> std::size_t
             {
@@ -1171,30 +1218,45 @@ namespace mamba
             // first child id as node_id
             assert(children_ids.size() > 0);
             ongoing = TreeNode{
+                /* ancestry= */ concat(from.ancestry, position),
                 /* id= */ children_ids[0],
                 /* id_from= */ from.id,
                 /* type= */ TreeNode::Type::split,
                 /* type_from= */ from.type,
                 /* status= */ false,  // Placeholder updated
-                /* ancestry= */ concat(from.ancestry, position),
+                /* virtual_node= */ true,
             };
 
+            TreeNodeIter const children_begin = out;
             // TODO(C++20) an enumerate view ``views::zip(views::iota(), children_ids)``
-            std::size_t i = 0;
-            for (node_id child_id : children_ids)
+            std::size_t const n_children = children_ids.size();
+            for (std::size_t i = 0; i < n_children; ++i)
             {
+                bool const last = (i == n_children - 1);
+                auto const child_pos = last ? SiblingNumber::last : SiblingNumber::not_last;
                 Status status;
-                auto const child_pos
-                    = i == children_ids.size() - 1 ? SiblingNumber::last : SiblingNumber::not_last;
-                std::tie(out, status) = visit_node(child_id, child_pos, ongoing, out);
+                std::tie(out, status) = visit_node(children_ids[i], child_pos, ongoing, out);
                 // If there are any valid option in the split, the split is iself valid.
                 ongoing.status |= status;
-                ++i;
             }
 
-            // // TODO
-            // All children are visited leaves, no grand-children.
-            // We dynamically delete all children and mark the whole thing as visited.
+            // All children are the same type of visited or leaves, no grand-children.
+            // We dynamically delete all children and mark the whole node as such.
+            auto all_same_type = [](TreeNodeIter first, TreeNodeIter last) -> bool
+            {
+                if (last <= first)
+                {
+                    return true;
+                }
+                return std::all_of(
+                    first, last, [t = first->type](TreeNode const& tn) { return tn.type == t; });
+            };
+            TreeNodeIter const children_end = out;
+            if ((n_children >= 1) && all_same_type(children_begin, children_end))
+            {
+                ongoing.type = children_begin->type;
+                out = children_begin;
+            }
 
             return { out, ongoing.status };
         }
@@ -1204,12 +1266,13 @@ namespace mamba
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
+                /* ancestry= */ {},
                 /* id= */ root_id,
                 /* id_from= */ root_id,
                 /* type= */ node_type(root_id),
                 /* type_from= */ node_type(root_id),
                 /* status= */ {},  // Placeholder updated
-                /* ancestry= */ {},
+                /* virtual_node= */ false,
             };
 
             auto out_status = visit_node_impl(root_id, ongoing, out);
@@ -1224,12 +1287,13 @@ namespace mamba
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
+                /* ancestry= */ concat(from.ancestry, position),
                 /* id= */ id,
                 /* id_from= */ from.id,
                 /* type= */ node_type(id),
                 /* type_from= */ from.type,
                 /* status= */ {},  // Placeholder updated
-                /* ancestry= */ concat(from.ancestry, position),
+                /* virtual_node= */ false,
             };
 
             auto out_status = visit_node_impl(id, ongoing, out);
@@ -1288,24 +1352,27 @@ namespace mamba
         public:
             static auto explain(std::ostream& outs,
                                 CompressedProblemsGraph const& pbs,
+                                ProblemsMessageFormat const& format,
                                 std::vector<TreeNode> const& path) -> std::ostream&;
 
         private:
             using Status = TreeNode::Status;
             using SiblingNumber = TreeNode::SiblingNumber;
 
-            static constexpr auto indents = std::array{ "│  ", "   ", "├─ ", "└─ " };
-
             std::ostream& m_outs;
             CompressedProblemsGraph const& m_pbs;
+            ProblemsMessageFormat const& m_format;
 
-            TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs);
+            TreeExplainer(std::ostream& outs,
+                          CompressedProblemsGraph const& pbs,
+                          ProblemsMessageFormat const& format);
 
             template <typename... Args>
             void write(Args&&... args);
             void write_ancestry(std::vector<SiblingNumber> const& ancestry);
-            void write_node_repr(TreeNode const& tn);
-            void write_incoming_edge_repr(TreeNode const& tn);
+            void write_pkg_list(TreeNode const& tn);
+            void write_pkg_dep(TreeNode const& tn);
+            void write_pkg_repr(TreeNode const& tn);
             void write_root(TreeNode const& tn);
             void write_diving(TreeNode const& tn);
             void write_split(TreeNode const& tn);
@@ -1318,9 +1385,12 @@ namespace mamba
          *  Implementation of TreeExplainer  *
          *************************************/
 
-        TreeExplainer::TreeExplainer(std::ostream& outs, CompressedProblemsGraph const& pbs)
+        TreeExplainer::TreeExplainer(std::ostream& outs,
+                                     CompressedProblemsGraph const& pbs,
+                                     ProblemsMessageFormat const& format)
             : m_outs(outs)
             , m_pbs(pbs)
+            , m_format(format)
         {
         }
 
@@ -1333,6 +1403,7 @@ namespace mamba
         void TreeExplainer::write_ancestry(std::vector<SiblingNumber> const& ancestry)
         {
             std::size_t const size = ancestry.size();
+            auto const indents = m_format.indents;
             if (size > 0)
             {
                 for (std::size_t i = 0; i < size - 1; ++i)
@@ -1343,38 +1414,54 @@ namespace mamba
             }
         }
 
-        void TreeExplainer::write_node_repr(TreeNode const& tn)
+        void TreeExplainer::write_pkg_list(TreeNode const& tn)
         {
-            auto do_write = [this](auto const& node)
+            auto do_write = [&](auto const& node)
             {
                 using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
-                    write(node.name(), ' ');
+                    auto const style = tn.status ? m_format.available : m_format.unavailable;
                     if (node.size() == 1)
                     {
-                        write(node.versions_trunc());  // Won't be truncated as it's size one
+                        // Won't be truncated as it's size one
+                        write(fmt::format(style, "{} {}", node.name(), node.versions_trunc()));
                     }
                     else
                     {
-                        write('[', node.versions_trunc(), ']');
+                        write(fmt::format(style, "{} [{}]", node.name(), node.versions_trunc()));
                     }
                 }
             };
             std::visit(do_write, m_pbs.graph().node(tn.id));
         }
 
-        void TreeExplainer::write_incoming_edge_repr(TreeNode const& tn)
+        void TreeExplainer::write_pkg_dep(TreeNode const& tn)
         {
             auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
-            write(edge.name(), ' ');
+            auto const style = tn.status ? m_format.available : m_format.unavailable;
             if (edge.size() == 1)
             {
-                write(edge.versions_trunc());  // Won't be truncated as it's size one
+                // Won't be truncated as it's size one
+                write(fmt::format(style, "{} {}", edge.name(), edge.versions_trunc()));
             }
             else
             {
-                write('[', edge.versions_trunc(), ']');
+                write(fmt::format(style, "{} [{}]", edge.name(), edge.versions_trunc()));
+            }
+        }
+
+        void TreeExplainer::write_pkg_repr(TreeNode const& tn)
+        {
+            if ((tn.type_from == TreeNode::Type::split))
+            {
+                assert(tn.depth() > 1);
+                assert(!tn.virtual_node);
+                write_pkg_list(tn);
+            }
+            else
+            {
+                write_pkg_dep(tn);
             }
         }
 
@@ -1392,36 +1479,31 @@ namespace mamba
 
         void TreeExplainer::write_diving(TreeNode const& tn)
         {
-            write_node_repr(tn);
-            if (tn.status)
+            write_pkg_repr(tn);
+            if (tn.depth() == 1)
             {
-                if (tn.depth() == 1)
+                if (tn.status)
                 {
                     write(" is installable and it requires");
                 }
                 else
                 {
-                    write(", which requires");
+                    write(" is uninstallable because it requires");
                 }
+            }
+            else if (tn.type_from == TreeNode::Type::split)
+            {
+                write(" would require");
             }
             else
             {
-                if (tn.depth() == 1)
-                {
-                    write(" is uninstallable because it requires");
-                }
-                else
-                {
-                    // TODO confirm this
-                    // write(", which requires");
-                    write(" would require");
-                }
+                write(", which requires");
             }
         }
 
         void TreeExplainer::write_split(TreeNode const& tn)
         {
-            write_incoming_edge_repr(tn);
+            write_pkg_repr(tn);
             if (tn.status)
             {
                 if (tn.depth() == 1)
@@ -1464,7 +1546,7 @@ namespace mamba
                                        Node,
                                        PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
                 {
-                    write_node_repr(tn);
+                    write_pkg_repr(tn);
                     if (tn.status)
                     {
                         if (tn.depth() == 1)
@@ -1483,17 +1565,17 @@ namespace mamba
                         {
                             write(" is uninstallable because it");
                         }
-                        else
+                        else if (tn.type_from != TreeNode::Type::split)
                         {
                             write(", which");
                         }
-                        write(" conflicts with installable versions previously reported");
+                        write(" conflicts with any installable versions previously reported");
                     }
                 }
                 else if constexpr (std::is_same_v<Node, UnresolvedDepListNode>)
                 {
-                    write_node_repr(tn);
-                    if (tn.depth() > 1)
+                    write_pkg_repr(tn);
+                    if ((tn.depth() > 1) && (tn.type_from != TreeNode::Type::split))
                     {
                         write(", which");
                     }
@@ -1515,7 +1597,7 @@ namespace mamba
 
         void TreeExplainer::write_visited(TreeNode const& tn)
         {
-            write_node_repr(tn);
+            write_pkg_list(tn);
             if (tn.status)
             {
                 write(", which can be installed (as previously explained)");
@@ -1531,6 +1613,7 @@ namespace mamba
             std::size_t const length = path.size();
             for (std::size_t i = 0; i < length; ++i)
             {
+                bool const last = (i == length - 1);
                 auto const& tn = path[i];
                 write_ancestry(tn.ancestry);
                 switch (tn.type)
@@ -1538,55 +1621,63 @@ namespace mamba
                     case (TreeNode::Type::root):
                     {
                         write_root(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::diving):
                     {
                         write_diving(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::split):
                     {
                         write_split(tn);
+                        write(last ? "." : "\n");
                         break;
                     }
                     case (TreeNode::Type::leaf):
                     {
                         write_leaf(tn);
+                        write(last ? "." : ";\n");
                         break;
                     }
                     case (TreeNode::Type::visited):
                     {
                         write_visited(tn);
+                        write(last ? "." : ";\n");
                         break;
                     }
                 }
-                write('\n');
             }
         }
 
         auto TreeExplainer::explain(std::ostream& outs,
                                     CompressedProblemsGraph const& pbs,
+                                    ProblemsMessageFormat const& format,
                                     std::vector<TreeNode> const& path) -> std::ostream&
         {
-            auto explainer = TreeExplainer(outs, pbs);
+            auto explainer = TreeExplainer(outs, pbs, format);
             explainer.write_path(path);
             return outs;
         }
     }
 
-    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs)
+    std::ostream& print_problem_tree_msg(std::ostream& out,
+                                         CompressedProblemsGraph const& pbs,
+                                         ProblemsMessageFormat const& format)
     {
         auto dfs = TreeDFS(pbs);
         auto path = dfs.explore();
-        TreeExplainer::explain(out, pbs, path);
+        TreeExplainer::explain(out, pbs, format, path);
         return out;
     }
 
-    std::string problem_tree_str(CompressedProblemsGraph const& pbs)
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs,
+                                 ProblemsMessageFormat const& format)
     {
         std::stringstream ss;
-        problem_tree_str(ss, pbs);
+        print_problem_tree_msg(ss, pbs);
         return ss.str();
     }
 }

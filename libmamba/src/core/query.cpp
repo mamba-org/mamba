@@ -14,6 +14,7 @@
 #include <fmt/color.h>
 #include <solv/evr.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/query.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
@@ -588,8 +589,8 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << fmt::format(
-                fmt::fg(fmt::color::gray), "{} already visited\n", g.nodes()[to].name);
+            m_out << g.nodes()[to].name
+                  << fmt::format(Context::instance().palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)

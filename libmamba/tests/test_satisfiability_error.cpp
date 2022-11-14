@@ -578,8 +578,6 @@ namespace mamba
         auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
         auto const message = problem_tree_msg(cp_pbs);
 
-        LOG_ERROR << message;
-
         auto message_contains = [&](auto const& node)
         {
             using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;

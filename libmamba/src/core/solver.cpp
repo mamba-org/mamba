@@ -654,7 +654,7 @@ namespace mamba
             fmt::print(out, "{:=^80}\n", " Experimental messages (new) ");
             auto const pbs = ProblemsGraph::from_solver(*this, pool());
             auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
-            problem_tree_str(out, cp_pbs);
+            print_problem_tree_msg(out, cp_pbs);
             fmt::print(out, "{:=^80}\n", "");
         }
         else

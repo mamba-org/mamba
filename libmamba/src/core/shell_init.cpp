@@ -72,7 +72,7 @@ namespace mamba
         if (contains(parent_process_name_lower, "python"))
         {
             Console::stream() << "Your parent process name is " << parent_process_name
-                              << ".\nIf your shell is xonsh, please use \"-s xonsh\".\n";
+                              << ".\nIf your shell is xonsh, please use \"-s xonsh\".";
         }
         if (contains(parent_process_name_lower, "xonsh"))
         {
@@ -114,7 +114,7 @@ namespace mamba
     {
         auto out = Console::stream();
         fmt::print(out,
-                   "Setting cmd.exe AUTORUN to: {}\n",
+                   "Setting cmd.exe AUTORUN to: {}",
                    fmt::styled(to_utf8(value), Context::instance().palette.success));
 
         winreg::RegKey key{ HKEY_CURRENT_USER, reg_path };
@@ -169,7 +169,7 @@ namespace mamba
             fmt::print(
                 out,
                 "{}",
-                fmt::styled("cmd.exe already initialized.\n", Context::instance().palette.success));
+                fmt::styled("cmd.exe already initialized.", Context::instance().palette.success));
         }
     }
 
@@ -207,7 +207,7 @@ namespace mamba
             fmt::print(
                 out,
                 "{}",
-                fmt::styled("cmd.exe not initialized yet.\n", Context::instance().palette.success));
+                fmt::styled("cmd.exe not initialized yet.", Context::instance().palette.success));
         }
     }
 #endif  // _WIN32
@@ -479,7 +479,7 @@ namespace mamba
 
         auto out = Console::stream();
         fmt::print(out,
-                   "Removing the following in your {} file\n{}\n",
+                   "Removing the following in your {} file\n{}",
                    fmt::streamed(file_path),
                    fmt::styled("# >>> mamba initialize >>>\n...\n# <<< mamba initialize <<<",
                                Context::instance().palette.success));
@@ -887,7 +887,7 @@ namespace mamba
 
         auto out = Console::stream();
         fmt::print(out,
-                   "Removing the following in your {} file\n{}\n",
+                   "Removing the following in your {} file\n{}",
                    fmt::streamed(profile_path),
                    fmt::styled("#region mamba initialize\n...\n#endregion\n",
                                Context::instance().palette.success));

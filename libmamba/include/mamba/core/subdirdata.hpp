@@ -22,11 +22,11 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
-
+#include "package_handling.hpp"
 
 namespace decompress
 {
-    bool raw(const std::string& in, const std::string& out);
+    bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out);
 }
 
 namespace mamba
@@ -78,7 +78,7 @@ namespace mamba
                     const std::string& repodata_fn = "repodata.json");
 
         bool load(MultiPackageCache& caches);
-        bool decompress();
+        bool decompress(mamba::compression_algorithm ca);
         void create_target(nlohmann::json& mod_etag);
         std::size_t get_cache_control_max_age(const std::string& val);
 

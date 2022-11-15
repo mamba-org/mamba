@@ -61,7 +61,8 @@ namespace mamba
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {
-                auto sdires = MSubdirData::create(*channel, platform, url, package_caches);
+                auto sdires = MSubdirData::create(*channel, platform, url, package_caches,
+                        contains(url, "main/osx") ? "repodata.json.zst" : "repodata.json");
                 if (!sdires.has_value())
                 {
                     error_list.push_back(std::move(sdires).error());

@@ -16,7 +16,7 @@
 
 namespace decompress
 {
-    bool raw(const std::string& in, const std::string& out)
+    bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out)
     {
         int r;
         std::ptrdiff_t size;
@@ -24,7 +24,12 @@ namespace decompress
         LOG_INFO << "Decompressing from " << in << " to " << out;
 
         struct archive* a = archive_read_new();
-        archive_read_support_filter_bzip2(a);
+        if (ca == mamba::compression_algorithm::bzip2) {
+            archive_read_support_filter_bzip2(a);
+        } else {
+            // todo else
+            archive_read_support_filter_zstd(a);
+        }
         archive_read_support_format_raw(a);
         // TODO figure out good value for this
         const std::size_t BLOCKSIZE = 16384;
@@ -562,11 +567,14 @@ namespace mamba
             throw std::runtime_error(fmt::format("Could not open file '{}'", json_file.string()));
         }
 
-        if (ends_with(m_repodata_url, ".bz2"))
+        mamba::compression_algorithm ca = ends_with(m_repodata_url, ".zst") ? mamba::compression_algorithm::zstd
+                                        : ends_with(m_repodata_url, ".bz2") ? mamba::compression_algorithm::bzip2
+                                        : mamba::compression_algorithm::none;
+        if (ca != mamba::compression_algorithm::none)
         {
             if (m_progress_bar)
                 m_progress_bar.set_postfix("Decompressing");
-            decompress();
+            decompress(ca);
         }
 
         if (m_progress_bar)
@@ -611,12 +619,12 @@ namespace mamba
         return true;
     }
 
-    bool MSubdirData::decompress()
+    bool MSubdirData::decompress(mamba::compression_algorithm ca)
     {
         LOG_INFO << "Decompressing metadata";
         auto json_temp_file = std::make_unique<TemporaryFile>();
         bool result
-            = decompress::raw(m_temp_file->path().string(), json_temp_file->path().string());
+            = decompress::raw(ca, m_temp_file->path().string(), json_temp_file->path().string());
         if (!result)
         {
             LOG_WARNING << "Could not decompress " << m_temp_file->path();

@@ -155,6 +155,7 @@ namespace mamba
         }
 
         // mimicking conda's behavior by special handling repodata.json
+        // todo support .zst
         if (ends_with(u, "/repodata.json"))
         {
             u = u.substr(0, u.size() - 13);

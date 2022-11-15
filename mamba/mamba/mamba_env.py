@@ -181,7 +181,7 @@ def mamba_install(prefix, specs, args, env, dry_run=False, *_, **kwargs):
 
 def mamba_dry_run(specs, args, env, *_, **kwargs):
     return mamba_install(
-        tempfile.mkdtemp(), specs, args, env, dry_run=True, *_, **kwargs
+        tempfile.mkdtemp(), specs, args, env, *_, dry_run=True, **kwargs
     )
 
 

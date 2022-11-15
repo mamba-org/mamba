@@ -230,8 +230,7 @@ namespace mamba
 #endif
         };
 
-        //std::string channel_alias = "https://conda.anaconda.org";
-        std::string channel_alias = "https://repo.anaconda.com/pkgs";
+        std::string channel_alias = "https://conda.anaconda.org";
         std::map<std::string, AuthenticationInfo>& authentication_info();
         std::vector<fs::u8path> token_locations{ "~/.continuum/anaconda-client/tokens" };
 

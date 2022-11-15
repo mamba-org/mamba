@@ -79,7 +79,7 @@ namespace mamba
 
         bool load(MultiPackageCache& caches);
         bool decompress(mamba::compression_algorithm ca);
-        void create_target(nlohmann::json& mod_etag);
+        void create_target(nlohmann::json& mod_etag, bool use_zstd);
         std::size_t get_cache_control_max_age(const std::string& val);
 
         std::unique_ptr<DownloadTarget> m_target = nullptr;

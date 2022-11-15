@@ -560,6 +560,11 @@ namespace mamba
         return m_name;
     }
 
+    const std::string& DownloadTarget::url() const
+    {
+        return m_url;
+    }
+
     std::size_t DownloadTarget::expected_size() const
     {
         return m_expected_size;

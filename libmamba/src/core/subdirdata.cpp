@@ -24,9 +24,12 @@ namespace decompress
         LOG_INFO << "Decompressing from " << in << " to " << out;
 
         struct archive* a = archive_read_new();
-        if (ca == mamba::compression_algorithm::bzip2) {
+        if (ca == mamba::compression_algorithm::bzip2)
+        {
             archive_read_support_filter_bzip2(a);
-        } else {
+        }
+        else
+        {
             // todo else
             archive_read_support_filter_zstd(a);
         }
@@ -395,7 +398,10 @@ namespace mamba
                 LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
                          << m_expired_cache_path.string() << "'";
             if (!Context::instance().offline || forbid_cache())
-                create_target(m_mod_etag);
+            {
+                bool use_zstd = true;  // todo
+                create_target(m_mod_etag, use_zstd);
+            }
         }
         return true;
     }
@@ -429,7 +435,7 @@ namespace mamba
         if (m_target->result != 0 || m_target->http_status >= 400)
         {
             LOG_INFO << "Unable to retrieve repodata (response: " << m_target->http_status
-                     << ") for '" << m_repodata_url << "'";
+                     << ") for '" << m_target->url() << "'";
 
             if (m_progress_bar)
             {
@@ -546,14 +552,14 @@ namespace mamba
             }
         }
 
-        LOG_DEBUG << "Finalized transfer of '" << m_repodata_url << "'";
+        LOG_DEBUG << "Finalized transfer of '" << m_target->url() << "'";
 
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
         auto lock = LockFile(writable_cache_dir);
 
         m_mod_etag.clear();
-        m_mod_etag["_url"] = m_repodata_url;
+        m_mod_etag["_url"] = m_target->url();
         m_mod_etag["_etag"] = m_target->etag;
         m_mod_etag["_mod"] = m_target->mod;
         m_mod_etag["_cache_control"] = m_target->cache_control;
@@ -567,9 +573,10 @@ namespace mamba
             throw std::runtime_error(fmt::format("Could not open file '{}'", json_file.string()));
         }
 
-        mamba::compression_algorithm ca = ends_with(m_repodata_url, ".zst") ? mamba::compression_algorithm::zstd
-                                        : ends_with(m_repodata_url, ".bz2") ? mamba::compression_algorithm::bzip2
-                                        : mamba::compression_algorithm::none;
+        mamba::compression_algorithm ca
+            = ends_with(m_target->url(), ".zst")   ? mamba::compression_algorithm::zstd
+              : ends_with(m_target->url(), ".bz2") ? mamba::compression_algorithm::bzip2
+                                                   : mamba::compression_algorithm::none;
         if (ca != mamba::compression_algorithm::none)
         {
             if (m_progress_bar)
@@ -633,12 +640,17 @@ namespace mamba
         return result;
     }
 
-    void MSubdirData::create_target(nlohmann::json& mod_etag)
+    void MSubdirData::create_target(nlohmann::json& mod_etag, bool use_zstd)
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        m_target = std::make_unique<DownloadTarget>(
+        auto repodata_target = std::make_unique<DownloadTarget>(
             m_name, m_repodata_url, m_temp_file->path().string());
+        auto repodata_zstd_target = std::make_unique<DownloadTarget>(
+            m_name, m_repodata_url + ".zst", m_temp_file->path().string());
+        m_target
+            = std::move(use_zstd && repodata_zstd_target->resource_exists() ? repodata_zstd_target
+                                                                            : repodata_target);
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);

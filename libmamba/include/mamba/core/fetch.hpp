@@ -50,6 +50,7 @@ namespace mamba
         void set_expected_size(std::size_t size);
 
         const std::string& name() const;
+        const std::string& url() const;
         std::size_t expected_size() const;
 
         void init_curl_target(const std::string& url);

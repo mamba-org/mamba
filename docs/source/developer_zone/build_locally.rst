@@ -143,6 +143,9 @@ Alternatively you can use:
 
     make test
 
+.. note::
+    If you want to run specific or a subset of tests, you can use ``GTEST_FILTER`` environment variable or the ``--gtest_filter`` flag.
+
 Build ``libmambapy``
 ====================
 
@@ -168,15 +171,18 @@ or rebuild ``libmamba`` in the same time:
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_SHARED=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
         -DBUILD_LIBMAMBAPY=ON
     make
 
 .. note::
     When rebuilding ``libmamba``, you also need to install the library in a path it will be found.
-    Use for that the ``CMAKE_INSTALL_PREFIX`` ``cmake`` option to point your current development environment:
+    Use for that the ``CMAKE_INSTALL_PREFIX`` ``cmake`` option to point your current development environment, and ``CMAKE_PREFIX_PATH`` ``cmake`` option to specify the installation prefixes to be searched:
 
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX`` [unix]
+    - ``-DCMAKE_PREFIX_PATH=$CONDA_PREFIX`` [unix]
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
+    - ``-DCMAKE_PREFIX_PATH=$CONDA_PREFIX\\Library`` [win]
 
 You'll need to install the target to have the bindings Python sub-module correctly located, then you can use ``pip`` to install that Python package:
 
@@ -235,6 +241,7 @@ or rebuild ``libmamba`` in the same time:
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_SHARED=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=DYNAMIC
     make
@@ -244,6 +251,11 @@ or rebuild ``libmamba`` in the same time:
 
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX`` [unix]
     - ``-DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX\\Library`` [win]
+
+    You may need to use the ``CMAKE_PREFIX_PATH`` ``cmake`` option as well, to specify the installation prefixes to be searched:
+
+    - ``-DCMAKE_PREFIX_PATH=$CONDA_PREFIX`` [unix]
+    - ``-DCMAKE_PREFIX_PATH=$CONDA_PREFIX\\Library`` [win]
 
 .. note::
     ``micromamba`` will be dynamically linked against ``libmamba`` and all its dependencies (``libsolv``, ``libarchive``, etc.)
@@ -275,6 +287,7 @@ or with ``libmamba``:
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_STATIC=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+        -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=STATIC
     make
@@ -323,8 +336,21 @@ or with ``libmamba``:
 Tests
 *****
 
-You should be able to run the Python-based test suite:
+In order to run the Python-based test suite, you need to set the following environment variables:
 
 .. code::
 
-    pytest ./micromamba/tests/
+    export TEST_MAMBA_EXE=build/micromamba/micromamba
+    export MAMBA_ROOT_PREFIX=YOUR_MICROMAMBA_ROOT_PREFIX
+
+Then, from the ``mamba`` root directory, you should be able to run the tests:
+
+.. code::
+    cd ..
+    pytest micromamba/tests/
+
+Since running all the tests would take a great amount of time, you could choose to run only a specific test.
+To launch ``test_env`` for example, you can run:
+
+.. code::
+    pytest micromamba/tests/test_env.py

@@ -28,14 +28,26 @@ set_activate_command(CLI::App* subcom)
         [&]()
         {
             std::string guessed_shell = guess_shell();
-            std::string shell_hook_command = "", shell_hook = "";
+            std::string shell_hook_command = "", shell_hook = "", shell_hook_dev_mode_cmd = "",
+                        shell_hook_dev_mode = "";
 
             if (guessed_shell == "powershell")
                 shell_hook_command
                     = "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
             else
+            {
                 shell_hook_command
                     = "eval \"$(micromamba shell hook --shell=" + guessed_shell + ")\"";
+
+                shell_hook_dev_mode_cmd = "eval \"$(./micromamba/micromamba shell hook --shell="
+                                          + guessed_shell + ")\"";
+
+                shell_hook_dev_mode = unindent((R"(
+
+                Or in dev mode, in your build directory:
+                    $ )" + shell_hook_dev_mode_cmd)
+                                                   .c_str());
+            }
 
             if (guessed_shell != "cmd.exe")
             {
@@ -44,7 +56,7 @@ set_activate_command(CLI::App* subcom)
                 To initialize the current )"
                                        + guessed_shell + R"( shell, run:
                     $ )" + shell_hook_command
-                                       + R"(
+                                       + shell_hook_dev_mode + R"(
                 and then activate or deactivate with:
                     $ micromamba activate
                 )")

@@ -701,7 +701,8 @@ namespace mamba
             }
             else
             {
-                builder << get_hook_contents(shell()) << "\n";
+                std::string contents = get_hook_contents(shell());
+                builder << contents << "\n";
             }
         }
 

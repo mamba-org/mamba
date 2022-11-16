@@ -655,6 +655,7 @@ namespace mamba
             auto const pbs = ProblemsGraph::from_solver(*this, pool());
             auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
             print_problem_tree_msg(out, cp_pbs);
+            out << '\n';
             fmt::print(out, "{:=^80}\n", "");
         }
         else

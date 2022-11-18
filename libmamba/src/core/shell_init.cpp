@@ -514,7 +514,9 @@ namespace mamba
             std::stringstream contents;
             contents << "$Env:MAMBA_EXE='" << exe.string() << "'\n";
             std::string psm1 = data_Mamba_psm1;
-            psm1 = psm1.substr(0, psm1.find("## EXPORTS ##"));
+            auto begin = psm1.find("## AFTER PARAM ##");
+            auto end = psm1.find("## EXPORTS ##");
+            psm1 = psm1.substr(begin, end - begin);
             contents << psm1;
             return contents.str();
         }

@@ -67,6 +67,10 @@ class TestShell:
 
         if shell_type == "powershell":
             assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
+            lines = res.splitlines()
+            assert not any(l.startswith("param([") for l in lines)
+            assert not any(l.startswith("## EXPORTS ##") for l in lines)
+            assert lines[2].startswith("## AFTER PARAM ####")
         elif shell_type in ("zsh", "bash", "posix"):
             assert res.count(mamba_exe) == 3
         elif shell_type == "xonsh":

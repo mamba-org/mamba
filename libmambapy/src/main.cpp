@@ -303,7 +303,7 @@ PYBIND11_MODULE(bindings, m)
         .def("root_node", &CpPbGraph::root_node)
         .def("conflicts", &CpPbGraph::conflicts)
         .def("networkx_graph", [](CpPbGraph const& self) { return make_networkx(self.graph()); })
-        .def("summary_message", [](CpPbGraph const& self) { return summary_msg(self); })
+        .def("summary_message", [](CpPbGraph const& self) { return problem_summary_msg(self); })
         .def("tree_message", [](CpPbGraph const& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")

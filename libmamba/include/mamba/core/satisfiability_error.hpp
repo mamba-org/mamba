@@ -254,8 +254,8 @@ namespace mamba
         std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
     };
 
-    std::ostream& print_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
-    std::string summary_msg(CompressedProblemsGraph const& pbs);
+    std::ostream& print_problem_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
+    std::string problem_summary_msg(CompressedProblemsGraph const& pbs);
 
     std::ostream& print_problem_tree_msg(std::ostream& out,
                                          CompressedProblemsGraph const& pbs,

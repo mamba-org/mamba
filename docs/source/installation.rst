@@ -92,7 +92,7 @@ Linux and macOS
 
 Download and unzip the executable (from the official conda-forge package):
 
-Ensure that basic utilities are installed. We need ``wget`` and ``tar`` with support for ``bzip2``.
+Ensure that basic utilities are installed. We need ``curl`` and ``tar`` with support for ``bzip2``.
 Also you need a glibc based system like Ubuntu, Fedora or Centos (Alpine Linux does not work natively).
 
 The following magic URL always returns the latest available version of micromamba, and the ``bin/micromamba`` part is automatically extracted using ``tar``.

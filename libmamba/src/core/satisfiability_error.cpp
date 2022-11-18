@@ -1440,14 +1440,24 @@ namespace mamba
         {
             auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
             auto const style = tn.status ? m_format.available : m_format.unavailable;
+            // We show the build string in pkg_dep and not pkg_list because hand written build
+            // string are more likely to contain vital information about the variant.
             if (edge.size() == 1)
             {
                 // Won't be truncated as it's size one
-                write(fmt::format(style, "{} {}", edge.name(), edge.versions_trunc()));
+                write(fmt::format(style,
+                                  "{} {} {}",
+                                  edge.name(),
+                                  edge.versions_trunc(),
+                                  edge.build_strings_trunc()));
             }
             else
             {
-                write(fmt::format(style, "{} [{}]", edge.name(), edge.versions_trunc()));
+                write(fmt::format(style,
+                                  "{} [{}] [{}]",
+                                  edge.name(),
+                                  edge.versions_trunc(),
+                                  edge.build_strings_trunc()));
             }
         }
 

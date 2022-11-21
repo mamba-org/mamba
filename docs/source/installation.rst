@@ -12,10 +12,10 @@ mamba
 Fresh install
 *************
 
-We strongly recommend to start from ``mambaforge``, a community project of the conda-forge community.
+We strongly recommend to start from Mambaforge, a community project of the conda-forge community.
 
-| You can download `mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_ for Windows, macOS and Linux.
-| ``mambaforge`` comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
+| You can download `Mambaforge <https://github.com/conda-forge/miniforge#mambaforge>`_ for Windows, macOS and Linux.
+| Mambaforge comes with the popular ``conda-forge`` channel preconfigured, but you can modify the configuration to use any channel you like.
 
  | After successful installation, you can use the mamba commands as described in :ref:`mamba user guide<mamba>`.
 
@@ -23,7 +23,8 @@ We strongly recommend to start from ``mambaforge``, a community project of the c
 Existing ``conda`` install
 **************************
 
-If you are already a ``conda`` user, very good!
+.. warning::
+   This way of installing Mamba is **not recommended**. We strongly recommend to use the Mambaforge method (see above).
 
 To get ``mamba``, just install it *into the base environment* from the ``conda-forge`` channel:
 
@@ -33,7 +34,7 @@ To get ``mamba``, just install it *into the base environment* from the ``conda-f
 
 
 .. warning::
-   Installing mamba into any other environment than base can cause unexpected behavior
+   Installing mamba into any other environment than ``base`` is not supported.
 
 .. _umamba-install:
 

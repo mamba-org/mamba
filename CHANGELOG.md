@@ -1,3 +1,35 @@
+2022.11.25
+==========
+
+Releases: libmamba 1.1.0, libmambapy 1.1.0, mamba 1.1.0, micromamba 1.1.0
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- [micromamba] Fix fish scripts (thanks @JafarAbdi, @raj-magesh, @jonashaag) #2101
+- [mamba] Fix activate/deactivate in fish shell (thanks @psobolewskiPhD) #2081
+- [micromamba] fix direct hook for powershell #2122
+- [libmamba] Fix libmamba CMake config file after dependency change (thanks @l2dy) #2091
+- [micromamba] fixes for ssl init and static build #2076
+
+Enhancements
+
+- [libmamba] Add safe signed/unsigned conversion (thanks @AntoinePrv) #2087
+- [libmamba] Move to fmt::terminal_color and other output IO improvements & drop termcolor (thanks @AntoinePrv) #2085
+- [libmamba, micromamba] Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- [libmamba, micromamba] Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- [libmamba, micromamba] Nitpicking error messages (thanks @AntoinePrv) #2121
+- [libmamba, micromamba] Tree error message improvements (thanks @AntoinePrv) #2093
+- [libmamba, micromamba] Tree error message (thanks @AntoinePrv) #2064
+- [libmamba, micromamba] Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- [libmamba, micromamba] Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- [mamba] fix: Don't print banner in quiet mode (thanks @corneliusroemer) #2097
+- [all] ci: Update pre-commit-config #2092
+- [all] docs: Add warning to manual install instructions #2100
+- [all] docs: Consistently use curl for fetching files #2126
+
+
 2022.11.01
 ==========
 

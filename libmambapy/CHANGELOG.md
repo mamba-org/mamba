@@ -1,3 +1,14 @@
+libmambapy 1.1.0 (November 25, 2022)
+====================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Enhancements
+
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 libmambapy 1.0.0 (November 01, 2022)
 ====================================
 

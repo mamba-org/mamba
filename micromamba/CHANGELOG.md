@@ -1,3 +1,27 @@
+micromamba 1.1.0 (November 25, 2022)
+====================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix fish scripts (thanks @JafarAbdi, @raj-magesh, @jonashaag) #2101
+- fix direct hook for powershell #2122
+- fixes for ssl init and static build #2076
+
+Enhancements
+
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- Nitpicking error messages (thanks @AntoinePrv) #2121
+- Tree error message improvements (thanks @AntoinePrv) #2093
+- Tree error message (thanks @AntoinePrv) #2064
+- Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 micromamba 1.0.0 (November 01, 2022)
 ====================================
 

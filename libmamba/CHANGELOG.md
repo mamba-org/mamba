@@ -1,3 +1,27 @@
+libmamba 1.1.0 (November 25, 2022)
+==================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix libmamba CMake config file after dependency change (thanks @l2dy) #2091
+
+Enhancements
+
+- Add safe signed/unsigned conversion (thanks @AntoinePrv) #2087
+- Move to fmt::terminal_color and other output IO improvements & drop termcolor (thanks @AntoinePrv) #2085
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- Nitpicking error messages (thanks @AntoinePrv) #2121
+- Tree error message improvements (thanks @AntoinePrv) #2093
+- Tree error message (thanks @AntoinePrv) #2064
+- Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 libmamba 1.0.0 (November 01, 2022)
 ==================================
 

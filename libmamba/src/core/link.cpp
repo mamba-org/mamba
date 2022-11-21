@@ -8,8 +8,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <iostream>
 
-#include "termcolor/termcolor.hpp"
 #include <reproc++/run.hpp>
 #include <reproc++/reproc.hpp>
 

@@ -7,17 +7,17 @@
 #ifndef MAMBA_CORE_OUTPUT_HPP
 #define MAMBA_CORE_OUTPUT_HPP
 
-#include "progress_bar.hpp"
-
-#include "nlohmann/json.hpp"
-
 #include <iosfwd>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+#include <fmt/color.h>
+
 #include "mamba/core/common_types.hpp"
+#include "mamba/core/progress_bar.hpp"
 
 namespace mamba
 {
@@ -25,19 +25,10 @@ namespace mamba
 
     namespace printers
     {
-        enum class format : std::size_t
-        {
-            none = 0,
-            red = 1 << 1,
-            green = 1 << 2,
-            yellow = 1 << 3,
-            bold_blue = 1 << 4
-        };
-
         struct FormattedString
         {
             std::string s;
-            format flag = format::none;
+            fmt::text_style style = {};
 
             FormattedString() = default;
 
@@ -57,11 +48,10 @@ namespace mamba
             }
         };
 
-        enum class alignment : std::size_t
+        enum class alignment
         {
-            left = 1 << 1,
-            right = 1 << 2,
-            fill = 1 << 3
+            left,
+            right,
         };
 
         class Table
@@ -92,7 +82,7 @@ namespace mamba
     class ConsoleStream : public std::stringstream
     {
     public:
-        ConsoleStream();
+        ConsoleStream() = default;
         ~ConsoleStream();
     };
 

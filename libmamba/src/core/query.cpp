@@ -4,17 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
-#include <solv/evr.h>
-}
-
 #include <iostream>
 #include <stack>
 
 #include <spdlog/spdlog.h>
 #include <fmt/chrono.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <fmt/color.h>
+#include <solv/evr.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/query.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
@@ -146,31 +146,30 @@ namespace mamba
 
     auto print_solvable = [](auto& pkg)
     {
+        auto out = Console::stream();
         std::string header = fmt::format("{} {} {}", pkg->name, pkg->version, pkg->build_string);
-        std::cout << fmt::format(
-            "{:^40}\n{}\n\n", header, std::string(header.size() > 40 ? header.size() : 40, '-'));
+        fmt::print(out, "{:^40}\n{:-^{}}\n\n", header, "", header.size() > 40 ? header.size() : 40);
 
-        constexpr const char* fmtstring = " {:<15} {}\n";
-        std::cout << fmt::format(fmtstring, "File Name", pkg->fn);
-        std::cout << fmt::format(fmtstring, "Name", pkg->name);
-        std::cout << fmt::format(fmtstring, "Version", pkg->version);
-        std::cout << fmt::format(fmtstring, "Build", pkg->build_string);
-        std::cout << fmt::format(fmtstring, "Build Number", pkg->build_number);
-        std::cout << fmt::format(" {:<15} {} Kb\n", "Size", pkg->size / 1000);
-        std::cout << fmt::format(fmtstring, "License", pkg->license);
-        std::cout << fmt::format(fmtstring, "Subdir", pkg->subdir);
+        static constexpr const char* fmtstring = " {:<15} {}\n";
+        fmt::print(out, fmtstring, "File Name", pkg->fn);
+        fmt::print(out, fmtstring, "Name", pkg->name);
+        fmt::print(out, fmtstring, "Version", pkg->version);
+        fmt::print(out, fmtstring, "Build", pkg->build_string);
+        fmt::print(out, fmtstring, "Build Number", pkg->build_number);
+        fmt::print(out, " {:<15} {} Kb\n", "Size", pkg->size / 1000);
+        fmt::print(out, fmtstring, "License", pkg->license);
+        fmt::print(out, fmtstring, "Subdir", pkg->subdir);
 
         std::string url_remaining, url_scheme, url_auth, url_token;
         split_scheme_auth_token(pkg->url, url_remaining, url_scheme, url_auth, url_token);
 
-        std::cout << fmt::format(" {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
+        fmt::print(out, " {:<15} {}://{}\n", "URL", url_scheme, url_remaining);
 
-        std::cout << fmt::format(fmtstring, "MD5", pkg->md5.empty() ? "Not available" : pkg->md5);
-        std::cout << fmt::format(
-            fmtstring, "SHA256", pkg->sha256.empty() ? "Not available" : pkg->sha256);
+        fmt::print(out, fmtstring, "MD5", pkg->md5.empty() ? "Not available" : pkg->md5);
+        fmt::print(out, fmtstring, "SHA256", pkg->sha256.empty() ? "Not available" : pkg->sha256);
         if (pkg->track_features.size())
         {
-            std::cout << fmt::format(fmtstring, "Track Features", pkg->track_features);
+            fmt::print(out, fmtstring, "Track Features", pkg->track_features);
         }
 
         // std::cout << fmt::format<char>(
@@ -178,23 +177,23 @@ namespace mamba
 
         if (!pkg->depends.empty())
         {
-            std::cout << fmt::format("\n {}\n", "Dependencies:");
+            fmt::print(out, "\n Dependencies:\n");
             for (auto& d : pkg->depends)
             {
-                std::cout << fmt::format("  - {}\n", d);
+                fmt::print(out, "  - {}\n", d);
             }
         }
 
         if (!pkg->constrains.empty())
         {
-            std::cout << fmt::format("\n {}\n", "Run Constraints:");
+            fmt::print(out, "\n Run Constraints:\n");
             for (auto& c : pkg->constrains)
             {
-                std::cout << fmt::format("  - {}\n", c);
+                fmt::print(out, "  - {}\n", c);
             }
         }
 
-        std::cout << std::endl;
+        out << '\n';
     };
 
     query_result Query::find(const std::string& query) const
@@ -590,7 +589,8 @@ namespace mamba
         void forward_or_cross_edge(node_id, node_id to, const graph_type& g)
         {
             print_prefix(to);
-            m_out << concat("\033[2m", g.nodes()[to].name, " already visited", "\033[00m") << '\n';
+            m_out << g.nodes()[to].name
+                  << fmt::format(Context::instance().palette.shown, " already visited\n");
         }
 
         void finish_edge(node_id /*from*/, node_id to, const graph_type& /*g*/)

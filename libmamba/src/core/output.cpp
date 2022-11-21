@@ -4,6 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <map>
+#include <string>
+
+#include <fmt/format.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -15,17 +26,6 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/tasksync.hpp"
-
-#include "termcolor/termcolor.hpp"
-
-#include <algorithm>
-#include <cstdlib>
-#include <iostream>
-#include <map>
-#include <string>
-
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "progress_bar_impl.hpp"
 
@@ -116,35 +116,21 @@ namespace mamba
             {
                 for (size_t j = 0; j < row.size(); ++j)
                 {
-                    if (row[j].flag != format::none)
-                    {
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::red))
-                            out << termcolor::red;
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::green))
-                            out << termcolor::green;
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::yellow))
-                            out << termcolor::yellow;
-                        if (static_cast<std::size_t>(row[j].flag)
-                            & static_cast<std::size_t>(format::bold_blue))
-                            out << termcolor::blue << termcolor::bold;
-                    }
                     if (this->m_align[j] == alignment::left)
                     {
-                        out << std::left;
-                        for (int x = 0; x < this->m_padding[j]; ++x)
-                            out << ' ';
-                        out << std::setw(cell_sizes[j]) << row[j].s;
+                        fmt::print(out,
+                                   "{: ^{}}{: <{}}",
+                                   "",
+                                   this->m_padding[j],
+                                   fmt::styled(row[j].s, row[j].style),
+                                   cell_sizes[j]);
                     }
                     else
                     {
-                        out << std::right << std::setw(cell_sizes[j] + m_padding[j]) << row[j].s;
-                    }
-                    if (row[j].flag != format::none)
-                    {
-                        out << termcolor::reset;
+                        fmt::print(out,
+                                   "{: >{}}",
+                                   fmt::styled(row[j].s, row[j].style),
+                                   cell_sizes[j] + m_padding[j]);
                     }
                 }
             };
@@ -238,10 +224,6 @@ namespace mamba
     /*****************
      * ConsoleStream *
      *****************/
-    ConsoleStream::ConsoleStream()
-    {
-        termcolor::colorize(*this);
-    }
 
     ConsoleStream::~ConsoleStream()
     {
@@ -328,7 +310,7 @@ namespace mamba
     {
         auto& data = instance().p_data;
         for (auto& message : data->m_buffer)
-            ostream << message << "\n";
+            ostream << message << '\n';
 
         const std::lock_guard<std::mutex> lock(data->m_mutex);
         data->m_buffer.clear();

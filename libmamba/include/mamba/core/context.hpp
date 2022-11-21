@@ -7,16 +7,17 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
-#include "mamba/core/common_types.hpp"
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/tasksync.hpp"
-#include "mamba/version.hpp"
-
 #include <map>
 #include <string>
 #include <vector>
 #include <optional>
 #include <regex>
+
+#include "mamba/core/common_types.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/tasksync.hpp"
+#include "mamba/core/palette.hpp"
+#include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
 
@@ -152,10 +153,12 @@ namespace mamba
 
         bool dev = false;
         bool on_ci = false;
-        bool no_progress_bars = false;
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
+
+        bool no_progress_bars = false;
+        Palette palette;
 
         bool allow_softlinks = false;
         bool always_copy = false;

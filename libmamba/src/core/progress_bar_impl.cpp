@@ -154,7 +154,7 @@ namespace mamba
 {
     void to_human_readable_filesize(std::ostream& o, double bytes, std::size_t precision)
     {
-        const char* sizes[] = { " B", "kB", "MB", "GB", "TB", "PB" };
+        static constexpr const char* sizes[] = { " B", "kB", "MB", "GB", "TB", "PB" };
         int order = 0;
         while (bytes >= 1000 && order < (6 - 1))
         {
@@ -199,9 +199,9 @@ namespace mamba
             print_formatted_field_repr(sstream, r.prefix, cumulated_width, width, "");
             print_formatted_field_repr(sstream, r.progress, cumulated_width, width, " ", true);
 
-            if (r.style.has_foreground())
+            if (r.style().has_foreground())
             {
-                ostream << fmt::format(r.style, "{}", sstream.str());
+                ostream << fmt::format(r.style(), "{}", sstream.str());
                 sstream.str("");
             }
 
@@ -215,8 +215,8 @@ namespace mamba
             if (with_endl)
                 sstream << "\n";
 
-            if (r.style.has_foreground())
-                ostream << fmt::format(r.style, "{}", sstream.str());
+            if (r.style().has_foreground())
+                ostream << fmt::format(r.style(), "{}", sstream.str());
             else
                 ostream << fmt::format("{}", sstream.str());
         }
@@ -484,9 +484,18 @@ namespace mamba
      * ProgressBarRepr *
      *******************/
 
-    ProgressBarRepr::ProgressBarRepr(ProgressBar* pbar)
-        : p_progress_bar(pbar)
+    ProgressBarRepr::ProgressBarRepr()
+        : m_style_none(Context::instance().palette.progress_bar_none)
+        , m_style_downloaded(Context::instance().palette.progress_bar_downloaded)
+        , m_style_extracted(Context::instance().palette.progress_bar_extracted)
+        , m_ascii_only(Context::instance().ascii_only)
     {
+    }
+
+    ProgressBarRepr::ProgressBarRepr(ProgressBar* pbar)
+        : ProgressBarRepr()
+    {
+        p_progress_bar = pbar;
     }
 
     const ProgressBar& ProgressBarRepr::progress_bar() const
@@ -503,6 +512,21 @@ namespace mamba
     std::size_t ProgressBarRepr::width() const
     {
         return m_width;
+    }
+
+    fmt::text_style const& ProgressBarRepr::style() const
+    {
+        return m_style;
+    }
+
+    void ProgressBarRepr::clear_style()
+    {
+        m_style = {};
+    }
+
+    void ProgressBarRepr::reset_style()
+    {
+        m_style = m_style_none;
     }
 
     void ProgressBarRepr::print(std::ostream& ostream, std::size_t width, bool with_endl)
@@ -546,64 +570,88 @@ namespace mamba
         class ProgressScaleWriter
         {
         public:
-            ProgressScaleWriter(std::size_t bar_width)
-                : m_bar_width(bar_width)
-            {
-            }
+            ProgressScaleWriter(fmt::text_style const& style_none,
+                                fmt::text_style const& style_downloaded,
+                                fmt::text_style const& style_extracted,
+                                std::size_t bar_width,
+                                bool ascii_only);
 
             template <class T>
-            static void format_progress(T& sstream,
-                                        fmt::text_style color,
-                                        std::size_t width,
-                                        bool end)
-            {
-                if (width == 0)
-                    return;
-                if (!Context::instance().ascii_only)
-                {
-                    if (end)
-                        sstream << fmt::format(color, "{:━>{}}", "", width);
-                    else
-                        sstream << fmt::format(color, "{:━>{}}╸", "", width - 1);
-                }
-                else
-                {
-                    sstream << fmt::format(color, "{:->{}}", "", width);
-                }
-            }
+            static void format_progress(
+                T& sstream, fmt::text_style color, std::size_t width, bool end, bool ascii_only);
 
-            std::string repr(std::size_t progress, std::size_t in_progress = 0) const
-            {
-                auto current_pos = static_cast<std::size_t>(progress * m_bar_width / 100.0);
-                auto in_progress_pos
-                    = static_cast<std::size_t>((progress + in_progress) * m_bar_width / 100.0);
-
-                current_pos = std::clamp(current_pos, std::size_t(0), m_bar_width);
-                in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), m_bar_width);
-
-                std::ostringstream oss;
-
-                ProgressScaleWriter::format_progress(
-                    oss, fmt::text_style(), current_pos, current_pos == m_bar_width);
-                if (in_progress_pos && in_progress_pos > current_pos)
-                {
-                    ProgressScaleWriter::format_progress(oss,
-                                                         fmt::fg(fmt::terminal_color::yellow),
-                                                         in_progress_pos - current_pos,
-                                                         in_progress_pos == m_bar_width);
-                }
-                ProgressScaleWriter::format_progress(
-                    oss,
-                    fmt::fg(fmt::terminal_color::bright_black),
-                    m_bar_width - (in_progress_pos ? in_progress_pos : current_pos),
-                    true);
-
-                return oss.str();
-            }
+            std::string repr(std::size_t progress, std::size_t in_progress = 0) const;
 
         private:
+            fmt::text_style m_style_none;
+            fmt::text_style m_style_downloaded;
+            fmt::text_style m_style_extracted;
             std::size_t m_bar_width;
+            bool m_ascii_only;
         };
+
+        ProgressScaleWriter::ProgressScaleWriter(fmt::text_style const& style_none,
+                                                 fmt::text_style const& style_downloaded,
+                                                 fmt::text_style const& style_extracted,
+                                                 std::size_t bar_width,
+                                                 bool ascii_only)
+            : m_style_none(style_none)
+            , m_style_downloaded(style_downloaded)
+            , m_style_extracted(style_extracted)
+            , m_bar_width(bar_width)
+            , m_ascii_only(ascii_only)
+        {
+        }
+
+        template <class T>
+        void ProgressScaleWriter::format_progress(
+            T& sstream, fmt::text_style color, std::size_t width, bool end, bool ascii_only)
+        {
+            if (width == 0)
+                return;
+            if (!ascii_only)
+            {
+                if (end)
+                    sstream << fmt::format(color, "{:━>{}}", "", width);
+                else
+                    sstream << fmt::format(color, "{:━>{}}╸", "", width - 1);
+            }
+            else
+            {
+                sstream << fmt::format(color, "{:->{}}", "", width);
+            }
+        }
+
+        std::string ProgressScaleWriter::repr(std::size_t progress, std::size_t in_progress) const
+        {
+            auto current_pos = static_cast<std::size_t>(progress * m_bar_width / 100.0);
+            auto in_progress_pos
+                = static_cast<std::size_t>((progress + in_progress) * m_bar_width / 100.0);
+
+            current_pos = std::clamp(current_pos, std::size_t(0), m_bar_width);
+            in_progress_pos = std::clamp(in_progress_pos, std::size_t(0), m_bar_width);
+
+            std::ostringstream oss;
+
+            ProgressScaleWriter::format_progress(
+                oss, m_style_extracted, current_pos, current_pos == m_bar_width, m_ascii_only);
+            if (in_progress_pos && in_progress_pos > current_pos)
+            {
+                ProgressScaleWriter::format_progress(oss,
+                                                     m_style_downloaded,
+                                                     in_progress_pos - current_pos,
+                                                     in_progress_pos == m_bar_width,
+                                                     m_ascii_only);
+            }
+            ProgressScaleWriter::format_progress(
+                oss,
+                m_style_none,
+                m_bar_width - (in_progress_pos ? in_progress_pos : current_pos),
+                true,
+                m_ascii_only);
+
+            return oss.str();
+        }
     }  // namespace
 
     void ProgressBarRepr::compute_progress_width()
@@ -745,7 +793,8 @@ namespace mamba
             }
             else
             {
-                ProgressScaleWriter w{ width };
+                ProgressScaleWriter w(
+                    m_style_none, m_style_downloaded, m_style_extracted, width, m_ascii_only);
                 double in_progress
                     = static_cast<double>(p_progress_bar->current() + p_progress_bar->in_progress())
                       / static_cast<double>(p_progress_bar->total()) * 100.;
@@ -757,7 +806,7 @@ namespace mamba
             if (width < 12)
             {
                 std::vector<std::string> spinner;
-                if (!Context::instance().ascii_only)
+                if (!m_ascii_only)
                     spinner = { "⣾", "⣽", "⣻", "⢿", "⣿", "⡿", "⣟", "⣯", "⣷", "⣿" };
                 else
                     spinner = { "|", "/", "-", "|", "\\", "|", "/", "-", "|", "\\" };
@@ -793,18 +842,23 @@ namespace mamba
 
                 if (current_pos)
                 {
-                    ProgressScaleWriter::format_progress(
-                        sstream, fmt::text_style(), current_pos, current_pos == width);
+                    ProgressScaleWriter::format_progress(sstream,
+                                                         fmt::text_style(),
+                                                         current_pos,
+                                                         current_pos == width,
+                                                         m_ascii_only);
                     if (in_progress_pos && in_progress_pos > current_pos)
                         ProgressScaleWriter::format_progress(sstream,
-                                                             fmt::fg(fmt::terminal_color::yellow),
+                                                             m_style_downloaded,
                                                              in_progress_pos - current_pos,
-                                                             in_progress_pos == width);
+                                                             in_progress_pos == width,
+                                                             m_ascii_only);
                     ProgressScaleWriter::format_progress(
                         sstream,
-                        fmt::fg(fmt::terminal_color::bright_black),
+                        m_style_none,
                         width - (in_progress_pos ? in_progress_pos : current_pos),
-                        true);
+                        true,
+                        m_ascii_only);
                 }
                 else
                 {
@@ -816,16 +870,17 @@ namespace mamba
                           - spinner_start;
 
                     ProgressScaleWriter::format_progress(
-                        sstream, fmt::fg(fmt::terminal_color::bright_black), spinner_start, false);
+                        sstream, m_style_none, spinner_start, false, m_ascii_only);
                     ProgressScaleWriter::format_progress(sstream,
-                                                         fmt::fg(fmt::terminal_color::yellow),
+                                                         m_style_downloaded,
                                                          spinner_length,
-                                                         spinner_start + spinner_length == width);
+                                                         spinner_start + spinner_length == width,
+                                                         m_ascii_only);
                     if (spinner_length + spinner_start < width)
                     {
                         rest = width - spinner_start - spinner_length;
                         ProgressScaleWriter::format_progress(
-                            sstream, fmt::fg(fmt::terminal_color::bright_black), rest, true);
+                            sstream, m_style_none, rest, true, m_ascii_only);
                     }
                 }
             }
@@ -1502,15 +1557,20 @@ namespace mamba
                     if (active_count < max_sub_bars)
                     {
                         if (!b->started())
-                            b->repr().style = fmt::fg(fmt::terminal_color::bright_black);
+                        {
+                            b->repr().reset_style();
+                        }
                         else
-                            b->repr().style = fmt::text_style();
-
+                        {
+                            b->repr().clear_style();
+                        }
                         displayed_bars.push_back(b.get());
                         ++active_count;
                     }
                     else
+                    {
                         ++not_displayed;
+                    }
                 }
             }
         }
@@ -1717,15 +1777,20 @@ namespace mamba
                         if (active_count < max_sub_bars)
                         {
                             if (!b->started())
-                                b->repr().style = fmt::fg(fmt::terminal_color::bright_black);
+                            {
+                                b->repr().reset_style();
+                            }
                             else
-                                b->repr().style = fmt::text_style();
-
+                            {
+                                b->repr().clear_style();
+                            }
                             displayed_bars.push_back(b.get());
                             ++active_count;
                         }
                         else
+                        {
                             ++not_displayed;
+                        }
                     }
                 }
             }

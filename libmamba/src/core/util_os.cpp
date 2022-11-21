@@ -1,10 +1,5 @@
 #include <regex>
-
-#include "mamba/core/environment.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/util_os.hpp"
-
-#include <reproc++/run.hpp>
+#include <iostream>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -19,12 +14,22 @@
 #else
 #include <atomic>
 #include <windows.h>
+#include <io.h>
 #include <intrin.h>
 #include <tlhelp32.h>
 #include "WinReg.hpp"
-#include "termcolor/termcolor.hpp"
 #endif
 
+#include <fmt/format.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <reproc++/run.hpp>
+
+#include "mamba/core/environment.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 
 namespace mamba
 {
@@ -149,8 +154,11 @@ namespace mamba
 
         if (prev_value == 1)
         {
-            std::cout << termcolor::green << "Windows long-path support already enabled."
-                      << termcolor::reset << std::endl;
+            auto out = Console::stream();
+            fmt::print(out,
+                       "{}",
+                       fmt::styled("Windows long-path support already enabled.",
+                                   Context::instance().palette.ignored));
             return true;
         }
 
@@ -181,8 +189,11 @@ namespace mamba
         prev_value = key.GetDwordValue(L"LongPathsEnabled");
         if (prev_value == 1)
         {
-            std::cout << termcolor::green << "Windows long-path support enabled."
-                      << termcolor::reset << std::endl;
+            auto out = Console::stream();
+            fmt::print(out,
+                       "{}",
+                       fmt::styled("Windows long-path support enabled.",
+                                   Context::instance().palette.success));
             return true;
         }
         LOG_WARNING << "Changing registry value did not succeed.";
@@ -489,7 +500,51 @@ namespace mamba
     {
         return to_utf8(w, wcslen(w));
     }
+
+    std::string to_utf8(std::wstring const& s)
+    {
+        return to_utf8(s.data(), s.size());
+    }
 #endif
+
+    /* From https://github.com/ikalnytskyi/termcolor
+     *
+     * copyright: (c) 2013 by Ihor Kalnytskyi.
+     * license: BSD
+     * */
+    bool is_atty(const std::ostream& stream)
+    {
+        FILE* const std_stream = [](const std::ostream& stream) -> FILE*
+        {
+            if (&stream == &std::cout)
+            {
+                return stdout;
+            }
+            else if ((&stream == &std::cerr) || (&stream == &std::clog))
+            {
+                return stderr;
+            }
+            else
+            {
+                return nullptr;
+            }
+        }(stream);
+
+        // Unfortunately, fileno() ends with segmentation fault
+        // if invalid file descriptor is passed. So we need to
+        // handle this case gracefully and assume it's not a tty
+        // if standard stream is not detected, and 0 is returned.
+        if (!std_stream)
+        {
+            return false;
+        }
+
+#ifdef _WIN32
+        return ::_isatty(_fileno(std_stream));
+#else
+        return ::isatty(fileno(std_stream));
+#endif
+    }
 
     ConsoleFeatures get_console_features()
     {

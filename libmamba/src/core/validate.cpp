@@ -83,7 +83,7 @@ namespace validate
     trust_error::trust_error(const std::string& message) noexcept
         : m_message("Content trust error. " + message + ". Aborting.")
     {
-        std::cout << this->m_message << std::endl;
+        mamba::Console::stream() << this->m_message << '\n';
     }
 
     const char* trust_error::what() const noexcept

@@ -44,7 +44,7 @@ namespace mamba
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
-        std::cout << check_buffer.str() << std::endl;
+        std::cout << check_buffer.str() << '\n';
 
         // Re-inject history into history file: history file should then have the same duplicate
         // content as the buffer.

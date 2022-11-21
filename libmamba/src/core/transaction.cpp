@@ -7,6 +7,11 @@
 #include <iostream>
 #include <stack>
 
+#include <fmt/format.h>
+#include <fmt/color.h>
+#include <fmt/ostream.h>
+#include <solv/selection.h>
+
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
@@ -18,14 +23,6 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/util_scope.hpp"
-
-
-#include "termcolor/termcolor.hpp"
-
-extern "C"
-{
-#include "solv/selection.h"
-}
 
 #include "progress_bar_impl.hpp"
 
@@ -1150,8 +1147,10 @@ namespace mamba
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
-            Console::stream() << "Content trust verifications successful, " << termcolor::green
-                              << "package(s) are trusted " << termcolor::reset;
+            auto out = Console::stream();
+            fmt::print(out,
+                       "Content trust verifications successful, {} ",
+                       fmt::styled("package(s) are trusted", Context::instance().palette.safe));
             LOG_INFO << "All package(s) are trusted";
         }
 
@@ -1292,11 +1291,13 @@ namespace mamba
 
     void MTransaction::print()
     {
-        if (Context::instance().json)
+        auto const& ctx = Context::instance();
+
+        if (ctx.json)
             return;
 
         Console::instance().print("Transaction\n");
-        Console::stream() << "  Prefix: " << Context::instance().target_prefix.string() << "\n";
+        Console::stream() << "  Prefix: " << ctx.target_prefix.string() << "\n";
 
         // check size of transaction
         if (empty())
@@ -1353,15 +1354,20 @@ namespace mamba
         std::size_t total_size = 0;
         auto* pool = m_transaction->pool;
 
-        auto format_row =
-            [this, pool, &total_size](rows& r, Solvable* s, printers::format flag, std::string diff)
+        enum struct Status
+        {
+            install,
+            ignore,
+            remove
+        };
+        auto format_row
+            = [this, &ctx, pool, &total_size](rows& r, Solvable* s, Status status, std::string diff)
         {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
             if (dlsize != -1)
             {
-                if (static_cast<std::size_t>(flag)
-                    & static_cast<std::size_t>(printers::format::yellow))
+                if (status == Status::ignore)
                 {
                     dlsize_s.s = "Ignored";
                 }
@@ -1370,7 +1376,7 @@ namespace mamba
                     if (!need_pkg_download(s, m_multi_cache))
                     {
                         dlsize_s.s = "Cached";
-                        dlsize_s.flag = printers::format::green;
+                        dlsize_s.style = ctx.palette.addition;
                     }
                     else
                     {
@@ -1378,8 +1384,7 @@ namespace mamba
                         to_human_readable_filesize(ss, dlsize);
                         dlsize_s.s = ss.str();
                         // Hacky hacky
-                        if (static_cast<std::size_t>(flag)
-                            & static_cast<std::size_t>(printers::format::green))
+                        if (status == Status::install)
                         {
                             total_size += dlsize;
                         }
@@ -1387,8 +1392,19 @@ namespace mamba
                 }
             }
             printers::FormattedString name;
-            name.s = diff + " " + std::string(pool_id2str(pool, s->name));
-            name.flag = flag;
+            name.s = fmt::format("{} {}", diff, pool_id2str(pool, s->name));
+            if (status == Status::install)
+            {
+                name.style = ctx.palette.addition;
+            }
+            else if (status == Status::ignore)
+            {
+                name.style = ctx.palette.ignored;
+            }
+            else if (status == Status::remove)
+            {
+                name.style = ctx.palette.deletion;
+            }
             const char* build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
 
             std::string channel;
@@ -1437,43 +1453,43 @@ namespace mamba
 
                 if (filter(s))
                 {
-                    format_row(ignored, s, printers::format::yellow, "=");
+                    format_row(ignored, s, Status::ignore, "=");
                     continue;
                 }
                 switch (cls)
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
-                        format_row(upgraded, s, printers::format::red, "-");
+                        format_row(upgraded, s, Status::remove, "-");
                         format_row(upgraded,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
-                                   printers::format::green,
+                                   Status::install,
                                    "+");
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
-                        format_row(changed, s, printers::format::red, "-");
+                        format_row(changed, s, Status::remove, "-");
                         format_row(changed,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
-                                   printers::format::green,
+                                   Status::install,
                                    "+");
                         break;
                     case SOLVER_TRANSACTION_REINSTALLED:
-                        format_row(reinstalled, s, printers::format::green, "o");
+                        format_row(reinstalled, s, Status::install, "o");
                         break;
                     case SOLVER_TRANSACTION_DOWNGRADED:
-                        format_row(downgraded, s, printers::format::red, "-");
+                        format_row(downgraded, s, Status::remove, "-");
                         format_row(downgraded,
                                    m_transaction->pool->solvables
                                        + transaction_obs_pkg(m_transaction, p),
-                                   printers::format::green,
+                                   Status::install,
                                    "+");
                         break;
                     case SOLVER_TRANSACTION_ERASE:
-                        format_row(erased, s, printers::format::red, "-");
+                        format_row(erased, s, Status::remove, "-");
                         break;
                     case SOLVER_TRANSACTION_INSTALL:
-                        format_row(installed, s, printers::format::green, "+");
+                        format_row(installed, s, Status::install, "+");
                         break;
                     case SOLVER_TRANSACTION_IGNORE:
                         break;
@@ -1531,7 +1547,8 @@ namespace mamba
         to_human_readable_filesize(summary, total_size);
         summary << "\n";
         t.add_row({ summary.str() });
-        t.print(std::cout);
+        auto out = Console::stream();
+        t.print(out);
     }
 
     MTransaction create_explicit_transaction_from_urls(

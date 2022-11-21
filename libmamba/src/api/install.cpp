@@ -4,9 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <stdexcept>
+
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <fmt/color.h>
 #include <reproc/reproc.h>
 #include <reproc++/run.hpp>
-#include <stdexcept>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
@@ -22,8 +26,6 @@
 #include "mamba/core/env_lockfile.hpp"
 #include "mamba/core/activation.hpp"
 #include "mamba/core/environments_manager.hpp"
-
-#include "termcolor/termcolor.hpp"
 
 namespace mamba
 {
@@ -126,10 +128,11 @@ namespace mamba
         options.redirect.parent = true;
         options.working_directory = cwd.c_str();
 
-        Console::stream() << "\n"
-                          << termcolor::cyan << "Installing " << pkg_mgr
-                          << " packages: " << join(", ", deps) << termcolor::reset;
-        LOG_INFO << "Calling: " << join(" ", install_instructions);
+        Console::stream() << fmt::format(Context::instance().palette.external,
+                                         "\nInstalling {} packages: {}",
+                                         pkg_mgr,
+                                         fmt::join(deps, ", "));
+        fmt::print(LOG_INFO, "Calling: {}", fmt::join(install_instructions, " "));
 
         auto [status, ec] = reproc::run(wrapped_command, options);
         assert_reproc_success(options, status, ec);

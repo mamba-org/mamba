@@ -287,15 +287,15 @@ PYBIND11_MODULE(bindings, m)
     using CpPbGraph = CompressedProblemsGraph;
     auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
 
-    pyCpPbGraph.def_property_readonly_static("RootNode",
-                                             []() { return py::type::of<CpPbGraph::RootNode>(); });
+    pyCpPbGraph.def_property_readonly_static(
+        "RootNode", [](py::handle) { return py::type::of<PbGraph::RootNode>(); });
     bind_NamedList(py::class_<CpPbGraph::PackageListNode>(pyCpPbGraph, "PackageListNode"));
     bind_NamedList(py::class_<CpPbGraph::UnresolvedDependencyListNode>(
         pyCpPbGraph, "UnresolvedDependencyListNode"));
     bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
     bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyListList"));
     pyCpPbGraph.def_property_readonly_static(
-        "ConflictMap", []() { return py::type::of<CpPbGraph::conflicts_t>(); });
+        "ConflictMap", [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); });
 
     pyCpPbGraph.def_static("from_problems_graph", &CpPbGraph::from_problems_graph)
         .def_static("from_problems_graph",

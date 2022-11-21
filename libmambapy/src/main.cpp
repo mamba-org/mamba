@@ -264,7 +264,7 @@ PYBIND11_MODULE(bindings, m)
         .def_readonly_static("problem_type", &PbGraph::ConstraintNode::problem_type);
 
     py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
-        .def(py::init())
+        .def(py::init<>())
         .def("__len__", [](PbGraph::conflicts_t const& self) { return self.size(); })
         .def("__bool__", [](PbGraph::conflicts_t const& self) { return !self.empty(); })
         .def(

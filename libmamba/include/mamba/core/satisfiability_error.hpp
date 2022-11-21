@@ -65,6 +65,8 @@ namespace mamba
         using typename Base::key_type;
         using typename Base::value_type;
 
+        conflict_map() = default;
+
         using Base::empty;
         using Base::size;
         bool has_conflict(key_type const& a) const;

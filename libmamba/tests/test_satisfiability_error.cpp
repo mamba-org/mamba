@@ -493,7 +493,6 @@ namespace mamba
             else
             {
                 EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
-                EXPECT_FALSE(has_problem_type(node));
             }
             // All nodes reachable from the root
             EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));

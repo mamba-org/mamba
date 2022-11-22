@@ -1082,11 +1082,12 @@ namespace mamba
             CompressedProblemsGraph const& m_pbs;
 
             /**
-             * Function to decide status on leaf nodes.
+             * Function to decide if a node is uninstallable.
              *
-             * The status for other nodes is computed from the status of the sub-trees.
+             * For a leaf this sets the final status.
+             * For other nodes, a pacakge could still be uninstallable because of its children.
              */
-            auto leaf_status(node_id id) -> Status;
+            auto node_uninstallable(node_id id) -> Status;
 
             /**
              * Get the type of a node depending on the exploration.
@@ -1146,7 +1147,7 @@ namespace mamba
             return path;
         }
 
-        auto TreeDFS::leaf_status(node_id id) -> Status
+        auto TreeDFS::node_uninstallable(node_id id) -> Status
         {
             auto installables_contains = [&](auto&& id) { return leaf_installables.contains(id); };
             auto const& conflicts = m_pbs.conflicts();
@@ -1161,13 +1162,14 @@ namespace mamba
                 auto const& conflict_with = conflicts.conflicts(id);
                 if (std::any_of(conflict_with.begin(), conflict_with.end(), installables_contains))
                 {
-                    return false;
+                    return true;
                 }
                 leaf_installables.insert(id);
-                return true;
+                return false;
             }
-            // Assuming any other type of leave is a kind of problem.
-            return false;
+
+            // Assuming any other type of leave is a kind of problem and other nodes not.
+            return m_pbs.graph().successors(id).size() == 0;
         }
 
         auto TreeDFS::node_type(node_id id) const -> TreeNode::Type
@@ -1320,11 +1322,10 @@ namespace mamba
             {
                 return { out, status.value() };
             }
-            if (successors.size() == 0)
+            if (node_uninstallable(id))
             {
-                auto const status = leaf_status(id);
-                m_node_visited[id] = status;
-                return { out, status };
+                m_node_visited[id] = false;
+                return { out, false };
             }
 
             Status status = true;

@@ -890,9 +890,9 @@ namespace mamba
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
-                                                                  std::string_view etc
-
-    ) const -> std::string
+                                                                  std::string_view etc,
+                                                                  bool remove_duplicates) const
+        -> std::string
     {
         auto versions = std::vector<std::string>(size());
         auto invoke_version = [](auto&& v) -> decltype(auto)
@@ -900,14 +900,19 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::version, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_version)
+        // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
         std::transform(begin(), end(), versions.begin(), invoke_version);
+        if (remove_duplicates)
+        {
+            versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
+        }
         return join_trunc(versions, sep, etc);
     }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
-                                                                       std::string_view etc) const
+                                                                       std::string_view etc,
+                                                                       bool remove_duplicates) const
         -> std::string
     {
         auto builds = std::vector<std::string>(size());
@@ -916,8 +921,12 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string)
+        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string) | ranges::unique
         std::transform(begin(), end(), builds.begin(), invoke_build_string);
+        if (remove_duplicates)
+        {
+            builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
+        }
         return join_trunc(builds, sep, etc);
     }
 

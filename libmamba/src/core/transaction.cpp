@@ -1306,6 +1306,17 @@ namespace mamba
             {
                 Console::instance().print("  All requested packages already installed\n");
             }
+            else if (m_history_entry.remove.size())
+            {
+                // There was no remove events but we still have remove specs treated:
+                // The packages to remove were not found in the environment.
+                Console::instance().print(
+                    "  Failure: packages to remove not found in the environment:\n");
+                for (const auto& entry : m_history_entry.remove)
+                {
+                    Console::instance().print(fmt::format("  - {}\n", entry));
+                }
+            }
             else
             {
                 Console::instance().print("  Nothing to do\n");

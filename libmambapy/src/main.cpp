@@ -82,7 +82,7 @@ bind_NamedList(PyClass pyclass)
             "__iter__",
             [](type const& self) { return py::make_iterator(self.begin(), self.end()); },
             py::keep_alive<0, 1>())
-        .def("clear", &type::clear)
+        .def("clear", [](type& self) { return self.clear(); })
         .def("add", [](type& self, typename type::value_type const& v) { self.insert(v); })
         .def("name", &type::name)
         .def("versions_trunc", &type::versions_trunc, py::arg("sep") = "|", py::arg("etc") = "...")

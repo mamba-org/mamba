@@ -85,11 +85,16 @@ bind_NamedList(PyClass pyclass)
         .def("clear", [](type& self) { return self.clear(); })
         .def("add", [](type& self, typename type::value_type const& v) { self.insert(v); })
         .def("name", &type::name)
-        .def("versions_trunc", &type::versions_trunc, py::arg("sep") = "|", py::arg("etc") = "...")
+        .def("versions_trunc",
+             &type::versions_trunc,
+             py::arg("sep") = "|",
+             py::arg("etc") = "...",
+             py::arg("remove_duplicates") = true)
         .def("build_strings_trunc",
              &type::build_strings_trunc,
              py::arg("sep") = "|",
-             py::arg("etc") = "...");
+             py::arg("etc") = "...",
+             py::arg("remove_duplicates") = true);
     return pyclass;
 }
 

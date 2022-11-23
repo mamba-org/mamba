@@ -5,8 +5,10 @@ import typing
 __all__ = [
     "Channel",
     "ChannelPriority",
+    "CompressedProblemsGraph",
     "Configuration",
     "Context",
+    "DependencyInfo",
     "DownloadTargetList",
     "ExtraPkgInfo",
     "History",
@@ -32,6 +34,7 @@ __all__ = [
     "PkgMgr",
     "Pool",
     "PrefixData",
+    "ProblemsGraph",
     "Query",
     "QueryFormat",
     "Repo",
@@ -208,6 +211,114 @@ class ChannelPriority:
     kDisabled: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kDisabled: 0>
     kFlexible: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kFlexible: 1>
     kStrict: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kStrict: 2>
+    pass
+
+class CompressedProblemsGraph:
+    class ConflictMap:
+        def __bool__(self) -> bool: ...
+        def __contains__(self, arg0: int) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: int, arg1: int) -> None: ...
+        def clear(self) -> None: ...
+        def conflicts(self, arg0: int) -> typing.Set[int]: ...
+        def has_conflict(self, arg0: int) -> bool: ...
+        def in_conflict(self, arg0: int, arg1: int) -> bool: ...
+        pass
+
+    class ConstraintListNode:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: ProblemsGraph.ConstraintNode) -> None: ...
+        def build_strings_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        pass
+
+    class DependencyListList:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: DependencyInfo) -> None: ...
+        def build_strings_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        pass
+
+    class PackageListNode:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: ProblemsGraph.PackageNode) -> None: ...
+        def build_strings_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        pass
+
+    class RootNode:
+        def __init__(self) -> None: ...
+        pass
+
+    class UnresolvedDependencyListNode:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: ProblemsGraph.UnresolvedDependencyNode) -> None: ...
+        def build_strings_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_trunc(
+            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
+        ) -> str: ...
+        pass
+    def conflicts(self) -> ProblemsGraph.ConflictMap: ...
+    @staticmethod
+    @typing.overload
+    def from_problems_graph(arg0: ProblemsGraph) -> CompressedProblemsGraph: ...
+    @staticmethod
+    @typing.overload
+    def from_problems_graph(
+        arg0: ProblemsGraph, arg1: typing.Callable[[ProblemsGraph, int, int], bool]
+    ) -> CompressedProblemsGraph: ...
+    def graph(
+        self,
+    ) -> typing.Tuple[
+        typing.List[
+            typing.Union[
+                ProblemsGraph.RootNode,
+                CompressedProblemsGraph.PackageListNode,
+                CompressedProblemsGraph.UnresolvedDependencyListNode,
+                CompressedProblemsGraph.ConstraintListNode,
+            ]
+        ],
+        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList],
+    ]: ...
+    def root_node(self) -> int: ...
+    def summary_message(self) -> str: ...
+    def tree_message(self) -> str: ...
     pass
 
 class Configuration:
@@ -482,6 +593,28 @@ class Context:
     @verbosity.setter
     def verbosity(self, arg0: int) -> None:
         pass
+    pass
+
+class DependencyInfo:
+    def __eq__(self, arg0: DependencyInfo) -> bool: ...
+    def __init__(self, arg0: str) -> None: ...
+    def __str__(self) -> str: ...
+    @property
+    def build_string(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def name(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def version(self) -> str:
+        """
+        :type: str
+        """
+    __hash__ = None
     pass
 
 class DownloadTargetList:
@@ -850,6 +983,49 @@ class PrefixData:
         """
         :type: typing.Dict[str, PackageInfo]
         """
+    pass
+
+class ProblemsGraph:
+    class ConflictMap:
+        pass
+
+    class ConstraintNode(DependencyInfo):
+        problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
+        pass
+
+    class PackageNode(PackageInfo):
+        pass
+
+    class RootNode:
+        pass
+
+    class UnresolvedDependencyNode(DependencyInfo):
+        @property
+        def problem_type(self) -> SolverRuleinfo:
+            """
+            :type: SolverRuleinfo
+            """
+        @problem_type.setter
+        def problem_type(self, arg0: SolverRuleinfo) -> None:
+            pass
+        pass
+    def conflicts(self) -> ProblemsGraph.ConflictMap: ...
+    @staticmethod
+    def from_solver(arg0: Solver, arg1: Pool) -> ProblemsGraph: ...
+    def graph(
+        self,
+    ) -> typing.Tuple[
+        typing.List[
+            typing.Union[
+                ProblemsGraph.RootNode,
+                ProblemsGraph.PackageNode,
+                ProblemsGraph.UnresolvedDependencyNode,
+                ProblemsGraph.ConstraintNode,
+            ]
+        ],
+        typing.Dict[typing.Tuple[int, int], DependencyInfo],
+    ]: ...
+    def root_node(self) -> int: ...
     pass
 
 class Query:

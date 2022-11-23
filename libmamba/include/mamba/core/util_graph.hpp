@@ -138,7 +138,9 @@ namespace mamba
         node_t const& node(node_id id) const;
         node_t& node(node_id id);
         const node_id_list& successors(node_id id) const;
+        const adjacency_list& successors() const;
         const node_id_list& predecessors(node_id id) const;
+        const adjacency_list& predecessors() const;
         bool has_node(node_id id) const;
         bool has_edge(node_id from, node_id to) const;
 
@@ -458,9 +460,21 @@ namespace mamba
     }
 
     template <typename N, typename G>
+    auto DiGraphBase<N, G>::successors() const -> const adjacency_list&
+    {
+        return m_successors;
+    }
+
+    template <typename N, typename G>
     auto DiGraphBase<N, G>::predecessors(node_id id) const -> const node_id_list&
     {
         return m_predecessors[id];
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::predecessors() const -> const adjacency_list&
+    {
+        return m_predecessors;
     }
 
     template <typename N, typename G>

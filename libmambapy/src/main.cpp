@@ -93,23 +93,6 @@ bind_NamedList(PyClass pyclass)
     return pyclass;
 }
 
-template <typename Node, typename Edge>
-py::object
-make_networkx(mamba::DiGraph<Node, Edge> const& g)
-{
-    using node_id = typename mamba::DiGraph<Node, Edge>::node_id;
-    auto const nx = py::module_::import("networkx");
-
-    auto nx_graph = nx.attr("DiGraph")();
-    for (node_id n = 0; n < g.number_of_nodes(); ++n)
-    {
-        nx_graph.attr("add_node")(n, py::arg("data") = g.node(n));
-    }
-    g.for_each_edge([&](node_id from, node_id to)
-                    { nx_graph.attr("add_edge")(from, to, py::arg("data") = g.edge(from, to)); });
-    return nx_graph;
-}
-
 PYBIND11_MODULE(bindings, m)
 {
     using namespace mamba;
@@ -282,7 +265,12 @@ PYBIND11_MODULE(bindings, m)
     pyPbGraph.def_static("from_solver", &PbGraph::from_solver)
         .def("root_node", &PbGraph::root_node)
         .def("conflicts", &PbGraph::conflicts)
-        .def("networkx_graph", [](PbGraph const& self) { return make_networkx(self.graph()); });
+        .def("graph",
+             [](PbGraph const& self)
+             {
+                 auto const& g = self.graph();
+                 return std::pair(g.nodes(), g.edges());
+             });
 
     using CpPbGraph = CompressedProblemsGraph;
     auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
@@ -302,7 +290,12 @@ PYBIND11_MODULE(bindings, m)
                     [](PbGraph const& pbs) { return CpPbGraph::from_problems_graph(pbs); })
         .def("root_node", &CpPbGraph::root_node)
         .def("conflicts", &CpPbGraph::conflicts)
-        .def("networkx_graph", [](CpPbGraph const& self) { return make_networkx(self.graph()); })
+        .def("graph",
+             [](CpPbGraph const& self)
+             {
+                 auto const& g = self.graph();
+                 return std::pair(g.nodes(), g.edges());
+             })
         .def("summary_message", [](CpPbGraph const& self) { return problem_summary_msg(self); })
         .def("tree_message", [](CpPbGraph const& self) { return problem_tree_msg(self); });
 

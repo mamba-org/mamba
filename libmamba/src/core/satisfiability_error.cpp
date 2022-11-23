@@ -890,9 +890,9 @@ namespace mamba
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
-                                                                  std::string_view etc
-
-    ) const -> std::string
+                                                                  std::string_view etc,
+                                                                  bool remove_duplicates) const
+        -> std::string
     {
         auto versions = std::vector<std::string>(size());
         auto invoke_version = [](auto&& v) -> decltype(auto)
@@ -900,14 +900,19 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::version, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_version)
+        // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
         std::transform(begin(), end(), versions.begin(), invoke_version);
+        if (remove_duplicates)
+        {
+            versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
+        }
         return join_trunc(versions, sep, etc);
     }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
-                                                                       std::string_view etc) const
+                                                                       std::string_view etc,
+                                                                       bool remove_duplicates) const
         -> std::string
     {
         auto builds = std::vector<std::string>(size());
@@ -916,8 +921,12 @@ namespace mamba
             using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
             return std::invoke(&TT::build_string, std::forward<decltype(v)>(v));
         };
-        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string)
+        // TODO(C++20) *this | std::ranges::transform(invoke_buid_string) | ranges::unique
         std::transform(begin(), end(), builds.begin(), invoke_build_string);
+        if (remove_duplicates)
+        {
+            builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
+        }
         return join_trunc(builds, sep, etc);
     }
 
@@ -1073,11 +1082,12 @@ namespace mamba
             CompressedProblemsGraph const& m_pbs;
 
             /**
-             * Function to decide status on leaf nodes.
+             * Function to decide if a node is uninstallable.
              *
-             * The status for other nodes is computed from the status of the sub-trees.
+             * For a leaf this sets the final status.
+             * For other nodes, a pacakge could still be uninstallable because of its children.
              */
-            auto leaf_status(node_id id) -> Status;
+            auto node_uninstallable(node_id id) -> Status;
 
             /**
              * Get the type of a node depending on the exploration.
@@ -1137,7 +1147,7 @@ namespace mamba
             return path;
         }
 
-        auto TreeDFS::leaf_status(node_id id) -> Status
+        auto TreeDFS::node_uninstallable(node_id id) -> Status
         {
             auto installables_contains = [&](auto&& id) { return leaf_installables.contains(id); };
             auto const& conflicts = m_pbs.conflicts();
@@ -1152,13 +1162,14 @@ namespace mamba
                 auto const& conflict_with = conflicts.conflicts(id);
                 if (std::any_of(conflict_with.begin(), conflict_with.end(), installables_contains))
                 {
-                    return false;
+                    return true;
                 }
                 leaf_installables.insert(id);
-                return true;
+                return false;
             }
-            // Assuming any other type of leave is a kind of problem.
-            return false;
+
+            // Assuming any other type of leave is a kind of problem and other nodes not.
+            return m_pbs.graph().successors(id).size() == 0;
         }
 
         auto TreeDFS::node_type(node_id id) const -> TreeNode::Type
@@ -1311,11 +1322,10 @@ namespace mamba
             {
                 return { out, status.value() };
             }
-            if (successors.size() == 0)
+            if (node_uninstallable(id))
             {
-                auto const status = leaf_status(id);
-                m_node_visited[id] = status;
-                return { out, status };
+                m_node_visited[id] = false;
+                return { out, false };
             }
 
             Status status = true;

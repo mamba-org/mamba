@@ -493,7 +493,6 @@ namespace mamba
             else
             {
                 EXPECT_TRUE(std::holds_alternative<ProblemsGraph::PackageNode>(node));
-                EXPECT_FALSE(has_problem_type(node));
             }
             // All nodes reachable from the root
             EXPECT_TRUE(is_reachable(pbs.graph(), pbs.root_node(), id));
@@ -518,7 +517,8 @@ namespace mamba
         EXPECT_EQ(l.size(), n_packages);
         EXPECT_EQ(l.name(), "pkg");
         EXPECT_EQ(l.versions_trunc(", ", "..."), "0.1.0, 0.2.0, ..., 0.9.0");
-        EXPECT_EQ(l.build_strings_trunc(", ", "..."), "bld, bld, ..., bld");
+        EXPECT_EQ(l.build_strings_trunc(", ", "...", false), "bld, bld, ..., bld");
+        EXPECT_EQ(l.build_strings_trunc(", ", "...", true), "bld");
     }
 
     TEST_P(Problem, compression)

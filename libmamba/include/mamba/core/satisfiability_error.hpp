@@ -195,9 +195,11 @@ namespace mamba
 
             std::string const& name() const;
             std::string versions_trunc(std::string_view sep = "|",
-                                       std::string_view etc = "...") const;
+                                       std::string_view etc = "...",
+                                       bool remove_duplicates = true) const;
             std::string build_strings_trunc(std::string_view sep = "|",
-                                            std::string_view etc = "...") const;
+                                            std::string_view etc = "...",
+                                            bool remove_duplicates = true) const;
 
             using Base::clear;
             using Base::reserve;

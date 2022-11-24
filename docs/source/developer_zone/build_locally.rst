@@ -34,7 +34,7 @@ Install dev requirements
 
     micromamba install --name <env_name> --file ./<project>/environment-dev.yml
 
-Pick the correction environment spec file depending on the project you want to build.
+Pick the correct environment spec file depending on the project you want to build.
 
 If you don't have an existing env, refer to the :ref:`installation<installation>` page.
 
@@ -60,12 +60,10 @@ Shared library
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_SHARED=ON
-    make
+    cmake --build build/
 
 .. note::
     ``libmamba`` ``cmake`` target represents the shared library
@@ -77,12 +75,10 @@ Static library
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_STATIC=ON
-    make
+    cmake --build build/
 
 .. note::
     ``libmamba-static`` ``cmake`` target represents the static library without any dependency linkage
@@ -94,12 +90,10 @@ Fully static library
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_STATIC_DEPS=ON
-    make
+    cmake --build build/
 
 .. note::
     ``libmamba-full-static`` ``cmake`` target represents the static library with static dependencies linkage
@@ -123,25 +117,23 @@ Tests
 
 .. code::
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_SHARED=ON \
         -DBUILD_LIBMAMBA_TESTS=ON
-    make
+    cmake --build build/
 
 You should now be able to run:
 
 .. code::
 
-    ./libmamba/tests/test_libmamba
+    ./build/libmamba/tests/test_libmamba
 
 Alternatively you can use:
 
 .. code::
 
-    make test
+    make test -C build/
 
 .. note::
     If you want to run specific or a subset of tests, you can use ``GTEST_FILTER`` environment variable or the ``--gtest_filter`` flag.
@@ -155,25 +147,21 @@ You can either rely on ``libmamba`` package already installed in your environmen
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBAPY=ON
-    make
+    cmake --build build/
 
 or rebuild ``libmamba`` in the same time:
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_SHARED=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
         -DBUILD_LIBMAMBAPY=ON
-    make
+    cmake --build build/
 
 .. note::
     When rebuilding ``libmamba``, you also need to install the library in a path it will be found.
@@ -188,8 +176,8 @@ You'll need to install the target to have the bindings Python sub-module correct
 
 .. code:: bash
 
-    make install
-    pip install -e ../libmambapy/ --no-deps
+    make install -C build/
+    pip install -e libmambapy/ --no-deps
 
 .. note::
     The editable mode ``-e`` provided by ``pip`` allows to use the source directory as the Python package instead of copying sources inside the environment
@@ -208,6 +196,7 @@ Build ``mamba``
 You need to build and install ``libmambapy``, which is a dependency of ``mamba``, then install ``mamba``:
 
 .. code::
+
     pip install -e ./mamba/ --no-deps
 
 .. note::
@@ -224,27 +213,23 @@ To build ``micromamba``, activate the ``BUILD_MICROMAMBA`` flag in ``cmake`` com
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=DYNAMIC
-    make
+    cmake --build build/
 
 or rebuild ``libmamba`` in the same time:
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_SHARED=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=DYNAMIC
-    make
+    cmake --build build/
 
 .. note::
     If you need to install, use the ``CMAKE_INSTALL_PREFIX`` ``cmake`` option to point your current development environment:
@@ -270,27 +255,23 @@ You can also build ``micromamba`` statically linked against ``libmamba``:
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=STATIC
-    make
+    cmake --build build/
 
 or with ``libmamba``:
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_STATIC=ON \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DCMAKE_PREFIX_PATH=$CONDA_PREFIX \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=STATIC
-    make
+    cmake --build build/
 
 .. note::
     ``MICROMAMBA_LINKAGE`` default value is ``DYNAMIC``
@@ -313,25 +294,21 @@ Now you can run ``cmake`` with the additional flag ``MICROMAMBA_STATIC_DEPS`` tu
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=FULL_STATIC
-    make
+    cmake --build build/
 
 or with ``libmamba``:
 
 .. code:: bash
 
-    mkdir -p build
-    cd build
-    cmake .. \
+    cmake -B build/ \
         -DBUILD_LIBMAMBA=ON \
         -DBUILD_STATIC_DEPS=ON \
         -DBUILD_MICROMAMBA=ON \
         -DMICROMAMBA_LINKAGE=FULL_STATIC
-    make
+    cmake --build build/
 
 Tests
 *****
@@ -343,10 +320,9 @@ In order to run the Python-based test suite, you need to set the following envir
     export TEST_MAMBA_EXE=build/micromamba/micromamba
     export MAMBA_ROOT_PREFIX=YOUR_MICROMAMBA_ROOT_PREFIX
 
-Then, from the ``mamba`` root directory, you should be able to run the tests:
+Then, you should be able to run the tests:
 
 .. code::
-    cd ..
     pytest micromamba/tests/
 
 Since running all the tests would take a great amount of time, you could choose to run only a specific test.
@@ -354,3 +330,6 @@ To launch ``test_env`` for example, you can run:
 
 .. code::
     pytest micromamba/tests/test_env.py
+
+.. note::
+    You could also use ``pytest`` ``-k`` option to filter by test full name or substring.

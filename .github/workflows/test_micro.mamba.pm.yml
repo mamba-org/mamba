@@ -42,12 +42,9 @@ jobs:
         # use either -l or -i to source .bash_profile or .bashrc/.zshrc
         run: |
           ${{ matrix.shell }} ${{ matrix.shell-source-param }} -ec micromamba
-      - uses: dblock/create-a-github-issue@2c9fa0d32c24d651281c37d21e5b49e333500fe8
-        #if: failure()
-        if: false
+      - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
+        if: failure()
         with:
-          filename: .github/workflows/test_issue.md
-          update_existing: true
-          search_existing: all
+          filename: mamba/.github/workflows/bot_issue_template.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -215,7 +215,7 @@ PYBIND11_MODULE(bindings, m)
         .def("solve",
              [](MSolver& self)
              {
-                 deprecated("Solver.solve is deprecated, use try_solve or must_solve instead");
+                 // TODO figure out a better interface
                  return self.try_solve();
              })
         .def("try_solve", &MSolver::try_solve)

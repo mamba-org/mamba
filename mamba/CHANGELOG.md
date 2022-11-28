@@ -1,3 +1,19 @@
+mamba 1.1.0 (November 25, 2022)
+===============================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix activate/deactivate in fish shell (thanks @psobolewskiPhD) #2081
+
+Enhancements
+
+- fix: Don't print banner in quiet mode (thanks @corneliusroemer) #2097
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 mamba 1.0.0 (November 01, 2022)
 ===============================
 

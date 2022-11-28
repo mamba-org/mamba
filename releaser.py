@@ -66,16 +66,16 @@ def commands(changes):
         files_to_commit += f"    {templates[c][:-len('.tmpl')]} \\\n"
     files_to_commit = files_to_commit[:-3]
 
-    files_to_revert = ""
     for c in changes:
         files_to_commit += f"    {templates[c][:-len('.tmpl')]} \\\n"
     print("\n\n--- REVERT ---\n\n")
-    print(f"git checkout origin/master -- \\\n{files_to_commit[:-3]}\n\n")
+    print(f"git checkout origin/main -- \\\n{files_to_commit[:-3]}\n\n")
 
     print("\n\n--- COMMIT ---\n\n")
     print("pre-commit run --all")
     print("git diff")
-    print(f"git commit -m 'release {commit_msg}' \\\n{files_to_revert}")
+    files_to_commit += "    CHANGELOG.md \\\n"
+    print(f"git commit -m 'release {commit_msg}' \\\n{files_to_commit[:-3]}")
 
     print(f"git tag {date_stamp}")
     for c in changes:

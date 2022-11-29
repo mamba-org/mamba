@@ -33,17 +33,13 @@ namespace mamba
         static const char MAMBA_PLATFORM[] = "linux-32";
 // armv6l and armv7l
 #elif defined(__arm__) || defined(__thumb__)
-#ifdef ___ARM_ARCH_6__
+#if defined(__ARM_ARCH_6__)
         static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif __ARM_ARCH_7__
+#elif defined(__ARM_ARCH_7A__)
         static const char MAMBA_PLATFORM[] = "linux-armv7l";
 #else
 #error "Unknown Linux arm platform"
 #endif
-#elif _M_ARM == 6
-        static const char MAMBA_PLATFORM[] = "linux-armv6l";
-#elif _M_ARM == 7
-        static const char MAMBA_PLATFORM[] = "linux-armv7l";
 // aarch64
 #elif defined(__aarch64__)
         static const char MAMBA_PLATFORM[] = "linux-aarch64";

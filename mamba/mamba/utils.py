@@ -274,7 +274,8 @@ def init_api_context(use_mamba_experimental=False):
     api_ctx.retry_backoff = context.remote_backoff_factor
     api_ctx.add_pip_as_python_dependency = context.add_pip_as_python_dependency
     api_ctx.use_only_tar_bz2 = context.use_only_tar_bz2
-
+    api_ctx.experimental_sat_error_message = context.experimental_sat_error_message
+    
     if context.channel_priority is ChannelPriority.STRICT:
         api_ctx.channel_priority = api.ChannelPriority.kStrict
     elif context.channel_priority is ChannelPriority.FLEXIBLE:

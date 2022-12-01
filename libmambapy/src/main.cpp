@@ -478,6 +478,7 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
+        .def_readwrite("experimental_sat_error_message", &Context::experimental_sat_error_message)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 

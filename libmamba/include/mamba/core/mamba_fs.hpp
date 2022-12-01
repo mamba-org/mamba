@@ -7,9 +7,9 @@
 
 #include "mamba/core/util_string.hpp"
 
-#if ! defined(_WIN32)
-    #include <sys/stat.h>
-    #include <fcntl.h>
+#if !defined(_WIN32)
+#include <sys/stat.h>
+#include <fcntl.h>
 #endif
 
 
@@ -69,8 +69,10 @@
 
 namespace fs
 {
-    // use named class as sentinel argument for last_write_time
-    class now {};
+    // sentinel argument for indicating the current time to last_write_time
+    class now
+    {
+    };
 
 
 #if defined(_WIN32)
@@ -1156,19 +1158,29 @@ namespace fs
         return std::filesystem::last_write_time(path, std::forward<OtherArgs>(args)...);
     }
 
-    // void last_write_time(const path& p, file_time_type new_time);
-    // void last_write_time(const path& p, file_time_type new_time, error_code& ec) noexcept;
-    template <typename... OtherArgs>
-    void last_write_time(const u8path& path, now _, OtherArgs&&... args)
+    // void last_write_time(const path& p, now _, error_code& ec) noexcept;
+    inline void last_write_time(const u8path& path, now _, std::error_code& ec) noexcept
     {
 #if defined(_WIN32)
         auto new_time = fs::file_time_type::clock::now();
-        return std::filesystem::last_write_time(path, new_time, std::forward<OtherArgs>(args)...);
+        return std::filesystem::last_write_time(path, new_time, ec);
 #else
-        int err = utimensat(AT_FDCWD, path.string().c_str(), NULL, AT_SYMLINK_NOFOLLOW);
-        if (err == 0) return;
-        // TODO proper err handling
+        if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
+        {
+            ec = std::error_code(errno, std::generic_category());
+        }
 #endif
+    }
+
+    // void last_write_time(const path& p, now _);
+    inline void last_write_time(const u8path& path, now sentinel)
+    {
+        std::error_code ec;
+        last_write_time(path, sentinel, ec);
+        if (ec)
+        {
+            throw filesystem_error("last_write_time", path, ec);
+        }
     }
 
     // void last_write_time(const path& p, file_time_type new_time);

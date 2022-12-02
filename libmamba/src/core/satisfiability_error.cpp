@@ -892,7 +892,7 @@ namespace mamba
     auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
                                                                   std::string_view etc,
                                                                   bool remove_duplicates) const
-        -> std::string
+        -> std::pair<std::string, std::size_t>
     {
         auto versions = std::vector<std::string>(size());
         auto invoke_version = [](auto&& v) -> decltype(auto)
@@ -906,14 +906,14 @@ namespace mamba
         {
             versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
         }
-        return join_trunc(versions, sep, etc);
+        return { join_trunc(versions, sep, etc), versions.size() };
     }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
                                                                        std::string_view etc,
                                                                        bool remove_duplicates) const
-        -> std::string
+        -> std::pair<std::string, std::size_t>
     {
         auto builds = std::vector<std::string>(size());
         auto invoke_build_string = [](auto&& v) -> decltype(auto)
@@ -927,7 +927,7 @@ namespace mamba
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
         }
-        return join_trunc(builds, sep, etc);
+        return { join_trunc(builds, sep, etc), builds.size() };
     }
 
     template <typename T, typename A>

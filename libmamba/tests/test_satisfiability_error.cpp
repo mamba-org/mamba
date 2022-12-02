@@ -522,9 +522,21 @@ namespace mamba
         }
         EXPECT_EQ(l.size(), n_packages);
         EXPECT_EQ(l.name(), "pkg");
-        EXPECT_EQ(l.versions_trunc(", ", "..."), "0.1.0, 0.2.0, ..., 0.9.0");
-        EXPECT_EQ(l.build_strings_trunc(", ", "...", false), "bld, bld, ..., bld");
-        EXPECT_EQ(l.build_strings_trunc(", ", "...", true), "bld");
+        {
+            auto [str, size] = l.versions_trunc(", ", "...");
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
+        }
+        {
+            auto [str, size] = l.build_strings_trunc(", ", "...", false);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "bld, bld, ..., bld");
+        }
+        {
+            auto [str, size] = l.build_strings_trunc(", ", "...", true);
+            EXPECT_EQ(size, 1);
+            EXPECT_EQ(str, "bld");
+        }
     }
 
     TEST_P(Problem, compression)

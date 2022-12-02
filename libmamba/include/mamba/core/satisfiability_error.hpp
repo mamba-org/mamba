@@ -198,15 +198,17 @@ namespace mamba
             std::string const& name() const;
             std::pair<std::string, std::size_t> versions_trunc(std::string_view sep = "|",
                                                                std::string_view etc = "...",
+                                                               std::size_t threshold = 5,
                                                                bool remove_duplicates = true) const;
             std::pair<std::string, std::size_t> build_strings_trunc(std::string_view sep = "|",
                                                                     std::string_view etc = "...",
+                                                                    std::size_t threshold = 5,
                                                                     bool remove_duplicates
                                                                     = true) const;
-
             std::pair<std::string, std::size_t> versions_and_build_strings_trunc(
                 std::string_view sep = "|",
                 std::string_view etc = "...",
+                std::size_t threshold = 5,
                 bool remove_duplicates = true) const;
 
             using Base::clear;

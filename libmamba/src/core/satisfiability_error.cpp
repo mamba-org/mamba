@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
+#include <limits>
 
 #include <solv/pool.h>
 #include <fmt/color.h>
@@ -891,6 +892,7 @@ namespace mamba
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
                                                                   std::string_view etc,
+                                                                  std::size_t threshold,
                                                                   bool remove_duplicates) const
         -> std::pair<std::string, std::size_t>
     {
@@ -906,12 +908,13 @@ namespace mamba
         {
             versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
         }
-        return { join_trunc(versions, sep, etc), versions.size() };
+        return { join_trunc(versions, sep, etc, threshold), versions.size() };
     }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
                                                                        std::string_view etc,
+                                                                       std::size_t threshold,
                                                                        bool remove_duplicates) const
         -> std::pair<std::string, std::size_t>
     {
@@ -927,13 +930,15 @@ namespace mamba
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
         }
-        return { join_trunc(builds, sep, etc), builds.size() };
+        return { join_trunc(builds, sep, etc, threshold), builds.size() };
     }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::versions_and_build_strings_trunc(
-        std::string_view sep, std::string_view etc, bool remove_duplicates) const
-        -> std::pair<std::string, std::size_t>
+        std::string_view sep,
+        std::string_view etc,
+        std::size_t threshold,
+        bool remove_duplicates) const -> std::pair<std::string, std::size_t>
     {
         auto versions_builds = std::vector<std::string>(size());
         auto invoke_version_builds = [](auto&& v) -> decltype(auto)
@@ -950,7 +955,7 @@ namespace mamba
             versions_builds.erase(std::unique(versions_builds.begin(), versions_builds.end()),
                                   versions_builds.end());
         }
-        return { join_trunc(versions_builds, sep, etc), versions_builds.size() };
+        return { join_trunc(versions_builds, sep, etc, threshold), versions_builds.size() };
     }
 
     template <typename T, typename A>
@@ -1123,7 +1128,7 @@ namespace mamba
             /**
              * The successors of a node, grouped by same dependency name (edge data).
              */
-            auto successors_per_dep(node_id from);
+            auto successors_per_dep(node_id from, bool name_only);
 
             /**
              * Visit a "split" node.
@@ -1220,13 +1225,22 @@ namespace mamba
             }
         }
 
-        auto TreeDFS::successors_per_dep(node_id from)
+        auto TreeDFS::successors_per_dep(node_id from, bool name_only)
         {
             // The key are sorted by alphabetical order of the dependency name
-            auto out = std::map<std::string_view, std::vector<node_id>>();
+            auto out = std::map<std::string, std::vector<node_id>>();
             for (auto to : m_pbs.graph().successors(from))
             {
-                out[m_pbs.graph().edge(from, to).name()].push_back(to);
+                auto const& edge = m_pbs.graph().edge(from, to);
+                std::string key = edge.name();
+                if (!name_only)
+                {
+                    // Making up an arbitrary string represnetation of the edge
+                    key += edge.versions_and_build_strings_trunc(
+                                   "", "", std::numeric_limits<std::size_t>::max())
+                               .first;
+                }
+                out[key].push_back(to);
             }
             return out;
         }
@@ -1340,7 +1354,9 @@ namespace mamba
         auto TreeDFS::visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
             -> std::pair<TreeNodeIter, Status>
         {
-            auto const successors = successors_per_dep(id);
+            // At depth 0, we use a stric grouping of edges to avoid gathering user requirements
+            // that have the same name (e.g. a mistake "python=3.7" "python=3.8").
+            auto const successors = successors_per_dep(id, ongoing.depth() > 0);
 
             if (auto const status = m_node_visited[id]; status.has_value())
             {

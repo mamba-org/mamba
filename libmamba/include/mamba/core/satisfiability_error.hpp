@@ -213,6 +213,8 @@ namespace mamba
             using Base::reserve;
             void insert(value_type const& e);
             void insert(value_type&& e);
+            template <typename InputIterator>
+            void insert(InputIterator first, InputIterator last);
 
         private:
             template <typename T_>
@@ -310,6 +312,20 @@ namespace mamba
     {
         Base::operator[](a).insert(b);
         Base::operator[](b).insert(a);
+    }
+
+    /*********************************
+     *  Implementation of NamedList  *
+     *********************************/
+
+    template <typename T, typename A>
+    template <typename InputIterator>
+    void CompressedProblemsGraph::NamedList<T, A>::insert(InputIterator first, InputIterator last)
+    {
+        for (; first < last; ++first)
+        {
+            insert(*first);
+        }
     }
 }
 

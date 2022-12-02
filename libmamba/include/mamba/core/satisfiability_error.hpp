@@ -204,6 +204,11 @@ namespace mamba
                                                                     bool remove_duplicates
                                                                     = true) const;
 
+            std::pair<std::string, std::size_t> versions_and_build_strings_trunc(
+                std::string_view sep = "|",
+                std::string_view etc = "...",
+                bool remove_duplicates = true) const;
+
             using Base::clear;
             using Base::reserve;
             void insert(value_type const& e);

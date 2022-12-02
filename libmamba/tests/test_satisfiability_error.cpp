@@ -537,6 +537,11 @@ namespace mamba
             EXPECT_EQ(size, 1);
             EXPECT_EQ(str, "bld");
         }
+        {
+            auto [str, size] = l.versions_and_build_strings_trunc("|", "---");
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
+        }
     }
 
     TEST_P(Problem, compression)

@@ -931,6 +931,29 @@ namespace mamba
     }
 
     template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::versions_and_build_strings_trunc(
+        std::string_view sep, std::string_view etc, bool remove_duplicates) const
+        -> std::pair<std::string, std::size_t>
+    {
+        auto versions_builds = std::vector<std::string>(size());
+        auto invoke_version_builds = [](auto&& v) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
+            return fmt::format("{} {}",
+                               std::invoke(&TT::version, std::forward<decltype(v)>(v)),
+                               std::invoke(&TT::build_string, std::forward<decltype(v)>(v)));
+        };
+        // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
+        std::transform(begin(), end(), versions_builds.begin(), invoke_version_builds);
+        if (remove_duplicates)
+        {
+            versions_builds.erase(std::unique(versions_builds.begin(), versions_builds.end()),
+                                  versions_builds.end());
+        }
+        return { join_trunc(versions_builds, sep, etc), versions_builds.size() };
+    }
+
+    template <typename T, typename A>
     void CompressedProblemsGraph::NamedList<T, A>::insert(value_type const& e)
     {
         return insert_impl(e);

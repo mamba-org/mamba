@@ -1457,15 +1457,9 @@ namespace mamba
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
                     auto const style = tn.status ? m_format.available : m_format.unavailable;
-                    if (node.size() == 1)
-                    {
-                        // Won't be truncated as it's size one
-                        write(fmt::format(style, "{} {}", node.name(), node.versions_trunc()));
-                    }
-                    else
-                    {
-                        write(fmt::format(style, "{} [{}]", node.name(), node.versions_trunc()));
-                    }
+                    auto [versions_trunc, size] = node.versions_trunc();
+                    write(fmt::format(
+                        style, (size == 1 ? "{} {}" : "{} [{}]"), node.name(), versions_trunc));
                 }
             };
             std::visit(do_write, m_pbs.graph().node(tn.id));
@@ -1477,23 +1471,9 @@ namespace mamba
             auto const style = tn.status ? m_format.available : m_format.unavailable;
             // We show the build string in pkg_dep and not pkg_list because hand written build
             // string are more likely to contain vital information about the variant.
-            if (edge.size() == 1)
-            {
-                // Won't be truncated as it's size one
-                write(fmt::format(style,
-                                  "{} {} {}",
-                                  edge.name(),
-                                  edge.versions_trunc(),
-                                  edge.build_strings_trunc()));
-            }
-            else
-            {
-                write(fmt::format(style,
-                                  "{} [{}] [{}]",
-                                  edge.name(),
-                                  edge.versions_trunc(),
-                                  edge.build_strings_trunc()));
-            }
+            auto [vers_builds_trunc, size] = edge.versions_and_build_strings_trunc();
+            write(fmt::format(
+                style, (size == 1 ? "{} {}" : "{} [{}]"), edge.name(), vers_builds_trunc));
         }
 
         void TreeExplainer::write_pkg_repr(TreeNode const& tn)

@@ -421,6 +421,12 @@ namespace mamba
         return *solver;
     }
 
+    auto create_double_python() -> MSolver&
+    {
+        static auto solver = create_conda_forge({ "python=3.9.*", "python=3.10.*" });
+        return *solver;
+    }
+
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
     {
     };
@@ -605,5 +611,6 @@ namespace mamba
                                              create_jpeg9b,
                                              create_r_base,
                                              create_scip,
-                                             create_jupyterlab));
+                                             create_jupyterlab,
+                                             create_double_python));
 }

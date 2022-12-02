@@ -1251,19 +1251,21 @@ namespace mamba
                 ongoing.status |= status;
             }
 
-            // All children are the same type of visited or leaves, no grand-children.
+            // All children are the same type of visited or leaves, no grand-children,
+            // and same status.
             // We dynamically delete all children and mark the whole node as such.
-            auto all_same_type = [](TreeNodeIter first, TreeNodeIter last) -> bool
+            auto all_same_split_children = [](TreeNodeIter first, TreeNodeIter last) -> bool
             {
                 if (last <= first)
                 {
                     return true;
                 }
-                return std::all_of(
-                    first, last, [t = first->type](TreeNode const& tn) { return tn.type == t; });
+                auto same = [&first](TreeNode const& tn)
+                { return (tn.type == first->type) && (tn.status == first->status); };
+                return std::all_of(first, last, same);
             };
             TreeNodeIter const children_end = out;
-            if ((n_children >= 1) && all_same_type(children_begin, children_end))
+            if ((n_children >= 1) && all_same_split_children(children_begin, children_end))
             {
                 ongoing.type = children_begin->type;
                 out = children_begin;

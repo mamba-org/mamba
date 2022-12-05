@@ -133,7 +133,7 @@ Alternatively you can use:
 
 .. code::
 
-    make test -C build/
+    cmake --build build/ --target test
 
 .. note::
     If you want to run specific or a subset of tests, you can use ``GTEST_FILTER`` environment variable or the ``--gtest_filter`` flag.
@@ -323,12 +323,14 @@ In order to run the Python-based test suite, you need to set the following envir
 Then, you should be able to run the tests:
 
 .. code::
+
     pytest micromamba/tests/
 
 Since running all the tests would take a great amount of time, you could choose to run only a specific test.
 To launch ``test_env`` for example, you can run:
 
 .. code::
+
     pytest micromamba/tests/test_env.py
 
 .. note::

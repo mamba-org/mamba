@@ -450,6 +450,14 @@ class Context:
     def envs_dirs(self, arg0: typing.List[Path]) -> None:
         pass
     @property
+    def experimental_sat_error_message(self) -> bool:
+        """
+        :type: bool
+        """
+    @experimental_sat_error_message.setter
+    def experimental_sat_error_message(self, arg0: bool) -> None:
+        pass
+    @property
     def extract_threads(self) -> int:
         """
         :type: int

@@ -234,13 +234,28 @@ class CompressedProblemsGraph:
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.ConstraintNode) -> None: ...
         def build_strings_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def versions_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         pass
 
     class DependencyListList:
@@ -250,13 +265,28 @@ class CompressedProblemsGraph:
         def __len__(self) -> int: ...
         def add(self, arg0: DependencyInfo) -> None: ...
         def build_strings_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def versions_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         pass
 
     class PackageListNode:
@@ -266,13 +296,28 @@ class CompressedProblemsGraph:
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.PackageNode) -> None: ...
         def build_strings_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def versions_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         pass
 
     class RootNode:
@@ -286,13 +331,28 @@ class CompressedProblemsGraph:
         def __len__(self) -> int: ...
         def add(self, arg0: ProblemsGraph.UnresolvedDependencyNode) -> None: ...
         def build_strings_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def clear(self) -> None: ...
         def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         def versions_trunc(
-            self, sep: str = "|", etc: str = "...", remove_duplicates: bool = True
-        ) -> str: ...
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
         pass
     def conflicts(self) -> ProblemsGraph.ConflictMap: ...
     @staticmethod

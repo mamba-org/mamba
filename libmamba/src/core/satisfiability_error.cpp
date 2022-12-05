@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
+#include <limits>
 
 #include <solv/pool.h>
 #include <fmt/color.h>
@@ -891,8 +892,9 @@ namespace mamba
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::versions_trunc(std::string_view sep,
                                                                   std::string_view etc,
+                                                                  std::size_t threshold,
                                                                   bool remove_duplicates) const
-        -> std::string
+        -> std::pair<std::string, std::size_t>
     {
         auto versions = std::vector<std::string>(size());
         auto invoke_version = [](auto&& v) -> decltype(auto)
@@ -906,14 +908,15 @@ namespace mamba
         {
             versions.erase(std::unique(versions.begin(), versions.end()), versions.end());
         }
-        return join_trunc(versions, sep, etc);
+        return { join_trunc(versions, sep, etc, threshold), versions.size() };
     }
 
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::build_strings_trunc(std::string_view sep,
                                                                        std::string_view etc,
+                                                                       std::size_t threshold,
                                                                        bool remove_duplicates) const
-        -> std::string
+        -> std::pair<std::string, std::size_t>
     {
         auto builds = std::vector<std::string>(size());
         auto invoke_build_string = [](auto&& v) -> decltype(auto)
@@ -927,7 +930,32 @@ namespace mamba
         {
             builds.erase(std::unique(builds.begin(), builds.end()), builds.end());
         }
-        return join_trunc(builds, sep, etc);
+        return { join_trunc(builds, sep, etc, threshold), builds.size() };
+    }
+
+    template <typename T, typename A>
+    auto CompressedProblemsGraph::NamedList<T, A>::versions_and_build_strings_trunc(
+        std::string_view sep,
+        std::string_view etc,
+        std::size_t threshold,
+        bool remove_duplicates) const -> std::pair<std::string, std::size_t>
+    {
+        auto versions_builds = std::vector<std::string>(size());
+        auto invoke_version_builds = [](auto&& v) -> decltype(auto)
+        {
+            using TT = std::remove_cv_t<std::remove_reference_t<decltype(v)>>;
+            return fmt::format("{} {}",
+                               std::invoke(&TT::version, std::forward<decltype(v)>(v)),
+                               std::invoke(&TT::build_string, std::forward<decltype(v)>(v)));
+        };
+        // TODO(C++20) *this | std::ranges::transform(invoke_version) | ranges::unique
+        std::transform(begin(), end(), versions_builds.begin(), invoke_version_builds);
+        if (remove_duplicates)
+        {
+            versions_builds.erase(std::unique(versions_builds.begin(), versions_builds.end()),
+                                  versions_builds.end());
+        }
+        return { join_trunc(versions_builds, sep, etc, threshold), versions_builds.size() };
     }
 
     template <typename T, typename A>
@@ -1016,12 +1044,15 @@ namespace mamba
             using node_id = CompressedProblemsGraph::node_id;
 
             std::vector<SiblingNumber> ancestry;
-            node_id id;
-            node_id id_from;
+            /** Multiple node_id means that the node is "virtual".
+             *
+             * It represents a group of node, as in a split (but other types are used as well).
+             */
+            std::vector<node_id> ids;
+            std::vector<node_id> ids_from;
             Type type;
             Type type_from;
             Status status;
-            bool virtual_node;
 
             auto depth() const -> std::size_t
             {
@@ -1097,7 +1128,7 @@ namespace mamba
             /**
              * The successors of a node, grouped by same dependency name (edge data).
              */
-            auto successors_per_dep(node_id from);
+            auto successors_per_dep(node_id from, bool name_only);
 
             /**
              * Visit a "split" node.
@@ -1194,13 +1225,22 @@ namespace mamba
             }
         }
 
-        auto TreeDFS::successors_per_dep(node_id from)
+        auto TreeDFS::successors_per_dep(node_id from, bool name_only)
         {
             // The key are sorted by alphabetical order of the dependency name
-            auto out = std::map<std::string_view, std::vector<node_id>>();
+            auto out = std::map<std::string, std::vector<node_id>>();
             for (auto to : m_pbs.graph().successors(from))
             {
-                out[m_pbs.graph().edge(from, to).name()].push_back(to);
+                auto const& edge = m_pbs.graph().edge(from, to);
+                std::string key = edge.name();
+                if (!name_only)
+                {
+                    // Making up an arbitrary string represnetation of the edge
+                    key += edge.versions_and_build_strings_trunc(
+                                   "", "", std::numeric_limits<std::size_t>::max())
+                               .first;
+                }
+                out[key].push_back(to);
             }
             return out;
         }
@@ -1224,18 +1264,16 @@ namespace mamba
                                   TreeNodeIter out) -> std::pair<TreeNodeIter, Status>
         {
             auto& ongoing = *(out++);
-            // There is no node_id for this dynamically created node, however we still need
-            // a node_id to later retrieve the dependency from the edge data so we put the
-            // first child id as node_id
+            // There is no single node_id for this dynamically created node, we use the vector
+            // to represent all nodes.
             assert(children_ids.size() > 0);
             ongoing = TreeNode{
-                /* ancestry= */ concat(from.ancestry, position),
-                /* id= */ children_ids[0],
-                /* id_from= */ from.id,
-                /* type= */ TreeNode::Type::split,
-                /* type_from= */ from.type,
-                /* status= */ false,  // Placeholder updated
-                /* virtual_node= */ true,
+                /* .ancestry= */ concat(from.ancestry, position),
+                /* .ids= */ children_ids,
+                /* .ids_from= */ from.ids,
+                /* .type= */ TreeNode::Type::split,
+                /* .type_from= */ from.type,
+                /* .status= */ false,  // Placeholder updated
             };
 
             TreeNodeIter const children_begin = out;
@@ -1251,19 +1289,21 @@ namespace mamba
                 ongoing.status |= status;
             }
 
-            // All children are the same type of visited or leaves, no grand-children.
+            // All children are the same type of visited or leaves, no grand-children,
+            // and same status.
             // We dynamically delete all children and mark the whole node as such.
-            auto all_same_type = [](TreeNodeIter first, TreeNodeIter last) -> bool
+            auto all_same_split_children = [](TreeNodeIter first, TreeNodeIter last) -> bool
             {
                 if (last <= first)
                 {
                     return true;
                 }
-                return std::all_of(
-                    first, last, [t = first->type](TreeNode const& tn) { return tn.type == t; });
+                auto same = [&first](TreeNode const& tn)
+                { return (tn.type == first->type) && (tn.status == first->status); };
+                return std::all_of(first, last, same);
             };
             TreeNodeIter const children_end = out;
-            if ((n_children >= 1) && all_same_type(children_begin, children_end))
+            if ((n_children >= 1) && all_same_split_children(children_begin, children_end))
             {
                 ongoing.type = children_begin->type;
                 out = children_begin;
@@ -1277,13 +1317,12 @@ namespace mamba
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
-                /* ancestry= */ {},
-                /* id= */ root_id,
-                /* id_from= */ root_id,
-                /* type= */ node_type(root_id),
-                /* type_from= */ node_type(root_id),
-                /* status= */ {},  // Placeholder updated
-                /* virtual_node= */ false,
+                /* .ancestry= */ {},
+                /* .ids= */ { root_id },
+                /* .ids_from= */ { root_id },
+                /* .type= */ node_type(root_id),
+                /* .type_from= */ node_type(root_id),
+                /* .status= */ {},  // Placeholder updated
             };
 
             auto out_status = visit_node_impl(root_id, ongoing, out);
@@ -1298,13 +1337,12 @@ namespace mamba
         {
             auto& ongoing = *(out++);
             ongoing = TreeNode{
-                /* ancestry= */ concat(from.ancestry, position),
-                /* id= */ id,
-                /* id_from= */ from.id,
-                /* type= */ node_type(id),
-                /* type_from= */ from.type,
-                /* status= */ {},  // Placeholder updated
-                /* virtual_node= */ false,
+                /* .ancestry= */ concat(from.ancestry, position),
+                /* .ids= */ { id },
+                /* .ids_from= */ from.ids,
+                /* .type= */ node_type(id),
+                /* .type_from= */ from.type,
+                /* .status= */ {},  // Placeholder updated
             };
 
             auto out_status = visit_node_impl(id, ongoing, out);
@@ -1316,7 +1354,9 @@ namespace mamba
         auto TreeDFS::visit_node_impl(node_id id, TreeNode const& ongoing, TreeNodeIter out)
             -> std::pair<TreeNodeIter, Status>
         {
-            auto const successors = successors_per_dep(id);
+            // At depth 0, we use a stric grouping of edges to avoid gathering user requirements
+            // that have the same name (e.g. a mistake "python=3.7" "python=3.8").
+            auto const successors = successors_per_dep(id, ongoing.depth() > 0);
 
             if (auto const status = m_node_visited[id]; status.has_value())
             {
@@ -1368,6 +1408,9 @@ namespace mamba
         private:
             using Status = TreeNode::Status;
             using SiblingNumber = TreeNode::SiblingNumber;
+            using node_id = CompressedProblemsGraph::node_id;
+            using node_t = CompressedProblemsGraph::node_t;
+            using edge_t = CompressedProblemsGraph::edge_t;
 
             std::ostream& m_outs;
             CompressedProblemsGraph const& m_pbs;
@@ -1389,6 +1432,12 @@ namespace mamba
             void write_leaf(TreeNode const& tn);
             void write_visited(TreeNode const& tn);
             void write_path(std::vector<TreeNode> const& path);
+
+            template <typename Node>
+            auto concat_nodes_impl(std::vector<node_id> const& ids) -> Node;
+            auto concat_nodes(std::vector<node_id> const& ids) -> node_t;
+            auto concat_edges(std::vector<node_id> const& from, std::vector<node_id> const& to)
+                -> edge_t;
         };
 
         /*************************************
@@ -1432,53 +1481,33 @@ namespace mamba
                 if constexpr (!std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
                 {
                     auto const style = tn.status ? m_format.available : m_format.unavailable;
-                    if (node.size() == 1)
-                    {
-                        // Won't be truncated as it's size one
-                        write(fmt::format(style, "{} {}", node.name(), node.versions_trunc()));
-                    }
-                    else
-                    {
-                        write(fmt::format(style, "{} [{}]", node.name(), node.versions_trunc()));
-                    }
+                    auto [versions_trunc, size] = node.versions_trunc();
+                    write(fmt::format(
+                        style, (size == 1 ? "{} {}" : "{} [{}]"), node.name(), versions_trunc));
                 }
             };
-            std::visit(do_write, m_pbs.graph().node(tn.id));
+            std::visit(do_write, concat_nodes(tn.ids));
         }
 
         void TreeExplainer::write_pkg_dep(TreeNode const& tn)
         {
-            auto const& edge = m_pbs.graph().edge(tn.id_from, tn.id);
+            auto edges = concat_edges(tn.ids_from, tn.ids);
             auto const style = tn.status ? m_format.available : m_format.unavailable;
             // We show the build string in pkg_dep and not pkg_list because hand written build
             // string are more likely to contain vital information about the variant.
-            if (edge.size() == 1)
-            {
-                // Won't be truncated as it's size one
-                write(fmt::format(style,
-                                  "{} {} {}",
-                                  edge.name(),
-                                  edge.versions_trunc(),
-                                  edge.build_strings_trunc()));
-            }
-            else
-            {
-                write(fmt::format(style,
-                                  "{} [{}] [{}]",
-                                  edge.name(),
-                                  edge.versions_trunc(),
-                                  edge.build_strings_trunc()));
-            }
+            auto [vers_builds_trunc, size] = edges.versions_and_build_strings_trunc();
+            write(fmt::format(
+                style, (size == 1 ? "{} {}" : "{} [{}]"), edges.name(), vers_builds_trunc));
         }
 
         void TreeExplainer::write_pkg_repr(TreeNode const& tn)
         {
-            if ((tn.type_from == TreeNode::Type::split))
+            if (tn.ids_from.size() > 1)
             {
                 assert(tn.depth() > 1);
-                assert(!tn.virtual_node);
                 write_pkg_list(tn);
             }
+            // Node is virtual, represent multiple nodes (like a split)
             else
             {
                 write_pkg_dep(tn);
@@ -1487,7 +1516,8 @@ namespace mamba
 
         void TreeExplainer::write_root(TreeNode const& tn)
         {
-            if (m_pbs.graph().successors(tn.id).size() > 1)
+            assert(tn.ids.size() == 1);  // The root is always a single node
+            if (m_pbs.graph().successors(tn.ids.front()).size() > 1)
             {
                 write("The following packages are incompatible");
             }
@@ -1612,12 +1642,12 @@ namespace mamba
                     }
                 }
             };
-            std::visit(do_write, m_pbs.graph().node(tn.id));
+            std::visit(do_write, concat_nodes(tn.ids));
         }
 
         void TreeExplainer::write_visited(TreeNode const& tn)
         {
-            write_pkg_list(tn);
+            write_pkg_repr(tn);
             if (tn.status)
             {
                 write(", which can be installed (as previously explained)");
@@ -1680,6 +1710,59 @@ namespace mamba
             auto explainer = TreeExplainer(outs, pbs, format);
             explainer.write_path(path);
             return outs;
+        }
+
+        template <typename Node>
+        auto TreeExplainer::concat_nodes_impl(std::vector<node_id> const& ids) -> Node
+        {
+            Node out = {};
+            for (auto id : ids)
+            {
+                auto const& node = std::get<Node>(m_pbs.graph().node(id));
+                out.insert(node.begin(), node.end());
+            }
+            return out;
+        }
+
+        auto TreeExplainer::concat_nodes(std::vector<node_id> const& ids) -> node_t
+        {
+            assert(ids.size() > 0);
+            assert(std::all_of(ids.begin(),
+                               ids.end(),
+                               [&](auto id) {
+                                   return m_pbs.graph().node(ids.front()).index()
+                                          == m_pbs.graph().node(id).index();
+                               }));
+
+            return std::visit(
+                [&](auto const& node) -> node_t
+                {
+                    using Node = std::remove_cv_t<std::remove_reference_t<decltype(node)>>;
+                    if constexpr (std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
+                    {
+                        return CompressedProblemsGraph::RootNode();
+                    }
+                    else
+                    {
+                        return concat_nodes_impl<Node>(ids);
+                    }
+                },
+                m_pbs.graph().node(ids.front()));
+        }
+
+        auto TreeExplainer::concat_edges(std::vector<node_id> const& from,
+                                         std::vector<node_id> const& to) -> edge_t
+        {
+            auto out = edge_t{};
+            for (auto f : from)
+            {
+                for (auto t : to)
+                {
+                    auto const& e = m_pbs.graph().edge(f, t);
+                    out.insert(e.begin(), e.end());
+                }
+            }
+            return out;
         }
     }
 

@@ -421,6 +421,12 @@ namespace mamba
         return *solver;
     }
 
+    auto create_double_python() -> MSolver&
+    {
+        static auto solver = create_conda_forge({ "python=3.9.*", "python=3.10.*" });
+        return *solver;
+    }
+
     class Problem : public testing::TestWithParam<decltype(&create_basic_conflict)>
     {
     };
@@ -516,9 +522,26 @@ namespace mamba
         }
         EXPECT_EQ(l.size(), n_packages);
         EXPECT_EQ(l.name(), "pkg");
-        EXPECT_EQ(l.versions_trunc(", ", "..."), "0.1.0, 0.2.0, ..., 0.9.0");
-        EXPECT_EQ(l.build_strings_trunc(", ", "...", false), "bld, bld, ..., bld");
-        EXPECT_EQ(l.build_strings_trunc(", ", "...", true), "bld");
+        {
+            auto [str, size] = l.versions_trunc(", ", "...", 5);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "0.1.0, 0.2.0, ..., 0.9.0");
+        }
+        {
+            auto [str, size] = l.build_strings_trunc(", ", "...", 5, false);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "bld, bld, ..., bld");
+        }
+        {
+            auto [str, size] = l.build_strings_trunc(", ", "...", 5, true);
+            EXPECT_EQ(size, 1);
+            EXPECT_EQ(str, "bld");
+        }
+        {
+            auto [str, size] = l.versions_and_build_strings_trunc("|", "---", 5);
+            EXPECT_EQ(size, 9);
+            EXPECT_EQ(str, "0.1.0 bld|0.2.0 bld|---|0.9.0 bld");
+        }
     }
 
     TEST_P(Problem, compression)
@@ -605,5 +628,6 @@ namespace mamba
                                              create_jpeg9b,
                                              create_r_base,
                                              create_scip,
-                                             create_jupyterlab));
+                                             create_jupyterlab,
+                                             create_double_python));
 }

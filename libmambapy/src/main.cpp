@@ -89,11 +89,19 @@ bind_NamedList(PyClass pyclass)
              &type::versions_trunc,
              py::arg("sep") = "|",
              py::arg("etc") = "...",
+             py::arg("threshold") = 5,
              py::arg("remove_duplicates") = true)
         .def("build_strings_trunc",
              &type::build_strings_trunc,
              py::arg("sep") = "|",
              py::arg("etc") = "...",
+             py::arg("threshold") = 5,
+             py::arg("remove_duplicates") = true)
+        .def("versions_and_build_strings_trunc",
+             &type::versions_and_build_strings_trunc,
+             py::arg("sep") = "|",
+             py::arg("etc") = "...",
+             py::arg("threshold") = 5,
              py::arg("remove_duplicates") = true);
     return pyclass;
 }

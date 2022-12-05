@@ -196,17 +196,27 @@ namespace mamba
             const_reverse_iterator rend() const noexcept;
 
             std::string const& name() const;
-            std::string versions_trunc(std::string_view sep = "|",
-                                       std::string_view etc = "...",
-                                       bool remove_duplicates = true) const;
-            std::string build_strings_trunc(std::string_view sep = "|",
-                                            std::string_view etc = "...",
-                                            bool remove_duplicates = true) const;
+            std::pair<std::string, std::size_t> versions_trunc(std::string_view sep = "|",
+                                                               std::string_view etc = "...",
+                                                               std::size_t threshold = 5,
+                                                               bool remove_duplicates = true) const;
+            std::pair<std::string, std::size_t> build_strings_trunc(std::string_view sep = "|",
+                                                                    std::string_view etc = "...",
+                                                                    std::size_t threshold = 5,
+                                                                    bool remove_duplicates
+                                                                    = true) const;
+            std::pair<std::string, std::size_t> versions_and_build_strings_trunc(
+                std::string_view sep = "|",
+                std::string_view etc = "...",
+                std::size_t threshold = 5,
+                bool remove_duplicates = true) const;
 
             using Base::clear;
             using Base::reserve;
             void insert(value_type const& e);
             void insert(value_type&& e);
+            template <typename InputIterator>
+            void insert(InputIterator first, InputIterator last);
 
         private:
             template <typename T_>
@@ -304,6 +314,20 @@ namespace mamba
     {
         Base::operator[](a).insert(b);
         Base::operator[](b).insert(a);
+    }
+
+    /*********************************
+     *  Implementation of NamedList  *
+     *********************************/
+
+    template <typename T, typename A>
+    template <typename InputIterator>
+    void CompressedProblemsGraph::NamedList<T, A>::insert(InputIterator first, InputIterator last)
+    {
+        for (; first < last; ++first)
+        {
+            insert(*first);
+        }
     }
 }
 

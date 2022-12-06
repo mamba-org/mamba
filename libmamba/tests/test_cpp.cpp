@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
-
 #include <sstream>
 #include <tuple>
+
+#include <gtest/gtest.h>
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
@@ -9,6 +9,8 @@
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+
+#include "test_data.hpp"
 
 namespace mamba
 {
@@ -507,7 +509,7 @@ namespace mamba
 
     TEST(subdirdata, parse_mod_etag)
     {
-        fs::u8path cache_folder = fs::u8path("repodata_json_cache");
+        fs::u8path cache_folder = fs::u8path(test_data_dir / "repodata_json_cache");
         auto j = detail::read_mod_and_etag(cache_folder / "test_1.json");
         EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(

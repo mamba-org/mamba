@@ -20,8 +20,15 @@ extern "C"
 }
 #endif
 
+
 namespace mamba
 {
+
+#ifndef MAMBA_TEST_LOCK_EXE
+#error "MAMBA_TEST_LOCK_EXE must be defined pointing to testing_libmamba_lock"
+#endif
+    inline static const fs::u8path testing_libmamba_lock_exe = MAMBA_TEST_LOCK_EXE;
+
     namespace testing
     {
 
@@ -110,15 +117,9 @@ namespace mamba
 
         TEST_F(LockDirTest, different_pid)
         {
-            std::string lock_cli;
+            std::string const lock_exe = testing_libmamba_lock_exe.string();
             std::string out, err;
             std::vector<std::string> args;
-
-#ifdef _WIN32
-            lock_cli = "testing_libmamba_lock";
-#else
-            lock_cli = "./testing_libmamba_lock";
-#endif
 
             {
                 auto lock = LockFile(tempdir_path);
@@ -128,7 +129,7 @@ namespace mamba
                 EXPECT_TRUE(mamba::LockFile::is_locked(lock));
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
+                args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -146,7 +147,7 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempdir_path.string() };
+                args = { lock_exe, "lock", "--timeout=1", tempdir_path.string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -167,7 +168,7 @@ namespace mamba
             fs::u8path lock_path = tempdir_path / (tempdir_path.filename().string() + ".lock");
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path.string() };
+            args = { lock_exe, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
             reproc::run(
@@ -229,15 +230,9 @@ namespace mamba
 
         TEST_F(LockFileTest, different_pid)
         {
-            std::string lock_cli;
+            std::string const lock_exe = testing_libmamba_lock_exe.string();
             std::string out, err;
             std::vector<std::string> args;
-
-#ifdef _WIN32
-            lock_cli = "testing_libmamba_lock";
-#else
-            lock_cli = "./testing_libmamba_lock";
-#endif
             {
                 // Create a lock
                 auto lock = LockFile(tempfile_path);
@@ -247,7 +242,7 @@ namespace mamba
                 EXPECT_TRUE(mamba::LockFile::is_locked(lock));
 
                 // Check lock status from another process
-                args = { lock_cli, "is-locked", lock.lockfile_path().string() };
+                args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -265,7 +260,7 @@ namespace mamba
                 EXPECT_TRUE(is_locked);
 
                 // Try to lock from another process
-                args = { lock_cli, "lock", "--timeout=1", tempfile_path.string() };
+                args = { lock_exe, "lock", "--timeout=1", tempfile_path.string() };
                 out.clear();
                 err.clear();
                 reproc::run(
@@ -286,7 +281,7 @@ namespace mamba
             fs::u8path lock_path = tempfile_path.string() + ".lock";
             EXPECT_FALSE(fs::exists(lock_path));
 
-            args = { lock_cli, "is-locked", lock_path.string() };
+            args = { lock_exe, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
             reproc::run(

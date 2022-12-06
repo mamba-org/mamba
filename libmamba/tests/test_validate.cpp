@@ -1,17 +1,23 @@
+// Copyright (c) 2022, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <algorithm>
+#include <map>
+
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/validate.hpp"
 #include "mamba/core/util.hpp"
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
-#include <nlohmann/json.hpp>
-
-#include <algorithm>
-#include <map>
-
-#include "spdlog/spdlog.h"
+#include "test_data.hpp"
 
 namespace validate
 {
@@ -324,7 +330,7 @@ namespace validate
                 }
 
             protected:
-                fs::u8path root1_pgp = "validation_data/1.sv0.6.root.json";
+                fs::u8path root1_pgp = test_data_dir / "validation_data/1.sv0.6.root.json";
                 json root1_json, root1_pgp_json;
 
                 secrets_type secrets;
@@ -1504,7 +1510,7 @@ namespace validate
                 }
 
             protected:
-                fs::u8path root1 = "validation_data/root.json";
+                fs::u8path root1 = test_data_dir / "validation_data/root.json";
                 json root1_json;
 
                 std::unique_ptr<TemporaryDirectory> channel_dir;

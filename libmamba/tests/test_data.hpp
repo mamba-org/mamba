@@ -15,7 +15,7 @@ namespace mamba
 #ifndef MAMBA_TEST_DATA_DIR
 #error "MAMBA_TEST_DATA_DIR must be defined pointing to test data"
 #endif
-    static const fs::u8path test_data_dir = MAMBA_TEST_DATA_DIR;
+    inline static const fs::u8path test_data_dir = MAMBA_TEST_DATA_DIR;
 
 }
 

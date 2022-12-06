@@ -27,10 +27,8 @@ namespace mamba
 #ifndef MAMBA_TEST_LOCK_EXE
 #error "MAMBA_TEST_LOCK_EXE must be defined pointing to testing_libmamba_lock"
 #endif
-    static const fs::u8path testing_libmamba_lock_exe = MAMBA_TEST_LOCK_EXE;
+    inline static const fs::u8path testing_libmamba_lock_exe = MAMBA_TEST_LOCK_EXE;
 
-
-    static const fs::u8path test_data_dir = MAMBA_TEST_DATA_DIR;
     namespace testing
     {
 

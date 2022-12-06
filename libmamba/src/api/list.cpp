@@ -78,7 +78,7 @@ namespace mamba
                         obj["base_url"] = channel.base_url();
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        if(pkg_info.url.empty() && (pkg_info.channel == "pypi"))
+                        if (pkg_info.url.empty() && (pkg_info.channel == "pypi"))
                         {
                             obj["channel"] = pkg_info.channel;
                         }
@@ -118,7 +118,7 @@ namespace mamba
                     }
                     else
                     {
-                        if(package.second.url.empty() && (package.second.channel == "pypi"))
+                        if (package.second.url.empty() && (package.second.channel == "pypi"))
                         {
                             formatted_pkgs.channel = package.second.channel;
                         }

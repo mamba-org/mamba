@@ -15,8 +15,6 @@ extern "C"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/queue.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/transaction_context.hpp"
-#include "mamba/core/channel.hpp"
 
 #include <reproc++/run.hpp>
 
@@ -166,14 +164,14 @@ namespace mamba
         std::string out, err;
         std::vector<std::string> args = { "pip", "freeze" };
         auto [status, ec] = reproc::run(
-                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
         if (ec)
         {
             throw std::runtime_error(ec.message());
         }
 
         // Nothing installed with `pip`
-        if(out.empty())
+        if (out.empty())
         {
             return;
         }

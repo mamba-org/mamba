@@ -179,9 +179,12 @@ namespace mamba
         auto pkgs_info_list = split(strip(out), "\n");
         for (auto& pkg_info_line : pkgs_info_list)
         {
-            auto pkg_info = split(strip(pkg_info_line), "==");
-            auto prec = PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
-            m_package_records.insert({ prec.name, std::move(prec) });
+            if (pkg_info_line.find("==") != std::string::npos)
+            {
+                auto pkg_info = split(strip(pkg_info_line), "==");
+                auto prec = PackageInfo(pkg_info[0], pkg_info[1], "pypi_0", "pypi");
+                m_package_records.insert({ prec.name, std::move(prec) });
+            }
         }
     }
 

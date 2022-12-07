@@ -162,7 +162,7 @@ namespace mamba
 
         // Run `pip freeze`
         std::string out, err;
-        std::vector<std::string> args = { "pip", "freeze" };
+        std::vector<std::string> args = { "pip", "freeze", "-l" };
         auto [status, ec] = reproc::run(
             args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
         if (ec)

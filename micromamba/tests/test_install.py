@@ -440,9 +440,12 @@ class TestInstall:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     def test_python_pinning(self, existing_cache):
-        install("python=3.9", no_dry_run=True)
+        res_py = install("python=3.9", no_dry_run=True)
+        print("res_py")
+        print(res_py)
         res = install("setuptools=28.4.0", "--no-py-pin", "--json")
-
+        print("res")
+        print(res)
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 

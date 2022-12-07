@@ -78,14 +78,14 @@ namespace mamba
                         obj["base_url"] = channel.base_url();
                         obj["build_number"] = pkg_info.build_number;
                         obj["build_string"] = pkg_info.build_string;
-                        if (pkg_info.url.empty() && (pkg_info.channel == "pypi"))
-                        {
-                            obj["channel"] = pkg_info.channel;
-                        }
-                        else
-                        {
+//                         if (pkg_info.url.empty() && (pkg_info.channel == "pypi"))
+//                         {
+//                             obj["channel"] = pkg_info.channel;
+//                         }
+//                         else
+//                         {
                             obj["channel"] = channel.name();
-                        }
+//                         }
                         obj["dist_name"] = pkg_info.str();
                         obj["name"] = pkg_info.name;
                         obj["platform"] = pkg_info.subdir;
@@ -118,15 +118,15 @@ namespace mamba
                     }
                     else
                     {
-                        if (package.second.url.empty() && (package.second.channel == "pypi"))
-                        {
-                            formatted_pkgs.channel = package.second.channel;
-                        }
-                        else
-                        {
+//                         if (package.second.url.empty() && (package.second.channel == "pypi"))
+//                         {
+//                             formatted_pkgs.channel = package.second.channel;
+//                         }
+//                         else
+//                         {
                             const Channel& channel = make_channel(package.second.url);
                             formatted_pkgs.channel = channel.name();
-                        }
+//                         }
                     }
                     packages.push_back(formatted_pkgs);
                 }

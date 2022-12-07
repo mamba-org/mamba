@@ -77,7 +77,6 @@ class TestUpdate:
             return
 
         res = umamba_list("python", "-n", TestUpdate.env_name, "--json")
-        print(res)
         assert len(res) == 2
         pyelem = [r for r in res if r["name"] == "python"][0]
         assert pyelem["version"].startswith("3.9")

@@ -1636,7 +1636,7 @@ namespace mamba
                     }
                     else
                     {
-                        write(" does not exsist (perhaps ",
+                        write(" does not exist (perhaps ",
                               (tn.depth() == 1 ? "a typo or a " : "a "),
                               "missing channel)");
                     }

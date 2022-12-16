@@ -73,6 +73,8 @@ For Linux, the default shell is ``bash``:
 
 .. code:: bash
 
+   # If you are using Ubuntu Linux, the bzip2 package is required before running the curl command below.
+   # sudo apt install bzip2
    curl micro.mamba.pm/install.sh | bash
 
 For macOS, the default shell is ``zsh``:

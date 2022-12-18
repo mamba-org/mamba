@@ -44,6 +44,7 @@ set(MICROMAMBA_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/update.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
 )
 
 set(MICROMAMBA_HEADERS

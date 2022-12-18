@@ -82,4 +82,7 @@ set_search_command(CLI::App* subcom);
 void
 set_auth_command(CLI::App* subcom);
 
+void
+set_server_command(CLI::App* subcom);
+
 #endif

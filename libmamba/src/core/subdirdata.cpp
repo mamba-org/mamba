@@ -648,13 +648,8 @@ namespace mamba
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
-        auto repodata_target = std::make_unique<DownloadTarget>(
-            m_name, m_repodata_url, m_temp_file->path().string());
-        auto repodata_zstd_target = std::make_unique<DownloadTarget>(
-            m_name, m_repodata_url + ".zst", m_temp_file->path().string());
-        m_target
-            = std::move(use_zstd && repodata_zstd_target->resource_exists() ? repodata_zstd_target
-                                                                            : repodata_target);
+        m_target = std::make_unique<DownloadTarget>(
+            m_name, m_repodata_url + (use_zstd ? ".zst" : ""), m_temp_file->path().string());
         if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
         {
             m_progress_bar = Console::instance().add_progress_bar(m_name);

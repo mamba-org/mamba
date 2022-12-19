@@ -23,7 +23,7 @@ body:
       label: Tried in Conda?
       description: |
         If possible, please try to reproduce your problem with Conda (without Mamba or Micromamba).
-        
+
         Can you reproduce the problem with Conda?
       options:
         - "Reproducible with Conda"
@@ -44,7 +44,7 @@ body:
       label: mamba info / micromamba info
       description: |
         Please post the output of `mamba info` / `micromamba info`.
-        
+
         Auto-rendered as code, no need for backticks.
       render: shell
   - type: textarea
@@ -53,7 +53,7 @@ body:
       label: Logs
       description: |
         Verbose logs of the problematic command, eg. `mamba install -v ...`.
-        
+
         Auto-rendered as code, no need for backticks.
       render: shell
   - type: textarea
@@ -62,7 +62,7 @@ body:
       label: environment.yml
       description: |
         Please post your `environment.yml` file if applicable.
-        
+
         Auto-rendered as code, no need for backticks.
       placeholder: |
         name: ...
@@ -75,6 +75,6 @@ body:
       label: ~/.condarc
       description: |
         `cat ~/.condarc`
-        
+
         Auto-rendered as code, no need for backticks.
       render: yaml

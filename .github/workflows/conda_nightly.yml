@@ -32,7 +32,7 @@ jobs:
           environment-file: mamba/mamba/environment-dev.yml
           channels: conda-forge,conda-canary/label/dev
           extra-specs: |
-            conda ='*+*'
+            conda =*+*
 
       # Build Mamba
       - uses: hendrikmuhs/ccache-action@main

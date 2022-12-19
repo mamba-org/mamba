@@ -42,7 +42,8 @@ set_env_command(CLI::App* com)
     init_prefix_options(list_subcom);
 
     auto* create_subcom = com->add_subcommand(
-        "create", "Create new environment (compatibility alias for 'micromamba create')");
+        "create",
+        "Create new environment (pre-commit.com compatibility alias for 'micromamba create')");
     init_install_options(create_subcom);
 
     static bool explicit_format;

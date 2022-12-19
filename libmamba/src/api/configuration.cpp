@@ -1131,6 +1131,11 @@ namespace mamba
                    .set_env_var_names()
                    .description("Permit use of the --overide-channels command-line flag"));
 
+        insert(Configurable("experimental_zstd_channels", &ctx.experimental_zstd_channels)
+                   .group("Channels")
+                   .set_rc_configurable()
+                   .description("Enable experimental repodata.zst support"));
+
         // Network
         insert(Configurable("cacert_path", std::string(""))
                    .group("Network")

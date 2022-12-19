@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from .helpers import *
 
@@ -708,3 +709,43 @@ class TestCreate:
             create(*cmd)
         finally:
             os.chdir(initial_working_dir)  # Switch back to original working dir.
+
+    def test_pre_commit_compat(self, tmp_path):
+        # We test compatibility with the downstream pre-commit package here because the pre-commit project does not currently accept any code changes related to Conda, see https://github.com/pre-commit/pre-commit/pull/2446#issuecomment-1353394177.
+        hook_repo = tmp_path / "hook_repo"
+
+        # Create hook_repo Git repo
+        shutil.copytree(
+            this_source_file_dir_path / "pre_commit_conda_hooks_repo", hook_repo
+        )
+        subprocess_run("git", "init", cwd=hook_repo)
+        subprocess_run("git", "add", ".", cwd=hook_repo)
+        subprocess_run("git", "commit", "-m", "Initialize hook repo", cwd=hook_repo)
+        commit_sha = subprocess_run(
+            "git", "rev-parse", "HEAD", cwd=hook_repo, text=True
+        ).strip()
+
+        pre_commit_config = {
+            "repos": [
+                {
+                    "repo": str(hook_repo),
+                    "rev": commit_sha,
+                    "hooks": [
+                        {"id": "sys-exec"},
+                        {
+                            "id": "additional-deps",
+                            "additional_dependencies": ["psutil"],
+                        },
+                    ],
+                }
+            ]
+        }
+
+        pre_commit_config_file = tmp_path / ".pre-commit-config.yaml"
+        pre_commit_config_file.write_text(yaml.dump())
+
+        create("-p", TestCreate.prefix, "pre-commit")
+        os.environ["PRE_COMMIT_USE_MICROMAMBA"] = "1"
+        umamba_run(
+            "-p", TestCreate.prefix, "pre-commit", "run", "-vac", pre_commit_config_file
+        )

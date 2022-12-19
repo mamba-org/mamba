@@ -14,9 +14,11 @@ import pytest
 import yaml
 
 
-def subprocess_run(*args: str) -> str:
+def subprocess_run(*args: str, **kwargs) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
-    p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    p = subprocess.run(
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
+    )
     return p.stdout
 
 

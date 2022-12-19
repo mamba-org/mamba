@@ -21,5 +21,6 @@ dependencies:
   - pybind11
   - pybind11-stubgen
   - pytest
+  - pyyaml
   - conda
   - sel(win): winreg

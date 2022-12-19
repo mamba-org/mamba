@@ -403,7 +403,6 @@ namespace mamba
                 bool use_zstd
                     = std::find(zstd_channels.begin(), zstd_channels.end(), p_channel->name())
                       != zstd_channels.end();
-                LOG_ERROR << "use zstd?" << p_channel->name() << " " << use_zstd;
                 create_target(m_mod_etag, use_zstd);
             }
         }

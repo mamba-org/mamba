@@ -30,8 +30,10 @@ jobs:
         with:
           environment-name: build_env
           environment-file: mamba/mamba/environment-dev.yml
-          channels: conda-forge,conda-canary/label/dev
+          channels: conda-canary/label/dev#,conda-forge
+          #channel-priority: flexible
           extra-specs: |
+            python=3.10
             conda =*+*
 
       # Build Mamba

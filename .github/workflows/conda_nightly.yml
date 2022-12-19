@@ -2,6 +2,7 @@ name: Conda nightly tests
 
 on:
   workflow_dispatch:
+  push:
   schedule:
     - cron: '0 10 * * 0'
 

@@ -2,7 +2,6 @@ name: Conda nightly tests
 
 on:
   workflow_dispatch:
-  push:
   schedule:
     - cron: '0 10 * * 0'
 
@@ -82,8 +81,7 @@ jobs:
           mamba env update -f mamba/tests/update_env.yml
 
       - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
-        #if: failure()
-        if: false
+        if: failure()
         with:
           filename: mamba/.github/workflows/bot_issue_template.md
         env:
@@ -93,5 +91,6 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
-          rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs || true
+          rm -rf ~/tmproot* || true
+          rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld || true

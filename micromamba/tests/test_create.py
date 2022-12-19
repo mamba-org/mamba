@@ -720,7 +720,19 @@ class TestCreate:
         )
         subprocess_run("git", "init", cwd=hook_repo)
         subprocess_run("git", "add", ".", cwd=hook_repo)
-        subprocess_run("git", "commit", "-m", "Initialize hook repo", cwd=hook_repo)
+        subprocess_run(
+            "git",
+            "commit",
+            "-m",
+            "Initialize hook repo",
+            cwd=hook_repo,
+            env={
+                **os.environ,
+                "GIT_AUTHOR_NAME": "test",
+                "GIT_COMMITTER_NAME": "test",
+                "GIT_COMMITTER_EMAIL": "test@test",
+            },
+        )
         commit_sha = subprocess_run(
             "git", "rev-parse", "HEAD", cwd=hook_repo, text=True
         ).strip()

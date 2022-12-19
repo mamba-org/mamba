@@ -473,7 +473,8 @@ namespace validate
         std::vector<fs::u8path> possible_update_files();
 
         virtual std::unique_ptr<RepoIndexChecker> build_index_checker(
-            const std::string& url, const fs::u8path& cache_path) const = 0;
+            const std::string& url, const fs::u8path& cache_path) const
+            = 0;
 
     protected:
         RootRole(std::shared_ptr<SpecBase> spec);

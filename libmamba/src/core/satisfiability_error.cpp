@@ -1592,9 +1592,8 @@ namespace mamba
                 {
                     assert(false);
                 }
-                else if constexpr (std::is_same_v<
-                                       Node,
-                                       PackageListNode> || std::is_same_v<Node, ConstraintListNode>)
+                else if constexpr (std::is_same_v<Node, PackageListNode>
+                                   || std::is_same_v<Node, ConstraintListNode>)
                 {
                     write_pkg_repr(tn);
                     if (tn.status)

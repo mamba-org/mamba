@@ -22,20 +22,20 @@ You can create an environment with the name ``nameofmyenv`` by calling:
     mamba create -n nameofmyenv <list of packages>
 
 
-After this process has finished, you can _activate_ the virtual environment by calling ``conda activate <nameofmyenv>``.
+After this process has finished, you can _activate_ the virtual environment by calling ``mamba activate <nameofmyenv>``.
 For example, to install JupyterLab from the ``conda-forge`` channel and then run it, you could use the following commands:
 
 .. code::
 
     mamba create -n myjlabenv jupyterlab -c conda-forge
-    conda activate myjlabenv  # activate our environment
+    mamba activate myjlabenv  # activate our environment
     jupyter lab               # this will start up jupyter lab and open a browser
 
 Once an environment is activated, ``mamba install`` can be used to install further packages into the environment.
 
 .. code::
 
-    conda activate myjlabenv
+    mamba activate myjlabenv
     mamba install bqplot  # now you can use bqplot in myjlabenv
     mamba install "matplotlib>=3.5.0" cartopy  # now you installed matplotlib with version>=3.5.0 and default version of cartopy
 
@@ -50,9 +50,6 @@ Once an environment is activated, ``mamba install`` can be used to install furth
    mamba install ...
    mamba create -n ... -c ... ...
    mamba list
-
-.. warning::
-    The only difference is that you should still use ``conda`` for :ref:`activation<activation>` and :ref:`deactivation<deactivation>`.
 
 
 Repoquery

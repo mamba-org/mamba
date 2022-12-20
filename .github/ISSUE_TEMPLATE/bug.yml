@@ -17,6 +17,14 @@ body:
       placeholder: ...
     validations:
       required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Latest version of Mamba
+      description: Please try with the most recent version of Mamba/Micromamba: [Latest Mamba version](https://anaconda.org/conda-forge/mamba) / [Latest Micromamba version](https://anaconda.org/conda-forge/micromamba)
+      options:
+        - label: "My problem is not solved with the latest version"
+          required: true
   - type: dropdown
     id: conda_reproducible
     attributes:

@@ -392,6 +392,11 @@ namespace fs
             return m_path.extension();
         }
 
+        u8path lexically_relative(const u8path& base) const
+        {
+            return m_path.lexically_relative(base);
+        }
+
         //---- Modifiers ----
 
         void clear() noexcept

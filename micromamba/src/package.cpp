@@ -7,6 +7,7 @@
 #include "common_options.hpp"
 
 #include "mamba/core/util.hpp"
+#include "mamba/api/configuration.hpp"
 #include "mamba/core/package_handling.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -17,18 +18,25 @@ set_package_command(CLI::App* subcom)
     static std::string infile, dest;
     static int compression_level = -1;
 
+    init_general_options(subcom);
+
     auto extract_subcom = subcom->add_subcommand("extract");
+    init_general_options(extract_subcom);
     extract_subcom->add_option("archive", infile, "Archive to extract");
     extract_subcom->add_option("dest", dest, "Destination folder");
     extract_subcom->callback(
         [&]()
         {
-            std::cout << "Extracting " << fs::absolute(infile) << " to " << fs::absolute(dest)
-                      << std::endl;
+            // load verbose and other options to context
+            Configuration::instance().load();
+
+            Console::stream() << "Extracting " << fs::absolute(infile) << " to "
+                              << fs::absolute(dest) << std::endl;
             extract(fs::absolute(infile), fs::absolute(dest));
         });
 
     auto compress_subcom = subcom->add_subcommand("compress");
+    init_general_options(compress_subcom);
     compress_subcom->add_option("folder", infile, "Folder to compress");
     compress_subcom->add_option("dest", dest, "Destination (e.g. myfile-3.1-0.tar.bz2 or .conda)");
     compress_subcom->add_option(
@@ -38,7 +46,11 @@ set_package_command(CLI::App* subcom)
     compress_subcom->callback(
         [&]()
         {
-            std::cout << "Compressing " << fs::absolute(infile) << " to " << dest << std::endl;
+            // load verbose and other options to context
+            Configuration::instance().load();
+
+            Console::stream() << "Compressing " << fs::absolute(infile) << " to " << dest
+                              << std::endl;
 
             if (ends_with(dest, ".tar.bz2") && compression_level == -1)
                 compression_level = 9;
@@ -49,6 +61,7 @@ set_package_command(CLI::App* subcom)
         });
 
     auto transmute_subcom = subcom->add_subcommand("transmute");
+    init_general_options(transmute_subcom);
     transmute_subcom->add_option("infile", infile, "Folder to compress");
     transmute_subcom->add_option(
         "-c,--compression-level",
@@ -57,6 +70,9 @@ set_package_command(CLI::App* subcom)
     transmute_subcom->callback(
         [&]()
         {
+            // load verbose and other options to context
+            Configuration::instance().load();
+
             if (ends_with(infile, ".tar.bz2"))
             {
                 if (compression_level == -1)
@@ -69,7 +85,8 @@ set_package_command(CLI::App* subcom)
                     compression_level = 9;
                 dest = infile.substr(0, infile.size() - 8) + ".tar.bz2";
             }
-            std::cout << "Transmuting " << fs::absolute(infile) << " to " << dest << std::endl;
+            Console::stream() << "Transmuting " << fs::absolute(infile) << " to " << dest
+                              << std::endl;
             transmute(fs::absolute(infile), fs::absolute(dest), compression_level);
         });
 }

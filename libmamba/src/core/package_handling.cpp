@@ -86,52 +86,17 @@ namespace mamba
 
     bool path_has_prefix(const fs::u8path& path, const fs::u8path& prefix)
     {
-        auto pair = std::mismatch(path.std_path().begin(), path.std_path().end(), prefix.std_path().begin(), prefix.std_path().end());
+        auto pair = std::mismatch(path.std_path().begin(),
+                                  path.std_path().end(),
+                                  prefix.std_path().begin(),
+                                  prefix.std_path().end());
         return pair.second == prefix.std_path().end();
     }
 
-    // simple string hash for ordering
-    int64_t fn_hash(const std::string& s) {
-        int64_t hash = 0x811c9dc5;
-        for (const auto& c : s)
-            hash = ((c ^ hash) * 0x01000193);
-        return hash;
-    }
-
-    // python modulo compatibility implementation
-    int64_t py_modulo(int64_t n, int64_t M) {
-        return ((n % M) + M) % M;
-    }
-
-    std::pair<int64_t, int64_t> order(const fs::u8path& path) {
-        bool is_info = path_has_prefix(path, "./info");
-        int64_t hash_divider = 100000000; // 10^8 in original implementation
-        int64_t info_order = is_info ? 0 : 1;
-
-        if (!is_info) {
-            std::string ext = path.extension();
-            if (ext.empty()) {
-                auto parent = path.parent_path().string();
-                if (starts_with(parent, "./") || starts_with(parent, ".\\")) {
-                    parent = parent.substr(2);
-                }
-                info_order = int64_t(1) + py_modulo(fn_hash(parent), hash_divider);
-            }
-            else {
-                if (ext == ".dylib") {
-                    ext = ".so";
-                }
-                info_order = int64_t(1) + py_modulo(abs(fn_hash(ext)), hash_divider);
-            }
-        }
-
-        struct stat sb;
-        lstat(path.string().c_str(), &sb);
-        int64_t file_size = sb.st_size;
-        if (file_size == 0) {
-            file_size = 100000;
-        }
-        return {info_order, file_size};
+    std::pair<bool, std::string> order(const fs::u8path& path)
+    {
+        bool is_info = path_has_prefix(path, "info");
+        return { !is_info, path.string() };
     }
 
     // Bundle up all files in directory and create destination archive
@@ -192,36 +157,32 @@ namespace mamba
         }
         fs::current_path(directory);
 
-        std::vector<std::pair<fs::u8path, std::pair<uint64_t, uint64_t>>> files;
+        std::vector<std::pair<fs::u8path, std::pair<bool, std::string>>> files;
         for (auto& dir_entry : fs::recursive_directory_iterator("."))
         {
-            files.push_back({dir_entry.path(), order(dir_entry.path())});
+            auto clean_path = dir_entry.path().lexically_relative("./");
+            files.push_back({ clean_path, order(clean_path) });
         }
 
-        std::sort(files.begin(), files.end(), [](const auto& a, const auto& b) {
-            return a.second < b.second;
-        });
+        std::sort(files.begin(),
+                  files.end(),
+                  [](const auto& a, const auto& b) { return a.second < b.second; });
 
         for (auto& order_pair : files)
         {
             const fs::u8path& path = order_pair.first;
+
             // skip adding _empty_ directories (they are implicitly added by the files therein)
             auto status = fs::symlink_status(path);
             if (fs::is_directory(status) && !fs::is_empty(path) && !fs::is_symlink(status))
             {
+                LOG_INFO << "Skipping " << path << " as it is a non-empty directory.";
                 continue;
             }
 
+            LOG_INFO << "Adding " << path << " to archive";
+
             std::string p = path.string();
-            // do this in a better way?
-            if (p[0] == '.')
-            {
-                p = p.substr(1);
-            }
-            if (p[0] == '/')
-            {
-                p = p.substr(1);
-            }
             if (filter && filter(p))
             {
                 continue;

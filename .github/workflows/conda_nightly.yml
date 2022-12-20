@@ -103,5 +103,5 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          find ~ -iname build_env -maxdepth 3 -type d -exec rm -rf {} \;
-          find ~ -iname conda-bld -maxdepth 3 -type d -exec rm -rf {} \;
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld

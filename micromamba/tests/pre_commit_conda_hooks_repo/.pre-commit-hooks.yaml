@@ -5,6 +5,6 @@
     files: \.py$
 -   id: additional-deps
     name: additional-deps
-    entry: python -c 'import psutil'
+    entry: python
     language: conda
     files: \.py$

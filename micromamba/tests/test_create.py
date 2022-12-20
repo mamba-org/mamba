@@ -712,21 +712,26 @@ class TestCreate:
 
     def test_pre_commit_compat(self, tmp_path):
         # We test compatibility with the downstream pre-commit package here because the pre-commit project does not currently accept any code changes related to Conda, see https://github.com/pre-commit/pre-commit/pull/2446#issuecomment-1353394177.
+        def create_repo(path: Path) -> str:
+            subprocess_run("git", "init", cwd=path)
+            subprocess_run("git", "config", "user.email", "test@test", cwd=path)
+            subprocess_run("git", "config", "user.name", "test", cwd=path)
+            subprocess_run("git", "add", ".", cwd=path)
+            subprocess_run("git", "commit", "-m", "Initialize repo", cwd=path)
+            return subprocess_run(
+                "git", "rev-parse", "HEAD", cwd=path, text=True
+            ).strip()
+
         hook_repo = tmp_path / "hook_repo"
+        caller_repo = tmp_path / "caller_repo"
 
         # Create hook_repo Git repo
         shutil.copytree(
             this_source_file_dir_path / "pre_commit_conda_hooks_repo", hook_repo
         )
-        subprocess_run("git", "init", cwd=hook_repo)
-        subprocess_run("git", "config", "user.email", "test@test", cwd=hook_repo)
-        subprocess_run("git", "config", "user.name", "test", cwd=hook_repo)
-        subprocess_run("git", "add", ".", cwd=hook_repo)
-        subprocess_run("git", "commit", "-m", "Initialize hook repo", cwd=hook_repo)
-        commit_sha = subprocess_run(
-            "git", "rev-parse", "HEAD", cwd=hook_repo, text=True
-        ).strip()
+        commit_sha = create_repo(hook_repo)
 
+        # Create Git repo to call "pre-commit" from
         pre_commit_config = {
             "repos": [
                 {
@@ -742,21 +747,27 @@ class TestCreate:
                 }
             ]
         }
-
-        pre_commit_config_file = tmp_path / ".pre-commit-config.yaml"
+        caller_repo.mkdir()
+        pre_commit_config_file = caller_repo / ".pre-commit-config.yaml"
         pre_commit_config_file.write_text(yaml.dump(pre_commit_config))
+        (caller_repo / "something.py").write_text("import psutil; print(psutil)")
+        create_repo(caller_repo)
 
         create("-p", TestCreate.prefix, "pre-commit")
         os.environ["PRE_COMMIT_USE_MICROMAMBA"] = "1"
         try:
-            umamba_run(
+            output = umamba_run(
                 "-p",
                 TestCreate.prefix,
+                "--cwd",
+                caller_repo,
                 "pre-commit",
                 "run",
-                "-vac",
-                pre_commit_config_file,
+                "-v",
+                "-a",
             )
+            assert "conda-default" in output
+            assert "<module 'psutil'" in output
         except Exception:
             pre_commit_log = Path.home() / ".cache" / "pre-commit" / "pre-commit.log"
             if pre_commit_log.exists():

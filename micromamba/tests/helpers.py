@@ -289,11 +289,11 @@ def umamba_list(*args):
     return res.decode()
 
 
-def umamba_run(*args):
+def umamba_run(*args, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "run"] + [arg for arg in args if arg]
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
         j = json.loads(res)

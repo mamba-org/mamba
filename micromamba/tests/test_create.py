@@ -754,7 +754,12 @@ class TestCreate:
         create_repo(caller_repo)
 
         create("-p", TestCreate.prefix, "pre-commit")
-        os.environ["PRE_COMMIT_USE_MICROMAMBA"] = "1"
+        env_overrides = {
+            "PRE_COMMIT_USE_MICROMAMBA": "1",
+            "PATH": os.pathsep.join(
+                [str(Path(get_umamba()).parent), *os.environ["PATH"].split(os.pathsep)]
+            ),
+        }
         try:
             output = umamba_run(
                 "-p",
@@ -765,6 +770,7 @@ class TestCreate:
                 "run",
                 "-v",
                 "-a",
+                env={**os.environ, **env_overrides},
             )
             assert "conda-default" in output
             assert "<module 'psutil'" in output

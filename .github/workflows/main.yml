@@ -49,7 +49,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -92,7 +92,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   umamba_tests:
     needs: [libmamba_static]
@@ -150,7 +150,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -264,7 +264,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
@@ -308,7 +308,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   mamba_python_tests_win:
     needs: [libmamba_static_win]
@@ -407,7 +407,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   libmamba_cpp_tests_win:
     needs: [libmamba_static_win]
@@ -458,7 +458,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   umamba_tests_win:
     needs: [libmamba_static_win]
@@ -519,7 +519,7 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
 
   umamba_tests_win_cmd:
     needs: [umamba_tests_win]
@@ -586,4 +586,4 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
+          rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs

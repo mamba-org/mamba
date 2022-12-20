@@ -719,20 +719,10 @@ class TestCreate:
             this_source_file_dir_path / "pre_commit_conda_hooks_repo", hook_repo
         )
         subprocess_run("git", "init", cwd=hook_repo)
+        subprocess_run("git", "config", "user.email", "test@test", cwd=hook_repo)
+        subprocess_run("git", "config", "user.name", "test", cwd=hook_repo)
         subprocess_run("git", "add", ".", cwd=hook_repo)
-        subprocess_run(
-            "git",
-            "commit",
-            "-m",
-            "Initialize hook repo",
-            cwd=hook_repo,
-            env={
-                **os.environ,
-                "GIT_AUTHOR_NAME": "test",
-                "GIT_COMMITTER_NAME": "test",
-                "GIT_COMMITTER_EMAIL": "test@test",
-            },
-        )
+        subprocess_run("git", "commit", "-m", "Initialize hook repo", cwd=hook_repo)
         commit_sha = subprocess_run(
             "git", "rev-parse", "HEAD", cwd=hook_repo, text=True
         ).strip()
@@ -754,10 +744,21 @@ class TestCreate:
         }
 
         pre_commit_config_file = tmp_path / ".pre-commit-config.yaml"
-        pre_commit_config_file.write_text(yaml.dump())
+        pre_commit_config_file.write_text(yaml.dump(pre_commit_config))
 
         create("-p", TestCreate.prefix, "pre-commit")
         os.environ["PRE_COMMIT_USE_MICROMAMBA"] = "1"
-        umamba_run(
-            "-p", TestCreate.prefix, "pre-commit", "run", "-vac", pre_commit_config_file
-        )
+        try:
+            umamba_run(
+                "-p",
+                TestCreate.prefix,
+                "pre-commit",
+                "run",
+                "-vac",
+                pre_commit_config_file,
+            )
+        except Exception:
+            pre_commit_log = Path.home() / ".cache" / "pre-commit" / "pre-commit.log"
+            if pre_commit_log.exists():
+                print(pre_commit_log.read_text())
+            raise

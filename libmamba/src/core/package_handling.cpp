@@ -142,10 +142,18 @@ namespace mamba
             archive_write_add_filter_zstd(a);
 
             if (compression_level < 1 || compression_level > 22)
-                throw std::runtime_error("zip compression level should be between 1 and 22");
+                throw std::runtime_error("zstd compression level should be between 1 and 22");
+            // if (compression_threads) {
+            //         archive_write_set_filter_option(a, NULL, "threads", "4"));
+            // }
             std::string comp_level
                 = std::string("zstd:compression-level=") + std::to_string(compression_level);
+
+            std::string comp_threads_level
+                = std::string("zstd:threads=") + std::to_string(8);
+            archive_write_set_filter_option(a, NULL, "threads", "8");
             archive_write_set_options(a, comp_level.c_str());
+            // archive_write_set_options(a, comp_threads_level.c_str());
         }
 
         archive_write_open_filename(a, abs_out_path.string().c_str());

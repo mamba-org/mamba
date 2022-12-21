@@ -13,12 +13,17 @@
 // source: https://github.com/konteck/wpp
 
 #include "version.hpp"
+#include "spdlog/spdlog.h"
+
 #include "fmt/format.h"
 #include "mamba/core/util_string.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include <iostream>
 #include <poll.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -36,16 +41,12 @@
 
 namespace microserver
 {
-    class Request
+    struct Request
     {
-    public:
-        Request()
-        {
-        }
-
         std::string method;
         std::string path;
         std::string params;
+        std::string body;
         std::map<std::string, std::string> headers;
         std::map<std::string, std::string> query;
         std::map<std::string, std::string> cookies;
@@ -68,47 +69,25 @@ namespace microserver
             strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S %Z", &tstruct);
             date = buffer;
         }
+
         int code;
         std::string phrase;
         std::string type;
         std::string date;
         std::stringstream body;
 
-        void send(std::string str)
+        void send(const std::string_view& str)
         {
             body << str;
-        };
-        void send(const char* str)
-        {
-            body << str;
-        };
+        }
     };
 
-    class server_exception : public std::exception
+    class server_exception : public std::runtime_error
     {
-    public:
-        server_exception()
-            : pMessage("")
-        {
-        }
-
-        server_exception(const char* pStr)
-            : pMessage(pStr)
-        {
-        }
-
-        const char* what() const throw()
-        {
-            return pMessage;
-        }
-
-    private:
-        const char* pMessage;
+        using std::runtime_error::runtime_error;
     };
 
-    std::map<std::string, std::string> mime;
-
-    using callback_function_t = std::function<void(Request*, Response*)>;
+    using callback_function_t = std::function<void(const Request&, Response&)>;
 
     struct Route
     {
@@ -118,57 +97,83 @@ namespace microserver
         std::string params;
     };
 
-    std::vector<Route> ROUTES;
-
     class Server
     {
     public:
+        Server(const spdlog::logger& logger)
+            : m_logger(logger)
+        {
+        }
         void get(std::string, callback_function_t);
         void post(std::string, callback_function_t);
         void all(std::string, callback_function_t);
 
-        bool start(int port, const std::string& host);
-        bool start(int port);
-        bool start();
+        bool start(int port = 80, const std::string& host = "0.0.0.0");
 
     private:
         void main_loop(int port);
-        void parse_headers(char*, Request*, Response*);
-        bool match_route(Request*, Response*);
-        std::string trim(const std::string& s);
+        std::pair<std::string, std::string> parse_header(const std::string_view&);
+        void parse_headers(const std::string&, Request&, Response&);
+        bool match_route(Request&, Response&);
+        std::vector<Route> m_routes;
+        spdlog::logger m_logger;
     };
 
-    std::string Server::trim(const std::string& s)
+    std::pair<std::string, std::string> Server::parse_header(const std::string_view& header)
     {
-        return std::string(mamba::strip(s));
+        assert(header.size() >= 2);
+        assert(header[header.size() - 1] == '\n' && header[header.size() - 2] == '\r');
+
+        auto colon_idx = header.find(':');
+        if (colon_idx != std::string_view::npos)
+        {
+            std::string_view key, value;
+            key = header.substr(0, colon_idx);
+            colon_idx++;
+            // remove spaces
+            while (std::isspace(header[colon_idx]))
+            {
+                ++colon_idx;
+            }
+
+            // remove \r\n header ending
+            value = header.substr(colon_idx, header.size() - colon_idx - 2);
+            // http headers are case insensitive!
+            std::string lkey = mamba::to_lower(key);
+
+            return std::make_pair(lkey, std::string(value));
+        }
+        return std::make_pair(std::string(), std::string(header));
     }
 
-    void Server::parse_headers(char* headers, Request* req, Response* res)
+    void Server::parse_headers(const std::string& headers, Request& req, Response& res)
     {
         // Parse request headers
         int i = 0;
-        char* pch;
-        for (pch = strtok(headers, "\n"); pch; pch = strtok(NULL, "\n"))
+        // parse headers into lines delimited by newlines
+        std::size_t delim_pos = headers.find_first_of("\n");
+        std::string line = headers.substr(0, delim_pos + 1);
+
+        while (line.size() > 2 && i < 10)
         {
             if (i++ == 0)
             {
-                std::string line(pch);
                 auto R = mamba::split(line, " ", 3);
 
                 if (R.size() != 3)
                 {
-                    throw std::runtime_error("Header split returned wrong number");
+                    throw server_exception("Header split returned wrong number");
                 }
 
-                req->method = R[0];
-                req->path = R[1];
+                req.method = R[0];
+                req.path = R[1];
 
-                size_t pos = req->path.find('?');
+                size_t pos = req.path.find('?');
 
                 // We have GET params here
                 if (pos != std::string::npos)
                 {
-                    auto Q1 = mamba::split(req->path.substr(pos + 1), "&");
+                    auto Q1 = mamba::split(req.path.substr(pos + 1), "&");
 
                     for (std::vector<std::string>::size_type q = 0; q < Q1.size(); q++)
                     {
@@ -176,65 +181,61 @@ namespace microserver
 
                         if (Q2.size() == 2)
                         {
-                            req->query[Q2[0]] = Q2[1];
+                            req.query[Q2[0]] = Q2[1];
                         }
                     }
 
-                    req->path = req->path.substr(0, pos);
+                    req.path = req.path.substr(0, pos);
                 }
             }
             else
             {
-                std::string line(pch);
-                auto R = mamba::split(line, ": ", 2);
-
-                if (R.size() == 2)
-                {
-                    req->headers[R[0]] = R[1];
-
-                    // Yeah, cookies!
-                    if (R[0] == "Cookie")
-                    {
-                        auto C1 = mamba::split(R[1], "; ");
-                        for (std::vector<std::string>::size_type c = 0; c < C1.size(); c++)
-                        {
-                            auto C2 = mamba::split(C1[c], "=", 2);
-                            req->cookies[C2[0]] = C2[1];
-                        }
-                    }
-                }
+                req.headers.insert(parse_header(line));
             }
+
+            std::size_t prev_pos = delim_pos;
+            delim_pos = headers.find_first_of("\n", prev_pos + 1);
+            line = headers.substr(prev_pos + 1, delim_pos - prev_pos);
         }
     }
 
     void Server::get(std::string path, callback_function_t callback)
     {
         Route r = { path, "GET", callback };
-        ROUTES.push_back(r);
+        m_routes.push_back(r);
     }
 
     void Server::post(std::string path, callback_function_t callback)
     {
         Route r = { path, "POST", callback };
-        ROUTES.push_back(r);
+        m_routes.push_back(r);
     }
 
     void Server::all(std::string path, callback_function_t callback)
     {
         Route r = { path, "ALL", callback };
-        ROUTES.push_back(r);
+        m_routes.push_back(r);
     }
 
-    bool Server::match_route(Request* req, Response* res)
+    bool Server::match_route(Request& req, Response& res)
     {
-        for (std::vector<Route>::size_type i = 0; i < ROUTES.size(); i++)
+        for (std::vector<Route>::size_type i = 0; i < m_routes.size(); i++)
         {
-            if (ROUTES[i].path == req->path
-                && (ROUTES[i].method == req->method || ROUTES[i].method == "ALL"))
+            if (m_routes[i].path == req.path
+                && (m_routes[i].method == req.method || m_routes[i].method == "ALL"))
             {
-                req->params = ROUTES[i].params;
+                req.params = m_routes[i].params;
 
-                ROUTES[i].callback(req, res);
+                try
+                {
+                    m_routes[i].callback(req, res);
+                }
+                catch (const std::exception& e)
+                {
+                    m_logger.error("Error in callback: {}", e.what());
+                    res.code = 500;
+                    res.body << fmt::format("Internal server error. {}", e.what());
+                }
 
                 return true;
             }
@@ -259,7 +260,6 @@ namespace microserver
         }
 
         // There is data to read
-        std::cout << "Waiting for socket resulted in " << fds[0].revents << std::endl;
         return fds[0].revents & POLLIN;
     }
 
@@ -295,6 +295,7 @@ namespace microserver
 
             if (have_data)
             {
+                std::chrono::time_point request_start = std::chrono::high_resolution_clock::now();
                 newsc = accept(sc, (struct sockaddr*) &cli_addr, &clilen);
 
                 if (newsc < 0)
@@ -306,20 +307,38 @@ namespace microserver
                 Request req;
                 Response res;
 
-                static char headers[BUFSIZE + 1];
-                long ret = read(newsc, headers, BUFSIZE);
-                if (ret > 0 && ret < BUFSIZE)
+                static char buf[BUFSIZE + 1];
+                std::string content;
+                long ret = read(newsc, buf, BUFSIZE);
+                content = std::string(buf, ret);
+
+                std::size_t header_end = content.find("\r\n\r\n");
+                if (header_end == std::string::npos)
                 {
-                    headers[ret] = 0;
-                }
-                else
-                {
-                    headers[0] = 0;
+                    throw microserver::server_exception("ERROR on parsing headers");
                 }
 
-                this->parse_headers(headers, &req, &res);
+                parse_headers(content, req, res);
 
-                if (!this->match_route(&req, &res))
+                if (req.method == "POST")
+                {
+                    std::string body = content.substr(header_end + 4, BUFSIZE - header_end - 4);
+                    int64_t content_length = stoll(req.headers["content-length"]);
+                    if (content_length - int64_t(body.size()) > 0)
+                    {
+                        // read the rest of the data and add to body
+                        int64_t remainder = content_length - int64_t(body.size());
+                        while (ret && remainder > 0)
+                        {
+                            int64_t ret = read(newsc, buf, BUFSIZE);
+                            body += std::string(buf, ret);
+                            remainder -= ret;
+                        }
+                    }
+                    req.body = body;
+                }
+
+                if (!match_route(req, res))
                 {
                     res.code = 404;
                     res.phrase = "Not Found";
@@ -329,7 +348,8 @@ namespace microserver
 
                 std::stringstream buffer;
                 std::string body = res.body.str();
-                size_t body_len = body.size();
+                std::size_t body_len = body.size();
+
 
                 // build http response
                 buffer << fmt::format("HTTP/1.0 {} {}\r\n", res.code, res.phrase)
@@ -340,10 +360,27 @@ namespace microserver
                        // append extra crlf to indicate start of body
                        << "\r\n";
 
+                char addrbuf[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &cli_addr.sin_addr, addrbuf, sizeof(addrbuf));
+                uint16_t port = htons(cli_addr.sin_port);
+                std::chrono::time_point request_end = std::chrono::high_resolution_clock::now();
+
+                m_logger.info("{}:{} - {} {} {} (took {} ms)",
+                              addrbuf,
+                              port,
+                              req.method,
+                              req.path,
+                              fmt::styled(res.code,
+                                          fmt::fg(res.code < 300 ? fmt::terminal_color::green
+                                                                 : fmt::terminal_color::red)),
+                              std::chrono::duration_cast<std::chrono::milliseconds>(request_end
+                                                                                    - request_start)
+                                  .count());
+
                 std::string header_buffer = buffer.str();
-                ssize_t t;
-                t = write(newsc, header_buffer.c_str(), header_buffer.size());
-                t = write(newsc, body.c_str(), body_len);
+                assert(header_buffer.size()
+                       == write(newsc, header_buffer.c_str(), header_buffer.size()));
+                assert(body_len == write(newsc, body.c_str(), body_len));
             }
         }
     }
@@ -352,15 +389,5 @@ namespace microserver
     {
         this->main_loop(port);
         return true;
-    }
-
-    bool Server::start(int port)
-    {
-        return this->start(port, "0.0.0.0");
-    }
-
-    bool Server::start()
-    {
-        return this->start(80);
     }
 }

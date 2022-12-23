@@ -27,7 +27,7 @@ namespace mamba
                         compression_algorithm,
                         int compression_level,
                         int compression_threads,
-                        bool (*filter)(const std::string&));
+                        bool (*filter)(const fs::u8path&));
     void create_package(const fs::u8path& directory,
                         const fs::u8path& out_file,
                         int compression_threads,

@@ -93,10 +93,20 @@ namespace mamba
         return pair.second == prefix.std_path().end();
     }
 
-    std::pair<bool, std::string> order(const fs::u8path& path)
+    std::pair<int, std::string> order(const fs::u8path& path)
     {
-        bool is_info = path_has_prefix(path, "info");
+        int is_info = path_has_prefix(path, "info");
         return { !is_info, path.string() };
+    }
+
+    std::pair<int, std::string> zip_order(const fs::u8path& path)
+    {
+        // sort info-...tar.zst file last in zip folder"
+        int init_order = starts_with(path.filename().string(), "info-");
+        // sort metadata.json first in zip folder
+        if (path.filename().string() == "metadata.json")
+            init_order = -1;
+        return { init_order, path.string() };
     }
 
     // Bundle up all files in directory and create destination archive
@@ -105,7 +115,7 @@ namespace mamba
                         compression_algorithm ca,
                         int compression_level,
                         int compression_threads,
-                        bool (*filter)(const std::string&))
+                        bool (*filter)(const fs::u8path&))
     {
         int r;
         struct archive* a;
@@ -175,11 +185,23 @@ namespace mamba
         }
         fs::current_path(directory);
 
-        std::vector<std::pair<fs::u8path, std::pair<bool, std::string>>> files;
-        for (auto& dir_entry : fs::recursive_directory_iterator("."))
+        std::vector<std::pair<fs::u8path, std::pair<int, std::string>>> files;
+        if (ca != compression_algorithm::zip)
         {
-            auto clean_path = dir_entry.path().lexically_relative("./");
-            files.push_back({ clean_path, order(clean_path) });
+            for (auto& dir_entry : fs::recursive_directory_iterator("."))
+            {
+                auto clean_path = dir_entry.path().lexically_relative("./");
+                files.push_back({ clean_path, order(clean_path) });
+            }
+        }
+        else
+        {
+            // for zip files, sort `info` last
+            for (auto& dir_entry : fs::directory_iterator("."))
+            {
+                auto clean_path = dir_entry.path().lexically_relative("./");
+                files.push_back({ clean_path, zip_order(clean_path) });
+            }
         }
 
         std::sort(files.begin(),
@@ -289,7 +311,7 @@ namespace mamba
                            bzip2,
                            compression_level,
                            compression_threads,
-                           [](const std::string&) { return false; });
+                           [](const fs::u8path&) { return false; });
         }
         else if (ends_with(out_file.string(), ".conda"))
         {
@@ -299,13 +321,19 @@ namespace mamba
                            zstd,
                            compression_level,
                            compression_threads,
-                           [](const std::string& p) -> bool { return !starts_with(p, "info/"); });
+                           [](const fs::u8path& p) -> bool {
+                               return p.std_path().begin() != p.std_path().end()
+                                      && *p.std_path().begin() != "info";
+                           });
             create_archive(directory,
                            tdir.path() / concat("pkg-", out_file.stem().string(), ".tar.zst"),
                            zstd,
                            compression_level,
                            compression_threads,
-                           [](const std::string& p) -> bool { return starts_with(p, "info/"); });
+                           [](const fs::u8path& p) -> bool {
+                               return p.std_path().begin() != p.std_path().end()
+                                      && *p.std_path().begin() == "info";
+                           });
 
             nlohmann::json pkg_metadata;
             pkg_metadata["conda_pkg_format_version"] = 2;
@@ -319,7 +347,7 @@ namespace mamba
                            zip,
                            0,
                            compression_threads,
-                           [](const std::string&) { return false; });
+                           [](const fs::u8path&) { return false; });
         }
     }
 

@@ -10,6 +10,12 @@
 #if !defined(_WIN32)
 #include <sys/stat.h>
 #include <fcntl.h>
+
+// We can use the presence of UTIME_OMIT to detect platforms that provide
+// utimensat.
+#if defined(UTIME_OMIT)
+#define USE_UTIMENSAT
+#endif
 #endif
 
 
@@ -1161,14 +1167,14 @@ namespace fs
     // void last_write_time(const path& p, now _, error_code& ec) noexcept;
     inline void last_write_time(const u8path& path, now _, std::error_code& ec) noexcept
     {
-#if defined(_WIN32)
-        auto new_time = fs::file_time_type::clock::now();
-        return std::filesystem::last_write_time(path, new_time, ec);
-#else
+#if defined(USE_UTIMENSAT)
         if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
         {
             ec = std::error_code(errno, std::generic_category());
         }
+#else
+        auto new_time = fs::file_time_type::clock::now();
+        std::filesystem::last_write_time(path, new_time, ec);
 #endif
     }
 

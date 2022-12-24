@@ -1,7 +1,4 @@
 import filecmp
-import glob
-import io
-import os
 import shutil
 import subprocess
 import tarfile
@@ -10,6 +7,7 @@ from pathlib import Path
 
 import pytest
 import zstandard
+from conda_package_handling import api as cph
 
 from .helpers import *
 
@@ -48,7 +46,10 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
             str(tmp_path / "mm" / "cph_test_data-0.0.1-0"),
         ]
     )
-    subprocess.call(["cph", "x", str(tmp_path / "cph" / cph_test_file.name)])
+    cph.extract(
+        str(tmp_path / "cph" / cph_test_file.name),
+        dest_dir=str(tmp_path / "cph" / "cph_test_data-0.0.1-0"),
+    )
 
     conda = set(
         (p.relative_to(tmp_path / "cph") for p in (tmp_path / "cph").rglob("**/*"))
@@ -65,21 +66,17 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
         and len(fcmp.right_only) == 0
         and len(fcmp.diff_files) == 0
     )
-    print_diff_files(fcmp)
-
     fcmp.report_full_closure()
 
 
 def compare_two_tarfiles(tar1, tar2):
     tar1_files = set(tar1.getnames())
     tar2_files = set(tar2.getnames())
-    print(tar1_files, tar2_files)
     assert tar1_files == tar2_files
 
     for f in tar1_files:
         m1 = tar1.getmember(f)
         m2 = tar2.getmember(f)
-        print(m1, m2)
         assert m1.mode == m2.mode
 
         if m1.isfile():
@@ -147,21 +144,15 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
     subprocess.call(
         [mamba_exe, "package", "transmute", str(tmp_path / "mm" / cph_test_file.name)]
     )
-    subprocess.call(
-        [
-            "cph",
-            "transmute",
-            str(tmp_path / cph_test_file.name),
-            "--out-folder",
-            str(tmp_path / "cph"),
-            ".conda",
-        ]
+    failed_files = cph.transmute(
+        str(tmp_path / cph_test_file.name), ".conda", out_folder=str(tmp_path / "cph")
     )
+    assert len(failed_files) == 0
 
     as_conda = cph_test_file.name.removesuffix(".tar.bz2") + ".conda"
 
-    subprocess.call(["cph", "x", str(tmp_path / "cph" / as_conda)])
-    subprocess.call(["cph", "x", str(tmp_path / "mm" / as_conda)])
+    cph.extract(str(tmp_path / "cph" / as_conda))
+    cph.extract(str(tmp_path / "mm" / as_conda))
 
     conda = list((tmp_path / "cph").rglob("**/*"))
     mamba = list((tmp_path / "mm").rglob("**/*"))
@@ -170,7 +161,6 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
         tmp_path / "cph" / "cph_test_data-0.0.1-0",
         tmp_path / "mm" / "cph_test_data-0.0.1-0",
     )
-    # print_diff_files(fcmp)
     assert (
         len(fcmp.left_only) == 0
         and len(fcmp.right_only) == 0
@@ -198,7 +188,6 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
                     assert_sorted(z.getnames())
                     members = z.getmembers()
                     for m in members:
-                        print(m.name)
                         if f.name.startswith("info-"):
                             assert m.name.startswith("info/")
                         if not f.name.startswith("info-"):

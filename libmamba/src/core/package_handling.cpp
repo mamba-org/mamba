@@ -7,6 +7,7 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <iostream>
 
 #include <sstream>
 
@@ -451,38 +452,164 @@ namespace mamba
         fs::current_path(prev_path);
     }
 
+    namespace
+    {
+        constexpr size_t BUFFER_SIZE = 131072;
+
+        struct conda_extract_context
+        {
+            struct archive* source;
+            char buffer[BUFFER_SIZE];
+        };
+    }
+
+    void stream_extract_archive(archive* a, const fs::u8path& destination)
+    {
+        auto prev_path = fs::current_path();
+        if (!fs::exists(destination))
+        {
+            fs::create_directories(destination);
+        }
+        fs::current_path(destination);
+
+        struct archive* ext;
+        struct archive_entry* entry;
+        int flags;
+        int r;
+
+        /* Select which attributes we want to restore. */
+        flags = ARCHIVE_EXTRACT_TIME;
+        flags |= ARCHIVE_EXTRACT_PERM;
+        flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
+        flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
+        flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
+        flags |= ARCHIVE_EXTRACT_SPARSE;
+        flags |= ARCHIVE_EXTRACT_UNLINK;
+
+        ext = archive_write_disk_new();
+        archive_write_disk_set_options(ext, flags);
+        archive_write_disk_set_standard_lookup(ext);
+
+        for (;;)
+        {
+            r = archive_read_next_header(a, &entry);
+            if (r == ARCHIVE_EOF)
+            {
+                break;
+            }
+            if (r < ARCHIVE_OK)
+            {
+                throw std::runtime_error(archive_error_string(a));
+            }
+
+            r = archive_write_header(ext, entry);
+            if (r < ARCHIVE_OK)
+            {
+                throw std::runtime_error(archive_error_string(ext));
+            }
+            else if (archive_entry_size(entry) > 0)
+            {
+                std::cout << "Reading data into file: " << archive_entry_pathname(entry) << "\n";
+                
+                int fd = open(archive_entry_pathname(entry), O_WRONLY);
+                archive_read_data_into_fd(a, fd);
+                // r = copy_data(a, ext);
+                if (r < ARCHIVE_OK)
+                {
+                    const char* err_str = archive_error_string(ext);
+                    if (err_str == nullptr)
+                    {
+                        err_str = archive_error_string(a);
+                    }
+                    if (err_str != nullptr)
+                    {
+                        throw std::runtime_error(err_str);
+                    }
+                    throw std::runtime_error("Extraction: writing data was not successful.");
+                }
+            }
+            r = archive_write_finish_entry(ext);
+            if (r == ARCHIVE_WARN)
+            {
+                std::cout << "libarchive warning: " << archive_error_string(a);
+            }
+            else if (r < ARCHIVE_OK)
+            {
+                throw std::runtime_error(archive_error_string(ext));
+            }
+        }
+
+        archive_read_close(a);
+        archive_read_free(a);
+
+        archive_write_close(ext);
+        archive_write_free(ext);
+
+        fs::current_path(prev_path);
+    }
+
+
+    static la_ssize_t file_read(struct archive* a, void* client_data, const void** buff)
+    {
+        struct conda_extract_context* mine = static_cast<conda_extract_context*>(client_data);
+        *buff = mine->buffer;
+
+        auto read = archive_read_data(mine->source, mine->buffer, BUFFER_SIZE);
+        if (read < 0)
+        {
+            std::cout << archive_error_string(mine->source) << std::endl;
+            std::cout << "Error reading from archive" << std::endl;
+            return read;
+        }
+        // std::cout << "Read " << read << " bytes" << std::endl;
+        return read;
+    }
+
+    int archive_read_open_archive_entry(struct archive* a, struct archive* source)
+    {
+        struct conda_extract_context* mine;
+
+        archive_clear_error(a);
+        mine = (struct conda_extract_context*) calloc(1, sizeof(*mine));
+        mine->source = source;
+
+        archive_read_set_read_callback(a, file_read);
+        archive_read_set_callback_data(a, mine);
+        return archive_read_open1(a);
+    }
+
+
     void extract_conda(const fs::u8path& file,
                        const fs::u8path& dest_dir,
                        const std::vector<std::string>& parts)
     {
-        TemporaryDirectory tdir;
-        extract_archive(file, tdir);
+        // open outer zip archive
+        struct archive* a = archive_read_new();
+        assert(archive_read_support_format_zip(a) == ARCHIVE_OK);
 
-        auto fn = file.stem();
+        if (archive_read_open_filename(a, file.string().c_str(), BUFFER_SIZE) != ARCHIVE_OK) {
+            throw std::runtime_error(archive_error_string(a));
+        }
 
-        auto metadata_path = tdir.path() / "metadata.json";
-        if (fs::exists(metadata_path) && fs::file_size(metadata_path) != 0)
+        // read archive
+        struct archive_entry* entry;
+        while (archive_read_next_header(a, &entry) == ARCHIVE_OK)
         {
-            const auto condafile_path = tdir.path() / "metadata.json";
-            std::ifstream condafile_meta(condafile_path.std_path());
-            nlohmann::json j;
-            condafile_meta >> j;
-
-            if (j.find("conda_pkg_format_version") != j.end())
+            fs::u8path p(archive_entry_pathname(entry));
+            if (p.extension() == ".zst")
             {
-                if (j["conda_pkg_format_version"] != 2)
-                {
-                    throw std::runtime_error("Can only read conda version 2 files.");
-                }
+                // extract zstd file
+                struct archive* inner = archive_read_new();
+                archive_read_support_filter_zstd(inner);
+                archive_read_support_format_tar(inner);
+
+                archive_read_open_archive_entry(inner, a);
+                stream_extract_archive(inner, dest_dir);
             }
         }
-
-        for (auto& part : parts)
-        {
-            std::stringstream ss;
-            ss << part << "-" << fn.string() << ".tar.zst";
-            extract_archive(tdir.path() / ss.str(), dest_dir);
-        }
+        // close archive
+        archive_read_close(a);
+        archive_read_free(a);
     }
 
     static fs::u8path extract_dest_dir(const fs::u8path& file)

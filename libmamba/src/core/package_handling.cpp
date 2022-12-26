@@ -419,7 +419,12 @@ namespace mamba
             }
             else if (archive_entry_size(entry) > 0)
             {
-                r = copy_data(a, ext);
+                int fd = open(archive_entry_pathname(entry), O_WRONLY);
+                assert(fd > 0);
+                archive_read_data_into_fd(a, fd);
+                assert(close(fd) == 0);
+
+                // r = copy_data(a, ext);
                 if (r < ARCHIVE_OK)
                 {
                     const char* err_str = archive_error_string(ext);

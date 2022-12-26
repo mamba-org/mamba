@@ -509,10 +509,10 @@ namespace mamba
             }
             else if (archive_entry_size(entry) > 0)
             {
-                std::cout << "Reading data into file: " << archive_entry_pathname(entry) << "\n";
-                
                 int fd = open(archive_entry_pathname(entry), O_WRONLY);
+                assert(fd > 0);
                 archive_read_data_into_fd(a, fd);
+                assert(close(fd) == 0);
                 // r = copy_data(a, ext);
                 if (r < ARCHIVE_OK)
                 {
@@ -587,7 +587,8 @@ namespace mamba
         struct archive* a = archive_read_new();
         assert(archive_read_support_format_zip(a) == ARCHIVE_OK);
 
-        if (archive_read_open_filename(a, file.string().c_str(), BUFFER_SIZE) != ARCHIVE_OK) {
+        if (archive_read_open_filename(a, file.string().c_str(), BUFFER_SIZE) != ARCHIVE_OK)
+        {
             throw std::runtime_error(archive_error_string(a));
         }
 

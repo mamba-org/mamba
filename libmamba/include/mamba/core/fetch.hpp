@@ -15,6 +15,8 @@ extern "C"
 
 #include <string>
 #include <vector>
+#include <zstd.h>
+#include <bzlib.h>
 
 #include "nlohmann/json.hpp"
 
@@ -24,6 +26,75 @@ extern "C"
 namespace mamba
 {
     void init_curl_ssl();
+
+    struct ZstdStream
+    {
+        constexpr static size_t BUFFER_SIZE = 256000;
+        ZstdStream(curl_write_callback write_callback, void* write_callback_data)
+            : stream(ZSTD_createDCtx())
+            , m_write_callback(write_callback)
+            , m_write_callback_data(write_callback_data)
+        {
+            ZSTD_initDStream(stream);
+        }
+
+        ~ZstdStream()
+        {
+            ZSTD_freeDCtx(stream);
+        }
+
+        size_t write(char* in, size_t size);
+
+        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
+        {
+            return static_cast<ZstdStream*>(self)->write(ptr, size * nmemb);
+        }
+
+        ZSTD_DCtx* stream;
+        char buffer[BUFFER_SIZE];
+
+        // original curl callback
+        curl_write_callback m_write_callback;
+        void* m_write_callback_data;
+    };
+
+    struct Bzip2Stream
+    {
+        constexpr static size_t BUFFER_SIZE = 256000;
+
+        Bzip2Stream(curl_write_callback write_callback, void* write_callback_data)
+            : stream{ .bzalloc = nullptr, .bzfree = nullptr, .opaque = nullptr }
+            , m_write_callback(write_callback)
+            , m_write_callback_data(write_callback_data)
+        {
+            error = BZ2_bzDecompressInit(&stream, 0, false);
+            if (error != BZ_OK)
+            {
+                throw std::runtime_error("BZ2_bzDecompressInit failed");
+            }
+        }
+
+        size_t write(char* in, size_t size);
+
+        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
+        {
+            return static_cast<Bzip2Stream*>(self)->write(ptr, size * nmemb);
+        }
+
+        ~Bzip2Stream()
+        {
+            BZ2_bzDecompressEnd(&stream);
+        }
+
+        int error;
+        bz_stream stream;
+        char buffer[BUFFER_SIZE];
+
+        // original curl callback
+        curl_write_callback m_write_callback;
+        void* m_write_callback_data;
+    };
+
 
     class DownloadTarget
     {
@@ -98,6 +169,8 @@ namespace mamba
         std::string etag, mod, cache_control;
 
     private:
+        std::unique_ptr<ZstdStream> m_zstd_stream;
+        std::unique_ptr<Bzip2Stream> m_bzip2_stream;
         std::function<bool()> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;

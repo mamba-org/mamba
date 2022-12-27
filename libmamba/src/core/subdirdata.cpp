@@ -14,64 +14,6 @@
 #include "progress_bar_impl.hpp"
 #include <stdexcept>
 
-namespace decompress
-{
-    bool raw(mamba::compression_algorithm ca, const std::string& in, const std::string& out)
-    {
-        int r;
-        std::ptrdiff_t size;
-
-        LOG_INFO << "Decompressing from " << in << " to " << out;
-
-        struct archive* a = archive_read_new();
-        if (ca == mamba::compression_algorithm::bzip2)
-        {
-            archive_read_support_filter_bzip2(a);
-        }
-        else
-        {
-            // todo else
-            archive_read_support_filter_zstd(a);
-        }
-        archive_read_support_format_raw(a);
-        // TODO figure out good value for this
-        const std::size_t BLOCKSIZE = 16384;
-        r = archive_read_open_filename(a, in.c_str(), BLOCKSIZE);
-        if (r != ARCHIVE_OK)
-        {
-            return false;
-        }
-
-        struct archive_entry* entry;
-        std::ofstream out_file = mamba::open_ofstream(out);
-        char buff[BLOCKSIZE];
-        std::size_t buffsize = BLOCKSIZE;
-        r = archive_read_next_header(a, &entry);
-        if (r != ARCHIVE_OK)
-        {
-            return false;
-        }
-
-        while (true)
-        {
-            size = archive_read_data(a, &buff, buffsize);
-            if (size < ARCHIVE_OK)
-            {
-                throw std::runtime_error(std::string("Could not read archive: ")
-                                         + archive_error_string(a));
-            }
-            if (size == 0)
-            {
-                break;
-            }
-            out_file.write(buff, size);
-        }
-
-        archive_read_free(a);
-        return true;
-    }
-}  // namespace decompress
-
 namespace mamba
 {
     namespace detail
@@ -574,17 +516,6 @@ namespace mamba
         if (!final_file.is_open())
         {
             throw std::runtime_error(fmt::format("Could not open file '{}'", json_file.string()));
-        }
-
-        mamba::compression_algorithm ca
-            = ends_with(m_target->url(), ".zst")   ? mamba::compression_algorithm::zstd
-              : ends_with(m_target->url(), ".bz2") ? mamba::compression_algorithm::bzip2
-                                                   : mamba::compression_algorithm::none;
-        if (ca != mamba::compression_algorithm::none)
-        {
-            if (m_progress_bar)
-                m_progress_bar.set_postfix("Decompressing");
-            decompress(ca);
         }
 
         if (m_progress_bar)

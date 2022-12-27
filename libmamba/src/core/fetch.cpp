@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string_view>
+#include <iostream>
 
 #include "spdlog/spdlog.h"
 
@@ -20,6 +21,61 @@
 
 namespace mamba
 {
+    size_t ZstdStream::write(char* in, size_t size)
+    {
+        ZSTD_inBuffer input = { in, size, 0 };
+        ZSTD_outBuffer output = { buffer, BUFFER_SIZE, 0 };
+
+        while (input.pos < input.size)
+        {
+            auto ret = ZSTD_decompressStream(stream, &output, &input);
+            if (ZSTD_isError(ret))
+            {
+                LOG_ERROR << "ZSTD decompression error: " << ZSTD_getErrorName(ret);
+                return size + 1;
+            }
+            if (output.pos > 0)
+            {
+                size_t wcb_res = m_write_callback(buffer, 1, output.pos, m_write_callback_data);
+                if (wcb_res != output.pos)
+                {
+                    return size + 1;
+                }
+                output.pos = 0;
+            }
+        }
+        return size;
+    }
+
+    size_t Bzip2Stream::write(char* in, size_t size)
+    {
+        bz_stream* stream = static_cast<bz_stream*>(m_write_callback_data);
+        stream->next_in = in;
+        stream->avail_in = size;
+
+        while (stream->avail_in > 0)
+        {
+            stream->next_out = buffer;
+            stream->avail_out = Bzip2Stream::BUFFER_SIZE;
+
+            int ret = BZ2_bzDecompress(stream);
+            if (ret != BZ_OK && ret != BZ_STREAM_END)
+            {
+                LOG_ERROR << "Bzip2 decompression error: " << ret;
+                return size + 1;
+            }
+
+            size_t wcb_res = m_write_callback(
+                buffer, 1, BUFFER_SIZE - stream->avail_out, m_write_callback_data);
+            if (wcb_res != BUFFER_SIZE - stream->avail_out)
+            {
+                return size + 1;
+            }
+        }
+        return size;
+    }
+
+
     void init_curl_ssl()
     {
         auto& ctx = Context::instance();
@@ -310,14 +366,31 @@ namespace mamba
         curl_easy_setopt(m_handle, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         curl_easy_setopt(m_handle, CURLOPT_HEADERDATA, this);
 
-        curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
-        curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, this);
+        if (ends_with(url, ".zst"))
+        {
+            m_zstd_stream = std::make_unique<ZstdStream>(&DownloadTarget::write_callback, this);
+            m_filename = m_filename.substr(0, m_filename.size() - 4);
+            curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
+            curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_zstd_stream.get());
+        }
+        else if (ends_with(url, ".bz2"))
+        {
+            m_bzip2_stream = std::make_unique<Bzip2Stream>(&DownloadTarget::write_callback, this);
+            m_filename = m_filename.substr(0, m_filename.size() - 4);
+            curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, Bzip2Stream::write_callback);
+            curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_bzip2_stream.get());
+        }
+        else
+        {
+            curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, &DownloadTarget::write_callback);
+            curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, this);
+        }
 
         m_headers = nullptr;
         if (ends_with(url, ".json"))
         {
-            curl_easy_setopt(
-                m_handle, CURLOPT_ACCEPT_ENCODING, "gzip, deflate, compress, identity");
+            // accept all encodings supported by the libcurl build
+            curl_easy_setopt(m_handle, CURLOPT_ACCEPT_ENCODING, "");
             m_headers = curl_slist_append(m_headers, "Content-Type: application/json");
         }
 

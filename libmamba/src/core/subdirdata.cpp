@@ -18,8 +18,23 @@ namespace mamba
 {
     namespace detail
     {
-        nlohmann::json read_mod_and_etag(const fs::u8path& file)
+        subdir_metadata read_mod_and_etag(const fs::u8path& file)
         {
+            auto state_file = file;
+            state_file.replace_extension(".state.json");
+            if (fs::exists(state_file))
+            {
+                auto infile = open_ifstream(state_file);
+                auto json = nlohmann::json::parse(infile);
+                subdir_metadata m{
+                    .url = json["url"],
+                    .etag = json["etag"],
+                    .mod = json["mod"],
+                    .cache_control = json["cache_control"],
+                };
+                // mtime =
+                return m;
+            }
             // parse json at the beginning of the stream such as
             // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
             // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
@@ -102,15 +117,18 @@ namespace mamba
             try
             {
                 result = nlohmann::json::parse(json);
-                return result;
+                subdir_metadata m{ .url = result.value("_url", ""),
+                                   .etag = result.value("_etag", ""),
+                                   .mod = result.value("_mod", ""),
+                                   .cache_control = result.value("_cache_control", "") };
+                return m;
             }
             catch (...)
             {
                 LOG_WARNING << "Could not parse mod/etag header";
-                return nlohmann::json();
+                return subdir_metadata{};
             }
         }
-
     }
 
     expected_t<MSubdirData> MSubdirData::create(const Channel& channel,
@@ -169,7 +187,7 @@ namespace mamba
         , m_json_fn(std::move(rhs.m_json_fn))
         , m_solv_fn(std::move(rhs.m_solv_fn))
         , m_is_noarch(rhs.m_is_noarch)
-        , m_mod_etag(std::move(rhs.m_mod_etag))
+        , m_metadata(std::move(rhs.m_metadata))
         , m_temp_file(std::move(rhs.m_temp_file))
         , p_channel(rhs.p_channel)
     {
@@ -196,7 +214,7 @@ namespace mamba
         swap(m_json_fn, rhs.m_json_fn);
         swap(m_solv_fn, rhs.m_solv_fn);
         swap(m_is_noarch, rhs.m_is_noarch);
-        swap(m_mod_etag, rhs.m_mod_etag);
+        swap(m_metadata, rhs.m_metadata);
         swap(m_temp_file, rhs.m_temp_file);
         swap(p_channel, rhs.p_channel);
 
@@ -244,7 +262,7 @@ namespace mamba
         m_valid_cache_path = "";
         m_expired_cache_path = "";
         m_loaded = false;
-        m_mod_etag = nlohmann::json::object();
+        // m_mod_etag = nlohmann::json::object();
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
@@ -265,9 +283,9 @@ namespace mamba
             if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
             {
                 LOG_INFO << "Found cache at '" << json_file.string() << "'";
-                m_mod_etag = detail::read_mod_and_etag(json_file);
+                subdir_metadata mod_etag = detail::read_mod_and_etag(json_file);
 
-                if (m_mod_etag.size() != 0)
+                if (true)
                 {
                     int max_age = 0;
                     if (Context::instance().local_repodata_ttl > 1)
@@ -277,8 +295,7 @@ namespace mamba
                     else if (Context::instance().local_repodata_ttl == 1)
                     {
                         // TODO error handling if _cache_control key does not exist!
-                        auto el = m_mod_etag.value("_cache_control", std::string(""));
-                        max_age = get_cache_control_max_age(el);
+                        max_age = get_cache_control_max_age(mod_etag.cache_control);
                     }
 
                     auto cache_age_seconds
@@ -345,7 +362,7 @@ namespace mamba
                 bool use_zstd
                     = std::find(zstd_channels.begin(), zstd_channels.end(), p_channel->name())
                       != zstd_channels.end();
-                create_target(m_mod_etag, use_zstd);
+                create_target(m_metadata, use_zstd);
             }
         }
         return true;
@@ -503,44 +520,75 @@ namespace mamba
         json_file = writable_cache_dir / m_json_fn;
         auto lock = LockFile(writable_cache_dir);
 
-        m_mod_etag.clear();
-        m_mod_etag["_url"] = m_target->url();
-        m_mod_etag["_etag"] = m_target->etag;
-        m_mod_etag["_mod"] = m_target->mod;
-        m_mod_etag["_cache_control"] = m_target->cache_control;
-
-        LOG_DEBUG << "Opening '" << json_file.string() << "'";
-        path::touch(json_file, true);
-        std::ofstream final_file = open_ofstream(json_file);
-
-        if (!final_file.is_open())
+        if (false)
         {
-            throw std::runtime_error(fmt::format("Could not open file '{}'", json_file.string()));
+            m_metadata = {
+                .url = m_target->url(),
+                .etag = m_target->etag,
+                .mod = m_target->mod,
+                .cache_control = m_target->cache_control,
+            };
+            // m_mod_etag.clear();
+            // m_mod_etag["_url"] = m_target->url();
+            // m_mod_etag["_etag"] = m_target->etag;
+            // m_mod_etag["_mod"] = m_target->mod;
+            // m_mod_etag["_cache_control"] = m_target->cache_control;
+
+
+            LOG_DEBUG << "Opening '" << json_file.string() << "'";
+            path::touch(json_file, true);
+            std::ofstream final_file = open_ofstream(json_file);
+
+            if (!final_file.is_open())
+            {
+                throw std::runtime_error(
+                    fmt::format("Could not open file '{}'", json_file.string()));
+            }
+
+            if (m_progress_bar)
+                m_progress_bar.set_postfix("Finalizing");
+
+            std::ifstream temp_file = open_ifstream(m_temp_file->path());
+            std::stringstream temp_json;
+            // temp_json << m_mod_etag.dump();
+
+            // replace `}` with `,`
+            temp_json.seekp(-1, temp_json.cur);
+            temp_json << ',';
+            final_file << temp_json.str();
+            temp_file.seekg(1);
+            std::copy(std::istreambuf_iterator<char>(temp_file),
+                      std::istreambuf_iterator<char>(),
+                      std::ostreambuf_iterator<char>(final_file));
+
+            if (!temp_file)
+            {
+                fs::remove(json_file);
+                throw std::runtime_error(fmt::format("Could not write out repodata file '{}': {}",
+                                                     json_file.string(),
+                                                     strerror(errno)));
+            }
+
+            temp_file.close();
+            m_temp_file.reset(nullptr);
+            final_file.close();
         }
-
-        if (m_progress_bar)
-            m_progress_bar.set_postfix("Finalizing");
-
-        std::ifstream temp_file = open_ifstream(m_temp_file->path());
-        std::stringstream temp_json;
-        temp_json << m_mod_etag.dump();
-
-        // replace `}` with `,`
-        temp_json.seekp(-1, temp_json.cur);
-        temp_json << ',';
-        final_file << temp_json.str();
-        temp_file.seekg(1);
-        std::copy(std::istreambuf_iterator<char>(temp_file),
-                  std::istreambuf_iterator<char>(),
-                  std::ostreambuf_iterator<char>(final_file));
-
-        if (!temp_file)
+        else
         {
-            fs::remove(json_file);
-            throw std::runtime_error(fmt::format(
-                "Could not write out repodata file '{}': {}", json_file.string(), strerror(errno)));
+            fs::u8path state_file = json_file.replace_extension(".state.json");
+            nlohmann::json j;
+            j["url"] = m_target->url();
+            j["etag"] = m_target->etag;
+            j["mod"] = m_target->mod;
+            j["cache_control"] = m_target->cache_control;
+            std::filesystem::file_time_type t = fs::last_write_time(m_temp_file->path());
+            auto epoch = t.time_since_epoch();
+            j["mtime"] = epoch.count();
+            j["size"] = fs::file_size(m_temp_file->path());
+            std::ofstream state_file_stream = open_ofstream(state_file);
+            state_file_stream << j.dump(4);
+            state_file_stream.close();
         }
-
         if (m_progress_bar)
         {
             m_progress_bar.repr().postfix.set_value("Downloaded").deactivate();
@@ -551,30 +599,12 @@ namespace mamba
         m_json_cache_valid = true;
         m_loaded = true;
 
-        temp_file.close();
-        m_temp_file.reset(nullptr);
-        final_file.close();
-
         fs::last_write_time(json_file, fs::now());
 
         return true;
     }
 
-    bool MSubdirData::decompress(mamba::compression_algorithm ca)
-    {
-        LOG_INFO << "Decompressing metadata";
-        auto json_temp_file = std::make_unique<TemporaryFile>();
-        bool result
-            = decompress::raw(ca, m_temp_file->path().string(), json_temp_file->path().string());
-        if (!result)
-        {
-            LOG_WARNING << "Could not decompress " << m_temp_file->path();
-        }
-        std::swap(json_temp_file, m_temp_file);
-        return result;
-    }
-
-    void MSubdirData::create_target(nlohmann::json& mod_etag, bool use_zstd)
+    void MSubdirData::create_target(const subdir_metadata& mod_etag, bool use_zstd)
     {
         auto& ctx = Context::instance();
         m_temp_file = std::make_unique<TemporaryFile>();
@@ -592,7 +622,7 @@ namespace mamba
             m_target->set_ignore_failure(true);
         }
         m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
-        m_target->set_mod_etag_headers(mod_etag);
+        m_target->set_mod_etag_headers(mod_etag.mod, mod_etag.etag);
     }
 
     std::size_t MSubdirData::get_cache_control_max_age(const std::string& val)
@@ -625,8 +655,8 @@ namespace mamba
         using return_type = expected_t<MRepo&>;
         RepoMetadata meta{ m_repodata_url,
                            Context::instance().add_pip_as_python_dependency,
-                           m_mod_etag.value("_etag", ""),
-                           m_mod_etag.value("_mod", "") };
+                           m_metadata.etag,
+                           m_metadata.mod };
 
         auto cache = cache_path();
         return cache ? return_type(MRepo::create(pool, m_name, *cache, meta, *p_channel))

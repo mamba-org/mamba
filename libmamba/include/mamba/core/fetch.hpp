@@ -18,8 +18,6 @@ extern "C"
 #include <zstd.h>
 #include <bzlib.h>
 
-#include "nlohmann/json.hpp"
-
 #include "progress_bar.hpp"
 #include "validate.hpp"
 
@@ -116,7 +114,7 @@ namespace mamba
 
         static int progress_callback(
             void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
-        void set_mod_etag_headers(const nlohmann::json& mod_etag);
+        void set_mod_etag_headers(const std::string& mod, const std::string& etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
 

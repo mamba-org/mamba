@@ -595,20 +595,18 @@ namespace mamba
         return 0;
     }
 
-    void DownloadTarget::set_mod_etag_headers(const nlohmann::json& mod_etag)
+    void DownloadTarget::set_mod_etag_headers(const std::string& mod, const std::string& etag)
     {
         auto to_header = [](const std::string& key, const std::string& value)
         { return std::string(key + ": " + value); };
 
-        if (mod_etag.find("_etag") != mod_etag.end())
+        if (!etag.empty())
         {
-            m_headers = curl_slist_append(m_headers,
-                                          to_header("If-None-Match", mod_etag["_etag"]).c_str());
+            m_headers = curl_slist_append(m_headers, to_header("If-None-Match", etag).c_str());
         }
-        if (mod_etag.find("_mod") != mod_etag.end())
+        if (!mod.empty())
         {
-            m_headers = curl_slist_append(m_headers,
-                                          to_header("If-Modified-Since", mod_etag["_mod"]).c_str());
+            m_headers = curl_slist_append(m_headers, to_header("If-Modified-Since", mod).c_str());
         }
     }
 

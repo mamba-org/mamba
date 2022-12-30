@@ -11,8 +11,6 @@
 #include <regex>
 #include <string>
 
-#include "nlohmann/json.hpp"
-
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
@@ -31,6 +29,18 @@ namespace decompress
 
 namespace mamba
 {
+    struct subdir_metadata
+    {
+        std::string url;
+        std::string etag;
+        std::string mod;
+        std::string cache_control;
+        std::filesystem::file_time_type stored_mtime;
+        std::optional<bool> has_zst;
+        std::optional<bool> has_bz2;
+        std::optional<bool> has_jlap;
+    };
+
 
     /**
      * Represents a channel subdirectory (i.e. a platform)
@@ -78,8 +88,7 @@ namespace mamba
                     const std::string& repodata_fn = "repodata.json");
 
         bool load(MultiPackageCache& caches);
-        bool decompress(mamba::compression_algorithm ca);
-        void create_target(nlohmann::json& mod_etag, bool use_zstd);
+        void create_target(const subdir_metadata& mod_etag, bool use_zstd);
         std::size_t get_cache_control_max_age(const std::string& val);
 
         std::unique_ptr<DownloadTarget> m_target = nullptr;
@@ -100,7 +109,7 @@ namespace mamba
         std::string m_json_fn;
         std::string m_solv_fn;
         bool m_is_noarch;
-        nlohmann::json m_mod_etag;
+        subdir_metadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
     };

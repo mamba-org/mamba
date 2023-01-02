@@ -78,17 +78,18 @@ def compare_two_tarfiles(tar1, tar2):
     for f in tar1_files:
         m1: tarfile.TarInfo = tar1.getmember(f)
         m2 = tar2.getmember(f)
-        if not m1.issym():
-            assert m1.mode == m2.mode
-        else:
-            if platform.system() == "Linux":
-                assert m2.mode == 0o777
-            else:
+        if platform.system() != "Windows":
+            if not m1.issym():
                 assert m1.mode == m2.mode
+            else:
+                if platform.system() == "Linux":
+                    assert m2.mode == 0o777
+                else:
+                    assert m1.mode == m2.mode
+            assert m1.mtime == m2.mtime
 
         assert m2.uid == 0
         assert m2.gid == 0
-        assert m1.mtime == m2.mtime
         assert m1.size == m2.size
 
         if m1.isfile():

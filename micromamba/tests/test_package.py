@@ -1,4 +1,5 @@
 import filecmp
+import platform
 import shutil
 import subprocess
 import tarfile
@@ -66,7 +67,7 @@ def test_extract(cph_test_file: Path, tmp_path: Path):
         and len(fcmp.right_only) == 0
         and len(fcmp.diff_files) == 0
     )
-    fcmp.report_full_closure()
+    # fcmp.report_full_closure()
 
 
 def compare_two_tarfiles(tar1, tar2):
@@ -75,9 +76,21 @@ def compare_two_tarfiles(tar1, tar2):
     assert tar1_files == tar2_files
 
     for f in tar1_files:
-        m1 = tar1.getmember(f)
+        m1: tarfile.TarInfo = tar1.getmember(f)
         m2 = tar2.getmember(f)
-        assert m1.mode == m2.mode
+        if not m1.issym():
+
+            assert m1.mode == m2.mode
+        else:
+            if platform.platform() == "linux":
+                assert m1.mode == 0o777
+            else:
+                assert m1.mode == m2.mode
+
+        assert m2.uid == 0
+        assert m2.gid == 0
+        assert m1.mtime == m2.mtime
+        assert m1.size == m2.size
 
         if m1.isfile():
             assert tar1.extractfile(f).read() == tar2.extractfile(f).read()
@@ -166,7 +179,7 @@ def test_transmute(cph_test_file: Path, tmp_path: Path):
         and len(fcmp.right_only) == 0
         and len(fcmp.diff_files) == 0
     )
-    fcmp.report_full_closure()
+    # fcmp.report_full_closure()
 
     # extract zipfile
     with zipfile.ZipFile(tmp_path / "mm" / as_conda, "r") as zip_ref:

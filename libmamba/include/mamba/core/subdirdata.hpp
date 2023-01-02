@@ -36,9 +36,12 @@ namespace mamba
         std::string mod;
         std::string cache_control;
         std::filesystem::file_time_type stored_mtime;
+        std::size_t stored_file_size;
         std::optional<bool> has_zst;
         std::optional<bool> has_bz2;
         std::optional<bool> has_jlap;
+
+        void serialize_to_stream(std::ostream& out) const;
     };
 
 
@@ -65,8 +68,8 @@ namespace mamba
         MSubdirData& operator=(MSubdirData&&);
 
         // TODO return seconds as double
-        fs::file_time_type::duration check_cache(const fs::u8path& cache_file,
-                                                 const fs::file_time_type::clock::time_point& ref);
+        fs::file_time_type::duration check_cache(
+            const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref) const;
         bool loaded() const;
 
         bool forbid_cache();
@@ -88,9 +91,10 @@ namespace mamba
                     const std::string& repodata_fn = "repodata.json");
 
         bool load(MultiPackageCache& caches);
+        void check_repodata_existence();
         void create_target(const subdir_metadata& mod_etag, bool use_zstd);
         std::size_t get_cache_control_max_age(const std::string& val);
-
+        void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
         std::unique_ptr<DownloadTarget> m_target = nullptr;
 
         bool m_json_cache_valid = false;
@@ -112,6 +116,8 @@ namespace mamba
         subdir_metadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
+
+        bool m_use_old_cache = false;
     };
 
     // Contrary to conda original function, this one expects a full url

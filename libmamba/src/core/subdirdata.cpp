@@ -16,31 +16,65 @@
 
 namespace mamba
 {
+    void subdir_metadata::serialize_to_stream(std::ostream& out) const
+    {
+        nlohmann::json j;
+        j["url"] = url;
+        j["etag"] = etag;
+        j["mod"] = mod;
+        j["cache_control"] = cache_control;
+        j["file_size"] = stored_file_size;
+        j["mtime"] = stored_mtime.time_since_epoch().count();
+        if (has_zst.has_value())
+            j["has_zst"] = has_zst.value();
+        if (has_bz2.has_value())
+            j["has_bz2"] = has_bz2.value();
+        if (has_jlap.has_value())
+            j["has_jlap"] = has_jlap.value();
+        out << j.dump(4);
+    }
+
     namespace detail
     {
-        subdir_metadata read_mod_and_etag(const fs::u8path& file)
+        tl::expected<subdir_metadata, std::runtime_error> read_mod_and_etag(const fs::u8path& file)
         {
             auto state_file = file;
             state_file.replace_extension(".state.json");
-            if (fs::exists(state_file))
+            std::error_code ec;
+            if (fs::exists(state_file, ec))
             {
                 auto infile = open_ifstream(state_file);
                 auto json = nlohmann::json::parse(infile);
-                subdir_metadata m{
-                    .url = json["url"],
-                    .etag = json["etag"],
-                    .mod = json["mod"],
-                    .cache_control = json["cache_control"],
-                };
-                // mtime =
-                return m;
+                auto lwrite_time = fs::last_write_time(file);
+                if (lwrite_time.time_since_epoch().count() != json["mtime"])
+                {
+                    return tl::unexpected(std::runtime_error("Cache file mtime mismatch"));
+                }
+                try
+                {
+                    subdir_metadata m{
+                        .url = json["url"],
+                        .etag = json["etag"],
+                        .mod = json["mod"],
+                        .cache_control = json["cache_control"],
+                        .stored_mtime = lwrite_time,  // is the same as tested above
+                        .stored_file_size = json["file_size"],
+
+                    };
+                    return m;
+                }
+                catch (const nlohmann::json::exception& e)
+                {
+                    fs::remove(state_file, ec);
+                    return tl::unexpected(std::runtime_error(e.what()));
+                }
             }
+
             // parse json at the beginning of the stream such as
             // {"_url": "https://conda.anaconda.org/conda-forge/linux-64",
             // "_etag": "W/\"6092e6a2b6cec6ea5aade4e177c3edda-8\"",
             // "_mod": "Sat, 04 Apr 2020 03:29:49 GMT",
             // "_cache_control": "public, max-age=1200"
-
             auto extract_subjson = [](std::ifstream& s) -> std::string
             {
                 char next;
@@ -126,9 +160,32 @@ namespace mamba
             catch (...)
             {
                 LOG_WARNING << "Could not parse mod/etag header";
-                return subdir_metadata{};
+                return tl::unexpected(std::runtime_error("Could not parse mod/etag header"));
             }
         }
+    }
+
+    void MSubdirData::check_repodata_existence()
+    {
+        // check if repodata.json.zst, repodata.json.bz2 and repodata.json.jlap exist
+        // and set the corresponding flags
+        auto repodata_url_zst = m_repodata_url + ".zst";
+        auto repodata_url_bz2 = m_repodata_url + ".bz2";
+
+        bool zst_exists = DownloadTarget(repodata_url_zst, repodata_url_zst, "").resource_exists();
+        bool bz2_exists = DownloadTarget(repodata_url_bz2, repodata_url_bz2, "").resource_exists();
+
+        if (m_repodata_url.size() > 5)
+        {
+            auto repodata_url_jlap = m_repodata_url.substr(0, m_repodata_url.size() - 5) + ".jlap";
+            bool jlap_exists
+                = DownloadTarget(repodata_url_jlap, repodata_url_jlap, "").resource_exists();
+        }
+
+        LOG_INFO << "Checking repodata existence for " << m_repodata_url;
+        LOG_INFO << "  repodata.json.zst exists: " << zst_exists;
+        LOG_INFO << "  repodata.json.bz2 exists: " << bz2_exists;
+        LOG_INFO << "  repodata.json.jlap exists: " << jlap_exists;
     }
 
     expected_t<MSubdirData> MSubdirData::create(const Channel& channel,
@@ -168,6 +225,7 @@ namespace mamba
         , p_channel(&channel)
     {
         m_json_fn = cache_fn_url(m_repodata_url);
+        check_repodata_existence();
         m_solv_fn = m_json_fn.substr(0, m_json_fn.size() - 4) + "solv";
         load(caches);
     }
@@ -230,7 +288,7 @@ namespace mamba
     }
 
     fs::file_time_type::duration MSubdirData::check_cache(
-        const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref)
+        const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref) const
     {
         try
         {
@@ -262,7 +320,6 @@ namespace mamba
         m_valid_cache_path = "";
         m_expired_cache_path = "";
         m_loaded = false;
-        // m_mod_etag = nlohmann::json::object();
 
         LOG_INFO << "Searching index cache file for repo '" << m_repodata_url << "'";
 
@@ -282,11 +339,10 @@ namespace mamba
 
             if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
             {
-                LOG_INFO << "Found cache at '" << json_file.string() << "'";
-                subdir_metadata mod_etag = detail::read_mod_and_etag(json_file);
-
-                if (true)
+                auto metadata_temp = detail::read_mod_and_etag(json_file);
+                if (metadata_temp.has_value())
                 {
+                    m_metadata = std::move(metadata_temp.value());
                     int max_age = 0;
                     if (Context::instance().local_repodata_ttl > 1)
                     {
@@ -295,7 +351,7 @@ namespace mamba
                     else if (Context::instance().local_repodata_ttl == 1)
                     {
                         // TODO error handling if _cache_control key does not exist!
-                        max_age = get_cache_control_max_age(mod_etag.cache_control);
+                        max_age = get_cache_control_max_age(m_metadata.cache_control);
                     }
 
                     auto cache_age_seconds
@@ -318,7 +374,7 @@ namespace mamba
                         // check libsolv cache
                         auto solv_age = check_cache(solv_file, now);
                         if (solv_age != fs::file_time_type::duration::max()
-                            && solv_age.count() <= cache_age.count())
+                            && solv_age <= cache_age)
                         {
                             // valid libsolv cache found
                             LOG_DEBUG << "Using SOLV cache";
@@ -392,6 +448,40 @@ namespace mamba
         return m_name;
     }
 
+    void MSubdirData::refresh_last_write_time(const fs::u8path& json_file,
+                                              const fs::u8path& solv_file)
+    {
+        auto now = fs::file_time_type::clock::now();
+
+        auto json_age = check_cache(json_file, now);
+        auto solv_age = check_cache(solv_file, now);
+
+        {
+            auto lock = LockFile(json_file);
+            fs::last_write_time(json_file, fs::now());
+        }
+
+        if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
+        {
+            auto lock = LockFile(solv_file);
+            fs::last_write_time(solv_file, fs::now());
+            m_solv_cache_valid = true;
+        }
+
+        if (!m_use_old_cache)
+        {
+            auto state_file = json_file;
+            state_file.replace_extension(".state.json");
+            auto lock = LockFile(state_file);
+            auto state_file_in = open_ifstream(state_file);
+            nlohmann::json state = nlohmann::json::parse(state_file_in);
+            state_file_in.close();
+            state["last_write_time"] = fs::last_write_time(json_file).time_since_epoch().count();
+            auto outf = open_ofstream(state_file);
+            outf << state.dump(4);
+        }
+    }
+
     bool MSubdirData::finalize_transfer()
     {
         if (m_target->result != 0 || m_target->http_status >= 400)
@@ -432,10 +522,6 @@ namespace mamba
             json_file = m_expired_cache_path / "cache" / m_json_fn;
             solv_file = m_expired_cache_path / "cache" / m_solv_fn;
 
-            auto now = fs::file_time_type::clock::now();
-            auto json_age = check_cache(json_file, now);
-            auto solv_age = check_cache(solv_file, now);
-
             if (path::is_writable(json_file)
                 && (!fs::exists(solv_file) || path::is_writable(solv_file)))
             {
@@ -473,18 +559,7 @@ namespace mamba
                 m_valid_cache_path = m_writable_pkgs_dir;
             }
 
-            {
-                LOG_TRACE << "Refreshing '" << json_file.string() << "'";
-                auto lock = LockFile(json_file);
-                fs::last_write_time(json_file, fs::now());
-            }
-            if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
-            {
-                LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
-                auto lock = LockFile(solv_file);
-                fs::last_write_time(solv_file, fs::now());
-                m_solv_cache_valid = true;
-            }
+            refresh_last_write_time(json_file, solv_file);
 
             if (m_progress_bar)
             {
@@ -520,21 +595,18 @@ namespace mamba
         json_file = writable_cache_dir / m_json_fn;
         auto lock = LockFile(writable_cache_dir);
 
-        if (false)
+        auto latest_write_time = fs::file_time_type::clock::now();
+        auto file_size = fs::file_size(m_temp_file->path());
+
+        m_metadata = { .url = m_target->url(),
+                       .etag = m_target->etag,
+                       .mod = m_target->mod,
+                       .cache_control = m_target->cache_control,
+                       .stored_mtime = latest_write_time,
+                       .stored_file_size = file_size };
+
+        if (m_use_old_cache)
         {
-            m_metadata = {
-                .url = m_target->url(),
-                .etag = m_target->etag,
-                .mod = m_target->mod,
-                .cache_control = m_target->cache_control,
-            };
-            // m_mod_etag.clear();
-            // m_mod_etag["_url"] = m_target->url();
-            // m_mod_etag["_etag"] = m_target->etag;
-            // m_mod_etag["_mod"] = m_target->mod;
-            // m_mod_etag["_cache_control"] = m_target->cache_control;
-
-
             LOG_DEBUG << "Opening '" << json_file.string() << "'";
             path::touch(json_file, true);
             std::ofstream final_file = open_ofstream(json_file);
@@ -568,26 +640,14 @@ namespace mamba
                                                      json_file.string(),
                                                      strerror(errno)));
             }
-
-            temp_file.close();
-            m_temp_file.reset(nullptr);
-            final_file.close();
         }
         else
         {
-            fs::u8path state_file = json_file.replace_extension(".state.json");
-            nlohmann::json j;
-            j["url"] = m_target->url();
-            j["etag"] = m_target->etag;
-            j["mod"] = m_target->mod;
-            j["cache_control"] = m_target->cache_control;
-            std::filesystem::file_time_type t = fs::last_write_time(m_temp_file->path());
-            auto epoch = t.time_since_epoch();
-            j["mtime"] = epoch.count();
-            j["size"] = fs::file_size(m_temp_file->path());
+            fs::u8path state_file = json_file;
+            state_file.replace_extension(".state.json");
+            fs::rename(m_temp_file->path(), json_file);
             std::ofstream state_file_stream = open_ofstream(state_file);
-            state_file_stream << j.dump(4);
-            state_file_stream.close();
+            m_metadata.serialize_to_stream(state_file_stream);
         }
         if (m_progress_bar)
         {
@@ -595,6 +655,7 @@ namespace mamba
             m_progress_bar.mark_as_completed();
         }
 
+        m_temp_file.reset(nullptr);
         m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
         m_loaded = true;

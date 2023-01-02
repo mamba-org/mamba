@@ -369,14 +369,20 @@ namespace mamba
         if (ends_with(url, ".zst"))
         {
             m_zstd_stream = std::make_unique<ZstdStream>(&DownloadTarget::write_callback, this);
-            m_filename = m_filename.substr(0, m_filename.size() - 4);
+            if (ends_with(m_filename, ".zst"))
+            {
+                m_filename = m_filename.substr(0, m_filename.size() - 4);
+            }
             curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
             curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_zstd_stream.get());
         }
         else if (ends_with(url, ".bz2"))
         {
             m_bzip2_stream = std::make_unique<Bzip2Stream>(&DownloadTarget::write_callback, this);
-            m_filename = m_filename.substr(0, m_filename.size() - 4);
+            if (ends_with(m_filename, ".bz2"))
+            {
+                m_filename = m_filename.substr(0, m_filename.size() - 4);
+            }
             curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, Bzip2Stream::write_callback);
             curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_bzip2_stream.get());
         }

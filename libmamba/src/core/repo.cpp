@@ -312,7 +312,7 @@ namespace mamba
             m_solv_file.replace_extension("solv");
         }
 
-        LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename.stem()).string()
+        LOG_INFO << "Reading cache files '" << (filename.parent_path() / filename).string()
                  << ".*' for repo index '" << m_repo->name << "'";
 
         if (is_solv)
@@ -328,7 +328,7 @@ namespace mamba
                 throw std::runtime_error("Could not open repository file " + filename.string());
             }
 
-            LOG_DEBUG << "Attempt load from solv " << m_solv_file;
+            LOG_INFO << "Attempt load from solv " << m_solv_file;
 
             int ret = repo_add_solv(m_repo, fp, 0);
             if (ret != 0)
@@ -358,6 +358,8 @@ namespace mamba
                     const char* mod = repodata_lookup_str(repodata, SOLVID_META, mod_id);
                     const char* tool_version
                         = repodata_lookup_str(repodata, SOLVID_META, REPOSITORY_TOOLVERSION);
+                    LOG_INFO << "Metadata solv file: " << url << " " << pip_added << " " << etag
+                             << " " << mod << " " << tool_version;
                     bool metadata_valid
                         = !(!url || !etag || !mod || !tool_version || pip_added == failure);
 
@@ -368,15 +370,15 @@ namespace mamba
                                          && (std::strcmp(tool_version, mamba_tool_version()) == 0);
                     }
 
-                    LOG_DEBUG << "Metadata from SOLV are "
-                              << (metadata_valid ? "valid" : "NOT valid");
+                    LOG_INFO << "Metadata from SOLV are "
+                             << (metadata_valid ? "valid" : "NOT valid");
 
                     if (!metadata_valid)
                     {
-                        LOG_DEBUG << "SOLV file was written with a previous version of "
-                                     "libsolv or mamba "
-                                  << (tool_version != nullptr ? tool_version : "<NULL>")
-                                  << ", updating it now!";
+                        LOG_INFO << "SOLV file was written with a previous version of "
+                                    "libsolv or mamba "
+                                 << (tool_version != nullptr ? tool_version : "<NULL>")
+                                 << ", updating it now!";
                     }
                     else
                     {

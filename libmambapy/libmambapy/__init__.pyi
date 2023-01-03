@@ -1463,7 +1463,12 @@ def get_virtual_packages() -> typing.List[PackageInfo]:
 def sign(data: str, secret_key: str) -> str:
     pass
 
-def transmute(arg0: Path, arg1: Path, arg2: int) -> bool:
+def transmute(
+    source_package: Path,
+    destination_package: Path,
+    compression_level: int,
+    compression_threads: int = 1,
+) -> bool:
     pass
 
 MAMBA_CLEAN_ALL = 1

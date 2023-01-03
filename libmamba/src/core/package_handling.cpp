@@ -84,12 +84,38 @@ namespace mamba
         return r;
     }
 
+    bool path_has_prefix(const fs::u8path& path, const fs::u8path& prefix)
+    {
+        auto pair = std::mismatch(path.std_path().begin(),
+                                  path.std_path().end(),
+                                  prefix.std_path().begin(),
+                                  prefix.std_path().end());
+        return pair.second == prefix.std_path().end();
+    }
+
+    int order(const fs::u8path& path)
+    {
+        int is_info = path_has_prefix(path, "info");
+        return !is_info;
+    }
+
+    int zip_order(const fs::u8path& path)
+    {
+        // sort info-...tar.zst file last in zip folder"
+        int init_order = starts_with(path.filename().string(), "info-");
+        // sort metadata.json first in zip folder
+        if (path.filename().string() == "metadata.json")
+            init_order = -1;
+        return init_order;
+    }
+
     // Bundle up all files in directory and create destination archive
     void create_archive(const fs::u8path& directory,
                         const fs::u8path& destination,
                         compression_algorithm ca,
                         int compression_level,
-                        bool (*filter)(const std::string&))
+                        int compression_threads,
+                        bool (*filter)(const fs::u8path&))
     {
         int r;
         struct archive* a;
@@ -127,10 +153,27 @@ namespace mamba
             archive_write_add_filter_zstd(a);
 
             if (compression_level < 1 || compression_level > 22)
-                throw std::runtime_error("zip compression level should be between 1 and 22");
+                throw std::runtime_error("zstd compression level should be between 1 and 22");
+
             std::string comp_level
                 = std::string("zstd:compression-level=") + std::to_string(compression_level);
-            archive_write_set_options(a, comp_level.c_str());
+
+            int res = archive_write_set_options(a, comp_level.c_str());
+            if (res != 0)
+            {
+                LOG_ERROR << "libarchive error (" << res << ") " << archive_error_string(a);
+            }
+
+            if (compression_threads > 2)
+            {
+                std::string comp_threads_level
+                    = std::string("zstd:threads=") + std::to_string(compression_threads);
+                res = archive_write_set_options(a, comp_threads_level.c_str());
+                if (res != 0)
+                {
+                    LOG_ERROR << "libarchive error (" << res << ") " << archive_error_string(a);
+                }
+            }
         }
 
         archive_write_open_filename(a, abs_out_path.string().c_str());
@@ -142,24 +185,42 @@ namespace mamba
         }
         fs::current_path(directory);
 
-        for (auto& dir_entry : fs::recursive_directory_iterator("."))
+        std::vector<std::pair<int, fs::u8path>> files;
+        if (ca != compression_algorithm::zip)
         {
-            // we only add empty directories to the archive
-            if (dir_entry.is_directory() && !fs::is_empty(dir_entry.path()))
+            for (auto& dir_entry : fs::recursive_directory_iterator("."))
             {
+                auto clean_path = dir_entry.path().lexically_relative("./");
+                files.push_back({ order(clean_path), clean_path });
+            }
+        }
+        else
+        {
+            // for zip files, sort `info` last
+            for (auto& dir_entry : fs::directory_iterator("."))
+            {
+                auto clean_path = dir_entry.path().lexically_relative("./");
+                files.push_back({ zip_order(clean_path), clean_path });
+            }
+        }
+
+        std::sort(files.begin(), files.end());
+
+        for (auto& order_pair : files)
+        {
+            const fs::u8path& path = order_pair.second;
+
+            // skip adding _empty_ directories (they are implicitly added by the files therein)
+            auto status = fs::symlink_status(path);
+            if (fs::is_directory(status) && !fs::is_empty(path) && !fs::is_symlink(status))
+            {
+                LOG_INFO << "Skipping " << path << " as it is a non-empty directory.";
                 continue;
             }
 
-            std::string p = dir_entry.path().string();
-            // do this in a better way?
-            if (p[0] == '.')
-            {
-                p = p.substr(1);
-            }
-            if (p[0] == '/')
-            {
-                p = p.substr(1);
-            }
+            LOG_INFO << "Adding " << path << " to archive";
+
+            std::string p = path.string();
             if (filter && filter(p))
             {
                 continue;
@@ -187,6 +248,11 @@ namespace mamba
             {
                 throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
             }
+
+            // clean out UID and GID
+            archive_entry_set_uid(entry, 0);
+            archive_entry_set_gid(entry, 0);
+
             if (archive_read_disk_descend(disk) < ARCHIVE_OK)
             {
                 throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
@@ -232,7 +298,8 @@ namespace mamba
     // note the info folder must have already been created!
     void create_package(const fs::u8path& directory,
                         const fs::u8path& out_file,
-                        int compression_level)
+                        int compression_level,
+                        int compression_threads)
     {
         fs::u8path out_file_abs = fs::absolute(out_file);
         if (ends_with(out_file.string(), ".tar.bz2"))
@@ -241,7 +308,8 @@ namespace mamba
                            out_file_abs,
                            bzip2,
                            compression_level,
-                           [](const std::string&) { return false; });
+                           compression_threads,
+                           [](const fs::u8path&) { return false; });
         }
         else if (ends_with(out_file.string(), ".conda"))
         {
@@ -250,12 +318,20 @@ namespace mamba
                            tdir.path() / concat("info-", out_file.stem().string(), ".tar.zst"),
                            zstd,
                            compression_level,
-                           [](const std::string& p) -> bool { return !starts_with(p, "info/"); });
+                           compression_threads,
+                           [](const fs::u8path& p) -> bool {
+                               return p.std_path().begin() != p.std_path().end()
+                                      && *p.std_path().begin() != "info";
+                           });
             create_archive(directory,
                            tdir.path() / concat("pkg-", out_file.stem().string(), ".tar.zst"),
                            zstd,
                            compression_level,
-                           [](const std::string& p) -> bool { return starts_with(p, "info/"); });
+                           compression_threads,
+                           [](const fs::u8path& p) -> bool {
+                               return p.std_path().begin() != p.std_path().end()
+                                      && *p.std_path().begin() == "info";
+                           });
 
             nlohmann::json pkg_metadata;
             pkg_metadata["conda_pkg_format_version"] = 2;
@@ -264,8 +340,12 @@ namespace mamba
             metadata_file << pkg_metadata;
             metadata_file.close();
 
-            create_archive(
-                tdir.path(), out_file_abs, zip, 0, [](const std::string&) { return false; });
+            create_archive(tdir.path(),
+                           out_file_abs,
+                           zip,
+                           0,
+                           compression_threads,
+                           [](const fs::u8path&) { return false; });
         }
     }
 
@@ -470,7 +550,10 @@ namespace mamba
         }
     }
 
-    bool transmute(const fs::u8path& pkg_file, const fs::u8path& target, int compression_level)
+    bool transmute(const fs::u8path& pkg_file,
+                   const fs::u8path& target,
+                   int compression_level,
+                   int compression_threads)
     {
         TemporaryDirectory extract_dir;
 
@@ -487,7 +570,7 @@ namespace mamba
             throw std::runtime_error("Unknown package format (" + pkg_file.string() + ")");
         }
 
-        create_package(extract_dir, target, compression_level);
+        create_package(extract_dir, target, compression_level, compression_threads);
         return true;
     }
 

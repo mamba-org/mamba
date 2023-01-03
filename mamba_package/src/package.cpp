@@ -16,6 +16,7 @@ set_package_command(CLI::App* com)
 {
     static std::string infile, dest;
     static int compression_level = -1;
+    static int compression_threads = 1;
 
     auto extract_subcom = com->add_subcommand("extract");
     extract_subcom->add_option("archive", infile, "Archive to extract");
@@ -35,6 +36,10 @@ set_package_command(CLI::App* com)
         "-c,--compression-level",
         compression_level,
         "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)");
+    compress_subcom->add_option(
+        "--compression-threads",
+        compression_threads,
+        "Compression threads (only relevant for .conda packages, default is 1)");
     compress_subcom->callback(
         [&]()
         {
@@ -45,7 +50,8 @@ set_package_command(CLI::App* com)
             if (ends_with(dest, ".conda") && compression_level == -1)
                 compression_level = 15;
 
-            create_package(fs::absolute(infile), fs::absolute(dest), compression_level);
+            create_package(
+                fs::absolute(infile), fs::absolute(dest), compression_level, compression_threads);
         });
 
     auto transmute_subcom = com->add_subcommand("transmute");
@@ -54,6 +60,10 @@ set_package_command(CLI::App* com)
         "-c,--compression-level",
         compression_level,
         "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)");
+    transmute_subcom->add_option(
+        "--compression-threads",
+        compression_threads,
+        "Compression threads (only relevant for .conda packages, default is 1)");
     transmute_subcom->callback(
         [&]()
         {
@@ -70,6 +80,7 @@ set_package_command(CLI::App* com)
                 dest = infile.substr(0, infile.size() - 8) + ".tar.bz2";
             }
             std::cout << "Transmuting " << fs::absolute(infile) << " to " << dest << std::endl;
-            transmute(fs::absolute(infile), fs::absolute(dest), compression_level);
+            transmute(
+                fs::absolute(infile), fs::absolute(dest), compression_level, compression_threads);
         });
 }

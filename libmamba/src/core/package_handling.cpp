@@ -93,20 +93,20 @@ namespace mamba
         return pair.second == prefix.std_path().end();
     }
 
-    std::pair<int, std::string> order(const fs::u8path& path)
+    int order(const fs::u8path& path)
     {
         int is_info = path_has_prefix(path, "info");
-        return { !is_info, path.string() };
+        return !is_info;
     }
 
-    std::pair<int, std::string> zip_order(const fs::u8path& path)
+    int zip_order(const fs::u8path& path)
     {
         // sort info-...tar.zst file last in zip folder"
         int init_order = starts_with(path.filename().string(), "info-");
         // sort metadata.json first in zip folder
         if (path.filename().string() == "metadata.json")
             init_order = -1;
-        return { init_order, path.string() };
+        return init_order;
     }
 
     // Bundle up all files in directory and create destination archive
@@ -185,13 +185,13 @@ namespace mamba
         }
         fs::current_path(directory);
 
-        std::vector<std::pair<fs::u8path, std::pair<int, std::string>>> files;
+        std::vector<std::pair<int, fs::u8path>> files;
         if (ca != compression_algorithm::zip)
         {
             for (auto& dir_entry : fs::recursive_directory_iterator("."))
             {
                 auto clean_path = dir_entry.path().lexically_relative("./");
-                files.push_back({ clean_path, order(clean_path) });
+                files.push_back({ order(clean_path), clean_path });
             }
         }
         else
@@ -200,17 +200,15 @@ namespace mamba
             for (auto& dir_entry : fs::directory_iterator("."))
             {
                 auto clean_path = dir_entry.path().lexically_relative("./");
-                files.push_back({ clean_path, zip_order(clean_path) });
+                files.push_back({ zip_order(clean_path), clean_path });
             }
         }
 
-        std::sort(files.begin(),
-                  files.end(),
-                  [](const auto& a, const auto& b) { return a.second < b.second; });
+        std::sort(files.begin(), files.end());
 
         for (auto& order_pair : files)
         {
-            const fs::u8path& path = order_pair.first;
+            const fs::u8path& path = order_pair.second;
 
             // skip adding _empty_ directories (they are implicitly added by the files therein)
             auto status = fs::symlink_status(path);

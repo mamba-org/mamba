@@ -54,7 +54,7 @@ namespace mamba
             path = env::expand_user(path);
             if (lexists(path))
             {
-                fs::last_write_time(path, fs::file_time_type::clock::now());
+                fs::last_write_time(path, fs::now());
                 return true;
             }
             else

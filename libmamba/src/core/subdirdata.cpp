@@ -503,13 +503,13 @@ namespace mamba
             {
                 LOG_TRACE << "Refreshing '" << json_file.string() << "'";
                 auto lock = LockFile(json_file);
-                fs::last_write_time(json_file, now);
+                fs::last_write_time(json_file, fs::now());
             }
             if (fs::exists(solv_file) && solv_age.count() <= json_age.count())
             {
                 LOG_TRACE << "Refreshing '" << solv_file.string() << "'";
                 auto lock = LockFile(solv_file);
-                fs::last_write_time(solv_file, now);
+                fs::last_write_time(solv_file, fs::now());
                 m_solv_cache_valid = true;
             }
 
@@ -606,7 +606,7 @@ namespace mamba
         m_temp_file.reset(nullptr);
         final_file.close();
 
-        fs::last_write_time(json_file, fs::file_time_type::clock::now());
+        fs::last_write_time(json_file, fs::now());
 
         return true;
     }

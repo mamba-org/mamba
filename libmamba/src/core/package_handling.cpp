@@ -7,7 +7,6 @@
 
 #include <archive.h>
 #include <archive_entry.h>
-#include <iostream>
 #include <zstd.h>
 
 #include <sstream>
@@ -468,7 +467,7 @@ namespace mamba
             r = archive_write_finish_entry(ext);
             if (r == ARCHIVE_WARN)
             {
-                std::cout << "libarchive warning: " << archive_error_string(a);
+                LOG_WARNING << "libarchive warning: " << archive_error_string(a);
             }
             else if (r < ARCHIVE_OK)
             {

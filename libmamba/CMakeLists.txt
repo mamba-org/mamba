@@ -293,7 +293,6 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 libbz2.a
                 liblz4.a
                 libzstd.a
-                libz.a
                 liblzma.a
                 liblzo2.a
 
@@ -306,6 +305,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
                 libreproc++.a
                 libreproc.a
+
+                libz.a
             )
             if (APPLE)
                 set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)

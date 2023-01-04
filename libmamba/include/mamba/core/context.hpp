@@ -140,6 +140,7 @@ namespace mamba
 
         std::size_t download_threads = 5;
         int extract_threads = 0;
+        bool extract_sparse = false;
 
         int verbosity = 0;
         void set_verbosity(int lvl);

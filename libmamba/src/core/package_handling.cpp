@@ -8,6 +8,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <iostream>
+#include <zstd.h>
 
 #include <sstream>
 
@@ -288,6 +289,7 @@ namespace mamba
 
             archive_read_close(disk);
             archive_read_free(disk);
+
             archive_entry_clear(entry);
         }
 
@@ -355,36 +357,13 @@ namespace mamba
         LOG_INFO << "Extracting " << file << " to " << destination;
         extraction_guard g(destination);
 
-        auto prev_path = fs::current_path();
-        if (!fs::exists(destination))
-        {
-            fs::create_directories(destination);
-        }
-        fs::current_path(destination);
-
         struct archive* a;
-        struct archive* ext;
-        struct archive_entry* entry;
-        int flags;
         int r;
-
-        /* Select which attributes we want to restore. */
-        flags = ARCHIVE_EXTRACT_TIME;
-        flags |= ARCHIVE_EXTRACT_PERM;
-        flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
-        flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
-        flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
-        // flags |= ARCHIVE_EXTRACT_SPARSE;
-        flags |= ARCHIVE_EXTRACT_UNLINK;
 
         a = archive_read_new();
         archive_read_support_format_tar(a);
         archive_read_support_format_zip(a);
         archive_read_support_filter_all(a);
-
-        ext = archive_write_disk_new();
-        archive_write_disk_set_options(ext, flags);
-        archive_write_disk_set_standard_lookup(ext);
 
         auto lock = LockFile(file);
         r = archive_read_open_filename(a, file.string().c_str(), 10240);
@@ -395,71 +374,24 @@ namespace mamba
             throw std::runtime_error(file.string() + " : Could not open archive for reading.");
         }
 
-        for (;;)
-        {
-            if (is_sig_interrupted())
-            {
-                break;
-            }
+        stream_extract_archive(a, destination);
 
-            r = archive_read_next_header(a, &entry);
-            if (r == ARCHIVE_EOF)
-            {
-                break;
-            }
-            if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(a));
-            }
-
-            r = archive_write_header(ext, entry);
-            if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(ext));
-            }
-            else if (archive_entry_size(entry) > 0)
-            {
-                r = copy_data(a, ext);
-                if (r < ARCHIVE_OK)
-                {
-                    const char* err_str = archive_error_string(ext);
-                    if (err_str == nullptr)
-                    {
-                        err_str = archive_error_string(a);
-                    }
-                    if (err_str != nullptr)
-                    {
-                        throw std::runtime_error(err_str);
-                    }
-                    throw std::runtime_error("Extraction: writing data was not successful.");
-                }
-            }
-            r = archive_write_finish_entry(ext);
-            if (r == ARCHIVE_WARN)
-            {
-                LOG_WARNING << "libarchive warning: " << archive_error_string(a);
-            }
-            else if (r < ARCHIVE_OK)
-            {
-                throw std::runtime_error(archive_error_string(ext));
-            }
-        }
         archive_read_close(a);
         archive_read_free(a);
-        archive_write_close(ext);
-        archive_write_free(ext);
-
-        fs::current_path(prev_path);
     }
 
     namespace
     {
-        constexpr size_t BUFFER_SIZE = 131072;
-
         struct conda_extract_context
         {
+            conda_extract_context(struct archive* source)
+                : source(source)
+                , buffer(ZSTD_DStreamOutSize())
+            {
+            }
+
             struct archive* source;
-            char buffer[BUFFER_SIZE];
+            std::vector<char> buffer;
         };
     }
 
@@ -483,8 +415,12 @@ namespace mamba
         flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
         flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
         flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
-        // flags |= ARCHIVE_EXTRACT_SPARSE;
         flags |= ARCHIVE_EXTRACT_UNLINK;
+
+        if (Context::instance().extract_sparse)
+        {
+            flags |= ARCHIVE_EXTRACT_SPARSE;
+        }
 
         ext = archive_write_disk_new();
         archive_write_disk_set_options(ext, flags);
@@ -492,6 +428,11 @@ namespace mamba
 
         for (;;)
         {
+            if (is_sig_interrupted())
+            {
+                throw std::runtime_error("SIGINT received. Aborting extraction.");
+            }
+
             r = archive_read_next_header(a, &entry);
             if (r == ARCHIVE_EOF)
             {
@@ -535,9 +476,6 @@ namespace mamba
             }
         }
 
-        archive_read_close(a);
-        archive_read_free(a);
-
         archive_write_close(ext);
         archive_write_free(ext);
 
@@ -548,29 +486,22 @@ namespace mamba
     static la_ssize_t file_read(struct archive* a, void* client_data, const void** buff)
     {
         struct conda_extract_context* mine = static_cast<conda_extract_context*>(client_data);
-        *buff = mine->buffer;
+        *buff = mine->buffer.data();
 
-        auto read = archive_read_data(mine->source, mine->buffer, BUFFER_SIZE);
+        auto read = archive_read_data(mine->source, mine->buffer.data(), mine->buffer.size());
         if (read < 0)
         {
-            std::cout << archive_error_string(mine->source) << std::endl;
-            std::cout << "Error reading from archive" << std::endl;
-            return read;
+            throw std::runtime_error(
+                fmt::format("Error reading from archive: {}", archive_error_string(mine->source)));
         }
-        // std::cout << "Read " << read << " bytes" << std::endl;
         return read;
     }
 
-    int archive_read_open_archive_entry(struct archive* a, struct archive* source)
+    int archive_read_open_archive_entry(struct archive* a, conda_extract_context* ctx)
     {
-        struct conda_extract_context* mine;
-
         archive_clear_error(a);
-        mine = (struct conda_extract_context*) calloc(1, sizeof(*mine));
-        mine->source = source;
-
         archive_read_set_read_callback(a, file_read);
-        archive_read_set_callback_data(a, mine);
+        archive_read_set_callback_data(a, ctx);
         return archive_read_open1(a);
     }
 
@@ -581,15 +512,18 @@ namespace mamba
     {
         // open outer zip archive
         struct archive* a = archive_read_new();
+        struct archive_entry* entry;
+
         assert(archive_read_support_format_zip(a) == ARCHIVE_OK);
 
-        if (archive_read_open_filename(a, file.string().c_str(), BUFFER_SIZE) != ARCHIVE_OK)
+        conda_extract_context extract_context(a);
+
+        if (archive_read_open_filename(a, file.string().c_str(), extract_context.buffer.size())
+            != ARCHIVE_OK)
         {
             throw std::runtime_error(archive_error_string(a));
         }
 
-        // read archive
-        struct archive_entry* entry;
         while (archive_read_next_header(a, &entry) == ARCHIVE_OK)
         {
             fs::u8path p(archive_entry_pathname(entry));
@@ -600,11 +534,26 @@ namespace mamba
                 archive_read_support_filter_zstd(inner);
                 archive_read_support_format_tar(inner);
 
-                archive_read_open_archive_entry(inner, a);
+                archive_read_open_archive_entry(inner, &extract_context);
                 stream_extract_archive(inner, dest_dir);
+
+                archive_read_close(inner);
+                archive_read_free(inner);
+            }
+            else if (p.extension() == ".json")
+            {
+                std::size_t json_size = archive_entry_size(entry);
+                std::string json;
+                json.resize(json_size);
+                archive_read_data(a, json.data(), json_size);
+                auto obj = nlohmann::json::parse(json);
+                if (obj["conda_pkg_format_version"] != 2)
+                {
+                    LOG_WARNING << "Unsupported conda package format version";
+                }
             }
         }
-        // close archive
+
         archive_read_close(a);
         archive_read_free(a);
     }

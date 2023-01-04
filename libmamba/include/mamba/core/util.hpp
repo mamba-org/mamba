@@ -315,6 +315,17 @@ namespace mamba
 
     std::optional<std::string> proxy_match(const std::string& url);
 
+    class non_copyable_base
+    {
+    public:
+        non_copyable_base()
+        {
+        }
+
+    private:
+        non_copyable_base(const non_copyable_base&);
+        non_copyable_base& operator=(const non_copyable_base&);
+    };
 }  // namespace mamba
 
 #endif  // MAMBA_UTIL_HPP

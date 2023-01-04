@@ -58,7 +58,7 @@ namespace mamba
         const fs::u8path& m_file;
     };
 
-    class scoped_archive_read
+    class scoped_archive_read : non_copyable_base
     {
     public:
         scoped_archive_read()
@@ -91,7 +91,7 @@ namespace mamba
         archive* m_archive;
     };
 
-    class scoped_archive_write
+    class scoped_archive_write : non_copyable_base
     {
     public:
         scoped_archive_write()
@@ -127,7 +127,7 @@ namespace mamba
         archive* m_archive;
     };
 
-    class scoped_archive_entry
+    class scoped_archive_entry : non_copyable_base
     {
     public:
         scoped_archive_entry()
@@ -456,16 +456,13 @@ namespace mamba
 
     namespace
     {
-        struct conda_extract_context
+        struct conda_extract_context : non_copyable_base
         {
             conda_extract_context(scoped_archive_read& source)
                 : source(source)
                 , buffer(ZSTD_DStreamOutSize())
             {
             }
-
-            conda_extract_context(const conda_extract_context&) = delete;
-            conda_extract_context& operator=(const conda_extract_context&) = delete;
 
             archive* source;
             std::vector<char> buffer;

@@ -459,7 +459,7 @@ namespace mamba
     {
         struct conda_extract_context
         {
-            conda_extract_context(struct archive* source)
+            conda_extract_context(archive* source)
                 : source(source)
                 , buffer(ZSTD_DStreamOutSize())
             {
@@ -553,9 +553,9 @@ namespace mamba
     }
 
 
-    static la_ssize_t file_read(struct archive* a, void* client_data, const void** buff)
+    static la_ssize_t file_read(archive* a, void* client_data, const void** buff)
     {
-        struct conda_extract_context* mine = static_cast<conda_extract_context*>(client_data);
+        conda_extract_context* mine = static_cast<conda_extract_context*>(client_data);
         *buff = mine->buffer.data();
 
         auto read = archive_read_data(mine->source, mine->buffer.data(), mine->buffer.size());
@@ -567,7 +567,7 @@ namespace mamba
         return read;
     }
 
-    int archive_read_open_archive_entry(struct archive* a, conda_extract_context* ctx)
+    int archive_read_open_archive_entry(archive* a, conda_extract_context* ctx)
     {
         archive_clear_error(a);
         archive_read_set_read_callback(a, file_read);

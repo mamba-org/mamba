@@ -181,11 +181,6 @@ namespace mamba
             bool jlap_exists
                 = DownloadTarget(repodata_url_jlap, repodata_url_jlap, "").resource_exists();
         }
-
-        LOG_INFO << "Checking repodata existence for " << m_repodata_url;
-        LOG_INFO << "  repodata.json.zst exists: " << zst_exists;
-        LOG_INFO << "  repodata.json.bz2 exists: " << bz2_exists;
-        LOG_INFO << "  repodata.json.jlap exists: " << jlap_exists;
     }
 
     expected_t<MSubdirData> MSubdirData::create(const Channel& channel,

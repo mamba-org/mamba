@@ -374,7 +374,7 @@ namespace mamba
         flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
         flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
         flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
-        flags |= ARCHIVE_EXTRACT_SPARSE;
+        // flags |= ARCHIVE_EXTRACT_SPARSE;
         flags |= ARCHIVE_EXTRACT_UNLINK;
 
         a = archive_read_new();
@@ -488,7 +488,7 @@ namespace mamba
         flags |= ARCHIVE_EXTRACT_SECURE_NODOTDOT;
         flags |= ARCHIVE_EXTRACT_SECURE_SYMLINKS;
         flags |= ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS;
-        flags |= ARCHIVE_EXTRACT_SPARSE;
+        // flags |= ARCHIVE_EXTRACT_SPARSE;
         flags |= ARCHIVE_EXTRACT_UNLINK;
 
         ext = archive_write_disk_new();

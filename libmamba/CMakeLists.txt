@@ -289,6 +289,9 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
                 libarchive.a
 
+                libsolv.a
+                libsolvext.a
+
                 libiconv.a
                 libbz2.a
                 liblz4.a
@@ -296,9 +299,6 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 libz.a
                 liblzma.a
                 liblzo2.a
-
-                libsolv.a
-                libsolvext.a
 
                 libnghttp2.a
 

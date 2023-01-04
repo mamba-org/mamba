@@ -58,17 +58,17 @@ namespace mamba
         const fs::u8path& m_file;
     };
 
-    class libarchive_read_raii
+    class scoped_archive_read
     {
     public:
-        libarchive_read_raii()
-            : libarchive_read_raii(archive_read_new()){};
-        static libarchive_read_raii read_disk()
+        scoped_archive_read()
+            : scoped_archive_read(archive_read_new()){};
+        static scoped_archive_read read_disk()
         {
-            return libarchive_read_raii(archive_read_disk_new());
+            return scoped_archive_read(archive_read_disk_new());
         }
 
-        ~libarchive_read_raii()
+        ~scoped_archive_read()
         {
             archive_read_free(m_archive);
         }
@@ -79,7 +79,7 @@ namespace mamba
         }
 
     private:
-        libarchive_read_raii(archive* a)
+        explicit scoped_archive_read(archive* a)
             : m_archive(a)
         {
             if (!m_archive)
@@ -91,10 +91,46 @@ namespace mamba
         archive* m_archive;
     };
 
-    class libarchive_entry_raii
+    class scoped_archive_write
     {
     public:
-        libarchive_entry_raii()
+        scoped_archive_write()
+            : scoped_archive_write(archive_write_new())
+        {
+        }
+
+        static scoped_archive_write write_disk()
+        {
+            return scoped_archive_write(archive_write_disk_new());
+        }
+
+        ~scoped_archive_write()
+        {
+            archive_write_free(m_archive);
+        }
+
+        operator archive*()
+        {
+            return m_archive;
+        }
+
+    private:
+        explicit scoped_archive_write(archive* a)
+            : m_archive(a)
+        {
+            if (!m_archive)
+            {
+                throw std::runtime_error("Could not create libarchive write object");
+            }
+        }
+
+        archive* m_archive;
+    };
+
+    class scoped_archive_entry
+    {
+    public:
+        scoped_archive_entry()
             : m_entry(archive_entry_new())
         {
             if (!m_entry)
@@ -103,7 +139,7 @@ namespace mamba
             }
         }
 
-        ~libarchive_entry_raii()
+        ~scoped_archive_entry()
         {
             archive_entry_free(m_entry);
         }
@@ -117,45 +153,9 @@ namespace mamba
         archive_entry* m_entry;
     };
 
-    class libarchive_write_raii
-    {
-    public:
-        libarchive_write_raii()
-            : libarchive_write_raii(archive_write_new())
-        {
-        }
+    void stream_extract_archive(scoped_archive_read& a, const fs::u8path& destination);
 
-        static libarchive_write_raii write_disk()
-        {
-            return libarchive_write_raii(archive_write_disk_new());
-        }
-
-        ~libarchive_write_raii()
-        {
-            archive_write_free(m_archive);
-        }
-
-        operator archive*()
-        {
-            return m_archive;
-        }
-
-    private:
-        libarchive_write_raii(archive* a)
-            : m_archive(a)
-        {
-            if (!m_archive)
-            {
-                throw std::runtime_error("Could not create libarchive write object");
-            }
-        }
-
-        archive* m_archive;
-    };
-
-    void stream_extract_archive(libarchive_read_raii& a, const fs::u8path& destination);
-
-    static int copy_data(libarchive_read_raii& ar, libarchive_write_raii& aw)
+    static int copy_data(scoped_archive_read& ar, scoped_archive_write& aw)
     {
         int r = 0;
         const void* buff = nullptr;
@@ -220,7 +220,7 @@ namespace mamba
         extraction_guard g(destination);
 
         fs::u8path abs_out_path = fs::absolute(destination);
-        libarchive_write_raii a;
+        scoped_archive_write a;
         if (ca == compression_algorithm::bzip2)
         {
             archive_write_set_format_gnutar(a);
@@ -323,8 +323,8 @@ namespace mamba
                 continue;
             }
 
-            libarchive_entry_raii entry;
-            libarchive_read_raii disk = libarchive_read_raii::read_disk();
+            scoped_archive_entry entry;
+            scoped_archive_read disk = scoped_archive_read::read_disk();
             if (archive_read_disk_set_behavior(disk, 0) < ARCHIVE_OK)
             {
                 throw std::runtime_error(concat("libarchive error: ", archive_error_string(disk)));
@@ -437,15 +437,13 @@ namespace mamba
         LOG_INFO << "Extracting " << file << " to " << destination;
         extraction_guard g(destination);
 
-        int r;
-
-        libarchive_read_raii a;
+        scoped_archive_read a;
         archive_read_support_format_tar(a);
         archive_read_support_format_zip(a);
         archive_read_support_filter_all(a);
 
         auto lock = LockFile(file);
-        r = archive_read_open_filename(a, file.string().c_str(), 10240);
+        int r = archive_read_open_filename(a, file.string().c_str(), 10240);
 
         if (r != ARCHIVE_OK)
         {
@@ -460,18 +458,21 @@ namespace mamba
     {
         struct conda_extract_context
         {
-            conda_extract_context(libarchive_read_raii& source)
+            conda_extract_context(scoped_archive_read& source)
                 : source(source)
                 , buffer(ZSTD_DStreamOutSize())
             {
             }
+
+            conda_extract_context(const conda_extract_context&) = delete;
+            conda_extract_context& operator=(const conda_extract_context&) = delete;
 
             archive* source;
             std::vector<char> buffer;
         };
     }
 
-    void stream_extract_archive(libarchive_read_raii& a, const fs::u8path& destination)
+    void stream_extract_archive(scoped_archive_read& a, const fs::u8path& destination)
     {
         auto prev_path = fs::current_path();
         if (!fs::exists(destination))
@@ -496,7 +497,7 @@ namespace mamba
             flags |= ARCHIVE_EXTRACT_SPARSE;
         }
 
-        libarchive_write_raii ext = libarchive_write_raii::write_disk();
+        scoped_archive_write ext = scoped_archive_write::write_disk();
         archive_write_disk_set_options(ext, flags);
         archive_write_disk_set_standard_lookup(ext);
 
@@ -568,7 +569,7 @@ namespace mamba
         return read;
     }
 
-    int archive_read_open_archive_entry(libarchive_read_raii& a, conda_extract_context* ctx)
+    int archive_read_open_archive_entry(scoped_archive_read& a, conda_extract_context* ctx)
     {
         archive_clear_error(a);
         archive_read_set_read_callback(a, file_read);
@@ -584,7 +585,7 @@ namespace mamba
         // open outer zip archive
         archive_entry* entry;
 
-        libarchive_read_raii a;
+        scoped_archive_read a;
         archive_read_support_format_zip(a);
 
         conda_extract_context extract_context(a);
@@ -601,7 +602,7 @@ namespace mamba
             if (p.extension() == ".zst")
             {
                 // extract zstd file
-                libarchive_read_raii inner;
+                scoped_archive_read inner;
                 archive_read_support_filter_zstd(inner);
                 archive_read_support_format_tar(inner);
 

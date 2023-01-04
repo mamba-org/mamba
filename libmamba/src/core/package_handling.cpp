@@ -102,10 +102,12 @@ namespace mamba
                 throw std::runtime_error("Could not create libarchive entry object");
             }
         }
+
         ~libarchive_entry_raii()
         {
             archive_entry_free(m_entry);
         }
+
         operator archive_entry*()
         {
             return m_entry;
@@ -132,11 +134,8 @@ namespace mamba
         {
             archive_write_free(m_archive);
         }
+
         operator archive*()
-        {
-            return m_archive;
-        }
-        archive* operator->()
         {
             return m_archive;
         }
@@ -154,7 +153,9 @@ namespace mamba
         archive* m_archive;
     };
 
-    static int copy_data(archive* ar, archive* aw)
+    void stream_extract_archive(libarchive_read_raii& a, const fs::u8path& destination);
+
+    static int copy_data(libarchive_read_raii& ar, libarchive_write_raii& aw)
     {
         int r = 0;
         const void* buff = nullptr;
@@ -459,7 +460,7 @@ namespace mamba
     {
         struct conda_extract_context
         {
-            conda_extract_context(archive* source)
+            conda_extract_context(libarchive_read_raii& source)
                 : source(source)
                 , buffer(ZSTD_DStreamOutSize())
             {
@@ -470,7 +471,7 @@ namespace mamba
         };
     }
 
-    void stream_extract_archive(archive* a, const fs::u8path& destination)
+    void stream_extract_archive(libarchive_read_raii& a, const fs::u8path& destination)
     {
         auto prev_path = fs::current_path();
         if (!fs::exists(destination))
@@ -567,7 +568,7 @@ namespace mamba
         return read;
     }
 
-    int archive_read_open_archive_entry(archive* a, conda_extract_context* ctx)
+    int archive_read_open_archive_entry(libarchive_read_raii& a, conda_extract_context* ctx)
     {
         archive_clear_error(a);
         archive_read_set_read_callback(a, file_read);
@@ -610,8 +611,7 @@ namespace mamba
             else if (p.extension() == ".json")
             {
                 std::size_t json_size = archive_entry_size(entry);
-                std::string json;
-                json.resize(json_size);
+                std::string json(json_size, '\0');
                 archive_read_data(a, json.data(), json_size);
                 auto obj = nlohmann::json::parse(json);
                 if (obj["conda_pkg_format_version"] != 2)

@@ -34,7 +34,6 @@ namespace mamba
                         int compression_level);
 
     void extract_archive(const fs::u8path& file, const fs::u8path& destination);
-    void stream_extract_archive(struct archive* a, const fs::u8path& destination);
     void extract_conda(const fs::u8path& file,
                        const fs::u8path& dest_dir,
                        const std::vector<std::string>& parts = { "info", "pkg" });

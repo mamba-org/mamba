@@ -56,6 +56,9 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     std::vector<std::string> channels = j["channels"].get<std::vector<std::string>>();
     std::vector<std::string> virtual_packages
         = j["virtual_packages"].get<std::vector<std::string>>();
+    std::string platform = j["platform"];
+
+    ctx.platform = platform;
 
     for (const auto& s : specs)
     {
@@ -65,7 +68,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
         }
     }
 
-    std::string cache_key = mamba::join(", ", channels);
+    std::string cache_key = mamba::join(", ", channels) + fmt::format(", {}", platform);
     MultiPackageCache package_caches(ctx.pkgs_dirs);
 
     if (cache_map.find(cache_key) == cache_map.end())
@@ -91,7 +94,19 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     // 	throw std::runtime_error(exp_prefix_data.error().what());
     // }
     PrefixData& prefix_data = exp_prefix_data.value();
-    prefix_data.add_packages(get_virtual_packages());
+    std::vector<PackageInfo> vpacks;
+    for (const auto& s : virtual_packages)
+    {
+        auto elements = split(s, "=");
+        vpacks.push_back(make_virtual_package(elements[0],
+                                              elements.size() >= 2 ? elements[1] : "",
+                                              elements.size() >= 3 ? elements[2] : ""));
+    }
+    prefix_data.add_packages(vpacks);
+    for (auto& pkg : prefix_data.package_records())
+    {
+        std::cout << "Packages: " << pkg.name << std::endl;
+    }
 
     MRepo::create(cache_entry.pool, prefix_data);
 
@@ -103,11 +118,14 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
 
     solver.add_jobs(specs, SOLVER_INSTALL);
 
-    auto solved = solver.try_solve();
+    bool solved = solver.try_solve();
 
     if (!solved)
     {
-        throw std::runtime_error("Could not solve");
+        nlohmann::json jout;
+        jout["error_msg"] = solver.problems_to_str();
+        res.send(jout.dump());
+        return;
     }
 
     MTransaction trans(solver, package_caches);

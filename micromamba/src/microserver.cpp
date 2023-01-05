@@ -350,7 +350,6 @@ namespace microserver
                 std::string body = res.body.str();
                 std::size_t body_len = body.size();
 
-
                 // build http response
                 buffer << fmt::format("HTTP/1.0 {} {}\r\n", res.code, res.phrase)
                        << fmt::format("Server: {} {}\r\n", SERVER_NAME, SERVER_VERSION)

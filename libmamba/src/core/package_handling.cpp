@@ -593,10 +593,23 @@ namespace mamba
             throw std::runtime_error(archive_error_string(a));
         }
 
+        auto check_parts = [&parts](const std::string& name)
+        {
+            std::size_t pos = name.find_first_of('-');
+            if (pos == std::string::npos)
+                return false;
+            std::string part = name.substr(0, pos);
+            if (std::find(parts.begin(), parts.end(), part) != parts.end())
+            {
+                return true;
+            }
+            return false;
+        };
+
         while (archive_read_next_header(a, &entry) == ARCHIVE_OK)
         {
             fs::u8path p(archive_entry_pathname(entry));
-            if (p.extension() == ".zst")
+            if (p.extension() == ".zst" && check_parts(p.filename().string()))
             {
                 // extract zstd file
                 scoped_archive_read inner;
@@ -606,15 +619,28 @@ namespace mamba
                 archive_read_open_archive_entry(inner, &extract_context);
                 stream_extract_archive(inner, dest_dir);
             }
-            else if (p.extension() == ".json")
+            else if (p.filename() == "metadata.json")
             {
                 std::size_t json_size = archive_entry_size(entry);
+                if (json_size == 0)
+                {
+                    LOG_INFO << "Package contains empty metadata.json file (" << file << ")";
+                    continue;
+                }
                 std::string json(json_size, '\0');
                 archive_read_data(a, json.data(), json_size);
-                auto obj = nlohmann::json::parse(json);
-                if (obj["conda_pkg_format_version"] != 2)
+                try
                 {
-                    LOG_WARNING << "Unsupported conda package format version";
+                    auto obj = nlohmann::json::parse(json);
+                    if (obj["conda_pkg_format_version"] != 2)
+                    {
+                        LOG_WARNING << "Unsupported conda package format version (" << file
+                                    << ") - still trying to extract";
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_WARNING << "Error parsing metadata.json (" << file << "): " << e.what();
                 }
             }
         }

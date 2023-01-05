@@ -478,9 +478,6 @@ namespace mamba
         }
         fs::current_path(destination);
 
-        archive_entry* entry;
-        int r;
-
         /* Select which attributes we want to restore. */
         int flags = ARCHIVE_EXTRACT_TIME;
         flags |= ARCHIVE_EXTRACT_PERM;
@@ -498,6 +495,8 @@ namespace mamba
         archive_write_disk_set_options(ext, flags);
         archive_write_disk_set_standard_lookup(ext);
 
+        int r;
+        archive_entry* entry;
         for (;;)
         {
             if (is_sig_interrupted())
@@ -579,9 +578,6 @@ namespace mamba
                        const fs::u8path& dest_dir,
                        const std::vector<std::string>& parts)
     {
-        // open outer zip archive
-        archive_entry* entry;
-
         scoped_archive_read a;
         archive_read_support_format_zip(a);
 
@@ -606,8 +602,25 @@ namespace mamba
             return false;
         };
 
-        while (archive_read_next_header(a, &entry) == ARCHIVE_OK)
+        int r;
+        archive_entry* entry;
+        for (;;)
         {
+            if (is_sig_interrupted())
+            {
+                throw std::runtime_error("SIGINT received. Aborting extraction.");
+            }
+
+            r = archive_read_next_header(a, &entry);
+            if (r == ARCHIVE_EOF)
+            {
+                break;
+            }
+            if (r < ARCHIVE_OK)
+            {
+                throw std::runtime_error(archive_error_string(a));
+            }
+
             fs::u8path p(archive_entry_pathname(entry));
             if (p.extension() == ".zst" && check_parts(p.filename().string()))
             {

@@ -117,6 +117,10 @@ namespace mamba
         void set_mod_etag_headers(const std::string& mod, const std::string& etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
+        void set_head_only(bool yes)
+        {
+            curl_easy_setopt(m_handle, CURLOPT_NOBODY, yes);
+        }
 
         const std::string& name() const;
         const std::string& url() const;
@@ -131,9 +135,9 @@ namespace mamba
         curl_off_t get_speed();
 
         template <class C>
-        inline void set_finalize_callback(bool (C::*cb)(), C* data)
+        inline void set_finalize_callback(bool (C::*cb)(const DownloadTarget&), C* data)
         {
-            m_finalize_callback = std::bind(cb, data);
+            m_finalize_callback = std::bind(cb, data, std::placeholders::_1);
         }
 
         inline void set_ignore_failure(bool yes)
@@ -169,7 +173,7 @@ namespace mamba
     private:
         std::unique_ptr<ZstdStream> m_zstd_stream;
         std::unique_ptr<Bzip2Stream> m_bzip2_stream;
-        std::function<bool()> m_finalize_callback;
+        std::function<bool(const DownloadTarget&)> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
 

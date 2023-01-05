@@ -50,7 +50,7 @@ namespace mamba
 
         void write_repodata_record(const fs::u8path& base_path);
         void add_url();
-        bool finalize_callback();
+        bool finalize_callback(const DownloadTarget& target);
         bool finished();
         void validate();
         bool extract();

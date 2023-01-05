@@ -474,7 +474,6 @@ namespace mamba
         }
     }
 
-
     size_t DownloadTarget::write_callback(char* ptr, size_t size, size_t nmemb, void* self)
     {
         auto* s = reinterpret_cast<DownloadTarget*>(self);
@@ -685,7 +684,7 @@ namespace mamba
 
         result = curl_easy_perform(m_handle);
         set_result(result);
-        return m_finalize_callback ? m_finalize_callback() : true;
+        return m_finalize_callback ? m_finalize_callback(*this) : true;
     }
 
     CURL* DownloadTarget::handle()
@@ -786,7 +785,7 @@ namespace mamba
         bool ret = true;
         if (m_finalize_callback)
         {
-            ret = m_finalize_callback();
+            ret = m_finalize_callback(*this);
         }
         else
         {
@@ -1015,7 +1014,6 @@ namespace mamba
         if (is_sig_interrupted())
         {
             Console::instance().print("Download interrupted");
-            curl_multi_cleanup(m_handle);
             return false;
         }
 

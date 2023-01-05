@@ -46,8 +46,8 @@ jobs:
           sed -i '' -E 's/(url|git_url):.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/libcurl >=7.86/libcurl 7.86/' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/libcurl-static >=7.86/libcurl-static 7.86/' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' 's/libcurl >=7.86/libcurl 7.86/g' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' 's/libcurl-static >=7.86/libcurl-static 7.86/g' micromamba-feedstock/recipe/meta.yaml
 
       - uses: mamba-org/provision-with-micromamba@main
         with:

@@ -103,12 +103,8 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
                                               elements.size() >= 3 ? elements[2] : ""));
     }
     prefix_data.add_packages(vpacks);
-    for (auto& pkg : prefix_data.package_records())
-    {
-        std::cout << "Packages: " << pkg.name << std::endl;
-    }
 
-    MRepo::create(cache_entry.pool, prefix_data);
+    auto& installed_repo = MRepo::create(cache_entry.pool, prefix_data);
 
     MSolver solver(
         cache_entry.pool,
@@ -125,19 +121,23 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
         nlohmann::json jout;
         jout["error_msg"] = solver.problems_to_str();
         res.send(jout.dump());
-        return;
+    }
+    else
+    {
+        MTransaction trans(solver, package_caches);
+        auto to_install = std::get<1>(trans.to_conda());
+        std::vector<nlohmann::json> packages;
+        for (auto& p : to_install)
+        {
+            packages.push_back(nlohmann::json::parse(std::get<2>(p)));
+        }
+        nlohmann::json jout;
+        jout["packages"] = packages;
+        res.send(jout.dump());
     }
 
-    MTransaction trans(solver, package_caches);
-    auto to_install = std::get<1>(trans.to_conda());
-    std::vector<nlohmann::json> packages;
-    for (auto& p : to_install)
-    {
-        packages.push_back(nlohmann::json::parse(std::get<2>(p)));
-    }
-    nlohmann::json jout;
-    jout["packages"] = packages;
-    res.send(jout.dump());
+    cache_entry.pool.remove_repo(installed_repo.id());
+    pool_set_installed(cache_entry.pool, nullptr);
 }
 
 

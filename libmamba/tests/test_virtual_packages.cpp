@@ -12,7 +12,7 @@ namespace mamba
     {
         TEST(virtual_packages, make_virtual_package)
         {
-            auto pkg = detail::make_virtual_package("test", "0.1.5", "abcd");
+            auto pkg = make_virtual_package("test", "0.1.5", "abcd");
 
             EXPECT_EQ(pkg.name, "test");
             EXPECT_EQ(pkg.version, "0.1.5");

@@ -377,9 +377,16 @@ namespace microserver
                                   .count());
 
                 std::string header_buffer = buffer.str();
-                assert(header_buffer.size()
-                       == write(newsc, header_buffer.c_str(), header_buffer.size()));
-                assert(body_len == write(newsc, body.c_str(), body_len));
+                auto written = write(newsc, header_buffer.c_str(), header_buffer.size());
+                if (written != header_buffer.size()) {
+                    LOG_ERROR << "Could not write to socket " << strerror(errno);
+                    continue;
+                }
+                written = write(newsc, body.c_str(), body_len);
+                if (body_len != written) {
+                    LOG_ERROR << "Could not write to socket " << strerror(errno);
+                    continue;
+                }
             }
         }
     }

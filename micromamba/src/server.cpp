@@ -146,6 +146,7 @@ run_server(int port)
 {
     auto& config = mamba::Configuration::instance();
     config.load();
+    std::signal(SIGPIPE, SIG_IGN);
     auto server_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     server_sink->set_level(spdlog::level::debug);
     server_sink->set_pattern("%^[%H:%M:%S]%$ %v");

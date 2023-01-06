@@ -61,10 +61,13 @@ namespace mamba
         constexpr static size_t BUFFER_SIZE = 256000;
 
         Bzip2Stream(curl_write_callback write_callback, void* write_callback_data)
-            : stream{ .bzalloc = nullptr, .bzfree = nullptr, .opaque = nullptr }
-            , m_write_callback(write_callback)
+            : m_write_callback(write_callback)
             , m_write_callback_data(write_callback_data)
         {
+            stream.bzalloc = nullptr;
+            stream.bzfree = nullptr;
+            stream.opaque = nullptr;
+
             error = BZ2_bzDecompressInit(&stream, 0, false);
             if (error != BZ_OK)
             {

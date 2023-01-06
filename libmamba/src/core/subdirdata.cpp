@@ -86,7 +86,7 @@ namespace mamba
 
     namespace detail
     {
-        tl::expected<subdir_metadata, std::runtime_error> read_mod_and_etag(const fs::u8path& file)
+        tl::expected<subdir_metadata, std::runtime_error> read_metadata(const fs::u8path& file)
         {
             auto state_file = file;
             state_file.replace_extension(".state.json");
@@ -199,10 +199,11 @@ namespace mamba
             try
             {
                 result = nlohmann::json::parse(json);
-                subdir_metadata m{ .url = result.value("_url", ""),
-                                   .etag = result.value("_etag", ""),
-                                   .mod = result.value("_mod", ""),
-                                   .cache_control = result.value("_cache_control", "") };
+                subdir_metadata m;
+                m.url = result.value("_url", "");
+                m.etag = result.value("_etag", "");
+                m.mod = result.value("_mod", "");
+                m.cache_control = result.value("_cache_control", "");
                 return m;
             }
             catch (...)
@@ -363,8 +364,7 @@ namespace mamba
         LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
         if (ends_with(target.url(), ".zst"))
         {
-            this->m_metadata.has_zst
-                = { .value = target.http_status == 200, .time = utc_time_now() };
+            this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
         }
         return true;
     }
@@ -402,7 +402,7 @@ namespace mamba
 
             if (cache_age != fs::file_time_type::duration::max() && !forbid_cache())
             {
-                auto metadata_temp = detail::read_mod_and_etag(json_file);
+                auto metadata_temp = detail::read_metadata(json_file);
                 if (!metadata_temp.has_value())
                 {
                     LOG_INFO << "Invalid json cache found, ignoring";

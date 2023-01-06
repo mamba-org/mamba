@@ -569,13 +569,13 @@ namespace mamba
     namespace detail
     {
         // read the header that contains json like {"_mod": "...", ...}
-        tl::expected<subdir_metadata, std::runtime_error> read_mod_and_etag(const fs::u8path& file);
+        tl::expected<subdir_metadata, std::runtime_error> read_metadata(const fs::u8path& file);
     }
 
     TEST(subdirdata, parse_mod_etag)
     {
         fs::u8path cache_folder = fs::u8path(test_data_dir / "repodata_json_cache");
-        auto mq = detail::read_mod_and_etag(cache_folder / "test_1.json");
+        auto mq = detail::read_metadata(cache_folder / "test_1.json");
         EXPECT_TRUE(mq.has_value());
         auto j = mq.value();
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
@@ -583,19 +583,19 @@ namespace mamba
             j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_2.json").value();
+        j = detail::read_metadata(cache_folder / "test_2.json").value();
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
             j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_5.json").value();
+        j = detail::read_metadata(cache_folder / "test_5.json").value();
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
             j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_4.json").value();
+        j = detail::read_metadata(cache_folder / "test_4.json").value();
         EXPECT_EQ(j.cache_control, "{{}}\",,,\"");
         EXPECT_EQ(j.etag, "\n\n\"\"randome ecx,,ssd\n,,\"");
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
@@ -603,10 +603,10 @@ namespace mamba
             j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        mq = detail::read_mod_and_etag(cache_folder / "test_3.json");
+        mq = detail::read_metadata(cache_folder / "test_3.json");
         EXPECT_TRUE(mq.has_value() == false);
 
-        j = detail::read_mod_and_etag(cache_folder / "test_6.json").value();
+        j = detail::read_metadata(cache_folder / "test_6.json").value();
         EXPECT_EQ(j.mod, "Thu, 02 Apr 2020 20:21:27 GMT");
         EXPECT_EQ(j.url, "https://conda.anaconda.org/intake/osx-arm64");
 

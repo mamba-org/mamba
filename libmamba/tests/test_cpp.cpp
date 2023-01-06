@@ -9,6 +9,7 @@
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/subdirdata.hpp"
 
 #include "test_data.hpp"
 
@@ -568,47 +569,49 @@ namespace mamba
     namespace detail
     {
         // read the header that contains json like {"_mod": "...", ...}
-        nlohmann::json read_mod_and_etag(const fs::u8path& file);
+        tl::expected<subdir_metadata, std::runtime_error> read_mod_and_etag(const fs::u8path& file);
     }
 
     TEST(subdirdata, parse_mod_etag)
     {
         fs::u8path cache_folder = fs::u8path(test_data_dir / "repodata_json_cache");
-        auto j = detail::read_mod_and_etag(cache_folder / "test_1.json");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        auto mq = detail::read_mod_and_etag(cache_folder / "test_1.json");
+        EXPECT_TRUE(mq.has_value());
+        auto j = mq.value();
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_2.json");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        j = detail::read_mod_and_etag(cache_folder / "test_2.json").value();
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_5.json");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        j = detail::read_mod_and_etag(cache_folder / "test_5.json").value();
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_4.json");
-        EXPECT_EQ(j["_cache_control"], "{{}}\",,,\"");
-        EXPECT_EQ(j["_etag"], "\n\n\"\"randome ecx,,ssd\n,,\"");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        j = detail::read_mod_and_etag(cache_folder / "test_4.json").value();
+        EXPECT_EQ(j.cache_control, "{{}}\",,,\"");
+        EXPECT_EQ(j.etag, "\n\n\"\"randome ecx,,ssd\n,,\"");
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_3.json");
-        EXPECT_TRUE(j.empty());
+        mq = detail::read_mod_and_etag(cache_folder / "test_3.json");
+        EXPECT_TRUE(mq.has_value() == false);
 
-        j = detail::read_mod_and_etag(cache_folder / "test_6.json");
-        EXPECT_EQ(j["_mod"], "Thu, 02 Apr 2020 20:21:27 GMT");
-        EXPECT_EQ(j["_url"], "https://conda.anaconda.org/intake/osx-arm64");
+        j = detail::read_mod_and_etag(cache_folder / "test_6.json").value();
+        EXPECT_EQ(j.mod, "Thu, 02 Apr 2020 20:21:27 GMT");
+        EXPECT_EQ(j.url, "https://conda.anaconda.org/intake/osx-arm64");
 
-        // EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        // EXPECT_EQ(j["_url"],
+        // EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+        // EXPECT_EQ(j.url,
         // "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
     }
 }  // namespace mamba

@@ -279,6 +279,10 @@ namespace microserver
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(port);
 
+        // allow faster reuse of the address
+        int optval = 1;
+        setsockopt(sc, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
         if (::bind(sc, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) != 0)
         {
             throw microserver::server_exception("ERROR on binding");

@@ -366,7 +366,7 @@ namespace mamba
         curl_easy_setopt(m_handle, CURLOPT_HEADERFUNCTION, &DownloadTarget::header_callback);
         curl_easy_setopt(m_handle, CURLOPT_HEADERDATA, this);
 
-        if (ends_with(url, ".zst"))
+        if (ends_with(url, ".json.zst"))
         {
             m_zstd_stream = std::make_unique<ZstdStream>(&DownloadTarget::write_callback, this);
             if (ends_with(m_filename, ".zst"))
@@ -376,7 +376,7 @@ namespace mamba
             curl_easy_setopt(m_handle, CURLOPT_WRITEFUNCTION, ZstdStream::write_callback);
             curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, m_zstd_stream.get());
         }
-        else if (ends_with(url, ".bz2"))
+        else if (ends_with(url, ".json.bz2"))
         {
             m_bzip2_stream = std::make_unique<Bzip2Stream>(&DownloadTarget::write_callback, this);
             if (ends_with(m_filename, ".bz2"))

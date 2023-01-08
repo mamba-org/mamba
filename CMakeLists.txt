@@ -32,7 +32,9 @@ if (MSVC)
     # /W4 : warnings level 4 (default in visual studio projects and recommended minimum level).
     # /external:I $ENV{CONDA_PREFIX}: consider the conda env prefix libraries headers as "external" to this project.
     # /external:W0 : set the warning level to 1 for external libraries headers (severe warnings, default when unspecified) to only see important warnings coming from dependencies headers.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DNOMINMAX /EHsc /Zc:__cplusplus /MP /W4 /external:I $ENV{CONDA_PREFIX} /external:W1")
+    string(REGEX REPLACE "/W[0-9]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /MP /experimental:external /external:I $ENV{CONDA_PREFIX} /external:W1")
+    # Force release mode to avoid debug libraries to be linked
     set(CMAKE_BUILD_TYPE Release)
     # add_definitions("-DUNICODE -D_UNICODE")
 else()

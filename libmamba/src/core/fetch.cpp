@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string_view>
-#include <iostream>
 
 #include "spdlog/spdlog.h"
 

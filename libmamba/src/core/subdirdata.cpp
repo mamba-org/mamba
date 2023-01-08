@@ -10,7 +10,6 @@
 #include "mamba/core/subdirdata.hpp"
 #include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
-#include <iostream>
 
 #include "progress_bar_impl.hpp"
 #include <stdexcept>
@@ -28,13 +27,16 @@ namespace mamba
 
         auto secs
             = std::chrono::duration_cast<std::chrono::seconds>(stored_mtime.time_since_epoch());
-        j["mtime"]["seconds"] = secs.count();
-        j["mtime"]["nanoseconds"] = (stored_mtime.time_since_epoch() - secs).count();
+        auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            stored_mtime.time_since_epoch() - secs);
+
+        j["file_mtime"]["seconds"] = secs.count();
+        j["file_mtime"]["nanoseconds"] = nsecs.count();
 
         if (has_zst.has_value())
         {
             j["has_zst"]["value"] = has_zst.value().value;
-            j["has_zst"]["timestamp"] = timestamp(has_zst.value().time);
+            j["has_zst"]["last_checked"] = timestamp(has_zst.value().last_checked);
         }
         out << j.dump(4);
     }
@@ -49,6 +51,36 @@ namespace mamba
         out << j.dump();
     }
 
+    void subdir_metadata::store_file_metadata(const fs::u8path& file)
+    {
+#ifndef _WIN32
+        stored_mtime = fs::last_write_time(file);
+#else
+        // convert windows filetime to unix timestamp
+        stored_mtime = filetime_to_unix(fs::last_write_time(file));
+#endif
+    }
+
+#ifdef _WIN32
+    std::chrono::system_clock::time_point filetime_to_unix(const fs::file_time_type& filetime)
+    {
+        // windows filetime is in 100ns intervals since 1601-01-01
+        constexpr static auto epoch_offset = std::chrono::seconds(11644473600ULL);
+        return std::chrono::system_clock::time_point(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(filetime.time_since_epoch())
+            + epoch_offset);
+    }
+#endif
+
+    bool subdir_metadata::check_valid_metadata(const fs::u8path& file)
+    {
+#ifndef _WIN32
+        return fs::last_write_time(file) == stored_mtime;
+#else
+        return filetime_to_unix(fs::last_write_time(file)) == stored_mtime;
+#endif
+    }
+
     tl::expected<subdir_metadata, std::exception> subdir_metadata::from_stream(std::istream& in)
     {
         nlohmann::json j = nlohmann::json::parse(in);
@@ -60,15 +92,16 @@ namespace mamba
             m.mod = j["mod"].get<std::string>();
             m.cache_control = j["cache_control"].get<std::string>();
             m.stored_file_size = j["file_size"].get<std::size_t>();
-            m.stored_mtime = fs::file_time_type(
-                std::chrono::seconds(j["mtime"]["seconds"].get<std::size_t>())
-                + std::chrono::nanoseconds(j["mtime"]["nanoseconds"].get<std::size_t>()));
+
+            m.stored_mtime = decltype(m.stored_mtime)(
+                std::chrono::seconds(j["file_mtime"]["seconds"].get<std::size_t>())
+                + std::chrono::nanoseconds(j["file_mtime"]["nanoseconds"].get<std::size_t>()));
 
             int err_code = 0;
             if (j.find("has_zst") != j.end())
             {
                 m.has_zst = { j["has_zst"]["value"].get<bool>(),
-                              parse_utc_timestamp(j["has_zst"]["timestamp"].get<std::string>(),
+                              parse_utc_timestamp(j["has_zst"]["last_checked"].get<std::string>(),
                                                   err_code) };
             }
         }
@@ -103,7 +136,7 @@ namespace mamba
                     return tl::unexpected(std::runtime_error("Could not parse state file"));
                 }
 
-                if (fs::last_write_time(file) != m.value().stored_mtime)
+                if (!m.value().check_valid_metadata(file))
                 {
                     LOG_WARNING << "Cache file mtime mismatch";
                     // TODO clear out json file values?
@@ -111,7 +144,7 @@ namespace mamba
                     m.value().mod = "";
                     m.value().cache_control = "";
                     m.value().stored_file_size = 0;
-                    m.value().stored_mtime = fs::file_time_type::min();
+                    m.value().stored_mtime = decltype(m.value().stored_mtime)::min();
                     return tl::unexpected(std::runtime_error("Cache file mtime mismatch"));
                 }
 
@@ -362,6 +395,11 @@ namespace mamba
     bool MSubdirData::finalize_check(const DownloadTarget& target)
     {
         LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
+        if (m_progress_bar)
+        {
+            m_progress_bar.mark_as_completed();
+        }
+
         if (ends_with(target.url(), ".zst"))
         {
             this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
@@ -491,6 +529,14 @@ namespace mamba
                     m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check,
                                                                   this);
                     m_check_targets.back()->set_ignore_failure(true);
+                    auto& ctx = Context::instance();
+                    if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                    {
+                        m_progress_bar
+                            = Console::instance().add_progress_bar(m_name + "-zst-check");
+                        m_check_targets.back()->set_progress_bar(m_progress_bar);
+                        m_progress_bar.repr().postfix.set_value("Checking");
+                    }
                 }
                 create_target();
             }
@@ -525,7 +571,6 @@ namespace mamba
     void MSubdirData::refresh_last_write_time(const fs::u8path& json_file,
                                               const fs::u8path& solv_file)
     {
-        LOG_WARNING << "refresh_last_write_time" << json_file;
         auto now = fs::file_time_type::clock::now();
 
         auto json_age = check_cache(json_file, now);
@@ -548,7 +593,7 @@ namespace mamba
             auto state_file = json_file;
             state_file.replace_extension(".state.json");
             auto lock = LockFile(state_file);
-            m_metadata.stored_mtime = fs::last_write_time(json_file);
+            m_metadata.store_file_metadata(json_file);
             auto outf = open_ofstream(state_file);
             m_metadata.serialize_to_stream(outf);
         }
@@ -718,7 +763,11 @@ namespace mamba
             state_file.replace_extension(".state.json");
             fs::rename(m_temp_file->path(), json_file);
             fs::last_write_time(json_file, fs::now());
-            m_metadata.stored_mtime = fs::last_write_time(json_file);
+
+            m_metadata.store_file_metadata(json_file);
+            // m_metadata.stored_mtime = fs::last_write_time(json_file);
+            // LOG_WARNING << "Stored mtime: " <<
+            // m_metadata.stored_mtime.time_since_epoch().count();
             std::ofstream state_file_stream = open_ofstream(state_file);
             m_metadata.serialize_to_stream(state_file_stream);
         }

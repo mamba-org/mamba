@@ -610,6 +610,17 @@ namespace mamba
         EXPECT_EQ(j.mod, "Thu, 02 Apr 2020 20:21:27 GMT");
         EXPECT_EQ(j.url, "https://conda.anaconda.org/intake/osx-arm64");
 
+        j = detail::read_metadata(cache_folder / "test_6.json").value();
+        EXPECT_EQ(j.cache_control, "something");
+        EXPECT_EQ(j.etag, "something else");
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+        EXPECT_EQ(
+            j.url,
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        EXPECT_EQ(j.has_zst.value, true);
+        EXPECT_EQ(j.has_zst.last_checked, std::chrono::system_clock::time_point::min());
+
+
         // EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         // EXPECT_EQ(j.url,
         // "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");

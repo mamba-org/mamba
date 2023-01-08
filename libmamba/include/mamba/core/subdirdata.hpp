@@ -34,12 +34,12 @@ namespace mamba
         struct checked_at
         {
             bool value;
-            std::time_t time;
+            std::time_t last_checked;
 
             bool has_expired() const
             {
                 // difference in seconds, check every 14 days
-                return std::difftime(std::time(nullptr), time) > 60 * 60 * 24 * 14;
+                return std::difftime(std::time(nullptr), last_checked) > 60 * 60 * 24 * 14;
             }
         };
 
@@ -49,12 +49,18 @@ namespace mamba
         std::string etag;
         std::string mod;
         std::string cache_control;
-        // std::chrono::seconds stored_mtime;
+#ifdef _WIN32
+        std::chrono::system_clock::time_point stored_mtime;
+#else
         fs::file_time_type stored_mtime;
+#endif
         std::size_t stored_file_size;
         std::optional<checked_at> has_zst;
         std::optional<checked_at> has_bz2;
         std::optional<checked_at> has_jlap;
+
+        void store_file_metadata(const fs::u8path& path);
+        bool check_valid_metadata(const fs::u8path& path);
 
         void serialize_to_stream(std::ostream& out) const;
         void serialize_to_stream_tiny(std::ostream& out) const;

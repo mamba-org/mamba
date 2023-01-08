@@ -51,6 +51,17 @@ namespace mamba
         out << j.dump();
     }
 
+#ifdef _WIN32
+    std::chrono::system_clock::time_point filetime_to_unix(const fs::file_time_type& filetime)
+    {
+        // windows filetime is in 100ns intervals since 1601-01-01
+        constexpr static auto epoch_offset = std::chrono::seconds(11644473600ULL);
+        return std::chrono::system_clock::time_point(
+            std::chrono::duration_cast<std::chrono::system_clock::duration>(
+                filetime.time_since_epoch() - epoch_offset));
+    }
+#endif
+
     void subdir_metadata::store_file_metadata(const fs::u8path& file)
     {
 #ifndef _WIN32
@@ -60,17 +71,6 @@ namespace mamba
         stored_mtime = filetime_to_unix(fs::last_write_time(file));
 #endif
     }
-
-#ifdef _WIN32
-    std::chrono::system_clock::time_point filetime_to_unix(const fs::file_time_type& filetime)
-    {
-        // windows filetime is in 100ns intervals since 1601-01-01
-        constexpr static auto epoch_offset = std::chrono::seconds(11644473600ULL);
-        return std::chrono::system_clock::time_point(
-            std::chrono::duration_cast<std::chrono::nanoseconds>(filetime.time_since_epoch())
-            + epoch_offset);
-    }
-#endif
 
     bool subdir_metadata::check_valid_metadata(const fs::u8path& file)
     {
@@ -93,9 +93,10 @@ namespace mamba
             m.cache_control = j["cache_control"].get<std::string>();
             m.stored_file_size = j["file_size"].get<std::size_t>();
 
-            m.stored_mtime = decltype(m.stored_mtime)(
+            using time_type = decltype(m.stored_mtime);
+            m.stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
                 std::chrono::seconds(j["file_mtime"]["seconds"].get<std::size_t>())
-                + std::chrono::nanoseconds(j["file_mtime"]["nanoseconds"].get<std::size_t>()));
+                + std::chrono::nanoseconds(j["file_mtime"]["nanoseconds"].get<std::size_t>())));
 
             int err_code = 0;
             if (j.find("has_zst") != j.end())

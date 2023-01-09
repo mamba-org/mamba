@@ -289,6 +289,9 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
                 libarchive.a
 
+                libsolv.a
+                libsolvext.a
+
                 libiconv.a
                 libbz2.a
                 liblz4.a
@@ -296,9 +299,6 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 libz.a
                 liblzma.a
                 liblzo2.a
-
-                libsolv.a
-                libsolvext.a
 
                 libnghttp2.a
 
@@ -426,6 +426,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_library(LIBSOLVEXT_LIBRARIES NAMES solvext)
         find_package(CURL REQUIRED)
         find_package(LibArchive REQUIRED)
+        find_package(zstd REQUIRED)
         find_package(OpenSSL REQUIRED)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
@@ -437,6 +438,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             ${LIBSOLV_LIBRARIES}
             ${LIBSOLVEXT_LIBRARIES}
             ${LibArchive_LIBRARIES}
+            zstd::libzstd_shared
             ${CURL_LIBRARIES}
             ${OPENSSL_LIBRARIES}
             yaml-cpp

@@ -31,8 +31,7 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: AntoinePrv/micromamba-feedstock
-          ref: spdlog
+          repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
@@ -45,6 +44,10 @@ jobs:
         run: |
           sed -i '' -E 's/(url|git_url):.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
           sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' 's/libcurl >=7.86/libcurl 7.86/g' micromamba-feedstock/recipe/meta.yaml
+          sed -i '' 's/libcurl-static >=7.86/libcurl-static 7.86/g' micromamba-feedstock/recipe/meta.yaml
+
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge

@@ -16,7 +16,14 @@ import yaml
 
 def subprocess_run(*args: str) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
-    p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    try:
+        p = subprocess.run(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Command {args} failed with stderr: {e.stderr.decode()}")
+        print(f"Command {args} failed with stdout: {e.stdout.decode()}")
+        raise e
     return p.stdout
 
 

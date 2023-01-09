@@ -669,7 +669,19 @@ PYBIND11_MODULE(bindings, m)
 
     m.def("get_channels", &get_channels);
 
-    m.def("transmute", &transmute);
+    m.def("transmute",
+          &transmute,
+          py::arg("source_package"),
+          py::arg("destination_package"),
+          py::arg("compression_level"),
+          py::arg("compression_threads") = 1);
+
+    // fix extract from error_handling first
+    // auto package_handling_sm = m.def_submodule("package_handling");
+    // package_handling_sm.def("extract", &extract);
+    // package_handling_sm.def("create", &create_package, py::arg("directory"),
+    // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
+
 
     m.def("get_virtual_packages", &get_virtual_packages);
 

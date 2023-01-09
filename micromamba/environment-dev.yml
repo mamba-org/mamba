@@ -23,6 +23,7 @@ dependencies:
   - pytest-asyncio
   - pytest-lazy-fixture
   - pytest-xprocess
+  - conda-package-handling
   - pyyaml
   - spdlog
   - fmt

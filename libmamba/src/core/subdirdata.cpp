@@ -70,15 +70,26 @@ namespace mamba
         // convert windows filetime to unix timestamp
         stored_mtime = filetime_to_unix(fs::last_write_time(file));
 #endif
+        stored_file_size = fs::file_size(file);
     }
 
     bool subdir_metadata::check_valid_metadata(const fs::u8path& file)
     {
+        if (stored_file_size != fs::file_size(file))
+        {
+            LOG_INFO << "File size changed, invalidating metadata";
+            return false;
+        }
 #ifndef _WIN32
-        return fs::last_write_time(file) == stored_mtime;
+        bool last_write_time_valid = fs::last_write_time(file) == stored_mtime;
 #else
-        return filetime_to_unix(fs::last_write_time(file)) == stored_mtime;
+        bool last_write_time_valid = filetime_to_unix(fs::last_write_time(file)) == stored_mtime;
 #endif
+        if (!last_write_time_valid)
+        {
+            LOG_INFO << "File mtime changed, invalidating metadata";
+        }
+        return last_write_time_valid;
     }
 
     tl::expected<subdir_metadata, std::exception> subdir_metadata::from_stream(std::istream& in)
@@ -125,7 +136,6 @@ namespace mamba
             auto state_file = file;
             state_file.replace_extension(".state.json");
             std::error_code ec;
-
             if (fs::exists(state_file, ec))
             {
                 auto infile = open_ifstream(state_file);
@@ -139,7 +149,7 @@ namespace mamba
 
                 if (!m.value().check_valid_metadata(file))
                 {
-                    LOG_WARNING << "Cache file mtime mismatch";
+                    LOG_WARNING << "Cache file " << file << " was modified by another program";
                     // TODO clear out json file values?
                     m.value().etag = "";
                     m.value().mod = "";

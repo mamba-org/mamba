@@ -610,15 +610,42 @@ namespace mamba
         EXPECT_EQ(j.mod, "Thu, 02 Apr 2020 20:21:27 GMT");
         EXPECT_EQ(j.url, "https://conda.anaconda.org/intake/osx-arm64");
 
-        j = detail::read_metadata(cache_folder / "test_6.json").value();
+        auto state_file = cache_folder / "test_7.state.json";
+        // set file_mtime
+
+
+        {
+#ifdef _WIN32
+            std::chrono::system_clock::time_point filetime_to_unix(
+                const fs::file_time_type& filetime);
+            auto file_mtime = filetime_to_unix(fs::last_write_time(cache_folder / "test_7.json"));
+#else
+            auto file_mtime = fs::last_write_time(cache_folder / "test_7.json");
+#endif
+
+            // auto file_size = fs::file_size(state_file);
+            auto ifs = open_ifstream(state_file, std::ios::in | std::ios::binary);
+            auto jstate = nlohmann::json::parse(ifs);
+            ifs.close();
+            auto secs
+                = std::chrono::duration_cast<std::chrono::seconds>(file_mtime.time_since_epoch());
+            auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                file_mtime.time_since_epoch() - secs);
+
+            jstate["file_mtime"]["seconds"] = secs.count();
+            jstate["file_mtime"]["nanoseconds"] = nsecs.count();
+
+            auto ofs = open_ofstream(state_file);
+            ofs << jstate.dump(4);
+        }
+
+        j = detail::read_metadata(cache_folder / "test_7.json").value();
         EXPECT_EQ(j.cache_control, "something");
         EXPECT_EQ(j.etag, "something else");
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
-        EXPECT_EQ(
-            j.url,
-            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
-        EXPECT_EQ(j.has_zst.value, true);
-        EXPECT_EQ(j.has_zst.last_checked, std::chrono::system_clock::time_point::min());
+        EXPECT_EQ(j.url, "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
+        EXPECT_EQ(j.has_zst.value().value, true);
+        EXPECT_EQ(j.has_zst.value().last_checked, parse_utc_timestamp("2023-01-06T16:33:06Z"));
 
 
         // EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");

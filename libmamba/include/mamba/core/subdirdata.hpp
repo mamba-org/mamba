@@ -64,6 +64,8 @@ namespace mamba
 
         void serialize_to_stream(std::ostream& out) const;
         void serialize_to_stream_tiny(std::ostream& out) const;
+
+        bool check_zst(const Channel* channel);
     };
 
 

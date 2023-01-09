@@ -51,6 +51,30 @@ namespace mamba
         out << j.dump();
     }
 
+    bool subdir_metadata::check_zst(const Channel* channel)
+    {
+        if (has_zst.has_value())
+        {
+            if (!has_zst.value().has_expired())
+            {
+                return has_zst.value().value;
+            }
+        }
+
+        for (const auto& c : Context::instance().repodata_has_zst)
+        {
+            if (make_channel(c) == *channel)
+            {
+                has_zst
+                    = { true,
+                        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+                return true;
+                break;
+            }
+        }
+        return false;
+    }
+
 #ifdef _WIN32
     std::chrono::system_clock::time_point filetime_to_unix(const fs::file_time_type& filetime)
     {
@@ -532,7 +556,8 @@ namespace mamba
 
             if (!Context::instance().offline || forbid_cache())
             {
-                if (!m_metadata.has_zst.has_value() || m_metadata.has_zst.value().has_expired())
+                bool configured_zst = false;
+                if (Context::instance().repodata_use_zst && !m_metadata.check_zst(p_channel))
                 {
                     m_check_targets.push_back(std::make_unique<DownloadTarget>(
                         m_name + "-zst-check", m_repodata_url + ".zst", ""));

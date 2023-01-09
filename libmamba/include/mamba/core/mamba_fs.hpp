@@ -1170,7 +1170,7 @@ namespace fs
     }
 
     // void last_write_time(const path& p, now _, error_code& ec) noexcept;
-    inline void last_write_time(const u8path& path, now _, std::error_code& ec) noexcept
+    inline void last_write_time(const u8path& path, now, std::error_code& ec) noexcept
     {
 #if defined(USE_UTIMENSAT)
         if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)

@@ -648,6 +648,9 @@ namespace mamba
             jstate["file_mtime"]["seconds"] = secs.count();
             jstate["file_mtime"]["nanoseconds"] = nsecs.count();
 
+            auto file_size = fs::file_size(cache_folder / "test_7.json");
+            jstate["file_size"] = file_size;
+
             auto ofs = open_ofstream(state_file);
             ofs << jstate.dump(4);
         }

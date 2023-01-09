@@ -102,9 +102,11 @@ namespace mamba
                                   // or non-space whitespace character
         "(.*))$");                // end whole_shebang group
 
+    constexpr size_t MAX_SHEBANG_LENGTH = on_linux ? 127 : 512;
+
     std::string replace_long_shebang(const std::string& shebang)
     {
-        if (shebang.size() <= 127)
+        if (shebang.size() <= MAX_SHEBANG_LENGTH)
         {
             return shebang;
         }
@@ -154,10 +156,14 @@ namespace mamba
         if (!python_path.empty())
         {
             const std::string py_str = python_path.string();
-            // Shebangs cannot be longer than 127 characters
-            if (py_str.size() > (127 - 2))
+            // Shebangs cannot be longer than 127 (or 512) characters and executable with
+            // spaces are problematic
+            if (py_str.size() > (MAX_SHEBANG_LENGTH - 2)
+                || py_str.find_first_of(" ") != std::string::npos)
             {
-                out_file << "#!/usr/bin/env python\n";
+                out_file << "#!/bin/sh\n"
+                            "'''exec' \""
+                         << py_str << "\" \"$0\" \"$@\" #'''\n";
             }
             else
             {

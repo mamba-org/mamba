@@ -1,5 +1,6 @@
 #include <sstream>
 #include <tuple>
+#include <chrono>
 
 #include <gtest/gtest.h>
 
@@ -572,6 +573,17 @@ namespace mamba
         tl::expected<subdir_metadata, std::runtime_error> read_metadata(const fs::u8path& file);
     }
 
+#ifdef _WIN32
+    std::chrono::system_clock::time_point filetime_to_unix_test(const fs::file_time_type& filetime)
+    {
+        // windows filetime is in 100ns intervals since 1601-01-01
+        constexpr static auto epoch_offset = std::chrono::seconds(11644473600ULL);
+        return std::chrono::system_clock::time_point(
+            std::chrono::duration_cast<std::chrono::system_clock::duration>(
+                filetime.time_since_epoch() - epoch_offset));
+    }
+#endif
+
     TEST(subdirdata, parse_mod_etag)
     {
         fs::u8path cache_folder = fs::u8path(test_data_dir / "repodata_json_cache");
@@ -616,9 +628,8 @@ namespace mamba
 
         {
 #ifdef _WIN32
-            std::chrono::system_clock::time_point filetime_to_unix(
-                const fs::file_time_type& filetime);
-            auto file_mtime = filetime_to_unix(fs::last_write_time(cache_folder / "test_7.json"));
+            auto file_mtime
+                = filetime_to_unix_test(fs::last_write_time(cache_folder / "test_7.json"));
 #else
             auto file_mtime = fs::last_write_time(cache_folder / "test_7.json");
 #endif
@@ -646,10 +657,5 @@ namespace mamba
         EXPECT_EQ(j.url, "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
         EXPECT_EQ(j.has_zst.value().value, true);
         EXPECT_EQ(j.has_zst.value().last_checked, parse_utc_timestamp("2023-01-06T16:33:06Z"));
-
-
-        // EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
-        // EXPECT_EQ(j.url,
-        // "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
     }
 }  // namespace mamba

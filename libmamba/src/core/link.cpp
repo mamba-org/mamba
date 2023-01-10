@@ -572,7 +572,7 @@ namespace mamba
         }
 
         std::error_code ec;
-        if (fs::exists(dst, ec) && !ec)
+        if (lexists(dst, ec) && !ec)
         {
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
@@ -581,7 +581,8 @@ namespace mamba
 #endif
             fs::remove(dst);
         }
-        if (ec) {
+        if (ec)
+        {
             LOG_WARNING << "Could not check file existence: " << ec.message() << " (" << dst << ")";
         }
 
@@ -919,10 +920,13 @@ namespace mamba
                 if (!found)
                 {
                     bool exists = fs::exists(m_context->target_prefix / files_record[i], ec);
-                    if (ec) {
-                        LOG_WARNING << "Could not check existence " << ec.message() << " (" << files_record[i] << ")";
+                    if (ec)
+                    {
+                        LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
+                                    << ec.message();
                         exists = false;
                     }
+
                     if (exists)
                     {
                         paths_json["paths"][i]["sha256_in_prefix"]

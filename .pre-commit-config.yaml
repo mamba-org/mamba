@@ -18,7 +18,7 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: check-yaml
-        exclude: tests
+        exclude: ^.+(/tests/|/recipe/).+$
     -   id: check-toml
     -   id: check-json
     -   id: check-merge-conflict

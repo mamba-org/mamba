@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from .helpers import *
 
@@ -105,7 +106,8 @@ class TestCreate:
             ("both", "yaml"),
         ],
     )
-    def test_specs(self, source, file_type, existing_cache):
+    @pytest.mark.parametrize("create_cmd", ["create", "env create"])
+    def test_specs(self, source, file_type, existing_cache, create_cmd):
         cmd = ["-p", TestCreate.prefix]
         specs = []
 
@@ -140,13 +142,13 @@ class TestCreate:
 
             cmd += ["-f", spec_file]
 
-        res = create(*cmd, "--print-config-only")
+        res = create(*cmd, "--print-config-only", create_cmd=create_cmd)
 
         TestCreate.config_tests(res, TestCreate.root_prefix, TestCreate.prefix)
         assert res["env_name"] == ""
         assert res["specs"] == specs
 
-        json_res = create(*cmd, "--json")
+        json_res = create(*cmd, "--json", create_cmd=create_cmd)
         assert json_res["success"] == True
 
     def test_lockfile(self):
@@ -458,7 +460,8 @@ class TestCreate:
         dry_run_tests is DryRun.ULTRA_DRY, reason="Running only ultra-dry tests"
     )
     @pytest.mark.parametrize("prefix_selector", [None, "prefix", "name"])
-    def test_create_empty(self, prefix_selector, existing_cache):
+    @pytest.mark.parametrize("create_cmd", ["create", "env create"])
+    def test_create_empty(self, prefix_selector, existing_cache, create_cmd):
 
         if prefix_selector == "name":
             cmd = ("-n", TestCreate.env_name, "--json")
@@ -466,10 +469,10 @@ class TestCreate:
             cmd = ("-p", TestCreate.prefix, "--json")
         else:
             with pytest.raises(subprocess.CalledProcessError):
-                create("--json")
+                create("--json", create_cmd=create_cmd)
             return
 
-        res = create(*cmd)
+        res = create(*cmd, create_cmd=create_cmd)
 
         keys = {"success"}
         assert keys.issubset(set(res.keys()))
@@ -706,3 +709,73 @@ class TestCreate:
             create(*cmd)
         finally:
             os.chdir(initial_working_dir)  # Switch back to original working dir.
+
+    def test_pre_commit_compat(self, tmp_path):
+        # We test compatibility with the downstream pre-commit package here because the pre-commit project does not currently accept any code changes related to Conda, see https://github.com/pre-commit/pre-commit/pull/2446#issuecomment-1353394177.
+        def create_repo(path: Path) -> str:
+            subprocess_run("git", "init", cwd=path)
+            subprocess_run("git", "config", "user.email", "test@test", cwd=path)
+            subprocess_run("git", "config", "user.name", "test", cwd=path)
+            subprocess_run("git", "add", ".", cwd=path)
+            subprocess_run("git", "commit", "-m", "Initialize repo", cwd=path)
+            return subprocess_run(
+                "git", "rev-parse", "HEAD", cwd=path, text=True
+            ).strip()
+
+        hook_repo = tmp_path / "hook_repo"
+        caller_repo = tmp_path / "caller_repo"
+
+        # Create hook_repo Git repo
+        shutil.copytree(
+            this_source_file_dir_path / "pre_commit_conda_hooks_repo", hook_repo
+        )
+        commit_sha = create_repo(hook_repo)
+
+        # Create Git repo to call "pre-commit" from
+        pre_commit_config = {
+            "repos": [
+                {
+                    "repo": str(hook_repo),
+                    "rev": commit_sha,
+                    "hooks": [
+                        {"id": "sys-exec"},
+                        {
+                            "id": "additional-deps",
+                            "additional_dependencies": ["psutil"],
+                        },
+                    ],
+                }
+            ]
+        }
+        caller_repo.mkdir()
+        pre_commit_config_file = caller_repo / ".pre-commit-config.yaml"
+        pre_commit_config_file.write_text(yaml.dump(pre_commit_config))
+        (caller_repo / "something.py").write_text("import psutil; print(psutil)")
+        create_repo(caller_repo)
+
+        create("-p", TestCreate.prefix, "pre-commit")
+        env_overrides = {
+            "PRE_COMMIT_USE_MICROMAMBA": "1",
+            "PATH": os.pathsep.join(
+                [str(Path(get_umamba()).parent), *os.environ["PATH"].split(os.pathsep)]
+            ),
+        }
+        try:
+            output = umamba_run(
+                "-p",
+                TestCreate.prefix,
+                "--cwd",
+                caller_repo,
+                "pre-commit",
+                "run",
+                "-v",
+                "-a",
+                env={**os.environ, **env_overrides},
+            )
+            assert "conda-default" in output
+            assert "<module 'psutil'" in output
+        except Exception:
+            pre_commit_log = Path.home() / ".cache" / "pre-commit" / "pre-commit.log"
+            if pre_commit_log.exists():
+                print(pre_commit_log.read_text())
+            raise

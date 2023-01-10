@@ -50,6 +50,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   libmamba_cpp_tests:
     needs: [libmamba_static]
@@ -93,6 +94,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   umamba_tests:
     needs: [libmamba_static]
@@ -151,6 +153,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   mamba_python_tests:
     needs: [libmamba_static]
@@ -265,6 +268,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   libmamba_static_win:
     runs-on: ${{ matrix.os }}
@@ -309,6 +313,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   mamba_python_tests_win:
     needs: [libmamba_static_win]
@@ -408,6 +413,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   libmamba_cpp_tests_win:
     needs: [libmamba_static_win]
@@ -459,6 +465,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   umamba_tests_win:
     needs: [libmamba_static_win]
@@ -520,6 +527,7 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/
 
   umamba_tests_win_cmd:
     needs: [umamba_tests_win]
@@ -587,3 +595,4 @@ jobs:
         run: |
           # Do not cache temporary envs with 'cache-env: true'
           rm -rf "$(micromamba info --json | jq -r '.\"env location\"')"/envs
+          rm -rf ~/micromamba*/envs/build_env/envs/

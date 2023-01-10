@@ -1,6 +1,7 @@
 name: Conda nightly tests
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 10 * * 0'
 
@@ -23,29 +24,16 @@ jobs:
       - uses: actions/checkout@v3
         with:
           path: mamba
-      - name: create mamba + conda build environment
+      - name: create mamba build environment
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-name: build_env
           environment-file: mamba/mamba/environment-dev.yml
-          channels: conda-forge
+          channels: conda-forge,conda-canary/label/dev
+          channel-priority: flexible
           extra-specs: |
             python=3.10
-            boa
-
-      # Build and install Conda nightly
-      - uses: actions/checkout@v3
-        with:
-          repository: conda/conda
-          path: conda
-          fetch-depth: 0
-      - name: Patch Conda recipe for boa
-        run: |
-          cd conda
-          git rm -r tests
-          GIT_AUTHOR_NAME=hack GIT_COMMITTER_NAME=hack GIT_COMMITTER_EMAIL=hack@hack git commit -am "Workaround for boa not supporting --no-test"
-          conda mambabuild --python 3.10 --no-copy-test-source-files --no-test . 2>&1 | tee build-log
-      - run: micromamba install --no-channel-priority $(grep -Eo '[^ ]+/conda-.+.tar.bz2' conda/build-log)
+            conda =*+*
 
       # Build Mamba
       - uses: hendrikmuhs/ccache-action@main
@@ -103,5 +91,6 @@ jobs:
         if: always()
         run: |
           # Do not cache temporary envs with 'cache-env: true'
-          rm -rf $(micromamba info --json | jq -r '."env location"')/envs
-          rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld
+          rm -rf $(micromamba info --json | jq -r '."env location"')/envs || true
+          rm -rf ~/tmproot* || true
+          rm -rf $(micromamba info --json | jq -r '."env location"')/conda-build/conda-bld || true

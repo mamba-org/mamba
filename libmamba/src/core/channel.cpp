@@ -844,8 +844,7 @@ namespace mamba
             if (!starts_with(url, "http"))
                 url = path_to_url(url);
 
-            auto channel
-                = ChannelBuilder::make_simple_channel(m_channel_alias, join_url(url, n), "", n);
+            auto channel = ChannelBuilder::make_simple_channel(m_channel_alias, url, n, "");
             m_custom_channels.emplace(n, std::move(channel));
         }
 

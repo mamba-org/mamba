@@ -7,6 +7,18 @@
 
 #include "mamba/core/util_string.hpp"
 
+#if !defined(_WIN32)
+#include <sys/stat.h>
+#include <fcntl.h>
+
+// We can use the presence of UTIME_OMIT to detect platforms that provide
+// utimensat.
+#if defined(UTIME_OMIT)
+#define USE_UTIMENSAT
+#endif
+#endif
+
+
 //---- RATIONAL: Why do we wrap standard filesystem here? ----
 // 1. This codebase relies on `std::string` and `const char*` to denote UTF-8 encoded text.
 //    However `std::filesystem::path` constructors cannot assume that `std::string` is in
@@ -63,6 +75,10 @@
 
 namespace fs
 {
+    // sentinel argument for indicating the current time to last_write_time
+    class now
+    {
+    };
 
 
 #if defined(_WIN32)
@@ -390,6 +406,11 @@ namespace fs
         u8path extension() const
         {
             return m_path.extension();
+        }
+
+        u8path lexically_relative(const u8path& base) const
+        {
+            return m_path.lexically_relative(base);
         }
 
         //---- Modifiers ----
@@ -1146,6 +1167,31 @@ namespace fs
     file_time_type last_write_time(const u8path& path, OtherArgs&&... args)
     {
         return std::filesystem::last_write_time(path, std::forward<OtherArgs>(args)...);
+    }
+
+    // void last_write_time(const path& p, now _, error_code& ec) noexcept;
+    inline void last_write_time(const u8path& path, now _, std::error_code& ec) noexcept
+    {
+#if defined(USE_UTIMENSAT)
+        if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
+        {
+            ec = std::error_code(errno, std::generic_category());
+        }
+#else
+        auto new_time = fs::file_time_type::clock::now();
+        std::filesystem::last_write_time(path, new_time, ec);
+#endif
+    }
+
+    // void last_write_time(const path& p, now _);
+    inline void last_write_time(const u8path& path, now sentinel)
+    {
+        std::error_code ec;
+        last_write_time(path, sentinel, ec);
+        if (ec)
+        {
+            throw filesystem_error("last_write_time", path, ec);
+        }
     }
 
     // void last_write_time(const path& p, file_time_type new_time);

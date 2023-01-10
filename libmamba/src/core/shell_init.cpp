@@ -654,6 +654,11 @@ namespace mamba
     {
         Context::instance().root_prefix = root_prefix;
 
+        if (!fs::exists(root_prefix))
+        {
+            fs::create_directories(root_prefix / "conda-meta");
+        }
+
         if (shell == "zsh" || shell == "bash" || shell == "posix")
         {
             PosixActivator a;

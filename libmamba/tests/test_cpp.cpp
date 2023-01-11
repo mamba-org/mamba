@@ -362,23 +362,80 @@ namespace mamba
         {
             std::string res = replace_long_shebang(
                 "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
-            res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/python -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
-            res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
-            res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
-            res = replace_long_shebang(
-                "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
-            res = replace_long_shebang(
-                "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo  ooooooo oooooo oooooo ooooooooooooooooo ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+            if (on_linux)
+                EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+            else
+                EXPECT_EQ(
+                    res,
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
+
+            if (on_linux)
+            {
+                res = replace_long_shebang(
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/python -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+                res = replace_long_shebang(
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
+                res = replace_long_shebang(
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+                res = replace_long_shebang(
+                    "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+                res = replace_long_shebang(
+                    "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo\\ \\ ooooooo\\ oooooo\\ oooooo\\ ooooooooooooooooo\\ ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+            }
+
+            std::string shebang
+                = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
+            res = replace_long_shebang(shebang);
+            EXPECT_EQ(res, "#!/usr/bin/env python -o test 123 -x");
+            shebang = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
+            shebang[299] = '\\';
+            shebang[300] = ' ';
+            res = replace_long_shebang(shebang);
+            EXPECT_EQ(res, "#!/usr/bin/env python -o test 123 -x");
         }
+    }
+
+    TEST(link, python_shebang)
+    {
+        auto res = python_shebang("/usr/bin/python");
+        EXPECT_EQ(res, "#!/usr/bin/python");
+        res = python_shebang("/usr/bin/pyth on with spaces");
+        EXPECT_EQ(res, "#!/bin/sh\n'''exec' \"/usr/bin/pyth on with spaces\" \"$0\" \"$@\" #'''");
+    }
+
+    TEST(link, shebang_regex_matches)
+    {
+        std::string shebang = "#!/simple/shebang";
+        std::smatch s;
+        auto match = std::regex_match(shebang, s, shebang_regex);
+        EXPECT_TRUE(match);
+        EXPECT_EQ(s[0].str(), "#!/simple/shebang");
+        EXPECT_EQ(s[1].str(), "#!/simple/shebang");
+        EXPECT_EQ(s[2].str(), "/simple/shebang");
+        EXPECT_EQ(s[3].str(), "");
+
+        // // with spaces
+        shebang = "#!    /simple/shebang";
+        match = std::regex_match(shebang, s, shebang_regex);
+        EXPECT_TRUE(match);
+        EXPECT_EQ(s[0].str(), "#!    /simple/shebang");
+        EXPECT_EQ(s[1].str(), "#!    /simple/shebang");
+        EXPECT_EQ(s[2].str(), "/simple/shebang");
+        EXPECT_EQ(s[3].str(), "");
+
+        // with escaped spaces and flags
+        shebang = "#!/simple/shebang/escaped\\ space --and --flags -x";
+        match = std::regex_match(shebang, s, shebang_regex);
+        EXPECT_TRUE(match);
+        EXPECT_EQ(s[0].str(), "#!/simple/shebang/escaped\\ space --and --flags -x");
+        EXPECT_EQ(s[1].str(), "#!/simple/shebang/escaped\\ space --and --flags -x");
+        EXPECT_EQ(s[2].str(), "/simple/shebang/escaped\\ space");
+        EXPECT_EQ(s[3].str(), " --and --flags -x");
     }
 
     TEST(utils, quote_for_shell)

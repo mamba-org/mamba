@@ -636,7 +636,7 @@ namespace mamba
             m_solv_cache_valid = true;
         }
 
-        if (!m_use_old_cache)
+        if (Context::instance().repodata_use_zst)
         {
             auto state_file = json_file;
             state_file.replace_extension(".state.json");
@@ -768,7 +768,7 @@ namespace mamba
         m_metadata.cache_control = m_target->cache_control;
         m_metadata.stored_file_size = file_size;
 
-        if (m_use_old_cache)
+        if (!Context::instance().repodata_use_zst)
         {
             LOG_DEBUG << "Opening '" << json_file.string() << "'";
             path::touch(json_file, true);

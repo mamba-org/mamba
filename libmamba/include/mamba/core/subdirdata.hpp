@@ -146,8 +146,6 @@ namespace mamba
         subdir_metadata m_metadata;
         std::unique_ptr<TemporaryFile> m_temp_file;
         const Channel* p_channel = nullptr;
-
-        bool m_use_old_cache = false;
     };
 
     // Contrary to conda original function, this one expects a full url

@@ -499,6 +499,13 @@ namespace mamba
         fs::remove("emptytestfile");
         EXPECT_FALSE(fs::exists("emptytestfile"));
         EXPECT_FALSE(lexists("emptytestfile"));
+
+        std::error_code ec;
+        EXPECT_FALSE(lexists("completelyinexistent", ec));
+        EXPECT_FALSE(ec);
+
+        EXPECT_FALSE(fs::exists("completelyinexistent", ec));
+        EXPECT_FALSE(ec);
     }
 
     namespace detail

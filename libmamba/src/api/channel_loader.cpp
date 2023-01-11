@@ -95,7 +95,8 @@ namespace mamba
                 multi_dl.add(check_target.get());
             }
         }
-        multi_dl.download(false);
+
+        multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
         if (is_sig_interrupted())
         {
             error_list.push_back(

@@ -332,6 +332,7 @@ namespace mamba
         , m_expired_cache_path(std::move(rhs.m_expired_cache_path))
         , m_writable_pkgs_dir(std::move(rhs.m_writable_pkgs_dir))
         , m_progress_bar(std::move(rhs.m_progress_bar))
+        , m_progress_bar_check(std::move(rhs.m_progress_bar_check))
         , m_loaded(rhs.m_loaded)
         , m_download_complete(rhs.m_download_complete)
         , m_repodata_url(std::move(rhs.m_repodata_url))
@@ -363,6 +364,7 @@ namespace mamba
         swap(m_expired_cache_path, rhs.m_expired_cache_path);
         swap(m_writable_pkgs_dir, rhs.m_writable_pkgs_dir);
         swap(m_progress_bar, m_progress_bar);
+        swap(m_progress_bar_check, m_progress_bar_check);
         swap(m_loaded, rhs.m_loaded);
         swap(m_download_complete, rhs.m_download_complete);
         swap(m_repodata_url, rhs.m_repodata_url);
@@ -430,9 +432,12 @@ namespace mamba
     bool MSubdirData::finalize_check(const DownloadTarget& target)
     {
         LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
-        if (m_progress_bar)
+        if (m_progress_bar_check)
         {
-            m_progress_bar.mark_as_completed();
+            m_progress_bar_check.repr().postfix.set_value("Checked");
+            m_progress_bar_check.repr().speed.deactivate();
+            m_progress_bar_check.repr().total.deactivate();
+            m_progress_bar_check.mark_as_completed();
         }
 
         if (ends_with(target.url(), ".zst"))
@@ -554,24 +559,31 @@ namespace mamba
                 LOG_INFO << "Expired cache (or invalid mod/etag headers) found at '"
                          << m_expired_cache_path.string() << "'";
 
-            if (!Context::instance().offline || forbid_cache())
+            auto& ctx = Context::instance();
+            if (!ctx.offline || forbid_cache())
             {
-                bool configured_zst = false;
-                if (Context::instance().repodata_use_zst && !m_metadata.check_zst(p_channel))
+                if (ctx.repodata_use_zst)
                 {
-                    m_check_targets.push_back(std::make_unique<DownloadTarget>(
-                        m_name + "-zst-check", m_repodata_url + ".zst", ""));
-                    m_check_targets.back()->set_head_only(true);
-                    m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check,
-                                                                  this);
-                    m_check_targets.back()->set_ignore_failure(true);
-                    auto& ctx = Context::instance();
-                    if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                    bool has_value = m_metadata.has_zst.has_value();
+                    bool is_expired = m_metadata.has_zst.has_value()
+                                      && m_metadata.has_zst.value().has_expired();
+                    bool has_zst = m_metadata.check_zst(p_channel);
+                    if (!has_zst && (is_expired || !has_value))
                     {
-                        m_progress_bar
-                            = Console::instance().add_progress_bar(m_name + "-zst-check");
-                        m_check_targets.back()->set_progress_bar(m_progress_bar);
-                        m_progress_bar.repr().postfix.set_value("Checking");
+                        m_check_targets.push_back(std::make_unique<DownloadTarget>(
+                            m_name + " (check zst)", m_repodata_url + ".zst", ""));
+                        m_check_targets.back()->set_head_only(true);
+                        m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check,
+                                                                      this);
+                        m_check_targets.back()->set_ignore_failure(true);
+                        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                        {
+                            m_progress_bar_check
+                                = Console::instance().add_progress_bar(m_name + " (check zst)");
+                            m_check_targets.back()->set_progress_bar(m_progress_bar_check);
+                            m_progress_bar_check.repr().postfix.set_value("Checking");
+                        }
+                        return true;
                     }
                 }
                 create_target();

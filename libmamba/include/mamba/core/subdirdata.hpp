@@ -134,6 +134,7 @@ namespace mamba
         fs::u8path m_writable_pkgs_dir;
 
         ProgressProxy m_progress_bar;
+        ProgressProxy m_progress_bar_check;
 
         bool m_loaded;
         bool m_download_complete;

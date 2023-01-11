@@ -224,6 +224,7 @@ namespace mamba
 
     const int MAMBA_DOWNLOAD_FAILFAST = 1 << 0;
     const int MAMBA_DOWNLOAD_SORT = 1 << 1;
+    const int MAMBA_NO_CLEAR_PROGRESS_BARS = 1 << 2;
 }  // namespace mamba
 
 #endif  // MAMBA_FETCH_HPP

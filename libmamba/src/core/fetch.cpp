@@ -916,6 +916,7 @@ namespace mamba
     {
         bool failfast = options & MAMBA_DOWNLOAD_FAILFAST;
         bool sort = options & MAMBA_DOWNLOAD_SORT;
+        bool no_clear_progress_bars = options & MAMBA_NO_CLEAR_PROGRESS_BARS;
 
         auto& ctx = Context::instance();
 
@@ -941,7 +942,6 @@ namespace mamba
         bool pbar_manager_started = pbar_manager.started();
         if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
         {
-            pbar_manager.start();
             pbar_manager.watch_print();
         }
 
@@ -1019,7 +1019,8 @@ namespace mamba
         if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
         {
             pbar_manager.terminate();
-            pbar_manager.clear_progress_bars();
+            if (!no_clear_progress_bars)
+                pbar_manager.clear_progress_bars();
         }
 
         return true;

@@ -769,8 +769,15 @@ namespace mamba
                 // "exists" follows symlink so if the symlink doesn't link to existing target it
                 // will return false. There is such symlink in _openmp_mutex package. So if the file
                 // is a symlink we don't want to follow the symlink. The "paths_data" should include
-                // path of all the files and we shound't need to follow symlink.
-                if (!(fs::exists(full_path) || fs::is_symlink(full_path)))
+                // path of all the files and we should not need to follow symlink.
+                std::error_code ec;
+                auto exists = lexists(full_path, ec);
+                if (ec)
+                {
+                    LOG_WARNING << "Could not check existence: " << ec.message() << " (" << p.path
+                                << ")";
+                }
+                if (!exists)
                 {
                     if (is_warn || is_fail)
                     {
@@ -808,10 +815,10 @@ namespace mamba
                 }
             }
         }
-        catch (...)
+        catch (const std::exception& e)
         {
             LOG_WARNING << "Invalid package cache, could not read 'paths.json' from '"
-                        << pkg_folder.string() << "'" << std::endl;
+                        << pkg_folder.string() << "': " << e.what() << std::endl;
             return false;
         }
         return true;

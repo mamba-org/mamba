@@ -571,7 +571,8 @@ namespace mamba
             fs::create_directories(dst.parent_path());
         }
 
-        if (fs::exists(dst))
+        std::error_code ec;
+        if (lexists(dst, ec) && !ec)
         {
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
@@ -579,6 +580,10 @@ namespace mamba
             return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
 #endif
             fs::remove(dst);
+        }
+        if (ec)
+        {
+            LOG_WARNING << "Could not check file existence: " << ec.message() << " (" << dst << ")";
         }
 
 #ifdef __APPLE__
@@ -914,7 +919,15 @@ namespace mamba
                 }
                 if (!found)
                 {
-                    if (fs::exists(m_context->target_prefix / files_record[i]))
+                    bool exists = fs::exists(m_context->target_prefix / files_record[i], ec);
+                    if (ec)
+                    {
+                        LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
+                                    << ec.message();
+                        exists = false;
+                    }
+
+                    if (exists)
                     {
                         paths_json["paths"][i]["sha256_in_prefix"]
                             = validate::sha256sum(m_context->target_prefix / files_record[i]);

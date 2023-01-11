@@ -95,16 +95,9 @@ namespace mamba
         return result;
     }
 
-    static std::regex shebang_regex(
-        "^(#!"                    // pretty much the whole match string
-        "(?:[ ]*)"                // allow spaces between #! and beginning of the executable path
-        "(/(?:\\ |[^ \n\r\t])*)"  // the executable is the next text block without an escaped space
-                                  // or non-space whitespace character
-        "(.*))$");                // end whole_shebang group
-
     std::string replace_long_shebang(const std::string& shebang)
     {
-        if (shebang.size() <= 127)
+        if (shebang.size() <= MAX_SHEBANG_LENGTH)
         {
             return shebang;
         }
@@ -123,6 +116,21 @@ namespace mamba
                 LOG_WARNING << "Could not replace shebang (" << shebang << ")";
                 return shebang;
             }
+        }
+    }
+
+    std::string python_shebang(const std::string& python_exe)
+    {
+        // Shebangs cannot be longer than 127 (or 512) characters and executable with
+        // spaces are problematic
+        if (python_exe.size() > (MAX_SHEBANG_LENGTH - 2)
+            || python_exe.find_first_of(" ") != std::string::npos)
+        {
+            return fmt::format("#!/bin/sh\n'''exec' \"{}\" \"$0\" \"$@\" #'''", python_exe);
+        }
+        else
+        {
+            return fmt::format("#!{}", python_exe);
         }
     }
 
@@ -153,16 +161,7 @@ namespace mamba
         }
         if (!python_path.empty())
         {
-            const std::string py_str = python_path.string();
-            // Shebangs cannot be longer than 127 characters
-            if (py_str.size() > (127 - 2))
-            {
-                out_file << "#!/usr/bin/env python\n";
-            }
-            else
-            {
-                out_file << "#!" << py_str << "\n";
-            }
+            out_file << python_shebang(python_path.string()) << "\n";
         }
 
         python_entry_point_template(out_file, entry_point);
@@ -614,7 +613,7 @@ namespace mamba
                     {
                         std::size_t end_of_line = buffer.find_first_of('\n');
                         std::string first_line = buffer.substr(0, end_of_line);
-                        if (first_line.size() > 127)
+                        if (first_line.size() > MAX_SHEBANG_LENGTH)
                         {
                             std::string new_shebang = replace_long_shebang(first_line);
                             buffer.replace(0, end_of_line, new_shebang);

@@ -696,6 +696,15 @@ class TestCreate:
         cmd = ["-p", f"{prefix}", "-f", env_file]
         create(*cmd)
 
+        if platform.system() != "Windows":
+            pip = prefix / "bin" / "pip"
+            text = pip.read_text()
+            lines = text.splitlines()
+            assert lines[0] == "#!/bin/sh"
+            assert lines[1].startswith("'''exec'")
+            version = subprocess.check_output([pip, "--version"])
+            assert len(version.decode()) > 0
+
     @pytest.mark.parametrize("env_file", test_envs)
     def test_requires_pip_install_no_parent_dir_specified(self, env_file):
         prefix = Path(f"{TestCreate.prefix} with space")

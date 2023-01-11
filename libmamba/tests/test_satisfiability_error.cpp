@@ -351,7 +351,11 @@ namespace mamba
 
         auto cache = MultiPackageCache({ tmp_dir.path / "cache" });
         create_cache_dir(cache.first_writable_path());
+
+        bool prev_progress_bars_value = Context::instance().no_progress_bars;
+        Context::instance().no_progress_bars = true;
         load_channels(pool, cache, make_platform_channels(std::move(channels), platforms));
+        Context::instance().no_progress_bars = prev_progress_bars_value;
 
         auto solver = std::make_unique<MSolver>(
             std::move(pool), std::vector{ std::pair{ SOLVER_FLAG_ALLOW_DOWNGRADE, 1 } });

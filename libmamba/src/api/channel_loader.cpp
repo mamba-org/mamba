@@ -97,8 +97,7 @@ namespace mamba
         std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
-        LOG_INFO << "Adding MIRRORS!" << ctx.plcontext.mirror_map.size();
-
+        ctx.plcontext.mirror_map.clear();
         if (ctx.plcontext.mirror_map.size() == 0)
         {
             if (ctx.mirrors.size())
@@ -109,8 +108,6 @@ namespace mamba
                     {
                         if (starts_with(m, "http"))
                         {
-                            LOG_INFO << "Adding mirror AAA" << mname << " for " << m;
-
                             auto plm = std::make_shared<powerloader::Mirror>(ctx.plcontext, m);
                             ctx.plcontext.mirror_map[mname].push_back(plm);
                         }

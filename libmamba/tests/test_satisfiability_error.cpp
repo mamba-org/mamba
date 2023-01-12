@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <memory>
 #include <random>
 #include <string>
 #include <vector>
@@ -320,7 +321,24 @@ namespace mamba
     {
         auto downloader = powerloader::Downloader{ mamba::Context::instance().plcontext };
         auto sub_dirs = std::vector<MSubdirData>();
-        for (const auto* chan : get_channels(channels))
+        auto& ctx = Context::instance();
+        ctx.plcontext.mirror_map.clear();
+
+        for (auto channel : get_channels(channels))
+        {
+            LOG_INFO << "Adding mirror " << channel->canonical_name() << " for "
+                        << channel->base_url();
+            std::string base_url = channel->base_url();
+            std::string name = channel->canonical_name();
+            if (ends_with(base_url, fmt::format("/{}", name)))
+            {
+                base_url = base_url.substr(0, base_url.size() - name.size() - 1);
+            }
+            ctx.plcontext.mirror_map[name]
+                = { std::make_shared<powerloader::Mirror>(ctx.plcontext, base_url) };
+        }
+
+        for (const auto * chan : get_channels(channels))
         {
             for (auto& [platform, url] : chan->platform_urls(true))
             {

@@ -327,7 +327,7 @@ namespace mamba
         for (auto channel : get_channels(channels))
         {
             LOG_INFO << "Adding mirror " << channel->canonical_name() << " for "
-                        << channel->base_url();
+                     << channel->base_url();
             std::string base_url = channel->base_url();
             std::string name = channel->canonical_name();
             if (ends_with(base_url, fmt::format("/{}", name)))

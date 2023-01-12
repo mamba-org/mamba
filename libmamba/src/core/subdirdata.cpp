@@ -926,17 +926,10 @@ namespace mamba
         // m_target = std::make_unique<DownloadTarget>(
         //     m_name, m_repodata_url + (use_zst ? ".zst" : ""), m_temp_file->path().string());
 
-        if (starts_with(m_repodata_url, "https://conda.anaconda.org/"))
-        {
-            std::string target_url = m_repodata_url.substr(27);
-            m_target = std::make_shared<powerloader::DownloadTarget>(
-                target_url, p_channel->canonical_name(), m_temp_file->path());
-        }
-        else
-        {
-            m_target = std::make_shared<powerloader::DownloadTarget>(
-                m_repodata_url, "", m_temp_file->path());
-        }
+        mamba::URLHandler url_handler(m_repodata_url);
+        auto target_url = url_handler.path();
+        m_target = std::make_shared<powerloader::DownloadTarget>(
+            target_url, p_channel->canonical_name(), m_temp_file->path());
 
         powerloader::CacheControl cache_control_values;
         cache_control_values.last_modified = mod_etag.value("_mod", "");

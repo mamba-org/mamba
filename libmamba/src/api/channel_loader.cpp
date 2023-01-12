@@ -97,36 +97,58 @@ namespace mamba
         std::vector<std::string> channel_urls = ctx.channels;
 
         std::vector<MSubdirData> subdirs;
+        LOG_INFO << "Adding MIRRORS!" << ctx.plcontext.mirror_map.size();
 
         if (ctx.plcontext.mirror_map.size() == 0)
         {
-            for (auto& [mname, mirrors] : ctx.mirrors)
+            if (ctx.mirrors.size())
             {
-                for (auto& m : mirrors)
+                for (auto& [mname, mirrors] : ctx.mirrors)
                 {
-                    if (starts_with(m, "http"))
+                    for (auto& m : mirrors)
                     {
-                        auto plm = std::make_shared<powerloader::Mirror>(ctx.plcontext, m);
-                        ctx.plcontext.mirror_map[mname].push_back(plm);
-                    }
-                    else if (starts_with(m, "oci://"))
-                    {
-                        std::string username = env::get("GHA_USER").value_or("");
-                        std::string password = env::get("GHA_PAT").value_or("");
-                        auto plm = std::make_shared<powerloader::OCIMirror>(ctx.plcontext,
-                                                                            "https://ghcr.io",
-                                                                            "channel-mirrors",
-                                                                            "pull",
-                                                                            username,
-                                                                            password);
-                        plm->set_fn_tag_split_function(oci_detail::oci_fn_split_tag);
+                        if (starts_with(m, "http"))
+                        {
+                            LOG_INFO << "Adding mirror AAA" << mname << " for " << m;
 
-                        ctx.plcontext.mirror_map[mname].push_back(plm);
+                            auto plm = std::make_shared<powerloader::Mirror>(ctx.plcontext, m);
+                            ctx.plcontext.mirror_map[mname].push_back(plm);
+                        }
+                        else if (starts_with(m, "oci://"))
+                        {
+                            std::string username = env::get("GHA_USER").value_or("");
+                            std::string password = env::get("GHA_PAT").value_or("");
+                            auto plm = std::make_shared<powerloader::OCIMirror>(ctx.plcontext,
+                                                                                "https://ghcr.io",
+                                                                                "channel-mirrors",
+                                                                                "pull",
+                                                                                username,
+                                                                                password);
+                            plm->set_fn_tag_split_function(oci_detail::oci_fn_split_tag);
+
+                            ctx.plcontext.mirror_map[mname].push_back(plm);
+                        }
                     }
                 }
             }
+            else
+            {
+                // TODO find a robust way to do this!!
+                for (auto channel : get_channels(channel_urls))
+                {
+                    LOG_INFO << "Adding mirror " << channel->canonical_name() << " for "
+                             << channel->base_url();
+                    std::string base_url = channel->base_url();
+                    std::string name = channel->canonical_name();
+                    if (ends_with(base_url, fmt::format("/{}", name)))
+                    {
+                        base_url = base_url.substr(0, base_url.size() - name.size() - 1);
+                    }
+                    ctx.plcontext.mirror_map[name]
+                        = { std::make_shared<powerloader::Mirror>(ctx.plcontext, base_url) };
+                }
+            }
         }
-
         ctx.plcontext.set_verbosity(ctx.verbosity);
         powerloader::Downloader multi_dl(ctx.plcontext);
 

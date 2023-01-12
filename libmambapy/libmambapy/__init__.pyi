@@ -9,7 +9,6 @@ __all__ = [
     "Configuration",
     "Context",
     "DependencyInfo",
-    "DownloadTargetList",
     "ExtraPkgInfo",
     "History",
     "Key",
@@ -691,12 +690,6 @@ class DependencyInfo:
         :type: str
         """
     __hash__ = None
-    pass
-
-class DownloadTargetList:
-    def __init__(self) -> None: ...
-    def add(self, arg0: SubdirData) -> None: ...
-    def download(self, arg0: int) -> bool: ...
     pass
 
 class ExtraPkgInfo:

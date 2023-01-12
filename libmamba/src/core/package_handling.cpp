@@ -341,6 +341,8 @@ namespace mamba
             // clean out UID and GID
             archive_entry_set_uid(entry, 0);
             archive_entry_set_gid(entry, 0);
+            archive_entry_set_gname(entry, "");
+            archive_entry_set_uname(entry, "");
 
             if (archive_read_disk_descend(disk) < ARCHIVE_OK)
             {

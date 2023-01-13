@@ -570,7 +570,7 @@ namespace mamba
     namespace detail
     {
         // read the header that contains json like {"_mod": "...", ...}
-        tl::expected<subdir_metadata, std::runtime_error> read_metadata(const fs::u8path& file);
+        tl::expected<subdir_metadata, mamba_error> read_metadata(const fs::u8path& file);
     }
 
 #ifdef _WIN32

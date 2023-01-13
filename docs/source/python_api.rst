@@ -50,7 +50,7 @@ Here is an example usage of the mamba_api:
         prefix=None,
         repodata_fn="repodata.json",
     ):
-        check_whitelist(channel_urls)
+        check_allowlist(channel_urls)
 
         dlist = mamba_api.DownloadTargetList()
 

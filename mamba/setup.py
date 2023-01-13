@@ -41,7 +41,10 @@ setup(
     packages=["mamba"],
     entry_points={"console_scripts": ["mamba = mamba.mamba:main"]},
     long_description="A (hopefully faster) reimplementation of the slow bits of conda.",
-    install_requires=["conda", "libmambapy"],
+    install_requires=[
+        "conda>=4.14.0",
+        "libmambapy",
+    ],
     extras_require={"test": ["pytest", "pytest-lazy-fixture"]},
     data_files=data_files,
     include_package_data=True,

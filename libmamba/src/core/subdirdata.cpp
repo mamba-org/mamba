@@ -165,6 +165,11 @@ namespace mamba
                 {
                     LOG_WARNING << "Could not parse state file" << m.error().what();
                     fs::remove(state_file, ec);
+                    if (ec)
+                    {
+                        LOG_WARNING << "Could not remove state file " << state_file << ": "
+                                    << ec.message();
+                    }
                     return make_unexpected(
                         fmt::format("File: {}: {}", state_file, m.error().what()),
                         mamba_error_code::cache_not_loaded);
@@ -678,8 +683,8 @@ namespace mamba
         else
         {
             LOG_WARNING << "HTTP response code indicates error, retrying.";
-            throw std::runtime_error("Unhandled HTTP code: "
-                                     + std::to_string(m_target->http_status));
+            throw mamba_error("Unhandled HTTP code: " + std::to_string(m_target->http_status),
+                              mamba_error_code::subdirdata_not_loaded);
         }
 
         fs::u8path json_file, solv_file;
@@ -702,7 +707,8 @@ namespace mamba
                 if (m_writable_pkgs_dir.empty())
                 {
                     LOG_ERROR << "Could not find any writable cache directory for repodata file";
-                    throw std::runtime_error("Non-writable cache error.");
+                    throw mamba_error("Non-writable cache error.",
+                                      mamba_error_code::subdirdata_not_loaded);
                 }
 
                 LOG_DEBUG << "Copying repodata cache files from '" << m_expired_cache_path.string()
@@ -746,7 +752,7 @@ namespace mamba
 
             m_json_cache_valid = true;
             m_loaded = true;
-            m_temp_file.reset(nullptr);
+            m_temp_file.reset();
             return true;
         }
         else
@@ -754,7 +760,8 @@ namespace mamba
             if (m_writable_pkgs_dir.empty())
             {
                 LOG_ERROR << "Could not find any writable cache directory for repodata file";
-                throw std::runtime_error("Non-writable cache error.");
+                throw mamba_error("Non-writable cache error.",
+                                  mamba_error_code::subdirdata_not_loaded);
             }
         }
 
@@ -780,8 +787,8 @@ namespace mamba
 
             if (!final_file.is_open())
             {
-                throw std::runtime_error(
-                    fmt::format("Could not open file '{}'", json_file.string()));
+                throw mamba_error(fmt::format("Could not open file '{}'", json_file.string()),
+                                  mamba_error_code::subdirdata_not_loaded);
             }
 
             if (m_progress_bar)
@@ -802,9 +809,16 @@ namespace mamba
 
             if (!temp_file)
             {
-                fs::remove(json_file);
-                throw std::runtime_error(fmt::format(
-                    "Could not write out repodata file {}: {}", json_file, strerror(errno)));
+                std::error_code ec;
+                fs::remove(json_file, ec);
+                if (ec)
+                {
+                    LOG_ERROR << "Could not remove file " << json_file << ": " << ec.message();
+                }
+                throw mamba_error(fmt::format("Could not write out repodata file {}: {}",
+                                              json_file,
+                                              strerror(errno)),
+                                  mamba_error_code::subdirdata_not_loaded);
             }
             fs::last_write_time(json_file, fs::now());
         }
@@ -828,7 +842,7 @@ namespace mamba
             m_progress_bar.mark_as_completed();
         }
 
-        m_temp_file.reset(nullptr);
+        m_temp_file.reset();
         m_valid_cache_path = m_writable_pkgs_dir;
         m_json_cache_valid = true;
         m_loaded = true;

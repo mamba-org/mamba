@@ -43,7 +43,7 @@ namespace mamba
             }
         };
 
-        static tl::expected<subdir_metadata, std::exception> from_stream(std::istream& in);
+        static tl::expected<subdir_metadata, mamba_error> from_stream(std::istream& in);
 
         std::string url;
         std::string etag;

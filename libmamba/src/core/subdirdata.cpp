@@ -116,7 +116,7 @@ namespace mamba
         return last_write_time_valid;
     }
 
-    tl::expected<subdir_metadata, std::exception> subdir_metadata::from_stream(std::istream& in)
+    tl::expected<subdir_metadata, mamba_error> subdir_metadata::from_stream(std::istream& in)
     {
         nlohmann::json j = nlohmann::json::parse(in);
         subdir_metadata m;
@@ -141,13 +141,10 @@ namespace mamba
                                                   err_code) };
             }
         }
-        catch (const nlohmann::json::exception& e)
-        {
-            return tl::unexpected(std::runtime_error(e.what()));
-        }
         catch (const std::exception& e)
         {
-            return tl::unexpected(std::runtime_error(e.what()));
+            return make_unexpected(fmt::format("Could not load cache state: {}", e.what()),
+                                   mamba_error_code::cache_not_loaded);
         }
         return m;
     }
@@ -155,7 +152,7 @@ namespace mamba
 
     namespace detail
     {
-        tl::expected<subdir_metadata, std::runtime_error> read_metadata(const fs::u8path& file)
+        tl::expected<subdir_metadata, mamba_error> read_metadata(const fs::u8path& file)
         {
             auto state_file = file;
             state_file.replace_extension(".state.json");
@@ -168,7 +165,9 @@ namespace mamba
                 {
                     LOG_WARNING << "Could not parse state file" << m.error().what();
                     fs::remove(state_file, ec);
-                    return tl::unexpected(std::runtime_error("Could not parse state file"));
+                    return make_unexpected(
+                        fmt::format("File: {}: {}", state_file, m.error().what()),
+                        mamba_error_code::cache_not_loaded);
                 }
 
                 if (!m.value().check_valid_metadata(file))
@@ -180,7 +179,9 @@ namespace mamba
                     m.value().cache_control = "";
                     m.value().stored_file_size = 0;
                     m.value().stored_mtime = decltype(m.value().stored_mtime)::min();
-                    return tl::unexpected(std::runtime_error("Cache file mtime mismatch"));
+                    return make_unexpected(
+                        fmt::format("File: {}: Cache file mtime mismatch", state_file),
+                        mamba_error_code::cache_not_loaded);
                 }
 
                 return m.value();
@@ -274,10 +275,13 @@ namespace mamba
                 m.cache_control = result.value("_cache_control", "");
                 return m;
             }
-            catch (...)
+            catch (std::exception& e)
             {
                 LOG_WARNING << "Could not parse mod/etag header";
-                return tl::unexpected(std::runtime_error("Could not parse mod/etag header"));
+                return make_unexpected(fmt::format("File: {}: Could not parse mod/etag header ({})",
+                                                   state_file,
+                                                   e.what()),
+                                       mamba_error_code::cache_not_loaded);
             }
         }
     }
@@ -799,9 +803,8 @@ namespace mamba
             if (!temp_file)
             {
                 fs::remove(json_file);
-                throw std::runtime_error(fmt::format("Could not write out repodata file '{}': {}",
-                                                     json_file.string(),
-                                                     strerror(errno)));
+                throw std::runtime_error(fmt::format(
+                    "Could not write out repodata file {}: {}", json_file, strerror(errno)));
             }
             fs::last_write_time(json_file, fs::now());
         }

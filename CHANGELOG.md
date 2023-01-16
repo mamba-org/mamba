@@ -1,3 +1,50 @@
+2023.01.16
+==========
+
+Releases: libmamba 1.2.0, libmambapy 1.2.0, mamba 1.2.0, micromamba 1.2.0
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+Enhancements:
+
+- [micromamba, libmamba] Make tarballs look more similar to conda-package-handling by @wolfv in #2177, #2217
+- [micromamba, libmamba] Use new shebang style by @wolfv in #2211
+- [micromamba, libmamba] Faster conda decompress by @wolfv in #2200
+- [micromamba, libmamba] Initial repodata.zst support by @wolfv & @jonashaag in #2113
+
+Bug fixes:
+
+- [micromamba, libmamba] log warnings but ignore cyclic symlinks by @wolfv in #2212
+- [mamba] Add Context binding for experimental_sat_error_message by @syslaila in #2143
+- [libmamba] Error messages improvements by @AntoinePrv in #2149
+- [micromamba, libmamba] Report failure when packages to remove don't exist. (#2131) by @Klaim in #2132
+- [libmamba] Fixing typo in solver errors by @shughes-uk in #2168
+- [micromamba] Fix micromamba shell completion when running 'shell hook' directly by @TomiBelan in #2137
+- [libmamba] Extend `last_write_time` implementation by special-casing file touching by @coroa in #2141
+- [libmamba, micromamba] Don't create a prefix which is missing conda-meta by @maresb in #2162
+- [libmamba, micromamba, mamba] Fix `custom_channels` parsing by @XuehaiPan in #2207
+- [micromamba] Fix #1783: Add `micromamba env create` by @jonashaag in #1790
+- [mamba] Use check_allowlist from conda by @duncanmmacleod in #2220
+
+CI fixes & docs:
+
+- Improve build env cleanup by @jonashaag in #2213
+- Run conda_nightly once per week by @jonashaag in #2147
+- Update doc by @Hind-M in #2156
+- Use Conda canary in nightly tests by @jonashaag in #2180
+- Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- Add bug report issue template by @jonashaag in #2182
+- Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- Update pre-commit versions by @jonashaag in #2178
+- Use local meta.yaml by @wolfv in #2214
+- Remove feedstock patches by @wolfv in #2216
+- Fixed static dependency order by @JohanMabille in #2201
+
+
 2022.11.25
 ==========
 

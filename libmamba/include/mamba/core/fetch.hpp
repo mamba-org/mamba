@@ -15,8 +15,8 @@ extern "C"
 
 #include <string>
 #include <vector>
-
-#include "nlohmann/json.hpp"
+#include <zstd.h>
+#include <bzlib.h>
 
 #include "progress_bar.hpp"
 #include "validate.hpp"
@@ -24,6 +24,78 @@ extern "C"
 namespace mamba
 {
     void init_curl_ssl();
+
+    struct ZstdStream
+    {
+        constexpr static size_t BUFFER_SIZE = 256000;
+        ZstdStream(curl_write_callback write_callback, void* write_callback_data)
+            : stream(ZSTD_createDCtx())
+            , m_write_callback(write_callback)
+            , m_write_callback_data(write_callback_data)
+        {
+            ZSTD_initDStream(stream);
+        }
+
+        ~ZstdStream()
+        {
+            ZSTD_freeDCtx(stream);
+        }
+
+        size_t write(char* in, size_t size);
+
+        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
+        {
+            return static_cast<ZstdStream*>(self)->write(ptr, size * nmemb);
+        }
+
+        ZSTD_DCtx* stream;
+        char buffer[BUFFER_SIZE];
+
+        // original curl callback
+        curl_write_callback m_write_callback;
+        void* m_write_callback_data;
+    };
+
+    struct Bzip2Stream
+    {
+        constexpr static size_t BUFFER_SIZE = 256000;
+
+        Bzip2Stream(curl_write_callback write_callback, void* write_callback_data)
+            : m_write_callback(write_callback)
+            , m_write_callback_data(write_callback_data)
+        {
+            stream.bzalloc = nullptr;
+            stream.bzfree = nullptr;
+            stream.opaque = nullptr;
+
+            error = BZ2_bzDecompressInit(&stream, 0, false);
+            if (error != BZ_OK)
+            {
+                throw std::runtime_error("BZ2_bzDecompressInit failed");
+            }
+        }
+
+        size_t write(char* in, size_t size);
+
+        static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* self)
+        {
+            return static_cast<Bzip2Stream*>(self)->write(ptr, size * nmemb);
+        }
+
+        ~Bzip2Stream()
+        {
+            BZ2_bzDecompressEnd(&stream);
+        }
+
+        int error;
+        bz_stream stream;
+        char buffer[BUFFER_SIZE];
+
+        // original curl callback
+        curl_write_callback m_write_callback;
+        void* m_write_callback_data;
+    };
+
 
     class DownloadTarget
     {
@@ -45,11 +117,16 @@ namespace mamba
 
         static int progress_callback(
             void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
-        void set_mod_etag_headers(const nlohmann::json& mod_etag);
+        void set_mod_etag_headers(const std::string& mod, const std::string& etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
+        void set_head_only(bool yes)
+        {
+            curl_easy_setopt(m_handle, CURLOPT_NOBODY, yes);
+        }
 
         const std::string& name() const;
+        const std::string& url() const;
         std::size_t expected_size() const;
 
         void init_curl_target(const std::string& url);
@@ -61,9 +138,9 @@ namespace mamba
         curl_off_t get_speed();
 
         template <class C>
-        inline void set_finalize_callback(bool (C::*cb)(), C* data)
+        inline void set_finalize_callback(bool (C::*cb)(const DownloadTarget&), C* data)
         {
-            m_finalize_callback = std::bind(cb, data);
+            m_finalize_callback = std::bind(cb, data, std::placeholders::_1);
         }
 
         inline void set_ignore_failure(bool yes)
@@ -97,7 +174,9 @@ namespace mamba
         std::string etag, mod, cache_control;
 
     private:
-        std::function<bool()> m_finalize_callback;
+        std::unique_ptr<ZstdStream> m_zstd_stream;
+        std::unique_ptr<Bzip2Stream> m_bzip2_stream;
+        std::function<bool(const DownloadTarget&)> m_finalize_callback;
 
         std::string m_name, m_filename, m_url;
 
@@ -145,6 +224,7 @@ namespace mamba
 
     const int MAMBA_DOWNLOAD_FAILFAST = 1 << 0;
     const int MAMBA_DOWNLOAD_SORT = 1 << 1;
+    const int MAMBA_NO_CLEAR_PROGRESS_BARS = 1 << 2;
 }  // namespace mamba
 
 #endif  // MAMBA_FETCH_HPP

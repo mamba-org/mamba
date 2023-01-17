@@ -304,7 +304,7 @@ namespace mamba
         return result;
     }
 
-    bool PackageDownloadExtractTarget::finalize_callback()
+    bool PackageDownloadExtractTarget::finalize_callback(const DownloadTarget& target)
     {
         if (m_has_progress_bars)
         {

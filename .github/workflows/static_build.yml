@@ -35,7 +35,6 @@ jobs:
           path: micromamba-feedstock
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
-        if: ${{ matrix.platform == 'linux' }}
         run: |
           cp ./micromamba/recipe/* micromamba-feedstock/recipe/
       - uses: mamba-org/provision-with-micromamba@main

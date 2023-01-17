@@ -430,6 +430,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         find_package(CURL REQUIRED)
         find_package(LibArchive REQUIRED)
         find_package(zstd REQUIRED)
+        find_package(BZip2 REQUIRED)
         find_package(OpenSSL REQUIRED)
         find_package(yaml-cpp CONFIG REQUIRED)
         find_package(reproc++ CONFIG REQUIRED)
@@ -444,6 +445,8 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
             zstd::libzstd_shared
             ${CURL_LIBRARIES}
             ${OPENSSL_LIBRARIES}
+            zstd::libzstd_shared
+            BZip2::BZip2
             yaml-cpp
             reproc++
             reproc

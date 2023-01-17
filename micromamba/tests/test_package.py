@@ -90,6 +90,8 @@ def compare_two_tarfiles(tar1, tar2):
 
         assert m2.uid == 0
         assert m2.gid == 0
+        assert m2.uname == ""
+        assert m2.gname == ""
         assert m1.size == m2.size
 
         if m1.isfile():

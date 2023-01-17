@@ -656,12 +656,33 @@ namespace mamba
                 }
             }
 
+            static std::unique_ptr<TemporaryFile> tmp_lock_file;
+
             for (auto& file : file_specs)
             {
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    const auto lockfile_path = fs::absolute(file);
+                    fs::u8path lockfile_path;
+                    if (starts_with(file, "http"))
+                    {
+                        if (!tmp_lock_file)
+                        {
+                            tmp_lock_file = std::make_unique<TemporaryFile>();
+                        }
+                        DownloadTarget dt("Environment Lockfile", file, tmp_lock_file->path());
+                        bool success = dt.perform();
+                        if (!success)
+                        {
+                            throw std::runtime_error("Could not download environment lockfile");
+                        }
+                        lockfile_path = tmp_lock_file->path();
+                    }
+                    else
+                    {
+                        lockfile_path = fs::absolute(file);
+                    }
+
                     LOG_DEBUG << "File spec Lockfile: " << lockfile_path.string();
                     Context::instance().env_lockfile = lockfile_path;
                 }

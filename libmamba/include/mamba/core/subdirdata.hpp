@@ -110,10 +110,15 @@ namespace mamba
         const std::string& name() const;
 
         std::shared_ptr<powerloader::DownloadTarget> target();
-        bool finalize_transfer(const powerloader::Response& response);
 
-        bool finalize_check(const DownloadTarget& target);
-        bool finalize_transfer(const DownloadTarget& target);
+        std::vector<std::shared_ptr<powerloader::DownloadTarget>> check_targets() const noexcept
+        {
+            // check if zst or (later) jlap are available
+            return m_check_targets;
+        }
+
+        bool finalize_check(const powerloader::Response& response);
+        bool finalize_transfer(const powerloader::Response& response);
         void finalize_checks();
         expected_t<MRepo&> create_repo(MPool& pool);
 
@@ -134,6 +139,7 @@ namespace mamba
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
         std::shared_ptr<powerloader::DownloadTarget> m_target;
+        std::vector<std::shared_ptr<powerloader::DownloadTarget>> m_check_targets;
 
         bool m_json_cache_valid = false;
         bool m_solv_cache_valid = false;

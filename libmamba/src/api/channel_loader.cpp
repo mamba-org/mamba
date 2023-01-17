@@ -190,11 +190,12 @@ namespace mamba
         {
             for (auto& check_target : subdir.check_targets())
             {
-                multi_dl.add(check_target.get());
+                multi_dl.add(check_target);
             }
         }
 
-        multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+        // multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+        multi_dl.download();
         if (is_sig_interrupted())
         {
             error_list.push_back(mamba_error("Interrupted by user", mamba_error_code::user_interrupted)

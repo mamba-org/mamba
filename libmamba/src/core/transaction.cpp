@@ -327,7 +327,8 @@ namespace mamba
         return result;
     }
 
-    bool PackageDownloadExtractTarget::finalize_callback(const DownloadTarget& target)
+    bool PackageDownloadExtractTarget::finalize_callback(
+        const std::shared_ptr<powerloader::DownloadTarget>& target)
     {
         if (m_has_progress_bars)
         {
@@ -446,7 +447,7 @@ namespace mamba
                 {
                     if (status == powerloader::TransferStatus::kSUCCESSFUL)
                     {
-                        this->finalize_callback();
+                        this->finalize_callback(this->m_target);
                     }
                     return powerloader::CbReturnCode::kOK;
                 };

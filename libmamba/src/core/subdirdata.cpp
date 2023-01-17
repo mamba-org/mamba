@@ -17,6 +17,8 @@
 
 #include "progress_bar_impl.hpp"
 
+using namespace std::placeholders;
+
 namespace mamba
 {
     void subdir_metadata::serialize_to_stream(std::ostream& out) const
@@ -376,10 +378,11 @@ namespace mamba
             m_target->set_progress_callback(
                 std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
-        for (auto& t : m_check_targets)
-        {
-            t->set_finalize_callback(&MSubdirData::finalize_check, this);
-        }
+
+        // for (auto& t : m_check_targets)
+        // {
+        //     t->set_end_callback(&MSubdirData::finalize_check, this);
+        // }
     }
 
     MSubdirData& MSubdirData::operator=(MSubdirData&& rhs)
@@ -431,14 +434,14 @@ namespace mamba
             // rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
         }
 
-        for (auto& t : m_check_targets)
-        {
-            t->set_finalize_callback(&MSubdirData::finalize_check, this);
-        }
-        for (auto& t : rhs.m_check_targets)
-        {
-            t->set_finalize_callback(&MSubdirData::finalize_check, &rhs);
-        }
+        // for (auto& t : m_check_targets)
+        // {
+        //     t->set_finalize_callback(&MSubdirData::finalize_check, this);
+        // }
+        // for (auto& t : rhs.m_check_targets)
+        // {
+        //     t->set_finalize_callback(&MSubdirData::finalize_check, &rhs);
+        // }
 
         return *this;
     }
@@ -476,9 +479,9 @@ namespace mamba
         create_target();
     }
 
-    bool MSubdirData::finalize_check(const DownloadTarget& target)
+    bool MSubdirData::finalize_check(const powerloader::Response& response)
     {
-        LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
+        // LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
         if (m_progress_bar_check)
         {
             m_progress_bar_check.repr().postfix.set_value("Checked");
@@ -487,19 +490,12 @@ namespace mamba
             m_progress_bar_check.mark_as_completed();
         }
 
-        if (ends_with(target.url(), ".zst"))
-        {
-            this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
-        }
+        // if (ends_with(target.url(), ".zst"))
+        // {
+        //     this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
+        // }
         return true;
     }
-
-    std::vector<std::unique_ptr<DownloadTarget>>& MSubdirData::check_targets()
-    {
-        // check if zst or (later) jlap are available
-        return m_check_targets;
-    }
-
 
     bool MSubdirData::load(MultiPackageCache& caches)
     {
@@ -618,27 +614,24 @@ namespace mamba
                     bool has_value = m_metadata.has_zst.has_value();
                     bool is_expired = m_metadata.has_zst.has_value()
                                       && m_metadata.has_zst.value().has_expired();
-                    bool has_zst = m_metadata.check_zst(p_channel);
-                    if (!has_zst && (is_expired || !has_value))
-                    {
-                        m_check_targets.push_back(std::make_unique<DownloadTarget>(
-                            m_name + " (check zst)",
-                            m_repodata_url + ".zst",
-                            ""
-                        ));
-                        m_check_targets.back()->set_head_only(true);
-                        m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check, this);
-                        m_check_targets.back()->set_ignore_failure(true);
-                        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
-                        {
-                            m_progress_bar_check = Console::instance().add_progress_bar(
-                                m_name + " (check zst)"
-                            );
-                            m_check_targets.back()->set_progress_bar(m_progress_bar_check);
-                            m_progress_bar_check.repr().postfix.set_value("Checking");
-                        }
-                        return true;
-                    }
+                    // bool has_zst = m_metadata.check_zst(p_channel);
+                    // if (!has_zst && (is_expired || !has_value))
+                    // {
+                    // m_check_targets.push_back(std::make_shared<powerloader::DownloadTarget>(
+                    //     m_name + " (check zst)", m_repodata_url + ".zst", ""));
+                    // m_check_targets.back()->set_head_only(true);
+                    // m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check,
+                    //                                               this);
+                    // m_check_targets.back()->set_ignore_failure(true);
+                    // if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                    // {
+                    //     m_progress_bar_check
+                    //         = Console::instance().add_progress_bar(m_name + " (check zst)");
+                    //     m_check_targets.back()->set_progress_bar(m_progress_bar_check);
+                    //     m_progress_bar_check.repr().postfix.set_value("Checking");
+                    // }
+                    //     return true;
+                    // }
                 }
                 create_target();
             }
@@ -701,7 +694,7 @@ namespace mamba
         }
     }
 
-    bool MSubdirData::finalize_transfer(const DownloadTarget& target)
+    bool MSubdirData::finalize_transfer(const powerloader::Response& response)
     {
         // m_target->result != 0 ||
         if (response.http_status >= 400)
@@ -816,7 +809,7 @@ namespace mamba
             }
         }
 
-        LOG_DEBUG << "Finalized transfer of '" << m_target->url() << "'";
+        LOG_DEBUG << "Finalized transfer of '" << response.effective_url << "'";
 
         fs::u8path writable_cache_dir = create_cache_dir(m_writable_pkgs_dir);
         json_file = writable_cache_dir / m_json_fn;
@@ -824,10 +817,10 @@ namespace mamba
 
         auto file_size = fs::file_size(m_temp_file->path());
 
-        m_metadata.url = m_target->url();
-        m_metadata.etag = m_target->etag;
-        m_metadata.mod = m_target->mod;
-        m_metadata.cache_control = m_target->cache_control;
+        m_metadata.url = response.effective_url;
+        m_metadata.etag = response.get_header("etag").value_or("");
+        m_metadata.mod = response.get_header("last-modified").value_or("");
+        m_metadata.cache_control = response.get_header("cache-control").value_or("");
         m_metadata.stored_file_size = file_size;
 
         if (!Context::instance().repodata_use_zst)
@@ -917,6 +910,80 @@ namespace mamba
         return true;
     }
 
+    // bool MSubdirData::decompress()
+    // {
+    //     LOG_INFO << "Decompressing metadata";
+    //     auto json_temp_file = std::make_unique<TemporaryFile>();
+    //     bool result
+    //         = decompress::raw(m_temp_file->path().string(), json_temp_file->path().string());
+    //     if (!result)
+    //     {
+    //         LOG_WARNING << "Could not decompress " << m_temp_file->path();
+    //     }
+    //     std::swap(json_temp_file, m_temp_file);
+    //     return result;
+    // }
+
+    int MSubdirData::progress_callback(curl_off_t total, curl_off_t done)
+    {
+        auto now = std::chrono::steady_clock::now();
+        // if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
+        //     return 0;
+        // else
+        //     target->set_progress_throttle_time(now);
+        if (!total)  // && !target->expected_size())
+            m_progress_bar.activate_spinner();
+        else
+            m_progress_bar.deactivate_spinner();
+
+        if (!total)  // && target->expected_size())
+            m_progress_bar.update_current(done);
+        else
+            m_progress_bar.update_progress(done, total);
+
+        m_progress_bar.set_speed(40);
+
+        // if (m_progress_bar)
+        // {
+        //     m_progress_bar.set_progress(total, done);
+        // }
+        return 0;
+    }
+
+    void download_with_progressbars(powerloader::Downloader& multi_downloader)
+    {
+        auto& ctx = Context::instance();
+
+        auto& pbar_manager = Console::instance().progress_bar_manager();
+        interruption_guard g([]() { Console::instance().progress_bar_manager().terminate(); });
+
+        // be sure the progress bar manager was not already started
+        // it would mean this code is part of a larger process using progress bars
+        bool pbar_manager_started = pbar_manager.started();
+        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        {
+            pbar_manager.start();
+            pbar_manager.watch_print();
+        }
+        multi_downloader.download();
+
+        if (!(ctx.no_progress_bars || ctx.json || ctx.quiet || pbar_manager_started))
+        {
+            pbar_manager.terminate();
+            pbar_manager.clear_progress_bars();
+        }
+    }
+
+    powerloader::CbReturnCode MSubdirData::end_callback(powerloader::TransferStatus status,
+                                                        const powerloader::Response& response)
+    {
+        if (status == powerloader::TransferStatus::kSUCCESSFUL)
+        {
+            this->finalize_transfer(response);
+        }
+        return powerloader::CbReturnCode::kOK;
+    }
+
     void MSubdirData::create_target()
     {
         auto& ctx = Context::instance();
@@ -932,9 +999,9 @@ namespace mamba
             target_url, p_channel->canonical_name(), m_temp_file->path());
 
         powerloader::CacheControl cache_control_values;
-        cache_control_values.last_modified = mod_etag.value("_mod", "");
-        cache_control_values.etag = mod_etag.value("_etag", "");
-        cache_control_values.cache_control = mod_etag.value("_cache_control", "");
+        cache_control_values.cache_control = m_metadata.cache_control;
+        cache_control_values.etag = m_metadata.etag;
+        cache_control_values.last_modified = m_metadata.mod;
 
         m_target->set_cache_options(cache_control_values);
 

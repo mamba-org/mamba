@@ -334,7 +334,8 @@ namespace mamba
             {
                 base_url = base_url.substr(0, base_url.size() - name.size() - 1);
             }
-            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(name, ctx.plcontext, base_url);
+            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(
+                name, ctx.plcontext, base_url);
         }
 
         for (const auto * chan : get_channels(channels))

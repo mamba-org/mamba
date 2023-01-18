@@ -370,21 +370,18 @@ namespace mamba
     {
         if (m_target != nullptr)
         {
-            // m_target->cbdata = this;
             m_target->set_end_callback(std::bind(&MSubdirData::end_callback, this, _1, _2));
-            // m_target->set_finalize_callback(&MSubdirData::finalize_transfer, this);
         }
         if (m_progress_bar && m_target)
         {
-            // m_target->progress_callback = this->progress_callback;
             m_target->set_progress_callback(
                 std::bind(&MSubdirData::progress_callback, this, _1, _2));
         }
 
-        // for (auto& t : m_check_targets)
-        // {
-        //     t->set_end_callback(&MSubdirData::finalize_check, this);
-        // }
+        for (auto& t : m_check_targets)
+        {
+            t->set_end_callback(std::bind(&MSubdirData::finalize_check, this, _1, _2));
+        }
     }
 
     MSubdirData& MSubdirData::operator=(MSubdirData&& rhs)
@@ -436,14 +433,14 @@ namespace mamba
             // rhs.m_target->set_finalize_callback(&MSubdirData::finalize_transfer, &rhs);
         }
 
-        // for (auto& t : m_check_targets)
-        // {
-        //     t->set_finalize_callback(&MSubdirData::finalize_check, this);
-        // }
-        // for (auto& t : rhs.m_check_targets)
-        // {
-        //     t->set_finalize_callback(&MSubdirData::finalize_check, &rhs);
-        // }
+        for (auto& t : m_check_targets)
+        {
+            t->set_end_callback(std::bind(&MSubdirData::finalize_check, this, _1, _2));
+        }
+        for (auto& t : rhs.m_check_targets)
+        {
+            t->set_end_callback(std::bind(&MSubdirData::finalize_check, &rhs, _1, _2));
+        }
 
         return *this;
     }
@@ -481,9 +478,10 @@ namespace mamba
         create_target();
     }
 
-    bool MSubdirData::finalize_check(const powerloader::Response& response)
+    powerloader::CbReturnCode MSubdirData::finalize_check(powerloader::TransferStatus status,
+                                                          const powerloader::Response& response)
     {
-        // LOG_INFO << "Checked: " << target.url() << " [" << target.http_status << "]";
+        LOG_INFO << "Checked: " << response.effective_url << " [" << response.http_status << "]";
         if (m_progress_bar_check)
         {
             m_progress_bar_check.repr().postfix.set_value("Checked");
@@ -492,11 +490,11 @@ namespace mamba
             m_progress_bar_check.mark_as_completed();
         }
 
-        // if (ends_with(target.url(), ".zst"))
-        // {
-        //     this->m_metadata.has_zst = { target.http_status == 200, utc_time_now() };
-        // }
-        return true;
+        if (ends_with(response.effective_url, ".zst"))
+        {
+            this->m_metadata.has_zst = { response.http_status == 200, utc_time_now() };
+        }
+        return powerloader::CbReturnCode::kOK;
     }
 
     bool MSubdirData::load(MultiPackageCache& caches)
@@ -616,24 +614,27 @@ namespace mamba
                     bool has_value = m_metadata.has_zst.has_value();
                     bool is_expired = m_metadata.has_zst.has_value()
                                       && m_metadata.has_zst.value().has_expired();
-                    // bool has_zst = m_metadata.check_zst(p_channel);
-                    // if (!has_zst && (is_expired || !has_value))
-                    // {
-                    // m_check_targets.push_back(std::make_shared<powerloader::DownloadTarget>(
-                    //     m_name + " (check zst)", m_repodata_url + ".zst", ""));
-                    // m_check_targets.back()->set_head_only(true);
-                    // m_check_targets.back()->set_finalize_callback(&MSubdirData::finalize_check,
-                    //                                               this);
-                    // m_check_targets.back()->set_ignore_failure(true);
-                    // if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
-                    // {
-                    //     m_progress_bar_check
-                    //         = Console::instance().add_progress_bar(m_name + " (check zst)");
-                    //     m_check_targets.back()->set_progress_bar(m_progress_bar_check);
-                    //     m_progress_bar_check.repr().postfix.set_value("Checking");
-                    // }
-                    //     return true;
-                    // }
+                    bool has_zst = m_metadata.check_zst(p_channel);
+                    if (!has_zst && (is_expired || !has_value))
+                    {
+                        mamba::URLHandler url_handler(m_repodata_url);
+                        auto target_url = url_handler.path();
+
+                        m_check_targets.push_back(std::make_shared<powerloader::DownloadTarget>(
+                            target_url + ".zst", p_channel->canonical_name(), ""));
+                        m_check_targets.back()->set_head_only(true);
+                        m_check_targets.back()->set_end_callback(
+                            std::bind(&MSubdirData::finalize_check, this, _1, _2));
+                        // m_check_targets.back()->set_ignore_failure(true);
+                        if (!(ctx.no_progress_bars || ctx.quiet || ctx.json))
+                        {
+                            // m_progress_bar_check
+                            //     = Console::instance().add_progress_bar(m_name + " (check zst)");
+                            // m_check_targets.back()->set_progress_bar(m_progress_bar_check);
+                            // m_progress_bar_check.repr().postfix.set_value("Checking");
+                        }
+                        return true;
+                    }
                 }
                 create_target();
             }

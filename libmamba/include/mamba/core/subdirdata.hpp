@@ -117,7 +117,8 @@ namespace mamba
             return m_check_targets;
         }
 
-        bool finalize_check(const powerloader::Response& response);
+        powerloader::CbReturnCode finalize_check(powerloader::TransferStatus status,
+                                                 const powerloader::Response& msg);
         bool finalize_transfer(const powerloader::Response& response);
         void finalize_checks();
         expected_t<MRepo&> create_repo(MPool& pool);

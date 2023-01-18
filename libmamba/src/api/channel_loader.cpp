@@ -98,7 +98,7 @@ namespace mamba
 
         std::vector<MSubdirData> subdirs;
         ctx.plcontext.mirror_map.clear();
-        if (ctx.plcontext.mirror_map.size() == 0)
+        if (ctx.plcontext.mirror_map.empty())
         {
             if (ctx.mirrors.size())
             {
@@ -108,22 +108,23 @@ namespace mamba
                     {
                         if (starts_with(m, "http"))
                         {
-                            auto plm = std::make_shared<powerloader::Mirror>(ctx.plcontext, m);
-                            ctx.plcontext.mirror_map[mname].push_back(plm);
+                            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(
+                                mname, ctx.plcontext, m);
                         }
                         else if (starts_with(m, "oci://"))
                         {
                             std::string username = env::get("GHA_USER").value_or("");
                             std::string password = env::get("GHA_PAT").value_or("");
-                            auto plm = std::make_shared<powerloader::OCIMirror>(ctx.plcontext,
-                                                                                "https://ghcr.io",
-                                                                                "channel-mirrors",
-                                                                                "pull",
-                                                                                username,
-                                                                                password);
+                            auto plm = ctx.plcontext.mirror_map
+                                           .create_unique_mirror<powerloader::OCIMirror>(
+                                               mname,
+                                               ctx.plcontext,
+                                               "https://ghcr.io",
+                                               "channel-mirrors",
+                                               "pull",
+                                               username,
+                                               password);
                             plm->set_fn_tag_split_function(oci_detail::oci_fn_split_tag);
-
-                            ctx.plcontext.mirror_map[mname].push_back(plm);
                         }
                     }
                 }
@@ -141,8 +142,8 @@ namespace mamba
                     {
                         base_url = base_url.substr(0, base_url.size() - name.size() - 1);
                     }
-                    ctx.plcontext.mirror_map[name]
-                        = { std::make_shared<powerloader::Mirror>(ctx.plcontext, base_url) };
+                    ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(
+                        name, ctx.plcontext, base_url);
                 }
             }
         }

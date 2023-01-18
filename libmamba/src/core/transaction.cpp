@@ -429,16 +429,16 @@ namespace mamba
 
                 m_tarball_path = m_cache_path / m_filename;
 
+                auto& plcontext = Context::instance().plcontext;
                 if (starts_with(m_url, "https://conda.anaconda.org"))
                 {
-                    std::string target_url = m_url.substr(27);
-                    m_target = std::make_shared<powerloader::DownloadTarget>(
-                        target_url, "conda-forge", m_tarball_path);
+                    m_target = powerloader::DownloadTarget::from_url(
+                        plcontext, m_url, m_tarball_path, {}, "conda-forge");
                 }
                 else
                 {
-                    m_target
-                        = std::make_shared<powerloader::DownloadTarget>(m_url, "", m_tarball_path);
+                    m_target = powerloader::DownloadTarget::from_url(
+                        plcontext, m_url, m_tarball_path, {}, "");
                 }
 
                 auto end_callback

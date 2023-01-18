@@ -6,6 +6,8 @@
 
 #include "mamba/core/subdirdata.hpp"
 
+#include <powerloader/download_target.hpp>
+
 #include <stdexcept>
 
 #include "mamba/core/mamba_fs.hpp"
@@ -993,10 +995,8 @@ namespace mamba
         // m_target = std::make_unique<DownloadTarget>(
         //     m_name, m_repodata_url + (use_zst ? ".zst" : ""), m_temp_file->path().string());
 
-        mamba::URLHandler url_handler(m_repodata_url);
-        auto target_url = url_handler.path();
-        m_target = std::make_shared<powerloader::DownloadTarget>(
-            target_url, p_channel->canonical_name(), m_temp_file->path());
+        m_target = powerloader::DownloadTarget::from_url(
+            ctx.plcontext, m_repodata_url, m_temp_file->path(), {}, p_channel->canonical_name());
 
         powerloader::CacheControl cache_control_values;
         cache_control_values.cache_control = m_metadata.cache_control;

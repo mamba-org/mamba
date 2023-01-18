@@ -158,8 +158,7 @@ Windows
 .. code:: powershell
 
   Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
-  C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar.bz2 -aoa
-  C:\PROGRA~1\7-Zip\7z.exe x micromamba.tar -ttar -aoa -r Library\bin\micromamba.exe
+  tar xf micromamba.tar.bz2
 
   MOVE -Force Library\bin\micromamba.exe micromamba.exe
   .\micromamba.exe --help

@@ -15,4 +15,4 @@ dependencies:
   - fmt
   - zlib
   - winreg
-  - powerloader
+  - powerloader >= 0.4.1

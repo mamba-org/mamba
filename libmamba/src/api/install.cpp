@@ -547,6 +547,8 @@ namespace mamba
                 install_for_other_pkgmgr(other_spec);
             }
         }
+
+        trans.printEnv();
     }
 
     namespace detail

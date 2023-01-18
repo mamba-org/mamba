@@ -37,6 +37,24 @@ namespace
 
 namespace mamba
 {
+    // todo dedup
+    std::string get_env_name(const fs::u8path& px)
+    {
+        const auto& ctx = Context::instance();
+        auto& ed = ctx.envs_dirs[0];
+        if (px == ctx.root_prefix)
+        {
+            return "base";
+        }
+        else if (mamba::starts_with(px.string(), ed.string()))
+        {
+            return fs::relative(px, ed).string();
+        }
+        else
+        {
+            return "";
+        }
+    }
     nlohmann::json solvable_to_json(Solvable* s)
     {
         return PackageInfo(s).json_record();
@@ -798,8 +816,8 @@ namespace mamba
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
                     m_to_remove.push_back(s);
-                    m_to_install.push_back(m_transaction->pool->solvables
-                                           + transaction_obs_pkg(m_transaction, p));
+                    m_to_install.push_back(pool_id2solvable(m_transaction->pool,
+                                                            transaction_obs_pkg(m_transaction, p)));
                     break;
                 }
                 case SOLVER_TRANSACTION_ERASE:
@@ -955,8 +973,8 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    Solvable* s2
-                        = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
+                    Solvable* s2 = pool_id2solvable(m_transaction->pool,
+                                                    transaction_obs_pkg(m_transaction, p));
                     Console::stream()
                         << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
 
@@ -1460,7 +1478,7 @@ namespace mamba
             for (int j = 0; j < pkgs.count; j++)
             {
                 Id p = pkgs.elements[j];
-                Solvable* s = m_transaction->pool->solvables + p;
+                Solvable* s = pool_id2solvable(m_transaction->pool, p);
 
                 if (filter(s))
                 {
@@ -1472,16 +1490,16 @@ namespace mamba
                     case SOLVER_TRANSACTION_UPGRADED:
                         format_row(upgraded, s, Status::remove, "-");
                         format_row(upgraded,
-                                   m_transaction->pool->solvables
-                                       + transaction_obs_pkg(m_transaction, p),
+                                   pool_id2solvable(m_transaction->pool,
+                                                    transaction_obs_pkg(m_transaction, p)),
                                    Status::install,
                                    "+");
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
                         format_row(changed, s, Status::remove, "-");
                         format_row(changed,
-                                   m_transaction->pool->solvables
-                                       + transaction_obs_pkg(m_transaction, p),
+                                   pool_id2solvable(m_transaction->pool,
+                                                    transaction_obs_pkg(m_transaction, p)),
                                    Status::install,
                                    "+");
                         break;
@@ -1491,8 +1509,8 @@ namespace mamba
                     case SOLVER_TRANSACTION_DOWNGRADED:
                         format_row(downgraded, s, Status::remove, "-");
                         format_row(downgraded,
-                                   m_transaction->pool->solvables
-                                       + transaction_obs_pkg(m_transaction, p),
+                                   pool_id2solvable(m_transaction->pool,
+                                                    transaction_obs_pkg(m_transaction, p)),
                                    Status::install,
                                    "+");
                         break;
@@ -1560,6 +1578,60 @@ namespace mamba
         t.add_row({ summary.str() });
         auto out = Console::stream();
         t.print(out);
+    }
+
+    void MTransaction::printEnv()
+    {
+        // todo --json
+        // todo other pkgmgr
+        // todo explicit
+        // todo move to install_specs?
+        // todo from_history
+        // todo no_build and other options
+        // todo check no remove
+
+        std::set<std::string> channels;
+        auto* pool = m_transaction->pool;
+        std::stringstream dependencies;
+
+        for (int i = 0; i < m_transaction->steps.count; ++i)
+        {
+            Id p = m_transaction->steps.elements[i];
+            Solvable* s = pool_id2solvable(pool, p);
+
+            /* todo need this?
+            if (filter(s))
+            {
+                continue;
+            }
+            */
+            /* todo need this?
+            Id ttype = transaction_type(m_transaction, p, SOLVER_TRANSACTION_SHOW_ALL);
+            if (ttype != SOLVER_TRANSACTION_INSTALL) {
+                LOG_ERROR << "Print case not handled: " << ttype;
+                continue;
+            }
+            */
+            /* todo need this?
+            Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
+            if (solvable_lookup_str(s, real_repo_key))
+            */
+
+            channels.insert(make_channel(s->repo->name).base_url());
+
+            auto name = pool_id2str(pool, s->name);
+            auto version = pool_id2str(pool, s->evr);
+            auto build_string = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+            dependencies << "- " << name << " =" << version << " =" << build_string << "\n";
+        }
+
+        auto const& ctx = Context::instance();
+        std::cout << "name: " << get_env_name(ctx.target_prefix) << "\n";
+        std::cout << "channels:\n";
+        for (const auto& c : channels)
+            std::cout << "- " << c << "\n";
+        std::cout << "dependencies:\n" << dependencies.str() << std::endl;
+        std::cout.flush();
     }
 
     MTransaction create_explicit_transaction_from_urls(

@@ -13,6 +13,20 @@ No other packages should be installed to ``base``
 
 Installing packages other than Conda and Mamba into the ``base`` environment is not supported. Mamba must live in the same environment as Conda, and Conda does not support having packages other than Conda itself and its dependencies in ``base``.
 
+Mixing the ``defaults`` and ``conda-forge`` channels
+----------------------------------------------------
+
+Using the ``defaults`` and ``conda-forge`` channels at the same time is not supported, eg. using a channel configuration like this:
+
+.. code-block:: yaml
+
+  # NOT supported!
+  channels:
+    - conda-forge
+    - defaults
+
+The `Anaconda default channels <https://docs.anaconda.com/anaconda/user-guide/tasks/using-repositories/>`_ are incompatible with conda-forge.
+
 Mamba broken after Conda update
 -------------------------------
 

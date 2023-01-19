@@ -431,7 +431,8 @@ namespace mamba
                 m_tarball_path = m_cache_path / m_filename;
 
                 auto& plcontext = Context::instance().plcontext;
-                m_target = powerloader::DownloadTarget::from_url(plcontext, m_url, m_tarball_path, {}, "");
+                m_target = powerloader::DownloadTarget::from_url(
+                    plcontext, m_url, m_tarball_path, {}, "");
 
                 auto end_callback
                     = [this](powerloader::TransferStatus status,
@@ -445,9 +446,12 @@ namespace mamba
                 };
 
                 m_target->set_expected_size(m_expected_size);
-                if (!m_sha256.empty()) {
+                if (!m_sha256.empty())
+                {
                     m_target->add_checksum({ powerloader::ChecksumType::kSHA256, m_sha256 });
-                } else if (!m_md5.empty()) {
+                }
+                else if (!m_md5.empty())
+                {
                     m_target->add_checksum({ powerloader::ChecksumType::kMD5, m_md5 });
                 }
 

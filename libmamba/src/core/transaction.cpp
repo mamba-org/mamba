@@ -301,6 +301,7 @@ namespace mamba
             m_extract_bar.start();
             m_extract_bar.set_postfix("validating");
         }
+        // TODO not needed anymore since powerloader migration!
         validate();
 
         // Validation
@@ -444,7 +445,11 @@ namespace mamba
                 };
 
                 m_target->set_expected_size(m_expected_size);
-                m_target->add_checksum({ powerloader::ChecksumType::kSHA256, m_sha256 });
+                if (!m_sha256.empty()) {
+                    m_target->add_checksum({ powerloader::ChecksumType::kSHA256, m_sha256 });
+                } else if (!m_md5.empty()) {
+                    m_target->add_checksum({ powerloader::ChecksumType::kMD5, m_md5 });
+                }
 
                 m_target->set_end_callback(end_callback);
                 // m_target->set_expected_size(m_expected_size);

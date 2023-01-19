@@ -21,6 +21,7 @@ def subprocess_run(*args: str, **kwargs) -> str:
             args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
         )
     except subprocess.CalledProcessError as e:
+        print(f"ERROR CODE: {e.returncode}")
         print(f"Command {args} failed with stderr: {e.stderr.decode()}")
         print(f"Command {args} failed with stdout: {e.stdout.decode()}")
         raise e

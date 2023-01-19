@@ -430,16 +430,7 @@ namespace mamba
                 m_tarball_path = m_cache_path / m_filename;
 
                 auto& plcontext = Context::instance().plcontext;
-                if (starts_with(m_url, "https://conda.anaconda.org"))
-                {
-                    m_target = powerloader::DownloadTarget::from_url(
-                        plcontext, m_url, m_tarball_path, {}, "conda-forge");
-                }
-                else
-                {
-                    m_target = powerloader::DownloadTarget::from_url(
-                        plcontext, m_url, m_tarball_path, {}, "");
-                }
+                m_target = powerloader::DownloadTarget::from_url(plcontext, m_url, m_tarball_path, {}, "");
 
                 auto end_callback
                     = [this](powerloader::TransferStatus status,

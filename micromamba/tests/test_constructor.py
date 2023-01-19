@@ -71,7 +71,7 @@ class TestInstall:
         shutil.rmtree(TestInstall.root_prefix)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestInstall.root_prefix
         os.environ["CONDA_PREFIX"] = TestInstall.prefix
 

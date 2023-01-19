@@ -68,7 +68,7 @@ class TestCreate:
             shutil.rmtree(TestCreate.spec_files_location)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestCreate.root_prefix
         os.environ["CONDA_PREFIX"] = TestCreate.prefix
 

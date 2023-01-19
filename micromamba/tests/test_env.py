@@ -37,7 +37,7 @@ class TestEnv:
         )
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         pass
 
     @classmethod

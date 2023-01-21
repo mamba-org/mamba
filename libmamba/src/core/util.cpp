@@ -160,12 +160,15 @@ namespace mamba
         return m_path;
     }
 
-    TemporaryFile::TemporaryFile(const std::string& prefix, const std::string& suffix)
+    TemporaryFile::TemporaryFile(const std::string& prefix, const std::string& suffix, const std::string& dir)
     {
         static std::mutex file_creation_mutex;
 
         bool success = false;
-        fs::u8path temp_path = fs::temp_directory_path(), final_path;
+        fs::u8path temp_path = dir, final_path;
+
+        if (dir.empty())
+            temp_path = fs::temp_directory_path();
 
         std::lock_guard<std::mutex> file_creation_lock(file_creation_mutex);
 

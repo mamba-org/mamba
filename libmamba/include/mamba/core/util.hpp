@@ -94,7 +94,9 @@ namespace mamba
     class TemporaryFile
     {
     public:
-        TemporaryFile(const std::string& prefix = "mambaf", const std::string& suffix = "", const std::string& dir = "");
+        TemporaryFile(const std::string& prefix = "mambaf",
+                      const std::string& suffix = "",
+                      const std::string& dir = "");
         ~TemporaryFile();
 
         TemporaryFile(const TemporaryFile&) = delete;

@@ -334,7 +334,7 @@ namespace mamba
             {
                 base_url = base_url.substr(0, base_url.size() - name.size() - 1);
             }
-            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(
+            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::HTTPMirror>(
                 name, ctx.plcontext, base_url);
         }
 

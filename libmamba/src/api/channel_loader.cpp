@@ -108,7 +108,7 @@ namespace mamba
                     {
                         if (starts_with(m, "http"))
                         {
-                            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(
+                            ctx.plcontext.mirror_map.create_unique_mirror<powerloader::HTTPMirror>(
                                 mname, ctx.plcontext, m);
                         }
                         else if (starts_with(m, "oci://"))
@@ -142,8 +142,16 @@ namespace mamba
                     {
                         base_url = base_url.substr(0, base_url.size() - name.size() - 1);
                     }
-                    ctx.plcontext.mirror_map.create_unique_mirror<powerloader::Mirror>(
-                        name, ctx.plcontext, base_url);
+                    auto mirror
+                        = ctx.plcontext.mirror_map.create_unique_mirror<powerloader::HTTPMirror>(
+                            name, ctx.plcontext, base_url);
+                    if (channel->auth().has_value())
+                    {
+                        auto& val = channel->auth().value();
+                        auto x = split(val, ":", 1);
+                        assert(x.size() == 2);
+                        dynamic_cast<powerloader::HTTPMirror*>(mirror.get())->set_auth(x[0], x[1]);
+                    }
                 }
             }
         }

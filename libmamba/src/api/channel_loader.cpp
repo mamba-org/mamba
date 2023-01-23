@@ -98,6 +98,20 @@ namespace mamba
 
         std::vector<MSubdirData> subdirs;
         ctx.plcontext.mirror_map.clear();
+
+        ctx.plcontext.proxy_map = ctx.proxy_servers;
+        ctx.plcontext.disable_ssl = ctx.ssl_verify == "<false>";
+
+        ctx.plcontext.ssl_no_revoke = ctx.ssl_no_revoke;
+
+        if (ctx.ssl_verify != "<false>" && ctx.ssl_verify != "<system>" && !ctx.ssl_verify.empty())
+        {
+            if (fs::exists(ctx.ssl_verify))
+            {
+                ctx.plcontext.ssl_ca_info = ctx.ssl_verify;
+            }
+        }
+
         if (ctx.plcontext.mirror_map.empty())
         {
             if (ctx.mirrors.size())

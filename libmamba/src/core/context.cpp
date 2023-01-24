@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#include <powerloader/curl.hpp>
+
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -69,6 +71,22 @@ namespace mamba
 
     Context::Context()
     {
+        // initialize powerloader
+        powerloader::ssl_backend_t ssl_backend;
+        if (on_linux)
+        {
+            ssl_backend = powerloader::ssl_backend_t::openssl;
+        }
+        else if (on_win)
+        {
+            ssl_backend = powerloader::ssl_backend_t::schannel;
+        }
+        else if (on_mac)
+        {
+            ssl_backend = powerloader::ssl_backend_t::securetransport;
+        }
+        powerloader::init(ssl_backend);
+
         MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
 
         on_ci = bool(env::get("CI"));

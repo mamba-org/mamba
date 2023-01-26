@@ -25,6 +25,9 @@
 #include "mamba/core/execution.hpp"
 #include "spdlog/pattern_formatter.h"
 
+#include <optional>
+
+
 namespace mamba
 {
     class Logger : public spdlog::logger
@@ -69,24 +72,32 @@ namespace mamba
         return static_cast<spdlog::level::level_enum>(l);
     }
 
-    Context::Context()
+    namespace
     {
-        // initialize powerloader
-        powerloader::ssl_backend_t ssl_backend;
-        if (on_linux)
+        std::optional<powerloader::ssl_backend_t> select_ssl_backend()
         {
-            ssl_backend = powerloader::ssl_backend_t::openssl;
-        }
-        else if (on_win)
-        {
-            ssl_backend = powerloader::ssl_backend_t::schannel;
-        }
-        else if (on_mac)
-        {
-            ssl_backend = powerloader::ssl_backend_t::securetransport;
-        }
-        powerloader::init(ssl_backend);
+            if (on_linux)
+            {
+                return powerloader::ssl_backend_t::openssl;
+            }
+            else if (on_win)
+            {
+                return powerloader::ssl_backend_t::schannel;
+            }
+            else if (on_mac)
+            {
+                return powerloader::ssl_backend_t::securetransport;
+            }
 
+            return std::nullopt;
+        }
+    }
+
+    Context::Context()
+        : plcontext(powerloader::ContextOptions{
+                .ssl_backend = select_ssl_backend()
+            })
+    {
         MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
 
         on_ci = bool(env::get("CI"));

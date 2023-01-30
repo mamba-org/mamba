@@ -646,6 +646,14 @@ class Context:
     def use_only_tar_bz2(self, arg0: bool) -> None:
         pass
     @property
+    def use_lockfiles(self) -> bool:
+        """
+        :type: bool
+        """
+    @use_lockfiles.setter
+    def use_lockfiles(self, arg0: bool) -> None:
+        pass
+    @property
     def user_agent(self) -> str:
         """
         :type: str

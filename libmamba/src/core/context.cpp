@@ -94,9 +94,7 @@ namespace mamba
     }
 
     Context::Context()
-        : plcontext(powerloader::ContextOptions{
-                .ssl_backend = select_ssl_backend()
-            })
+        : plcontext(powerloader::ContextOptions{ .ssl_backend = select_ssl_backend() })
     {
         MainExecutor::instance().on_close(tasksync.synchronized([this] { logger->flush(); }));
 

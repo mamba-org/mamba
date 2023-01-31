@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.1)
 
+
+add_executable(testing_libmamba_lock testing/lock.cpp)
+
+target_link_libraries(testing_libmamba_lock PUBLIC libmamba)
+
+target_compile_features(testing_libmamba_lock PUBLIC cxx_std_17)
+
+
 find_package(GTest)
 find_package(Threads REQUIRED)
 
-include_directories(${GTEST_INCLUDE_DIRS} SYSTEM)
-
-set(TEST_SRCS
+set(LIBMAMBA_TEST_SRCS
     ../longpath.manifest
     test_activation.cpp
     test_channel.cpp
@@ -36,34 +42,27 @@ set(TEST_SRCS
 )
 
 message(STATUS "Building libmamba C++ tests")
-add_executable(test_libmamba ${TEST_SRCS})
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/parse/conda-meta/history
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/parse/conda-meta/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/parse/conda-meta/aux_file
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/parse/conda-meta/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/history_test/parse_segfault/conda-meta/history
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/history_test/parse_segfault/conda-meta/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/config_test/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config_test/.condarc
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/config_test/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_file_test
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/validation_data
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/repodata_json_cache
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/env_lockfile_test
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+add_executable(test_libmamba ${LIBMAMBA_TEST_SRCS})
 
+target_include_directories(
+    test_libmamba
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
-target_link_libraries(test_libmamba PRIVATE GTest::GTest GTest::Main Threads::Threads)
-target_link_libraries(test_libmamba PUBLIC libmamba)
-set_property(TARGET test_libmamba PROPERTY CXX_STANDARD 17)
+target_link_libraries(
+    test_libmamba
+    PUBLIC libmamba
+    PRIVATE GTest::GTest GTest::Main Threads::Threads
+)
+
+target_compile_definitions(
+    test_libmamba
+    PRIVATE
+        MAMBA_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+        MAMBA_TEST_LOCK_EXE="${CMAKE_CURRENT_BINARY_DIR}/testing_libmamba_lock"
+)
+
+target_compile_features(test_libmamba PUBLIC cxx_std_17)
 
 add_custom_target(test COMMAND test_libmamba DEPENDS test_libmamba)
-
-add_executable(testing_libmamba_lock testing/lock.cpp)
-target_link_libraries(testing_libmamba_lock PUBLIC libmamba)
-set_property(TARGET testing_libmamba_lock PROPERTY CXX_STANDARD 17)

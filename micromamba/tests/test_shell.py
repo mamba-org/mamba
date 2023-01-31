@@ -7,7 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import MAMBA_NO_PREFIX_CHECK, create, get_umamba, random_string, shell
+from .helpers import (
+    MAMBA_NO_PREFIX_CHECK,
+    create,
+    get_umamba,
+    random_string,
+    shell,
+    umamba_list,
+)
 
 
 def skip_if_shell_incompat(shell_type):
@@ -67,6 +74,10 @@ class TestShell:
 
         if shell_type == "powershell":
             assert f"$Env:MAMBA_EXE='{mamba_exe}'" in res
+            lines = res.splitlines()
+            assert not any(l.startswith("param([") for l in lines)
+            assert not any(l.startswith("## EXPORTS ##") for l in lines)
+            assert lines[2].startswith("## AFTER PARAM ####")
         elif shell_type in ("zsh", "bash", "posix"):
             assert res.count(mamba_exe) == 3
         elif shell_type == "xonsh":
@@ -258,3 +269,15 @@ class TestShell:
         skip_if_shell_incompat("dash")
         subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s dash)"])
         subprocess.check_call(["dash", "-c", "eval $(micromamba shell hook -s posix)"])
+
+    def test_implicitly_created_environment(self):
+        """If a shell implicitly creates an environment, confirm that it's valid.
+
+        See <https://github.com/mamba-org/mamba/pull/2162>.
+        """
+        skip_if_shell_incompat("bash")
+        shutil.rmtree(TestShell.root_prefix)
+        assert shell("init", "--shell=bash")
+        assert (Path(TestShell.root_prefix) / "conda-meta").exists()
+        # Check, for example, that "list" works.
+        assert umamba_list("-p", TestShell.root_prefix)

@@ -4,9 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <stdexcept>
+
 #include <pybind11/iostream.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
+#include <pybind11/operators.h>
 
 #include <nlohmann/json.hpp>
 #include <fmt/format.h>
@@ -30,8 +34,8 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/execution.hpp"
-
-#include <stdexcept>
+#include "mamba/core/util_graph.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 
 namespace py = pybind11;
 
@@ -44,6 +48,62 @@ namespace query
         TABLE,
         PRETTY
     };
+}
+
+namespace PYBIND11_NAMESPACE
+{
+    namespace detail
+    {
+        template <typename Key, typename Compare, typename Allocator>
+        struct type_caster<mamba::vector_set<Key, Compare, Allocator>>
+            : set_caster<mamba::vector_set<Key, Compare, Allocator>, Key>
+        {
+        };
+    }
+}
+
+void
+deprecated(char const* message)
+{
+    auto const warnings = py::module_::import("warnings");
+    auto const builtins = py::module_::import("builtins");
+    warnings.attr("warn")(message, builtins.attr("DeprecationWarning"), py::arg("stacklevel") = 2);
+}
+
+template <typename PyClass>
+auto
+bind_NamedList(PyClass pyclass)
+{
+    using type = typename PyClass::type;
+    pyclass.def(py::init())
+        .def("__len__", [](type const& self) { return self.size(); })
+        .def("__bool__", [](type const& self) { return !self.empty(); })
+        .def(
+            "__iter__",
+            [](type const& self) { return py::make_iterator(self.begin(), self.end()); },
+            py::keep_alive<0, 1>())
+        .def("clear", [](type& self) { return self.clear(); })
+        .def("add", [](type& self, typename type::value_type const& v) { self.insert(v); })
+        .def("name", &type::name)
+        .def("versions_trunc",
+             &type::versions_trunc,
+             py::arg("sep") = "|",
+             py::arg("etc") = "...",
+             py::arg("threshold") = 5,
+             py::arg("remove_duplicates") = true)
+        .def("build_strings_trunc",
+             &type::build_strings_trunc,
+             py::arg("sep") = "|",
+             py::arg("etc") = "...",
+             py::arg("threshold") = 5,
+             py::arg("remove_duplicates") = true)
+        .def("versions_and_build_strings_trunc",
+             &type::versions_and_build_strings_trunc,
+             py::arg("sep") = "|",
+             py::arg("etc") = "...",
+             py::arg("threshold") = 5,
+             py::arg("remove_duplicates") = true);
+    return pyclass;
 }
 
 PYBIND11_MODULE(bindings, m)
@@ -158,18 +218,99 @@ PYBIND11_MODULE(bindings, m)
         .def("is_solved", &MSolver::is_solved)
         .def("problems_to_str", &MSolver::problems_to_str)
         .def("all_problems_to_str", &MSolver::all_problems_to_str)
+        .def("explain_problems", py::overload_cast<>(&MSolver::explain_problems, py::const_))
         .def("all_problems_structured", &MSolver::all_problems_structured)
-        .def("solve", &MSolver::solve);
+        .def("solve",
+             [](MSolver& self)
+             {
+                 // TODO figure out a better interface
+                 return self.try_solve();
+             })
+        .def("try_solve", &MSolver::try_solve)
+        .def("must_solve", &MSolver::must_solve);
 
     py::class_<MSolverProblem>(m, "SolverProblem")
-        .def_readwrite("target_id", &MSolverProblem::target_id)
-        .def_readwrite("source_id", &MSolverProblem::source_id)
-        .def_readwrite("dep_id", &MSolverProblem::dep_id)
         .def_readwrite("type", &MSolverProblem::type)
-        .def("__str__", &MSolverProblem::to_string)
-        .def("target", &MSolverProblem::target)
-        .def("source", &MSolverProblem::source)
-        .def("dep", &MSolverProblem::dep);
+        .def_readwrite("source_id", &MSolverProblem::source_id)
+        .def_readwrite("target_id", &MSolverProblem::target_id)
+        .def_readwrite("dep_id", &MSolverProblem::dep_id)
+        .def_readwrite("source", &MSolverProblem::source)
+        .def_readwrite("target", &MSolverProblem::target)
+        .def_readwrite("dep", &MSolverProblem::dep)
+        .def_readwrite("description", &MSolverProblem::description)
+        .def("__str__", [](MSolverProblem const& self) { return self.description; });
+
+    py::class_<DependencyInfo>(m, "DependencyInfo")
+        .def(py::init<std::string const&>())
+        .def_property_readonly("name", &DependencyInfo::name)
+        .def_property_readonly("version", &DependencyInfo::version)
+        .def_property_readonly("build_string", &DependencyInfo::build_string)
+        .def("__str__", &DependencyInfo::str)
+        .def(py::self == py::self);
+
+    using PbGraph = ProblemsGraph;
+    auto pyPbGraph = py::class_<PbGraph>(m, "ProblemsGraph");
+
+    py::class_<PbGraph::RootNode>(pyPbGraph, "RootNode").def(py::init<>());
+    py::class_<PbGraph::PackageNode, PackageInfo>(pyPbGraph, "PackageNode");
+    py::class_<PbGraph::UnresolvedDependencyNode, DependencyInfo>(pyPbGraph,
+                                                                  "UnresolvedDependencyNode")
+        .def_readwrite("problem_type", &PbGraph::UnresolvedDependencyNode::problem_type);
+    py::class_<PbGraph::ConstraintNode, DependencyInfo>(pyPbGraph, "ConstraintNode")
+        .def_readonly_static("problem_type", &PbGraph::ConstraintNode::problem_type);
+
+    py::class_<PbGraph::conflicts_t>(pyPbGraph, "ConflictMap")
+        .def(py::init([]() { return PbGraph::conflicts_t(); }))
+        .def("__len__", [](PbGraph::conflicts_t const& self) { return self.size(); })
+        .def("__bool__", [](PbGraph::conflicts_t const& self) { return !self.empty(); })
+        .def(
+            "__iter__",
+            [](PbGraph::conflicts_t const& self)
+            { return py::make_iterator(self.begin(), self.end()); },
+            py::keep_alive<0, 1>())
+        .def("has_conflict", &PbGraph::conflicts_t::has_conflict)
+        .def("__contains__", &PbGraph::conflicts_t::has_conflict)
+        .def("conflicts", &PbGraph::conflicts_t::conflicts)
+        .def("in_conflict", &PbGraph::conflicts_t::in_conflict)
+        .def("clear", [](PbGraph::conflicts_t& self) { return self.clear(); })
+        .def("add", &PbGraph::conflicts_t::add);
+
+    pyPbGraph.def_static("from_solver", &PbGraph::from_solver)
+        .def("root_node", &PbGraph::root_node)
+        .def("conflicts", &PbGraph::conflicts)
+        .def("graph",
+             [](PbGraph const& self)
+             {
+                 auto const& g = self.graph();
+                 return std::pair(g.nodes(), g.edges());
+             });
+
+    using CpPbGraph = CompressedProblemsGraph;
+    auto pyCpPbGraph = py::class_<CpPbGraph>(m, "CompressedProblemsGraph");
+
+    pyCpPbGraph.def_property_readonly_static(
+        "RootNode", [](py::handle) { return py::type::of<PbGraph::RootNode>(); });
+    bind_NamedList(py::class_<CpPbGraph::PackageListNode>(pyCpPbGraph, "PackageListNode"));
+    bind_NamedList(py::class_<CpPbGraph::UnresolvedDependencyListNode>(
+        pyCpPbGraph, "UnresolvedDependencyListNode"));
+    bind_NamedList(py::class_<CpPbGraph::ConstraintListNode>(pyCpPbGraph, "ConstraintListNode"));
+    bind_NamedList(py::class_<CpPbGraph::edge_t>(pyCpPbGraph, "DependencyListList"));
+    pyCpPbGraph.def_property_readonly_static(
+        "ConflictMap", [](py::handle) { return py::type::of<PbGraph::conflicts_t>(); });
+
+    pyCpPbGraph.def_static("from_problems_graph", &CpPbGraph::from_problems_graph)
+        .def_static("from_problems_graph",
+                    [](PbGraph const& pbs) { return CpPbGraph::from_problems_graph(pbs); })
+        .def("root_node", &CpPbGraph::root_node)
+        .def("conflicts", &CpPbGraph::conflicts)
+        .def("graph",
+             [](CpPbGraph const& self)
+             {
+                 auto const& g = self.graph();
+                 return std::pair(g.nodes(), g.edges());
+             })
+        .def("summary_message", [](CpPbGraph const& self) { return problem_summary_msg(self); })
+        .def("tree_message", [](CpPbGraph const& self) { return problem_tree_msg(self); });
 
     py::class_<History>(m, "History")
         .def(py::init<const fs::u8path&>())
@@ -345,6 +486,8 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
+        .def_readwrite("experimental_sat_error_message", &Context::experimental_sat_error_message)
+        .def_readwrite("use_lockfiles", &Context::use_lockfiles)
         .def("set_verbosity", &Context::set_verbosity)
         .def("set_log_level", &Context::set_log_level);
 
@@ -527,7 +670,19 @@ PYBIND11_MODULE(bindings, m)
 
     m.def("get_channels", &get_channels);
 
-    m.def("transmute", &transmute);
+    m.def("transmute",
+          &transmute,
+          py::arg("source_package"),
+          py::arg("destination_package"),
+          py::arg("compression_level"),
+          py::arg("compression_threads") = 1);
+
+    // fix extract from error_handling first
+    // auto package_handling_sm = m.def_submodule("package_handling");
+    // package_handling_sm.def("extract", &extract);
+    // package_handling_sm.def("create", &create_package, py::arg("directory"),
+    // py::arg("out_package"), py::arg("compression_level"), py::arg("compression_threads") = 1);
+
 
     m.def("get_virtual_packages", &get_virtual_packages);
 

@@ -8,8 +8,10 @@
 #include <iostream>
 
 #include "mamba/api/list.hpp"
-#include "mamba/core/channel.hpp"
 #include "mamba/api/configuration.hpp"
+
+#include "mamba/core/channel.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
 
 namespace mamba
@@ -148,7 +150,7 @@ namespace mamba
                 if (requested_specs.find(p.name) != requested_specs.end())
                 {
                     formatted_name = printers::FormattedString(p.name);
-                    formatted_name.flag = printers::format::bold_blue;
+                    formatted_name.style = ctx.palette.user;
                 }
                 t.add_row({ formatted_name, p.version, p.build, p.channel });
             }

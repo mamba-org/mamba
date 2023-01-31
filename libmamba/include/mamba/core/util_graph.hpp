@@ -55,6 +55,10 @@ namespace mamba
                    allocator_type const& alloc = Allocator());
         vector_set(vector_set const&) = default;
         vector_set(vector_set&&) = default;
+        explicit vector_set(std::vector<Key, Allocator>&& other,
+                            key_compare compare = key_compare());
+        explicit vector_set(std::vector<Key, Allocator> const& other,
+                            key_compare compare = key_compare());
 
         vector_set& operator=(vector_set const&) = default;
         vector_set& operator=(vector_set&&) = default;
@@ -98,6 +102,14 @@ namespace mamba
     vector_set(InputIt, InputIt, Comp = Comp(), Alloc = Alloc())
         -> vector_set<typename std::iterator_traits<InputIt>::value_type, Comp, Alloc>;
 
+    template <class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
+    vector_set(std::vector<Key, Allocator>&&, Compare compare = Compare())
+        -> vector_set<Key, Compare, Allocator>;
+
+    template <class Key, class Compare = std::less<Key>, class Allocator = std::allocator<Key>>
+    vector_set(std::vector<Key, Allocator> const&, Compare compare = Compare())
+        -> vector_set<Key, Compare, Allocator>;
+
     template <typename Key, typename Compare, typename Allocator>
     bool operator==(vector_set<Key, Compare, Allocator> const& lhs,
                     vector_set<Key, Compare, Allocator> const& rhs);
@@ -126,7 +138,9 @@ namespace mamba
         node_t const& node(node_id id) const;
         node_t& node(node_id id);
         const node_id_list& successors(node_id id) const;
+        const adjacency_list& successors() const;
         const node_id_list& predecessors(node_id id) const;
+        const adjacency_list& predecessors() const;
         bool has_node(node_id id) const;
         bool has_edge(node_id from, node_id to) const;
 
@@ -284,6 +298,22 @@ namespace mamba
     }
 
     template <typename K, typename C, typename A>
+    vector_set<K, C, A>::vector_set(std::vector<K, A>&& other, C compare)
+        : Base(std::move(other))
+        , m_compare(std::move(compare))
+    {
+        sort_and_remove_duplicates();
+    }
+
+    template <typename K, typename C, typename A>
+    vector_set<K, C, A>::vector_set(std::vector<K, A> const& other, C compare)
+        : Base(std::move(other))
+        , m_compare(std::move(compare))
+    {
+        sort_and_remove_duplicates();
+    }
+
+    template <typename K, typename C, typename A>
     auto vector_set<K, C, A>::contains(value_type const& value) const -> bool
     {
         return std::binary_search(begin(), end(), value);
@@ -430,9 +460,21 @@ namespace mamba
     }
 
     template <typename N, typename G>
+    auto DiGraphBase<N, G>::successors() const -> const adjacency_list&
+    {
+        return m_successors;
+    }
+
+    template <typename N, typename G>
     auto DiGraphBase<N, G>::predecessors(node_id id) const -> const node_id_list&
     {
         return m_predecessors[id];
+    }
+
+    template <typename N, typename G>
+    auto DiGraphBase<N, G>::predecessors() const -> const adjacency_list&
+    {
+        return m_predecessors;
     }
 
     template <typename N, typename G>

@@ -8,17 +8,19 @@
 #define MAMBA_CORE_SOLVER_HPP
 
 #include <string>
+#include <iosfwd>
 #include <utility>
 #include <vector>
 #include <optional>
+#include <memory>
+
+#include <solv/queue.h>
+#include <solv/solver.h>
+
+#include "mamba/core/pool.hpp"
+#include "mamba/core/package_info.hpp"
 
 #include "match_spec.hpp"
-
-extern "C"
-{
-#include "solv/queue.h"
-#include "solv/solver.h"
-}
 
 #define MAMBA_NO_DEPS 0b0001
 #define MAMBA_ONLY_DEPS 0b0010
@@ -29,31 +31,23 @@ namespace mamba
 
     char const* solver_ruleinfo_name(SolverRuleinfo rule);
 
-    class MPool;
-    class PackageInfo;
-
-    class MSolverProblem
+    struct MSolverProblem
     {
-    public:
         SolverRuleinfo type;
         Id source_id;
         Id target_id;
         Id dep_id;
-
-        Solver* solver;
-
-        std::string to_string() const;
-
-        std::optional<PackageInfo> target() const;
-        std::optional<PackageInfo> source() const;
-        std::optional<std::string> dep() const;
+        std::optional<PackageInfo> source;
+        std::optional<PackageInfo> target;
+        std::optional<std::string> dep;
+        std::string description;
     };
 
     class MSolver
     {
     public:
-        MSolver(MPool& pool, const std::vector<std::pair<int, int>>& flags = {});
-        ~MSolver();
+        MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
+        ~MSolver() = default;
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
@@ -67,17 +61,26 @@ namespace mamba
         void add_pins(const std::vector<std::string>& pins);
         void set_flags(const std::vector<std::pair<int, int>>& flags);
         void set_postsolve_flags(const std::vector<std::pair<int, int>>& flags);
-        bool is_solved() const;
-        bool solve();
-        std::string problems_to_str() const;
-        std::vector<std::string> all_problems() const;
-        std::vector<MSolverProblem> all_problems_structured() const;
-        std::string all_problems_to_str() const;
+        [[nodiscard]] bool try_solve();
+        void must_solve();
 
-        const std::vector<MatchSpec>& install_specs() const;
-        const std::vector<MatchSpec>& remove_specs() const;
-        const std::vector<MatchSpec>& neuter_specs() const;
-        const std::vector<MatchSpec>& pinned_specs() const;
+        [[nodiscard]] bool is_solved() const;
+        [[nodiscard]] std::string problems_to_str() const;
+        [[nodiscard]] std::vector<std::string> all_problems() const;
+        [[nodiscard]] std::vector<MSolverProblem> all_problems_structured() const;
+        [[nodiscard]] std::string all_problems_to_str() const;
+        std::ostream& explain_problems(std::ostream& out) const;
+        [[nodiscard]] std::string explain_problems() const;
+
+        [[nodiscard]] MPool const& pool() const&;
+        [[nodiscard]] MPool& pool() &;
+        [[nodiscard]] MPool&& pool() &&;
+
+        [[nodiscard]] const std::vector<MatchSpec>& install_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& remove_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& neuter_specs() const;
+        [[nodiscard]] const std::vector<MatchSpec>& pinned_specs() const;
+
 
         operator Solver*();
 
@@ -95,8 +98,9 @@ namespace mamba
         std::vector<MatchSpec> m_neuter_specs;
         std::vector<MatchSpec> m_pinned_specs;
         bool m_is_solved;
-        Solver* m_solver;
-        Pool* m_pool;
+        // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
+        MPool m_pool;
+        std::unique_ptr<::Solver, void (*)(::Solver*)> m_solver;
         Queue m_jobs;
     };
 }  // namespace mamba

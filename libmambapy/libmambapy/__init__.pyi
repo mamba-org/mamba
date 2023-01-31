@@ -5,8 +5,10 @@ import typing
 __all__ = [
     "Channel",
     "ChannelPriority",
+    "CompressedProblemsGraph",
     "Configuration",
     "Context",
+    "DependencyInfo",
     "DownloadTargetList",
     "ExtraPkgInfo",
     "History",
@@ -32,6 +34,7 @@ __all__ = [
     "PkgMgr",
     "Pool",
     "PrefixData",
+    "ProblemsGraph",
     "Query",
     "QueryFormat",
     "Repo",
@@ -210,6 +213,174 @@ class ChannelPriority:
     kStrict: libmambapy.bindings.ChannelPriority  # value = <ChannelPriority.kStrict: 2>
     pass
 
+class CompressedProblemsGraph:
+    class ConflictMap:
+        def __bool__(self) -> bool: ...
+        def __contains__(self, arg0: int) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: int, arg1: int) -> None: ...
+        def clear(self) -> None: ...
+        def conflicts(self, arg0: int) -> typing.Set[int]: ...
+        def has_conflict(self, arg0: int) -> bool: ...
+        def in_conflict(self, arg0: int, arg1: int) -> bool: ...
+        pass
+
+    class ConstraintListNode:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: ProblemsGraph.ConstraintNode) -> None: ...
+        def build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def versions_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        pass
+
+    class DependencyListList:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: DependencyInfo) -> None: ...
+        def build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def versions_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        pass
+
+    class PackageListNode:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: ProblemsGraph.PackageNode) -> None: ...
+        def build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def versions_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        pass
+
+    class RootNode:
+        def __init__(self) -> None: ...
+        pass
+
+    class UnresolvedDependencyListNode:
+        def __bool__(self) -> bool: ...
+        def __init__(self) -> None: ...
+        def __iter__(self) -> typing.Iterator: ...
+        def __len__(self) -> int: ...
+        def add(self, arg0: ProblemsGraph.UnresolvedDependencyNode) -> None: ...
+        def build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def clear(self) -> None: ...
+        def name(self) -> str: ...
+        def versions_and_build_strings_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        def versions_trunc(
+            self,
+            sep: str = "|",
+            etc: str = "...",
+            threshold: int = 5,
+            remove_duplicates: bool = True,
+        ) -> typing.Tuple[str, int]: ...
+        pass
+    def conflicts(self) -> ProblemsGraph.ConflictMap: ...
+    @staticmethod
+    @typing.overload
+    def from_problems_graph(arg0: ProblemsGraph) -> CompressedProblemsGraph: ...
+    @staticmethod
+    @typing.overload
+    def from_problems_graph(
+        arg0: ProblemsGraph, arg1: typing.Callable[[ProblemsGraph, int, int], bool]
+    ) -> CompressedProblemsGraph: ...
+    def graph(
+        self,
+    ) -> typing.Tuple[
+        typing.List[
+            typing.Union[
+                ProblemsGraph.RootNode,
+                CompressedProblemsGraph.PackageListNode,
+                CompressedProblemsGraph.UnresolvedDependencyListNode,
+                CompressedProblemsGraph.ConstraintListNode,
+            ]
+        ],
+        typing.Dict[typing.Tuple[int, int], CompressedProblemsGraph.DependencyListList],
+    ]: ...
+    def root_node(self) -> int: ...
+    def summary_message(self) -> str: ...
+    def tree_message(self) -> str: ...
+    pass
+
 class Configuration:
     def __init__(self) -> None: ...
     @property
@@ -339,6 +510,14 @@ class Context:
     def envs_dirs(self, arg0: typing.List[Path]) -> None:
         pass
     @property
+    def experimental_sat_error_message(self) -> bool:
+        """
+        :type: bool
+        """
+    @experimental_sat_error_message.setter
+    def experimental_sat_error_message(self, arg0: bool) -> None:
+        pass
+    @property
     def extract_threads(self) -> int:
         """
         :type: int
@@ -459,6 +638,14 @@ class Context:
     def use_index_cache(self, arg0: bool) -> None:
         pass
     @property
+    def use_lockfiles(self) -> bool:
+        """
+        :type: bool
+        """
+    @use_lockfiles.setter
+    def use_lockfiles(self, arg0: bool) -> None:
+        pass
+    @property
     def use_only_tar_bz2(self) -> bool:
         """
         :type: bool
@@ -482,6 +669,28 @@ class Context:
     @verbosity.setter
     def verbosity(self, arg0: int) -> None:
         pass
+    pass
+
+class DependencyInfo:
+    def __eq__(self, arg0: DependencyInfo) -> bool: ...
+    def __init__(self, arg0: str) -> None: ...
+    def __str__(self) -> str: ...
+    @property
+    def build_string(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def name(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def version(self) -> str:
+        """
+        :type: str
+        """
+    __hash__ = None
     pass
 
 class DownloadTargetList:
@@ -852,6 +1061,49 @@ class PrefixData:
         """
     pass
 
+class ProblemsGraph:
+    class ConflictMap:
+        pass
+
+    class ConstraintNode(DependencyInfo):
+        problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
+        pass
+
+    class PackageNode(PackageInfo):
+        pass
+
+    class RootNode:
+        pass
+
+    class UnresolvedDependencyNode(DependencyInfo):
+        @property
+        def problem_type(self) -> SolverRuleinfo:
+            """
+            :type: SolverRuleinfo
+            """
+        @problem_type.setter
+        def problem_type(self, arg0: SolverRuleinfo) -> None:
+            pass
+        pass
+    def conflicts(self) -> ProblemsGraph.ConflictMap: ...
+    @staticmethod
+    def from_solver(arg0: Solver, arg1: Pool) -> ProblemsGraph: ...
+    def graph(
+        self,
+    ) -> typing.Tuple[
+        typing.List[
+            typing.Union[
+                ProblemsGraph.RootNode,
+                ProblemsGraph.PackageNode,
+                ProblemsGraph.UnresolvedDependencyNode,
+                ProblemsGraph.ConstraintNode,
+            ]
+        ],
+        typing.Dict[typing.Tuple[int, int], DependencyInfo],
+    ]: ...
+    def root_node(self) -> int: ...
+    pass
+
 class Query:
     def __init__(self, arg0: Pool) -> None: ...
     def depends(self, arg0: str, arg1: QueryFormat) -> str: ...
@@ -962,20 +1214,28 @@ class Solver:
     def add_pin(self, arg0: str) -> None: ...
     def all_problems_structured(self) -> typing.List[mamba::MSolverProblem]: ...
     def all_problems_to_str(self) -> str: ...
+    def explain_problems(self) -> str: ...
     def is_solved(self) -> bool: ...
+    def must_solve(self) -> None: ...
     def problems_to_str(self) -> str: ...
     def set_flags(self, arg0: typing.List[typing.Tuple[int, int]]) -> None: ...
     def set_postsolve_flags(
         self, arg0: typing.List[typing.Tuple[int, int]]
     ) -> None: ...
     def solve(self) -> bool: ...
+    def try_solve(self) -> bool: ...
     pass
 
 class SolverProblem:
     def __str__(self) -> str: ...
-    def dep(self) -> typing.Optional[str]: ...
-    def source(self) -> typing.Optional[PackageInfo]: ...
-    def target(self) -> typing.Optional[PackageInfo]: ...
+    @property
+    def dep(self) -> typing.Optional[str]:
+        """
+        :type: typing.Optional[str]
+        """
+    @dep.setter
+    def dep(self, arg0: typing.Optional[str]) -> None:
+        pass
     @property
     def dep_id(self) -> int:
         """
@@ -985,12 +1245,36 @@ class SolverProblem:
     def dep_id(self, arg0: int) -> None:
         pass
     @property
+    def description(self) -> str:
+        """
+        :type: str
+        """
+    @description.setter
+    def description(self, arg0: str) -> None:
+        pass
+    @property
+    def source(self) -> typing.Optional[PackageInfo]:
+        """
+        :type: typing.Optional[PackageInfo]
+        """
+    @source.setter
+    def source(self, arg0: typing.Optional[PackageInfo]) -> None:
+        pass
+    @property
     def source_id(self) -> int:
         """
         :type: int
         """
     @source_id.setter
     def source_id(self, arg0: int) -> None:
+        pass
+    @property
+    def target(self) -> typing.Optional[PackageInfo]:
+        """
+        :type: typing.Optional[PackageInfo]
+        """
+    @target.setter
+    def target(self, arg0: typing.Optional[PackageInfo]) -> None:
         pass
     @property
     def target_id(self) -> int:
@@ -1187,7 +1471,12 @@ def get_virtual_packages() -> typing.List[PackageInfo]:
 def sign(data: str, secret_key: str) -> str:
     pass
 
-def transmute(arg0: Path, arg1: Path, arg2: int) -> bool:
+def transmute(
+    source_package: Path,
+    destination_package: Path,
+    compression_level: int,
+    compression_threads: int = 1,
+) -> bool:
     pass
 
 MAMBA_CLEAN_ALL = 1

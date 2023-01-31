@@ -14,9 +14,16 @@ import pytest
 import yaml
 
 
-def subprocess_run(*args: str) -> str:
+def subprocess_run(*args: str, **kwargs) -> str:
     """Execute a command in a subprocess while properly capturing stderr in exceptions."""
-    p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    try:
+        p = subprocess.run(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, **kwargs
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Command {args} failed with stderr: {e.stderr.decode()}")
+        print(f"Command {args} failed with stdout: {e.stdout.decode()}")
+        raise e
     return p.stdout
 
 
@@ -150,9 +157,16 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False):
     return res.decode()
 
 
-def create(*args, default_channel=True, no_rc=True, no_dry_run=False, always_yes=True):
+def create(
+    *args,
+    default_channel=True,
+    no_rc=True,
+    no_dry_run=False,
+    always_yes=True,
+    create_cmd="create",
+):
     umamba = get_umamba()
-    cmd = [umamba, "create"] + [arg for arg in args if arg]
+    cmd = [umamba] + create_cmd.split() + [arg for arg in args if arg]
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
@@ -280,11 +294,11 @@ def umamba_list(*args):
     return res.decode()
 
 
-def umamba_run(*args):
+def umamba_run(*args, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "run"] + [arg for arg in args if arg]
-    res = subprocess_run(*cmd)
+    res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
         j = json.loads(res)

@@ -7,15 +7,15 @@
 #ifndef MAMBA_CORE_VALIDATE_HPP
 #define MAMBA_CORE_VALIDATE_HPP
 
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/util.hpp"
-
-#include <nlohmann/json.hpp>
-
 #include <string>
 #include <vector>
 #include <set>
 #include <stdexcept>
+
+#include <nlohmann/json.hpp>
+
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util.hpp"
 
 namespace validate
 {
@@ -473,7 +473,8 @@ namespace validate
         std::vector<fs::u8path> possible_update_files();
 
         virtual std::unique_ptr<RepoIndexChecker> build_index_checker(
-            const std::string& url, const fs::u8path& cache_path) const = 0;
+            const std::string& url, const fs::u8path& cache_path) const
+            = 0;
 
     protected:
         RootRole(std::shared_ptr<SpecBase> spec);

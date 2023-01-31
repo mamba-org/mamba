@@ -7,34 +7,29 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
-#include <list>
 #include <optional>
+#include <memory>
+
+#include <solv/pooltypes.h>
 
 #include "mamba/core/repo.hpp"
 #include "mamba/core/package_info.hpp"
 
-extern "C"
-{
-#include "solv/pooltypes.h"
-}
-
-namespace spdlog
-{
-    class logger;
-}
-
 namespace mamba
 {
+    /**
+     * Pool of solvable involved in resolving en environment.
+     *
+     * The pool contains the solvable (packages) information required from the ``MSolver``.
+     * The pool can be reused by multiple solvers to solve differents requirements with the same
+     * ecosystem.
+     * Behaves like a ``std::shared_ptr``, meaning ressources are shared on copy.
+     */
     class MPool
     {
     public:
         MPool();
         ~MPool();
-
-        MPool(const MPool&) = delete;
-        MPool& operator=(const MPool&) = delete;
-        MPool(MPool&&) = delete;
-        MPool& operator=(MPool&&) = delete;
 
         void set_debuglevel();
         void create_whatprovides();
@@ -51,9 +46,24 @@ namespace mamba
         void remove_repo(Id repo_id);
 
     private:
-        std::pair<spdlog::logger*, std::string> m_debug_logger;
-        Pool* m_pool;
-        std::list<MRepo> m_repo_list;
+        struct MPoolData;
+
+        Pool* pool();
+        Pool const* pool() const;
+
+        /**
+         * Make MPool behave like a shared_ptr (with move and copy).
+         *
+         * The pool is passed to the ``MSolver`` for its lifetime but the pool can legitimely
+         * be reused with different solvers (in fact it is in ``conda-forge``'s ``regro-bot``
+         * and ``boa``).
+         * An alternative considered was to make ``MPool`` a move-only type, moving it in and out
+         * of ``MSolver`` (effectively borrowing).
+         * It was decided to make ``MPool`` share ressources for the following reasons.
+         *    - Rvalue semantics would be unexpected in Python (and breaking ``conda-forge``);
+         *    - Facilitate (potential) future investigation of parallel solves.
+         */
+        std::shared_ptr<MPoolData> m_data;
     };
 }  // namespace mamba
 

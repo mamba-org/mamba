@@ -4,10 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <termcolor/termcolor.hpp>
-
-#include "common_options.hpp"
-#include "version.hpp"
+#include <fmt/color.h>
+#include <fmt/format.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/channel_loader.hpp"
@@ -18,6 +16,8 @@
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
 
+#include "common_options.hpp"
+#include "version.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -69,12 +69,11 @@ update_self(const std::optional<std::string>& version)
         throw mamba::mamba_error("Could not convert solvable to PackageInfo",
                                  mamba_error_code::internal_failure);
     }
-    Console::instance().stream()
-        << termcolor::green
-        << fmt::format("\n  Installing micromamba version: {} (currently installed {})",
-                       latest_micromamba.value().version,
-                       umamba::version())
-        << termcolor::reset;
+    Console::stream() << fmt::format(
+        fg(fmt::terminal_color::green),
+        "\n  Installing micromamba version: {} (currently installed {})",
+        latest_micromamba.value().version,
+        umamba::version());
 
     Console::instance().print(
         fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url));

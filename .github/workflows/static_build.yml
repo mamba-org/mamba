@@ -31,20 +31,12 @@ jobs:
       - name: Checkout micromamba-feedstock
         uses: actions/checkout@v3
         with:
-          repository: AntoinePrv/micromamba-feedstock
-          ref: spdlog
+          repository: conda-forge/micromamba-feedstock
           path: micromamba-feedstock
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
-        if: ${{ matrix.platform == 'linux' }}
         run: |
-          sed -i -E 's/(url|git_url):.*$/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
-          sed -i '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
-      - name: Patch micromamba-feedstock
-        if: ${{ matrix.platform == 'osx' }}
-        run: |
-          sed -i '' -E 's/(url|git_url):.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
+          cp ./micromamba/recipe/* micromamba-feedstock/recipe/
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge
@@ -53,7 +45,9 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
+        run: |
+          conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
+                              micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |
@@ -144,6 +138,8 @@ jobs:
           cmake .. ^
               -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
               -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static;%CMAKE_PREFIX_PATH%" ^
+              -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+              -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
               -D CMAKE_BUILD_TYPE="Release" ^
               -D BUILD_LIBMAMBA=ON ^
               -D BUILD_STATIC_DEPS=ON ^
@@ -159,6 +155,8 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: build cache statistics
+        run: sccache --show-stats
       - name: Archive conda-build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-win-64.tar.gz ${{ github.workspace }}/build/

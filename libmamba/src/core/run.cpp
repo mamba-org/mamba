@@ -6,6 +6,7 @@
 
 #include <spdlog/spdlog.h>
 #include <fmt/color.h>
+#include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 #include <nlohmann/json.hpp>
 
@@ -226,7 +227,8 @@ namespace mamba
 
         fd = open("/dev/null", O_RDWR, 0);
 
-        std::cout << fmt::format("Kill process with: kill {}", getpid()) << std::endl;
+        auto out = Console::stream();
+        fmt::print(out, "Kill process with: kill {}\n", getpid());
 
         if (fd != -1)
         {
@@ -324,10 +326,9 @@ namespace mamba
 #ifndef _WIN32
         if (detach)
         {
-            std::cout << fmt::format(fmt::fg(fmt::terminal_color::green),
-                                     "Running wrapped script {} in the background",
-                                     join(" ", command))
-                      << std::endl;
+            Console::stream() << fmt::format(Context::instance().palette.success,
+                                             "Running wrapped script {} in the background\n",
+                                             fmt::join(command, " "));
             daemonize();
         }
 #endif
@@ -383,7 +384,7 @@ namespace mamba
 
             if (ec)
             {
-                std::cerr << ec.message() << std::endl;
+                std::cerr << ec.message() << '\n';
                 return 1;
             }
 
@@ -419,7 +420,7 @@ namespace mamba
 
             if (ec)
             {
-                std::cerr << ec.message() << std::endl;
+                std::cerr << ec.message() << '\n';
             }
         }
         // exit with status code from reproc

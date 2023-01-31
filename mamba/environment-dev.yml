@@ -15,12 +15,12 @@ dependencies:
   - cpp-expected
   - reproc-cpp
   - yaml-cpp
-  - termcolor-cpp
   - cli11 >=2.2
   - spdlog
   - fmt
   - pybind11
   - pybind11-stubgen
   - pytest
+  - pyyaml
   - conda
   - sel(win): winreg

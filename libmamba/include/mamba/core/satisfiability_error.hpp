@@ -7,6 +7,7 @@
 #ifndef MAMBA_PROBLEMS_GRAPH_HPP
 #define MAMBA_PROBLEMS_GRAPH_HPP
 
+#include <array>
 #include <string>
 #include <ostream>
 #include <string_view>
@@ -15,8 +16,10 @@
 #include <unordered_map>
 #include <optional>
 #include <vector>
+#include <functional>
 
 #include <solv/solver.h>
+#include <fmt/color.h>
 
 #include "mamba/core/util_graph.hpp"
 #include "mamba/core/package_info.hpp"
@@ -61,6 +64,8 @@ namespace mamba
         using typename Base::const_iterator;
         using typename Base::key_type;
         using typename Base::value_type;
+
+        conflict_map() = default;
 
         using Base::empty;
         using Base::size;
@@ -191,15 +196,27 @@ namespace mamba
             const_reverse_iterator rend() const noexcept;
 
             std::string const& name() const;
-            std::string versions_trunc(std::string_view sep = "|",
-                                       std::string_view etc = "...") const;
-            std::string build_strings_trunc(std::string_view sep = "|",
-                                            std::string_view etc = "...") const;
+            std::pair<std::string, std::size_t> versions_trunc(std::string_view sep = "|",
+                                                               std::string_view etc = "...",
+                                                               std::size_t threshold = 5,
+                                                               bool remove_duplicates = true) const;
+            std::pair<std::string, std::size_t> build_strings_trunc(std::string_view sep = "|",
+                                                                    std::string_view etc = "...",
+                                                                    std::size_t threshold = 5,
+                                                                    bool remove_duplicates
+                                                                    = true) const;
+            std::pair<std::string, std::size_t> versions_and_build_strings_trunc(
+                std::string_view sep = "|",
+                std::string_view etc = "...",
+                std::size_t threshold = 5,
+                bool remove_duplicates = true) const;
 
             using Base::clear;
             using Base::reserve;
             void insert(value_type const& e);
             void insert(value_type&& e);
+            template <typename InputIterator>
+            void insert(InputIterator first, InputIterator last);
 
         private:
             template <typename T_>
@@ -220,7 +237,12 @@ namespace mamba
         using node_id = graph_t::node_id;
         using conflicts_t = conflict_map<node_id>;
 
-        static auto from_problems_graph(ProblemsGraph const& pbs) -> CompressedProblemsGraph;
+        using merge_criteria_t = std::function<bool(
+            ProblemsGraph const&, ProblemsGraph::node_id, ProblemsGraph::node_id)>;
+
+        static auto from_problems_graph(ProblemsGraph const& pbs,
+                                        merge_criteria_t const& merge_criteria = {})
+            -> CompressedProblemsGraph;
 
         CompressedProblemsGraph(graph_t graph, conflicts_t conflicts, node_id root_node);
 
@@ -234,8 +256,24 @@ namespace mamba
         node_id m_root_node;
     };
 
-    std::ostream& problem_tree_str(std::ostream& out, CompressedProblemsGraph const& pbs);
-    std::string problem_tree_str(CompressedProblemsGraph const& pbs);
+    /**
+     * Formatting options for error message functions.
+     */
+    struct ProblemsMessageFormat
+    {
+        fmt::text_style unavailable = fmt::fg(fmt::terminal_color::red);
+        fmt::text_style available = fmt::fg(fmt::terminal_color::green);
+        std::array<std::string_view, 4> indents = { "│  ", "   ", "├─ ", "└─ " };
+    };
+
+    std::ostream& print_problem_summary_msg(std::ostream& out, CompressedProblemsGraph const& pbs);
+    std::string problem_summary_msg(CompressedProblemsGraph const& pbs);
+
+    std::ostream& print_problem_tree_msg(std::ostream& out,
+                                         CompressedProblemsGraph const& pbs,
+                                         ProblemsMessageFormat const& format = {});
+    std::string problem_tree_msg(CompressedProblemsGraph const& pbs,
+                                 ProblemsMessageFormat const& format = {});
 
     /************************************
      *  Implementation of conflict_map  *
@@ -276,6 +314,20 @@ namespace mamba
     {
         Base::operator[](a).insert(b);
         Base::operator[](b).insert(a);
+    }
+
+    /*********************************
+     *  Implementation of NamedList  *
+     *********************************/
+
+    template <typename T, typename A>
+    template <typename InputIterator>
+    void CompressedProblemsGraph::NamedList<T, A>::insert(InputIterator first, InputIterator last)
+    {
+        for (; first < last; ++first)
+        {
+            insert(*first);
+        }
     }
 }
 

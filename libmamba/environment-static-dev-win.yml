@@ -13,6 +13,5 @@ dependencies:
   - nlohmann_json
   - spdlog
   - fmt
-  - termcolor-cpp
   - zlib
   - winreg

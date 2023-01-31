@@ -7,16 +7,17 @@
 #ifndef MAMBA_CORE_CONTEXT_HPP
 #define MAMBA_CORE_CONTEXT_HPP
 
-#include "mamba/core/common_types.hpp"
-#include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/tasksync.hpp"
-#include "mamba/version.hpp"
-
 #include <map>
 #include <string>
 #include <vector>
 #include <optional>
 #include <regex>
+
+#include "mamba/core/common_types.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/tasksync.hpp"
+#include "mamba/core/palette.hpp"
+#include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
 
@@ -139,6 +140,7 @@ namespace mamba
 
         std::size_t download_threads = 5;
         int extract_threads = 0;
+        bool extract_sparse = false;
 
         int verbosity = 0;
         void set_verbosity(int lvl);
@@ -148,12 +150,16 @@ namespace mamba
         std::string log_pattern = "%^%-9!l%-8n%$ %v";
         std::size_t log_backtrace = 0;
 
+        bool experimental_sat_error_message = false;
+
         bool dev = false;
         bool on_ci = false;
-        bool no_progress_bars = false;
         bool dry_run = false;
         bool download_only = false;
         bool always_yes = false;
+
+        bool no_progress_bars = false;
+        Palette palette;
 
         bool allow_softlinks = false;
         bool always_copy = false;
@@ -230,11 +236,12 @@ namespace mamba
 
         bool override_channels_enabled = true;
 
-
         std::vector<std::string> pinned_packages = {};
 
         bool use_only_tar_bz2 = false;
 
+        bool repodata_use_zst = false;
+        std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters

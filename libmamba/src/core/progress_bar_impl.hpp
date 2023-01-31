@@ -123,12 +123,10 @@ namespace mamba
     class ProgressBarRepr
     {
     public:
-        ProgressBarRepr() = default;
+        ProgressBarRepr();
         ProgressBarRepr(ProgressBar* pbar);
 
         FieldRepr prefix, progress, current, separator, total, speed, postfix, elapsed;
-        fmt::text_style style;
-
         void print(std::ostream& ostream, std::size_t width = 0, bool with_endl = true);
 
         void compute_progress();
@@ -138,13 +136,22 @@ namespace mamba
         ProgressBarRepr& set_width(std::size_t width);
         std::size_t width() const;
 
+        fmt::text_style const& style() const;
+        void clear_style();
+        void reset_style();
+
         ProgressBarRepr& reset_fields();
 
         const ProgressBar& progress_bar() const;
 
     private:
+        fmt::text_style m_style_none;
+        fmt::text_style m_style_downloaded;
+        fmt::text_style m_style_extracted;
+        fmt::text_style m_style;
         ProgressBar* p_progress_bar = nullptr;
         std::size_t m_width = 0;
+        bool m_ascii_only;
 
         void set_same_widths(const ProgressBarRepr& r);
         void deactivate_empty_fields();

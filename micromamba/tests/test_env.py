@@ -123,6 +123,10 @@ class TestEnv:
         assert set(ret["channels"]) == {"https://conda.anaconda.org/conda-forge"}
         assert "micromamba=0.24.0=0" in ret["dependencies"]
 
+    def test_create(self):
+        # Tests for 'micromamba env create' can be found in 'test_create.py' (look for 'create_cmd')
+        pass
+
     def test_env_remove(self):
         env_name = "env-create-remove"
         env_fp = str(self.root_prefix / "envs" / env_name)

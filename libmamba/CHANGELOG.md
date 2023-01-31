@@ -1,3 +1,67 @@
+libmamba 1.2.0 (January 16, 2023)
+=================================
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+Enhancements:
+
+- Make tarballs look more similar to conda-package-handling by @wolfv in #2177, #2217
+- Use new shebang style by @wolfv in #2211
+- Faster conda decompress by @wolfv in #2200
+- Initial repodata.zst support by @wolfv & @jonashaag in #2113
+
+Bug fixes:
+
+- log warnings but ignore cyclic symlinks by @wolfv in #2212
+- Error messages improvements by @AntoinePrv in #2149
+- Report failure when packages to remove don't exist. (#2131) by @Klaim in #2132
+- Fixing typo in solver errors by @shughes-uk in #2168
+- Extend `last_write_time` implementation by special-casing file touching by @coroa in #2141
+- Don't create a prefix which is missing conda-meta by @maresb in #2162
+- Fix `custom_channels` parsing by @XuehaiPan in #2207
+
+CI fixes & docs:
+
+- - Improve build env cleanup by @jonashaag in #2213
+- - Run conda_nightly once per week by @jonashaag in #2147
+- - Update doc by @Hind-M in #2156
+- - Use Conda canary in nightly tests by @jonashaag in #2180
+- - Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- - Add bug report issue template by @jonashaag in #2182
+- - Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- - Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- - Update pre-commit versions by @jonashaag in #2178
+- - Use local meta.yaml by @wolfv in #2214
+- - Remove feedstock patches by @wolfv in #2216
+- - Fixed static dependency order by @JohanMabille in #2201
+
+libmamba 1.1.0 (November 25, 2022)
+==================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix libmamba CMake config file after dependency change (thanks @l2dy) #2091
+
+Enhancements
+
+- Add safe signed/unsigned conversion (thanks @AntoinePrv) #2087
+- Move to fmt::terminal_color and other output IO improvements & drop termcolor (thanks @AntoinePrv) #2085
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- Nitpicking error messages (thanks @AntoinePrv) #2121
+- Tree error message improvements (thanks @AntoinePrv) #2093
+- Tree error message (thanks @AntoinePrv) #2064
+- Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 libmamba 1.0.0 (November 01, 2022)
 ==================================
 

@@ -1,15 +1,19 @@
-#include <gtest/gtest.h>
-
 #include <string>
 
+#include <gtest/gtest.h>
+
 #include "mamba/core/history.hpp"
+
+#include "test_data.hpp"
 
 namespace mamba
 {
     TEST(history, parse)
     {
-        static const auto history_file_path = fs::absolute("history_test/parse/conda-meta/history");
-        static const auto aux_file_path = fs::absolute("history_test/parse/conda-meta/aux_file");
+        static const auto history_file_path
+            = fs::absolute(test_data_dir / "history_test/parse/conda-meta/history");
+        static const auto aux_file_path
+            = fs::absolute(test_data_dir / "history_test/parse/conda-meta/aux_file");
 
         // Backup history file and restore it at the end of the test, whatever the output.
         struct ScopedHistoryFileBackup
@@ -27,7 +31,7 @@ namespace mamba
         } scoped_history_file_backup;
 
         // Gather history from current history file.
-        History history_instance("history_test/parse");
+        History history_instance(test_data_dir / "history_test/parse");
         std::vector<History::UserRequest> user_reqs = history_instance.get_user_requests();
 
         // Extract raw history file content into buffer.
@@ -44,7 +48,7 @@ namespace mamba
         std::stringstream check_buffer;
         check_buffer << original_history_buffer.str() << original_history_buffer.str();
 
-        std::cout << check_buffer.str() << std::endl;
+        std::cout << check_buffer.str() << '\n';
 
         // Re-inject history into history file: history file should then have the same duplicate
         // content as the buffer.

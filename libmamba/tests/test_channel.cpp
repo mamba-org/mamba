@@ -147,8 +147,8 @@ namespace mamba
             std::string value = "test_channel";
             const Channel& c = make_channel(value);
             EXPECT_EQ(c.scheme(), "file");
-            EXPECT_EQ(c.location(), "");
-            EXPECT_EQ(c.name(), "tmp/test_channel");
+            EXPECT_EQ(c.location(), "/tmp");
+            EXPECT_EQ(c.name(), "test_channel");
             EXPECT_EQ(c.canonical_name(), "test_channel");
             EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
             std::vector<std::string> exp_urls({ std::string("file:///tmp/test_channel/") + platform,
@@ -334,8 +334,8 @@ namespace mamba
             std::string value = "test_channel";
             const Channel& c = make_channel(value);
             EXPECT_EQ(c.scheme(), "https");
-            EXPECT_EQ(c.location(), "server.com");
-            EXPECT_EQ(c.name(), "private/channels/test_channel");
+            EXPECT_EQ(c.location(), "server.com/private/channels");
+            EXPECT_EQ(c.name(), "test_channel");
             EXPECT_EQ(c.canonical_name(), "test_channel");
             EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
             std::vector<std::string> exp_urls(
@@ -348,8 +348,8 @@ namespace mamba
             std::string value = "test_channel/mylabel/xyz";
             const Channel& c = make_channel(value);
             EXPECT_EQ(c.scheme(), "https");
-            EXPECT_EQ(c.location(), "server.com");
-            EXPECT_EQ(c.name(), "private/channels/test_channel/mylabel/xyz");
+            EXPECT_EQ(c.location(), "server.com/private/channels");
+            EXPECT_EQ(c.name(), "test_channel/mylabel/xyz");
             EXPECT_EQ(c.canonical_name(), "test_channel/mylabel/xyz");
             EXPECT_EQ(c.platforms(), std::vector<std::string>({ platform, "noarch" }));
             std::vector<std::string> exp_urls(

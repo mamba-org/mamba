@@ -69,8 +69,13 @@ namespace mamba
     // lexists(emptylink) == true
     bool lexists(const fs::u8path& path, std::error_code& ec)
     {
-        auto status = fs::symlink_status(path, ec);
-        return status.type() != fs::file_type::not_found || status.type() == fs::file_type::symlink;
+        auto status = fs::symlink_status(path, ec).type();
+        if (status != fs::file_type::none)
+        {
+            ec.clear();
+            return status != fs::file_type::not_found || status == fs::file_type::symlink;
+        }
+        return false;
     }
 
     bool lexists(const fs::u8path& path)

@@ -1,3 +1,66 @@
+micromamba 1.2.0 (January 16, 2023)
+===================================
+
+This release contains some speed improvements: download repodata faster as zstd encoded files (configure using
+`repodata_use_zst: true` in your `~/.mambarc` file). Also, `.conda` file extraction is now faster, a prefix
+with spaces works better thanks to a new "shebang" style and the `micromamba package compress` and `transmute`
+commands produce better conda packages.
+
+Enhancements:
+
+- Make tarballs look more similar to conda-package-handling by @wolfv in #2177, #2217
+- Use new shebang style by @wolfv in #2211
+- Faster conda decompress by @wolfv in #2200
+- Initial repodata.zst support by @wolfv & @jonashaag in #2113
+
+Bug fixes:
+
+- log warnings but ignore cyclic symlinks by @wolfv in #2212
+- Report failure when packages to remove don't exist. (#2131) by @Klaim in #2132
+- Fix micromamba shell completion when running 'shell hook' directly by @TomiBelan in #2137
+- Don't create a prefix which is missing conda-meta by @maresb in #2162
+- Fix `custom_channels` parsing by @XuehaiPan in #2207
+- Fix #1783: Add `micromamba env create` by @jonashaag in #1790
+
+CI fixes & docs:
+
+- - Improve build env cleanup by @jonashaag in #2213
+- - Run conda_nightly once per week by @jonashaag in #2147
+- - Update doc by @Hind-M in #2156
+- - Use Conda canary in nightly tests by @jonashaag in #2180
+- - Expliclity point to libmamba test data independently of cwd by @AntoinePrv in #2158
+- - Add bug report issue template by @jonashaag in #2182
+- - Downgrade curl to fix micromamba on macOS x64 by @wolfv in #2205
+- - Use conda-forge micromamba feedstock instead of a fork by @JohanMabille in #2206
+- - Update pre-commit versions by @jonashaag in #2178
+- - Use local meta.yaml by @wolfv in #2214
+- - Remove feedstock patches by @wolfv in #2216
+- - Fixed static dependency order by @JohanMabille in #2201
+
+micromamba 1.1.0 (November 25, 2022)
+====================================
+
+Some bugfixes for 1.0 and experimental release of the new solver messages
+
+Bug fixes
+
+- Fix fish scripts (thanks @JafarAbdi, @raj-magesh, @jonashaag) #2101
+- fix direct hook for powershell #2122
+- fixes for ssl init and static build #2076
+
+Enhancements
+
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- Bind SAT error messages to python (thanks @AntoinePrv) #2127
+- Nitpicking error messages (thanks @AntoinePrv) #2121
+- Tree error message improvements (thanks @AntoinePrv) #2093
+- Tree error message (thanks @AntoinePrv) #2064
+- Add experimental flag for error messages (thanks @AntoinePrv) #2080
+- Handle non leaf conflicts (thanks @AntoinePrv) #2133
+- ci: Update pre-commit-config #2092
+- docs: Add warning to manual install instructions #2100
+- docs: Consistently use curl for fetching files #2126
+
 micromamba 1.0.0 (November 01, 2022)
 ====================================
 

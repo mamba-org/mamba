@@ -1,7 +1,7 @@
 exclude: libmamba/tests/repodata_json_cache*
 repos:
 -   repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 22.12.0
     hooks:
     -   id: black
         args: [--safe, --quiet]
@@ -11,14 +11,14 @@ repos:
     -   id: blacken-docs
         additional_dependencies: [black==22.3.0]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: check-yaml
-        exclude: tests
+        exclude: ^.+(/tests/|/recipe/).+$
     -   id: check-toml
     -   id: check-json
     -   id: check-merge-conflict
@@ -31,18 +31,18 @@ repos:
     hooks:
         -   id: isort
             exclude: tests/data
--   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
+-   repo: https://github.com/PyCQA/flake8
+    rev: 6.0.0
     hooks:
     -   id: flake8
         language_version: python3
         additional_dependencies:
-            - flake8-typing-imports==1.12.0
-            - flake8-builtins==1.5.3
-            - flake8-bugbear==22.1.11
-            - flake8-isort==4.1.1
+            - flake8-typing-imports==1.14.0
+            - flake8-builtins==2.0.1
+            - flake8-bugbear==22.10.27
+            - flake8-isort==5.0.0
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v14.0.6
+    rev: v15.0.6
     hooks:
     -   id: clang-format
         args: [--style=file]

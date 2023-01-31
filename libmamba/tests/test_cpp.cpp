@@ -1,5 +1,6 @@
 #include <sstream>
 #include <tuple>
+#include <chrono>
 
 #include <gtest/gtest.h>
 
@@ -9,6 +10,7 @@
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/subdirdata.hpp"
 
 #include "test_data.hpp"
 
@@ -362,23 +364,80 @@ namespace mamba
         {
             std::string res = replace_long_shebang(
                 "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
-            res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/python -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
-            res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
-            res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
-            res = replace_long_shebang(
-                "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo oooooo oooooo oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
-            res = replace_long_shebang(
-                "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo  ooooooo oooooo oooooo ooooooooooooooooo ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
-            EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+            if (on_linux)
+                EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+            else
+                EXPECT_EQ(
+                    res,
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
+
+            if (on_linux)
+            {
+                res = replace_long_shebang(
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/python -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+                res = replace_long_shebang(
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
+                res = replace_long_shebang(
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+                res = replace_long_shebang(
+                    "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
+                res = replace_long_shebang(
+                    "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo\\ \\ ooooooo\\ oooooo\\ oooooo\\ ooooooooooooooooo\\ ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
+                EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
+            }
+
+            std::string shebang
+                = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
+            res = replace_long_shebang(shebang);
+            EXPECT_EQ(res, "#!/usr/bin/env python -o test 123 -x");
+            shebang = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
+            shebang[299] = '\\';
+            shebang[300] = ' ';
+            res = replace_long_shebang(shebang);
+            EXPECT_EQ(res, "#!/usr/bin/env python -o test 123 -x");
         }
+    }
+
+    TEST(link, python_shebang)
+    {
+        auto res = python_shebang("/usr/bin/python");
+        EXPECT_EQ(res, "#!/usr/bin/python");
+        res = python_shebang("/usr/bin/pyth on with spaces");
+        EXPECT_EQ(res, "#!/bin/sh\n'''exec' \"/usr/bin/pyth on with spaces\" \"$0\" \"$@\" #'''");
+    }
+
+    TEST(link, shebang_regex_matches)
+    {
+        std::string shebang = "#!/simple/shebang";
+        std::smatch s;
+        auto match = std::regex_match(shebang, s, shebang_regex);
+        EXPECT_TRUE(match);
+        EXPECT_EQ(s[0].str(), "#!/simple/shebang");
+        EXPECT_EQ(s[1].str(), "#!/simple/shebang");
+        EXPECT_EQ(s[2].str(), "/simple/shebang");
+        EXPECT_EQ(s[3].str(), "");
+
+        // // with spaces
+        shebang = "#!    /simple/shebang";
+        match = std::regex_match(shebang, s, shebang_regex);
+        EXPECT_TRUE(match);
+        EXPECT_EQ(s[0].str(), "#!    /simple/shebang");
+        EXPECT_EQ(s[1].str(), "#!    /simple/shebang");
+        EXPECT_EQ(s[2].str(), "/simple/shebang");
+        EXPECT_EQ(s[3].str(), "");
+
+        // with escaped spaces and flags
+        shebang = "#!/simple/shebang/escaped\\ space --and --flags -x";
+        match = std::regex_match(shebang, s, shebang_regex);
+        EXPECT_TRUE(match);
+        EXPECT_EQ(s[0].str(), "#!/simple/shebang/escaped\\ space --and --flags -x");
+        EXPECT_EQ(s[1].str(), "#!/simple/shebang/escaped\\ space --and --flags -x");
+        EXPECT_EQ(s[2].str(), "/simple/shebang/escaped\\ space");
+        EXPECT_EQ(s[3].str(), " --and --flags -x");
     }
 
     TEST(utils, quote_for_shell)
@@ -499,52 +558,111 @@ namespace mamba
         fs::remove("emptytestfile");
         EXPECT_FALSE(fs::exists("emptytestfile"));
         EXPECT_FALSE(lexists("emptytestfile"));
+
+        std::error_code ec;
+        EXPECT_FALSE(lexists("completelyinexistent", ec));
+        EXPECT_FALSE(ec);
+
+        EXPECT_FALSE(fs::exists("completelyinexistent", ec));
+        EXPECT_FALSE(ec);
     }
 
     namespace detail
     {
         // read the header that contains json like {"_mod": "...", ...}
-        nlohmann::json read_mod_and_etag(const fs::u8path& file);
+        tl::expected<subdir_metadata, mamba_error> read_metadata(const fs::u8path& file);
     }
+
+#ifdef _WIN32
+    std::chrono::system_clock::time_point filetime_to_unix_test(const fs::file_time_type& filetime)
+    {
+        // windows filetime is in 100ns intervals since 1601-01-01
+        constexpr static auto epoch_offset = std::chrono::seconds(11644473600ULL);
+        return std::chrono::system_clock::time_point(
+            std::chrono::duration_cast<std::chrono::system_clock::duration>(
+                filetime.time_since_epoch() - epoch_offset));
+    }
+#endif
 
     TEST(subdirdata, parse_mod_etag)
     {
+        bool old_value = Context::instance().repodata_use_zst;
+        Context::instance().repodata_use_zst = true;
         fs::u8path cache_folder = fs::u8path(test_data_dir / "repodata_json_cache");
-        auto j = detail::read_mod_and_etag(cache_folder / "test_1.json");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        auto mq = detail::read_metadata(cache_folder / "test_1.json");
+        EXPECT_TRUE(mq.has_value());
+        auto j = mq.value();
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_2.json");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        j = detail::read_metadata(cache_folder / "test_2.json").value();
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_5.json");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        j = detail::read_metadata(cache_folder / "test_5.json").value();
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_4.json");
-        EXPECT_EQ(j["_cache_control"], "{{}}\",,,\"");
-        EXPECT_EQ(j["_etag"], "\n\n\"\"randome ecx,,ssd\n,,\"");
-        EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
+        j = detail::read_metadata(cache_folder / "test_4.json").value();
+        EXPECT_EQ(j.cache_control, "{{}}\",,,\"");
+        EXPECT_EQ(j.etag, "\n\n\"\"randome ecx,,ssd\n,,\"");
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
-            j["_url"],
+            j.url,
             "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
 
-        j = detail::read_mod_and_etag(cache_folder / "test_3.json");
-        EXPECT_TRUE(j.empty());
+        mq = detail::read_metadata(cache_folder / "test_3.json");
+        EXPECT_TRUE(mq.has_value() == false);
 
-        j = detail::read_mod_and_etag(cache_folder / "test_6.json");
-        EXPECT_EQ(j["_mod"], "Thu, 02 Apr 2020 20:21:27 GMT");
-        EXPECT_EQ(j["_url"], "https://conda.anaconda.org/intake/osx-arm64");
+        j = detail::read_metadata(cache_folder / "test_6.json").value();
+        EXPECT_EQ(j.mod, "Thu, 02 Apr 2020 20:21:27 GMT");
+        EXPECT_EQ(j.url, "https://conda.anaconda.org/intake/osx-arm64");
 
-        // EXPECT_EQ(j["_mod"], "Fri, 11 Feb 2022 13:52:44 GMT");
-        // EXPECT_EQ(j["_url"],
-        // "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+        auto state_file = cache_folder / "test_7.state.json";
+        // set file_mtime
+
+
+        {
+#ifdef _WIN32
+            auto file_mtime
+                = filetime_to_unix_test(fs::last_write_time(cache_folder / "test_7.json"));
+#else
+            auto file_mtime = fs::last_write_time(cache_folder / "test_7.json");
+#endif
+
+            // auto file_size = fs::file_size(state_file);
+            auto ifs = open_ifstream(state_file, std::ios::in | std::ios::binary);
+            auto jstate = nlohmann::json::parse(ifs);
+            ifs.close();
+            auto secs
+                = std::chrono::duration_cast<std::chrono::seconds>(file_mtime.time_since_epoch());
+            auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                file_mtime.time_since_epoch() - secs);
+
+            jstate["file_mtime"]["seconds"] = secs.count();
+            jstate["file_mtime"]["nanoseconds"] = nsecs.count();
+
+            auto file_size = fs::file_size(cache_folder / "test_7.json");
+            jstate["file_size"] = file_size;
+
+            auto ofs = open_ofstream(state_file);
+            ofs << jstate.dump(4);
+        }
+
+        j = detail::read_metadata(cache_folder / "test_7.json").value();
+        EXPECT_EQ(j.cache_control, "something");
+        EXPECT_EQ(j.etag, "something else");
+        EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
+        EXPECT_EQ(j.url, "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst");
+        EXPECT_EQ(j.has_zst.value().value, true);
+        EXPECT_EQ(j.has_zst.value().last_checked, parse_utc_timestamp("2023-01-06T16:33:06Z"));
+
+        Context::instance().repodata_use_zst = old_value;
     }
 }  // namespace mamba

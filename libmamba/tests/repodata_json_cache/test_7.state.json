@@ -1,0 +1,15 @@
+{
+    "cache_control": "something",
+    "etag": "something else",
+    "file_mtime": {
+        "nanoseconds": 170463081,
+        "seconds": 1673263108
+    },
+    "file_size": 44,
+    "has_zst": {
+        "last_checked": "2023-01-06T16:33:06Z",
+        "value": true
+    },
+    "mod": "Fri, 11 Feb 2022 13:52:44 GMT",
+    "url": "https://conda.anaconda.org/conda-forge/noarch/repodata.json.zst"
+}

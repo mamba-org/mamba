@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <fmt/format.h>
 
 #include "mamba/core/util_string.hpp"
 
@@ -1170,7 +1171,7 @@ namespace fs
     }
 
     // void last_write_time(const path& p, now _, error_code& ec) noexcept;
-    inline void last_write_time(const u8path& path, now _, std::error_code& ec) noexcept
+    inline void last_write_time(const u8path& path, now, std::error_code& ec) noexcept
     {
 #if defined(USE_UTIMENSAT)
         if (utimensat(AT_FDCWD, path.string().c_str(), NULL, 0) == -1)
@@ -1380,5 +1381,21 @@ struct std::hash<::fs::u8path>
     }
 };
 
+template <>
+struct fmt::formatter<::fs::u8path>
+{
+    constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin())
+    {
+        // make sure that range is empty
+        if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+            throw format_error("invalid format");
+        return ctx.begin();
+    }
 
+    template <class FormatContext>
+    auto format(const ::fs::u8path& path, FormatContext& ctx)
+    {
+        return fmt::format_to(ctx.out(), "'{}'", path.string());
+    }
+};
 #endif

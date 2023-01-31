@@ -17,6 +17,7 @@ namespace mamba
 {
     enum compression_algorithm
     {
+        none,
         bzip2,
         zip,
         zstd

@@ -236,11 +236,12 @@ namespace mamba
 
         bool override_channels_enabled = true;
 
-
         std::vector<std::string> pinned_packages = {};
 
         bool use_only_tar_bz2 = false;
 
+        bool repodata_use_zst = false;
+        std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
         // usernames on anaconda.org can have a underscore, which influences the
         // first two characters

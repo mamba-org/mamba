@@ -35,19 +35,8 @@ jobs:
           path: micromamba-feedstock
       # replace the url: ... until the libmamba.patch line with git_url: ../..
       - name: Patch micromamba-feedstock
-        if: ${{ matrix.platform == 'linux' }}
         run: |
-          sed -i -E 's/(url|git_url):.*$/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
-          sed -i '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
-      - name: Patch micromamba-feedstock
-        if: ${{ matrix.platform == 'osx' }}
-        run: |
-          sed -i '' -E 's/(url|git_url):.*/git_url: ..\/..\//' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' '/sha256:/d' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' 's/libcurl >=7.86/libcurl 7.86/g' micromamba-feedstock/recipe/meta.yaml
-          sed -i '' 's/libcurl-static >=7.86/libcurl-static 7.86/g' micromamba-feedstock/recipe/meta.yaml
-
+          cp ./micromamba/recipe/* micromamba-feedstock/recipe/
       - uses: mamba-org/provision-with-micromamba@main
         with:
           channels: conda-forge
@@ -56,7 +45,9 @@ jobs:
           extra-specs: boa
       - name: Build conda package
         shell: bash -l {0}
-        run: conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
+        run: |
+          conda mambabuild -m micromamba-feedstock/.ci_support/${{ matrix.platform }}_${{ matrix.arch }}_.yaml \
+                              micromamba-feedstock/recipe ${{ matrix.arch != '64' && '--no-test' || '' }}
       - name: Unpack micromamba package
         shell: bash -l {0}
         run: |

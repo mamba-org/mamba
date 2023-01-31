@@ -4,6 +4,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/subdirdata.hpp"
+#include "mamba/core/thread_utils.hpp"
 
 
 namespace mamba
@@ -61,15 +62,14 @@ namespace mamba
         {
             for (auto& [platform, url] : channel->platform_urls(true))
             {
-                auto sdires = MSubdirData::create(*channel, platform, url, package_caches);
+                auto sdires
+                    = MSubdirData::create(*channel, platform, url, package_caches, "repodata.json");
                 if (!sdires.has_value())
                 {
                     error_list.push_back(std::move(sdires).error());
                     continue;
                 }
                 auto sdir = std::move(sdires).value();
-
-                multi_dl.add(sdir.target());
                 subdirs.push_back(std::move(sdir));
                 if (ctx.channel_priority == ChannelPriority::kDisabled)
                 {
@@ -87,7 +87,34 @@ namespace mamba
                 }
             }
         }
-        // TODO load local channels even when offline
+
+        for (auto& subdir : subdirs)
+        {
+            for (auto& check_target : subdir.check_targets())
+            {
+                multi_dl.add(check_target.get());
+            }
+        }
+
+        multi_dl.download(MAMBA_NO_CLEAR_PROGRESS_BARS);
+        if (is_sig_interrupted())
+        {
+            error_list.push_back(
+                mamba_error("Interrupted by user", mamba_error_code::user_interrupted));
+            return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
+        }
+
+        for (auto& subdir : subdirs)
+        {
+            if (!subdir.check_targets().empty())
+            {
+                // recreate final download target in case HEAD requests succeeded
+                subdir.finalize_checks();
+            }
+            multi_dl.add(subdir.target());
+        }
+
+        // TODO load local channels even when offline if (!ctx.offline)
         if (!ctx.offline)
         {
             try

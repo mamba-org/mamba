@@ -30,6 +30,7 @@ namespace mamba
         lockfile_failure,
         selfupdate_failure,
         satisfiablitity_error,
+        user_interrupted,
     };
 
     class mamba_error : public std::runtime_error

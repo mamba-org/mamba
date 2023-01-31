@@ -452,7 +452,7 @@ class TestInstall:
             {"python"} if os.name == "nt" else {"python", "python_abi"}
         )
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
-        #assert expected_link_packages.issubset(link_packages)
+        # assert expected_link_packages.issubset(link_packages)
         unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
         assert {"python"}.issubset(unlink_packages)
 

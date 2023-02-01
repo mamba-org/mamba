@@ -471,12 +471,15 @@ PYBIND11_MODULE(bindings, m)
         .def_readwrite("extract_zchunk_files", &powerloader::DownloadOptions::extract_zchunk_files);
 
     py::class_<powerloader::Downloader>(m, "DownloadTargetList")
-        .def(py::init<>([](Context& context){ return powerloader::Downloader{ context.plcontext }; }))
-        .def(py::init<>([](){ return powerloader::Downloader{ mamba::Context::instance().plcontext }; }))
+        .def(py::init<>([](Context& context)
+                        { return powerloader::Downloader{ context.plcontext }; }))
+        .def(py::init<>(
+            []() { return powerloader::Downloader{ mamba::Context::instance().plcontext }; }))
         .def("add",
-             [](powerloader::Downloader& self, MSubdirData& sub) -> void { self.add(sub.target()); })
+             [](powerloader::Downloader& self, MSubdirData& sub) -> void
+             { self.add(sub.target()); })
         .def("download", &powerloader::Downloader::download)
-        .def("download", [](powerloader::Downloader& downloader){ downloader.download({}); });
+        .def("download", [](powerloader::Downloader& downloader) { downloader.download({}); });
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
         .value("kFlexible", ChannelPriority::kFlexible)

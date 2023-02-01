@@ -107,7 +107,7 @@ def get_index(
             )
             dlist.add(sd)
 
-    is_downloaded = dlist.download(api.MAMBA_DOWNLOAD_FAILFAST)
+    is_downloaded = dlist.download()
 
     if not is_downloaded:
         raise RuntimeError("Error downloading repodata.")

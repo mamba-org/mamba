@@ -52,7 +52,7 @@ Here is an example usage of the mamba_api:
     ):
         check_allowlist(channel_urls)
 
-        dlist = mamba_api.DownloadTargetList()
+        dlist = mamba_api.DownloadTargetList(mamba_api.Context())
 
         index = []
         for idx, url in enumerate(channel_urls):
@@ -88,7 +88,7 @@ Here is an example usage of the mamba_api:
 
             self.channels = channels
             self.platform = platform
-            self.index = get_index(channels, platform=platform)
+            self.index = get_index(api_ctx, channels, platform=platform)
             self.local_index = []
             self.pool = mamba_api.Pool()
             self.repos = []

@@ -466,11 +466,17 @@ PYBIND11_MODULE(bindings, m)
     m.def("cache_fn_url", &cache_fn_url);
     m.def("create_cache_dir", &create_cache_dir);
 
-    // py::class_<MultiDownloadTarget>(m, "DownloadTargetList")
-    //     .def(py::init<>())
-    //     .def("add",
-    //          [](MultiDownloadTarget& self, MSubdirData& sub) -> void { self.add(sub.target()); })
-    //     .def("download", &MultiDownloadTarget::download);
+    py::class_<powerloader::DownloadOptions>(m, "DownloadOptions")
+        .def(py::init<>())
+        .def_readwrite("extract_zchunk_files", &powerloader::DownloadOptions::extract_zchunk_files);
+
+    py::class_<powerloader::Downloader>(m, "DownloadTargetList")
+        .def(py::init<>([](Context& context){ return powerloader::Downloader{ context.plcontext }; }))
+        .def(py::init<>([](){ return powerloader::Downloader{ mamba::Context::instance().plcontext }; }))
+        .def("add",
+             [](powerloader::Downloader& self, MSubdirData& sub) -> void { self.add(sub.target()); })
+        .def("download", &powerloader::Downloader::download)
+        .def("download", [](powerloader::Downloader& downloader){ downloader.download({}); });
 
     py::enum_<ChannelPriority>(m, "ChannelPriority")
         .value("kFlexible", ChannelPriority::kFlexible)

@@ -254,7 +254,8 @@ namespace mamba
     {
         if (!fs::exists(Context::instance().target_prefix))
         {
-            LOG_CRITICAL << "The given prefix does not exist: " << Context::instance().target_prefix;
+            LOG_CRITICAL << "The given prefix does not exist: "
+                         << Context::instance().target_prefix;
             return 1;
         }
         std::vector<std::string> raw_command = command;

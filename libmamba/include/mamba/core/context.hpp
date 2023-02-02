@@ -128,7 +128,7 @@ namespace mamba
         // TODO check writable and add other potential dirs
         std::vector<fs::u8path> envs_dirs;
         std::vector<fs::u8path> pkgs_dirs;
-        std::optional<fs::u8path> env_lockfile;
+        std::optional<std::string> env_lockfile;
 
         bool use_index_cache = false;
         std::size_t local_repodata_ttl = 1;  // take from header

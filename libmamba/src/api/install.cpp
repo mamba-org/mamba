@@ -365,7 +365,7 @@ namespace mamba
         if (Context::instance().env_lockfile)
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
-            LOG_DEBUG << "Lockfile: " << lockfile_path.string();
+            LOG_DEBUG << "Lockfile: " << lockfile_path;
             install_lockfile_specs(
                 lockfile_path,
                 Configuration::instance().at("categories").value<std::vector<std::string>>(),
@@ -602,15 +602,36 @@ namespace mamba
             create_env);
     }
 
-    void install_lockfile_specs(const fs::u8path& lockfile,
+    void install_lockfile_specs(const std::string& lockfile,
                                 const std::vector<std::string>& categories,
                                 bool create_env)
     {
-        detail::install_explicit_with_transaction(
-            [&](auto& pool, auto& pkg_caches, auto& others)
+        std::unique_ptr<TemporaryFile> tmp_lock_file;
+        fs::u8path file;
+
+        if (lockfile.find("://") != std::string::npos)
+        {
+            LOG_INFO << "Downloading lockfile";
+            tmp_lock_file = std::make_unique<TemporaryFile>();
+            DownloadTarget dt("Environment Lockfile", lockfile, tmp_lock_file->path());
+            bool success = dt.perform();
+            if (!success || dt.http_status != 200)
             {
+                throw std::runtime_error(
+                    fmt::format("Could not download environment lockfile from {}", lockfile));
+            }
+
+            file = tmp_lock_file->path();
+        }
+        else
+        {
+            file = lockfile;
+        }
+
+        detail::install_explicit_with_transaction(
+            [&](auto& pool, auto& pkg_caches, auto& others) {
                 return create_explicit_transaction_from_lockfile(
-                    pool, lockfile, categories, pkg_caches, others);
+                    pool, file, categories, pkg_caches, others);
             },
             create_env);
     }
@@ -656,35 +677,21 @@ namespace mamba
                 }
             }
 
-            static std::unique_ptr<TemporaryFile> tmp_lock_file;
-
             for (auto& file : file_specs)
             {
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    fs::u8path lockfile_path;
                     if (starts_with(file, "http"))
                     {
-                        if (!tmp_lock_file)
-                        {
-                            tmp_lock_file = std::make_unique<TemporaryFile>();
-                        }
-                        DownloadTarget dt("Environment Lockfile", file, tmp_lock_file->path());
-                        bool success = dt.perform();
-                        if (!success)
-                        {
-                            throw std::runtime_error("Could not download environment lockfile");
-                        }
-                        lockfile_path = tmp_lock_file->path();
+                        Context::instance().env_lockfile = file;
                     }
                     else
                     {
-                        lockfile_path = fs::absolute(file);
+                        Context::instance().env_lockfile = fs::absolute(file).string();
                     }
 
-                    LOG_DEBUG << "File spec Lockfile: " << lockfile_path.string();
-                    Context::instance().env_lockfile = lockfile_path;
+                    LOG_DEBUG << "File spec Lockfile: " << Context::instance().env_lockfile.value();
                 }
                 else if (is_yaml_file_name(file))
                 {

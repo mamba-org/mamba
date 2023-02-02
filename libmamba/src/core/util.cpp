@@ -167,10 +167,8 @@ namespace mamba
         static std::mutex file_creation_mutex;
 
         bool success = false;
-        fs::u8path temp_path = dir, final_path;
-
-        if (dir.empty())
-            temp_path = fs::temp_directory_path();
+        fs::u8path final_path;
+        fs::u8path temp_path = dir.empty() ? fs::temp_directory_path() : fs::u8path(dir);
 
         std::lock_guard<std::mutex> file_creation_lock(file_creation_mutex);
 

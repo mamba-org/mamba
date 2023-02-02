@@ -827,7 +827,7 @@ namespace mamba
             fs::u8path state_file = json_file;
             state_file.replace_extension(".state.json");
             std::error_code ec;
-            mamba::mamba_fs::rename_non_atomic(m_temp_file->path(), json_file, ec);
+            mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
             if (ec)
             {
                 throw mamba_error(fmt::format("Could move repodata file from {} to {}: {}",

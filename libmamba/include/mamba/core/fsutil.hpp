@@ -135,15 +135,20 @@ namespace mamba
 
     namespace mamba_fs
     {
-        // Like std::rename, but works across file systems
-        inline void rename_non_atomic(const fs::u8path& from,
-                                      const fs::u8path& to,
-                                      std::error_code& ec)
+        // Like std::rename, but works across file systems by moving the file instead
+        inline void rename_or_move(const fs::u8path& from,
+                                   const fs::u8path& to,
+                                   std::error_code& ec)
         {
-            fs::copy_file(from, to, ec);
-            if (!ec)
+            fs::rename(from, to, ec);
+            if (ec)
             {
-                fs::remove(from, ec);
+                ec.clear();
+                fs::copy_file(from, to, ec);
+                if (!ec)
+                {
+                    fs::remove(from, ec);
+                }
             }
         }
     }  // namespace fs

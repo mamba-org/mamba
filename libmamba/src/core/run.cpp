@@ -252,6 +252,12 @@ namespace mamba
                            const std::vector<std::string>& env_vars,
                            const std::string& specific_process_name)
     {
+        if (!fs::exists(Context::instance().target_prefix))
+        {
+            LOG_CRITICAL << "The given prefix does not exist: "
+                         << Context::instance().target_prefix;
+            return 1;
+        }
         std::vector<std::string> raw_command = command;
         // Make sure the proc directory is always existing and ready.
         std::error_code ec;

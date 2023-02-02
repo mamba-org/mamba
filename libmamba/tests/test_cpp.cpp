@@ -640,16 +640,12 @@ namespace mamba
             auto ifs = open_ifstream(state_file, std::ios::in | std::ios::binary);
             auto jstate = nlohmann::json::parse(ifs);
             ifs.close();
-            auto secs
-                = std::chrono::duration_cast<std::chrono::seconds>(file_mtime.time_since_epoch());
             auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                file_mtime.time_since_epoch() - secs);
-
-            jstate["file_mtime"]["seconds"] = secs.count();
-            jstate["file_mtime"]["nanoseconds"] = nsecs.count();
+                file_mtime.time_since_epoch());
+            jstate["mtime_ns"] = nsecs.count();
 
             auto file_size = fs::file_size(cache_folder / "test_7.json");
-            jstate["file_size"] = file_size;
+            jstate["size"] = file_size;
 
             auto ofs = open_ofstream(state_file);
             ofs << jstate.dump(4);

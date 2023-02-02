@@ -254,9 +254,3 @@ def test_unicode(tmpdir):
     assert len(pd.package_records) > 1
     assert "xtl" in pd.package_records
     assert "xtensor" in pd.package_records
-
-
-@pytest.mark.parametrize("shell_type", platform_shells())
-def test_init(shell_type):
-    # Test https://github.com/mamba-org/mamba/issues/2248
-    subprocess.check_call("mamba init", shell=True)

@@ -259,6 +259,12 @@ jobs:
           pip install git+https://github.com/conda/conda-content-trust.git@main
 
           ./testserver.sh
+
+      - name: Shell init
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          mamba init
+
       - name: Cleanup
         shell: bash
         if: always()

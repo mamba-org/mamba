@@ -332,11 +332,6 @@ def get_pkg(n, f=None, root_prefix=None):
         return Path(os.path.join(root_prefix, "pkgs", n))
 
 
-def get_tarball(n):
-    root_prefix = os.getenv("MAMBA_ROOT_PREFIX")
-    return Path(os.path.join(root_prefix, "pkgs", n + ".tar.bz2"))
-
-
 def get_concrete_pkg_info(env, pkg_name):
     with open(os.path.join(env, "conda-meta", pkg_name + ".json")) as fi:
         return json.load(fi)

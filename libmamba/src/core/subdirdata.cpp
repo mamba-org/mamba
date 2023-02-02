@@ -830,7 +830,7 @@ namespace mamba
             mamba_fs::rename_or_move(m_temp_file->path(), json_file, ec);
             if (ec)
             {
-                throw mamba_error(fmt::format("Could move repodata file from {} to {}: {}",
+                throw mamba_error(fmt::format("Could not move repodata file from {} to {}: {}",
                                               m_temp_file->path(),
                                               json_file,
                                               strerror(errno)),
@@ -839,9 +839,6 @@ namespace mamba
             fs::last_write_time(json_file, fs::now());
 
             m_metadata.store_file_metadata(json_file);
-            // m_metadata.stored_mtime = fs::last_write_time(json_file);
-            // LOG_WARNING << "Stored mtime: " <<
-            // m_metadata.stored_mtime.time_since_epoch().count();
             std::ofstream state_file_stream = open_ofstream(state_file);
             m_metadata.serialize_to_stream(state_file_stream);
         }

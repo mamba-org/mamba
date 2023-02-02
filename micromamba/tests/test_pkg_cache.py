@@ -127,7 +127,7 @@ class TestPkgCache:
         os.remove(tarball)
 
         env = "x1"
-        create("xtensor", "-n", env, "--json", no_dry_run=True)
+        create("xtensor<=0.24.3", "-n", env, "--json", no_dry_run=True)
 
         linked_file = get_env(env, xtensor_hpp)
         assert linked_file.exists()
@@ -145,7 +145,7 @@ class TestPkgCache:
         os.remove(tarball)
 
         env = "x1"
-        create("xtensor", "-n", env, "--json", no_dry_run=True)
+        create("xtensor<=0.24.3", "-n", env, "--json", no_dry_run=True)
 
         linked_file = get_env(env, xtensor_hpp)
         assert linked_file.exists()
@@ -169,7 +169,7 @@ class TestPkgCache:
             f.write("")
 
         env = "x1"
-        create("xtensor", "-n", env, "--json", no_dry_run=True)
+        create("xtensor<=0.24.3", "-n", env, "--json", no_dry_run=True)
 
         linked_file = get_env(env, xtensor_hpp)
         assert linked_file.exists()
@@ -360,7 +360,7 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
-        create("-n", env_name, "xtensor", "-vv", "--json", no_dry_run=True)
+        create("-n", env_name, "xtensor<=0.24.3", "-vv", "--json", no_dry_run=True)
 
         linked_file = get_env(env_name, xtensor_hpp)
         assert linked_file.exists()
@@ -398,7 +398,7 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
-        create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+        create("-n", env_name, "xtensor<=0.24.3", "--json", no_dry_run=True)
 
         linked_file = get_env(env_name, xtensor_hpp)
         assert linked_file.exists()
@@ -434,7 +434,7 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
-        create("-n", env_name, "xtensor", "--json", no_dry_run=True)
+        create("-n", env_name, "xtensor<=0.24.3", "--json", no_dry_run=True)
 
         linked_file = get_env(env_name, xtensor_hpp)
         assert linked_file.exists()
@@ -471,7 +471,7 @@ class TestMultiplePkgCaches:
         os.environ["CONDA_PKGS_DIRS"] = f"{cache1},{cache2}"
         env_name = TestMultiplePkgCaches.env_name
 
-        create("-n", env_name, "-vv", "xtensor", "--json", no_dry_run=True)
+        create("-n", env_name, "-vv", "xtensor<=0.24.3", "--json", no_dry_run=True)
 
         linked_file = get_env(env_name, xtensor_hpp)
         assert linked_file.exists()

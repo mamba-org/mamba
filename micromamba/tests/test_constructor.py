@@ -49,7 +49,7 @@ class TestInstall:
         os.makedirs(TestInstall.new_cache, exist_ok=True)
         root_pkgs = glob.glob(
             os.path.join(TestInstall.current_root_prefix, "pkgs", "x*.tar.bz2")
-        )
+        ) + glob.glob(os.path.join(TestInstall.current_root_prefix, "pkgs", "x*.conda"))
         urls = []
 
         for pkg in root_pkgs:

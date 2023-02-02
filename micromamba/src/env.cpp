@@ -120,8 +120,15 @@ set_env_command(CLI::App* com)
                             dependencies << "=" << v.build_string;
                         dependencies << "\n";
                     }
-
-                    channels.insert(make_channel(v.url).base_url());
+                    const auto& chan_name = make_channel(v.url).name();
+                    if (chan_name == "pkgs/main")
+                    {
+                        channels.insert("defaults");
+                    }
+                    else
+                    {
+                        channels.insert(chan_name);
+                    }
                 }
 
                 for (const auto& c : channels)

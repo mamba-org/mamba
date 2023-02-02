@@ -104,7 +104,7 @@ namespace mamba
 
         const auto& ctx = Context::instance();
 
-        TemporaryFile specs;
+        TemporaryFile specs("mambaf", "", cwd);
         {
             std::ofstream specs_f = open_ofstream(specs.path());
             for (auto& d : deps)

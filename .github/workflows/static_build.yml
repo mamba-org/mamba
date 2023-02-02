@@ -98,6 +98,24 @@ jobs:
           environment-file: ./libmamba/environment-static-dev-win.yml
           environment-name: build_env
           cache-env: true  # this also caches the vcpkg builds
+      - name: fix up vcpkg recipes
+        shell: python
+        run: |
+          # See https://github.com/microsoft/vcpkg/pull/28919
+
+          import os
+          from pathlib import Path
+
+          vcpkg_root = Path(os.environ["MAMBA_ROOT_PREFIX"]) / "envs" / "build_env" / "Library" / "share" / "vcpkg"
+          f = vcpkg_root / "scripts" / "cmake" / "vcpkg_acquire_msys.cmake"
+
+          text = f.read_text()
+
+          text = text.replace("b309799e5a9d248ef66eaf11a0bd21bf4e8b9bd5c677c627ec83fa760ce9f0b54ddf1b62cbb436e641fbbde71e3b61cb71ff541d866f8ca7717a3a0dbeb00ebf",
+                       "a202ddaefa93d8a4b15431dc514e3a6200c47275c5a0027c09cc32b28bc079b1b9a93d5ef65adafdc9aba5f76a42f3303b1492106ddf72e67f1801ebfe6d02cc")
+          text = text.replace("https://repo.msys2.org/msys/x86_64/libtool-2.4.6-9-x86_64.pkg.tar.xz", "https://repo.msys2.org/msys/x86_64/libtool-2.4.7-3-x86_64.pkg.tar.zst")
+
+          f.write_text(text)
       - name: build static windows dependencies with vcpkg
         shell: cmd /C CALL {0}
         run: |

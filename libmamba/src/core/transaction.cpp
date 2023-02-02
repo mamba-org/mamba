@@ -1624,6 +1624,13 @@ namespace mamba
                       selected_packages.end(),
                       std::back_inserter(packages.conda));
 
+            if (selected_packages.empty())
+            {
+                LOG_WARNING << "Selected packages for category '" << category << "' are empty. "
+                            << "The lockfile might not be resolved for your platform ("
+                            << Context::instance().platform << ").";
+            }
+
             selected_packages
                 = lockfile_data.get_packages_for(category, Context::instance().platform, "pip");
             std::copy(selected_packages.begin(),

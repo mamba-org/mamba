@@ -11,9 +11,6 @@ cmake_policy(SET CMP0057 NEW)
 
 project(libmambapy)
 
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
-
 if(NOT TARGET libmamba)
     find_package(libmamba REQUIRED)
 endif ()

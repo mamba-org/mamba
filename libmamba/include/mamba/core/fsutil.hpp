@@ -132,6 +132,26 @@ namespace mamba
         }
 
     }  // namespace path
+
+    namespace mamba_fs
+    {
+        // Like std::rename, but works across file systems by moving the file instead
+        inline void rename_or_move(const fs::u8path& from,
+                                   const fs::u8path& to,
+                                   std::error_code& ec)
+        {
+            fs::rename(from, to, ec);
+            if (ec)
+            {
+                ec.clear();
+                fs::copy_file(from, to, ec);
+                if (!ec)
+                {
+                    fs::remove(from, ec);
+                }
+            }
+        }
+    }  // namespace fs
 }  // namespace mamba
 
 #endif

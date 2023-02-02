@@ -62,7 +62,6 @@ namespace mamba
         if (Context::instance().env_lockfile)
         {
             const auto lockfile_path = Context::instance().env_lockfile.value();
-            LOG_DEBUG << "Lockfile: " << lockfile_path.string();
             install_lockfile_specs(
                 lockfile_path,
                 Configuration::instance().at("categories").value<std::vector<std::string>>(),

@@ -84,7 +84,8 @@ def shell_init(args):
         for_user = args.user
         if not (args.install and args.user and args.system):
             for_user = True
-        if args.no_user:
+        # no_user removed in Conda 23.1.0, see https://github.com/mamba-org/mamba/issues/2248
+        if hasattr(args, "no_user") and args.no_user:
             for_user = False
 
         anaconda_prompt = on_win and args.anaconda_prompt

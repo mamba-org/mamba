@@ -23,15 +23,11 @@ namespace mamba
         j["etag"] = etag;
         j["mod"] = mod;
         j["cache_control"] = cache_control;
-        j["file_size"] = stored_file_size;
+        j["size"] = stored_file_size;
 
-        auto secs
-            = std::chrono::duration_cast<std::chrono::seconds>(stored_mtime.time_since_epoch());
-        auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            stored_mtime.time_since_epoch() - secs);
-
-        j["file_mtime"]["seconds"] = secs.count();
-        j["file_mtime"]["nanoseconds"] = nsecs.count();
+        auto nsecs
+            = std::chrono::duration_cast<std::chrono::nanoseconds>(stored_mtime.time_since_epoch());
+        j["mtime_ns"] = nsecs.count();
 
         if (has_zst.has_value())
         {
@@ -126,12 +122,11 @@ namespace mamba
             m.etag = j["etag"].get<std::string>();
             m.mod = j["mod"].get<std::string>();
             m.cache_control = j["cache_control"].get<std::string>();
-            m.stored_file_size = j["file_size"].get<std::size_t>();
+            m.stored_file_size = j["size"].get<std::size_t>();
 
             using time_type = decltype(m.stored_mtime);
             m.stored_mtime = time_type(std::chrono::duration_cast<time_type::duration>(
-                std::chrono::seconds(j["file_mtime"]["seconds"].get<std::size_t>())
-                + std::chrono::nanoseconds(j["file_mtime"]["nanoseconds"].get<std::size_t>())));
+                std::chrono::nanoseconds(j["mtime_ns"].get<std::size_t>())));
 
             int err_code = 0;
             if (j.find("has_zst") != j.end())
@@ -163,7 +158,7 @@ namespace mamba
                 auto m = subdir_metadata::from_stream(infile);
                 if (!m.has_value())
                 {
-                    LOG_WARNING << "Could not parse state file" << m.error().what();
+                    LOG_WARNING << "Could not parse state file: " << m.error().what();
                     fs::remove(state_file, ec);
                     if (ec)
                     {

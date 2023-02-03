@@ -1,3 +1,20 @@
+libmamba 1.3.0 (February 03, 2023)
+==================================
+
+Enhancements:
+
+- switch to repodata.state.json format from cep by @wolfv in https://github.com/mamba-org/mamba/pull/2262
+
+Bug fixes:
+
+- Fix temporary file renaming by @jonashaag in https://github.com/mamba-org/mamba/pull/2242
+
+CI fixes & docs:
+
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- Added missing public dependency to libmambaConfig.cmake by @JohanMabille in https://github.com/mamba-org/mamba/pull/2227
+
 libmamba 1.2.0 (January 16, 2023)
 =================================
 

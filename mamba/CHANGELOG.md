@@ -1,3 +1,17 @@
+mamba 1.3.0 (February 03, 2023)
+===============================
+
+
+Bug fixes:
+
+- Fix mamba / conda incompatibility by @jonashaag in https://github.com/mamba-org/mamba/pull/2249
+
+CI fixes & docs:
+
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- update documentation for mamba activate by @cdeepali in https://github.com/mamba-org/mamba/pull/2176
+
 mamba 1.2.0 (January 16, 2023)
 ==============================
 

@@ -1,3 +1,16 @@
+libmambapy 1.3.0 (February 03, 2023)
+====================================
+
+Enhancements:
+
+- add `use_lockfiles` to libmambapy bindings by @jaimergp in https://github.com/mamba-org/mamba/pull/2256
+
+CI fixes & docs:
+
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- Remove unused `get_tarball` function by @Hind-M in https://github.com/mamba-org/mamba/pull/2261
+
 libmambapy 1.2.0 (January 16, 2023)
 ===================================
 

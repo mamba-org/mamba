@@ -1,3 +1,25 @@
+micromamba 1.3.0 (February 03, 2023)
+====================================
+
+Enhancements:
+
+- add functionality to download lockfiles from internet by @wolfv in https://github.com/mamba-org/mamba/pull/2229
+- Stop run command when given prefix does not exist by @Hind-M in https://github.com/mamba-org/mamba/pull/2257
+- Install pip deps like conda by @michalsieron in https://github.com/mamba-org/mamba/pull/2241
+- switch to repodata.state.json format from cep by @wolfv in https://github.com/mamba-org/mamba/pull/2262
+
+Bug fixes:
+
+- Fix temporary file renaming by @jonashaag in https://github.com/mamba-org/mamba/pull/2242
+
+CI fixes & docs:
+
+- use proper recipe also on macOS by @wolfv in https://github.com/mamba-org/mamba/pull/2225
+- Update micromamba installation docs for Windows by @Tiksagol in https://github.com/mamba-org/mamba/pull/2218
+- docs: defaults should not be used with conda-forge by @jonashaag in https://github.com/mamba-org/mamba/pull/2181
+- fix tests for pkg_cache by @wolfv in https://github.com/mamba-org/mamba/pull/2259
+- Fix Windows static builds by @jonashaag in https://github.com/mamba-org/mamba/pull/2228
+
 micromamba 1.2.0 (January 16, 2023)
 ===================================
 

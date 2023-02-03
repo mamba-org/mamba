@@ -158,7 +158,7 @@ namespace mamba
                 auto m = subdir_metadata::from_stream(infile);
                 if (!m.has_value())
                 {
-                    LOG_WARNING << "Could not parse state file" << m.error().what();
+                    LOG_WARNING << "Could not parse state file: " << m.error().what();
                     fs::remove(state_file, ec);
                     if (ec)
                     {

@@ -565,8 +565,7 @@ namespace mamba
             }
             PrefixData& prefix_data = exp_prefix_data.value();
 
-            fs::u8path pkgs_dirs(Context::instance().root_prefix / "pkgs");
-            MultiPackageCache pkg_caches({ pkgs_dirs });
+            MultiPackageCache pkg_caches(ctx.pkgs_dirs);
             prefix_data.add_packages(get_virtual_packages());
             MRepo::create(
                 pool, prefix_data);  // Potentially re-alloc (moves in memory) Solvables in the pool

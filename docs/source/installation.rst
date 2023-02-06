@@ -181,6 +181,16 @@ Nightly builds
 You can download fully statically linked builds for each commit to `master` on GitHub (scroll to the bottom of the "Summary" page):
 https://github.com/mamba-org/mamba/actions/workflows/static_build.yml?query=is%3Asuccess
 
+Docker images
+*************
+
+The `mambaorg/micromamba <https://hub.docker.com/r/mambaorg/micromamba>`_ docker
+image can be used to run ``micromamba`` without installing it:
+
+.. code:: bash
+
+  docker run -it --rm mambaorg/micromamba:latest micromamba info
+
 .. _shell_completion:
 
 Shell completion

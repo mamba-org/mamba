@@ -98,9 +98,8 @@ set_shell_command(CLI::App* subcom)
                 }
 
                 auto env_shell = env::get("SHELL").value_or(default_shell);
-                mamba::run_in_environment(
-                    { env_shell }, ".", (int) STREAM_OPTIONS::ALL_STREAMS, false, false, {}, "");
-                return 0;
+                exit(mamba::run_in_environment(
+                    { env_shell }, ".", (int) STREAM_OPTIONS::ALL_STREAMS, false, false, {}, ""));
             }
             else
             {

@@ -3,6 +3,7 @@ import os
 import platform
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -281,3 +282,18 @@ class TestShell:
         assert (Path(TestShell.root_prefix) / "conda-meta").exists()
         # Check, for example, that "list" works.
         assert umamba_list("-p", TestShell.root_prefix)
+
+    @pytest.mark.parametrize("prefix_selector", [("-p", prefix), ("-n", env_name)])
+    def test_shell_run_SHELL(self, prefix_selector):
+        """ "micromamba shell -n myenv should run $SHELL in myenv."""
+        skip_if_shell_incompat("bash")
+        create(*prefix_selector)
+        with tempfile.NamedTemporaryFile("wt") as f:
+            f.write(f"#!/bin/sh\nexit 42")
+            f.flush()
+            os.chmod(f.name, 0o755)
+            ret = subprocess.run(
+                [get_umamba(), "shell", *prefix_selector],
+                env={**os.environ, "SHELL": f.name},
+            )
+            assert ret.returncode == 42

@@ -391,7 +391,7 @@ namespace mamba
             if (ec)
             {
                 std::cerr << ec.message() << '\n';
-                return 1;
+                return 127;
             }
 
 #ifndef _WIN32

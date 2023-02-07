@@ -36,7 +36,7 @@ requirements:
     - cli11 >=2.2,<3
     - cpp-expected
     - nlohmann_json
-    - spdlog 1.10 *_0
+    - spdlog
     - fmt
     - yaml-cpp-static              # [unix]
     - libcurl >=7.87               # [linux]

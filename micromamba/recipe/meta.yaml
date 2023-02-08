@@ -16,7 +16,7 @@ build:
     - libarchive-minimal-static   # [unix]
     - reproc-cpp                  # [unix]
     - openssl                     # [unix]
-    - spdlog 1.10 *_0
+    - spdlog
     - fmt
     - {{ compiler('c') }}         # [linux]
     - {{ compiler('cxx') }}       # [linux]
@@ -59,7 +59,7 @@ requirements:
     - reproc-cpp-static            # [unix]
     - winreg                       # [win]
     - powerloader >=0.5.0
-    - powerloader-static >=0.5.0
+    - powerloader-static >=0.5.1
 
 test:
   commands:

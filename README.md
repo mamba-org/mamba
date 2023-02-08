@@ -79,3 +79,15 @@ For questions, you can also join us on the [QuantStack Chat](https://gitter.im/Q
 We use a shared copyright model that enables all contributors to maintain the copyright on their contributions.
 
 This software is licensed under the BSD-3-Clause license. See the [LICENSE](LICENSE) file for details.
+
+---
+
+### Biweekly Dev Meeting
+
+We have videoconference meetings every two weeks where we discuss what we have been working on and get feedback from one another.
+
+Anyone is welcome to attend, if they would like to discuss a topic or just listen in.
+
+- When: Tuesday [4:00 PM CET (Europe)](https://calendar.google.com/calendar/u/0/embed?src=ab3jrfpede0kq0ubsroe82cd00@group.calendar.google.com&ctz=Europe/Paris)
+- Where: [Mamba jitsi](https://meet.jit.si/mamba-org)
+- What: [Meeting notes](https://hackmd.io/@guj2k_aBSSyr1YHBG9raWw/HyHt-Ekzj)

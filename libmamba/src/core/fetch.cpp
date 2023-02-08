@@ -683,7 +683,7 @@ namespace mamba
 
         result = curl_easy_perform(m_handle);
         set_result(result);
-        return m_finalize_callback ? m_finalize_callback(*this) : true;
+        return finalize();
     }
 
     CURL* DownloadTarget::handle()

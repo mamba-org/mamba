@@ -167,6 +167,19 @@ class TestCreate:
             for package in packages
         )
 
+    def test_lockfile_online(self):
+        cmd_prefix = ["-p", TestCreate.prefix]
+        spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/test_env-lock.yaml"
+
+        res = create(*cmd_prefix, "-f", spec_file, "--json")
+        assert res["success"] == True
+
+        packages = umamba_list(*cmd_prefix, "--json")
+        assert any(
+            package["name"] == "zlib" and package["version"] == "1.2.11"
+            for package in packages
+        )
+
     def test_env_lockfile_different_install_after_create(self):
         cmd_prefix = ["-p", TestCreate.prefix]
         create_spec_file = (

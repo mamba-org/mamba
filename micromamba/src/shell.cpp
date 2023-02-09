@@ -89,7 +89,8 @@ set_shell_command(CLI::App* subcom)
                 if (prefix.empty() || prefix == "base")
                     Context::instance().target_prefix = env::home_directory() / "micromamba";
                 else
-                    Context::instance().target_prefix = env::home_directory() / "micromamba/envs/" / prefix;
+                    Context::instance().target_prefix
+                        = env::home_directory() / "micromamba/envs/" / prefix;
 
                 std::string default_shell = "bash";
                 if (on_win)

@@ -10,6 +10,7 @@ dependencies:
   - libarchive
   - libsodium
   - libcurl >=7.86
+  - sel(macos): libcurl 7.86
   - gtest
   - gmock
   - cpp-expected

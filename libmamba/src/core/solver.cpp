@@ -590,10 +590,11 @@ namespace mamba
                 if (Id const r = problem_rules.elements[j]; r)
                 {
                     Id source, target, dep;
-                    Id const type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    SolverRuleinfo const type
+                        = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     res.push_back(make_solver_problem(
                         /* solver= */ m_solver.get(),
-                        /* type= */ static_cast<SolverRuleinfo>(type),
+                        /* type= */ type,
                         /* source_id= */ source,
                         /* target_id= */ target,
                         /* dep_id= */ dep));

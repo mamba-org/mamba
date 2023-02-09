@@ -1,3 +1,14 @@
+mamba 1.3.1 (February 09, 2023)
+===============================
+
+A bugfix release for 1.3.0!
+
+Docs:
+
+- - add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- - added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- - change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
 mamba 1.3.0 (February 03, 2023)
 ===============================
 

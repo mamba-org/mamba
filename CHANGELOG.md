@@ -1,3 +1,23 @@
+2023.02.09
+==========
+
+Releases: libmamba 1.3.1, libmambapy 1.3.1, mamba 1.3.1, micromamba 1.3.1
+
+A bugfix release for 1.3.0!
+
+Bug fixes:
+- [micromamba, libmamba] fix up single download target perform finalization to make lockfile download work by @wolfv in https://github.com/mamba-org/mamba/pull/2274
+- [micromamba] use CONDA_PKGS_DIRS even in explicit installation trasactions by @hmaarrfk in https://github.com/mamba-org/mamba/pull/2265
+- [libmamba, micromamba] fix rename or remove by @wolfv in https://github.com/mamba-org/mamba/pull/2276
+- [libmamba] add channel specific job with new str by @AntoinePrv in https://github.com/mamba-org/mamba/pull/2277
+- [libmamba, micromamba] fix `micromamba shell` for base environment, and improve behavior when `auto_activate_base` is true by @jonashaag, @Hind-M and @wolfv https://github.com/mamba-org/mamba/pull/2272
+
+Docs:
+- add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
+
 2023.02.03
 ==========
 

@@ -11,6 +11,7 @@
 #include <fmt/ostream.h>
 
 #include "mamba/core/solver.hpp"
+#include "mamba/core/queue.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/match_spec.hpp"
@@ -252,8 +253,7 @@ namespace mamba
     void MSolver::add_channel_specific_job(const MatchSpec& ms, int job_flag)
     {
         Pool* pool = m_pool;
-        Queue selected_pkgs;
-        queue_init(&selected_pkgs);
+        MQueue selected_pkgs;
 
         // conda_build_form does **NOT** contain the channel info
         Id match = pool_conda_matchspec(pool, ms.conda_build_form().c_str());
@@ -263,17 +263,22 @@ namespace mamba
         {
             if (channel_match(pool_id2solvable(pool, *wp), c))
             {
-                queue_push(&selected_pkgs, *wp);
+                selected_pkgs.push(*wp);
             }
         }
-        if (selected_pkgs.count == 0)
+        if (selected_pkgs.count() == 0)
         {
             LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
                          "package is not available from channel. Solve job will fail.";
         }
-        Id d = pool_queuetowhatprovides(pool, &selected_pkgs);
-        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
-        queue_free(&selected_pkgs);
+        Id offset = pool_queuetowhatprovides(pool, selected_pkgs);
+        // Poor man's ms repr to match waht the user provided
+        std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+        Id repr_id = pool_str2id(pool, repr.c_str(), 1);
+        // We add a new entry into the whatprovides to reflect the channel specific job
+        pool_set_whatprovides(pool, repr_id, offset);
+        // We ask to isntall that new entry
+        queue_push2(&m_jobs, job_flag, repr_id);
     }
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)

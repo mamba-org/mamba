@@ -271,8 +271,14 @@ namespace mamba
             LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
                          "package is not available from channel. Solve job will fail.";
         }
-        Id d = pool_queuetowhatprovides(pool, selected_pkgs);
-        queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_ONE_OF, d);
+        Id offset = pool_queuetowhatprovides(pool, selected_pkgs);
+        // Poor man's ms repr to match waht the user provided
+        std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
+        Id repr_id = pool_str2id(pool, repr.c_str(), 1);
+        // We add a new entry into the whatprovides to reflect the channel specific job
+        pool_set_whatprovides(pool, repr_id, offset);
+        // We ask to isntall that new entry
+        queue_push2(&m_jobs, job_flag, repr_id);
     }
 
     void MSolver::add_reinstall_job(MatchSpec& ms, int job_flag)
@@ -590,11 +596,10 @@ namespace mamba
                 if (Id const r = problem_rules.elements[j]; r)
                 {
                     Id source, target, dep;
-                    SolverRuleinfo const type
-                        = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    Id const type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     res.push_back(make_solver_problem(
                         /* solver= */ m_solver.get(),
-                        /* type= */ type,
+                        /* type= */ static_cast<SolverRuleinfo>(type),
                         /* source_id= */ source,
                         /* target_id= */ target,
                         /* dep_id= */ dep));

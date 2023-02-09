@@ -136,6 +136,10 @@ namespace mamba
     namespace mamba_fs
     {
         // Like std::rename, but works across file systems by moving the file instead
+        // if the rename fails.
+        // if both rename and move fail, the error code is set to the error code of the
+        // copy_file operation and the `to` file is removed. You will have to handle removal
+        // of the `from` file yourself.
         inline void rename_or_move(const fs::u8path& from,
                                    const fs::u8path& to,
                                    std::error_code& ec)
@@ -145,9 +149,10 @@ namespace mamba
             {
                 ec.clear();
                 fs::copy_file(from, to, ec);
-                if (!ec)
+                if (ec)
                 {
-                    fs::remove(from, ec);
+                    std::error_code ec2;
+                    fs::remove(to, ec2);
                 }
             }
         }

@@ -50,11 +50,11 @@ class TestShell:
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.current_root_prefix
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         os.makedirs(TestShell.root_prefix, exist_ok=False)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
         os.environ["CONDA_PREFIX"] = TestShell.current_prefix
 
@@ -291,7 +291,7 @@ class TestShell:
         with tempfile.NamedTemporaryFile("wt") as f:
             f.write(f"#!/bin/sh\nexit 42")
             f.flush()
-            os.chmod(f.name, 0o755)
+            os.chmod(f.name, 0o777)
             ret = subprocess.run(
                 [get_umamba(), "shell", *prefix_selector],
                 env={**os.environ, "SHELL": f.name},

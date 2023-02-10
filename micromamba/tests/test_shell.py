@@ -284,16 +284,17 @@ class TestShell:
         assert umamba_list("-p", TestShell.root_prefix)
 
     @pytest.mark.parametrize("prefix_selector", [("-p", prefix), ("-n", env_name)])
-    def test_shell_run_SHELL(self, prefix_selector):
+    def test_shell_run_SHELL(self, prefix_selector, tmp_path):
         """ "micromamba shell -n myenv should run $SHELL in myenv."""
         skip_if_shell_incompat("bash")
         create(*prefix_selector)
-        with tempfile.NamedTemporaryFile("wt") as f:
-            f.write(f"#!/bin/sh\nexit 42")
-            f.flush()
-            os.chmod(f.name, 0o777)
-            ret = subprocess.run(
-                [get_umamba(), "shell", *prefix_selector],
-                env={**os.environ, "SHELL": f.name},
-            )
-            assert ret.returncode == 42
+
+        script_path = tmp_path / "fakeshell.sh"
+        script_path.write_text("#!/bin/sh\nexit 42")
+        script_path.chmod(0o777)
+
+        ret = subprocess.run(
+            [get_umamba(), "shell", *prefix_selector],
+            env={**os.environ, "SHELL": script_path},
+        )
+        assert ret.returncode == 42

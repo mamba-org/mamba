@@ -84,9 +84,15 @@ set_shell_command(CLI::App* subcom)
             auto& action = config.at("shell_action").compute().value<std::string>();
             auto& shell = config.at("shell_type").compute().value<std::string>();
             auto& stack = config.at("shell_stack").compute().value<bool>();
+
             if (action.empty())
             {
-                Context::instance().target_prefix = prefix;
+                if (prefix.empty() || prefix == "base")
+                    Context::instance().target_prefix = Context::instance().root_prefix;
+                else
+                    Context::instance().target_prefix
+                        = Context::instance().root_prefix / "envs" / prefix;
+
                 std::string default_shell = "bash";
                 if (on_win)
                 {
@@ -98,9 +104,8 @@ set_shell_command(CLI::App* subcom)
                 }
 
                 auto env_shell = env::get("SHELL").value_or(default_shell);
-                mamba::run_in_environment(
-                    { env_shell }, ".", (int) STREAM_OPTIONS::ALL_STREAMS, false, false, {}, "");
-                return 0;
+                exit(mamba::run_in_environment(
+                    { env_shell }, ".", (int) STREAM_OPTIONS::ALL_STREAMS, false, false, {}, ""));
             }
             else
             {

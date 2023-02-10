@@ -1,3 +1,21 @@
+micromamba 1.3.1 (February 09, 2023)
+====================================
+
+A bugfix release for 1.3.0!
+
+Bug fixes:
+
+- fix up single download target perform finalization to make lockfile download work by @wolfv in https://github.com/mamba-org/mamba/pull/2274
+- use CONDA_PKGS_DIRS even in explicit installation trasactions by @hmaarrfk in https://github.com/mamba-org/mamba/pull/2265
+- fix rename or remove by @wolfv in https://github.com/mamba-org/mamba/pull/2276
+- fix `micromamba shell` for base environment, and improve behavior when `auto_activate_base` is true by @jonashaag, @Hind-M and @wolfv https://github.com/mamba-org/mamba/pull/2272
+
+Docs:
+
+- - add micromamba docker image by @wholtz in https://github.com/mamba-org/mamba/pull/2266
+- - added biweekly meetings information to README by @JohanMabille in https://github.com/mamba-org/mamba/pull/2275
+- - change docs to homebrew/core by @pavelzw in https://github.com/mamba-org/mamba/pull/2278
+
 micromamba 1.3.0 (February 03, 2023)
 ====================================
 

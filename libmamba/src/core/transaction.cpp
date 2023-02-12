@@ -1536,7 +1536,7 @@ namespace mamba
         if (reinstalled.size())
         {
             t.add_rows("Reinstall:", reinstalled);
-            summary << "  Reinstall: " << reinstalled.size() / 2 << " packages\n";
+            summary << "  Reinstall: " << reinstalled.size() << " packages\n";
         }
         if (upgraded.size())
         {

@@ -524,3 +524,12 @@ class TestInstall:
         pkg = pkgs[0]
         assert pkg["version"] == "1.4.4"
         assert pkg["build_string"] == "pyh9f0ad1d_0"
+
+    def test_broken_package_name(self):
+        non_existing_url = (
+            "https://026e9ab9-6b46-4285-ae0d-427553801720.de/mypackage.tar.bz2"
+        )
+        try:
+            res = install(non_existing_url, default_channel=False)
+        except subprocess.CalledProcessError as e:
+            assert "Invalid package filename" in e.stderr.decode("utf-8")

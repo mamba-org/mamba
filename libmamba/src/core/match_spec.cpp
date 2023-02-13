@@ -17,14 +17,14 @@ namespace mamba
 {
     std::vector<std::string> parse_legacy_dist(std::string dist_str)
     {
-        try
+        dist_str = strip_package_extension(dist_str).string();
+        auto split_str = rsplit(dist_str, "-", 2);
+        if (split_str.size() != 3)
         {
-            dist_str = strip_package_extension(dist_str).string();
+            LOG_ERROR << "dist_str " << dist_str << " did not split into a correct version info.";
+            throw std::runtime_error("Invalid package filename");
         }
-        catch (...)
-        {
-        }
-        return rsplit(dist_str, "-", 2);
+        return split_str;
     }
 
 

@@ -20,4 +20,4 @@ dependencies:
   - reproc-cpp-static
   - openssl
   - libopenssl-static
-  - powerloader >=0.5.0
+  - powerloader-dev >=0.5.3

@@ -81,7 +81,7 @@ else ()
 endif ()
 
 find_package(powerloader REQUIRED)
-target_link_libraries(micromamba PRIVATE libpowerloader)
+target_link_libraries(micromamba PRIVATE libpowerloader-static)
 
 set_property(TARGET micromamba PROPERTY CXX_STANDARD 17)
 

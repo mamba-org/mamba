@@ -58,8 +58,7 @@ requirements:
     - reproc-cpp                   # [unix]
     - reproc-cpp-static            # [unix]
     - winreg                       # [win]
-    - powerloader >=0.5.1
-    - powerloader-static >=0.5.1
+    - powerloader-dev >=0.5.3
 
 test:
   commands:

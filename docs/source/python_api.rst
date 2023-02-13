@@ -17,6 +17,8 @@ Mamba provides high-level Python APIs for creating environments and installing p
     # install(env_name, packages, channels)
     install('my-custom-env', ('matplotlib=3', 'ipympl'), ('conda-forge', ))
 
+These call internal ``mamba`` APIs under the hood, which are discussed below.
+
 Using internal mamba APIs
 -------------------------
 
@@ -147,5 +149,7 @@ Here is an example usage of the libmambapy:
             t = libmambapy.Transaction(api_solver, package_cache)
             return t
 
+``mamba.api`` also has a default implementation of ``MambaSolver`` which can be
+customized with ``Context`` objects.
 
 .. _boa: https://www.github.com/mamba-org/boa/blob/main/boa/core/solver.py

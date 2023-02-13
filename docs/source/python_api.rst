@@ -22,7 +22,7 @@ Using internal mamba APIs
 
 The core of ``mamba`` is written in C++, but we expose the internals of mamba with a Python API (using ``pybind11``).
 
-You can import ``libmambapy`` containing the Python API using ``from mamba.api import libmambapy``.
+You can import ``libmambapy`` containing the Python API using ``import libmambapy`` without having ``mamba`` installed.
 
 These bindings expose the following objects (`boa_` has a full example):
 
@@ -30,7 +30,7 @@ These bindings expose the following objects (`boa_` has a full example):
 
 .. code::
 
-   from mamba import libmambapy
+   import libmambapy
    libmambapy.Context().conda_prefix = "/home/wolfv/conda"
    ctx = libmambapy.Context()
    print(ctx.root_prefix)

@@ -68,10 +68,14 @@ Here are some examples:
     # you can also specify more constraints on this search query
     $ mamba repoquery search "xtensor>=0.18"
 
-    # will show you a list of the dependencies of xtensor.
+    # will show you a list of the direct dependencies of xtensor.
     $ mamba repoquery depends xtensor
 
-With the ``-t,--tree`` flag, you can get the same information in a tree.
+    # will show you a list of the dependencies (including dependencies of dependencies).
+    $ mamba repoquery depends xtensor --recursive
+
+The flag ``--recursive`` shows also recursive (i.e. transitive) dependencies of dependent packages instead of only direct dependencies.
+With the ``-t,--tree`` flag, you can get the same information of a recursive query in a tree.
 
 .. code::
 

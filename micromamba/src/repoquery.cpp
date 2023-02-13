@@ -50,6 +50,10 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     static bool show_as_tree = false;
     subcom->add_flag("-t,--tree", show_as_tree, "Show result as a tree");
 
+    static bool recursive = false;
+    subcom->add_flag(
+        "--recursive", recursive, "Show dependencies recursively (i.e. transitive dependencies).");
+
     static bool pretty_print = false;
     subcom->add_flag("--pretty", pretty_print, "Pretty print result (only for search)");
 
@@ -83,6 +87,9 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
                     local = (local == 0) ? true : local > 0;
                     break;
             }
+            if (qtype == QueryType::kDEPENDS && recursive)
+                format = QueryResultFormat::kRECURSIVETABLE;
+
             if (qtype == QueryType::kDEPENDS && show_as_tree)
                 format = QueryResultFormat::kTREE;
 

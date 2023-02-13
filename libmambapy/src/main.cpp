@@ -43,10 +43,11 @@ namespace query
 {
     enum RESULT_FORMAT
     {
-        JSON,
-        TREE,
-        TABLE,
-        PRETTY
+        JSON = 0,
+        TREE = 1,
+        TABLE = 2,
+        PRETTY = 3,
+        RECURSIVETABLE = 4,
     };
 }
 
@@ -332,7 +333,8 @@ PYBIND11_MODULE(bindings, m)
         .value("JSON", query::RESULT_FORMAT::JSON)
         .value("TREE", query::RESULT_FORMAT::TREE)
         .value("TABLE", query::RESULT_FORMAT::TABLE)
-        .value("PRETTY", query::RESULT_FORMAT::PRETTY);
+        .value("PRETTY", query::RESULT_FORMAT::PRETTY)
+        .value("RECURSIVETABLE", query::RESULT_FORMAT::RECURSIVETABLE);
 
     py::class_<Query>(m, "Query")
         .def(py::init<MPool&>())
@@ -349,6 +351,7 @@ PYBIND11_MODULE(bindings, m)
                          break;
                      case query::TREE:
                      case query::TABLE:
+                     case query::RECURSIVETABLE:
                          q.find(query).groupby("name").table(res_stream);
                          break;
                      case query::PRETTY:
@@ -374,6 +377,7 @@ PYBIND11_MODULE(bindings, m)
                          res_stream << res.json().dump(4);
                          break;
                      case query::TABLE:
+                     case query::RECURSIVETABLE:
                          res.table(
                              res_stream,
                              { "Name", "Version", "Build", concat("Depends:", query), "Channel" });
@@ -385,7 +389,8 @@ PYBIND11_MODULE(bindings, m)
                 const std::string& query,
                 const query::RESULT_FORMAT format) -> std::string
              {
-                 query_result res = q.depends(query, (format == query::TREE));
+                 query_result res
+                     = q.depends(query, (format == query::TREE || format == query::RECURSIVETABLE));
                  std::stringstream res_stream;
                  switch (format)
                  {
@@ -397,6 +402,7 @@ PYBIND11_MODULE(bindings, m)
                          res_stream << res.json().dump(4);
                          break;
                      case query::TABLE:
+                     case query::RECURSIVETABLE:
                          // res.table(res_stream, {"Name", "Version", "Build", concat("Depends:",
                          // query), "Channel"});
                          res.table(res_stream);

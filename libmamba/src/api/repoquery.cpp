@@ -76,7 +76,9 @@ namespace mamba
         }
         else if (type == QueryType::kDEPENDS)
         {
-            auto res = q.depends(query, format == QueryResultFormat::kTREE);
+            auto res = q.depends(query,
+                                 format == QueryResultFormat::kTREE
+                                     || format == QueryResultFormat::kRECURSIVETABLE);
             switch (format)
             {
                 case QueryResultFormat::kTREE:
@@ -87,12 +89,15 @@ namespace mamba
                     std::cout << res.json().dump(4);
                     break;
                 case QueryResultFormat::kTABLE:
+                case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(std::cout);
             }
         }
         else if (type == QueryType::kWHONEEDS)
         {
-            auto res = q.whoneeds(query, format == QueryResultFormat::kTREE);
+            auto res = q.whoneeds(query,
+                                  format == QueryResultFormat::kTREE
+                                      || format == QueryResultFormat::kRECURSIVETABLE);
             switch (format)
             {
                 case QueryResultFormat::kTREE:
@@ -103,6 +108,7 @@ namespace mamba
                     std::cout << res.json().dump(4);
                     break;
                 case QueryResultFormat::kTABLE:
+                case QueryResultFormat::kRECURSIVETABLE:
                     res.sort("name").table(
                         std::cout,
                         { "Name", "Version", "Build", concat("Depends:", query), "Channel" });

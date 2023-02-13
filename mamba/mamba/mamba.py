@@ -694,6 +694,8 @@ def repoquery(args, parser):
         fmt = api.QueryFormat.JSON
     elif hasattr(args, "tree") and args.tree:
         fmt = api.QueryFormat.TREE
+    elif hasattr(args, "recursive") and args.recursive:
+        fmt = api.QueryFormat.RECURSIVETABLE
     elif hasattr(args, "pretty") and args.pretty:
         fmt = api.QueryFormat.PRETTY
     else:
@@ -818,6 +820,7 @@ Examples:
 
     view_cmds = argparse.ArgumentParser(add_help=False)
     view_cmds.add_argument("-t", "--tree", action="store_true")
+    view_cmds.add_argument("--recursive", action="store_true")
 
     c1 = subsub_parser.add_parser(
         "whoneeds",

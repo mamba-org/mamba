@@ -14,9 +14,10 @@
 #include <tuple>
 #include <vector>
 
-#include "mamba/api/install.hpp"
+#include <nlohmann/json.hpp>
+#include <solv/transaction.h>
 
-#include "nlohmann/json.hpp"
+#include "mamba/api/install.hpp"
 
 #include "env_lockfile.hpp"
 #include "fetch.hpp"
@@ -27,15 +28,9 @@
 #include "prefix_data.hpp"
 #include "progress_bar.hpp"
 #include "repo.hpp"
+#include "solver.hpp"
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
-
-extern "C"
-{
-#include "solv/transaction.h"
-}
-
-#include "solver.hpp"
 
 
 namespace mamba

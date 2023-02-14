@@ -123,6 +123,8 @@ endforeach()
 set(LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
+    # C++ wrapping of libsolv
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solv-cpp/queue.hpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
@@ -212,7 +214,6 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/pinning.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/queue.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp

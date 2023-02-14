@@ -7,19 +7,15 @@
 #ifndef MAMBA_CORE_PACKAGE_INFO
 #define MAMBA_CORE_PACKAGE_INFO
 
-extern "C"
-{
-#include <solv/pool.h>
-#include <solv/poolid.h>
-#include <solv/repo.h>
-#include <solv/solvable.h>
-}
-
 #include <set>
 #include <string>
 #include <vector>
 
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
+#include <solv/pool.h>
+#include <solv/poolid.h>
+#include <solv/repo.h>
+#include <solv/solvable.h>
 
 namespace mamba
 {

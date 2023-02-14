@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <solv/solver.h>
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/context.hpp"
@@ -20,7 +21,6 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
-
 
 namespace mamba
 {

@@ -4,16 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-extern "C"
-{
+#include "mamba/core/prefix_data.hpp"
+
 #include <solv/transaction.h>
-}
 
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/prefix_data.hpp"
-#include "mamba/core/queue.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/solv-cpp/queue.hpp"
 
 namespace mamba
 {
@@ -79,7 +77,7 @@ namespace mamba
         std::vector<PackageInfo> result;
         MPool pool;
 
-        MQueue q;
+        solv::ObjQueue q;
         {
             // TODO check prereq marker to `pip` if it's part of the installed packages
             // so that it gets installed after Python.
@@ -91,14 +89,14 @@ namespace mamba
 
             FOR_REPO_SOLVABLES(repo.repo(), pkg_id, s)
             {
-                q.push(pkg_id);
+                q.push_back(pkg_id);
             }
         }
 
         Pool* pp = pool;
         pp->installed = nullptr;
 
-        Transaction* t = transaction_create_decisionq(pool, q, nullptr);
+        Transaction* t = transaction_create_decisionq(pool, q.get(), nullptr);
         transaction_order(t, 0);
 
         for (int i = 0; i < t->steps.count; i++)

@@ -9,16 +9,16 @@
 
 #include <string>
 #include <tuple>
+#include <utility>
+
+#include <solv/pooltypes.h>
 
 #include "channel.hpp"
 #include "prefix_data.hpp"
 
 extern "C"
 {
-#include "solv/conda.h"
-#include "solv/repo.h"
-#include "solv/repo_conda.h"
-#include "solv/repo_solv.h"
+    typedef struct s_Repo Repo;
 }
 
 namespace mamba

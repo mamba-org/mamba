@@ -14,8 +14,10 @@
 #include <utility>
 #include <vector>
 
-#include <solv/queue.h>
-#include <solv/solver.h>
+#include <solv/pooltypes.h>
+#include <solv/solvable.h>
+// Incomplete header
+#include <solv/rules.h>
 
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
@@ -25,6 +27,16 @@
 #define MAMBA_NO_DEPS 0b0001
 #define MAMBA_ONLY_DEPS 0b0010
 #define MAMBA_FORCE_REINSTALL 0b0100
+
+extern "C"
+{
+    typedef struct s_Solver Solver;
+}
+
+namespace mamba::solv
+{
+    class ObjQueue;
+}
 
 namespace mamba
 {
@@ -43,12 +55,13 @@ namespace mamba
         std::string description;
     };
 
+
     class MSolver
     {
     public:
 
         MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
-        ~MSolver() = default;
+        ~MSolver();
 
         MSolver(const MSolver&) = delete;
         MSolver& operator=(const MSolver&) = delete;
@@ -103,7 +116,7 @@ namespace mamba
         // Order of m_pool and m_solver is critical since m_pool must outlive m_solver.
         MPool m_pool;
         std::unique_ptr<::Solver, void (*)(::Solver*)> m_solver;
-        Queue m_jobs;
+        std::unique_ptr<solv::ObjQueue> m_jobs;
     };
 }  // namespace mamba
 

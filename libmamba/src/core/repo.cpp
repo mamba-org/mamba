@@ -4,17 +4,21 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/repo.hpp"
+#include <solv/repo.h>
+#include <solv/repo_solv.h>
+#include <solv/repo_write.h>
+extern "C"  // Incomplete header
+{
+#include <solv/conda.h>
+#include <solv/repo_conda.h>
+}
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
+#include "mamba/core/repo.hpp"
 
-extern "C"
-{
-#include "solv/repo_write.h"
-}
 
 #define MAMBA_TOOL_VERSION "1.1"
 

@@ -6,12 +6,15 @@
 
 #include "mamba/core/package_info.hpp"
 
+#include <algorithm>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <tuple>
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/solv-cpp/queue.hpp"
 
 namespace mamba
 {
@@ -93,14 +96,11 @@ namespace mamba
     {
         // Note: this function (especially the checksum part) is NOT YET threadsafe!
         Pool* pool = s->repo->pool;
-        const char* str;
-        int n;
         Id check_type;
-        Queue q;
 
         name = pool_id2str(pool, s->name);
         version = pool_id2str(pool, s->evr);
-        str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
+        const char* str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
         if (str)
         {
             build_string = str;
@@ -108,8 +108,7 @@ namespace mamba
         str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
         if (str)
         {
-            n = std::stoull(str);
-            build_number = n;
+            build_number = std::stoull(str);
         }
 
         static Id real_repo_key = pool_str2id(pool, "solvable:real_repo_url", 1);
@@ -158,34 +157,41 @@ namespace mamba
             signatures = "{}";
         }
 
-        queue_init(&q);
-        if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, &q, -1))
+        solv::ObjQueue q = {};
+
+        if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, q.get(), -1))
         {
             defaulted_keys.insert("depends");
         }
-        depends.resize(q.count);
-        for (int i = 0; i < q.count; ++i)
-        {
-            depends[i] = pool_dep2str(pool, q.elements[i]);
-        }
-        queue_empty(&q);
-        if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, &q, -1))
+        depends.reserve(q.size());
+        std::transform(
+            q.begin(),
+            q.end(),
+            std::back_inserter(depends),
+            [&pool](Id id) { return pool_dep2str(pool, id); }
+        );
+
+        q.clear();
+        if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, q.get(), -1))
         {
             defaulted_keys.insert("constrains");
         }
-        constrains.resize(q.count);
-        for (int i = 0; i < q.count; ++i)
+        constrains.reserve(q.size());
+        std::transform(
+            q.begin(),
+            q.end(),
+            std::back_inserter(constrains),
+            [&pool](Id id) { return pool_dep2str(pool, id); }
+        );
+
+        q.clear();
+        solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, q.get());
+        for (auto iter = q.begin(), end = q.end(); iter < end; ++iter)
         {
-            constrains[i] = pool_dep2str(pool, q.elements[i]);
-        }
-        queue_empty(&q);
-        solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, &q);
-        if (q.count)
-        {
-            for (int i = 0; i < q.count; ++i)
+            track_features += pool_id2str(pool, *iter);
+            if (iter < end - 1)
             {
-                track_features += pool_id2str(pool, q.elements[i]);
-                track_features += (i == q.count - 1) ? "" : ",";
+                track_features += ",";
             }
         }
 
@@ -195,22 +201,28 @@ namespace mamba
         if (extra_keys_id && extra_values_id)
         {
             // Get extra signed keys
-            queue_empty(&q);
-            solvable_lookup_idarray(s, extra_keys_id, &q);
-            std::vector<std::string> extra_keys;
-            for (int i = 0; i < q.count; ++i)
-            {
-                extra_keys.push_back(pool_dep2str(pool, q.elements[i]));
-            }
+            q.clear();
+            solvable_lookup_idarray(s, extra_keys_id, q.get());
+            std::vector<std::string> extra_keys = {};
+            extra_keys.reserve(q.size());
+            std::transform(
+                q.begin(),
+                q.end(),
+                std::back_inserter(extra_keys),
+                [&pool](Id id) { return pool_dep2str(pool, id); }
+            );
 
             // Get extra signed values
-            queue_empty(&q);
-            solvable_lookup_idarray(s, extra_values_id, &q);
-            std::vector<std::string> extra_values;
-            for (int i = 0; i < q.count; ++i)
-            {
-                extra_values.push_back(pool_dep2str(pool, q.elements[i]));
-            }
+            q.clear();
+            solvable_lookup_idarray(s, extra_values_id, q.get());
+            std::vector<std::string> extra_values = {};
+            extra_values.reserve(q.size());
+            std::transform(
+                q.begin(),
+                q.end(),
+                std::back_inserter(extra_values),
+                [&pool](Id id) { return pool_dep2str(pool, id); }
+            );
 
             // Build a JSON string for extra signed metadata
             if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
@@ -227,8 +239,6 @@ namespace mamba
         {
             extra_metadata = "{}";
         }
-
-        queue_free(&q);
     }
 
     PackageInfo::PackageInfo(nlohmann::json&& j)

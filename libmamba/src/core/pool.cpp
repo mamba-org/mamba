@@ -19,7 +19,8 @@ extern "C"  // Incomplete header
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/solv-cpp/queue.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {

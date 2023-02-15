@@ -14,7 +14,8 @@
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/solv-cpp/queue.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {

@@ -26,7 +26,8 @@ extern "C"  // Incomplete header
 #include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/solver.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/solv-cpp/queue.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {

@@ -11,7 +11,8 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/solv-cpp/queue.hpp"
+
+#include "solv-cpp/queue.hpp"
 
 namespace mamba
 {

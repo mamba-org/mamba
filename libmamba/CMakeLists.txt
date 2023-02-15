@@ -124,7 +124,8 @@ set(LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ wrapping of libsolv
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp

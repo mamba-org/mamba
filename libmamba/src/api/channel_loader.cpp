@@ -86,6 +86,63 @@ namespace mamba
         }
     }
 
+    std::string get_system_certificate()
+    {
+        std::string res = "";
+        if (on_linux)
+        {
+            std::array<std::string, 6> cert_locations{
+                "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
+                "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
+                "/etc/ssl/ca-bundle.pem",              // OpenSUSE
+                "/etc/pki/tls/cacert.pem",             // OpenELEC
+                "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
+                "/etc/ssl/cert.pem",                                  // Alpine Linux
+            };
+
+            for (const auto& loc : cert_locations)
+            {
+                if (fs::exists(loc))
+                {
+                    res = loc;
+                    break;
+                }
+            }
+
+            if (res.empty())
+            {
+                LOG_ERROR << "No CA certificates found on system";
+                throw std::runtime_error("Aborting.");
+            }
+        }
+        return res;
+    }
+
+    void init_powerloader_ssl(const std::string& value)
+    {
+        powerloader::Context& ctx = Context::instance().plcontext;
+        
+        if (value == "<false>")
+        {
+            ctx.disable_ssl = true;
+            ctx.ssl_ca_info = "";
+        }
+        else if (value == "<system>")
+        {
+            ctx.disable_ssl = false;
+            ctx.ssl_ca_info = get_system_certificate();
+        }
+        else
+        {
+            if (!fs::exists(value))
+            {
+                throw std::runtime_error("ssl_verify does not contain a valid file path.");
+            }
+            ctx.disable_ssl = false;
+            ctx.ssl_ca_info = value;
+        }
+    }
+
     expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
                                                            MultiPackageCache& package_caches,
                                                            int is_retry)
@@ -100,17 +157,8 @@ namespace mamba
         ctx.plcontext.mirror_map.clear();
 
         ctx.plcontext.proxy_map = ctx.proxy_servers;
-        ctx.plcontext.disable_ssl = ctx.ssl_verify == "<false>";
-
         ctx.plcontext.ssl_no_revoke = ctx.ssl_no_revoke;
-
-        if (ctx.ssl_verify != "<false>" && ctx.ssl_verify != "<system>" && !ctx.ssl_verify.empty())
-        {
-            if (fs::exists(ctx.ssl_verify))
-            {
-                ctx.plcontext.ssl_ca_info = ctx.ssl_verify;
-            }
-        }
+        init_powerloader_ssl(ctx.ssl_verify);
 
         if (ctx.plcontext.mirror_map.empty())
         {

@@ -124,7 +124,6 @@ set(LIBMAMBA_SOURCES
     longpath.manifest
     ${LIBMAMBA_SOURCE_DIR}/version.cpp
     # C++ wrapping of libsolv
-    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
     ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.cpp
     # Core API (low-level)
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
@@ -186,7 +185,7 @@ foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
 endforeach()
 
-set(LIBMAMBA_HEADERS
+set(LIBMAMBA_PUBLIC_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/version.hpp
     # Core API (low-level)
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/activation.hpp
@@ -254,6 +253,10 @@ set(LIBMAMBA_HEADERS
     ${LIBMAMBA_INCLUDE_DIR}/mamba/api/update.hpp
 )
 
+set(LIBMAMBA_PRIVATE_HEADERS
+    ${LIBMAMBA_SOURCE_DIR}/solv-cpp/queue.hpp
+)
+
 # Targets and link
 # ================
 
@@ -270,7 +273,12 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
     # Output
     # ======
-    add_library(${target_name} ${linkage_upper} ${LIBMAMBA_SOURCES} ${LIBMAMBA_HEADERS})
+    add_library(
+        ${target_name} ${linkage_upper}
+        ${LIBMAMBA_PUBLIC_HEADERS}
+        ${LIBMAMBA_PRIVATE_HEADERS}
+        ${LIBMAMBA_SOURCES}
+    )
 
     mamba_target_add_compile_warnings(
         ${target_name}
@@ -471,7 +479,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                               ${MAMBA_FORCE_DYNAMIC_LIBS})
     endif ()
 
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
+    target_compile_features(${target_name} PUBLIC cxx_std_17)
 
     target_include_directories(
         ${target_name}
@@ -496,7 +504,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            PUBLIC_HEADER "${LIBMAMBA_HEADERS}"
+            PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
             COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION "${LIBMAMBA_BINARY_COMPATIBLE}.${LIBMAMBA_BINARY_REVISION}.${LIBMAMBA_BINARY_AGE}"
@@ -507,7 +515,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
         set_target_properties(
             ${target_name}
             PROPERTIES
-            PUBLIC_HEADER "${LIBMAMBA_HEADERS}"
+            PUBLIC_HEADER "${LIBMAMBA_PUBLIC_HEADERS}"
             COMPILE_DEFINITIONS "LIBMAMBA_EXPORTS"
             PREFIX ""
             VERSION ${LIBMAMBA_BINARY_VERSION}

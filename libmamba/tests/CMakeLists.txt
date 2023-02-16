@@ -12,6 +12,9 @@ find_package(GTest)
 find_package(Threads REQUIRED)
 
 set(LIBMAMBA_TEST_SRCS
+    # C++ wrapping of libsolv
+    solv-cpp/test_queue.cpp
+
     ../longpath.manifest
     test_activation.cpp
     test_channel.cpp
@@ -48,7 +51,7 @@ mamba_target_add_compile_warnings(test_libmamba WARNING_AS_ERROR ${MAMBA_WARNING
 
 target_include_directories(
     test_libmamba
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/libmamba/src"
 )
 
 target_link_libraries(

@@ -14,7 +14,13 @@
 
 namespace mamba::solv
 {
+    ObjQueue::ObjQueue(std::nullptr_t)
+        : m_queue{}
+    {
+    }
+
     ObjQueue::ObjQueue()
+        : ObjQueue(nullptr)
     {
         queue_init(get());
     }
@@ -24,9 +30,39 @@ namespace mamba::solv
     {
     }
 
+    ObjQueue::ObjQueue(ObjQueue&& other)
+        : ObjQueue(nullptr)
+    {
+        swap(*this, other);
+    }
+
+    ObjQueue::ObjQueue(const ObjQueue& other)
+        : ObjQueue(other.begin(), other.end())
+    {
+    }
+
     ObjQueue::~ObjQueue()
     {
-        queue_free(get());
+        if (data() != nullptr)
+        {
+            queue_free(get());
+        }
+    }
+
+    auto ObjQueue::operator=(ObjQueue&& other) -> ObjQueue&
+    {
+        swap(*this, other);
+        // Leaving other empty to make sure ressources are no longer used
+        auto empty = ObjQueue(nullptr);
+        swap(other, empty);
+        return *this;
+    }
+
+    auto ObjQueue::operator=(const ObjQueue& other) -> ObjQueue&
+    {
+        auto other_copy = ObjQueue(other);
+        swap(*this, other_copy);
+        return *this;
     }
 
     void ObjQueue::push_back(value_type id)
@@ -111,32 +147,32 @@ namespace mamba::solv
 
     auto ObjQueue::operator[](int idx) -> reference
     {
-        return m_queue.elements[idx];
+        return data()[idx];
     }
 
     auto ObjQueue::operator[](int idx) const -> const_reference
     {
-        return m_queue.elements[idx];
+        return data()[idx];
     }
 
     auto ObjQueue::begin() -> iterator
     {
-        return m_queue.elements;
+        return data();
     }
 
     auto ObjQueue::begin() const -> const_iterator
     {
-        return m_queue.elements;
+        return data();
     }
 
     auto ObjQueue::end() -> iterator
     {
-        return m_queue.elements + size();
+        return data() + size();
     }
 
     auto ObjQueue::end() const -> const_iterator
     {
-        return m_queue.elements + size();
+        return data() + size();
     }
 
     auto ObjQueue::rbegin() -> reverse_iterator
@@ -157,6 +193,16 @@ namespace mamba::solv
     auto ObjQueue::rend() const -> const_reverse_iterator
     {
         return std::reverse_iterator{ begin() };
+    }
+
+    auto ObjQueue::data() -> pointer
+    {
+        return m_queue.elements;
+    }
+
+    auto ObjQueue::data() const -> const_pointer
+    {
+        return m_queue.elements;
     }
 
     auto ObjQueue::get() const -> const ::Queue*
@@ -181,6 +227,12 @@ namespace mamba::solv
         assert(pos <= std::numeric_limits<int>::max());
         assert(n <= std::numeric_limits<int>::max());
         queue_insertn(get(), static_cast<int>(pos), static_cast<int>(n), first);
+    }
+
+    void swap(ObjQueue& a, ObjQueue& b) noexcept
+    {
+        using std::swap;
+        swap(a.m_queue, b.m_queue);
     }
 
 }  // namespace mamba

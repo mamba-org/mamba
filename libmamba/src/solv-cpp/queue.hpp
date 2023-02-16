@@ -40,15 +40,13 @@ namespace mamba::solv
         template <typename InputIt>
         ObjQueue(InputIt first, InputIt last);
         ObjQueue(std::initializer_list<value_type> elems);
+        ObjQueue(ObjQueue&& other);
+        ObjQueue(const ObjQueue& other);
+
         ~ObjQueue();
 
-        /**
-         * Move and copy operations are disabled for simplicity but could be added if needed.
-         */
-        ObjQueue(const ObjQueue&) = delete;
-        ObjQueue(ObjQueue&&) = delete;
-        ObjQueue& operator=(const ObjQueue&) = delete;
-        ObjQueue& operator=(ObjQueue&&) = delete;
+        auto operator=(ObjQueue&& other) -> ObjQueue&;
+        auto operator=(const ObjQueue& other) -> ObjQueue&;
 
         auto size() const -> size_type;
         auto capacity() const -> size_type;
@@ -77,6 +75,8 @@ namespace mamba::solv
         auto rbegin() const -> const_reverse_iterator;
         auto rend() -> reverse_iterator;
         auto rend() const -> const_reverse_iterator;
+        auto data() -> pointer;
+        auto data() const -> const_pointer;
 
         template <template <typename, typename...> class C>
         auto as() -> C<value_type>;
@@ -86,11 +86,17 @@ namespace mamba::solv
 
     private:
 
+        friend void swap(ObjQueue& a, ObjQueue& b) noexcept;
+
         ::Queue m_queue = {};
+
+        ObjQueue(std::nullptr_t);
 
         auto offset_of(const_iterator pos) const -> size_type;
         void insert_n(size_type pos, const_iterator first, size_type n);
     };
+
+    void swap(ObjQueue& a, ObjQueue& b) noexcept;
 
     /********************************
      *  Implementation of ObjQueue  *

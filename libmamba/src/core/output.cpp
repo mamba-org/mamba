@@ -289,7 +289,7 @@ namespace mamba
         return mamba::hide_secrets(str);
     }
 
-    void Console::print(const std::string_view& str, bool force_print)
+    void Console::print(const std::string_view& str, bool force_print, std::ostream& out)
     {
         if (force_print || !(Context::instance().quiet || Context::instance().json))
         {
@@ -301,7 +301,7 @@ namespace mamba
             }
             else
             {
-                std::cout << hide_secrets(str) << std::endl;
+                out << hide_secrets(str) << std::endl;
             }
         }
     }

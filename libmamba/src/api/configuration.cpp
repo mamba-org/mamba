@@ -1718,7 +1718,7 @@ namespace mamba
         CONFIG_DEBUGGING;
 
         if (at("show_banner").value<bool>())
-            Console::instance().print(banner());
+            Console::instance().print(banner(), false, std::cerr);
 
         auto& ctx = Context::instance();
         ctx.set_log_level(ctx.logging_level);

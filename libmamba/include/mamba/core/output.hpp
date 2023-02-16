@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <iostream>
 
 #include <nlohmann/json.hpp>
 #include <fmt/color.h>
@@ -114,7 +115,9 @@ namespace mamba
 
         static std::string hide_secrets(const std::string_view& str);
 
-        void print(const std::string_view& str, bool force_print = false);
+        void print(const std::string_view& str,
+                   bool force_print = false,
+                   std::ostream& out = std::cout);
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);

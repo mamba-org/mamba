@@ -1122,6 +1122,8 @@ class QueryFormat:
       TABLE
 
       PRETTY
+
+      RECURSIVETABLE
     """
 
     def __eq__(self, other: object) -> bool: ...
@@ -1145,9 +1147,10 @@ class QueryFormat:
         """
     JSON: libmambapy.bindings.QueryFormat  # value = <QueryFormat.JSON: 0>
     PRETTY: libmambapy.bindings.QueryFormat  # value = <QueryFormat.PRETTY: 3>
+    RECURSIVETABLE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.RECURSIVETABLE: 4>
     TABLE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.TABLE: 2>
     TREE: libmambapy.bindings.QueryFormat  # value = <QueryFormat.TREE: 1>
-    __members__: dict  # value = {'JSON': <QueryFormat.JSON: 0>, 'TREE': <QueryFormat.TREE: 1>, 'TABLE': <QueryFormat.TABLE: 2>, 'PRETTY': <QueryFormat.PRETTY: 3>}
+    __members__: dict  # value = {'JSON': <QueryFormat.JSON: 0>, 'TREE': <QueryFormat.TREE: 1>, 'TABLE': <QueryFormat.TABLE: 2>, 'PRETTY': <QueryFormat.PRETTY: 3>, 'RECURSIVETABLE': <QueryFormat.RECURSIVETABLE: 4>}
     pass
 
 class Repo:

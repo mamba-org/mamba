@@ -721,7 +721,9 @@ namespace mamba
             }
         }
 
-        if (Context::instance().auto_activate_base)
+        // if we are in a `mamba shell -n <env>` we don't want to activate base
+        auto has_prefix = env::get("CONDA_PREFIX");
+        if (Context::instance().auto_activate_base && !has_prefix.has_value())
         {
             builder << "micromamba activate base\n";
         }

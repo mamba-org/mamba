@@ -58,10 +58,11 @@ namespace mamba
 
     enum class QueryResultFormat
     {
-        kJSON,
-        kTREE,
-        kTABLE,
-        kPRETTY
+        kJSON = 0,
+        kTREE = 1,
+        kTABLE = 2,
+        kPRETTY = 3,
+        kRECURSIVETABLE = 4,
     };
 
     class query_result

@@ -61,7 +61,7 @@ On macOS, you can install `micromamba` from Homebrew:
 
 .. code:: bash
 
-   brew install --cask micromamba
+   brew install micromamba
 
 Install script
 ^^^^^^^^^^^^^^

@@ -9,19 +9,19 @@ namespace mamba
     // are being scheduled concurrently.
     // Joins all threads before exiting.
     template <typename Func>
-    void execute_tasks_from_concurrent_threads(size_t task_count,
-                                               size_t tasks_per_thread,
+    void execute_tasks_from_concurrent_threads(std::size_t task_count,
+                                               std::size_t tasks_per_thread,
                                                Func work)
     {
         std::vector<std::thread> producers;
-        size_t tasks_left_to_launch = task_count;
+        std::size_t tasks_left_to_launch = task_count;
         while (tasks_left_to_launch > 0)
         {
-            const size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
+            const std::size_t tasks_to_generate = std::min(tasks_per_thread, tasks_left_to_launch);
             producers.emplace_back(
                 [=]
                 {
-                    for (int i = 0; i < tasks_to_generate; ++i)
+                    for (std::size_t i = 0; i < tasks_to_generate; ++i)
                     {
                         work();
                     }
@@ -57,8 +57,8 @@ namespace mamba
 
     TEST(execution, tasks_complete_before_destruction_ends)
     {
-        const size_t arbitrary_task_count = 2048;
-        const size_t arbitrary_tasks_per_generator = 24;
+        constexpr std::size_t arbitrary_task_count = 2048;
+        constexpr std::size_t arbitrary_tasks_per_generator = 24;
         std::atomic<int> counter{ 0 };
         {
             MainExecutor executor;
@@ -72,8 +72,8 @@ namespace mamba
 
     TEST(execution, closed_prevents_more_scheduling_and_joins)
     {
-        const size_t arbitrary_task_count = 2048;
-        const size_t arbitrary_tasks_per_generator = 36;
+        constexpr std::size_t arbitrary_task_count = 2048;
+        constexpr std::size_t arbitrary_tasks_per_generator = 36;
         std::atomic<int> counter{ 0 };
         {
             MainExecutor executor;

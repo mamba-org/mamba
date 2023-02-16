@@ -3,6 +3,7 @@ import os
 import platform
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -49,11 +50,11 @@ class TestShell:
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.current_root_prefix
 
     @classmethod
-    def setup(cls):
+    def setup_method(cls):
         os.makedirs(TestShell.root_prefix, exist_ok=False)
 
     @classmethod
-    def teardown(cls):
+    def teardown_method(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestShell.root_prefix
         os.environ["CONDA_PREFIX"] = TestShell.current_prefix
 
@@ -281,3 +282,19 @@ class TestShell:
         assert (Path(TestShell.root_prefix) / "conda-meta").exists()
         # Check, for example, that "list" works.
         assert umamba_list("-p", TestShell.root_prefix)
+
+    @pytest.mark.parametrize("prefix_selector", [("-p", prefix), ("-n", env_name)])
+    def test_shell_run_SHELL(self, prefix_selector, tmp_path):
+        """ "micromamba shell -n myenv should run $SHELL in myenv."""
+        skip_if_shell_incompat("bash")
+        create(*prefix_selector)
+
+        script_path = tmp_path / "fakeshell.sh"
+        script_path.write_text("#!/bin/sh\nexit 42")
+        script_path.chmod(0o777)
+
+        ret = subprocess.run(
+            [get_umamba(), "shell", *prefix_selector],
+            env={**os.environ, "SHELL": script_path},
+        )
+        assert ret.returncode == 42

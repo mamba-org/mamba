@@ -107,6 +107,7 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
+          condarc-file: ./micromamba/condarc
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:

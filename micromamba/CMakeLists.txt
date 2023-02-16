@@ -15,7 +15,7 @@ project(micromamba)
 # Build options
 # =============
 
-set(MICROMAMBA_LINKAGE "DYNAMIC" CACHE STRING "micromamba linkage against libraries")
+set(MICROMAMBA_LINKAGE "STATIC" CACHE STRING "micromamba linkage against libraries")
 
 # Source files
 # ============

@@ -20,4 +20,4 @@ dependencies:
   - spdlog
   - fmt
   - sel(win): winreg
-  - powerloader-dev >=0.5.3
+  - powerloader-dev >=0.5.4

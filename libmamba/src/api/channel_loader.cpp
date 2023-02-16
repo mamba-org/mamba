@@ -129,8 +129,12 @@ namespace mamba
         }
         else if (value == "<system>")
         {
+#ifdef LIBMAMBA_STATIC_DEPS
+            ctx.ssl_no_default_ca_info = true;
+#endif
             ctx.disable_ssl = false;
             ctx.ssl_ca_info = get_system_certificate();
+
         }
         else
         {

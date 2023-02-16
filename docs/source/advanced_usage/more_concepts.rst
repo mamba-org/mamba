@@ -69,7 +69,7 @@ A ``repodata`` is specific to a :ref:`channel subdirectory<subdir>`.
 Package tarball
 ---------------
 
-| A tarball is a single archive file, compressed or not, that expands to multiples files/directories. It is typically a ``zip`` file or so.
+| A tarball is a single archive file, compressed or not, that expands to multiples files/directories. It is typically a ``zip`` file or ``so`` (shared object, ie. library).
 
 In the case of Mamba, 2 ``conda`` formats are used as package tarball:
 

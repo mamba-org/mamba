@@ -27,14 +27,14 @@ TEST(ObjQueue, constructor)
     EXPECT_EQ(q3.size(), q2.size());
     EXPECT_NE(q2.data(), q3.data());
 
-    auto const q3_data = q3.data();
-    auto const q3_size = q3.size();
+    const auto q3_data = q3.data();
+    const auto q3_size = q3.size();
     auto q4 = std::move(q3);
     EXPECT_EQ(q4.size(), q3_size);
     EXPECT_EQ(q4.data(), q3_data);
 
-    auto const q4_data = q4.data();
-    auto const q4_size = q4.size();
+    const auto q4_data = q4.data();
+    const auto q4_size = q4.size();
     q1 = std::move(q4);
     EXPECT_EQ(q1.size(), q4_size);
     EXPECT_EQ(q1.data(), q4_data);
@@ -43,12 +43,12 @@ TEST(ObjQueue, constructor)
 TEST(ObjQueue, swap)
 {
     auto q1 = ObjQueue();
-    auto const q1_data = q1.data();
-    auto const q1_size = q1.size();
+    const auto q1_data = q1.data();
+    const auto q1_size = q1.size();
 
     auto q2 = ObjQueue{ 1, 2, 3 };
-    auto const q2_size = q2.size();
-    auto const q2_data = q2.data();
+    const auto q2_size = q2.size();
+    const auto q2_data = q2.data();
 
     swap(q1, q2);
     EXPECT_EQ(q1.size(), q2_size);
@@ -85,7 +85,7 @@ TEST(ObjQueue, clear)
 
 TEST(ObjQueue, iterator)
 {
-    auto const q = ObjQueue{ 3, 2, 1 };
+    const auto q = ObjQueue{ 3, 2, 1 };
     std::size_t n = 0;
     for ([[maybe_unused]] auto _ : q)
     {
@@ -93,16 +93,16 @@ TEST(ObjQueue, iterator)
     }
     EXPECT_EQ(n, q.size());
 
-    auto const l = std::list<::Id>(q.begin(), q.end());
-    auto const l_expected = std::list{ 3, 2, 1 };
+    const auto l = std::list<::Id>(q.begin(), q.end());
+    const auto l_expected = std::list{ 3, 2, 1 };
     EXPECT_EQ(l, l_expected);
 }
 
 TEST(ObjQueue, reverse_iterator)
 {
-    auto const q = ObjQueue{ 3, 2, 1 };
+    const auto q = ObjQueue{ 3, 2, 1 };
 
-    auto const v = std::vector(q.crbegin(), q.crend());
+    const auto v = std::vector(q.crbegin(), q.crend());
     EXPECT_EQ(v.front(), q.back());
     EXPECT_EQ(v.back(), q.front());
 }
@@ -119,7 +119,7 @@ TEST(ObjQueue, insert_span)
 {
     auto q = ObjQueue();
 
-    auto const r1 = std::vector{ 1, 2, 3 };
+    const auto r1 = std::vector{ 1, 2, 3 };
     // std::vector::iterator is not always a pointer
     auto iter = q.insert(q.cend(), r1.data(), r1.data() + r1.size());
     EXPECT_EQ(*iter, q[0]);
@@ -127,13 +127,13 @@ TEST(ObjQueue, insert_span)
     EXPECT_EQ(q[1], 2);
     EXPECT_EQ(q[2], 3);
 
-    auto const r2 = std::vector{ 4, 4 };
+    const auto r2 = std::vector{ 4, 4 };
     iter = q.insert(q.cbegin(), r2.data(), r2.data() + r2.size());
     EXPECT_EQ(*iter, q[0]);
     EXPECT_EQ(q[0], 4);
     EXPECT_EQ(q[1], 4);
 
-    auto const r3 = std::vector<int>{};
+    const auto r3 = std::vector<int>{};
     iter = q.insert(q.cbegin(), r3.data(), r3.data() + r3.size());
     EXPECT_EQ(*iter, q[0]);
     EXPECT_EQ(q[0], 4);
@@ -143,20 +143,20 @@ TEST(ObjQueue, insert_range)
 {
     auto q = ObjQueue();
 
-    auto const r1 = std::list{ 1, 2, 3 };
+    const auto r1 = std::list{ 1, 2, 3 };
     auto iter = q.insert(q.cend(), r1.begin(), r1.end());
     EXPECT_EQ(*iter, q[0]);
     EXPECT_EQ(q[0], 1);
     EXPECT_EQ(q[1], 2);
     EXPECT_EQ(q[2], 3);
 
-    auto const r2 = std::list{ 4, 4 };
+    const auto r2 = std::list{ 4, 4 };
     iter = q.insert(q.cbegin(), r2.begin(), r2.end());
     EXPECT_EQ(*iter, q[0]);
     EXPECT_EQ(q[0], 4);
     EXPECT_EQ(q[1], 4);
 
-    auto const r3 = std::list<int>{};
+    const auto r3 = std::list<int>{};
     iter = q.insert(q.cbegin(), r3.begin(), r3.end());
     EXPECT_EQ(*iter, q[0]);
     EXPECT_EQ(q[0], 4);
@@ -165,7 +165,7 @@ TEST(ObjQueue, insert_range)
 TEST(ObjQueue, erase)
 {
     auto q = ObjQueue{ 3, 2, 1 };
-    auto const iter = q.erase(q.cbegin() + 1);
+    const auto iter = q.erase(q.cbegin() + 1);
     EXPECT_EQ(*iter, 1);
     EXPECT_EQ(q.size(), 2);
 }

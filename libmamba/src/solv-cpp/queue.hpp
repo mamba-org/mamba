@@ -69,12 +69,16 @@ namespace mamba::solv
         auto operator[](int idx) const -> const_reference;
         auto begin() -> iterator;
         auto begin() const -> const_iterator;
+        auto cbegin() const -> const_iterator;
         auto end() -> iterator;
         auto end() const -> const_iterator;
+        auto cend() const -> const_iterator;
         auto rbegin() -> reverse_iterator;
         auto rbegin() const -> const_reverse_iterator;
+        auto crbegin() const -> const_reverse_iterator;
         auto rend() -> reverse_iterator;
         auto rend() const -> const_reverse_iterator;
+        auto crend() const -> const_reverse_iterator;
         auto data() -> pointer;
         auto data() const -> const_pointer;
 
@@ -93,7 +97,8 @@ namespace mamba::solv
         ObjQueue(std::nullptr_t);
 
         auto offset_of(const_iterator pos) const -> size_type;
-        void insert_n(size_type pos, const_iterator first, size_type n);
+        void insert(size_type offset, value_type id);
+        void insert_n(size_type offset, const_iterator first, size_type n);
     };
 
     void swap(ObjQueue& a, ObjQueue& b) noexcept;
@@ -112,23 +117,22 @@ namespace mamba::solv
     template <typename InputIt>
     auto ObjQueue::insert(const_iterator pos, InputIt first, InputIt last) -> iterator
     {
-        const auto pos_idx = offset_of(pos);
+        const auto offset = offset_of(pos);
         const auto n = std::distance(first, last);
 
         if constexpr (std::is_same_v<InputIt, iterator> || std::is_same_v<InputIt, const_iterator>)
         {
-            insert_n(pos_idx, first, n);
+            insert_n(offset, first, n);
         }
         else
         {
-            reserve(size() + n);
-            for (; first != last; ++first)
+            reserve(size() + n);  // invalidates `pos` iterator
+            for (auto o = offset; first != last; ++first, ++o)
             {
-                pos = insert(pos, *first);
-                ++pos;
+                insert(o, *first);
             }
         }
-        return begin() + pos_idx;
+        return begin() + offset;
     }
 
     template <template <typename, typename...> class C>

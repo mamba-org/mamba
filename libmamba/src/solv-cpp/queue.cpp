@@ -77,10 +77,8 @@ namespace mamba::solv
 
     auto ObjQueue::insert(const_iterator pos, value_type id) -> iterator
     {
-        const difference_type offset = pos - begin();
-        assert(offset >= 0);
-        assert(offset <= std::numeric_limits<int>::max());
-        queue_insert(get(), static_cast<int>(offset), id);
+        const auto offset = offset_of(pos);
+        insert(offset, id);
         return begin() + offset;
     }
 
@@ -102,8 +100,7 @@ namespace mamba::solv
 
     auto ObjQueue::erase(const_iterator pos) -> iterator
     {
-        const difference_type offset = pos - begin();
-        assert(offset >= 0);
+        const auto offset = offset_of(pos);
         assert(offset <= std::numeric_limits<int>::max());
         queue_delete(get(), static_cast<int>(offset));
         return begin() + offset;
@@ -162,6 +159,11 @@ namespace mamba::solv
 
     auto ObjQueue::begin() const -> const_iterator
     {
+        return cbegin();
+    }
+
+    auto ObjQueue::cbegin() const -> const_iterator
+    {
         return data();
     }
 
@@ -171,6 +173,11 @@ namespace mamba::solv
     }
 
     auto ObjQueue::end() const -> const_iterator
+    {
+        return cend();
+    }
+
+    auto ObjQueue::cend() const -> const_iterator
     {
         return data() + size();
     }
@@ -182,6 +189,11 @@ namespace mamba::solv
 
     auto ObjQueue::rbegin() const -> const_reverse_iterator
     {
+        return crbegin();
+    }
+
+    auto ObjQueue::crbegin() const -> const_reverse_iterator
+    {
         return std::reverse_iterator{ end() };
     }
 
@@ -191,6 +203,11 @@ namespace mamba::solv
     }
 
     auto ObjQueue::rend() const -> const_reverse_iterator
+    {
+        return crend();
+    }
+
+    auto ObjQueue::crend() const -> const_reverse_iterator
     {
         return std::reverse_iterator{ begin() };
     }
@@ -222,11 +239,17 @@ namespace mamba::solv
         return static_cast<std::size_t>(offset);
     }
 
-    void ObjQueue::insert_n(size_type pos, const_iterator first, size_type n)
+    void ObjQueue::insert(size_type offset, value_type id)
     {
-        assert(pos <= std::numeric_limits<int>::max());
+        assert(offset <= std::numeric_limits<int>::max());
+        queue_insert(get(), static_cast<int>(offset), id);
+    }
+
+    void ObjQueue::insert_n(size_type offset, const_iterator first, size_type n)
+    {
+        assert(offset <= std::numeric_limits<int>::max());
         assert(n <= std::numeric_limits<int>::max());
-        queue_insertn(get(), static_cast<int>(pos), static_cast<int>(n), first);
+        queue_insertn(get(), static_cast<int>(offset), static_cast<int>(n), first);
     }
 
     void swap(ObjQueue& a, ObjQueue& b) noexcept

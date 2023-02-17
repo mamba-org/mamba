@@ -47,6 +47,7 @@ endif ()
 # ================
 
 add_executable(mamba-package ${MAMBA_PACKAGE_SRCS} ${MAMBA_PACKAGE_HEADERS})
+mamba_target_add_compile_warnings(mamba-package WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
 if (${MAMBA_PACKAGE_LINKAGE} STREQUAL "FULL_STATIC")
     target_link_libraries(mamba-package PRIVATE libmamba-full-static)

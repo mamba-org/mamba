@@ -270,6 +270,11 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
     # ======
     add_library(${target_name} ${linkage_upper} ${LIBMAMBA_SOURCES} ${LIBMAMBA_HEADERS})
 
+    mamba_target_add_compile_warnings(
+        ${target_name}
+        WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR}
+    )
+
     if (${deps_linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
         if (UNIX)

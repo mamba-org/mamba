@@ -486,3 +486,11 @@ def get_fake_activate(prefix):
     env["PATH"] = os.pathsep.join([str(x) for x in addpath + curpath])
     env["CONDA_PREFIX"] = str(prefix)
     return env
+
+
+def os_environ_remove_mamba_keys(os_environ):
+    return {
+        k: v
+        for k, v in os_environ.items()
+        if not k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA"))
+    }

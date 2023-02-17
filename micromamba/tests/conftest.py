@@ -50,11 +50,6 @@ def tmp_clean_env(
     tmp_pkgs_dirs: pathlib.Path, shared_pkgs_dirs: bool
 ) -> Generator[None, None, None]:
     """Remove all Conda/Mamba activation artifacts from environment."""
-    saved_environ = {}
-    for k, v in os.environ.items():
-        if k.startswith(("CONDA", "_CONDA", "MAMBA", "_MAMBA")):
-            saved_environ[k] = v
-            del os.environ[k]
 
     def keep_in_path(
         p: str, prefix: str | None = saved_environ.get("CONDA_PREFIX")
@@ -71,6 +66,10 @@ def tmp_clean_env(
     path_list = os.environ["PATH"].split(os.pathsep)
     path_list = [p for p in path_list if keep_in_path(p)]
     os.environ["PATH"] = os.pathsep.join(path_list)
+
+    saved_environ = os.environ.copy()
+
+    os.environ = helpers.os_environ_remove_mamba_keys(os.environ)
 
     if shared_pkgs_dirs:
         os.environ["CONDA_PKGS_DIRS"] = str(tmp_pkgs_dirs)

@@ -12,6 +12,7 @@ from .helpers import (
     MAMBA_NO_PREFIX_CHECK,
     create,
     get_umamba,
+    os_environ_remove_mamba_keys,
     random_string,
     shell,
     umamba_list,
@@ -284,17 +285,21 @@ class TestShell:
         assert umamba_list("-p", TestShell.root_prefix)
 
     @pytest.mark.parametrize("prefix_selector", [("-p", prefix), ("-n", env_name)])
-    def test_shell_run_SHELL(self, prefix_selector, tmp_path):
+    @pytest.mark.parametrize("use_clean_env", [True, False])
+    def test_shell_run_SHELL(self, prefix_selector, use_clean_env, tmp_path):
         """ "micromamba shell -n myenv should run $SHELL in myenv."""
         skip_if_shell_incompat("bash")
+
         create(*prefix_selector)
 
         script_path = tmp_path / "fakeshell.sh"
         script_path.write_text("#!/bin/sh\nexit 42")
         script_path.chmod(0o777)
 
-        ret = subprocess.run(
-            [get_umamba(), "shell", *prefix_selector],
-            env={**os.environ, "SHELL": script_path},
-        )
+        if use_clean_env:
+            env = os_environ_remove_mamba_keys(os.environ)
+        else:
+            env = os.environ.copy()
+        env["SHELL"] = script_path
+        ret = subprocess.run([get_umamba(), "shell", *prefix_selector], env=env)
         assert ret.returncode == 42

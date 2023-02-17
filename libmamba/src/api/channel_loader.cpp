@@ -92,10 +92,10 @@ namespace mamba
         if (on_linux)
         {
             std::array<std::string, 6> cert_locations{
-                "/etc/ssl/certs/ca-certificates.crt",  // Debian/Ubuntu/Gentoo etc.
-                "/etc/pki/tls/certs/ca-bundle.crt",    // Fedora/RHEL 6
-                "/etc/ssl/ca-bundle.pem",              // OpenSUSE
-                "/etc/pki/tls/cacert.pem",             // OpenELEC
+                "/etc/ssl/certs/ca-certificates.crt",                 // Debian/Ubuntu/Gentoo etc.
+                "/etc/pki/tls/certs/ca-bundle.crt",                   // Fedora/RHEL 6
+                "/etc/ssl/ca-bundle.pem",                             // OpenSUSE
+                "/etc/pki/tls/cacert.pem",                            // OpenELEC
                 "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  // CentOS/RHEL 7
                 "/etc/ssl/cert.pem",                                  // Alpine Linux
             };
@@ -121,7 +121,7 @@ namespace mamba
     void init_powerloader_ssl(const std::string& value)
     {
         powerloader::Context& ctx = Context::instance().plcontext;
-        
+
         if (value == "<false>")
         {
             ctx.disable_ssl = true;
@@ -134,7 +134,6 @@ namespace mamba
 #endif
             ctx.disable_ssl = false;
             ctx.ssl_ca_info = get_system_certificate();
-
         }
         else
         {

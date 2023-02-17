@@ -180,13 +180,17 @@ namespace mamba
                 this->logging_level = log_level::info;
                 break;
         }
-        spdlog::set_level(convert_log_level(logging_level));
+        const auto spdlog_level = convert_log_level(logging_level);
+        spdlog::set_level(spdlog_level);
+        plcontext.set_log_level(spdlog_level);
     }
 
     void Context::set_log_level(log_level level)
     {
         logging_level = level;
-        spdlog::set_level(convert_log_level(level));
+        const auto spdlog_level = convert_log_level(level);
+        spdlog::set_level(spdlog_level);
+        plcontext.set_log_level(spdlog_level);
     }
 
     std::vector<std::string> Context::platforms()

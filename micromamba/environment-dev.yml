@@ -29,4 +29,4 @@ dependencies:
   - fmt
   - sel(win): winreg
   - sel(win): pywin32
-  - powerloader-dev >=0.5.4
+  - powerloader-dev >=0.5.5

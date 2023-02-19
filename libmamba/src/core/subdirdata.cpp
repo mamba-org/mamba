@@ -929,7 +929,7 @@ namespace mamba
 
     int MSubdirData::progress_callback(curl_off_t total, curl_off_t done)
     {
-        auto now = std::chrono::steady_clock::now();
+        //auto now = std::chrono::steady_clock::now();
         // if (now - target->progress_throttle_time() < std::chrono::milliseconds(50))
         //     return 0;
         // else

@@ -352,6 +352,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
 
             find_package(fmt REQUIRED)
             find_package(spdlog CONFIG REQUIRED)
+            find_package(powerloader REQUIRED)
 
             add_compile_definitions(SPDLOG_FMT_EXTERNAL)
             target_link_libraries(
@@ -361,6 +362,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 ${MAMBA_FORCE_DYNAMIC_LIBS}
                 spdlog::spdlog_header_only
                 fmt::fmt-header-only
+                libpowerloader-static
              )
 
         elseif (WIN32)

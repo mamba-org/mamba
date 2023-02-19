@@ -107,7 +107,6 @@ jobs:
         with:
           environment-file: ./micromamba/environment-dev.yml
           environment-name: build_env
-          condarc-file: ./micromamba/condarc
           cache-env: true
       - uses: hendrikmuhs/ccache-action@main
         with:
@@ -124,6 +123,7 @@ jobs:
           cmake .. -DBUILD_MICROMAMBA=ON \
                    -DBUILD_LIBMAMBA=ON \
                    -DBUILD_SHARED=ON \
+                   -DMICROMAMBA_LINKAGE=DYNAMIC \
                    -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                    -DCMAKE_C_COMPILER_LAUNCHER=sccache \
                    -GNinja

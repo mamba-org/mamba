@@ -1532,11 +1532,17 @@ namespace mamba
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
         transaction_classify(m_transaction, mode, classes.get());
-        const auto cls_end = classes.end();
-        for (auto cls_iter = classes.begin(); cls_iter < cls_end; cls_iter += 4)
+        for (std::size_t n_classes = classes.size(), i = 0; i < n_classes; i += 4)
         {
-            const Id cls = *cls_iter;
-            transaction_classify_pkgs(m_transaction, mode, cls, cls_iter[2], cls_iter[3], pkgs.get());
+            const Id cls = classes.at(i);
+            transaction_classify_pkgs(
+                m_transaction,
+                mode,
+                cls,
+                classes.at(i + 2),
+                classes.at(i + 3),
+                pkgs.get()
+            );
 
             for (const Id p : pkgs)
             {

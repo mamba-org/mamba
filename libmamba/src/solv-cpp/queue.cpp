@@ -8,8 +8,8 @@
 #include "solv-cpp/queue.hpp"
 
 #include <cassert>
-#include <limits>
 #include <exception>
+#include <limits>
 #include <sstream>
 
 #include <solv/queue.h>

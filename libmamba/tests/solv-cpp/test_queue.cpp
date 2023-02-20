@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <exception>
 #include <list>
 #include <vector>
-#include <exception>
 
 #include <gtest/gtest.h>
 

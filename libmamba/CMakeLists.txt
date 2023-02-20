@@ -419,7 +419,7 @@ macro(libmamba_create_target target_name linkage deps_linkage output_name)
                 reproc++
                 reproc
                 tl::expected
-                libpowerloader
+                libpowerloader-static
             )
 
             add_compile_definitions(

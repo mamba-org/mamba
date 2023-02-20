@@ -142,6 +142,21 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           set CMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows-static\;%CMAKE_PREFIX_PATH%
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: build static powerloader
+        shell: cmd /C CALL {0}
+        run: |
+          call micromamba activate build_env
+          git clone https://github.com/mamba-org/powerloader
+          cd powerloader
+          git checkout 0.5.5
+          cmake -D CMAKE_INSTALL_PREFIX=%VCPKG_ROOT%\installed\x64-windows-static ^
+            -D CMAKE_PREFIX_PATH="%VCPKG_ROOT%\installed\x64-windows-static;%CMAKE_PREFIX_PATH%" ^
+            -D WITH_ZCHUNK=ON ^
+            -D BUILD_STATIC=ON ^
+            -D BUILD_EXE=OFF ^
+            -D ENABLE_TESTS=OFF ^
+            -G "Ninja"
+          ninja install
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

@@ -3,12 +3,13 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
+#include "mamba/core/environments_manager.hpp"
+
 #include <set>
 #include <string>
 #include <vector>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/output.hpp"
@@ -50,7 +51,9 @@ namespace mamba
         for (auto& l : lines)
         {
             if (l == final_location_string)
+            {
                 return;
+            }
         }
 
         std::ofstream out = open_ofstream(env_txt_file, std::ios::app);
@@ -65,7 +68,10 @@ namespace mamba
             else
             {
                 throw std::system_error(
-                    errno, std::system_category(), "failed to open " + env_txt_file.string());
+                    errno,
+                    std::system_category(),
+                    "failed to open " + env_txt_file.string()
+                );
             }
         }
     }
@@ -149,20 +155,24 @@ namespace mamba
         return all_env_paths;
     }
 
-    std::set<std::string> EnvironmentsManager::clean_environments_txt(
-        const fs::u8path& env_txt_file, const fs::u8path& location)
+    std::set<std::string>
+    EnvironmentsManager::clean_environments_txt(const fs::u8path& env_txt_file, const fs::u8path& location)
     {
         if (!fs::exists(env_txt_file))
+        {
             return {};
+        }
 
         std::error_code fsabs_error;
-        fs::u8path abs_loc = fs::absolute(
-            location, fsabs_error);  // If it fails we just get the defaultly constructed path.
+        fs::u8path abs_loc = fs::absolute(location, fsabs_error);  // If it fails we just get the
+                                                                   // defaultly constructed path.
         if (fsabs_error && !location.empty())  // Ignore cases where we got an empty location.
         {
-            LOG_WARNING << fmt::format("Failed to get absolute path for location '{}' : {}",
-                                       location.string(),
-                                       fsabs_error.message());
+            LOG_WARNING << fmt::format(
+                "Failed to get absolute path for location '{}' : {}",
+                location.string(),
+                fsabs_error.message()
+            );
         }
 
         std::vector<std::string> lines = read_lines(env_txt_file);

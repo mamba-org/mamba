@@ -1,6 +1,6 @@
+#include <chrono>
 #include <sstream>
 #include <tuple>
-#include <chrono>
 
 #include <gtest/gtest.h>
 
@@ -137,18 +137,19 @@ namespace mamba
         }
         {
             MatchSpec ms(
-                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            );
             EXPECT_EQ(ms.name, "_libgcc_mutex");
             EXPECT_EQ(ms.version, "0.1");
             EXPECT_EQ(ms.build, "conda_forge");
             EXPECT_EQ(
                 ms.url,
-                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+                "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            );
             EXPECT_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
         {
-            MatchSpec ms(
-                "/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+            MatchSpec ms("/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
             EXPECT_EQ(ms.name, "_libgcc_mutex");
             EXPECT_EQ(ms.version, "0.1");
             EXPECT_EQ(ms.build, "conda_forge");
@@ -157,11 +158,13 @@ namespace mamba
             EXPECT_EQ(
                 ms.url,
                 std::string("file://") + driveletter
-                    + ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+                    + ":/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            );
 #else
             EXPECT_EQ(
                 ms.url,
-                "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
+                "file:///home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+            );
 #endif
             EXPECT_EQ(ms.fn, "_libgcc_mutex-0.1-conda_forge.tar.bz2");
         }
@@ -169,8 +172,10 @@ namespace mamba
             MatchSpec ms("xtensor[url=file:///home/wolfv/Downloads/"
                          "xtensor-0.21.4-hc9558a2_0.tar.bz2]");
             EXPECT_EQ(ms.name, "xtensor");
-            EXPECT_EQ(ms.brackets["url"],
-                      "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
+            EXPECT_EQ(
+                ms.brackets["url"],
+                "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2"
+            );
             EXPECT_EQ(ms.url, "file:///home/wolfv/Downloads/xtensor-0.21.4-hc9558a2_0.tar.bz2");
         }
         {
@@ -184,8 +189,8 @@ namespace mamba
             EXPECT_EQ(ms.str(), "foo==1.0=2[md5=123123123,license=BSD-3,fn='test 123.tar.bz2']");
         }
         {
-            MatchSpec ms(
-                "foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']");
+            MatchSpec ms("foo=1.0=2[md5=123123123, license=BSD-3, fn='test 123.tar.bz2', url='abcdef']"
+            );
             EXPECT_EQ(ms.conda_build_form(), "foo 1.0 2");
             EXPECT_EQ(ms.str(), "foo==1.0=2[url=abcdef,md5=123123123,license=BSD-3]");
         }
@@ -249,15 +254,17 @@ namespace mamba
         EXPECT_EQ(res, "http://root:*****@myweb.com/test.repo");
 
         res = Console::instance().hide_secrets(
-            "http://root:secretpassword@myweb.com/test.repo http://root:secretpassword@myweb.com/test.repo");
-        EXPECT_EQ(res,
-                  "http://root:*****@myweb.com/test.repo http://root:*****@myweb.com/test.repo");
+            "http://root:secretpassword@myweb.com/test.repo http://root:secretpassword@myweb.com/test.repo"
+        );
+        EXPECT_EQ(res, "http://root:*****@myweb.com/test.repo http://root:*****@myweb.com/test.repo");
 
         res = Console::instance().hide_secrets(
-            "http://root:secretpassword@myweb.com/test.repo\nhttp://myweb.com/t/my-12345-token/test.repo http://myweb.com/t/my-12345-token/test.repo http://root:secretpassword@myweb.com/test.repo");
+            "http://root:secretpassword@myweb.com/test.repo\nhttp://myweb.com/t/my-12345-token/test.repo http://myweb.com/t/my-12345-token/test.repo http://root:secretpassword@myweb.com/test.repo"
+        );
         EXPECT_EQ(
             res,
-            "http://root:*****@myweb.com/test.repo\nhttp://myweb.com/t/*****/test.repo http://myweb.com/t/*****/test.repo http://root:*****@myweb.com/test.repo");
+            "http://root:*****@myweb.com/test.repo\nhttp://myweb.com/t/*****/test.repo http://myweb.com/t/*****/test.repo http://root:*****@myweb.com/test.repo"
+        );
 
         res = Console::instance().hide_secrets("myweb.com/t/my-12345-token/test.repo");
         EXPECT_EQ(res, "myweb.com/t/*****/test.repo");
@@ -277,31 +284,37 @@ namespace mamba
 
         std::stringstream test_stream;
         test_stream << std::get<0>(params) << std::endl;
-        EXPECT_EQ(Console::instance().prompt("Test prompt", std::get<1>(params), test_stream),
-                  std::get<2>(params));
+        EXPECT_EQ(
+            Console::instance().prompt("Test prompt", std::get<1>(params), test_stream),
+            std::get<2>(params)
+        );
     }
 
-    INSTANTIATE_TEST_SUITE_P(output,
-                             OutputPromptTests,
-                             testing::Values(std::make_tuple("y", 'y', true),
-                                             std::make_tuple("yes", 'y', true),
-                                             std::make_tuple("Y", 'y', true),
-                                             std::make_tuple("Yes", 'y', true),
-                                             std::make_tuple("", 'y', true),
-                                             std::make_tuple("n", 'y', false),
-                                             std::make_tuple("no", 'y', false),
-                                             std::make_tuple("N", 'y', false),
-                                             std::make_tuple("No", 'y', false),
+    INSTANTIATE_TEST_SUITE_P(
+        output,
+        OutputPromptTests,
+        testing::Values(
+            std::make_tuple("y", 'y', true),
+            std::make_tuple("yes", 'y', true),
+            std::make_tuple("Y", 'y', true),
+            std::make_tuple("Yes", 'y', true),
+            std::make_tuple("", 'y', true),
+            std::make_tuple("n", 'y', false),
+            std::make_tuple("no", 'y', false),
+            std::make_tuple("N", 'y', false),
+            std::make_tuple("No", 'y', false),
 
-                                             std::make_tuple("y", 'n', true),
-                                             std::make_tuple("yes", 'n', true),
-                                             std::make_tuple("Y", 'n', true),
-                                             std::make_tuple("Yes", 'n', true),
-                                             std::make_tuple("", 'n', false),
-                                             std::make_tuple("n", 'n', false),
-                                             std::make_tuple("no", 'n', false),
-                                             std::make_tuple("N", 'n', false),
-                                             std::make_tuple("No", 'n', false)));
+            std::make_tuple("y", 'n', true),
+            std::make_tuple("yes", 'n', true),
+            std::make_tuple("Y", 'n', true),
+            std::make_tuple("Yes", 'n', true),
+            std::make_tuple("", 'n', false),
+            std::make_tuple("n", 'n', false),
+            std::make_tuple("no", 'n', false),
+            std::make_tuple("N", 'n', false),
+            std::make_tuple("No", 'n', false)
+        )
+    );
 
     TEST(context, env_name)
     {
@@ -363,35 +376,45 @@ namespace mamba
         if (!on_win)
         {
             std::string res = replace_long_shebang(
-                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
+                "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x"
+            );
             if (on_linux)
+            {
                 EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
+            }
             else
+            {
                 EXPECT_EQ(
                     res,
-                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x");
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong/python -o test -x"
+                );
+            }
 
             if (on_linux)
             {
                 res = replace_long_shebang(
-                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/python -o test -x");
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/python -o test -x"
+                );
                 EXPECT_EQ(res, "#!/usr/bin/env python -o test -x");
                 res = replace_long_shebang(
-                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x");
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt hon -o test -x"
+                );
                 EXPECT_EQ(res, "#!/usr/bin/env pyt hon -o test -x");
                 res = replace_long_shebang(
-                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+                    "#!/this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x"
+                );
                 EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
                 res = replace_long_shebang(
-                    "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x");
+                    "#! /this/is/loooooooooooooooooooooooooooooooooooooooooooooooooooo\\ oooooo\\ oooooo\\ oooooooooooooooooooooooooooooooooooong/pyt\\ hon -o test -x"
+                );
                 EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o test -x");
                 res = replace_long_shebang(
-                    "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo\\ \\ ooooooo\\ oooooo\\ oooooo\\ ooooooooooooooooo\\ ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x");
+                    "#!    /this/is/looooooooooooooooooooooooooooooooooooooooooooo\\ \\ ooooooo\\ oooooo\\ oooooo\\ ooooooooooooooooo\\ ooooooooooooooooooong/pyt\\ hon -o \"te  st\" -x"
+                );
                 EXPECT_EQ(res, "#!/usr/bin/env pyt\\ hon -o \"te  st\" -x");
             }
 
-            std::string shebang
-                = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
+            std::string shebang = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
             res = replace_long_shebang(shebang);
             EXPECT_EQ(res, "#!/usr/bin/env python -o test 123 -x");
             shebang = fmt::format("#!/{}/bin/python -o test 123 -x", std::string(500, 'a'));
@@ -577,10 +600,12 @@ namespace mamba
     std::chrono::system_clock::time_point filetime_to_unix_test(const fs::file_time_type& filetime)
     {
         // windows filetime is in 100ns intervals since 1601-01-01
-        constexpr static auto epoch_offset = std::chrono::seconds(11644473600ULL);
+        static constexpr auto epoch_offset = std::chrono::seconds(11644473600ULL);
         return std::chrono::system_clock::time_point(
             std::chrono::duration_cast<std::chrono::system_clock::duration>(
-                filetime.time_since_epoch() - epoch_offset));
+                filetime.time_since_epoch() - epoch_offset
+            )
+        );
     }
 #endif
 
@@ -595,19 +620,22 @@ namespace mamba
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
             j.url,
-            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+        );
 
         j = detail::read_metadata(cache_folder / "test_2.json").value();
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
             j.url,
-            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+        );
 
         j = detail::read_metadata(cache_folder / "test_5.json").value();
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
             j.url,
-            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+        );
 
         j = detail::read_metadata(cache_folder / "test_4.json").value();
         EXPECT_EQ(j.cache_control, "{{}}\",,,\"");
@@ -615,7 +643,8 @@ namespace mamba
         EXPECT_EQ(j.mod, "Fri, 11 Feb 2022 13:52:44 GMT");
         EXPECT_EQ(
             j.url,
-            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json");
+            "file:///Users/wolfvollprecht/Programs/mamba/mamba/tests/channel_a/linux-64/repodata.json"
+        );
 
         mq = detail::read_metadata(cache_folder / "test_3.json");
         EXPECT_TRUE(mq.has_value() == false);
@@ -630,8 +659,7 @@ namespace mamba
 
         {
 #ifdef _WIN32
-            auto file_mtime
-                = filetime_to_unix_test(fs::last_write_time(cache_folder / "test_7.json"));
+            auto file_mtime = filetime_to_unix_test(fs::last_write_time(cache_folder / "test_7.json"));
 #else
             auto file_mtime = fs::last_write_time(cache_folder / "test_7.json");
 #endif
@@ -641,7 +669,8 @@ namespace mamba
             auto jstate = nlohmann::json::parse(ifs);
             ifs.close();
             auto nsecs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                file_mtime.time_since_epoch());
+                file_mtime.time_since_epoch()
+            );
             jstate["mtime_ns"] = nsecs.count();
 
             auto file_size = fs::file_size(cache_folder / "test_7.json");

@@ -7,11 +7,11 @@
 #ifndef MAMBA_CORE_ENVIRONMENT_HPP
 #define MAMBA_CORE_ENVIRONMENT_HPP
 
-#include <map>
-#include <cstdlib>
 #include <cassert>
-#include <string_view>
+#include <cstdlib>
+#include <map>
 #include <optional>
+#include <string_view>
 
 #include "mamba_fs.hpp"
 
@@ -20,11 +20,11 @@
 #endif
 
 #ifndef _WIN32
-#include <sys/utsname.h>
-#include <wordexp.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <pwd.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <unistd.h>
+#include <wordexp.h>
 
 extern "C"
 {
@@ -36,7 +36,7 @@ namespace mamba
 {
     namespace env
     {
-        constexpr inline const char* pathsep()
+        inline constexpr const char* pathsep()
         {
 #ifdef _WIN32
             return ";";

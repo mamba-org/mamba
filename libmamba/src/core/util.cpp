@@ -6,54 +6,54 @@
 
 
 #if defined(__APPLE__) || defined(__linux__)
-#include <stdio.h>
-#include <unistd.h>
+#include <csignal>
+
 #include <fcntl.h>
 #include <pthread.h>
-
-#include <csignal>
+#include <stdio.h>
+#include <unistd.h>
 #endif
 
 #ifdef _WIN32
-#include <io.h>
-
 #include <cassert>
+
+#include <io.h>
 
 extern "C"
 {
+#include <fcntl.h>
 #include <io.h>
 #include <process.h>
 #include <sys/locking.h>
-#include <fcntl.h>
 }
 
 #endif
 
 #include <cerrno>
-#include <iomanip>
-#include <mutex>
 #include <condition_variable>
-#include <optional>
-#include <unordered_map>
-#include <memory>
 #include <cstring>
 #include <cwchar>
+#include <iomanip>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <unordered_map>
 
 #include <openssl/evp.h>
 
-#include "mamba/core/environment.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/util.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/thread_utils.hpp"
+#include "mamba/core/environment.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/fsutil.hpp"
+#include "mamba/core/invoke.hpp"
+#include "mamba/core/output.hpp"
+#include "mamba/core/shell_init.hpp"
+#include "mamba/core/thread_utils.hpp"
+#include "mamba/core/url.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_compare.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
-#include "mamba/core/fsutil.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/shell_init.hpp"
-#include "mamba/core/invoke.hpp"
-#include "mamba/core/util_compare.hpp"
 
 namespace mamba
 {
@@ -127,8 +127,10 @@ namespace mamba
 #else
         const std::string template_path = (fs::temp_directory_path() / "mambadXXXXXX").string();
         // include \0 terminator
-        auto err [[maybe_unused]]
-        = _mktemp_s(const_cast<char*>(template_path.c_str()), template_path.size() + 1);
+        auto err [[maybe_unused]] = _mktemp_s(
+            const_cast<char*>(template_path.c_str()),
+            template_path.size() + 1
+        );
         assert(err == 0);
         success = fs::create_directory(template_path);
 #endif
@@ -160,9 +162,11 @@ namespace mamba
         return m_path;
     }
 
-    TemporaryFile::TemporaryFile(const std::string& prefix,
-                                 const std::string& suffix,
-                                 const std::optional<fs::u8path>& dir)
+    TemporaryFile::TemporaryFile(
+        const std::string& prefix,
+        const std::string& suffix,
+        const std::optional<fs::u8path>& dir
+    )
     {
         static std::mutex file_creation_mutex;
 
@@ -237,7 +241,9 @@ namespace mamba
         for (auto& s : str)
         {
             if (starts_with(s, prefix))
+            {
                 return true;
+            }
         }
         return false;
     }
@@ -247,7 +253,9 @@ namespace mamba
         for (auto& p : prefix)
         {
             if (starts_with(str, p))
+            {
                 return true;
+            }
         }
         return false;
     }
@@ -295,12 +303,13 @@ namespace mamba
         return end == std::string::npos ? "" : input.substr(0, end + 1);
     }
 
-    std::vector<std::string> rsplit(const std::string_view& input,
-                                    const std::string_view& sep,
-                                    std::size_t max_split)
+    std::vector<std::string>
+    rsplit(const std::string_view& input, const std::string_view& sep, std::size_t max_split)
     {
         if (max_split == SIZE_MAX)
+        {
             return split(input, sep, max_split);
+        }
 
         std::vector<std::string> result;
 
@@ -375,7 +384,11 @@ namespace mamba
     {
         std::string res(input);
         std::transform(
-            res.begin(), res.end(), res.begin(), [&](unsigned char c) { return functor(c); });
+            res.begin(),
+            res.end(),
+            res.begin(),
+            [&](unsigned char c) { return functor(c); }
+        );
         return res;
     }
 
@@ -406,7 +419,10 @@ namespace mamba
         else
         {
             throw std::system_error(
-                errno, std::system_category(), "failed to open " + file_path.string());
+                errno,
+                std::system_category(),
+                "failed to open " + file_path.string()
+            );
         }
     }
 
@@ -416,7 +432,10 @@ namespace mamba
         if (file_stream.fail())
         {
             throw std::system_error(
-                errno, std::system_category(), "failed to open " + file_path.string());
+                errno,
+                std::system_category(),
+                "failed to open " + file_path.string()
+            );
         }
 
         std::vector<std::string> output;
@@ -425,7 +444,9 @@ namespace mamba
         {
             // Remove the trailing \r to accomodate Windows line endings.
             if ((!line.empty()) && (line.back() == '\r'))
+            {
                 line.pop_back();
+            }
 
             output.push_back(line);
         }
@@ -572,7 +593,9 @@ namespace mamba
             };
 
             if (arguments.empty())
+            {
                 return "";
+            }
 
             std::string argstring;
             argstring += quote_arg(arguments[0]);
@@ -646,8 +669,10 @@ namespace mamba
         }
         else
         {
-            auto trash_out_file
-                = open_ofstream(trash_txt, std::ios::out | std::ios::binary | std::ios::trunc);
+            auto trash_out_file = open_ofstream(
+                trash_txt,
+                std::ios::out | std::ios::binary | std::ios::trunc
+            );
             for (auto& rf : remaining_files)
             {
                 trash_out_file << rf.string() << "\n";
@@ -692,32 +717,31 @@ namespace mamba
                 fs::u8path trash_file = path;
                 std::size_t fcounter = 0;
 
-                trash_file.replace_extension(
-                    concat(trash_file.extension().string(), ".mamba_trash"));
+                trash_file.replace_extension(concat(trash_file.extension().string(), ".mamba_trash"));
                 while (lexists(trash_file))
                 {
                     trash_file = path;
-                    trash_file.replace_extension(concat(
-                        trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash"));
+                    trash_file.replace_extension(
+                        concat(trash_file.extension().string(), std::to_string(fcounter), ".mamba_trash")
+                    );
                     fcounter += 1;
                     if (fcounter > 100)
                     {
-                        throw std::runtime_error(
-                            "Too many existing trash files. Please force clean");
+                        throw std::runtime_error("Too many existing trash files. Please force clean");
                     }
                 }
                 fs::rename(path, trash_file, ec);
                 if (!ec)
                 {
                     // The conda-meta directory is locked by transaction execute
-                    auto trash_index = open_ofstream(Context::instance().target_prefix
-                                                         / "conda-meta" / "mamba_trash.txt",
-                                                     std::ios::app | std::ios::binary);
+                    auto trash_index = open_ofstream(
+                        Context::instance().target_prefix / "conda-meta" / "mamba_trash.txt",
+                        std::ios::app | std::ios::binary
+                    );
 
                     // TODO add some unicode tests here?
-                    trash_index
-                        << fs::relative(trash_file, Context::instance().target_prefix).string()
-                        << "\n";
+                    trash_index << fs::relative(trash_file, Context::instance().target_prefix).string()
+                                << "\n";
                     return 1;
                 }
 
@@ -726,7 +750,9 @@ namespace mamba
                 LOG_ERROR << "Trying to remove " << path << ": " << ec.message()
                           << " (file in use?). Sleeping for " << counter * 2 << "s";
                 if (counter > 3)
+                {
                     throw std::runtime_error(concat("Could not delete file ", path.string()));
+                }
                 std::this_thread::sleep_for(std::chrono::seconds(counter * 2));
             }
         }
@@ -737,10 +763,14 @@ namespace mamba
     {
         std::string result;
         if (*p == '\n')
+        {
             ++p;
+        }
         const char* p_leading = p;
         while (std::isspace(*p) && *p != '\n')
+        {
             ++p;
+        }
         size_t leading_len = p - p_leading;
         while (*p)
         {
@@ -748,8 +778,12 @@ namespace mamba
             if (*p++ == '\n')
             {
                 for (size_t i = 0; i < leading_len; ++i)
+                {
                     if (p[i] != p_leading[i])
+                    {
                         goto dont_skip_leading;
+                    }
+                }
                 p += leading_len;
             }
         dont_skip_leading:;
@@ -782,6 +816,7 @@ namespace mamba
     class LockFileOwner
     {
     public:
+
         explicit LockFileOwner(const fs::u8path& file_path, const std::chrono::seconds timeout);
         ~LockFileOwner();
 
@@ -815,6 +850,7 @@ namespace mamba
         }
 
     private:
+
         fs::u8path m_path;
         fs::u8path m_lockfile_path;
         std::chrono::seconds m_timeout;
@@ -825,8 +861,10 @@ namespace mamba
         template <typename Func = no_op>
         void throw_lock_error(std::string error_message, Func before_throw_task = no_op{}) const
         {
-            auto complete_error_message = fmt::format("LockFile acquisition failed, aborting: {}",
-                                                      std::move(error_message));
+            auto complete_error_message = fmt::format(
+                "LockFile acquisition failed, aborting: {}",
+                std::move(error_message)
+            );
             LOG_ERROR << error_message;
             safe_invoke(before_throw_task)
                 .map_error([](const auto& error)
@@ -865,8 +903,10 @@ namespace mamba
 #endif
         if (m_fd <= 0)
         {
-            throw_lock_error(fmt::format("Could not open lockfile '{}'", m_lockfile_path.string()),
-                             [this] { unlock(); });
+            throw_lock_error(
+                fmt::format("Could not open lockfile '{}'", m_lockfile_path.string()),
+                [this] { unlock(); }
+            );
         }
         else
         {
@@ -886,11 +926,14 @@ namespace mamba
             else
             {
                 throw_lock_error(
-                    fmt::format("LockFile can't be set at '{}'\n"
-                                "This could be fixed by changing the locks' timeout or "
-                                "cleaning your environment from previous runs",
-                                m_path.string()),
-                    [this] { unlock(); });
+                    fmt::format(
+                        "LockFile can't be set at '{}'\n"
+                        "This could be fixed by changing the locks' timeout or "
+                        "cleaning your environment from previous runs",
+                        m_path.string()
+                    ),
+                    [this] { unlock(); }
+                );
             }
         }
     }
@@ -957,7 +1000,8 @@ namespace mamba
             {
                 ret = fcntl(fd, F_SETLKW, &lock);
                 cv.notify_one();
-            });
+            }
+        );
 
         auto th = t.native_handle();
 
@@ -972,7 +1016,8 @@ namespace mamba
                 ret = -1;
                 cv.notify_one();
                 return signum;
-            });
+            }
+        );
 
         MainExecutor::instance().take_ownership(t.extract());
 
@@ -1002,22 +1047,28 @@ namespace mamba
         if (blocking)
         {
             static constexpr auto default_timeout = std::chrono::seconds(30);
-            const auto timeout
-                = m_timeout > std::chrono::seconds::zero() ? m_timeout : default_timeout;
+            const auto timeout = m_timeout > std::chrono::seconds::zero() ? m_timeout
+                                                                          : default_timeout;
             const auto begin_time = std::chrono::system_clock::now();
             while ((std::chrono::system_clock::now() - begin_time) < timeout)
             {
                 ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
                 if (ret == 0)
+                {
                     break;
+                }
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
 
             if (ret != 0)
+            {
                 errno = EINTR;
+            }
         }
         else
+        {
             ret = _locking(m_fd, LK_NBLCK, 1 /*lock_file_contents_length()*/);
+        }
 #else
         struct flock lock;
         lock.l_type = F_WRLCK;
@@ -1028,12 +1079,18 @@ namespace mamba
         if (blocking)
         {
             if (m_timeout.count())
+            {
                 ret = timedout_set_fd_lock(m_fd, lock, m_timeout);
+            }
             else
+            {
                 ret = fcntl(m_fd, F_SETLKW, &lock);
+            }
         }
         else
+        {
             ret = fcntl(m_fd, F_SETLK, &lock);
+        }
 #endif
         return ret == 0;
     }
@@ -1075,6 +1132,7 @@ namespace mamba
         class LockedFilesRegistry
         {
         public:
+
             LockedFilesRegistry() = default;
             LockedFilesRegistry(LockedFilesRegistry&&) = delete;
             LockedFilesRegistry(const LockedFilesRegistry&) = delete;
@@ -1082,8 +1140,8 @@ namespace mamba
             LockedFilesRegistry& operator=(const LockedFilesRegistry&) = delete;
 
 
-            tl::expected<std::shared_ptr<LockFileOwner>, mamba_error> acquire_lock(
-                const fs::u8path& file_path, const std::chrono::seconds timeout)
+            tl::expected<std::shared_ptr<LockFileOwner>, mamba_error>
+            acquire_lock(const fs::u8path& file_path, const std::chrono::seconds timeout)
             {
                 if (!Context::instance().use_lockfiles)
                 {
@@ -1108,14 +1166,14 @@ namespace mamba
                 return safe_invoke(
                     [&]
                     {
-                        auto lockedfile
-                            = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
+                        auto lockedfile = std::make_shared<LockFileOwner>(absolute_file_path, timeout);
                         auto tracker = std::weak_ptr{ lockedfile };
                         locked_files.insert_or_assign(absolute_file_path, std::move(tracker));
                         fd_to_locked_path.insert_or_assign(lockedfile->fd(), absolute_file_path);
                         assert(is_lockfile_locked(*lockedfile));
                         return lockedfile;
-                    });
+                    }
+                );
             }
 
             // note: the resulting value will be obsolete before returning.
@@ -1125,9 +1183,13 @@ namespace mamba
                 std::scoped_lock lock{ mutex };
                 auto it = locked_files.find(file_path);
                 if (it != locked_files.end())
+                {
                     return !it->second.expired();
+                }
                 else
+                {
                     return false;
+                }
             }
 
             // note: the resulting value will be obsolete before returning.
@@ -1136,23 +1198,36 @@ namespace mamba
                 std::scoped_lock lock{ mutex };
                 const auto it = fd_to_locked_path.find(fd);
                 if (it != fd_to_locked_path.end())
+                {
                     return is_locked(it->second);
+                }
                 else
+                {
                     return false;
+                }
             }
 
         private:
+
             // TODO: replace by something like boost::multiindex or equivalent to avoid having to
             // handle 2 hashmaps
-            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>>
-                locked_files;  // TODO: consider replacing by real concurrent set to avoid having to
-                               // lock the whole container
+            std::unordered_map<fs::u8path, std::weak_ptr<LockFileOwner>> locked_files;  // TODO:
+                                                                                        // consider
+                                                                                        // replacing
+                                                                                        // by real
+                                                                                        // concurrent
+                                                                                        // set to
+                                                                                        // avoid
+                                                                                        // having to
+                                                                                        // lock the
+                                                                                        // whole
+                                                                                        // container
 
-            std::unordered_map<int, fs::u8path>
-                fd_to_locked_path;  // this is a workaround the usage of file descriptors on linux
-                                    // instead of paths
-            mutable std::recursive_mutex
-                mutex;  // TODO: replace by synchronized_value once available
+            std::unordered_map<int, fs::u8path> fd_to_locked_path;  // this is a workaround the
+                                                                    // usage of file descriptors on
+                                                                    // linux instead of paths
+            mutable std::recursive_mutex mutex;  // TODO: replace by synchronized_value once
+                                                 // available
         };
 
         static LockedFilesRegistry files_locked_by_this_process;
@@ -1206,11 +1281,12 @@ namespace mamba
         if (fd == -1)
         {
             if (errno == EACCES)
+            {
                 return true;
+            }
 
             // In other cases, something is wrong.
-            throw mamba_error{ fmt::format("failed to check if path is locked : '{}'",
-                                           path.string()),
+            throw mamba_error{ fmt::format("failed to check if path is locked : '{}'", path.string()),
                                mamba_error_code::lockfile_failure };
         }
         _lseek(fd, MAMBA_LOCK_POS, SEEK_SET);
@@ -1241,7 +1317,9 @@ namespace mamba
         // Here we replaced the pid check by tracking internally if we did or not lock
         // the file.
         if (files_locked_by_this_process.is_locked(fd))
+        {
             return true;
+        }
 
         const auto this_process_pid = getpid();
 
@@ -1253,8 +1331,10 @@ namespace mamba
         auto result = fcntl(fd, F_GETLK, &lock);
 
         if ((lock.l_type == F_UNLCK) && (this_process_pid != lock.l_pid))
+        {
             LOG_ERROR << "LockFile file has wrong owner PID " << this_process_pid << ", actual is "
                       << lock.l_pid;
+        }
 
         return lock.l_type != F_UNLCK && result != -1;
     }
@@ -1286,14 +1366,16 @@ namespace mamba
         error_code = 0;
         struct std::tm tt = { 0 };
 
-        if (sscanf(timestamp.data(),
-                   "%04d-%02d-%02dT%02d:%02d:%02dZ",
-                   &tt.tm_year,
-                   &tt.tm_mon,
-                   &tt.tm_mday,
-                   &tt.tm_hour,
-                   &tt.tm_min,
-                   &tt.tm_sec)
+        if (sscanf(
+                timestamp.data(),
+                "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                &tt.tm_year,
+                &tt.tm_mon,
+                &tt.tm_mday,
+                &tt.tm_hour,
+                &tt.tm_min,
+                &tt.tm_sec
+            )
             != 6)
         {
             error_code = 1;
@@ -1324,12 +1406,10 @@ namespace mamba
         std::string cmd_exe = env::get("COMSPEC").value_or("");
         if (!ends_with(to_lower(cmd_exe), "cmd.exe"))
         {
-            cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe")
-                          .string();
+            cmd_exe = (fs::u8path(env::get("SystemRoot").value_or("")) / "System32" / "cmd.exe").string();
             if (!fs::is_regular_file(cmd_exe))
             {
-                cmd_exe = (fs::u8path(env::get("windir").value_or("")) / "System32" / "cmd.exe")
-                              .string();
+                cmd_exe = (fs::u8path(env::get("windir").value_or("")) / "System32" / "cmd.exe").string();
             }
             if (!fs::is_regular_file(cmd_exe))
             {
@@ -1368,11 +1448,13 @@ namespace mamba
     }
 
 
-    std::unique_ptr<TemporaryFile> wrap_call(const fs::u8path& root_prefix,
-                                             const fs::u8path& prefix,
-                                             bool dev_mode,
-                                             bool debug_wrapper_scripts,
-                                             const std::vector<std::string>& arguments)
+    std::unique_ptr<TemporaryFile> wrap_call(
+        const fs::u8path& root_prefix,
+        const fs::u8path& prefix,
+        bool dev_mode,
+        bool debug_wrapper_scripts,
+        const std::vector<std::string>& arguments
+    )
     {
         // todo add abspath here
         fs::u8path tmp_prefix = prefix / ".tmp";
@@ -1388,8 +1470,7 @@ namespace mamba
 
         if (dev_mode)
         {
-            conda_bat
-                = (fs::u8path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
+            conda_bat = (fs::u8path(CONDA_PACKAGE_ROOT) / "shell" / "condabin" / "conda.bat").string();
         }
         else
         {
@@ -1520,8 +1601,8 @@ namespace mamba
         return tf;
     }
 
-    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>> prepare_wrapped_call(
-        const fs::u8path& prefix, const std::vector<std::string>& cmd)
+    std::tuple<std::vector<std::string>, std::unique_ptr<TemporaryFile>>
+    prepare_wrapped_call(const fs::u8path& prefix, const std::vector<std::string>& cmd)
     {
         std::vector<std::string> command_args;
         std::unique_ptr<TemporaryFile> script_file;
@@ -1532,12 +1613,16 @@ namespace mamba
             auto comspec = env::get("COMSPEC");
             if (!comspec)
             {
-                throw std::runtime_error(
-                    concat("Failed to run script: COMSPEC not set in env vars."));
+                throw std::runtime_error(concat("Failed to run script: COMSPEC not set in env vars."));
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+                Context::instance().root_prefix,
+                prefix,
+                Context::instance().dev,
+                false,
+                cmd
+            );
 
             command_args = { comspec.value(), "/D", "/C", script_file->path().string() };
         }
@@ -1556,7 +1641,12 @@ namespace mamba
             }
 
             script_file = wrap_call(
-                Context::instance().root_prefix, prefix, Context::instance().dev, false, cmd);
+                Context::instance().root_prefix,
+                prefix,
+                Context::instance().dev,
+                false,
+                cmd
+            );
             command_args.push_back(shell_path.string());
             command_args.push_back(script_file->path().string());
         }
@@ -1567,13 +1657,15 @@ namespace mamba
     {
         const auto pl = 4 * ((input.size() + 2) / 3);
         std::vector<unsigned char> output(pl + 1);
-        const auto ol
-            = EVP_EncodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
+        const auto ol = EVP_EncodeBlock(
+            output.data(),
+            (const unsigned char*) input.data(),
+            input.size()
+        );
 
         if (util::cmp_not_equal(pl, ol))
         {
-            return make_unexpected("Could not encode base64 string",
-                                   mamba_error_code::openssl_failed);
+            return make_unexpected("Could not encode base64 string", mamba_error_code::openssl_failed);
         }
 
         return std::string((const char*) output.data());
@@ -1584,12 +1676,14 @@ namespace mamba
         const auto pl = 3 * input.size() / 4;
 
         std::vector<unsigned char> output(pl + 1);
-        const auto ol
-            = EVP_DecodeBlock(output.data(), (const unsigned char*) input.data(), input.size());
+        const auto ol = EVP_DecodeBlock(
+            output.data(),
+            (const unsigned char*) input.data(),
+            input.size()
+        );
         if (util::cmp_not_equal(pl, ol))
         {
-            return make_unexpected("Could not decode base64 string",
-                                   mamba_error_code::openssl_failed);
+            return make_unexpected("Could not decode base64 string", mamba_error_code::openssl_failed);
         }
 
         return std::string((const char*) output.data());

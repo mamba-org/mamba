@@ -7,18 +7,18 @@
 #ifndef MAMBA_CORE_SOLVER_HPP
 #define MAMBA_CORE_SOLVER_HPP
 
-#include <string>
 #include <iosfwd>
+#include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
-#include <optional>
-#include <memory>
 
 #include <solv/queue.h>
 #include <solv/solver.h>
 
-#include "mamba/core/pool.hpp"
 #include "mamba/core/package_info.hpp"
+#include "mamba/core/pool.hpp"
 
 #include "match_spec.hpp"
 
@@ -29,7 +29,7 @@
 namespace mamba
 {
 
-    char const* solver_ruleinfo_name(SolverRuleinfo rule);
+    const char* solver_ruleinfo_name(SolverRuleinfo rule);
 
     struct MSolverProblem
     {
@@ -46,6 +46,7 @@ namespace mamba
     class MSolver
     {
     public:
+
         MSolver(MPool pool, std::vector<std::pair<int, int>> flags = {});
         ~MSolver() = default;
 
@@ -72,7 +73,7 @@ namespace mamba
         std::ostream& explain_problems(std::ostream& out) const;
         [[nodiscard]] std::string explain_problems() const;
 
-        [[nodiscard]] MPool const& pool() const&;
+        [[nodiscard]] const MPool& pool() const&;
         [[nodiscard]] MPool& pool() &;
         [[nodiscard]] MPool&& pool() &&;
 
@@ -89,6 +90,7 @@ namespace mamba
         bool force_reinstall = false;
 
     private:
+
         void add_channel_specific_job(const MatchSpec& ms, int job_flag);
         void add_reinstall_job(MatchSpec& ms, int job_flag);
 

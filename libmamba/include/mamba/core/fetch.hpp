@@ -15,8 +15,9 @@ extern "C"
 
 #include <string>
 #include <vector>
-#include <zstd.h>
+
 #include <bzlib.h>
+#include <zstd.h>
 
 #include "progress_bar.hpp"
 #include "validate.hpp"
@@ -27,7 +28,7 @@ namespace mamba
 
     struct ZstdStream
     {
-        constexpr static size_t BUFFER_SIZE = 256000;
+        static constexpr size_t BUFFER_SIZE = 256000;
         ZstdStream(curl_write_callback write_callback, void* write_callback_data)
             : stream(ZSTD_createDCtx())
             , m_write_callback(write_callback)
@@ -58,7 +59,7 @@ namespace mamba
 
     struct Bzip2Stream
     {
-        constexpr static size_t BUFFER_SIZE = 256000;
+        static constexpr size_t BUFFER_SIZE = 256000;
 
         Bzip2Stream(curl_write_callback write_callback, void* write_callback_data)
             : m_write_callback(write_callback)
@@ -100,10 +101,9 @@ namespace mamba
     class DownloadTarget
     {
     public:
+
         DownloadTarget() = default;
-        DownloadTarget(const std::string& name,
-                       const std::string& url,
-                       const std::string& filename);
+        DownloadTarget(const std::string& name, const std::string& url, const std::string& filename);
         ~DownloadTarget();
 
         DownloadTarget(const DownloadTarget&) = delete;
@@ -116,7 +116,12 @@ namespace mamba
         static size_t header_callback(char* buffer, size_t size, size_t nitems, void* self);
 
         static int progress_callback(
-            void*, curl_off_t total_to_download, curl_off_t now_downloaded, curl_off_t, curl_off_t);
+            void*,
+            curl_off_t total_to_download,
+            curl_off_t now_downloaded,
+            curl_off_t,
+            curl_off_t
+        );
         void set_mod_etag_headers(const std::string& mod, const std::string& etag);
         void set_progress_bar(ProgressProxy progress_proxy);
         void set_expected_size(std::size_t size);
@@ -174,6 +179,7 @@ namespace mamba
         std::string etag, mod, cache_control;
 
     private:
+
         std::unique_ptr<ZstdStream> m_zstd_stream;
         std::unique_ptr<Bzip2Stream> m_bzip2_stream;
         std::function<bool(const DownloadTarget&)> m_finalize_callback;
@@ -209,6 +215,7 @@ namespace mamba
     class MultiDownloadTarget
     {
     public:
+
         MultiDownloadTarget();
         ~MultiDownloadTarget();
 
@@ -217,6 +224,7 @@ namespace mamba
         bool download(int options);
 
     private:
+
         std::vector<DownloadTarget*> m_targets;
         std::vector<DownloadTarget*> m_retry_targets;
         CURLM* m_handle;

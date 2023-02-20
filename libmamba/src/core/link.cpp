@@ -4,24 +4,25 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/link.hpp"
+
+#include <iostream>
 #include <regex>
 #include <string>
 #include <tuple>
 #include <vector>
-#include <iostream>
 
-#include <reproc++/run.hpp>
 #include <reproc++/reproc.hpp>
+#include <reproc++/run.hpp>
 
 #include "mamba/core/environment.hpp"
-#include "mamba/core/menuinst.hpp"
-#include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
+#include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/transaction_context.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/validate.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/core/validate.hpp"
 
 #if _WIN32
 #include "../data/conda_exe.hpp"
@@ -46,8 +47,7 @@ namespace mamba
         out << "    sys.exit(" << p.func << "())\n";
     }
 
-    void application_entry_point_template(std::ostream& out,
-                                          const std::string_view& source_full_path)
+    void application_entry_point_template(std::ostream& out, const std::string_view& source_full_path)
     {
         out << "# -*- coding: utf-8 -*-\n";
         out << "if __name__ == '__main__':\n";
@@ -135,8 +135,10 @@ namespace mamba
     }
 
     // for noarch python packages that have entry points
-    auto LinkPackage::create_python_entry_point(const fs::u8path& path,
-                                                const python_entry_point_parsed& entry_point)
+    auto LinkPackage::create_python_entry_point(
+        const fs::u8path& path,
+        const python_entry_point_parsed& entry_point
+    )
     {
 #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will
@@ -148,8 +150,7 @@ namespace mamba
 #endif
         if (fs::exists(script_path))
         {
-            m_clobber_warnings.push_back(
-                fs::relative(script_path, m_context->target_prefix).string());
+            m_clobber_warnings.push_back(fs::relative(script_path, m_context->target_prefix).string());
             fs::remove(script_path);
         }
         std::ofstream out_file = open_ofstream(script_path);
@@ -177,8 +178,10 @@ namespace mamba
             fs::remove(m_context->target_prefix / script_exe);
         }
 
-        std::ofstream conda_exe_f
-            = open_ofstream(m_context->target_prefix / script_exe, std::ios::binary);
+        std::ofstream conda_exe_f = open_ofstream(
+            m_context->target_prefix / script_exe,
+            std::ios::binary
+        );
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
         make_executable(m_context->target_prefix / script_exe);
@@ -226,9 +229,11 @@ namespace mamba
 #endif
     }
 
-    void LinkPackage::create_application_entry_point(const fs::u8path& source_full_path,
-                                                     const fs::u8path& target_full_path,
-                                                     const fs::u8path& python_full_path)
+    void LinkPackage::create_application_entry_point(
+        const fs::u8path& source_full_path,
+        const fs::u8path& target_full_path,
+        const fs::u8path& python_full_path
+    )
     {
         // source_full_path: where the entry point file points to
         // target_full_path: the location of the new entry point file being created
@@ -244,8 +249,7 @@ namespace mamba
 
         std::ofstream out_file = open_ofstream(target_full_path);
         out_file << "!#" << python_full_path.string() << "\n";
-        application_entry_point_template(out_file,
-                                         win_path_double_escape(source_full_path.string()));
+        application_entry_point_template(out_file, win_path_double_escape(source_full_path.string()));
         out_file.close();
 
         make_executable(target_full_path);
@@ -283,9 +287,11 @@ namespace mamba
             {
                 std::ifstream msgs = open_ifstream(messages_file);
                 std::stringstream res;
-                std::copy(std::istreambuf_iterator<char>(msgs),
-                          std::istreambuf_iterator<char>(),
-                          std::ostreambuf_iterator<char>(res));
+                std::copy(
+                    std::istreambuf_iterator<char>(msgs),
+                    std::istreambuf_iterator<char>(),
+                    std::ostreambuf_iterator<char>(res)
+                );
                 return res.str();
             }
             catch (...)
@@ -301,11 +307,13 @@ namespace mamba
        call the post-link or pre-unlink script and return true / false on success /
        failure
     */
-    bool run_script(const fs::u8path& prefix,
-                    const PackageInfo& pkg_info,
-                    const std::string& action = "post-link",
-                    const std::string& env_prefix = "",
-                    bool activate = false)
+    bool run_script(
+        const fs::u8path& prefix,
+        const PackageInfo& pkg_info,
+        const std::string& action = "post-link",
+        const std::string& env_prefix = "",
+        bool activate = false
+    )
     {
         fs::u8path path;
         if (on_win)
@@ -351,11 +359,13 @@ namespace mamba
 
             if (activate)
             {
-                script_file = wrap_call(Context::instance().root_prefix,
-                                        prefix,
-                                        Context::instance().dev,
-                                        false,
-                                        { "@CALL", path.string() });
+                script_file = wrap_call(
+                    Context::instance().root_prefix,
+                    prefix,
+                    Context::instance().dev,
+                    false,
+                    { "@CALL", path.string() }
+                );
 
                 command_args = { comspec.value(), "/d", "/c", script_file->path().string() };
             }
@@ -377,11 +387,13 @@ namespace mamba
             if (activate)
             {
                 // std::string caller
-                script_file = wrap_call(Context::instance().root_prefix.string(),
-                                        prefix,
-                                        Context::instance().dev,
-                                        false,
-                                        { ".", path.string() });
+                script_file = wrap_call(
+                    Context::instance().root_prefix.string(),
+                    prefix,
+                    Context::instance().dev,
+                    false,
+                    { ".", path.string() }
+                );
                 command_args.push_back(shell_path.string());
                 command_args.push_back(script_file->path().string());
             }
@@ -450,9 +462,11 @@ namespace mamba
         return true;
     }
 
-    UnlinkPackage::UnlinkPackage(const PackageInfo& pkg_info,
-                                 const fs::u8path& cache_path,
-                                 TransactionContext* context)
+    UnlinkPackage::UnlinkPackage(
+        const PackageInfo& pkg_info,
+        const fs::u8path& cache_path,
+        TransactionContext* context
+    )
         : m_pkg_info(pkg_info)
         , m_cache_path(cache_path)
         , m_specifier(m_pkg_info.str())
@@ -469,7 +483,9 @@ namespace mamba
         std::error_code err;
 
         if (remove_or_rename(dst) == 0)
+        {
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
+        }
 
         // TODO what do we do with empty directories?
         // remove empty parent path
@@ -478,12 +494,16 @@ namespace mamba
         {
             bool exists = fs::exists(parent_path, err);
             if (err)
+            {
                 break;
+            }
             if (exists)
             {
                 bool is_empty = fs::is_empty(parent_path, err);
                 if (err)
+                {
                     break;
+                }
                 if (is_empty)
                 {
                     remove_or_rename(parent_path);
@@ -537,9 +557,11 @@ namespace mamba
         return lp.execute();
     }
 
-    LinkPackage::LinkPackage(const PackageInfo& pkg_info,
-                             const fs::u8path& cache_path,
-                             TransactionContext* context)
+    LinkPackage::LinkPackage(
+        const PackageInfo& pkg_info,
+        const fs::u8path& cache_path,
+        TransactionContext* context
+    )
         : m_pkg_info(pkg_info)
         , m_cache_path(cache_path)
         , m_source(cache_path / m_pkg_info.str())
@@ -547,8 +569,8 @@ namespace mamba
     {
     }
 
-    std::tuple<std::string, std::string> LinkPackage::link_path(const PathData& path_data,
-                                                                bool noarch_python)
+    std::tuple<std::string, std::string>
+    LinkPackage::link_path(const PathData& path_data, bool noarch_python)
     {
         std::string subtarget = path_data.path;
         LOG_TRACE << "linking '" << subtarget << "'";
@@ -627,8 +649,8 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
 
 #ifdef _WIN32
-                auto has_pyzzer_entrypoint
-                    = [](const std::string& data) { return data.rfind("PK\x05\x06"); };
+                auto has_pyzzer_entrypoint = [](const std::string& data)
+                { return data.rfind("PK\x05\x06"); };
 
                 // on win we only replace pyzzer entrypoints apparently
                 auto entry_point = has_pyzzer_entrypoint(buffer);
@@ -642,10 +664,11 @@ namespace mamba
                 if (entry_point != std::string::npos)
                 {
                     std::string launcher, shebang;
-                    pyzzer_entry
-                        = *reinterpret_cast<const pyzzer_struct*>(buffer.c_str() + entry_point);
-                    std::size_t arc_pos
-                        = entry_point - pyzzer_entry.cdr_size - pyzzer_entry.cdr_offset;
+                    pyzzer_entry = *reinterpret_cast<const pyzzer_struct*>(
+                        buffer.c_str() + entry_point
+                    );
+                    std::size_t arc_pos = entry_point - pyzzer_entry.cdr_size
+                                          - pyzzer_entry.cdr_offset;
 
                     if (arc_pos > 0)
                     {
@@ -670,10 +693,10 @@ namespace mamba
                     return std::make_tuple(validate::sha256sum(dst), rel_dst.string());
                 }
 #else
-                std::size_t padding_size
-                    = (path_data.prefix_placeholder.size() > new_prefix.size())
-                          ? path_data.prefix_placeholder.size() - new_prefix.size()
-                          : 0;
+                std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())
+                                               ? path_data.prefix_placeholder.size()
+                                                     - new_prefix.size()
+                                               : 0;
                 std::string padding(padding_size, '\0');
 
                 std::size_t pos = buffer.find(path_data.prefix_placeholder);
@@ -706,7 +729,9 @@ namespace mamba
             std::error_code ec;
             fs::permissions(dst, fs::status(src).permissions(), ec);
             if (ec)
+            {
                 LOG_WARNING << "Could not set permissions on [" << dst << "]: " << ec.message();
+            }
 
 #if defined(__APPLE__)
             if (binary_changed && m_pkg_info.subdir == "osx-arm64")
@@ -770,18 +795,23 @@ namespace mamba
         }
         else
         {
-            throw std::runtime_error(std::string("Path type not implemented: ")
-                                     + std::to_string(static_cast<int>(path_data.path_type)));
+            throw std::runtime_error(
+                std::string("Path type not implemented: ")
+                + std::to_string(static_cast<int>(path_data.path_type))
+            );
         }
-        return std::make_tuple(path_data.sha256.empty() ? validate::sha256sum(dst)
-                                                        : path_data.sha256,
-                               rel_dst.string());
+        return std::make_tuple(
+            path_data.sha256.empty() ? validate::sha256sum(dst) : path_data.sha256,
+            rel_dst.string()
+        );
     }
 
     std::vector<fs::u8path> LinkPackage::compile_pyc_files(const std::vector<fs::u8path>& py_files)
     {
         if (py_files.size() == 0)
+        {
             return {};
+        }
 
         std::vector<fs::u8path> pyc_files;
         for (auto& f : py_files)
@@ -850,12 +880,11 @@ namespace mamba
 
         for (auto& path : paths_data)
         {
-            auto [sha256_in_prefix, final_path]
-                = link_path(path, noarch_type == NoarchType::PYTHON);
+            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
             files_record.push_back(final_path);
 
-            nlohmann::json json_record
-                = { { "_path", final_path }, { "sha256_in_prefix", sha256_in_prefix } };
+            nlohmann::json json_record = { { "_path", final_path },
+                                           { "sha256_in_prefix", sha256_in_prefix } };
 
             if (!path.sha256.empty())
             {
@@ -908,8 +937,8 @@ namespace mamba
                                 LOG_TRACE << "Found symlink and target " << files_record[i]
                                           << " -> " << files_record[pix];
                                 // use already computed value
-                                paths_json["paths"][i]["sha256_in_prefix"]
-                                    = paths_json["paths"][pix]["sha256_in_prefix"];
+                                paths_json["paths"][i]["sha256_in_prefix"] = paths_json["paths"][pix]
+                                                                                       ["sha256_in_prefix"];
                                 found = true;
                                 break;
                             }
@@ -928,8 +957,9 @@ namespace mamba
 
                     if (exists)
                     {
-                        paths_json["paths"][i]["sha256_in_prefix"]
-                            = validate::sha256sum(m_context->target_prefix / files_record[i]);
+                        paths_json["paths"][i]["sha256_in_prefix"] = validate::sha256sum(
+                            m_context->target_prefix / files_record[i]
+                        );
                     }
                     else
                     {
@@ -978,16 +1008,17 @@ namespace mamba
             {
                 if (std::regex_match(sub_path_json.path, py_file_re))
                 {
-                    for_compilation.push_back(get_python_noarch_target_path(
-                        sub_path_json.path, m_context->site_packages_path));
+                    for_compilation.push_back(
+                        get_python_noarch_target_path(sub_path_json.path, m_context->site_packages_path)
+                    );
                 }
             }
 
             std::vector<fs::u8path> pyc_files = compile_pyc_files(for_compilation);
             for (const fs::u8path& pyc_path : pyc_files)
             {
-                out_json["paths_data"]["paths"].push_back(
-                    { { "_path", pyc_path.string() }, { "path_type", "pyc_file" } });
+                out_json["paths_data"]["paths"].push_back({ { "_path", pyc_path.string() },
+                                                            { "path_type", "pyc_file" } });
 
                 out_json["files"].push_back(pyc_path.string());
             }
@@ -999,23 +1030,24 @@ namespace mamba
                 {
                     // install entry points
                     auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
-                    auto entry_point_path
-                        = get_bin_directory_short_path() / entry_point_parsed.command;
+                    auto entry_point_path = get_bin_directory_short_path()
+                                            / entry_point_parsed.command;
                     LOG_TRACE << "entry point path: " << entry_point_path << std::endl;
                     auto files = create_python_entry_point(entry_point_path, entry_point_parsed);
 
 #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files[0] },
-                          { "path_type", "windows_python_entry_point_script" } });
+                        { { "_path", files[0] }, { "path_type", "windows_python_entry_point_script" } }
+                    );
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files[1] },
-                          { "path_type", "windows_python_entry_point_exe" } });
+                        { { "_path", files[1] }, { "path_type", "windows_python_entry_point_exe" } }
+                    );
                     out_json["files"].push_back(files[0]);
                     out_json["files"].push_back(files[1]);
 #else
                     out_json["paths_data"]["paths"].push_back(
-                        { { "_path", files }, { "path_type", "unix_python_entry_point" } });
+                        { { "_path", files }, { "path_type", "unix_python_entry_point" } }
+                    );
                     out_json["files"].push_back(files);
 #endif
                 }

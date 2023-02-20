@@ -4,24 +4,25 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/transaction.hpp"
+
 #include <iostream>
 #include <stack>
 
-#include <fmt/format.h>
 #include <fmt/color.h>
+#include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <solv/selection.h>
 
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/core/transaction.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/link.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/pool.hpp"
 #include "mamba/core/queue.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/util_scope.hpp"
 
 #include "progress_bar_impl.hpp"
@@ -71,9 +72,13 @@ namespace mamba
 
         // only do this for micromamba for now
         if (Context::instance().is_micromamba)
+        {
             m_url = make_channel(pkg_info.url).urls(true)[0];
+        }
         else
+        {
             m_url = pkg_info.url;
+        }
 
         m_name = pkg_info.name;
 
@@ -146,9 +151,8 @@ namespace mamba
                     m_download_bar.mark_as_completed();
                 }
                 Console::instance().print(m_filename + " tarball has incorrect checksum");
-                LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation "
-                          << m_tarball_path << "\nExpected: " << m_sha256
-                          << "\nActual: " << sha256sum << "\n";
+                LOG_ERROR << "File not valid: SHA256 sum doesn't match expectation " << m_tarball_path
+                          << "\nExpected: " << m_sha256 << "\nActual: " << sha256sum << "\n";
             }
             return;
         }
@@ -175,9 +179,13 @@ namespace mamba
         return [&](ProgressBarRepr& r) -> void
         {
             if (r.progress_bar().started())
+            {
                 r.postfix.set_value("Extracting");
+            }
             else
+            {
                 r.postfix.set_value("Extracted");
+            }
         };
     }
 
@@ -186,7 +194,9 @@ namespace mamba
         return [&](ProgressProxy& bar) -> void
         {
             if (bar.started())
+            {
                 bar.set_progress(0, 1);
+            }
         };
     }
 
@@ -196,11 +206,15 @@ namespace mamba
         interruption_point();
 
         if (m_has_progress_bars)
+        {
             m_extract_bar.start();
+        }
 
         LOG_DEBUG << "Waiting for decompression " << m_tarball_path;
         if (m_has_progress_bars)
+        {
             m_extract_bar.update_progress(0, 1);
+        }
         {
             std::lock_guard<counting_semaphore> lock(DownloadExtractSemaphore::semaphore);
             interruption_point();
@@ -210,9 +224,13 @@ namespace mamba
             {
                 std::string fn = m_filename;
                 if (ends_with(fn, ".tar.bz2"))
+                {
                     fn = fn.substr(0, fn.size() - 8);
+                }
                 else if (ends_with(fn, ".conda"))
+                {
                     fn = fn.substr(0, fn.size() - 6);
+                }
                 else
                 {
                     LOG_ERROR << "Unknown package format '" << m_filename << "'";
@@ -288,7 +306,9 @@ namespace mamba
         if (m_validation_result != VALIDATION_RESULT::VALID)
         {
             if (m_has_progress_bars)
+            {
                 m_extract_bar.set_postfix("validation failed");
+            }
             LOG_WARNING << "'" << m_tarball_path.string() << "' validation failed";
             // abort here, but set finished to true
             m_finished = true;
@@ -296,7 +316,9 @@ namespace mamba
         }
 
         if (m_has_progress_bars)
+        {
             m_extract_bar.set_postfix("validated");
+        }
         LOG_DEBUG << "'" << m_tarball_path.string() << "' successfully validated";
 
         bool result = this->extract();
@@ -388,8 +410,10 @@ namespace mamba
 
                 m_tarball_path = tarball_cache / m_filename;
                 m_validation_result = VALIDATION_RESULT::VALID;
-                MainExecutor::instance().schedule(&PackageDownloadExtractTarget::extract_from_cache,
-                                                  this);
+                MainExecutor::instance().schedule(
+                    &PackageDownloadExtractTarget::extract_from_cache,
+                    this
+                );
                 LOG_DEBUG << "Using cached tarball '" << m_filename << "'";
                 return nullptr;
             }
@@ -401,15 +425,13 @@ namespace mamba
 
                 m_tarball_path = m_cache_path / m_filename;
                 m_target = std::make_unique<DownloadTarget>(m_name, m_url, m_tarball_path.string());
-                m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback,
-                                                this);
+                m_target->set_finalize_callback(&PackageDownloadExtractTarget::finalize_callback, this);
                 m_target->set_expected_size(m_expected_size);
                 if (m_has_progress_bars)
                 {
                     m_download_bar = Console::instance().add_progress_bar(m_name, m_expected_size);
                     m_target->set_progress_bar(m_download_bar);
-                    Console::instance().progress_bar_manager().add_label("Download",
-                                                                         m_download_bar);
+                    Console::instance().progress_bar_manager().add_label("Download", m_download_bar);
                 }
                 return m_target.get();
             }
@@ -426,7 +448,9 @@ namespace mamba
     bool MTransaction::filter(Solvable* s)
     {
         if (m_filter_type == FilterType::none)
+        {
             return false;
+        }
         bool spec_in_filter = m_filter_name_ids.count(s->name);
 
         if (m_filter_type == FilterType::keep_only)
@@ -439,10 +463,12 @@ namespace mamba
         }
     }
 
-    MTransaction::MTransaction(MPool& pool,
-                               const std::vector<MatchSpec>& specs_to_remove,
-                               const std::vector<MatchSpec>& specs_to_install,
-                               MultiPackageCache& caches)
+    MTransaction::MTransaction(
+        MPool& pool,
+        const std::vector<MatchSpec>& specs_to_remove,
+        const std::vector<MatchSpec>& specs_to_install,
+        MultiPackageCache& caches
+    )
         : m_multi_cache(caches)
     {
         // auto& ctx = Context::instance();
@@ -523,20 +549,27 @@ namespace mamba
         m_history_entry = History::UserRequest::prefilled();
 
         for (auto& s : specs_to_remove)
+        {
             m_history_entry.remove.push_back(s.str());
+        }
         for (auto& s : specs_to_install)
+        {
             m_history_entry.update.push_back(s.str());
+        }
 
         // if no action required, don't even start logging them
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", Context::instance().target_prefix.string() } });
+            Console::instance().json_write({ { "PREFIX",
+                                               Context::instance().target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix, find_python_version(), specs_to_install);
+            Context::instance().target_prefix,
+            find_python_version(),
+            specs_to_install
+        );
     }
 
 
@@ -545,8 +578,8 @@ namespace mamba
     {
         if (!solver.is_solved())
         {
-            throw std::runtime_error(
-                "Cannot create transaction without calling solver.solve() first.");
+            throw std::runtime_error("Cannot create transaction without calling solver.solve() first."
+            );
         }
 
         m_transaction = solver_create_transaction(solver);
@@ -608,7 +641,9 @@ namespace mamba
             {
                 std::vector<std::string> res;
                 for (const auto& el : vec)
+                {
                     res.push_back(el.str());
+                }
                 return res;
             };
             m_history_entry.update = to_string_vec(solver.install_specs());
@@ -622,12 +657,15 @@ namespace mamba
         if (!empty())
         {
             Console::instance().json_down("actions");
-            Console::instance().json_write(
-                { { "PREFIX", Context::instance().target_prefix.string() } });
+            Console::instance().json_write({ { "PREFIX",
+                                               Context::instance().target_prefix.string() } });
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix, find_python_version(), solver.install_specs());
+            Context::instance().target_prefix,
+            find_python_version(),
+            solver.install_specs()
+        );
 
         if (m_transaction_context.relink_noarch && pool->installed != nullptr)
         {
@@ -647,7 +685,9 @@ namespace mamba
                 const char* noarch_type = solvable_lookup_str(s, noarch_repo_key);
 
                 if (noarch_type == nullptr)
+                {
                     continue;
+                }
 
                 if (strcmp(noarch_type, "python") == 0)
                 {
@@ -670,16 +710,21 @@ namespace mamba
                     }
 
                     if (skip_relink)
+                    {
                         continue;
+                    }
 
                     PackageInfo pi(s);
 
                     Id id = pool_conda_matchspec(
                         (Pool*) pool,
-                        fmt::format("{} {} {}", pi.name, pi.version, pi.build_string).c_str());
+                        fmt::format("{} {} {}", pi.name, pi.version, pi.build_string).c_str()
+                    );
 
                     if (id)
+                    {
                         queue_push2(&job, SOLVER_SOLVABLE_PROVIDES, id);
+                    }
 
                     selection_solvables(pool, &job, &q);
 
@@ -698,12 +743,14 @@ namespace mamba
                     {
                         // TODO we should also search the local package cache to make offline
                         // installs work
-                        LOG_WARNING << fmt::format("To upgrade python we need to reinstall noarch",
-                                                   " package {} {} {} but we could not find it in",
-                                                   " any of the loaded channels.",
-                                                   pi.name,
-                                                   pi.version,
-                                                   pi.build_string);
+                        LOG_WARNING << fmt::format(
+                            "To upgrade python we need to reinstall noarch",
+                            " package {} {} {} but we could not find it in",
+                            " any of the loaded channels.",
+                            pi.name,
+                            pi.version,
+                            pi.build_string
+                        );
                         continue;
                     }
 
@@ -728,9 +775,11 @@ namespace mamba
         }
     }
 
-    MTransaction::MTransaction(MPool& pool,
-                               const std::vector<PackageInfo>& packages,
-                               MultiPackageCache& caches)
+    MTransaction::MTransaction(
+        MPool& pool,
+        const std::vector<PackageInfo>& packages,
+        MultiPackageCache& caches
+    )
         : m_multi_cache(caches)
     {
         LOG_INFO << "MTransaction::MTransaction - packages already resolved (lockfile)";
@@ -764,11 +813,15 @@ namespace mamba
         for (const auto& pkginfo : packages)
         {
             specs_to_install.push_back(MatchSpec(
-                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)));
+                fmt::format("{}=={}={}", pkginfo.name, pkginfo.version, pkginfo.build_string)
+            ));
         }
 
         m_transaction_context = TransactionContext(
-            Context::instance().target_prefix, find_python_version(), specs_to_install);
+            Context::instance().target_prefix,
+            find_python_version(),
+            specs_to_install
+        );
     }
 
     MTransaction::~MTransaction()
@@ -798,8 +851,9 @@ namespace mamba
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
                     m_to_remove.push_back(s);
-                    m_to_install.push_back(m_transaction->pool->solvables
-                                           + transaction_obs_pkg(m_transaction, p));
+                    m_to_install.push_back(
+                        m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p)
+                    );
                     break;
                 }
                 case SOLVER_TRANSACTION_ERASE:
@@ -868,6 +922,7 @@ namespace mamba
     class TransactionRollback
     {
     public:
+
         void record(const UnlinkPackage& unlink)
         {
             m_unlink_stack.push(unlink);
@@ -894,6 +949,7 @@ namespace mamba
         }
 
     private:
+
         std::stack<UnlinkPackage> m_unlink_stack;
         std::stack<LinkPackage> m_link_stack;
     };
@@ -905,12 +961,16 @@ namespace mamba
         // JSON output
         // back to the top level if any action was required
         if (!empty())
+        {
             Console::instance().json_up();
-        Console::instance().json_write(
-            { { "dry_run", ctx.dry_run }, { "prefix", ctx.target_prefix.string() } });
+        }
+        Console::instance().json_write({ { "dry_run", ctx.dry_run },
+                                         { "prefix", ctx.target_prefix.string() } });
         if (empty())
-            Console::instance().json_write(
-                { { "message", "All requested packages already installed" } });
+        {
+            Console::instance().json_write({ { "message",
+                                               "All requested packages already installed" } });
+        }
 
         if (ctx.dry_run)
         {
@@ -926,8 +986,8 @@ namespace mamba
 
         if (ctx.download_only)
         {
-            Console::stream()
-                << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
+            Console::stream(
+            ) << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
             return true;
         }
 
@@ -955,18 +1015,20 @@ namespace mamba
                 case SOLVER_TRANSACTION_CHANGED:
                 case SOLVER_TRANSACTION_REINSTALLED:
                 {
-                    Solvable* s2
-                        = m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p);
+                    Solvable* s2 = m_transaction->pool->solvables
+                                   + transaction_obs_pkg(m_transaction, p);
                     Console::stream()
                         << "Changing " << PackageInfo(s).str() << " ==> " << PackageInfo(s2).str();
 
                     PackageInfo package_to_unlink(s);
                     const fs::u8path ul_cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_to_unlink));
+                        m_multi_cache.get_extracted_dir_path(package_to_unlink)
+                    );
 
                     PackageInfo package_to_link(s2);
                     const fs::u8path l_cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_to_link, false));
+                        m_multi_cache.get_extracted_dir_path(package_to_link, false)
+                    );
 
                     UnlinkPackage up(package_to_unlink, ul_cache_path, &m_transaction_context);
                     up.execute();
@@ -997,7 +1059,8 @@ namespace mamba
                     PackageInfo package_info(s);
                     Console::stream() << "Linking " << package_info.str();
                     const fs::u8path cache_path(
-                        m_multi_cache.get_extracted_dir_path(package_info, false));
+                        m_multi_cache.get_extracted_dir_path(package_info, false)
+                    );
                     LinkPackage lp(package_info, cache_path, &m_transaction_context);
                     lp.execute();
                     rollback.record(lp);
@@ -1112,15 +1175,17 @@ namespace mamba
         std::vector<std::unique_ptr<PackageDownloadExtractTarget>> targets;
         MultiDownloadTarget multi_dl;
 
-        auto& pbar_manager
-            = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated);
+        auto& pbar_manager = Console::instance().init_progress_bar_manager(ProgressBarMode::aggregated
+        );
         auto& aggregated_pbar_manager = dynamic_cast<AggregatedBarManager&>(pbar_manager);
 
         auto& ctx = Context::instance();
         DownloadExtractSemaphore::set_max(ctx.extract_threads);
 
         if (ctx.experimental && ctx.verify_artifacts)
+        {
             LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
+        }
 
         for (auto& s : m_to_install)
         {
@@ -1128,13 +1193,14 @@ namespace mamba
 
             if (ctx.experimental && ctx.verify_artifacts)
             {
-                const auto& repo_checker
-                    = make_channel(mamba_repo->url()).repo_checker(m_multi_cache);
+                const auto& repo_checker = make_channel(mamba_repo->url()).repo_checker(m_multi_cache);
 
                 auto pkg_info = PackageInfo(s);
 
-                repo_checker.verify_package(pkg_info.json_signable(),
-                                            nlohmann::json::parse(pkg_info.signatures));
+                repo_checker.verify_package(
+                    pkg_info.json_signable(),
+                    nlohmann::json::parse(pkg_info.signatures)
+                );
 
                 LOG_DEBUG << "'" << pkg_info.name << "' trusted from '" << mamba_repo->url() << "'";
             }
@@ -1142,15 +1208,19 @@ namespace mamba
             targets.emplace_back(std::make_unique<PackageDownloadExtractTarget>(s));
             DownloadTarget* download_target = targets.back()->target(m_multi_cache);
             if (download_target != nullptr)
+            {
                 multi_dl.add(download_target);
+            }
         }
 
         if (ctx.experimental && ctx.verify_artifacts)
         {
             auto out = Console::stream();
-            fmt::print(out,
-                       "Content trust verifications successful, {} ",
-                       fmt::styled("package(s) are trusted", Context::instance().palette.safe));
+            fmt::print(
+                out,
+                "Content trust verifications successful, {} ",
+                fmt::styled("package(s) are trusted", Context::instance().palette.safe)
+            );
             LOG_INFO << "All package(s) are trusted";
         }
 
@@ -1160,6 +1230,7 @@ namespace mamba
 
             auto* dl_bar = aggregated_pbar_manager.aggregated_bar("Download");
             if (dl_bar)
+            {
                 dl_bar->set_repr_hook(
                     [=](ProgressBarRepr& repr) -> void
                     {
@@ -1172,29 +1243,39 @@ namespace mamba
                         else
                         {
                             repr.prefix.set_value(fmt::format(
-                                "{:<11} {:>4}", "Downloading", fmt::format("({})", active_tasks)));
-                            repr.postfix.set_value(
-                                fmt::format("{:<25}", dl_bar->last_active_task()));
+                                "{:<11} {:>4}",
+                                "Downloading",
+                                fmt::format("({})", active_tasks)
+                            ));
+                            repr.postfix.set_value(fmt::format("{:<25}", dl_bar->last_active_task()));
                         }
                         repr.current.set_value(
-                            fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1)));
+                            fmt::format("{:>7}", to_human_readable_filesize(dl_bar->current(), 1))
+                        );
                         repr.separator.set_value("/");
 
                         std::string total_str;
                         if (dl_bar->total() == std::numeric_limits<std::size_t>::max())
+                        {
                             total_str = "??.?MB";
+                        }
                         else
+                        {
                             total_str = to_human_readable_filesize(dl_bar->total(), 1);
+                        }
                         repr.total.set_value(fmt::format("{:>7}", total_str));
 
                         auto speed = dl_bar->avg_speed(std::chrono::milliseconds(500));
                         repr.speed.set_value(
-                            speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1))
-                                  : "");
-                    });
+                            speed ? fmt::format("@ {:>7}/s", to_human_readable_filesize(speed, 1)) : ""
+                        );
+                    }
+                );
+            }
 
             auto* extract_bar = aggregated_pbar_manager.aggregated_bar("Extract");
             if (extract_bar)
+            {
                 extract_bar->set_repr_hook(
                     [=](ProgressBarRepr& repr) -> void
                     {
@@ -1207,20 +1288,30 @@ namespace mamba
                         else
                         {
                             repr.prefix.set_value(fmt::format(
-                                "{:<11} {:>4}", "Extracting", fmt::format("({})", active_tasks)));
+                                "{:<11} {:>4}",
+                                "Extracting",
+                                fmt::format("({})", active_tasks)
+                            ));
                             repr.postfix.set_value(
-                                fmt::format("{:<25}", extract_bar->last_active_task()));
+                                fmt::format("{:<25}", extract_bar->last_active_task())
+                            );
                         }
                         repr.current.set_value(fmt::format("{:>3}", extract_bar->current()));
                         repr.separator.set_value("/");
 
                         std::string total_str;
                         if (extract_bar->total() == std::numeric_limits<std::size_t>::max())
+                        {
                             total_str = "?";
+                        }
                         else
+                        {
                             total_str = std::to_string(extract_bar->total());
+                        }
                         repr.total.set_value(fmt::format("{:>3}", total_str));
-                    });
+                    }
+                );
+            }
 
             pbar_manager.start();
             pbar_manager.watch_print();
@@ -1267,8 +1358,9 @@ namespace mamba
             {
                 t->clear_cache();
                 all_valid = false;
-                throw std::runtime_error(std::string("Found incorrect download: ") + t->name()
-                                         + ". Aborting");
+                throw std::runtime_error(
+                    std::string("Found incorrect download: ") + t->name() + ". Aborting"
+                );
             }
         }
 
@@ -1284,17 +1376,21 @@ namespace mamba
     {
         print();
         if (Context::instance().dry_run || empty())
+        {
             return true;
+        }
 
         return Console::prompt("Confirm changes", 'y');
     }
 
     void MTransaction::print()
     {
-        auto const& ctx = Context::instance();
+        const auto& ctx = Context::instance();
 
         if (ctx.json)
+        {
             return;
+        }
 
         Console::instance().print("Transaction\n");
         Console::stream() << "  Prefix: " << ctx.target_prefix.string() << "\n";
@@ -1310,8 +1406,8 @@ namespace mamba
             {
                 // There was no remove events but we still have remove specs treated:
                 // The packages to remove were not found in the environment.
-                Console::instance().print(
-                    "  Failure: packages to remove not found in the environment:\n");
+                Console::instance().print("  Failure: packages to remove not found in the environment:\n"
+                );
                 for (const auto& entry : m_history_entry.remove)
                 {
                     Console::instance().print(fmt::format("  - {}\n", entry));
@@ -1371,8 +1467,8 @@ namespace mamba
             ignore,
             remove
         };
-        auto format_row
-            = [this, &ctx, pool, &total_size](rows& r, Solvable* s, Status status, std::string diff)
+        auto format_row =
+            [this, &ctx, pool, &total_size](rows& r, Solvable* s, Status status, std::string diff)
         {
             std::ptrdiff_t dlsize = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, -1);
             printers::FormattedString dlsize_s;
@@ -1455,7 +1551,13 @@ namespace mamba
         {
             cls = classes.elements[i];
             transaction_classify_pkgs(
-                m_transaction, mode, cls, classes.elements[i + 2], classes.elements[i + 3], &pkgs);
+                m_transaction,
+                mode,
+                cls,
+                classes.elements[i + 2],
+                classes.elements[i + 3],
+                &pkgs
+            );
 
             for (int j = 0; j < pkgs.count; j++)
             {
@@ -1471,30 +1573,33 @@ namespace mamba
                 {
                     case SOLVER_TRANSACTION_UPGRADED:
                         format_row(upgraded, s, Status::remove, "-");
-                        format_row(upgraded,
-                                   m_transaction->pool->solvables
-                                       + transaction_obs_pkg(m_transaction, p),
-                                   Status::install,
-                                   "+");
+                        format_row(
+                            upgraded,
+                            m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p),
+                            Status::install,
+                            "+"
+                        );
                         break;
                     case SOLVER_TRANSACTION_CHANGED:
                         format_row(changed, s, Status::remove, "-");
-                        format_row(changed,
-                                   m_transaction->pool->solvables
-                                       + transaction_obs_pkg(m_transaction, p),
-                                   Status::install,
-                                   "+");
+                        format_row(
+                            changed,
+                            m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p),
+                            Status::install,
+                            "+"
+                        );
                         break;
                     case SOLVER_TRANSACTION_REINSTALLED:
                         format_row(reinstalled, s, Status::install, "o");
                         break;
                     case SOLVER_TRANSACTION_DOWNGRADED:
                         format_row(downgraded, s, Status::remove, "-");
-                        format_row(downgraded,
-                                   m_transaction->pool->solvables
-                                       + transaction_obs_pkg(m_transaction, p),
-                                   Status::install,
-                                   "+");
+                        format_row(
+                            downgraded,
+                            m_transaction->pool->solvables + transaction_obs_pkg(m_transaction, p),
+                            Status::install,
+                            "+"
+                        );
                         break;
                     case SOLVER_TRANSACTION_ERASE:
                         format_row(erased, s, Status::remove, "-");
@@ -1566,14 +1671,17 @@ namespace mamba
         MPool& pool,
         const std::vector<std::string>& urls,
         MultiPackageCache& package_caches,
-        std::vector<detail::other_pkg_mgr_spec>& other_specs)
+        std::vector<detail::other_pkg_mgr_spec>& other_specs
+    )
     {
         std::vector<MatchSpec> specs_to_install;
         for (auto& u : urls)
         {
             std::string x(strip(u));
             if (x.empty())
+            {
                 continue;
+            }
 
             std::size_t hash = u.find_first_of('#');
             MatchSpec ms(u.substr(0, hash));
@@ -1600,12 +1708,15 @@ namespace mamba
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
-        std::vector<detail::other_pkg_mgr_spec>& other_specs)
+        std::vector<detail::other_pkg_mgr_spec>& other_specs
+    )
     {
         const auto maybe_lockfile = read_environment_lockfile(env_lockfile_path);
         if (!maybe_lockfile)
+        {
             throw maybe_lockfile.error();  // NOTE: we cannot return an `un/expected` because
                                            // MTransaction is not move-enabled.
+        }
 
         const auto lockfile_data = maybe_lockfile.value();
 
@@ -1618,11 +1729,16 @@ namespace mamba
         {
             std::vector<PackageInfo> selected_packages;
 
-            selected_packages
-                = lockfile_data.get_packages_for(category, Context::instance().platform, "conda");
-            std::copy(selected_packages.begin(),
-                      selected_packages.end(),
-                      std::back_inserter(packages.conda));
+            selected_packages = lockfile_data.get_packages_for(
+                category,
+                Context::instance().platform,
+                "conda"
+            );
+            std::copy(
+                selected_packages.begin(),
+                selected_packages.end(),
+                std::back_inserter(packages.conda)
+            );
 
             if (selected_packages.empty())
             {
@@ -1631,11 +1747,13 @@ namespace mamba
                             << Context::instance().platform << ").";
             }
 
-            selected_packages
-                = lockfile_data.get_packages_for(category, Context::instance().platform, "pip");
-            std::copy(selected_packages.begin(),
-                      selected_packages.end(),
-                      std::back_inserter(packages.pip));
+            selected_packages = lockfile_data
+                                    .get_packages_for(category, Context::instance().platform, "pip");
+            std::copy(
+                selected_packages.begin(),
+                selected_packages.end(),
+                std::back_inserter(packages.pip)
+            );
         }
 
         // extract pip packages
@@ -1644,12 +1762,11 @@ namespace mamba
             std::vector<std::string> pip_specs;
             for (const auto& package : packages.pip)
             {
-                pip_specs.push_back(package.name + " @ " + package.url
-                                    + "#sha256=" + package.sha256);
+                pip_specs.push_back(package.name + " @ " + package.url + "#sha256=" + package.sha256);
             }
-            other_specs.push_back({ "pip --no-deps",
-                                    pip_specs,
-                                    fs::absolute(env_lockfile_path.parent_path()).string() });
+            other_specs.push_back(
+                { "pip --no-deps", pip_specs, fs::absolute(env_lockfile_path.parent_path()).string() }
+            );
         }
 
         return MTransaction{ pool, packages.conda, package_caches };

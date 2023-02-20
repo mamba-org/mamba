@@ -4,13 +4,14 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+
 #include <fmt/format.h>
 
 #include "mamba/core/util_string.hpp"
 
 #if !defined(_WIN32)
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 // We can use the presence of UTIME_OMIT to detect platforms that provide
 // utimensat.
@@ -125,6 +126,7 @@ namespace fs
     class u8path
     {
     public:
+
         u8path() = default;
 
         // Copy is allowed.
@@ -633,12 +635,14 @@ namespace fs
         }
 
     private:
+
         std::filesystem::path m_path;
     };
 
     class directory_entry : private std::filesystem::directory_entry
     {
     public:
+
         using std::filesystem::directory_entry::exists;
         using std::filesystem::directory_entry::file_size;
         using std::filesystem::directory_entry::hard_link_count;
@@ -720,6 +724,7 @@ namespace fs
     class directory_iterator : private std::filesystem::directory_iterator
     {
     public:
+
         using iterator_category = std::input_iterator_tag;
         using value_type = directory_entry;
         using difference_type = std::ptrdiff_t;
@@ -772,11 +777,11 @@ namespace fs
         }
 
     private:
+
         mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>,
-                                 directory_entry>);
+    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
 
     inline directory_iterator begin(directory_iterator iter) noexcept
     {
@@ -790,6 +795,7 @@ namespace fs
     class recursive_directory_iterator : private std::filesystem::recursive_directory_iterator
     {
     public:
+
         using iterator_category = std::input_iterator_tag;
         using value_type = directory_entry;
         using difference_type = std::ptrdiff_t;
@@ -810,8 +816,10 @@ namespace fs
 
         template <typename... OtherArgs>
         explicit recursive_directory_iterator(const u8path& path, OtherArgs&&... args)
-            : std::filesystem::recursive_directory_iterator(path.std_path(),
-                                                            std::forward<OtherArgs>(args)...)
+            : std::filesystem::recursive_directory_iterator(
+                path.std_path(),
+                std::forward<OtherArgs>(args)...
+            )
         {
         }
 
@@ -840,22 +848,20 @@ namespace fs
 
         bool operator==(const recursive_directory_iterator& other) const noexcept
         {
-            return static_cast<const std::filesystem::recursive_directory_iterator&>(*this)
-                   == other;
+            return static_cast<const std::filesystem::recursive_directory_iterator&>(*this) == other;
         }
 
         bool operator!=(const recursive_directory_iterator& other) const noexcept
         {
-            return static_cast<const std::filesystem::recursive_directory_iterator&>(*this)
-                   != other;
+            return static_cast<const std::filesystem::recursive_directory_iterator&>(*this) != other;
         }
 
     private:
+
         mutable directory_entry current_entry;
     };
 
-    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>,
-                                 directory_entry>);
+    static_assert(std::is_same_v<std::decay_t<decltype(*std::declval<directory_iterator>())>, directory_entry>);
 
     inline recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept
     {
@@ -923,12 +929,9 @@ namespace fs
     //                   const path& new_symlink,
     //                   error_code& ec) noexcept;
     template <typename... OtherArgs>
-    void copy_symlink(const u8path& existing_symlink,
-                      const u8path& new_symlink,
-                      OtherArgs&&... args)
+    void copy_symlink(const u8path& existing_symlink, const u8path& new_symlink, OtherArgs&&... args)
     {
-        std::filesystem::copy_symlink(
-            existing_symlink, new_symlink, std::forward<OtherArgs>(args)...);
+        std::filesystem::copy_symlink(existing_symlink, new_symlink, std::forward<OtherArgs>(args)...);
     }
 
     // bool create_directories(const path& p);
@@ -952,8 +955,7 @@ namespace fs
     template <typename... OtherArgs>
     bool create_directory(const u8path& path, const u8path& attributes, OtherArgs&&... args)
     {
-        return std::filesystem::create_directory(
-            path, attributes, std::forward<OtherArgs>(args)...);
+        return std::filesystem::create_directory(path, attributes, std::forward<OtherArgs>(args)...);
     }
 
 
@@ -963,8 +965,7 @@ namespace fs
     template <typename... OtherArgs>
     void create_directory_symlink(const u8path& to, const u8path& new_symlink, OtherArgs&&... args)
     {
-        std::filesystem::create_directory_symlink(
-            to, new_symlink, std::forward<OtherArgs>(args)...);
+        std::filesystem::create_directory_symlink(to, new_symlink, std::forward<OtherArgs>(args)...);
     }
 
     // void create_hard_link(const path& to, const path& new_hard_link);
@@ -1279,13 +1280,17 @@ namespace fs
     {
 #if defined(WIN32) && _MSC_VER < 1930  // Workaround https://github.com/microsoft/STL/issues/1511
         if (!fs::exists(path))
+        {
             return 0;
+        }
 
         uintmax_t counter = 0;
         for (const auto& entry : fs::recursive_directory_iterator(path, args...))
         {
-            if (fs::is_directory(entry.path()))  // Skip directories, we'll delete them later.
+            if (fs::is_directory(entry.path()))
+            {  // Skip directories, we'll delete them later.
                 continue;
+            }
 
             if (fs::remove(entry.path(), args...))
             {
@@ -1375,9 +1380,9 @@ struct std::hash<::fs::u8path>
 {
     std::size_t operator()(const ::fs::u8path& path) const noexcept
     {
-        return std::filesystem::hash_value(
-            path.std_path());  // TODO: once we stop using gcc < 12 we can properly use
-                               // std::hash<std::filesystem::path>{}(path.std_path());
+        return std::filesystem::hash_value(path.std_path()
+        );  // TODO: once we stop using gcc < 12 we can properly use
+            // std::hash<std::filesystem::path>{}(path.std_path());
     }
 };
 
@@ -1388,7 +1393,9 @@ struct fmt::formatter<::fs::u8path>
     {
         // make sure that range is empty
         if (ctx.begin() != ctx.end() && *ctx.begin() != '}')
+        {
             throw format_error("invalid format");
+        }
         return ctx.begin();
     }
 

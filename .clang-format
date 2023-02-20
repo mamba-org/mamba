@@ -1,15 +1,20 @@
 BasedOnStyle: Mozilla
+Language: Cpp
+Standard: c++17
+
 AccessModifierOffset: '-4'
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: BlockIndent
 AlignEscapedNewlinesLeft: 'false'
-AllowAllParametersOfDeclarationOnNextLine: 'true'
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'false'
 AllowShortFunctionsOnASingleLine: 'false'
 AllowShortIfStatementsOnASingleLine: 'false'
 AllowShortLoopsOnASingleLine: 'false'
 AlwaysBreakTemplateDeclarations: 'true'
-SpaceAfterTemplateKeyword: 'true'
+BinPackArguments: false
+BinPackParameters: false
 BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: 'true'
@@ -22,22 +27,49 @@ ContinuationIndentWidth: '4'
 Cpp11BracedListStyle: 'false'
 DerivePointerAlignment: 'false'
 DisableFormat: 'false'
+EmptyLineAfterAccessModifier: Always
+EmptyLineBeforeAccessModifier: Always
 ExperimentalAutoDetectBinPacking: 'true'
+IncludeBlocks: Regroup
+IncludeCategories:
+- Regex: <[^.]+>
+  Priority: 1
+- Regex: <mamba/.+>
+  Priority: 3
+- Regex: <.+>
+  Priority: 2
+- Regex: '"mamba/.+"'
+  Priority: 4
+- Regex: '".+/.+"'
+  Priority: 5
+- Regex: '".+"'
+  Priority: 6
 IndentCaseLabels: 'true'
 IndentWidth: '4'
 IndentWrappedFunctionNames: 'false'
-JavaScriptQuotes: Single
+InsertBraces: true  # Experimental
 KeepEmptyLinesAtTheStartOfBlocks: 'false'
-Language: Cpp
 MaxEmptyLinesToKeep: '2'
 NamespaceIndentation: All
 ObjCBlockIndentWidth: '4'
 ObjCSpaceAfterProperty: 'false'
 ObjCSpaceBeforeProtocolList: 'false'
+PackConstructorInitializers: Never
+PenaltyBreakAssignment: 100000
+PenaltyBreakBeforeFirstCallParameter: 0
+PenaltyBreakComment: 10
+PenaltyBreakOpenParenthesis: 0
+PenaltyBreakTemplateDeclaration: 0
+PenaltyExcessCharacter: 10
+PenaltyIndentedWhitespace: 0
+PenaltyReturnTypeOnItsOwnLine: 10
 PointerAlignment: Left
+QualifierAlignment: Custom  # Experimental
+QualifierOrder: [inline, static, constexpr, const, volatile, type]
 ReflowComments: 'true'
-SortIncludes: 'false'
+SortIncludes: CaseInsensitive
 SpaceAfterCStyleCast: 'true'
+SpaceAfterTemplateKeyword: 'true'
 SpaceBeforeAssignmentOperators: 'true'
 SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: 'false'
@@ -47,6 +79,5 @@ SpacesInCStyleCastParentheses: 'false'
 SpacesInContainerLiterals: 'false'
 SpacesInParentheses: 'false'
 SpacesInSquareBrackets: 'false'
-Standard: c++17
 TabWidth: '4'
 UseTab: Never

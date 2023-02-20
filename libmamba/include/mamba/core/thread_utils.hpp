@@ -40,6 +40,7 @@ namespace mamba
     class thread_interrupted : public std::exception
     {
     public:
+
         thread_interrupted() = default;
         const char* what() const throw()
         {
@@ -71,6 +72,7 @@ namespace mamba
     class thread
     {
     public:
+
         thread() = default;
         ~thread() = default;
 
@@ -96,6 +98,7 @@ namespace mamba
         }
 
     private:
+
         std::thread m_thread;
     };
 
@@ -116,7 +119,8 @@ namespace mamba
                     errno = EINTR;
                 }
                 decrease_thread_count();
-            });
+            }
+        );
     }
 
     /**********************
@@ -126,6 +130,7 @@ namespace mamba
     class interruption_guard
     {
     public:
+
         template <class Function, class... Args>
         interruption_guard(Function&& func, Args&&... args);
         ~interruption_guard();
@@ -137,6 +142,7 @@ namespace mamba
         interruption_guard& operator=(interruption_guard&&) = delete;
 
     private:
+
         static std::function<void()> m_cleanup_function;
     };
 
@@ -149,6 +155,7 @@ namespace mamba
     class counting_semaphore
     {
     public:
+
         inline counting_semaphore(std::ptrdiff_t max = 0);
         inline void lock();
         inline void unlock();
@@ -156,6 +163,7 @@ namespace mamba
         inline void set_max(std::ptrdiff_t value);
 
     private:
+
         std::ptrdiff_t m_value, m_max;
         std::mutex m_access_mutex;
         std::condition_variable m_cv;
@@ -199,11 +207,17 @@ namespace mamba
     {
         std::ptrdiff_t new_max;
         if (value == 0)
+        {
             new_max = std::thread::hardware_concurrency();
+        }
         else if (value < 0)
+        {
             new_max = std::thread::hardware_concurrency() + value;
+        }
         else
+        {
             new_max = value;
+        }
 
         m_value += new_max - m_max;
         m_max = new_max;

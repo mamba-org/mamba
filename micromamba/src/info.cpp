@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "common_options.hpp"
-
 #include "mamba/api/info.hpp"
+
+#include "common_options.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -74,5 +74,6 @@ set_info_command(CLI::App* subcom)
             {
                 info();
             }
-        });
+        }
+    );
 }

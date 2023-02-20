@@ -1,14 +1,14 @@
+#include <CLI/CLI.hpp>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 #include "mamba/core/thread_utils.hpp"
-
-#include <CLI/CLI.hpp>
+#include "mamba/core/util.hpp"
 
 #if defined(__APPLE__) || defined(__linux__)
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 #endif
 
 bool
@@ -44,15 +44,20 @@ main(int argc, char** argv)
             {
                 auto lock = mamba::LockFile(path);
                 if (lock)
+                {
                     std::cout << 1;
+                }
                 else
+                {
                     std::cout << 0;
+                }
             }
             catch (...)
             {
                 std::cout << 0;
             }
-        });
+        }
+    );
 
     CLI::App* is_locked_com = app.add_subcommand("is-locked", "Check if a path is locked");
     is_locked_com->add_option("path", path, "Path to check");

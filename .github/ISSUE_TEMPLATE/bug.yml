@@ -9,6 +9,19 @@ body:
       options:
         - label: "My problem is not solved in the Troubleshooting docs"
           required: true
+  - type: dropdown
+    id: mamba_installation_method
+    attributes:
+      label: How did you install Mamba?
+      description: |
+        Note that installation methods other than [Mambaforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install) are **NOT SUPPORTED**.
+        
+        If this issue is about Micromamba, please select "Other".
+      options:
+        - "Mambaforge"
+        - "Other (please describe)"
+    validations:
+      required: true
   - type: input
     id: search
     attributes:
@@ -36,9 +49,9 @@ body:
 
         Can you reproduce the problem with Conda?
       options:
-        - "Reproducible with Conda"
-        - "Not reproducible with Conda"
-        - "Didn't try"
+        - "I have this problem with Conda as well, without using Mamba"
+        - "I do not have this problem with Conda, just with Mamba"
+        - "I didn't try"
         - "Not applicable"
     validations:
       required: true

@@ -9,6 +9,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>
+// Incomplete header included last
 #include <shellapi.h>
 #endif
 

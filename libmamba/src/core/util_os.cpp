@@ -16,7 +16,9 @@
 #include <windows.h>
 #include <io.h>
 #include <intrin.h>
+// Incomplete header included last
 #include <tlhelp32.h>
+
 #include "WinReg.hpp"
 #endif
 

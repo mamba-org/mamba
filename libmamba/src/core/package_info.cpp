@@ -160,7 +160,7 @@ namespace mamba
 
         solv::ObjQueue q = {};
 
-        if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, q.get(), -1))
+        if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, q.raw(), -1))
         {
             defaulted_keys.insert("depends");
         }
@@ -173,7 +173,7 @@ namespace mamba
         );
 
         q.clear();
-        if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, q.get(), -1))
+        if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, q.raw(), -1))
         {
             defaulted_keys.insert("constrains");
         }
@@ -186,7 +186,7 @@ namespace mamba
         );
 
         q.clear();
-        solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, q.get());
+        solvable_lookup_idarray(s, SOLVABLE_TRACK_FEATURES, q.raw());
         for (auto iter = q.begin(), end = q.end(); iter < end; ++iter)
         {
             track_features += pool_id2str(pool, *iter);
@@ -203,7 +203,7 @@ namespace mamba
         {
             // Get extra signed keys
             q.clear();
-            solvable_lookup_idarray(s, extra_keys_id, q.get());
+            solvable_lookup_idarray(s, extra_keys_id, q.raw());
             std::vector<std::string> extra_keys = {};
             extra_keys.reserve(q.size());
             std::transform(
@@ -215,7 +215,7 @@ namespace mamba
 
             // Get extra signed values
             q.clear();
-            solvable_lookup_idarray(s, extra_values_id, q.get());
+            solvable_lookup_idarray(s, extra_values_id, q.raw());
             std::vector<std::string> extra_values = {};
             extra_values.reserve(q.size());
             std::transform(

@@ -97,7 +97,7 @@ namespace mamba
         Pool* pp = pool;
         pp->installed = nullptr;
 
-        Transaction* t = transaction_create_decisionq(pool, q.get(), nullptr);
+        Transaction* t = transaction_create_decisionq(pool, q.raw(), nullptr);
         transaction_order(t, 0);
 
         for (int i = 0; i < t->steps.count; i++)

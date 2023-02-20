@@ -87,8 +87,8 @@ namespace mamba::solv
         template <template <typename, typename...> class C>
         auto as() -> C<value_type>;
 
-        auto get() -> ::Queue*;
-        auto get() const -> const ::Queue*;
+        auto raw() -> ::Queue*;
+        auto raw() const -> const ::Queue*;
 
     private:
 
@@ -96,7 +96,7 @@ namespace mamba::solv
 
         ::Queue m_queue = {};
 
-        ObjQueue(std::nullptr_t);
+        explicit ObjQueue(std::nullptr_t);
 
         auto offset_of(const_iterator pos) const -> size_type;
         void insert(size_type offset, value_type id);

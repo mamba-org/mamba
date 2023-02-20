@@ -286,7 +286,7 @@ namespace mamba
             LOG_ERROR << "Selected channel specific (or force-reinstall) job, but "
                          "package is not available from channel. Solve job will fail.";
         }
-        Id offset = pool_queuetowhatprovides(pool, selected_pkgs.get());
+        Id offset = pool_queuetowhatprovides(pool, selected_pkgs.raw());
         // Poor man's ms repr to match waht the user provided
         std::string const repr = fmt::format("{}::{}", ms.channel, ms.conda_build_form());
         Id repr_id = pool_str2id(pool, repr.c_str(), 1);
@@ -501,7 +501,7 @@ namespace mamba
             }
         }
 
-        Id d = pool_queuetowhatprovides(pool, selected_pkgs.get());
+        Id d = pool_queuetowhatprovides(pool, selected_pkgs.raw());
         m_jobs->push_back(SOLVER_LOCK | SOLVER_SOLVABLE_ONE_OF, d);
     }
 
@@ -585,7 +585,7 @@ namespace mamba
         m_solver.reset(solver_create(m_pool));
         set_flags(m_flags);
 
-        solver_solve(m_solver.get(), m_jobs->get());
+        solver_solve(m_solver.get(), m_jobs->raw());
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver_problem_count(m_solver.get());
         const bool success = solver_problem_count(m_solver.get()) == 0;
@@ -613,7 +613,7 @@ namespace mamba
         const Id count = solver_problem_count(m_solver.get());
         for (Id i = 1; i <= count; ++i)
         {
-            solver_findallproblemrules(m_solver.get(), i, problem_rules.get());
+            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
             for (const Id r : problem_rules)
             {
                 if (r != 0)
@@ -642,7 +642,7 @@ namespace mamba
         Id count = solver_problem_count(m_solver.get());
         for (Id i = 1; i <= count; ++i)
         {
-            solver_findallproblemrules(m_solver.get(), i, problem_rules.get());
+            solver_findallproblemrules(m_solver.get(), i, problem_rules.raw());
             for (const Id r : problem_rules)
             {
                 Id source, target, dep;

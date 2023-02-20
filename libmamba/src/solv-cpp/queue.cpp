@@ -17,14 +17,13 @@
 namespace mamba::solv
 {
     ObjQueue::ObjQueue(std::nullptr_t)
-        : m_queue{}
     {
     }
 
     ObjQueue::ObjQueue()
         : ObjQueue(nullptr)
     {
-        queue_init(get());
+        queue_init(raw());
     }
 
     ObjQueue::ObjQueue(std::initializer_list<value_type> elems)
@@ -47,7 +46,7 @@ namespace mamba::solv
     {
         if (data() != nullptr)
         {
-            queue_free(get());
+            queue_free(raw());
         }
     }
 
@@ -69,12 +68,12 @@ namespace mamba::solv
 
     void ObjQueue::push_back(value_type id)
     {
-        queue_push(get(), id);
+        queue_push(raw(), id);
     }
 
     void ObjQueue::push_back(value_type id1, value_type id2)
     {
-        queue_push2(get(), id1, id2);
+        queue_push2(raw(), id1, id2);
     }
 
     auto ObjQueue::insert(const_iterator pos, value_type id) -> iterator
@@ -104,7 +103,7 @@ namespace mamba::solv
     {
         const auto offset = offset_of(pos);
         assert(offset <= std::numeric_limits<int>::max());
-        queue_delete(get(), static_cast<int>(offset));
+        queue_delete(raw(), static_cast<int>(offset));
         return begin() + offset;
     }
 
@@ -116,12 +115,12 @@ namespace mamba::solv
         }
         size_type cap_diff = new_cap - capacity();
         assert(cap_diff <= std::numeric_limits<int>::max());
-        queue_prealloc(get(), static_cast<int>(cap_diff));
+        queue_prealloc(raw(), static_cast<int>(cap_diff));
     }
 
     void ObjQueue::clear()
     {
-        queue_empty(get());
+        queue_empty(raw());
     }
 
     auto ObjQueue::front() -> reference
@@ -160,6 +159,7 @@ namespace mamba::solv
         {
             if (pos >= size)
             {
+                // TODO(C++20) std::format
                 std::stringstream ss = {};
                 ss << "Index " << pos << " is greater that the number of elements (" << size << ')';
                 throw std::out_of_range(std::move(ss).str());
@@ -249,12 +249,12 @@ namespace mamba::solv
         return m_queue.elements;
     }
 
-    auto ObjQueue::get() const -> const ::Queue*
+    auto ObjQueue::raw() const -> const ::Queue*
     {
         return &m_queue;
     }
 
-    auto ObjQueue::get() -> ::Queue*
+    auto ObjQueue::raw() -> ::Queue*
     {
         return &m_queue;
     }
@@ -269,14 +269,14 @@ namespace mamba::solv
     void ObjQueue::insert(size_type offset, value_type id)
     {
         assert(offset <= std::numeric_limits<int>::max());
-        queue_insert(get(), static_cast<int>(offset), id);
+        queue_insert(raw(), static_cast<int>(offset), id);
     }
 
     void ObjQueue::insert_n(size_type offset, const_iterator first, size_type n)
     {
         assert(offset <= std::numeric_limits<int>::max());
         assert(n <= std::numeric_limits<int>::max());
-        queue_insertn(get(), static_cast<int>(offset), static_cast<int>(n), first);
+        queue_insertn(raw(), static_cast<int>(offset), static_cast<int>(n), first);
     }
 
     void swap(ObjQueue& a, ObjQueue& b) noexcept

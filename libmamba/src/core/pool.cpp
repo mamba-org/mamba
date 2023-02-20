@@ -122,7 +122,7 @@ namespace mamba
     {
         solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, matchspec };
         solv::ObjQueue solvables = {};
-        selection_solvables(const_cast<Pool*>(pool()), job.get(), solvables.get());
+        selection_solvables(const_cast<Pool*>(pool()), job.raw(), solvables.raw());
 
         if (sorted)
         {

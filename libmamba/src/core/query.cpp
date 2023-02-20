@@ -54,7 +54,7 @@ namespace mamba
                 solv::ObjQueue rec_solvables = {};
                 // the following prints the requested version
                 solv::ObjQueue job = { SOLVER_SOLVABLE_PROVIDES, req };
-                selection_solvables(pool, job.get(), rec_solvables.get());
+                selection_solvables(pool, job.raw(), rec_solvables.raw());
 
                 if (rec_solvables.size() != 0)
                 {
@@ -116,7 +116,7 @@ namespace mamba
             // figure out who requires `s`
             solv::ObjQueue solvables = {};
 
-            pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables.get(), -1);
+            pool_whatmatchesdep(pool, SOLVABLE_REQUIRES, s->name, solvables.raw(), -1);
 
             if (solvables.size() != 0)
             {
@@ -214,7 +214,7 @@ namespace mamba
         }
         job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
 
-        selection_solvables(m_pool.get(), job.get(), solvables.get());
+        selection_solvables(m_pool.get(), job.raw(), solvables.raw());
         query_result::dependency_graph g;
 
         Pool* pool = m_pool.get();
@@ -255,7 +255,7 @@ namespace mamba
 
         if (tree)
         {
-            selection_solvables(m_pool.get(), job.get(), solvables.get());
+            selection_solvables(m_pool.get(), job.raw(), solvables.raw());
             if (solvables.size() > 0)
             {
                 Solvable* latest = pool_id2solvable(m_pool.get(), solvables[0]);
@@ -266,7 +266,7 @@ namespace mamba
         }
         else
         {
-            pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, solvables.get(), -1);
+            pool_whatmatchesdep(m_pool.get(), SOLVABLE_REQUIRES, id, solvables.raw(), -1);
             for (auto& el : solvables)
             {
                 Solvable* s = pool_id2solvable(m_pool.get(), el);
@@ -288,7 +288,7 @@ namespace mamba
         job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
 
         query_result::dependency_graph g;
-        selection_solvables(m_pool.get(), job.get(), solvables.get());
+        selection_solvables(m_pool.get(), job.raw(), solvables.raw());
 
         int depth = tree ? -1 : 1;
 

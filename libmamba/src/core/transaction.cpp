@@ -515,7 +515,7 @@ namespace mamba
             {
                 job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
             }
-            selection_solvables(pool, job.get(), q.get());
+            selection_solvables(pool, job.raw(), q.raw());
 
             if (q.size() == 0)
             {
@@ -534,7 +534,7 @@ namespace mamba
             throw std::runtime_error("Could not find packages to remove:" + join("", not_found));
         }
 
-        selection_solvables(pool, job.get(), q.get());
+        selection_solvables(pool, job.raw(), q.raw());
         const bool remove_success = size_t(q.size()) >= specs_to_remove.size();
         Console::instance().json_write({ { "success", remove_success } });
         Id pkg_id;
@@ -546,7 +546,7 @@ namespace mamba
             decision.push_back(pkg_id);
         }
 
-        m_transaction = transaction_create_decisionq(pool, decision.get(), nullptr);
+        m_transaction = transaction_create_decisionq(pool, decision.raw(), nullptr);
         init();
 
         m_history_entry = History::UserRequest::prefilled();
@@ -607,7 +607,7 @@ namespace mamba
             if (solver.only_deps)
             {
                 solv::ObjQueue q = {};
-                transaction_installedresult(m_transaction, q.get());
+                transaction_installedresult(m_transaction, q.raw());
                 for (const Id r : q)
                 {
                     Solvable* s = pool_id2solvable(pool, r);
@@ -674,7 +674,7 @@ namespace mamba
             Solvable* s = nullptr;
             solv::ObjQueue job, q, decision;
 
-            solver_get_decisionqueue(solver, decision.get());
+            solver_get_decisionqueue(solver, decision.raw());
 
             const Id noarch_repo_key = pool_str2id(pool, "solvable:noarch_type", 1);
 
@@ -724,7 +724,7 @@ namespace mamba
                         job.push_back(SOLVER_SOLVABLE_PROVIDES, id);
                     }
 
-                    selection_solvables(pool, job.get(), q.get());
+                    selection_solvables(pool, job.raw(), q.raw());
 
                     Id reinstall_id = -1;
                     for (const Id r : q)
@@ -761,7 +761,7 @@ namespace mamba
             }
 
             transaction_free(m_transaction);
-            m_transaction = transaction_create_decisionq(pool, decision.get(), nullptr);
+            m_transaction = transaction_create_decisionq(pool, decision.raw(), nullptr);
             transaction_order(m_transaction, 0);
 
             // init everything again...
@@ -790,7 +790,7 @@ namespace mamba
             decision.push_back(pkg_id);
         }
 
-        m_transaction = transaction_create_decisionq(pool, decision.get(), nullptr);
+        m_transaction = transaction_create_decisionq(pool, decision.raw(), nullptr);
         transaction_order(m_transaction, 0);
 
         init();
@@ -1531,7 +1531,7 @@ namespace mamba
         };
 
         int mode = SOLVER_TRANSACTION_SHOW_OBSOLETES | SOLVER_TRANSACTION_OBSOLETE_IS_UPGRADE;
-        transaction_classify(m_transaction, mode, classes.get());
+        transaction_classify(m_transaction, mode, classes.raw());
         for (std::size_t n_classes = classes.size(), i = 0; i < n_classes; i += 4)
         {
             const Id cls = classes.at(i);
@@ -1541,7 +1541,7 @@ namespace mamba
                 cls,
                 classes.at(i + 2),
                 classes.at(i + 3),
-                pkgs.get()
+                pkgs.raw()
             );
 
             for (const Id p : pkgs)

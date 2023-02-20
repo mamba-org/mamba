@@ -7,15 +7,15 @@
 #ifndef MAMBA_CORE_UTIL_STRING_HPP
 #define MAMBA_CORE_UTIL_STRING_HPP
 
-#include <algorithm>
-#include <cstring>
-#include <iomanip>
-#include <ostream>
-#include <sstream>
+#include <vector>
 #include <string>
 #include <string_view>
+#include <ostream>
+#include <cstring>
+#include <sstream>
+#include <algorithm>
+#include <iomanip>
 #include <type_traits>
-#include <vector>
 
 #include "mamba/core/util_compare.hpp"
 
@@ -36,8 +36,8 @@ namespace mamba
     // TODO: add concepts here, or at least some contraints
     template <typename T, typename AssociativeContainer>
     auto contains(const AssociativeContainer& values, const T& value_to_find)
-        -> decltype(values.find(value_to_find) != values.end())  // this should make invalid usage
-                                                                 // SFINAE
+        -> decltype(values.find(value_to_find)
+                    != values.end())  // this should make invalid usage SFINAE
     {
         return values.find(value_to_find) != values.end();
     }
@@ -47,8 +47,8 @@ namespace mamba
     bool starts_with_any(const std::string_view& str, const std::vector<std::string_view>& prefix);
 
     template <class CharType>
-    std::basic_string_view<CharType>
-    strip(const std::basic_string_view<CharType>& input, const std::basic_string_view<CharType>& chars)
+    std::basic_string_view<CharType> strip(const std::basic_string_view<CharType>& input,
+                                           const std::basic_string_view<CharType>& chars)
     {
         size_t start = input.find_first_not_of(chars);
         if (start == std::basic_string<CharType>::npos)
@@ -71,11 +71,9 @@ namespace mamba
 
     // FIXME: doesnt support const char* mixed with other string types as input.
     template <class CharType>
-    std::vector<std::basic_string<CharType>> split(
-        const std::basic_string_view<CharType> input,
-        const std::basic_string_view<CharType> sep,
-        std::size_t max_split = SIZE_MAX
-    )
+    std::vector<std::basic_string<CharType>> split(const std::basic_string_view<CharType> input,
+                                                   const std::basic_string_view<CharType> sep,
+                                                   std::size_t max_split = SIZE_MAX)
     {
         std::vector<std::basic_string<CharType>> result;
         std::size_t i = 0, j = 0, len = input.size(), n = sep.size();
@@ -85,9 +83,7 @@ namespace mamba
             if (input[i] == sep[0] && input.substr(i, n) == sep)
             {
                 if (max_split-- <= 0)
-                {
                     break;
-                }
                 result.emplace_back(input.substr(j, i - j));
                 i = j = i + n;
             }
@@ -104,14 +100,16 @@ namespace mamba
     // works, so this is a workaround that fixes it
     // FIXME: this overload should not be necessary, but the generic version doesn't
     // work with const char* and mixed with other types for some reason.
-    inline std::vector<std::string>
-    split(const std::string_view& input, const std::string_view& sep, std::size_t max_split = SIZE_MAX)
+    inline std::vector<std::string> split(const std::string_view& input,
+                                          const std::string_view& sep,
+                                          std::size_t max_split = SIZE_MAX)
     {
         return split<char>(input, sep, max_split);
     }
 
-    std::vector<std::string>
-    rsplit(const std::string_view& input, const std::string_view& sep, std::size_t max_split = SIZE_MAX);
+    std::vector<std::string> rsplit(const std::string_view& input,
+                                    const std::string_view& sep,
+                                    std::size_t max_split = SIZE_MAX);
 
     namespace details
     {
@@ -140,7 +138,7 @@ namespace mamba
         std::size_t size(const wchar_t* s);
         std::size_t size(const char c);
         template <class T>
-        std::size_t size(const T& s)
+        std::size_t size(T const& s)
         {
             using std::size;
             return size(s);
@@ -156,7 +154,7 @@ namespace mamba
      */
     // TODO(C++20) Take an input range and return a range
     template <typename InputIt, typename UnaryFunction, typename Value>
-    UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
+    UnaryFunction join_for_each(InputIt first, InputIt last, UnaryFunction func, Value const& sep)
     {
         if (first < last)
         {
@@ -180,7 +178,7 @@ namespace mamba
      * @see join_for_each
      */
     template <class Range, class Value, class Joiner = details::PlusEqual>
-    auto join(const Value& sep, const Range& container, Joiner joiner = details::PlusEqual{}) ->
+    auto join(Value const& sep, const Range& container, Joiner joiner = details::PlusEqual{}) ->
         typename Range::value_type
     {
         using Result = typename Range::value_type;
@@ -188,7 +186,7 @@ namespace mamba
         if constexpr (details::has_reserve_v<Result>)
         {
             std::size_t final_size = 0;
-            auto inc_size = [&final_size](const auto& val) { final_size += details::size(val); };
+            auto inc_size = [&final_size](auto const& val) { final_size += details::size(val); };
             join_for_each(container.begin(), container.end(), inc_size, sep);
             out.reserve(final_size);
         }
@@ -219,15 +217,13 @@ namespace mamba
      */
     // TODO(C++20) Take an input range and return a range
     template <typename InputIt, typename UnaryFunction, typename Value>
-    UnaryFunction join_trunc_for_each(
-        InputIt first,
-        InputIt last,
-        UnaryFunction func,
-        const Value& sep,
-        const Value& etc,
-        std::size_t threshold = 5,
-        std::pair<std::size_t, std::size_t> show = { 2, 1 }
-    )
+    UnaryFunction join_trunc_for_each(InputIt first,
+                                      InputIt last,
+                                      UnaryFunction func,
+                                      Value const& sep,
+                                      Value const& etc,
+                                      std::size_t threshold = 5,
+                                      std::pair<std::size_t, std::size_t> show = { 2, 1 })
     {
         if (util::cmp_less_equal(last - first, threshold))
         {
@@ -247,7 +243,7 @@ namespace mamba
             }
         };
 
-        const auto [show_head, show_tail] = show;
+        auto const [show_head, show_tail] = show;
         if (show_head > 0)
         {
             join_for_each_func(first, first + show_head, sep);
@@ -275,21 +271,19 @@ namespace mamba
      * @see join
      */
     template <typename Range, typename Joiner = details::PlusEqual>
-    auto join_trunc(
-        const Range& range,
-        std::string_view sep = ", ",
-        std::string_view etc = "...",
-        std::size_t threshold = 5,
-        std::pair<std::size_t, std::size_t> show = { 2, 1 },
-        Joiner joiner = details::PlusEqual{}
-    ) -> typename Range::value_type
+    auto join_trunc(Range const& range,
+                    std::string_view sep = ", ",
+                    std::string_view etc = "...",
+                    std::size_t threshold = 5,
+                    std::pair<std::size_t, std::size_t> show = { 2, 1 },
+                    Joiner joiner = details::PlusEqual{}) -> typename Range::value_type
     {
         using Result = typename Range::value_type;
         Result out{};
         if constexpr (details::has_reserve_v<Result>)
         {
             std::size_t final_size = 0;
-            auto inc_size = [&final_size](const auto& val) { final_size += details::size(val); };
+            auto inc_size = [&final_size](auto const& val) { final_size += details::size(val); };
             join_trunc_for_each(range.begin(), range.end(), inc_size, sep, etc, threshold, show);
             out.reserve(final_size);
         }

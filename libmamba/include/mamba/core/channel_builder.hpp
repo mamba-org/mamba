@@ -16,31 +16,25 @@ namespace mamba
     class ChannelBuilder
     {
     public:
-
-        static Channel make_simple_channel(
-            const Channel& channel_alias,
-            const std::string& channel_url,
-            const std::string& channel_name = "",
-            const std::string& multi_name = ""
-        );
+        static Channel make_simple_channel(const Channel& channel_alias,
+                                           const std::string& channel_url,
+                                           const std::string& channel_name = "",
+                                           const std::string& multi_name = "");
 
         static const Channel& make_cached_channel(const std::string& value);
 
         static void clear_cache();
 
     private:
-
         static ChannelCache& get_cache();
 
         static Channel from_url(const std::string& url);
         static Channel from_name(const std::string& name);
         static Channel from_value(const std::string& value);
-        static Channel from_alias(
-            const std::string& scheme,
-            const std::string& location,
-            const std::optional<std::string>& auth = {},
-            const std::optional<std::string>& token = {}
-        );
+        static Channel from_alias(const std::string& scheme,
+                                  const std::string& location,
+                                  const std::optional<std::string>& auth = {},
+                                  const std::optional<std::string>& token = {});
 
         friend class ChannelContext;
     };
@@ -48,7 +42,6 @@ namespace mamba
     class ChannelContext
     {
     public:
-
         using channel_list = std::vector<std::string>;
         using channel_map = std::map<std::string, Channel>;
         using multichannel_map = std::map<std::string, std::vector<std::string>>;
@@ -69,12 +62,10 @@ namespace mamba
         const channel_list& get_whitelist_channels() const;
 
     protected:
-
         ChannelContext();
         ~ChannelContext();
 
     private:
-
         Channel build_channel_alias();
         void init_custom_channels();
 

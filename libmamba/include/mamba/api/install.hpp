@@ -7,12 +7,6 @@
 #ifndef MAMBA_API_INSTALL_HPP
 #define MAMBA_API_INSTALL_HPP
 
-#include <string>
-#include <vector>
-
-#include <nlohmann/json.hpp>
-#include <yaml-cpp/yaml.h>
-
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
@@ -21,24 +15,27 @@
 #include "mamba/core/repo.hpp"
 #include "mamba/core/solver.hpp"
 
+#include <yaml-cpp/yaml.h>
+
+#include <nlohmann/json.hpp>
+
+#include <string>
+#include <vector>
+
 
 namespace mamba
 {
     void install();
 
-    void install_specs(
-        const std::vector<std::string>& specs,
-        bool create_env = false,
-        int solver_flag = SOLVER_INSTALL,
-        int is_retry = 0
-    );
+    void install_specs(const std::vector<std::string>& specs,
+                       bool create_env = false,
+                       int solver_flag = SOLVER_INSTALL,
+                       int is_retry = 0);
 
     void install_explicit_specs(const std::vector<std::string>& specs, bool create_env = false);
-    void install_lockfile_specs(
-        const std::string& lockfile_specs,
-        const std::vector<std::string>& categories,
-        bool create_env = false
-    );
+    void install_lockfile_specs(const std::string& lockfile_specs,
+                                const std::vector<std::string>& categories,
+                                bool create_env = false);
 
     namespace detail
     {
@@ -72,8 +69,8 @@ namespace mamba
 
         yaml_file_contents read_yaml_file(fs::u8path yaml_file);
 
-        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>>
-        parse_urls_to_package_info(const std::vector<std::string>& urls);
+        std::tuple<std::vector<PackageInfo>, std::vector<MatchSpec>> parse_urls_to_package_info(
+            const std::vector<std::string>& urls);
 
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {

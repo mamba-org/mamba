@@ -19,16 +19,13 @@ namespace mamba
     class MQueue
     {
     public:
-
         MQueue()
             : p_queue(new Queue)
         {
             queue_init(p_queue);
 
             if (!p_queue)
-            {
                 throw std::runtime_error("libsolv error: could not initialize Queue");
-            }
         }
 
         ~MQueue()
@@ -98,7 +95,6 @@ namespace mamba
         }
 
     private:
-
         Queue* p_queue;
     };
 }  // namespace mamba

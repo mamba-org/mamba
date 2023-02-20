@@ -9,8 +9,9 @@ namespace mamba
     // are being scheduled concurrently.
     // Joins all threads before exiting.
     template <typename Func>
-    void
-    execute_tasks_from_concurrent_threads(std::size_t task_count, std::size_t tasks_per_thread, Func work)
+    void execute_tasks_from_concurrent_threads(std::size_t task_count,
+                                               std::size_t tasks_per_thread,
+                                               Func work)
     {
         std::vector<std::thread> producers;
         std::size_t tasks_left_to_launch = task_count;
@@ -24,15 +25,12 @@ namespace mamba
                     {
                         work();
                     }
-                }
-            );
+                });
             tasks_left_to_launch -= tasks_to_generate;
         }
 
         for (auto&& t : producers)
-        {
             t.join();  // Make sure all the producers are finished before continuing.
-        }
     }
 
     TEST(execution, stop_default_always_succeeds)
@@ -65,11 +63,9 @@ namespace mamba
         {
             MainExecutor executor;
 
-            execute_tasks_from_concurrent_threads(
-                arbitrary_task_count,
-                arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { ++counter; }); }
-            );
+            execute_tasks_from_concurrent_threads(arbitrary_task_count,
+                                                  arbitrary_tasks_per_generator,
+                                                  [&] { executor.schedule([&] { ++counter; }); });
         }  // All threads from the executor must have been joined here.
         EXPECT_EQ(counter, arbitrary_task_count);
     }
@@ -82,11 +78,9 @@ namespace mamba
         {
             MainExecutor executor;
 
-            execute_tasks_from_concurrent_threads(
-                arbitrary_task_count,
-                arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { ++counter; }); }
-            );
+            execute_tasks_from_concurrent_threads(arbitrary_task_count,
+                                                  arbitrary_tasks_per_generator,
+                                                  [&] { executor.schedule([&] { ++counter; }); });
 
             executor.close();
             EXPECT_EQ(counter, arbitrary_task_count);
@@ -94,14 +88,11 @@ namespace mamba
             execute_tasks_from_concurrent_threads(
                 arbitrary_task_count,
                 arbitrary_tasks_per_generator,
-                [&] { executor.schedule([&] { throw "this code must never be executed"; }); }
-            );
+                [&] { executor.schedule([&] { throw "this code must never be executed"; }); });
         }
-        EXPECT_EQ(
-            counter,
-            arbitrary_task_count
-        );  // We re-check to make sure no thread are executed anymore
-            // as soon as `.close()` was called.
+        EXPECT_EQ(counter,
+                  arbitrary_task_count);  // We re-check to make sure no thread are executed anymore
+                                          // as soon as `.close()` was called.
     }
 
 }

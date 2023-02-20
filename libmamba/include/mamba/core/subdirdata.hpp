@@ -20,7 +20,6 @@
 #include "mamba/core/pool.hpp"
 #include "mamba/core/repo.hpp"
 #include "mamba/core/util.hpp"
-
 #include "package_handling.hpp"
 
 namespace decompress
@@ -78,14 +77,11 @@ namespace mamba
     class MSubdirData
     {
     public:
-
-        static expected_t<MSubdirData> create(
-            const Channel& channel,
-            const std::string& platform,
-            const std::string& url,
-            MultiPackageCache& caches,
-            const std::string& repodata_fn = "repodata.json"
-        );
+        static expected_t<MSubdirData> create(const Channel& channel,
+                                              const std::string& platform,
+                                              const std::string& url,
+                                              MultiPackageCache& caches,
+                                              const std::string& repodata_fn = "repodata.json");
 
         ~MSubdirData() = default;
 
@@ -96,8 +92,8 @@ namespace mamba
         MSubdirData& operator=(MSubdirData&&);
 
         // TODO return seconds as double
-        fs::file_time_type::duration
-        check_cache(const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref) const;
+        fs::file_time_type::duration check_cache(
+            const fs::u8path& cache_file, const fs::file_time_type::clock::time_point& ref) const;
         bool loaded() const;
 
         bool forbid_cache();
@@ -115,14 +111,11 @@ namespace mamba
         expected_t<MRepo&> create_repo(MPool& pool);
 
     private:
-
-        MSubdirData(
-            const Channel& channel,
-            const std::string& platform,
-            const std::string& url,
-            MultiPackageCache& caches,
-            const std::string& repodata_fn = "repodata.json"
-        );
+        MSubdirData(const Channel& channel,
+                    const std::string& platform,
+                    const std::string& url,
+                    MultiPackageCache& caches,
+                    const std::string& repodata_fn = "repodata.json");
 
         bool load(MultiPackageCache& caches);
         void check_repodata_existence();

@@ -4,15 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/package_cache.hpp"
-
+#include "nlohmann/json.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/url.hpp"
 #include "mamba/core/validate.hpp"
-
-#include "nlohmann/json.hpp"
+#include "mamba/core/url.hpp"
 
 namespace mamba
 {
@@ -27,11 +25,9 @@ namespace mamba
         {
             LOG_DEBUG << "Attempt to create package cache directory '" << m_path.string() << "'";
             bool sudo_safe = path::starts_with_home(m_path);
-            path::touch(
-                m_path / PACKAGE_CACHE_MAGIC_FILE,
-                /*mkdir*/ true,
-                sudo_safe
-            );
+            path::touch(m_path / PACKAGE_CACHE_MAGIC_FILE,
+                        /*mkdir*/ true,
+                        sudo_safe);
             return true;
         }
         catch (...)
@@ -49,9 +45,7 @@ namespace mamba
     auto PackageCacheData::is_writable() -> Writable
     {
         if (m_writable == Writable::UNKNOWN)
-        {
             check_writable();
-        }
 
         return m_writable;
     }
@@ -93,9 +87,7 @@ namespace mamba
             }
         }
         else
-        {
             LOG_TRACE << "Cache path does not exists or is not writable";
-        }
 
         try
         {
@@ -153,19 +145,14 @@ namespace mamba
                     throw std::runtime_error(
                         "Could not validate package '" + tarball_path.string()
                         + "': md5 and sha256 sum unknown.\n"
-                          "Set safety_checks to warn or disabled to override this error."
-                    );
+                          "Set safety_checks to warn or disabled to override this error.");
                 }
             }
 
             if (valid)
-            {
                 LOG_TRACE << "Package tarball '" << tarball_path.string() << "' is valid";
-            }
             else
-            {
                 LOG_WARNING << "Package tarball '" << tarball_path.string() << "' is invalid";
-            }
             m_valid_tarballs[pkg] = valid;
         }
 
@@ -219,8 +206,7 @@ namespace mamba
                             throw std::runtime_error(
                                 "Could not validate package '" + repodata_record_path.string()
                                 + "': md5 and sha256 sum unknown.\n"
-                                  "Set safety_checks to warn or disabled to override this error."
-                            );
+                                  "Set safety_checks to warn or disabled to override this error.");
                         }
                     }
 
@@ -281,7 +267,8 @@ namespace mamba
                     {
                         if (!repodata_record["url"].get<std::string>().empty())
                         {
-                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(), s.url))
+                            if (!compare_cleaned_url(repodata_record["url"].get<std::string>(),
+                                                     s.url))
                             {
                                 LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
                                             << "' has invalid url";
@@ -385,12 +372,8 @@ namespace mamba
     fs::u8path MultiPackageCache::first_writable_path()
     {
         for (auto& pc : m_caches)
-        {
             if (pc.is_writable() == Writable::WRITABLE)
-            {
                 return pc.path();
-            }
-        }
 
         return fs::u8path();
     }
@@ -405,18 +388,14 @@ namespace mamba
         }
 
         for (PackageCacheData& c : m_caches)
-        {
             if (c.has_valid_tarball(s))
             {
                 m_cached_tarballs[pkg] = c.path();
                 return c.path();
             }
-        }
 
         if (return_empty)
-        {
             return fs::u8path();
-        }
         else
         {
             LOG_ERROR << "Cannot find tarball cache for '" << s.fn << "'";
@@ -435,18 +414,14 @@ namespace mamba
         }
 
         for (auto& c : m_caches)
-        {
             if (c.has_valid_extracted_dir(s))
             {
                 m_cached_extracted_dirs[pkg] = c.path();
                 return c.path();
             }
-        }
 
         if (return_empty)
-        {
             return fs::u8path();
-        }
         else
         {
             LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.fn << "'";
@@ -458,9 +433,7 @@ namespace mamba
     {
         std::vector<fs::u8path> paths;
         for (auto& c : m_caches)
-        {
             paths.push_back(c.path());
-        }
 
         return paths;
     }
@@ -468,8 +441,6 @@ namespace mamba
     void MultiPackageCache::clear_query_cache(const PackageInfo& s)
     {
         for (auto& c : m_caches)
-        {
             c.clear_query_cache(s);
-        }
     }
 }  // namespace mamba

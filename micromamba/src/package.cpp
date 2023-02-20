@@ -4,11 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "common_options.hpp"
+
+#include "mamba/core/util.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/util.hpp"
-
-#include "common_options.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -34,8 +34,7 @@ set_package_command(CLI::App* subcom)
             Console::stream() << "Extracting " << fs::absolute(infile) << " to "
                               << fs::absolute(dest) << std::endl;
             extract(fs::absolute(infile), fs::absolute(dest));
-        }
-    );
+        });
 
     auto compress_subcom = subcom->add_subcommand("compress");
     init_general_options(compress_subcom);
@@ -44,13 +43,11 @@ set_package_command(CLI::App* subcom)
     compress_subcom->add_option(
         "-c,--compression-level",
         compression_level,
-        "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)"
-    );
+        "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)");
     compress_subcom->add_option(
         "--compression-threads",
         compression_threads,
-        "Compression threads (only relevant for .conda packages, default is 1)"
-    );
+        "Compression threads (only relevant for .conda packages, default is 1)");
     compress_subcom->callback(
         [&]()
         {
@@ -61,22 +58,13 @@ set_package_command(CLI::App* subcom)
                               << std::endl;
 
             if (ends_with(dest, ".tar.bz2") && compression_level == -1)
-            {
                 compression_level = 9;
-            }
             if (ends_with(dest, ".conda") && compression_level == -1)
-            {
                 compression_level = 15;
-            }
 
             create_package(
-                fs::absolute(infile),
-                fs::absolute(dest),
-                compression_level,
-                compression_threads
-            );
-        }
-    );
+                fs::absolute(infile), fs::absolute(dest), compression_level, compression_threads);
+        });
 
     auto transmute_subcom = subcom->add_subcommand("transmute");
     init_general_options(transmute_subcom);
@@ -84,13 +72,11 @@ set_package_command(CLI::App* subcom)
     transmute_subcom->add_option(
         "-c,--compression-level",
         compression_level,
-        "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)"
-    );
+        "Compression level from 0-9 (tar.bz2, default is 9), and 1-22 (conda, default is 15)");
     transmute_subcom->add_option(
         "--compression-threads",
         compression_threads,
-        "Compression threads (only relevant for .conda packages, default is 1)"
-    );
+        "Compression threads (only relevant for .conda packages, default is 1)");
     transmute_subcom->callback(
         [&]()
         {
@@ -100,22 +86,18 @@ set_package_command(CLI::App* subcom)
             if (ends_with(infile, ".tar.bz2"))
             {
                 if (compression_level == -1)
-                {
                     compression_level = 15;
-                }
                 dest = infile.substr(0, infile.size() - 8) + ".conda";
             }
             else
             {
                 if (compression_level == -1)
-                {
                     compression_level = 9;
-                }
                 dest = infile.substr(0, infile.size() - 8) + ".tar.bz2";
             }
             Console::stream() << "Transmuting " << fs::absolute(infile) << " to " << dest
                               << std::endl;
-            transmute(fs::absolute(infile), fs::absolute(dest), compression_level, compression_threads);
-        }
-    );
+            transmute(
+                fs::absolute(infile), fs::absolute(dest), compression_level, compression_threads);
+        });
 }

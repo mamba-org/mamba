@@ -18,14 +18,12 @@ namespace mamba
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
-            );
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        auto show_group = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS
-                                                                        : 0;
+        auto show_group
+            = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
         auto show_long_desc = config.at("show_config_long_descriptions").value<bool>()
                                   ? MAMBA_SHOW_CONFIG_LONG_DESCS
                                   : 0;
@@ -44,21 +42,19 @@ namespace mamba
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
-            );
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
-        auto show_sources = config.at("show_config_sources").value<bool>() ? MAMBA_SHOW_CONFIG_SRCS
-                                                                           : 0;
+        auto show_sources
+            = config.at("show_config_sources").value<bool>() ? MAMBA_SHOW_CONFIG_SRCS : 0;
         auto show_all = config.at("show_all_configs").value<bool>() ? MAMBA_SHOW_ALL_CONFIGS : 0;
-        auto show_all_rcs = config.at("show_all_rc_configs").value<bool>() ? MAMBA_SHOW_ALL_RC_CONFIGS
-                                                                           : 0;
-        auto show_group = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS
-                                                                        : 0;
-        auto show_desc = config.at("show_config_descriptions").value<bool>() ? MAMBA_SHOW_CONFIG_DESCS
-                                                                             : 0;
+        auto show_all_rcs
+            = config.at("show_all_rc_configs").value<bool>() ? MAMBA_SHOW_ALL_RC_CONFIGS : 0;
+        auto show_group
+            = config.at("show_config_groups").value<bool>() ? MAMBA_SHOW_CONFIG_GROUPS : 0;
+        auto show_desc
+            = config.at("show_config_descriptions").value<bool>() ? MAMBA_SHOW_CONFIG_DESCS : 0;
         auto show_long_desc = config.at("show_config_long_descriptions").value<bool>()
                                   ? MAMBA_SHOW_CONFIG_LONG_DESCS
                                   : 0;
@@ -78,10 +74,8 @@ namespace mamba
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("show_banner").set_value(false);
         config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
-                | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX
-            );
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX | MAMBA_NOT_EXPECT_EXISTING_PREFIX);
         config.load();
 
         auto& no_rc = config.at("no_rc").value<bool>();

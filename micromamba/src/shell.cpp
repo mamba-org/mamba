@@ -4,14 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/shell.hpp"
-
-#include "mamba/api/configuration.hpp"
-#include "mamba/core/fsutil.hpp"
-#include "mamba/core/run.hpp"
-
 #include "common_options.hpp"
 #include "umamba.hpp"
+
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/shell.hpp"
+#include "mamba/core/run.hpp"
+
+#include "mamba/core/fsutil.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -24,13 +24,12 @@ init_shell_parser(CLI::App* subcom)
     auto& config = Configuration::instance();
 
     auto& shell_type = config.insert(
-        Configurable("shell_type", std::string("")).group("cli").description("A shell type")
-    );
+        Configurable("shell_type", std::string("")).group("cli").description("A shell type"));
     subcom
-        ->add_option("-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
+        ->add_option(
+            "-s,--shell", shell_type.get_cli_config<std::string>(), shell_type.description())
         ->check(CLI::IsMember(std::set<std::string>(
-            { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash" }
-        )));
+            { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash" })));
 
     auto& stack = config.insert(Configurable("shell_stack", false)
                                     .group("cli")
@@ -44,9 +43,9 @@ init_shell_parser(CLI::App* subcom)
                        configuration variable.)")));
     subcom->add_flag("--stack", stack.get_cli_config<bool>(), stack.description());
 
-    auto& action = config.insert(
-        Configurable("shell_action", std::string("")).group("cli").description("The action to complete")
-    );
+    auto& action = config.insert(Configurable("shell_action", std::string(""))
+                                     .group("cli")
+                                     .description("The action to complete"));
     subcom->add_option("action", action.get_cli_config<std::string>(), action.description())
         ->check(CLI::IsMember(std::vector<std::string>({ "init",
                                                          "deinit",
@@ -65,13 +64,9 @@ init_shell_parser(CLI::App* subcom)
         Configurable("shell_prefix", std::string(""))
             .group("cli")
             .description("The root prefix to configure (for init and hook), and the prefix "
-                         "to activate for activate, either by name or by path")
-    );
+                         "to activate for activate, either by name or by path"));
     subcom->add_option(
-        "prefix,-p,--prefix,-n,--name",
-        prefix.get_cli_config<std::string>(),
-        prefix.description()
-    );
+        "prefix,-p,--prefix,-n,--name", prefix.get_cli_config<std::string>(), prefix.description());
 }
 
 
@@ -93,14 +88,10 @@ set_shell_command(CLI::App* subcom)
             if (action.empty())
             {
                 if (prefix.empty() || prefix == "base")
-                {
                     Context::instance().target_prefix = Context::instance().root_prefix;
-                }
                 else
-                {
-                    Context::instance().target_prefix = Context::instance().root_prefix / "envs"
-                                                        / prefix;
-                }
+                    Context::instance().target_prefix
+                        = Context::instance().root_prefix / "envs" / prefix;
 
                 std::string default_shell = "bash";
                 if (on_win)
@@ -114,20 +105,12 @@ set_shell_command(CLI::App* subcom)
 
                 auto env_shell = env::get("SHELL").value_or(default_shell);
                 exit(mamba::run_in_environment(
-                    { env_shell },
-                    ".",
-                    (int) STREAM_OPTIONS::ALL_STREAMS,
-                    false,
-                    false,
-                    {},
-                    ""
-                ));
+                    { env_shell }, ".", (int) STREAM_OPTIONS::ALL_STREAMS, false, false, {}, ""));
             }
             else
             {
                 mamba::shell(action, shell, prefix, stack);
                 return 0;
             }
-        }
-    );
+        });
 }

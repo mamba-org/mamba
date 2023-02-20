@@ -7,10 +7,10 @@
 #ifndef MAMBA_CORE_PINNING_HPP
 #define MAMBA_CORE_PINNING_HPP
 
-#include <string>
-#include <vector>
-
 #include "prefix_data.hpp"
+
+#include <vector>
+#include <string>
 
 
 namespace mamba

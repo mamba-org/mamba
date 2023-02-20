@@ -23,22 +23,17 @@ namespace mamba
     fs::u8path get_python_short_path(const std::string& python_version);
     fs::u8path get_python_site_packages_short_path(const std::string& python_version);
     fs::u8path get_bin_directory_short_path();
-    fs::u8path get_python_noarch_target_path(
-        const std::string& source_short_path,
-        const fs::u8path& target_site_packages_short_path
-    );
+    fs::u8path get_python_noarch_target_path(const std::string& source_short_path,
+                                             const fs::u8path& target_site_packages_short_path);
 
     class TransactionContext
     {
     public:
-
         TransactionContext();
         TransactionContext& operator=(const TransactionContext&);
-        TransactionContext(
-            const fs::u8path& target_prefix,
-            const std::pair<std::string, std::string>& py_versions,
-            const std::vector<MatchSpec>& requested_specs
-        );
+        TransactionContext(const fs::u8path& target_prefix,
+                           const std::pair<std::string, std::string>& py_versions,
+                           const std::vector<MatchSpec>& requested_specs);
         ~TransactionContext();
         bool try_pyc_compilation(const std::vector<fs::u8path>& py_files);
         void wait_for_pyc_compilation();
@@ -59,7 +54,6 @@ namespace mamba
         std::vector<MatchSpec> requested_specs;
 
     private:
-
         bool start_pyc_compilation_process();
 
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;

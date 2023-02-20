@@ -4,10 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "common_options.hpp"
+
 #include "mamba/core/shell_init.hpp"
 #include "mamba/core/util.hpp"
-
-#include "common_options.hpp"
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
@@ -22,8 +22,7 @@ set_activate_command(CLI::App* subcom)
     subcom->add_flag(
         "--stack",
         stack,
-        "Activate the specified environment without first deactivating the current one"
-    );
+        "Activate the specified environment without first deactivating the current one");
 
     subcom->callback(
         [&]()
@@ -32,14 +31,11 @@ set_activate_command(CLI::App* subcom)
             std::string shell_hook_command = "", shell_hook = "";
 
             if (guessed_shell == "powershell")
-            {
-                shell_hook_command = "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
-            }
+                shell_hook_command
+                    = "micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression";
             else
-            {
-                shell_hook_command = "eval \"$(micromamba shell hook --shell=" + guessed_shell
-                                     + ")\"";
-            }
+                shell_hook_command
+                    = "eval \"$(micromamba shell hook --shell=" + guessed_shell + ")\"";
 
             if (guessed_shell != "cmd.exe")
             {
@@ -69,6 +65,5 @@ set_activate_command(CLI::App* subcom)
 
             std::cout << "\n" << message << "\n" << std::endl;
             throw std::runtime_error("Shell not initialized");
-        }
-    );
+        });
 }

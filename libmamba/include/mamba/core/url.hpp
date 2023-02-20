@@ -45,13 +45,11 @@ namespace mamba
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token);
 
-    void split_scheme_auth_token(
-        const std::string& url,
-        std::string& remaining_url,
-        std::string& scheme,
-        std::string& auth,
-        std::string& token
-    );
+    void split_scheme_auth_token(const std::string& url,
+                                 std::string& remaining_url,
+                                 std::string& scheme,
+                                 std::string& auth,
+                                 std::string& token);
 
     bool compare_cleaned_url(const std::string& url1, const std::string& url2);
 
@@ -71,7 +69,6 @@ namespace mamba
     class URLHandler
     {
     public:
-
         URLHandler(const std::string& url = "");
         ~URLHandler();
 
@@ -111,7 +108,6 @@ namespace mamba
         URLHandler& set_zoneid(const std::string& zoneid);
 
     private:
-
         std::string get_part(CURLUPart part);
         void set_part(CURLUPart part, const std::string& s);
 

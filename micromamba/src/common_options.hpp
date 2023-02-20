@@ -7,9 +7,9 @@
 #ifndef UMAMBA_COMMON_OPTIONS_HPP
 #define UMAMBA_COMMON_OPTIONS_HPP
 
-#include <CLI/CLI.hpp>
-
 #include "mamba/core/context.hpp"
+
+#include <CLI/CLI.hpp>
 
 
 void

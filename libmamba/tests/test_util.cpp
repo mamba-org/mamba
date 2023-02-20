@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "mamba/core/context.hpp"
-#include "mamba/core/execution.hpp"
-#include "mamba/core/fsutil.hpp"
-#include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_random.hpp"
 #include "mamba/core/util_scope.hpp"
+#include "mamba/core/execution.hpp"
+#include "mamba/core/mamba_fs.hpp"
+#include "mamba/core/util_scope.hpp"
+#include "mamba/core/fsutil.hpp"
+#include "mamba/core/context.hpp"
 
 
 namespace mamba
@@ -124,8 +125,7 @@ namespace mamba
 
         EXPECT_TRUE(path::is_writable(test_dir_path / "non-existing-writable-test-delete-me.txt"));
         EXPECT_TRUE(path::is_writable(
-            env::expand_user("~/.libmamba-non-existing-writable-test-delete-me.txt")
-        ));
+            env::expand_user("~/.libmamba-non-existing-writable-test-delete-me.txt")));
 
         {
             const auto existing_file_path = test_dir_path / "existing-writable-test-delete-me.txt";

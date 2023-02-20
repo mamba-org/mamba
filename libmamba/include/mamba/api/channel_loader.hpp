@@ -5,6 +5,7 @@ namespace mamba
     class MPool;
     class MultiPackageCache;
 
-    expected_t<void, mamba_aggregated_error>
-    load_channels(MPool& pool, MultiPackageCache& package_caches, int is_retry);
+    expected_t<void, mamba_aggregated_error> load_channels(MPool& pool,
+                                                           MultiPackageCache& package_caches,
+                                                           int is_retry);
 }

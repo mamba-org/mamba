@@ -4,11 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/clean.hpp"
-
 #include <iostream>
 
+#include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/package_cache.hpp"
@@ -50,7 +50,6 @@ namespace mamba
             Console::stream() << "Cleaning index cache..";
 
             for (auto* pkg_cache : caches.writable_caches())
-            {
                 if (fs::exists(pkg_cache->path() / "cache"))
                 {
                     try
@@ -62,7 +61,6 @@ namespace mamba
                         LOG_WARNING << "Could not clean " << pkg_cache->path() / "cache";
                     }
                 }
-            }
         }
 
         if (!ctx.dry_run && (clean_locks || clean_all))
@@ -72,7 +70,6 @@ namespace mamba
             for (auto* pkg_cache : caches.writable_caches())
             {
                 if (fs::exists(pkg_cache->path()))
-                {
                     for (auto& p : fs::directory_iterator(pkg_cache->path()))
                     {
                         if (p.exists() && ends_with(p.path().string(), ".lock")
@@ -92,10 +89,8 @@ namespace mamba
                             }
                         }
                     }
-                }
 
                 if (fs::exists(pkg_cache->path() / "cache"))
-                {
                     for (auto& p : fs::recursive_directory_iterator(pkg_cache->path() / "cache"))
                     {
                         if (p.exists() && ends_with(p.path().string(), ".lock"))
@@ -112,7 +107,6 @@ namespace mamba
                             }
                         }
                     }
-                }
             }
         }
 
@@ -171,7 +165,8 @@ namespace mamba
 
             for (auto* pkg_cache : caches.writable_caches())
             {
-                std::string header_line = concat("Package cache folder: ", pkg_cache->path().string());
+                std::string header_line
+                    = concat("Package cache folder: ", pkg_cache->path().string());
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
@@ -181,15 +176,14 @@ namespace mamba
                             || ends_with(p.path().string(), ".conda")))
                     {
                         res.push_back(p.path());
-                        rows.push_back({ p.path().filename().string(), get_file_size(p.file_size()) });
+                        rows.push_back(
+                            { p.path().filename().string(), get_file_size(p.file_size()) });
                         total_size += p.file_size();
                     }
                 }
-                std::sort(
-                    rows.begin(),
-                    rows.end(),
-                    [](const auto& a, const auto& b) { return a[0].s < b[0].s; }
-                );
+                std::sort(rows.begin(),
+                          rows.end(),
+                          [](const auto& a, const auto& b) { return a[0].s < b[0].s; });
                 t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)
@@ -245,28 +239,29 @@ namespace mamba
 
             for (auto* pkg_cache : caches.writable_caches())
             {
-                std::string header_line = concat("Package cache folder: ", pkg_cache->path().string());
+                std::string header_line
+                    = concat("Package cache folder: ", pkg_cache->path().string());
                 std::vector<std::vector<printers::FormattedString>> rows;
                 for (auto& p : fs::directory_iterator(pkg_cache->path()))
                 {
                     if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
                     {
-                        if (installed_pkgs.find(p.path().filename().string()) != installed_pkgs.end())
+                        if (installed_pkgs.find(p.path().filename().string())
+                            != installed_pkgs.end())
                         {
                             // do not remove installed packages
                             continue;
                         }
                         res.push_back(p.path());
                         std::size_t folder_size = get_folder_size(p);
-                        rows.push_back({ p.path().filename().string(), get_file_size(folder_size) });
+                        rows.push_back(
+                            { p.path().filename().string(), get_file_size(folder_size) });
                         total_size += folder_size;
                     }
                 }
-                std::sort(
-                    rows.begin(),
-                    rows.end(),
-                    [](const auto& a, const auto& b) { return a[0].s < b[0].s; }
-                );
+                std::sort(rows.begin(),
+                          rows.end(),
+                          [](const auto& a, const auto& b) { return a[0].s < b[0].s; });
                 t.add_rows(pkg_cache->path().string(), rows);
             }
             if (total_size)

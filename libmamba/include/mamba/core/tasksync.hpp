@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include <atomic>
 #include <cassert>
-#include <condition_variable>
-#include <functional>
-#include <memory>
+#include <atomic>
 #include <mutex>
+#include <memory>
+#include <functional>
+#include <condition_variable>
 
 #include "mamba/core/util_scope.hpp"
 
@@ -75,7 +75,6 @@ namespace mamba
         }
 
     public:
-
         TaskSynchronizer() = default;
 
         /** Destructor, joining tasks synchronized with this object.
@@ -115,9 +114,10 @@ namespace mamba
             {
                 // If status is alive then we know the TaskSynchronizer is alive too.
                 auto status = remote_status.lock();
-                if (status && !status->join_requested)  // Don't add running tasks while join was
-                                                        // requested.
-                {                                       // We can use 'this' safely in this scope.
+                if (status
+                    && !status
+                            ->join_requested)  // Don't add running tasks while join was requested.
+                {                              // We can use 'this' safely in this scope.
                     notify_begin_execution();
                     on_scope_exit _{ [&, this]
                                      {
@@ -175,7 +175,6 @@ namespace mamba
         }
 
     private:
-
         struct Status
         {
             std::atomic<bool> join_requested{ false };
@@ -205,9 +204,7 @@ namespace mamba
         void wait_all_running_tasks()
         {
             if (!m_status)
-            {
                 return;
-            }
 
             std::unique_lock exit_lock{ m_mutex };
 
@@ -216,9 +213,7 @@ namespace mamba
             m_status.reset();
 
             m_task_end_condition.wait(
-                exit_lock,
-                [&] { return m_running_tasks == 0 && remote_status.expired(); }
-            );
+                exit_lock, [&] { return m_running_tasks == 0 && remote_status.expired(); });
         }
     };
 

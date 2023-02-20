@@ -1,12 +1,12 @@
-#include "mamba/api/configuration.hpp"
-#include "mamba/api/create.hpp"
-#include "mamba/api/remove.hpp"
-#include "mamba/core/channel.hpp"
+#include "common_options.hpp"
 #include "mamba/core/environments_manager.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/url.hpp"
+#include "mamba/core/channel.hpp"
 
-#include "common_options.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/api/create.hpp"
+#include "mamba/api/remove.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -43,8 +43,7 @@ set_env_command(CLI::App* com)
 
     auto* create_subcom = com->add_subcommand(
         "create",
-        "Create new environment (pre-commit.com compatibility alias for 'micromamba create')"
-    );
+        "Create new environment (pre-commit.com compatibility alias for 'micromamba create')");
     init_install_options(create_subcom);
 
     static bool explicit_format;
@@ -60,10 +59,7 @@ set_env_command(CLI::App* com)
     export_subcom->add_flag("--no-md5,!--md5", no_md5, "Disable md5");
     export_subcom->add_flag("--no-build,!--build", no_build, "Disable the build string in spec");
     export_subcom->add_flag(
-        "--from-history",
-        from_history,
-        "Build environment spec from explicit specs in history"
-    );
+        "--from-history", from_history, "Build environment spec from explicit specs in history");
 
     export_subcom->callback(
         []()
@@ -111,9 +107,7 @@ set_env_command(CLI::App* com)
                 for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
-                    {
                         continue;
-                    }
 
                     if (from_history)
                     {
@@ -123,9 +117,7 @@ set_env_command(CLI::App* com)
                     {
                         dependencies << "- " << v.name << "=" << v.version;
                         if (!no_build)
-                        {
                             dependencies << "=" << v.build_string;
-                        }
                         dependencies << "\n";
                     }
 
@@ -133,14 +125,11 @@ set_env_command(CLI::App* com)
                 }
 
                 for (const auto& c : channels)
-                {
                     std::cout << "- " << c << "\n";
-                }
                 std::cout << "dependencies:\n" << dependencies.str() << std::endl;
                 std::cout.flush();
             }
-        }
-    );
+        });
 
     list_subcom->callback(
         []()
@@ -156,12 +145,10 @@ set_env_command(CLI::App* com)
                 nlohmann::json res;
                 const auto pfxs = env_manager.list_all_known_prefixes();
                 std::vector<std::string> envs(pfxs.size());
-                std::transform(
-                    pfxs.begin(),
-                    pfxs.end(),
-                    envs.begin(),
-                    [](const fs::u8path& path) { return path.string(); }
-                );
+                std::transform(pfxs.begin(),
+                               pfxs.end(),
+                               envs.begin(),
+                               [](const fs::u8path& path) { return path.string(); });
                 res["envs"] = envs;
                 std::cout << res.dump(4) << std::endl;
                 return;
@@ -169,9 +156,9 @@ set_env_command(CLI::App* com)
 
             // format and print table
             printers::Table t({ "Name", "Active", "Path" });
-            t.set_alignment(
-                { printers::alignment::left, printers::alignment::left, printers::alignment::left }
-            );
+            t.set_alignment({ printers::alignment::left,
+                              printers::alignment::left,
+                              printers::alignment::left });
             t.set_padding({ 2, 2, 2 });
 
             for (auto& env : env_manager.list_all_known_prefixes())
@@ -180,8 +167,7 @@ set_env_command(CLI::App* com)
                 t.add_row({ get_env_name(env), is_active ? "*" : "", env.string() });
             }
             t.print(std::cout);
-        }
-    );
+        });
 
     auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
     init_general_options(remove_subcom);
@@ -206,16 +192,15 @@ set_env_command(CLI::App* com)
                 // Unregister environment
                 env_manager.unregister_env(env::expand_user(prefix));
 
-                Console::instance().print(join(
-                    "",
-                    std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
-                ));
+                Console::instance().print(
+                    join("",
+                         std::vector<std::string>(
+                             { "Environment removed at prefix: ", prefix.string() })));
                 Console::instance().json_write({ { "success", true } });
             }
             else
             {
                 Console::stream() << "Dry run. The environment was not removed.";
             }
-        }
-    );
+        });
 }

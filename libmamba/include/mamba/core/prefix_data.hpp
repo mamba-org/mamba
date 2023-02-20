@@ -7,8 +7,8 @@
 #ifndef MAMBA_CORE_PREFIX_DATA_HPP
 #define MAMBA_CORE_PREFIX_DATA_HPP
 
-#include <map>
 #include <string>
+#include <map>
 
 #include "error_handling.hpp"
 #include "history.hpp"
@@ -19,7 +19,6 @@ namespace mamba
     class PrefixData
     {
     public:
-
         using package_map = std::map<std::string, PackageInfo>;
 
         static expected_t<PrefixData> create(const fs::u8path& prefix_path);
@@ -33,7 +32,6 @@ namespace mamba
         std::vector<PackageInfo> sorted_records() const;
 
     private:
-
         PrefixData(const fs::u8path& prefix_path);
         void load();
 

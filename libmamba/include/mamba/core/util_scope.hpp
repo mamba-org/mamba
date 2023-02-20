@@ -3,10 +3,8 @@
 #define MAMBA_CORE_UTIL_SCOPE_HPP
 
 #include <stdexcept>
-
-#include "mamba/core/output.hpp"
-
 #include "spdlog/spdlog.h"
+#include "mamba/core/output.hpp"
 
 namespace mamba
 {

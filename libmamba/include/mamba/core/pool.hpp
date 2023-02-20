@@ -7,13 +7,13 @@
 #ifndef MAMBA_CORE_POOL_HPP
 #define MAMBA_CORE_POOL_HPP
 
-#include <memory>
 #include <optional>
+#include <memory>
 
 #include <solv/pooltypes.h>
 
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/repo.hpp"
+#include "mamba/core/package_info.hpp"
 
 namespace mamba
 {
@@ -28,7 +28,6 @@ namespace mamba
     class MPool
     {
     public:
-
         MPool();
         ~MPool();
 
@@ -41,17 +40,16 @@ namespace mamba
         std::optional<PackageInfo> id2pkginfo(Id id);
 
         operator Pool*();
-        operator const Pool*() const;
+        operator Pool const*() const;
 
         MRepo& add_repo(MRepo&& repo);
         void remove_repo(Id repo_id);
 
     private:
-
         struct MPoolData;
 
         Pool* pool();
-        const Pool* pool() const;
+        Pool const* pool() const;
 
         /**
          * Make MPool behave like a shared_ptr (with move and copy).

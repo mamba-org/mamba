@@ -1,6 +1,5 @@
 #include <string>
 #include <string_view>
-
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/mamba_fs.hpp"
@@ -19,12 +18,9 @@ namespace mamba
         const fs::u8path location;
 
     public:
-
-        ScopedProcFile(
-            const std::string& name,
-            const std::vector<std::string>& command,
-            LockFile proc_dir_lock = lock_proc_dir()
-        );
+        ScopedProcFile(const std::string& name,
+                       const std::vector<std::string>& command,
+                       LockFile proc_dir_lock = lock_proc_dir());
         ~ScopedProcFile();
     };
 
@@ -36,19 +32,16 @@ namespace mamba
         SINKIN = 1 << 2,
     };
 
-    int run_in_environment(
-        std::vector<std::string> command,
-        const std::string& cwd,
-        int stream_options,
-        bool clean_env,
-        bool detach,
-        const std::vector<std::string>& env_vars,
-        const std::string& specific_process_name
-    );
+    int run_in_environment(std::vector<std::string> command,
+                           const std::string& cwd,
+                           int stream_options,
+                           bool clean_env,
+                           bool detach,
+                           const std::vector<std::string>& env_vars,
+                           const std::string& specific_process_name);
 
     nlohmann::json get_all_running_processes_info(
-        const std::function<bool(const nlohmann::json&)>& filter = std::function<
-            bool(const nlohmann::json&)>()
-    );
+        const std::function<bool(const nlohmann::json&)>& filter
+        = std::function<bool(const nlohmann::json&)>());
     bool is_process_name_running(const std::string& name);
 }

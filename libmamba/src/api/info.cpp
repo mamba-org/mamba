@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/info.hpp"
 
-#include "mamba/api/configuration.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
@@ -28,9 +28,8 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX | MAMBA_ALLOW_NOT_ENV_PREFIX
-            );
+            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_ALLOW_MISSING_PREFIX
+                       | MAMBA_ALLOW_NOT_ENV_PREFIX);
         config.load();
 
         detail::print_info();
@@ -49,9 +48,7 @@ namespace mamba
         void info_pretty_print(std::vector<std::tuple<std::string, nlohmann::json>> items)
         {
             if (Context::instance().json)
-            {
                 return;
-            }
 
             int key_max_length = 0;
             for (auto& item : items)
@@ -85,9 +82,7 @@ namespace mamba
         {
             std::map<std::string, nlohmann::json> items_map;
             for (auto& [key, val] : items)
-            {
                 items_map.insert({ key, val });
-            }
 
             Console::instance().json_write(items_map);
         }
@@ -130,8 +125,8 @@ namespace mamba
             items.push_back({ "env location", location });
 
             // items.insert( { "shell level", { 1 } });
-            items.push_back({ "user config files",
-                              { (env::home_directory() / ".mambarc").string() } });
+            items.push_back(
+                { "user config files", { (env::home_directory() / ".mambarc").string() } });
 
             Configuration& config = Configuration::instance();
             std::vector<std::string> sources;
@@ -144,9 +139,7 @@ namespace mamba
             items.push_back({ "libmamba version", version() });
 
             if (ctx.is_micromamba && !ctx.caller_version.empty())
-            {
                 items.push_back({ "micromamba version", ctx.caller_version });
-            }
 
             items.push_back({ "curl version", curl_version() });
             items.push_back({ "libarchive version", archive_version_details() });

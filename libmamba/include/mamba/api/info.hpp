@@ -7,11 +7,11 @@
 #ifndef MAMBA_API_INFO_HPP
 #define MAMBA_API_INFO_HPP
 
-#include <string>
-#include <vector>
-
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
+
+#include <string>
+#include <vector>
 
 
 namespace mamba
@@ -21,16 +21,14 @@ namespace mamba
     std::string version();
     std::string banner();
 
-    const std::string mamba_banner = std::string(strip(
-        R"MAMBARAW(
+    const std::string mamba_banner = std::string(strip(R"MAMBARAW(
                                         __
             _____ ___  ____ _____ ___  / /_  ____ _
             / __ `__ \/ __ `/ __ `__ \/ __ \/ __ `/
            / / / / / / /_/ / / / / / / /_/ / /_/ /
           /_/ /_/ /_/\__,_/_/ /_/ /_/_.___/\__,_/
     )MAMBARAW",
-        "\n"
-    ));
+                                                       "\n"));
 
     namespace detail
     {

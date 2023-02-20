@@ -4,30 +4,29 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/core/solver.hpp"
-
-#include <sstream>
 #include <stdexcept>
+#include <sstream>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-#include "mamba/core/channel.hpp"
+#include "mamba/core/solver.hpp"
+#include "mamba/core/queue.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/channel.hpp"
 #include "mamba/core/match_spec.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_info.hpp"
 #include "mamba/core/pool.hpp"
-#include "mamba/core/queue.hpp"
 #include "mamba/core/repo.hpp"
-#include "mamba/core/satisfiability_error.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/satisfiability_error.hpp"
 
 namespace mamba
 {
 
     // TODO this should belong in libsolv.
-    const char* solver_ruleinfo_name(SolverRuleinfo rule)
+    char const* solver_ruleinfo_name(SolverRuleinfo rule)
     {
         switch (rule)
         {
@@ -193,8 +192,8 @@ namespace mamba
             return pool_dep2str(pool, dep_id);
         }
 
-        MSolverProblem
-        make_solver_problem(::Solver* solver, SolverRuleinfo type, Id source_id, Id target_id, Id dep_id)
+        MSolverProblem make_solver_problem(
+            ::Solver* solver, SolverRuleinfo type, Id source_id, Id target_id, Id dep_id)
         {
             return {
                 /* .type= */ type,
@@ -226,14 +225,10 @@ namespace mamba
         const Channel* chan = mrepo->channel();
 
         if (!chan)
-        {
             return false;
-        }
 
         if ((*chan) == needle)
-        {
             return true;
-        }
 
         auto& custom_multichannels = Context::instance().custom_multichannels;
         auto x = custom_multichannels.find(needle.name());
@@ -243,9 +238,7 @@ namespace mamba
             {
                 const Channel& inner = make_channel(el);
                 if ((*chan) == inner)
-                {
                     return true;
-                }
             }
         }
 
@@ -319,8 +312,7 @@ namespace mamba
                     else
                     {
                         throw std::runtime_error(
-                            "Could not find channel associated with reinstall package"
-                        );
+                            "Could not find channel associated with reinstall package");
                     }
 
                     selected_channel = make_channel(selected_channel).name();
@@ -357,17 +349,11 @@ namespace mamba
             int job_type = job_flag & SOLVER_JOBMASK;
 
             if (job_type & SOLVER_INSTALL)
-            {
                 m_install_specs.emplace_back(job);
-            }
             else if (job_type == SOLVER_ERASE)
-            {
                 m_remove_specs.emplace_back(job);
-            }
             else if (job_type == SOLVER_LOCK)
-            {
                 m_neuter_specs.emplace_back(job);  // not used for the moment
-            }
 
             // This is checking if SOLVER_ERASE and SOLVER_INSTALL are set
             // which are the flags for SOLVER_UPDATE
@@ -385,9 +371,7 @@ namespace mamba
                     queue_push2(&m_jobs, job_flag | SOLVER_SOLVABLE_PROVIDES, update_id);
                 }
                 else
-                {
                     add_channel_specific_job(ms, job_flag);
-                }
 
                 continue;
             }
@@ -539,7 +523,7 @@ namespace mamba
         return m_is_solved;
     }
 
-    const MPool& MSolver::pool() const&
+    MPool const& MSolver::pool() const&
     {
         return m_pool;
     }
@@ -582,21 +566,19 @@ namespace mamba
         solver_solve(m_solver.get(), &m_jobs);
         m_is_solved = true;
         LOG_INFO << "Problem count: " << solver_problem_count(m_solver.get());
-        const bool success = solver_problem_count(m_solver.get()) == 0;
+        bool const success = solver_problem_count(m_solver.get()) == 0;
         Console::instance().json_write({ { "success", success } });
         return success;
     }
 
     void MSolver::must_solve()
     {
-        const bool success = try_solve();
+        bool const success = try_solve();
         if (!success)
         {
             explain_problems(LOG_ERROR);
-            throw mamba_error(
-                "Could not solve for environment specs",
-                mamba_error_code::satisfiablitity_error
-            );
+            throw mamba_error("Could not solve for environment specs",
+                              mamba_error_code::satisfiablitity_error);
         }
     }
 
@@ -611,17 +593,16 @@ namespace mamba
             solver_findallproblemrules(m_solver.get(), i, &problem_rules);
             for (Id j = 0; j < problem_rules.count; ++j)
             {
-                if (const Id r = problem_rules.elements[j]; r)
+                if (Id const r = problem_rules.elements[j]; r)
                 {
                     Id source, target, dep;
-                    const Id type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
+                    Id const type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     res.push_back(make_solver_problem(
                         /* solver= */ m_solver.get(),
                         /* type= */ static_cast<SolverRuleinfo>(type),
                         /* source_id= */ source,
                         /* target_id= */ target,
-                        /* dep_id= */ dep
-                    ));
+                        /* dep_id= */ dep));
                 }
             }
         }
@@ -653,12 +634,7 @@ namespace mamba
                     type = solver_ruleinfo(m_solver.get(), r, &source, &target, &dep);
                     problems << "  - "
                              << solver_problemruleinfo2str(
-                                    m_solver.get(),
-                                    (SolverRuleinfo) type,
-                                    source,
-                                    target,
-                                    dep
-                                )
+                                    m_solver.get(), (SolverRuleinfo) type, source, target, dep)
                              << "\n";
                 }
             }
@@ -669,7 +645,7 @@ namespace mamba
 
     std::ostream& MSolver::explain_problems(std::ostream& out) const
     {
-        const auto& ctx = Context::instance();
+        auto const& ctx = Context::instance();
         bool sat_error_message = ctx.experimental_sat_error_message;
         if (sat_error_message)
         {
@@ -682,16 +658,14 @@ namespace mamba
             out << problems_to_str() << '\n'
                 << "The environment can't be solved, aborting the operation\n";
             fmt::print(out, "{:=^100}\n", " Experimental messages (new) ");
-            const auto pbs = ProblemsGraph::from_solver(*this, pool());
-            const auto cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
-            print_problem_tree_msg(
-                out,
-                cp_pbs,
-                {
-                    /* .unavailable= */ ctx.palette.failure,
-                    /* .available= */ ctx.palette.success,
-                }
-            );
+            auto const pbs = ProblemsGraph::from_solver(*this, pool());
+            auto const cp_pbs = CompressedProblemsGraph::from_problems_graph(pbs);
+            print_problem_tree_msg(out,
+                                   cp_pbs,
+                                   {
+                                       /* .unavailable= */ ctx.palette.failure,
+                                       /* .available= */ ctx.palette.success,
+                                   });
             fmt::print(out, "\n{:=^100}\n", "");
         }
         else

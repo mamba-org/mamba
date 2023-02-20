@@ -30,7 +30,6 @@ namespace mamba
     class PackageCacheData
     {
     public:
-
         PackageCacheData(const fs::u8path& path);
 
         bool create_directory();
@@ -43,7 +42,6 @@ namespace mamba
         bool has_valid_extracted_dir(const PackageInfo& s);
 
     private:
-
         void check_writable();
 
         std::map<std::string, bool> m_valid_tarballs;
@@ -55,7 +53,6 @@ namespace mamba
     class MultiPackageCache
     {
     public:
-
         MultiPackageCache(const std::vector<fs::u8path>& pkgs_dirs);
 
         std::vector<fs::u8path> paths() const;
@@ -70,7 +67,6 @@ namespace mamba
         void clear_query_cache(const PackageInfo& s);
 
     private:
-
         std::vector<PackageCacheData> m_caches;
         std::map<std::string, fs::u8path> m_cached_tarballs;
         std::map<std::string, fs::u8path> m_cached_extracted_dirs;

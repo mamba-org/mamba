@@ -8,15 +8,15 @@
 #define MAMBA_CORE_CONTEXT_HPP
 
 #include <map>
-#include <optional>
-#include <regex>
 #include <string>
 #include <vector>
+#include <optional>
+#include <regex>
 
 #include "mamba/core/common_types.hpp"
 #include "mamba/core/mamba_fs.hpp"
-#include "mamba/core/palette.hpp"
 #include "mamba/core/tasksync.hpp"
+#include "mamba/core/palette.hpp"
 #include "mamba/version.hpp"
 
 #define ROOT_ENV_NAME "base"
@@ -113,7 +113,6 @@ namespace mamba
     class Context
     {
     public:
-
         std::string caller_version = "";
         std::string conda_version = "3.8.0";
         std::string current_command = "mamba";
@@ -227,8 +226,7 @@ namespace mamba
             "https://repo.anaconda.com/pkgs/r",
             "https://repo.anaconda.com/pkgs/msys2"
 #else
-            "https://repo.anaconda.com/pkgs/main",
-            "https://repo.anaconda.com/pkgs/r"
+            "https://repo.anaconda.com/pkgs/main", "https://repo.anaconda.com/pkgs/r"
 #endif
         };
 
@@ -263,13 +261,11 @@ namespace mamba
         void dump_backtrace_no_guards();
 
     protected:
-
         Context();
         ~Context();
 
 
     private:
-
         void load_authentication_info();
         std::map<std::string, AuthenticationInfo> m_authentication_info;
         bool m_authentication_infos_loaded = false;

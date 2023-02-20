@@ -15,9 +15,9 @@ extern "C"
 #include <solv/solvable.h>
 }
 
-#include <set>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "nlohmann/json.hpp"
 
@@ -26,7 +26,6 @@ namespace mamba
     class PackageInfo
     {
     public:
-
         using field_getter = std::function<std::string(const PackageInfo&)>;
         using compare_fun = std::function<bool(const PackageInfo&, const PackageInfo&)>;
 
@@ -38,19 +37,17 @@ namespace mamba
         PackageInfo(nlohmann::json&& j);
         PackageInfo(const std::string& name);
         PackageInfo(std::string&& name);
-        PackageInfo(
-            const std::string& name,
-            const std::string& version,
-            const std::string build_string,
-            std::size_t build_number
-        );
+        PackageInfo(const std::string& name,
+                    const std::string& version,
+                    const std::string build_string,
+                    std::size_t build_number);
 
-        PackageInfo(const PackageInfo&) = default;
+        PackageInfo(PackageInfo const&) = default;
         PackageInfo(PackageInfo&&) noexcept = default;
-        PackageInfo& operator=(const PackageInfo&) = default;
+        PackageInfo& operator=(PackageInfo const&) = default;
         PackageInfo& operator=(PackageInfo&&) noexcept = default;
 
-        bool operator==(const PackageInfo& other) const;
+        bool operator==(PackageInfo const& other) const;
 
         nlohmann::json json_record() const;
         nlohmann::json json_signable() const;

@@ -1,5 +1,4 @@
 #include "mamba/core/progress_bar.hpp"
-
 #include "progress_bar_impl.hpp"
 
 namespace mamba

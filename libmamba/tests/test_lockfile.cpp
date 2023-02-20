@@ -1,22 +1,22 @@
-#include <string>
-
 #include <gtest/gtest.h>
-#include <reproc++/run.hpp>
 
-#include "mamba/core/context.hpp"
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/context.hpp"
 
+#include <reproc++/run.hpp>
 #include "spdlog/spdlog.h"
+
+#include <string>
 
 #ifdef _WIN32
 #include <io.h>
 
 extern "C"
 {
-#include <fcntl.h>
 #include <io.h>
 #include <process.h>
+#include <fcntl.h>
 }
 #endif
 
@@ -35,7 +35,6 @@ namespace mamba
         class LockDirTest : public ::testing::Test
         {
         protected:
-
             std::unique_ptr<TemporaryDirectory> p_tempdir;
             fs::u8path tempdir_path;
 
@@ -133,7 +132,8 @@ namespace mamba
                 args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
-                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(
+                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 int is_locked = 0;
                 try
@@ -150,7 +150,8 @@ namespace mamba
                 args = { lock_exe, "lock", "--timeout=1", tempdir_path.string() };
                 out.clear();
                 err.clear();
-                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(
+                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 bool new_lock_created = true;
                 try
@@ -170,7 +171,8 @@ namespace mamba
             args = { lock_exe, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
-            reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            reproc::run(
+                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
             int is_locked = 0;
             try
@@ -186,7 +188,6 @@ namespace mamba
         class LockFileTest : public ::testing::Test
         {
         protected:
-
             std::unique_ptr<TemporaryFile> p_tempfile;
             fs::u8path tempfile_path;
 
@@ -244,7 +245,8 @@ namespace mamba
                 args = { lock_exe, "is-locked", lock.lockfile_path().string() };
                 out.clear();
                 err.clear();
-                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(
+                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 int is_locked = 0;
                 try
@@ -261,7 +263,8 @@ namespace mamba
                 args = { lock_exe, "lock", "--timeout=1", tempfile_path.string() };
                 out.clear();
                 err.clear();
-                reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+                reproc::run(
+                    args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
                 bool new_lock_created = true;
                 try
@@ -281,7 +284,8 @@ namespace mamba
             args = { lock_exe, "is-locked", lock_path.string() };
             out.clear();
             err.clear();
-            reproc::run(args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
+            reproc::run(
+                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
             int is_locked = 0;
             try

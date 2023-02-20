@@ -1,9 +1,9 @@
-#include <exception>
-
 #include <gtest/gtest.h>
 
-#include "mamba/core/invoke.hpp"
+#include <exception>
+
 #include "mamba/core/util.hpp"
+#include "mamba/core/invoke.hpp"
 
 namespace mamba
 {

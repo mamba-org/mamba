@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/execution.hpp"
 
 namespace mamba
 {
@@ -31,8 +31,7 @@ namespace mamba
                         res -= 100;
                     }
                     reset_sig_interrupted();
-                }
-            );
+                });
 
             for (size_t i = 0; i < 5; ++i)
             {

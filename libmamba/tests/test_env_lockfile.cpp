@@ -30,8 +30,9 @@ namespace mamba
 
     TEST(env_lockfile, invalid_version_fails)
     {
-        const fs::u8path invalid_version_lockfile_path{ test_data_dir
-                                                        / "env_lockfile_test/bad_version-lock.yaml" };
+        const fs::u8path invalid_version_lockfile_path{
+            test_data_dir / "env_lockfile_test/bad_version-lock.yaml"
+        };
         const auto maybe_lockfile = read_environment_lockfile(invalid_version_lockfile_path);
         ASSERT_FALSE(maybe_lockfile);
         const auto error = maybe_lockfile.error();
@@ -121,17 +122,12 @@ namespace mamba
 
         ctx.platform = "linux-64";
 
-        auto check_categories =
-            [&](std::vector<std::string> categories, size_t num_conda, size_t num_pip)
+        auto check_categories
+            = [&](std::vector<std::string> categories, size_t num_conda, size_t num_pip)
         {
             std::vector<detail::other_pkg_mgr_spec> other_specs;
             auto transaction = create_explicit_transaction_from_lockfile(
-                pool,
-                lockfile_path,
-                categories,
-                pkg_cache,
-                other_specs
-            );
+                pool, lockfile_path, categories, pkg_cache, other_specs);
             auto to_install = std::get<1>(transaction.to_conda());
             EXPECT_EQ(to_install.size(), num_conda);
             if (num_pip == 0)
@@ -165,8 +161,10 @@ namespace mamba
         EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "something-lock.yml" }.string()));
         EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yaml" }.string()));
         EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "/some/dir/something-lock.yml" }.string()));
-        EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yaml" }.string()));
-        EXPECT_TRUE(is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yml" }.string()));
+        EXPECT_TRUE(
+            is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yaml" }.string()));
+        EXPECT_TRUE(
+            is_env_lockfile_name(fs::u8path{ "../../some/dir/something-lock.yml" }.string()));
 
         EXPECT_FALSE(is_env_lockfile_name("something"));
         EXPECT_FALSE(is_env_lockfile_name("something-lock"));

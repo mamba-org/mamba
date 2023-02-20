@@ -4,12 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/output.hpp"
 #include "mamba/core/pinning.hpp"
+#include "mamba/core/util.hpp"
 
 #include <fstream>
-
-#include "mamba/core/output.hpp"
-#include "mamba/core/util.hpp"
 
 
 namespace mamba

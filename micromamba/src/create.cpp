@@ -4,9 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/create.hpp"
-
 #include "common_options.hpp"
+
+#include "mamba/api/create.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)

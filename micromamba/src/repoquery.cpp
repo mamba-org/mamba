@@ -4,11 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/repoquery.hpp"
+#include "common_options.hpp"
 
 #include "mamba/api/configuration.hpp"
-
-#include "common_options.hpp"
+#include "mamba/api/repoquery.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -17,17 +16,11 @@ QueryType
 str_to_qtype(const std::string& s)
 {
     if (s == "search")
-    {
         return QueryType::kSEARCH;
-    }
     if (s == "depends")
-    {
         return QueryType::kDEPENDS;
-    }
     if (s == "whoneeds")
-    {
         return QueryType::kWHONEEDS;
-    }
     throw std::runtime_error("Could not parse query type");
 }
 
@@ -44,7 +37,8 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     if (is_repoquery)
     {
         subcom
-            ->add_option("query_type", query_type, "The type of query (search, depends or whoneeds)")
+            ->add_option(
+                "query_type", query_type, "The type of query (search, depends or whoneeds)")
             ->check(CLI::IsMember(std::vector<std::string>({ "search", "depends", "whoneeds" })))
             ->required();
     }
@@ -58,10 +52,7 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
 
     static bool recursive = false;
     subcom->add_flag(
-        "--recursive",
-        recursive,
-        "Show dependencies recursively (i.e. transitive dependencies)."
-    );
+        "--recursive", recursive, "Show dependencies recursively (i.e. transitive dependencies).");
 
     static bool pretty_print = false;
     subcom->add_flag("--pretty", pretty_print, "Pretty print result (only for search)");
@@ -73,7 +64,8 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
     subcom->add_flag("--local,!--remote", local, "Use installed data or remote repositories");
 
     auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description());
+    subcom->add_option(
+        "--platform", platform.get_cli_config<std::string>(), platform.description());
 
     subcom->callback(
         [&]()
@@ -96,26 +88,19 @@ set_common_search(CLI::App* subcom, bool is_repoquery)
                     break;
             }
             if (qtype == QueryType::kDEPENDS && recursive)
-            {
                 format = QueryResultFormat::kRECURSIVETABLE;
-            }
 
             if (qtype == QueryType::kDEPENDS && show_as_tree)
-            {
                 format = QueryResultFormat::kTREE;
-            }
 
             if (qtype == QueryType::kSEARCH && pretty_print)
-            {
                 format = QueryResultFormat::kPRETTY;
-            }
 
             // if (ctx.json)
             //     format = QueryResultFormat::kJSON;
 
             repoquery(qtype, format, local, specs[0]);
-        }
-    );
+        });
 }
 
 void

@@ -1,9 +1,8 @@
 #include "mamba/core/virtual_packages.hpp"
-
-#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
-#include "mamba/core/output.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
 
 #ifdef _WIN32
@@ -12,8 +11,8 @@
 #include <unistd.h>
 #endif
 
-#include <regex>
 #include <vector>
+#include <regex>
 
 #include <reproc++/run.hpp>
 
@@ -62,11 +61,7 @@ namespace mamba
             std::string out, err;
             std::vector<std::string> args = { "nvidia-smi", "--query", "-u", "-x" };
             auto [status, ec] = reproc::run(
-                args,
-                reproc::options{},
-                reproc::sink::string(out),
-                reproc::sink::string(err)
-            );
+                args, reproc::options{}, reproc::sink::string(out), reproc::sink::string(err));
 
             if (ec)
             {
@@ -100,12 +95,11 @@ namespace mamba
                             std::string f = (p.path() / "nvidia-smi.exe").string();
                             LOG_DEBUG << "Found nvidia-smi in: " << f;
                             std::vector<std::string> command = { f, "--query", "-u", "-x" };
-                            auto [_ /*cmd_status*/, cmd_ec] = reproc::run(
-                                command,
-                                reproc::options{},
-                                reproc::sink::string(out),
-                                reproc::sink::string(err)
-                            );
+                            auto [_ /*cmd_status*/, cmd_ec]
+                                = reproc::run(command,
+                                              reproc::options{},
+                                              reproc::sink::string(out),
+                                              reproc::sink::string(err));
 
                             if (!cmd_ec)
                             {
@@ -139,11 +133,9 @@ namespace mamba
             return "";
         }
 
-        PackageInfo make_virtual_package(
-            const std::string& name,
-            const std::string& version,
-            const std::string& build_string
-        )
+        PackageInfo make_virtual_package(const std::string& name,
+                                         const std::string& version,
+                                         const std::string& build_string)
         {
             PackageInfo res(name);
             res.version = version.size() ? version : "0";

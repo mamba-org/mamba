@@ -2,29 +2,29 @@
 #include <exception>
 #include <thread>
 
-#include <fmt/color.h>
-#include <nlohmann/json.hpp>
-#include <reproc++/run.hpp>
 #include <spdlog/spdlog.h>
+#include <fmt/color.h>
+#include <reproc++/run.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
-#include "mamba/core/error_handling.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_random.hpp"
+#include "mamba/core/execution.hpp"
+#include "mamba/core/error_handling.hpp"
 
 #include "common_options.hpp"
 
 #ifndef _WIN32
 extern "C"
 {
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 }
 #else
 #include <process.h>
@@ -58,9 +58,7 @@ set_ps_command(CLI::App* subcom)
         {
             auto prefix = el["prefix"].get<std::string>();
             if (!prefix.empty())
-            {
                 prefix = env_name(prefix);
-            }
 
             table.add_row({ el["pid"].get<std::string>(),
                             el["name"].get<std::string>(),
@@ -77,11 +75,8 @@ set_ps_command(CLI::App* subcom)
         [subcom, list_subcom, list_callback]()
         {
             if (!subcom->got_subcommand(list_subcom))
-            {
                 list_callback();
-            }
-        }
-    );
+        });
 
 
     auto stop_subcom = subcom->add_subcommand("stop");
@@ -120,8 +115,7 @@ set_ps_command(CLI::App* subcom)
                 return -1;
             }
             return 0;
-        }
-    );
+        });
 }
 
 void
@@ -130,16 +124,17 @@ set_run_command(CLI::App* subcom)
     init_prefix_options(subcom);
 
     static std::string streams;
-    CLI::Option* stream_option = subcom
-                                     ->add_option(
-                                         "-a,--attach",
-                                         streams,
-                                         "Attach to stdin, stdout and/or stderr. -a \"\" for disabling stream redirection"
-                                     )
-                                     ->join(',');
+    CLI::Option* stream_option
+        = subcom
+              ->add_option(
+                  "-a,--attach",
+                  streams,
+                  "Attach to stdin, stdout and/or stderr. -a \"\" for disabling stream redirection")
+              ->join(',');
 
     static std::string cwd;
-    subcom->add_option("--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
+    subcom->add_option(
+        "--cwd", cwd, "Current working directory for command to run in. Defaults to cwd");
 
     static bool detach = false;
 #ifndef _WIN32
@@ -158,8 +153,7 @@ set_run_command(CLI::App* subcom)
     subcom->add_option(
         "--label",
         specific_process_name,
-        "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible."
-    );
+        "Specifies the name of the process. If not set, a unique name will be generated derived from the executable name if possible.");
 #endif
 
     subcom->prefix_command();
@@ -203,16 +197,8 @@ set_run_command(CLI::App* subcom)
             }
 
             int exit_code = mamba::run_in_environment(
-                command,
-                cwd,
-                stream_options,
-                clean_env,
-                detach,
-                env_vars,
-                specific_process_name
-            );
+                command, cwd, stream_options, clean_env, detach, env_vars, specific_process_name);
 
             exit(exit_code);
-        }
-    );
+        });
 }

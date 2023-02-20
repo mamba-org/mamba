@@ -1,6 +1,6 @@
-#include <vector>
-
 #include <gtest/gtest.h>
+
+#include <vector>
 
 #include "mamba/core/mamba_fs.hpp"
 #include "mamba/core/util.hpp"
@@ -151,9 +151,7 @@ namespace mamba
 
         fs::u8path long_path = tmp_dir;
         for (int i = 0; i < 42; ++i)
-        {
             long_path /= u8"some_very_long_prefix";
-        }
 
         mamba::on_scope_exit _([&] { fs::remove_all(long_path); });
         fs::create_directories(long_path);
@@ -183,19 +181,13 @@ namespace mamba
         }
 
         // set to read-only
-        fs::permissions(
-            readonly_file_path,
-            fs::perms::owner_read | fs::perms::group_read,
-            fs::perm_options::replace
-        );
-        EXPECT_EQ(
-            (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-            fs::perms::none
-        );
-        EXPECT_EQ(
-            (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-            fs::perms::none
-        );
+        fs::permissions(readonly_file_path,
+                        fs::perms::owner_read | fs::perms::group_read,
+                        fs::perm_options::replace);
+        EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
+                  fs::perms::none);
+        EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::group_write),
+                  fs::perms::none);
 
         // removing should still work.
         EXPECT_TRUE(fs::exists(readonly_file_path));
@@ -219,7 +211,8 @@ namespace mamba
             assert(fs::is_directory(dir_path));
             for (int file_idx = 0; file_idx < file_count_per_directory; ++file_idx)
             {
-                const auto readonly_file_path = dir_path / fmt::format("readonly-file-{}", file_idx);
+                const auto readonly_file_path
+                    = dir_path / fmt::format("readonly-file-{}", file_idx);
                 {
                     std::ofstream readonly_file{ readonly_file_path.std_path(),
                                                  readonly_file.binary | readonly_file.trunc };
@@ -227,19 +220,13 @@ namespace mamba
                 }
 
                 // set to read-only
-                fs::permissions(
-                    readonly_file_path,
-                    fs::perms::owner_read | fs::perms::group_read,
-                    fs::perm_options::replace
-                );
-                EXPECT_EQ(
-                    (fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
-                    fs::perms::none
-                );
-                EXPECT_EQ(
-                    (fs::status(readonly_file_path).permissions() & fs::perms::group_write),
-                    fs::perms::none
-                );
+                fs::permissions(readonly_file_path,
+                                fs::perms::owner_read | fs::perms::group_read,
+                                fs::perm_options::replace);
+                EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::owner_write),
+                          fs::perms::none);
+                EXPECT_EQ((fs::status(readonly_file_path).permissions() & fs::perms::group_write),
+                          fs::perms::none);
             }
         };
 
@@ -247,12 +234,10 @@ namespace mamba
         {
             auto subdirs = dirs;
             for (const auto& dir_path : dirs)
-            {
                 for (int subdir_idx = 0; subdir_idx < subdir_count_per_directory; ++subdir_idx)
                 {
                     subdirs.push_back(dir_path / fmt::format("{}", subdir_idx));
                 }
-            }
             return subdirs;
         };
 

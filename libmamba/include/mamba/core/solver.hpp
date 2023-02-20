@@ -95,7 +95,7 @@ namespace mamba
         [[nodiscard]] const std::vector<MatchSpec>& neuter_specs() const;
         [[nodiscard]] const std::vector<MatchSpec>& pinned_specs() const;
 
-
+        operator const Solver*() const;
         operator Solver*();
 
         bool only_deps = false;

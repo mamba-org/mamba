@@ -6,6 +6,8 @@
 
 #include "mamba/core/prefix_data.hpp"
 
+#include <solv/pool.h>
+#include <solv/repo.h>
 #include <solv/transaction.h>
 
 #include "mamba/core/output.hpp"

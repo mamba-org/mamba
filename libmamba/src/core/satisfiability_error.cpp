@@ -126,8 +126,9 @@ namespace mamba
             for (const auto& solv_id : m_pool.select_solvables(dep_id))
             {
                 added = true;
-                PackageInfo pkg_info(pool_id2solvable(m_pool, solv_id));
-                node_id to_id = add_solvable(solv_id, PackageNode{ std::move(pkg_info) }, false);
+                auto pkg_info = m_pool.id2pkginfo(solv_id);
+                assert(pkg_info.has_value());
+                node_id to_id = add_solvable(solv_id, PackageNode{ std::move(pkg_info).value() }, false);
                 m_graph.add_edge(from_id, to_id, edge);
             }
             return added;

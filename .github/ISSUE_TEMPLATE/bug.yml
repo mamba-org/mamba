@@ -14,7 +14,7 @@ body:
     attributes:
       label: How did you install Mamba?
       description: |
-        Note that installation methods other than [Mambaforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install) are **NOT SUPPORTED**.
+        Note that Mamba installation methods other than [Mambaforge](https://mamba.readthedocs.io/en/latest/installation.html#fresh-install) are **NOT SUPPORTED**.
         
         If this issue is about Micromamba, please select "Other".
       options:

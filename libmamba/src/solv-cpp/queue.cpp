@@ -9,6 +9,8 @@
 
 #include <cassert>
 #include <limits>
+#include <exception>
+#include <sstream>
 
 #include <solv/queue.h>
 
@@ -142,14 +144,39 @@ namespace mamba::solv
         return *rbegin();
     }
 
-    auto ObjQueue::operator[](int idx) -> reference
+    auto ObjQueue::operator[](size_type pos) -> reference
     {
-        return data()[idx];
+        return data()[pos];
     }
 
-    auto ObjQueue::operator[](int idx) const -> const_reference
+    auto ObjQueue::operator[](size_type pos) const -> const_reference
     {
-        return data()[idx];
+        return data()[pos];
+    }
+
+    namespace
+    {
+        void ensure_valid_pos(ObjQueue::size_type size, ObjQueue::size_type pos)
+        {
+            if (pos >= size)
+            {
+                std::stringstream ss = {};
+                ss << "Index " << pos << " is greater that the number of elements (" << size << ')';
+                throw std::out_of_range(std::move(ss).str());
+            }
+        }
+    }
+
+    auto ObjQueue::at(size_type pos) -> reference
+    {
+        ensure_valid_pos(size(), pos);
+        return operator[](pos);
+    }
+
+    auto ObjQueue::at(size_type pos) const -> const_reference
+    {
+        ensure_valid_pos(size(), pos);
+        return operator[](pos);
     }
 
     auto ObjQueue::begin() -> iterator

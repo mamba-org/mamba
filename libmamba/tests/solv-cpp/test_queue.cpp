@@ -6,6 +6,7 @@
 
 #include <list>
 #include <vector>
+#include <exception>
 
 #include <gtest/gtest.h>
 
@@ -74,6 +75,15 @@ TEST(ObjQueue, element)
     EXPECT_EQ(q[0], 3);
     EXPECT_EQ(q[1], 2);
     EXPECT_EQ(q[2], 1);
+}
+
+TEST(ObjQueue, at)
+{
+    auto q = ObjQueue{ 3, 2, 1 };
+    EXPECT_EQ(q.at(0), q[0]);
+    EXPECT_EQ(q.at(1), q[1]);
+    EXPECT_EQ(q.at(2), q[2]);
+    EXPECT_THROW(q.at(q.size()), std::out_of_range);
 }
 
 TEST(ObjQueue, clear)

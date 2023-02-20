@@ -65,8 +65,10 @@ namespace mamba::solv
         auto front() const -> const_reference;
         auto back() -> reference;
         auto back() const -> const_reference;
-        auto operator[](int idx) -> reference;
-        auto operator[](int idx) const -> const_reference;
+        auto operator[](size_type pos) -> reference;
+        auto operator[](size_type pos) const -> const_reference;
+        auto at(size_type pos) -> reference;
+        auto at(size_type pos) const -> const_reference;
         auto begin() -> iterator;
         auto begin() const -> const_iterator;
         auto cbegin() const -> const_iterator;

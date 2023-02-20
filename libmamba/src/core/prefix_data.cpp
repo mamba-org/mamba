@@ -9,10 +9,9 @@ extern "C"
 #include <solv/transaction.h>
 }
 
-#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/output.hpp"
-
 #include "mamba/core/pool.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/queue.hpp"
 #include "mamba/core/repo.hpp"
 
@@ -26,14 +25,15 @@ namespace mamba
         }
         catch (std::exception& e)
         {
-            return tl::make_unexpected(
-                mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded));
+            return tl::make_unexpected(mamba_error(e.what(), mamba_error_code::prefix_data_not_loaded)
+            );
         }
         catch (...)
         {
-            return tl::make_unexpected(
-                mamba_error("Unknown error when trying to load prefix data " + prefix_path.string(),
-                            mamba_error_code::unknown));
+            return tl::make_unexpected(mamba_error(
+                "Unknown error when trying to load prefix data " + prefix_path.string(),
+                mamba_error_code::unknown
+            ));
         }
     }
 
@@ -119,7 +119,8 @@ namespace mamba
                     }
                 default:
                     throw std::runtime_error(
-                        "Package not found in prefix records or other unexpected condition");
+                        "Package not found in prefix records or other unexpected condition"
+                    );
             }
         }
         return result;

@@ -14,8 +14,11 @@
 #include <tuple>
 #include <vector>
 
+#include "mamba/api/install.hpp"
+
 #include "nlohmann/json.hpp"
 
+#include "env_lockfile.hpp"
 #include "fetch.hpp"
 #include "mamba_fs.hpp"
 #include "match_spec.hpp"
@@ -26,8 +29,6 @@
 #include "repo.hpp"
 #include "thread_utils.hpp"
 #include "transaction_context.hpp"
-#include "env_lockfile.hpp"
-#include "mamba/api/install.hpp"
 
 extern "C"
 {
@@ -45,6 +46,7 @@ namespace mamba
     class PackageDownloadExtractTarget
     {
     public:
+
         PackageDownloadExtractTarget(Solvable* solvable);
         PackageDownloadExtractTarget(const PackageInfo& pkg_info);
 
@@ -76,6 +78,7 @@ namespace mamba
         std::exception m_decompress_exception;
 
     private:
+
         bool m_finished;
         PackageInfo m_package_info;
 
@@ -100,10 +103,12 @@ namespace mamba
     class DownloadExtractSemaphore
     {
     public:
+
         static std::ptrdiff_t get_max();
         static void set_max(int value);
 
     private:
+
         static counting_semaphore semaphore;
 
         friend class PackageDownloadExtractTarget;
@@ -112,6 +117,7 @@ namespace mamba
     class MTransaction
     {
     public:
+
         enum class FilterType
         {
             none,
@@ -119,16 +125,16 @@ namespace mamba
             ignore
         };
 
-        MTransaction(MPool& pool,
-                     const std::vector<MatchSpec>& specs_to_remove,
-                     const std::vector<MatchSpec>& specs_to_install,
-                     MultiPackageCache& caches);
+        MTransaction(
+            MPool& pool,
+            const std::vector<MatchSpec>& specs_to_remove,
+            const std::vector<MatchSpec>& specs_to_install,
+            MultiPackageCache& caches
+        );
         MTransaction(MSolver& solver, MultiPackageCache& caches);
 
         // Only use if the packages have been solved previously already.
-        MTransaction(MPool& pool,
-                     const std::vector<PackageInfo>& packages,
-                     MultiPackageCache& caches);
+        MTransaction(MPool& pool, const std::vector<PackageInfo>& packages, MultiPackageCache& caches);
 
         ~MTransaction();
 
@@ -155,6 +161,7 @@ namespace mamba
         std::pair<std::string, std::string> find_python_version();
 
     private:
+
         FilterType m_filter_type = FilterType::none;
         std::set<Id> m_filter_name_ids;
 
@@ -175,14 +182,16 @@ namespace mamba
         MPool& pool,
         const std::vector<std::string>& urls,
         MultiPackageCache& package_caches,
-        std::vector<detail::other_pkg_mgr_spec>& other_specs);
+        std::vector<detail::other_pkg_mgr_spec>& other_specs
+    );
 
     MTransaction create_explicit_transaction_from_lockfile(
         MPool& pool,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
         MultiPackageCache& package_caches,
-        std::vector<detail::other_pkg_mgr_spec>& other_specs);
+        std::vector<detail::other_pkg_mgr_spec>& other_specs
+    );
 }  // namespace mamba
 
 #endif  // MAMBA_TRANSACTION_HPP

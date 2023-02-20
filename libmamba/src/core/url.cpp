@@ -4,12 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <regex>
-#include "openssl/evp.h"
-
 #include "mamba/core/url.hpp"
-#include "mamba/core/util.hpp"
+
+#include <regex>
+
 #include "mamba/core/context.hpp"
+#include "mamba/core/util.hpp"
+
+#include "openssl/evp.h"
 
 namespace mamba
 {
@@ -21,13 +23,16 @@ namespace mamba
 
     void split_anaconda_token(const std::string& url, std::string& cleaned_url, std::string& token)
     {
-        auto token_begin
-            = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
+        auto token_begin = std::sregex_iterator(url.begin(), url.end(), Context::instance().token_regex);
         if (token_begin != std::sregex_iterator())
         {
             token = token_begin->str().substr(3u);
             cleaned_url = std::regex_replace(
-                url, Context::instance().token_regex, "", std::regex_constants::format_first_only);
+                url,
+                Context::instance().token_regex,
+                "",
+                std::regex_constants::format_first_only
+            );
         }
         else
         {
@@ -37,11 +42,13 @@ namespace mamba
         cleaned_url = rstrip(cleaned_url, "/");
     }
 
-    void split_scheme_auth_token(const std::string& url,
-                                 std::string& remaining_url,
-                                 std::string& scheme,
-                                 std::string& auth,
-                                 std::string& token)
+    void split_scheme_auth_token(
+        const std::string& url,
+        std::string& remaining_url,
+        std::string& scheme,
+        std::string& auth,
+        std::string& token
+    )
     {
         std::string cleaned_url;
         split_anaconda_token(url, cleaned_url, token);
@@ -206,8 +213,9 @@ namespace mamba
             uc = curl_url_set(m_handle, CURLUPART_URL, c_url.c_str(), curl_flags);
             if (uc)
             {
-                throw std::runtime_error("Could not set URL (code: " + std::to_string(uc)
-                                         + " - url = " + url + ")");
+                throw std::runtime_error(
+                    "Could not set URL (code: " + std::to_string(uc) + " - url = " + url + ")"
+                );
             }
         }
     }
@@ -388,9 +396,10 @@ namespace mamba
 
     namespace
     {
-        const std::vector<std::string> CURLUPART_NAMES
-            = { "url",  "scheme", "user",  "password", "options", "host",
-                "port", "path",   "query", "fragment", "zoneid" };
+        const std::vector<std::string> CURLUPART_NAMES = { "url",      "scheme",  "user",
+                                                           "password", "options", "host",
+                                                           "port",     "path",    "query",
+                                                           "fragment", "zoneid" };
     }
 
     std::string URLHandler::get_part(CURLUPart part)

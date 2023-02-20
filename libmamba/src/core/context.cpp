@@ -4,25 +4,28 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/context.hpp"
+
 #include <iostream>
-#include <spdlog/spdlog.h>
+
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
-#include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
+#include "mamba/core/url.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
-#include "mamba/core/url.hpp"
-#include "mamba/core/execution.hpp"
 
 namespace mamba
 {
     class Logger : public spdlog::logger
     {
     public:
+
         Logger(const std::string& name, const std::string& pattern, const std::string& eol);
 
         void dump_backtrace_no_guards();
@@ -32,7 +35,10 @@ namespace mamba
         : spdlog::logger(name, std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
     {
         auto f = std::make_unique<spdlog::pattern_formatter>(
-            pattern, spdlog::pattern_time_type::local, eol);
+            pattern,
+            spdlog::pattern_time_type::local,
+            eol
+        );
         set_formatter(std::move(f));
     }
 
@@ -45,8 +51,11 @@ namespace mamba
                 [this](const log_msg& msg)
                 {
                     if (this->should_log(msg.level))
+                    {
                         this->sink_it_(msg);
-                });
+                    }
+                }
+            );
         }
     }
 
@@ -76,7 +85,7 @@ namespace mamba
         keep_temp_directories = env::get("MAMBA_KEEP_TEMP_DIRS") ? true : false;
 
         {
-            bool const cout_is_atty = is_atty(std::cout);
+            const bool cout_is_atty = is_atty(std::cout);
             no_progress_bars = (on_ci || !cout_is_atty);
             palette = cout_is_atty ? Palette::terminal() : Palette::no_color();
         }
@@ -90,10 +99,16 @@ namespace mamba
         set_default_signal_handler();
 
         std::shared_ptr<spdlog::logger> l = std::make_shared<Logger>("libmamba", log_pattern, "\n");
-        std::shared_ptr<spdlog::logger> libcurl_logger
-            = std::make_shared<Logger>("libcurl", log_pattern, "");
-        std::shared_ptr<spdlog::logger> libsolv_logger
-            = std::make_shared<Logger>("libsolv", log_pattern, "");
+        std::shared_ptr<spdlog::logger> libcurl_logger = std::make_shared<Logger>(
+            "libcurl",
+            log_pattern,
+            ""
+        );
+        std::shared_ptr<spdlog::logger> libsolv_logger = std::make_shared<Logger>(
+            "libsolv",
+            log_pattern,
+            ""
+        );
         spdlog::register_logger(libcurl_logger);
         spdlog::register_logger(libsolv_logger);
 
@@ -152,7 +167,9 @@ namespace mamba
     std::map<std::string, AuthenticationInfo>& Context::authentication_info()
     {
         if (!m_authentication_infos_loaded)
+        {
             load_authentication_info();
+        }
         return m_authentication_info;
     }
 
@@ -196,8 +213,7 @@ namespace mamba
         }
 
         std::map<std::string, AuthenticationInfo> res;
-        fs::u8path auth_loc(mamba::env::home_directory() / ".mamba" / "auth"
-                            / "authentication.json");
+        fs::u8path auth_loc(mamba::env::home_directory() / ".mamba" / "auth" / "authentication.json");
         try
         {
             if (fs::exists(auth_loc))
@@ -220,7 +236,7 @@ namespace mamba
                     else if (type == "BasicHTTPAuthentication")
                     {
                         info.type = AuthenticationType::kBasicHTTPAuthentication;
-                        auto const& user = el.value("user", "");
+                        const auto& user = el.value("user", "");
                         auto pass = decode_base64(el["password"].get<std::string>());
                         if (pass)
                         {

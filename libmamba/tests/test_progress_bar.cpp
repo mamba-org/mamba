@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
-
 #include <sstream>
 
+#include <gtest/gtest.h>
+
 #include "mamba/core/progress_bar.hpp"
+
 #include "../src/core/progress_bar_impl.hpp"
 
 namespace mamba
@@ -10,6 +11,7 @@ namespace mamba
     class progress_bar : public ::testing::Test
     {
     public:
+
         progress_bar()
         {
             p_progress_bar_manager = std::make_unique<MultiBarManager>();
@@ -26,6 +28,7 @@ namespace mamba
         }
 
     protected:
+
         std::unique_ptr<ProgressBarManager> p_progress_bar_manager;
         ProgressProxy proxy;
         std::ostringstream ostream;

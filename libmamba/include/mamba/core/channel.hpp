@@ -7,20 +7,21 @@
 #ifndef MAMBA_CORE_CHANNEL_HPP
 #define MAMBA_CORE_CHANNEL_HPP
 
-#include "mamba/core/package_cache.hpp"
-#include "mamba/core/validate.hpp"
-
 #include <map>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/validate.hpp"
+
 namespace mamba
 {
     class Channel
     {
     public:
+
         const std::string& scheme() const;
         const std::string& location() const;
         const std::string& name() const;
@@ -34,18 +35,21 @@ namespace mamba
         std::string base_url() const;
         std::string platform_url(std::string platform, bool with_credential = true) const;
         // The pairs consist of (platform,url)
-        std::vector<std::pair<std::string, std::string>> platform_urls(bool with_credential
-                                                                       = true) const;
+        std::vector<std::pair<std::string, std::string>>
+        platform_urls(bool with_credential = true) const;
         std::vector<std::string> urls(bool with_credential = true) const;
 
     private:
-        Channel(const std::string& scheme,
-                const std::string& location,
-                const std::string& name,
-                const std::optional<std::string>& auth = {},
-                const std::optional<std::string>& token = {},
-                const std::optional<std::string>& package_filename = {},
-                const std::optional<std::string>& canonical_name = {});
+
+        Channel(
+            const std::string& scheme,
+            const std::string& location,
+            const std::string& name,
+            const std::optional<std::string>& auth = {},
+            const std::optional<std::string>& token = {},
+            const std::optional<std::string>& package_filename = {},
+            const std::optional<std::string>& canonical_name = {}
+        );
 
         std::string m_scheme;
         std::string m_location;

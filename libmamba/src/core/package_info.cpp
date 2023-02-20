@@ -4,11 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/package_info.hpp"
+
 #include <functional>
 #include <map>
 #include <tuple>
 
-#include "mamba/core/package_info.hpp"
 #include "mamba/core/channel.hpp"
 #include "mamba/core/util.hpp"
 
@@ -20,15 +21,14 @@ namespace mamba
         std::string get_package_info_field(const PackageInfo&, T PackageInfo::*field);
 
         template <>
-        std::string get_package_info_field<std::string>(const PackageInfo& pkg,
-                                                        std::string PackageInfo::*field)
+        std::string
+        get_package_info_field<std::string>(const PackageInfo& pkg, std::string PackageInfo::*field)
         {
             return pkg.*field;
         }
 
         template <>
-        std::string get_package_info_field<size_t>(const PackageInfo& pkg,
-                                                   size_t PackageInfo::*field)
+        std::string get_package_info_field<size_t>(const PackageInfo& pkg, size_t PackageInfo::*field)
         {
             return std::to_string(pkg.*field);
         }
@@ -102,7 +102,9 @@ namespace mamba
         version = pool_id2str(pool, s->evr);
         str = solvable_lookup_str(s, SOLVABLE_BUILDFLAVOR);
         if (str)
+        {
             build_string = str;
+        }
         str = solvable_lookup_str(s, SOLVABLE_BUILDVERSION);
         if (str)
         {
@@ -135,22 +137,32 @@ namespace mamba
         fn = check_char(solvable_lookup_str(s, SOLVABLE_MEDIAFILE));
         str = check_char(solvable_lookup_str(s, SOLVABLE_LICENSE));
         if (str)
+        {
             license = str;
+        }
         size = solvable_lookup_num(s, SOLVABLE_DOWNLOADSIZE, 0);
         timestamp = solvable_lookup_num(s, SOLVABLE_BUILDTIME, 0);
         str = solvable_lookup_checksum(s, SOLVABLE_PKGID, &check_type);
         if (str)
+        {
             md5 = str;
+        }
         str = solvable_lookup_checksum(s, SOLVABLE_CHECKSUM, &check_type);
         if (str)
+        {
             sha256 = str;
+        }
         signatures = check_char(solvable_lookup_str(s, SIGNATURE_DATA));
         if (signatures.empty())
+        {
             signatures = "{}";
+        }
 
         queue_init(&q);
         if (!solvable_lookup_deparray(s, SOLVABLE_REQUIRES, &q, -1))
+        {
             defaulted_keys.insert("depends");
+        }
         depends.resize(q.count);
         for (int i = 0; i < q.count; ++i)
         {
@@ -158,7 +170,9 @@ namespace mamba
         }
         queue_empty(&q);
         if (!solvable_lookup_deparray(s, SOLVABLE_CONSTRAINS, &q, -1))
+        {
             defaulted_keys.insert("constrains");
+        }
         constrains.resize(q.count);
         for (int i = 0; i < q.count; ++i)
         {
@@ -185,14 +199,18 @@ namespace mamba
             solvable_lookup_idarray(s, extra_keys_id, &q);
             std::vector<std::string> extra_keys;
             for (int i = 0; i < q.count; ++i)
+            {
                 extra_keys.push_back(pool_dep2str(pool, q.elements[i]));
+            }
 
             // Get extra signed values
             queue_empty(&q);
             solvable_lookup_idarray(s, extra_values_id, &q);
             std::vector<std::string> extra_values;
             for (int i = 0; i < q.count; ++i)
+            {
                 extra_values.push_back(pool_dep2str(pool, q.elements[i]));
+            }
 
             // Build a JSON string for extra signed metadata
             if (!extra_keys.empty() && (extra_keys.size() == extra_values.size()))
@@ -206,7 +224,9 @@ namespace mamba
             }
         }
         else
+        {
             extra_metadata = "{}";
+        }
 
         queue_free(&q);
     }
@@ -268,10 +288,7 @@ namespace mamba
     {
     }
 
-    PackageInfo::PackageInfo(const std::string& n,
-                             const std::string& v,
-                             const std::string b,
-                             std::size_t bn)
+    PackageInfo::PackageInfo(const std::string& n, const std::string& v, const std::string b, std::size_t bn)
         : name(n)
         , version(v)
         , build_string(b)
@@ -279,30 +296,32 @@ namespace mamba
     {
     }
 
-    bool PackageInfo::operator==(PackageInfo const& other) const
+    bool PackageInfo::operator==(const PackageInfo& other) const
     {
-        auto attrs = [](PackageInfo const& p)
+        auto attrs = [](const PackageInfo& p)
         {
-            return std::tie(p.name,
-                            p.version,
-                            p.build_string,
-                            p.noarch,
-                            p.build_number,
-                            p.channel,
-                            p.url,
-                            p.subdir,
-                            p.fn,
-                            p.license,
-                            p.size,
-                            p.timestamp,
-                            p.md5,
-                            p.sha256,
-                            p.track_features,
-                            p.depends,
-                            p.constrains,
-                            p.signatures,
-                            p.extra_metadata,
-                            p.defaulted_keys);
+            return std::tie(
+                p.name,
+                p.version,
+                p.build_string,
+                p.noarch,
+                p.build_number,
+                p.channel,
+                p.url,
+                p.subdir,
+                p.fn,
+                p.license,
+                p.size,
+                p.timestamp,
+                p.md5,
+                p.sha256,
+                p.track_features,
+                p.depends,
+                p.constrains,
+                p.signatures,
+                p.extra_metadata,
+                p.defaulted_keys
+            );
         };
         return attrs(*this) == attrs(other);
     }
@@ -371,7 +390,9 @@ namespace mamba
         if (depends.empty())
         {
             if (defaulted_keys.find("depends") == defaulted_keys.end())
+            {
                 j["depends"] = nlohmann::json::array();
+            }
         }
         else
         {
@@ -380,7 +401,9 @@ namespace mamba
         if (constrains.empty())
         {
             if (defaulted_keys.find("constrains") == defaulted_keys.end())
+            {
                 j["constrains"] = nlohmann::json::array();
+            }
         }
         else
         {

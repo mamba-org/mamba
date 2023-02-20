@@ -1,9 +1,9 @@
+#include <gtest/gtest.h>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/environment.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
-
-#include <gtest/gtest.h>
 
 
 namespace mamba

@@ -4,13 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
-#include "mamba/api/channel_loader.hpp"
 
+#include "mamba/api/channel_loader.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/context.hpp"
 #include "mamba/core/virtual_packages.hpp"
 
 
@@ -23,8 +23,10 @@ namespace mamba
 
         config.at("use_target_prefix_fallback").set_value(true);
         config.at("target_prefix_checks")
-            .set_value(MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                       | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX);
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
         config.load();
 
         auto update_specs = config.at("specs").value<std::vector<std::string>>();
@@ -59,17 +61,20 @@ namespace mamba
 
         std::vector<std::string> prefix_pkgs;
         for (auto& it : prefix_data.records())
+        {
             prefix_pkgs.push_back(it.first);
+        }
 
         prefix_data.add_packages(get_virtual_packages());
 
         MRepo::create(pool, prefix_data);
 
-        MSolver solver(std::move(pool),
-                       { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-                         { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
-                         { SOLVER_FLAG_STRICT_REPO_PRIORITY,
-                           ctx.channel_priority == ChannelPriority::kStrict } });
+        MSolver solver(
+            std::move(pool),
+            { { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
+              { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
+              { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } }
+        );
 
         if (update_all)
         {
@@ -113,7 +118,9 @@ namespace mamba
         {
             std::vector<std::string> pinned_str;
             for (auto& ms : solver.pinned_specs())
+            {
                 pinned_str.push_back("  - " + ms.conda_build_form() + "\n");
+            }
             Console::instance().print("\nPinned packages:\n" + join("", pinned_str));
         }
 
@@ -124,11 +131,15 @@ namespace mamba
         auto execute_transaction = [&](MTransaction& transaction)
         {
             if (ctx.json)
+            {
                 transaction.log_json();
+            }
 
             bool yes = transaction.prompt();
             if (yes)
+            {
                 transaction.execute(prefix_data);
+            }
         };
 
         execute_transaction(transaction);

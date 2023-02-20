@@ -4,16 +4,17 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/core/pool.hpp"
+
 #include <list>
 
-#include <solv/pool.h>
-#include <solv/solver.h>
-#include <solv/selection.h>
 #include <solv/evr.h>
+#include <solv/pool.h>
+#include <solv/selection.h>
+#include <solv/solver.h>
 #include <spdlog/spdlog.h>
 
 #include "mamba/core/context.hpp"
-#include "mamba/core/pool.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/queue.hpp"
 
@@ -80,7 +81,7 @@ namespace mamba
         return m_data->pool.get();
     }
 
-    Pool const* MPool::pool() const
+    const Pool* MPool::pool() const
     {
         return m_data->pool.get();
     }
@@ -108,7 +109,7 @@ namespace mamba
         return pool();
     }
 
-    MPool::operator Pool const*() const
+    MPool::operator const Pool*() const
     {
         return pool();
     }
@@ -121,14 +122,16 @@ namespace mamba
 
         if (sorted)
         {
-            std::sort(solvables.begin(),
-                      solvables.end(),
-                      [this](Id a, Id b)
-                      {
-                          Solvable* sa = pool_id2solvable(pool(), a);
-                          Solvable* sb = pool_id2solvable(pool(), b);
-                          return (pool_evrcmp(this->pool(), sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
-                      });
+            std::sort(
+                solvables.begin(),
+                solvables.end(),
+                [this](Id a, Id b)
+                {
+                    Solvable* sa = pool_id2solvable(pool(), a);
+                    Solvable* sb = pool_id2solvable(pool(), b);
+                    return (pool_evrcmp(this->pool(), sa->evr, sb->evr, EVRCMP_COMPARE) > 0);
+                }
+            );
         }
         return solvables.as<std::vector>();
     }
@@ -137,7 +140,9 @@ namespace mamba
     {
         Id id = pool_conda_matchspec(pool(), ms.c_str());
         if (!id)
+        {
             throw std::runtime_error("libsolv error: could not create matchspec from string");
+        }
         return id;
     }
 

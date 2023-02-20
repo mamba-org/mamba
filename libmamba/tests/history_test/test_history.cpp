@@ -10,10 +10,12 @@ namespace mamba
 {
     TEST(history, parse)
     {
-        static const auto history_file_path
-            = fs::absolute(test_data_dir / "history_test/parse/conda-meta/history");
-        static const auto aux_file_path
-            = fs::absolute(test_data_dir / "history_test/parse/conda-meta/aux_file");
+        static const auto history_file_path = fs::absolute(
+            test_data_dir / "history_test/parse/conda-meta/history"
+        );
+        static const auto aux_file_path = fs::absolute(
+            test_data_dir / "history_test/parse/conda-meta/aux_file"
+        );
 
         // Backup history file and restore it at the end of the test, whatever the output.
         struct ScopedHistoryFileBackup

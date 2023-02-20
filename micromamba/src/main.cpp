@@ -7,26 +7,24 @@
 #ifdef _WIN32  // This set of includes is requires for CommandLineToArgvW() to be available.
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <stdio.h>
+#include <windows.h>
 // Incomplete header included last
 #include <shellapi.h>
 #endif
 
-#include "umamba.hpp"
-
-#include "mamba/version.hpp"
+#include <CLI/CLI.hpp>
 
 #include "mamba/api/configuration.hpp"
-
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/thread_utils.hpp"
-#include "mamba/core/execution.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
+#include "mamba/version.hpp"
 
-#include <CLI/CLI.hpp>
+#include "umamba.hpp"
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
@@ -79,7 +77,9 @@ main(int argc, char** argv)
     {
         full_command << utf8argv[i];
         if (i < argc - 1)
+        {
             full_command << " ";
+        }
     }
     ctx.current_command = full_command.str();
 

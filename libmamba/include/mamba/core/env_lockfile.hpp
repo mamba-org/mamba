@@ -8,16 +8,16 @@
 #ifndef MAMBA_CORE_ENVIRONMENT_LOCKFILE_HPP
 #define MAMBA_CORE_ENVIRONMENT_LOCKFILE_HPP
 
+#include <optional>
 #include <string>
 #include <typeindex>
-#include <optional>
 #include <unordered_map>
 
 #include <tl/expected.hpp>
 
+#include "error_handling.hpp"
 #include "fsutil.hpp"
 #include "package_info.hpp"
-#include "error_handling.hpp"
 
 namespace mamba
 {
@@ -43,9 +43,11 @@ namespace mamba
         }
 
         template <typename StringT>
-        static mamba_error make_error(file_parsing_error_code error_code,
-                                      StringT&& msg,
-                                      std::optional<std::type_index> yaml_error_type = std::nullopt)
+        static mamba_error make_error(
+            file_parsing_error_code error_code,
+            StringT&& msg,
+            std::optional<std::type_index> yaml_error_type = std::nullopt
+        )
         {
             return mamba_error{ std::forward<StringT>(msg),
                                 mamba_error_code::env_lockfile_parsing_failed,
@@ -56,6 +58,7 @@ namespace mamba
     class EnvironmentLockFile
     {
     public:
+
         struct Channel
         {
             std::string url;
@@ -85,9 +88,9 @@ namespace mamba
         {
         }
 
-        std::vector<PackageInfo> get_packages_for(std::string_view category,
-                                                  std::string_view platform,
-                                                  std::string_view manager) const;
+        std::vector<PackageInfo>
+        get_packages_for(std::string_view category, std::string_view platform, std::string_view manager)
+            const;
 
         const std::vector<Package>& get_all_packages() const
         {
@@ -99,14 +102,15 @@ namespace mamba
         }
 
     private:
+
         Meta metadata;
         std::vector<Package> packages;
     };
 
     /// Read an environment lock YAML file and returns it's structured content or an error if
     /// failed.
-    tl::expected<EnvironmentLockFile, mamba_error> read_environment_lockfile(
-        const fs::u8path& lockfile_location);
+    tl::expected<EnvironmentLockFile, mamba_error>
+    read_environment_lockfile(const fs::u8path& lockfile_location);
 
 
     /// Returns `true` if the filename matches names of files which should be interpreted as conda

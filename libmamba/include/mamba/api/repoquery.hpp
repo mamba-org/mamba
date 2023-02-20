@@ -8,8 +8,6 @@
 
 namespace mamba
 {
-    void repoquery(QueryType type,
-                   QueryResultFormat format,
-                   bool use_local,
-                   const std::string& query);
+    void
+    repoquery(QueryType type, QueryResultFormat format, bool use_local, const std::string& query);
 }

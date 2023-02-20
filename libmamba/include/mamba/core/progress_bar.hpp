@@ -7,8 +7,8 @@
 #ifndef MAMBA_CORE_PROGRESS_BAR_HPP
 #define MAMBA_CORE_PROGRESS_BAR_HPP
 
-#include <cstddef>
 #include <chrono>
+#include <cstddef>
 #include <functional>
 #include <string>
 
@@ -28,6 +28,7 @@ namespace mamba
     class ProgressProxy
     {
     public:
+
         ProgressProxy() = default;
         ProgressProxy(ProgressBar* ptr);
         ~ProgressProxy() = default;
@@ -57,8 +58,8 @@ namespace mamba
         std::size_t in_progress() const;
         std::size_t total() const;
         std::size_t speed() const;
-        std::size_t avg_speed(const std::chrono::milliseconds& ref_duration
-                              = std::chrono::milliseconds::max());
+        std::size_t
+        avg_speed(const std::chrono::milliseconds& ref_duration = std::chrono::milliseconds::max());
         double progress() const;
         bool completed() const;
 
@@ -66,8 +67,8 @@ namespace mamba
         ProgressProxy& set_postfix(const std::string& text);
         ProgressProxy& set_repr_hook(std::function<void(ProgressBarRepr&)> f);
         ProgressProxy& set_progress_hook(std::function<void(ProgressProxy&)> f);
-        ProgressProxy& mark_as_completed(const std::chrono::milliseconds& delay
-                                         = std::chrono::milliseconds::zero());
+        ProgressProxy&
+        mark_as_completed(const std::chrono::milliseconds& delay = std::chrono::milliseconds::zero());
 
         std::string elapsed_time_to_str() const;
         std::string prefix() const;
@@ -87,6 +88,7 @@ namespace mamba
         int width() const;
 
     private:
+
         ProgressBar* p_bar = nullptr;
 
         friend class ProgressBarManager;

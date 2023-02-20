@@ -4,14 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/api/update.hpp"
+
 #include <fmt/color.h>
 #include <fmt/format.h>
 
-#include "mamba/api/configuration.hpp"
 #include "mamba/api/channel_loader.hpp"
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/shell.hpp"
-#include "mamba/api/update.hpp"
-
 #include "mamba/core/context.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
@@ -53,12 +53,14 @@ update_self(const std::optional<std::string>& version)
         {
             throw mamba::mamba_error(
                 "No micromamba found in the loaded channels. Add 'conda-forge' to your config file.",
-                mamba_error_code::selfupdate_failure);
+                mamba_error_code::selfupdate_failure
+            );
         }
         else
         {
-            Console::instance().print(fmt::format(
-                "\nYour micromamba version ({}) is already up to date.", umamba::version()));
+            Console::instance().print(
+                fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())
+            );
             return 0;
         }
     }
@@ -66,17 +68,21 @@ update_self(const std::optional<std::string>& version)
     std::optional<PackageInfo> latest_micromamba = pool.id2pkginfo(solvable_ids[0]);
     if (!latest_micromamba)
     {
-        throw mamba::mamba_error("Could not convert solvable to PackageInfo",
-                                 mamba_error_code::internal_failure);
+        throw mamba::mamba_error(
+            "Could not convert solvable to PackageInfo",
+            mamba_error_code::internal_failure
+        );
     }
     Console::stream() << fmt::format(
         fg(fmt::terminal_color::green),
         "\n  Installing micromamba version: {} (currently installed {})",
         latest_micromamba.value().version,
-        umamba::version());
+        umamba::version()
+    );
 
     Console::instance().print(
-        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url));
+        fmt::format("  Fetching micromamba from {}\n", latest_micromamba.value().url)
+    );
 
     ctx.download_only = true;
     MTransaction t(pool, { latest_micromamba.value() }, package_caches);
@@ -102,14 +108,19 @@ update_self(const std::optional<std::string>& version)
     {
         if (on_win)
         {
-            fs::copy_file(cache_path / "Library" / "bin" / "micromamba.exe",
-                          mamba_exe,
-                          fs::copy_options::overwrite_existing);
+            fs::copy_file(
+                cache_path / "Library" / "bin" / "micromamba.exe",
+                mamba_exe,
+                fs::copy_options::overwrite_existing
+            );
         }
         else
         {
             fs::copy_file(
-                cache_path / "bin" / "micromamba", mamba_exe, fs::copy_options::overwrite_existing);
+                cache_path / "bin" / "micromamba",
+                mamba_exe,
+                fs::copy_options::overwrite_existing
+            );
 #ifdef __APPLE__
             codesign(mamba_exe, false);
 #endif

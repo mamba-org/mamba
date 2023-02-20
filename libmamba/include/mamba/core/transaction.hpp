@@ -149,6 +149,7 @@ namespace mamba
         bool empty();
         bool prompt();
         void print();
+        void printEnv();
         bool execute(PrefixData& prefix);
         bool filter(Solvable* s);
 

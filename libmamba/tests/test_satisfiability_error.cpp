@@ -28,48 +28,6 @@
 
 namespace mamba
 {
-
-    TEST(dependency_info, unconstrained)
-    {
-        const auto d = DependencyInfo("foo7 ");
-        EXPECT_EQ(d.name(), "foo7");
-        EXPECT_EQ(d.version(), "*");
-        EXPECT_EQ(d.build_string(), "*");
-        EXPECT_EQ(d.str(), "foo7 * *");
-    }
-
-    TEST(dependency_info, version_range)
-    {
-        const auto d = DependencyInfo(" foo_bar  >=4.3.0,<5.0 ");
-        EXPECT_EQ(d.name(), "foo_bar");
-        EXPECT_EQ(d.version(), ">=4.3.0,<5.0");
-        EXPECT_EQ(d.build_string(), "*");
-        EXPECT_EQ(d.str(), "foo_bar >=4.3.0,<5.0 *");
-    }
-
-    TEST(dependency_info, version_equality)
-    {
-        const auto d = DependencyInfo("foo-bar==4.3.0");
-        EXPECT_EQ(d.name(), "foo-bar");
-        EXPECT_EQ(d.version(), "==4.3.0");
-        EXPECT_EQ(d.build_string(), "*");
-        EXPECT_EQ(d.str(), "foo-bar ==4.3.0 *");
-    }
-
-    TEST(dependency_info, build_range)
-    {
-        const auto d = DependencyInfo(" python_abi  3.10.*  *_cp310 ");
-        EXPECT_EQ(d.name(), "python_abi");
-        EXPECT_EQ(d.version(), "3.10.*");
-        EXPECT_EQ(d.build_string(), "*_cp310");
-        EXPECT_EQ(d.str(), "python_abi 3.10.* *_cp310");
-    }
-
-    TEST(dependency_info, fail)
-    {
-        EXPECT_ANY_THROW(DependencyInfo("<foo"));
-    }
-
     TEST(conflict_map, symetric)
     {
         auto c = conflict_map<std::size_t>();

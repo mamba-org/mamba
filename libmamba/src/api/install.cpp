@@ -350,7 +350,7 @@ namespace mamba
                 MatchSpec ms(u.substr(0, hash));
                 PackageInfo p(ms.name);
                 p.url = ms.url;
-                p.build_string = ms.build;
+                p.build_string = ms.build_string;
                 p.version = ms.version;
                 p.channel = ms.channel;
                 p.fn = ms.fn;

@@ -34,7 +34,7 @@ namespace mamba
         std::string channel;
         std::string ns;
         std::string subdir;
-        std::string build;
+        std::string build_string;
         std::string fn;
         std::string url;
         std::string build_number;

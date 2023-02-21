@@ -141,7 +141,7 @@ namespace mamba
             );
             EXPECT_EQ(ms.name, "_libgcc_mutex");
             EXPECT_EQ(ms.version, "0.1");
-            EXPECT_EQ(ms.build, "conda_forge");
+            EXPECT_EQ(ms.build_string, "conda_forge");
             EXPECT_EQ(
                 ms.url,
                 "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
@@ -152,7 +152,7 @@ namespace mamba
             MatchSpec ms("/home/randomguy/Downloads/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2");
             EXPECT_EQ(ms.name, "_libgcc_mutex");
             EXPECT_EQ(ms.version, "0.1");
-            EXPECT_EQ(ms.build, "conda_forge");
+            EXPECT_EQ(ms.build_string, "conda_forge");
 #ifdef _WIN32
             std::string driveletter = fs::absolute(fs::u8path("/")).string().substr(0, 1);
             EXPECT_EQ(

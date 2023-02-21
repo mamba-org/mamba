@@ -8,7 +8,6 @@ __all__ = [
     "CompressedProblemsGraph",
     "Configuration",
     "Context",
-    "DependencyInfo",
     "DownloadTargetList",
     "ExtraPkgInfo",
     "History",
@@ -263,7 +262,7 @@ class CompressedProblemsGraph:
         def __init__(self) -> None: ...
         def __iter__(self) -> typing.Iterator: ...
         def __len__(self) -> int: ...
-        def add(self, arg0: DependencyInfo) -> None: ...
+        def add(self, arg0: MatchSpec) -> None: ...
         def build_strings_trunc(
             self,
             sep: str = "|",
@@ -671,28 +670,6 @@ class Context:
         pass
     pass
 
-class DependencyInfo:
-    def __eq__(self, arg0: DependencyInfo) -> bool: ...
-    def __init__(self, arg0: str) -> None: ...
-    def __str__(self) -> str: ...
-    @property
-    def build_string(self) -> str:
-        """
-        :type: str
-        """
-    @property
-    def name(self) -> str:
-        """
-        :type: str
-        """
-    @property
-    def version(self) -> str:
-        """
-        :type: str
-        """
-    __hash__ = None
-    pass
-
 class DownloadTargetList:
     def __init__(self) -> None: ...
     def add(self, arg0: SubdirData) -> None: ...
@@ -721,7 +698,7 @@ class ExtraPkgInfo:
 
 class History:
     def __init__(self, arg0: Path) -> None: ...
-    def get_requested_specs_map(self) -> typing.Dict[str, mamba::MatchSpec]: ...
+    def get_requested_specs_map(self) -> typing.Dict[str, MatchSpec]: ...
     pass
 
 class Key:
@@ -1065,7 +1042,7 @@ class ProblemsGraph:
     class ConflictMap:
         pass
 
-    class ConstraintNode(DependencyInfo):
+    class ConstraintNode(MatchSpec):
         problem_type: libmambapy.bindings.SolverRuleinfo  # value = <SolverRuleinfo.SOLVER_RULE_PKG_CONSTRAINS: 267>
         pass
 
@@ -1075,7 +1052,7 @@ class ProblemsGraph:
     class RootNode:
         pass
 
-    class UnresolvedDependencyNode(DependencyInfo):
+    class UnresolvedDependencyNode(MatchSpec):
         @property
         def problem_type(self) -> SolverRuleinfo:
             """
@@ -1099,7 +1076,7 @@ class ProblemsGraph:
                 ProblemsGraph.ConstraintNode,
             ]
         ],
-        typing.Dict[typing.Tuple[int, int], DependencyInfo],
+        typing.Dict[typing.Tuple[int, int], MatchSpec],
     ]: ...
     def root_node(self) -> int: ...
     pass

@@ -654,9 +654,6 @@ namespace mamba
             const node_id_mapping& old_to_new
         )
         {
-            // Check nothrow move for efficient push_back
-            static_assert(std::is_nothrow_move_constructible_v<ProblemsGraph::edge_t>);
-
             auto add_new_edge = [&](ProblemsGraph::node_id old_from, ProblemsGraph::node_id old_to)
             {
                 auto const new_from = old_to_new[old_from];

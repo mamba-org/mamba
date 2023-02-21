@@ -312,7 +312,7 @@ namespace mamba
         throw std::runtime_error("Environment name not found " + name);
     }
 
-    const void Context::debug_print()
+    void Context::debug_print() const
     {
 #define PRINT_CTX(xname) << #xname ": " << xname << '\n'
 

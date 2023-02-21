@@ -107,16 +107,18 @@ namespace mamba
             Id ttype = transaction_type(t, p, SOLVER_TRANSACTION_SHOW_ALL);
             Solvable* s = pool_id2solvable(t->pool, p);
 
-            package_map::const_iterator it, end = m_package_records.end();
             switch (ttype)
             {
                 case SOLVER_TRANSACTION_INSTALL:
-                    it = m_package_records.find(pool_id2str(pool, s->name));
-                    if (it != end)
+                {
+                    const auto it = m_package_records.find(pool_id2str(pool, s->name));
+                    if (it != m_package_records.end())
                     {
                         result.push_back(it->second);
                         break;
                     }
+                    [[fallthrough]];
+                }
                 default:
                     throw std::runtime_error(
                         "Package not found in prefix records or other unexpected condition"

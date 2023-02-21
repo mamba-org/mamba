@@ -97,7 +97,7 @@ namespace mamba
         };
         struct PackageNode : PackageInfo
         {
-            std::optional<SolverRuleinfo> problem_type;
+            std::optional<SolverRuleinfo> problem_type = {};
 
             PackageNode(const PackageNode&) = default;
             PackageNode(PackageNode&&) noexcept = default;

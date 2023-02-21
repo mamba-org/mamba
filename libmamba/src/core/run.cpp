@@ -307,7 +307,6 @@ namespace mamba
 
         LOG_DEBUG << "Running wrapped script: " << join(" ", command);
 
-        bool all_streams = stream_options == (int) STREAM_OPTIONS::ALL_STREAMS;
         bool sinkout = stream_options & (int) STREAM_OPTIONS::SINKOUT;
         bool sinkerr = stream_options & (int) STREAM_OPTIONS::SINKERR;
         bool sinkin = stream_options & (int) STREAM_OPTIONS::SINKIN;
@@ -430,7 +429,7 @@ namespace mamba
                 {
                     signal(
                         SIGTERM,
-                        [](int signum)
+                        [](int /*signum*/)
                         {
                             LOG_INFO << "Received SIGTERM on micromamba run - terminating process";
                             reproc::stop_actions sa;

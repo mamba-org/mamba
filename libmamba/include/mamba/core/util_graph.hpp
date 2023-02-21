@@ -19,6 +19,10 @@ namespace mamba
 
     /**
      * A sorted vector behaving like a set.
+     *
+     * Like, ``std::set``, uniqueness is determined by using the equivalence relation.
+     * In imprecise terms, two objects ``a`` and ``b`` are considered equivalent if neither
+     * compares less than the other: ``!comp(a, b) && !comp(b, a)``
      */
     template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>>
     class vector_set : private std::vector<Key, Allocator>
@@ -86,6 +90,7 @@ namespace mamba
 
         key_compare m_compare;
 
+        bool key_eq(const value_type& a, const value_type& b) const;
         template <typename U>
         std::pair<const_iterator, bool> insert_impl(U&& value);
         void sort_and_remove_duplicates();
@@ -115,6 +120,12 @@ namespace mamba
 
     template <typename Key, typename Compare, typename Allocator>
     bool operator==(
+        const vector_set<Key, Compare, Allocator>& lhs,
+        const vector_set<Key, Compare, Allocator>& rhs
+    );
+
+    template <typename Key, typename Compare, typename Allocator>
+    bool operator!=(
         const vector_set<Key, Compare, Allocator>& lhs,
         const vector_set<Key, Compare, Allocator>& rhs
     );
@@ -387,10 +398,17 @@ namespace mamba
     }
 
     template <typename K, typename C, typename A>
+    bool vector_set<K, C, A>::key_eq(const value_type& a, const value_type& b) const
+    {
+        return !m_compare(a, b) && !m_compare(b, a);
+    }
+
+    template <typename K, typename C, typename A>
     void vector_set<K, C, A>::sort_and_remove_duplicates()
     {
         std::sort(Base::begin(), Base::end(), m_compare);
-        Base::erase(std::unique(Base::begin(), Base::end()), Base::end());
+        auto is_eq = [this](const value_type& a, const value_type& b) { return key_eq(a, b); };
+        Base::erase(std::unique(Base::begin(), Base::end(), is_eq), Base::end());
     }
 
     template <typename K, typename C, typename A>
@@ -406,7 +424,7 @@ namespace mamba
     auto vector_set<K, C, A>::insert_impl(U&& value) -> std::pair<const_iterator, bool>
     {
         auto it = std::lower_bound(begin(), end(), value, m_compare);
-        if ((it == end()) || (!(*it == value)))
+        if ((it == end()) || (!(key_eq(*it, value))))
         {
             Base::insert(it, std::forward<U>(value));
         }
@@ -416,8 +434,14 @@ namespace mamba
     template <typename K, typename C, typename A>
     bool operator==(const vector_set<K, C, A>& lhs, const vector_set<K, C, A>& rhs)
     {
-        return static_cast<const std::vector<K, A>&>(lhs)
-               == static_cast<const std::vector<K, A>&>(rhs);
+        auto is_eq = [&lhs](const auto& a, const auto& b) { return lhs.key_eq(a, b); };
+        return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend(), is_eq);
+    }
+
+    template <typename K, typename C, typename A>
+    bool operator!=(const vector_set<K, C, A>& lhs, const vector_set<K, C, A>& rhs)
+    {
+        return !(lhs == rhs);
     }
 
     /********************************

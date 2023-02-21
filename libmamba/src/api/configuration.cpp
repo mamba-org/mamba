@@ -1243,23 +1243,28 @@ namespace mamba
                         the value is the url of the proxy server, optionally with username and password
                         in the form of scheme://username:password@hostname.)")));
 
-        insert(Configurable("remote_connect_timeout_secs", &ctx.connect_timeout_secs)
-                    .group("Network")
-                    .set_rc_configurable()
-                    .set_env_var_names()
-                    .description("The number seconds conda will wait for your client to establish a connection to a remote url resource."));
+        insert(
+            Configurable("remote_connect_timeout_secs", &ctx.connect_timeout_secs)
+                .group("Network")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description(
+                    "The number seconds conda will wait for your client to establish a connection to a remote url resource."));
 
         insert(Configurable("remote_backoff_factor", &ctx.retry_backoff)
-                    .group("Network")
-                    .set_rc_configurable()
-                    .set_env_var_names()
-                    .description("The factor determines the time HTTP connection should wait for attempt."));
+                   .group("Network")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description(
+                       "The factor determines the time HTTP connection should wait for attempt."));
 
-        insert(Configurable("remote_max_retries", &ctx.max_retries)
-                    .group("Network")
-                    .set_rc_configurable()
-                    .set_env_var_names()
-                    .description("The maximum number of retries each HTTP connection should attempt."));
+        insert(
+            Configurable("remote_max_retries", &ctx.max_retries)
+                .group("Network")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("The maximum number of retries each HTTP connection should attempt."));
+
 
         // Solver
         insert(Configurable("channel_priority", &ctx.channel_priority)

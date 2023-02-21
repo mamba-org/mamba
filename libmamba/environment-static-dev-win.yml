@@ -16,4 +16,3 @@ dependencies:
   - zlib
   - zchunk-static
   - winreg
-  - powerloader >=0.5.5

@@ -31,6 +31,7 @@ set(LIBMAMBA_TEST_SRCS
     test_validate.cpp
     test_virtual_packages.cpp
     test_util.cpp
+    test_util_compare.cpp
     test_util_string.cpp
     test_util_graph.cpp
     test_env_lockfile.cpp

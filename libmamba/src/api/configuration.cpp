@@ -662,8 +662,12 @@ namespace mamba
 
         void verbose_hook(int& lvl)
         {
+            // If we output json, we ignore logging level requests
             auto& ctx = Context::instance();
-            ctx.set_verbosity(lvl);
+            if(!ctx.json)
+            {
+                ctx.set_verbosity(lvl);
+            }
         }
 
         void target_prefix_checks_hook(int& options)

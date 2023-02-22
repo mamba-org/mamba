@@ -538,16 +538,16 @@ PYBIND11_MODULE(bindings, m)
         .def(py::init<>())
         .def_readwrite("extract_zchunk_files", &powerloader::DownloadOptions::extract_zchunk_files);
 
-    py::class_<powerloader::Downloader>(m, "DownloadTargetList")
+    py::class_<powerloader::Downloader, std::unique_ptr<powerloader::Downloader>>(m, "DownloadTargetList")
         .def(py::init<>([](Context& context)
-                        { return powerloader::Downloader{ context.plcontext }; }))
+                        { return new powerloader::Downloader(context.plcontext); }))
         .def(py::init<>(
-            []() { return powerloader::Downloader{ mamba::Context::instance().plcontext }; }))
+            []() { return new powerloader::Downloader(mamba::Context::instance().plcontext); }))
         .def("add",
              [](powerloader::Downloader& self, MSubdirData& sub) -> void
              { self.add(sub.target()); })
         .def("download", &powerloader::Downloader::download)
-        .def("download", [](powerloader::Downloader& downloader) { downloader.download({}); });
+        .def("download", [](powerloader::Downloader& downloader) { return downloader.download({}); });
     
     pyPrefixData
         .def(py::init(

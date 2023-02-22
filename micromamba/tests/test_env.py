@@ -120,7 +120,7 @@ class TestEnv:
         create("", "-n", env_name, "-f", spec_file)
         ret = yaml.safe_load(run_env("export", "-n", env_name))
         assert ret["name"] == env_name
-        assert set(ret["channels"]) == {"https://conda.anaconda.org/conda-forge"}
+        assert set(ret["channels"]) == {"conda-forge"}
         assert "micromamba=0.24.0=0" in ret["dependencies"]
 
     def test_create(self):

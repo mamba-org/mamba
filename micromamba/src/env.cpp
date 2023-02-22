@@ -129,7 +129,7 @@ set_env_command(CLI::App* com)
                         dependencies << "\n";
                     }
 
-                    channels.insert(make_channel(v.url).base_url());
+                    channels.insert(make_channel(v.url).name());
                 }
 
                 for (const auto& c : channels)

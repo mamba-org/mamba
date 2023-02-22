@@ -244,7 +244,7 @@ namespace mamba
         auto cuda_ver = detail::cuda_version();
         if (!cuda_ver.empty())
         {
-            res.push_back(make_virtual_package("__cuda", cuda_ver));
+            res.push_back(detail::make_virtual_package("__cuda", cuda_ver));
         }
 
         return res;

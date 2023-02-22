@@ -8,20 +8,20 @@
 #include <unistd.h>
 #define PORT 8080
 
-#include "microserver.cpp"
+#include <CLI/CLI.hpp>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include "mamba/core/context.hpp"
-#include "mamba/api/configuration.hpp"
-#include "mamba/core/solver.hpp"
-#include "mamba/core/virtual_packages.hpp"
-#include "mamba/core/solver.hpp"
 #include "mamba/api/channel_loader.hpp"
-#include "umamba.hpp"
+#include "mamba/api/configuration.hpp"
+#include "mamba/core/context.hpp"
+#include "mamba/core/solver.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/virtual_packages.hpp"
+
 #include "common_options.hpp"
+#include "microserver.cpp"
+#include "umamba.hpp"
 #include "version.hpp"
-#include <CLI/CLI.hpp>
 
 struct cache
 {
@@ -54,8 +54,7 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     auto j = nlohmann::json::parse(req.body);
     std::vector<std::string> specs = j["specs"].get<std::vector<std::string>>();
     std::vector<std::string> channels = j["channels"].get<std::vector<std::string>>();
-    std::vector<std::string> virtual_packages
-        = j["virtual_packages"].get<std::vector<std::string>>();
+    std::vector<std::string> virtual_packages = j["virtual_packages"].get<std::vector<std::string>>();
     std::string platform = j["platform"];
 
     ctx.platform = platform;
@@ -73,16 +72,16 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
 
     if (cache_map.find(cache_key) == cache_map.end())
     {
-        cache_map[cache_key]
-            = cache{ load_pool(channels, package_caches), std::chrono::system_clock::now() };
+        cache_map[cache_key] = cache{ load_pool(channels, package_caches),
+                                      std::chrono::system_clock::now() };
     }
     else
     {
         cache& c = cache_map[cache_key];
         if (std::chrono::system_clock::now() - c.last_update > std::chrono::minutes(30))
         {
-            cache_map[cache_key]
-                = cache{ load_pool(channels, package_caches), std::chrono::system_clock::now() };
+            cache_map[cache_key] = cache{ load_pool(channels, package_caches),
+                                          std::chrono::system_clock::now() };
         }
     }
     cache cache_entry = cache_map[cache_key];
@@ -98,9 +97,11 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
     for (const auto& s : virtual_packages)
     {
         auto elements = split(s, "=");
-        vpacks.push_back(make_virtual_package(elements[0],
-                                              elements.size() >= 2 ? elements[1] : "",
-                                              elements.size() >= 3 ? elements[2] : ""));
+        vpacks.push_back(detail::make_virtual_package(
+            elements[0],
+            elements.size() >= 2 ? elements[1] : "",
+            elements.size() >= 3 ? elements[2] : ""
+        ));
     }
     prefix_data.add_packages(vpacks);
 
@@ -110,7 +111,8 @@ handle_solve_request(const microserver::Request& req, microserver::Response& res
         cache_entry.pool,
         { { SOLVER_FLAG_ALLOW_UNINSTALL, ctx.allow_uninstall },
           { SOLVER_FLAG_ALLOW_DOWNGRADE, ctx.allow_downgrade },
-          { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } });
+          { SOLVER_FLAG_STRICT_REPO_PRIORITY, ctx.channel_priority == ChannelPriority::kStrict } }
+    );
 
     solver.add_jobs(specs, SOLVER_INSTALL);
 
@@ -154,18 +156,21 @@ run_server(int port)
     spdlog::logger logger("server", { server_sink });
 
     microserver::Server xserver(logger);
-    xserver.get("/hello",
-                [](const microserver::Request& req, microserver::Response& res)
-                { res.send("Hello World!"); });
-    xserver.get("/",
-                [](const microserver::Request& req, microserver::Response& res)
-                {
-                    res.type = "text/plain";
-                    std::stringstream ss;
-                    ss << banner << "\n\n"
-                       << "Version " << UMAMBA_VERSION_STRING << "\n";
-                    res.send(ss.str());
-                });
+    xserver.get(
+        "/hello",
+        [](const microserver::Request& req, microserver::Response& res) { res.send("Hello World!"); }
+    );
+    xserver.get(
+        "/",
+        [](const microserver::Request& req, microserver::Response& res)
+        {
+            res.type = "text/plain";
+            std::stringstream ss;
+            ss << banner << "\n\n"
+               << "Version " << UMAMBA_VERSION_STRING << "\n";
+            res.send(ss.str());
+        }
+    );
     xserver.post("/solve", handle_solve_request);
 
     Console::stream() << "Starting server on port http://localhost:" << port << std::endl;

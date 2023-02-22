@@ -12,27 +12,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. original
 // source: https://github.com/konteck/wpp
 
-#include "version.hpp"
-#include "spdlog/spdlog.h"
-
-#include "fmt/format.h"
-#include "mamba/core/util_string.hpp"
-#include "mamba/core/util.hpp"
-#include "mamba/core/output.hpp"
-#include "mamba/core/thread_utils.hpp"
+#include <fstream>
 #include <iostream>
-#include <poll.h>
-#include <netinet/in.h>
+#include <map>
+#include <sstream>
+#include <vector>
+
 #include <arpa/inet.h>
-#include <sys/stat.h>
 #include <limits.h>
+#include <netinet/in.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
-#include <map>
-#include <vector>
-#include <fstream>
-#include <sstream>
+
+#include "mamba/core/output.hpp"
+#include "mamba/core/thread_utils.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/core/util_string.hpp"
+
+#include "fmt/format.h"
+#include "spdlog/spdlog.h"
+
+#include "version.hpp"
 
 #define BUFSIZE 8096
 
@@ -55,6 +58,7 @@ namespace microserver
     class Response
     {
     public:
+
         Response()
         {
             code = 200;
@@ -100,6 +104,7 @@ namespace microserver
     class Server
     {
     public:
+
         Server(const spdlog::logger& logger)
             : m_logger(logger)
         {
@@ -111,6 +116,7 @@ namespace microserver
         bool start(int port = 80, const std::string& host = "0.0.0.0");
 
     private:
+
         void main_loop(int port);
         std::pair<std::string, std::string> parse_header(const std::string_view&);
         void parse_headers(const std::string&, Request&, Response&);
@@ -368,26 +374,30 @@ namespace microserver
                 uint16_t port = htons(cli_addr.sin_port);
                 std::chrono::time_point request_end = std::chrono::high_resolution_clock::now();
 
-                m_logger.info("{}:{} - {} {} {} (took {} ms)",
-                              addrbuf,
-                              port,
-                              req.method,
-                              req.path,
-                              fmt::styled(res.code,
-                                          fmt::fg(res.code < 300 ? fmt::terminal_color::green
-                                                                 : fmt::terminal_color::red)),
-                              std::chrono::duration_cast<std::chrono::milliseconds>(request_end
-                                                                                    - request_start)
-                                  .count());
+                m_logger.info(
+                    "{}:{} - {} {} {} (took {} ms)",
+                    addrbuf,
+                    port,
+                    req.method,
+                    req.path,
+                    fmt::styled(
+                        res.code,
+                        fmt::fg(res.code < 300 ? fmt::terminal_color::green : fmt::terminal_color::red)
+                    ),
+                    std::chrono::duration_cast<std::chrono::milliseconds>(request_end - request_start)
+                        .count()
+                );
 
                 std::string header_buffer = buffer.str();
                 auto written = write(newsc, header_buffer.c_str(), header_buffer.size());
-                if (written != header_buffer.size()) {
+                if (written != header_buffer.size())
+                {
                     LOG_ERROR << "Could not write to socket " << strerror(errno);
                     continue;
                 }
                 written = write(newsc, body.c_str(), body_len);
-                if (body_len != written) {
+                if (body_len != written)
+                {
                     LOG_ERROR << "Could not write to socket " << strerror(errno);
                     continue;
                 }

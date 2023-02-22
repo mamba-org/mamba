@@ -44,7 +44,6 @@ set(MICROMAMBA_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/update.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
 )
 
 set(MICROMAMBA_HEADERS
@@ -52,6 +51,12 @@ set(MICROMAMBA_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/umamba.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp
 )
+
+if(UNIX)
+    list(APPEND MICROMAMBA_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/server.cpp
+    )
+endif()
 
 add_executable(micromamba ${MICROMAMBA_SRCS} ${MICROMAMBA_HEADERS})
 

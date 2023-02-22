@@ -151,9 +151,11 @@ namespace mamba
         node_id add_node(node_t&& value);
         void add_edge(node_id from, node_id to);
 
+        void remove_edge(node_id from, node_id to);
+
         bool empty() const;
-        std::size_t number_of_nodes() const;
-        std::size_t number_of_edges() const;
+        std::size_t number_of_nodes() const noexcept;
+        std::size_t number_of_edges() const noexcept;
         std::size_t in_degree(node_id id) const noexcept;
         std::size_t out_degree(node_id id) const noexcept;
         const node_list& nodes() const;
@@ -282,6 +284,8 @@ namespace mamba
 
         void add_edge(node_id from, node_id to, const edge_t& data);
         void add_edge(node_id from, node_id to, edge_t&& data);
+
+        void remove_edge(node_id from, node_id to);
 
         const edge_map& edges() const;
         const edge_t& edge(node_id from, node_id to) const;
@@ -487,13 +491,13 @@ namespace mamba
     }
 
     template <typename N, typename G>
-    auto DiGraphBase<N, G>::number_of_nodes() const -> std::size_t
+    auto DiGraphBase<N, G>::number_of_nodes() const noexcept -> std::size_t
     {
         return m_node_list.size();
     }
 
     template <typename N, typename G>
-    auto DiGraphBase<N, G>::number_of_edges() const -> std::size_t
+    auto DiGraphBase<N, G>::number_of_edges() const noexcept -> std::size_t
     {
         return m_number_of_edges;
     }
@@ -582,6 +586,17 @@ namespace mamba
         m_successors[from].insert(to);
         m_predecessors[to].insert(from);
         ++m_number_of_edges;
+    }
+
+    template <typename N, typename G>
+    void DiGraphBase<N, G>::remove_edge(node_id from, node_id to)
+    {
+        const auto to_removed = m_successors[from].erase(to);
+        const auto from_removed = m_predecessors[to].erase(from);
+        if ((to_removed == 1) && (from_removed == 1))
+        {
+            --m_number_of_edges;
+        }
     }
 
     template <typename N, typename G>
@@ -701,7 +716,7 @@ namespace mamba
         m_node_list.push_back(std::forward<V>(value));
         m_successors.push_back(node_id_list());
         m_predecessors.push_back(node_id_list());
-        return m_node_list.size() - 1u;
+        return number_of_nodes() - 1u;
     }
 
     template <typename N, typename G>
@@ -787,8 +802,15 @@ namespace mamba
     void DiGraph<N, E>::add_edge_impl(node_id from, node_id to, T&& data)
     {
         Base::add_edge(from, to);
-        auto ledge_id = std::make_pair(from, to);
-        m_edges.insert(std::make_pair(ledge_id, std::forward<T>(data)));
+        auto l_edge_id = std::pair(from, to);
+        m_edges.insert(std::pair(l_edge_id, std::forward<T>(data)));
+    }
+
+    template <typename N, typename E>
+    void DiGraph<N, E>::remove_edge(node_id from, node_id to)
+    {
+        m_edges.erase({ from, to });
+        Base::remove_edge(from, to);
     }
 
     template <typename N, typename E>

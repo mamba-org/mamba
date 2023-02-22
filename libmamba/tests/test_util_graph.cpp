@@ -246,6 +246,25 @@ namespace mamba
         EXPECT_EQ(g.edge(0ul, 1ul), new_edge_val);
     }
 
+    TEST(graph, remove_edge)
+    {
+        auto g = build_edge_data_graph();
+        const auto n_edges_init = g.number_of_edges();
+
+        ASSERT_FALSE(g.has_edge(1, 0));
+        ASSERT_TRUE(g.has_edge(0, 1));
+        g.remove_edge(1, 0);
+        EXPECT_EQ(g.number_of_edges(), n_edges_init);
+        EXPECT_FALSE(g.has_edge(1, 0));
+        EXPECT_TRUE(g.has_edge(0, 1));
+
+        ASSERT_TRUE(g.has_edge(0, 1));
+        g.remove_edge(0, 1);
+        EXPECT_EQ(g.number_of_edges(), n_edges_init - 1u);
+        EXPECT_FALSE(g.has_edge(0, 1));
+        EXPECT_EQ(g.edges().count({ 0, 1 }), 0);
+    }
+
     TEST(graph, degree)
     {
         const auto g = build_graph();
